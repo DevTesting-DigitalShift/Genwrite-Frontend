@@ -1,0 +1,9 @@
+/* custom quill toolbar */
+#toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f0f0f0;
+  border-bottom: 1px solid #ccc;
+  padding: 10px;
+}
