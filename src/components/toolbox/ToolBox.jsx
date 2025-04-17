@@ -6,6 +6,7 @@ import { fetchBlogById } from "../../store/slices/blogSlice";
 import TextEditor from "../generateBlog/TextEditor";
 import TextEditorSidebar from "../generateBlog/TextEditorSidebar";
 import SmallBottomBox from "./SmallBottomBox";
+import Loading from "../Loading";
 
 const ToolBox = () => {
   const location = useLocation();
@@ -15,6 +16,7 @@ const ToolBox = () => {
   const [activeTab, setActiveTab] = useState("normal");
   const [isLoading, setIsLoading] = useState(true);
   const [keywords, setKeywords] = useState([]);
+  const loading = useSelector((state) => state.blog.loading);
 
   const blogFromLocation = location.state?.blog;
 
@@ -27,7 +29,9 @@ const ToolBox = () => {
   useEffect(() => {
     if (blogId && !blogFromLocation) {
       setIsLoading(true);
-      dispatch(fetchBlogById(blogId)).then(() => setIsLoading(false));
+      dispatch(fetchBlogById(blogId))
+        .then(() => setIsLoading(false))
+        .catch(() => setIsLoading(false));
     } else {
       setIsLoading(false);
     }
@@ -77,14 +81,9 @@ const ToolBox = () => {
               >
                 {isLoading ? (
                   <div className="flex justify-center items-center h-full">
-                    <motion.div
-                      className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full"
-                      animate={{ rotate: 360 }}
-                      transition={{
-                        duration: 1,
-                        repeat: Infinity,
-                        ease: "linear",
-                      }}
+                    <Loading 
+                      message="Loading editor..." 
+                      size="default"
                     />
                   </div>
                 ) : (
@@ -97,11 +96,13 @@ const ToolBox = () => {
                 )}
               </motion.div>
             </AnimatePresence>
-            <TextEditorSidebar
-              blog={blogToDisplay}
-              keywords={keywords}
-              setKeywords={setKeywords}
-            />
+            {!isLoading && (
+              <TextEditorSidebar
+                blog={blogToDisplay}
+                keywords={keywords}
+                setKeywords={setKeywords}
+              />
+            )}
           </div>
         </div>
         <SmallBottomBox />

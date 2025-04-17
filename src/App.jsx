@@ -20,6 +20,8 @@ import LayoutWithSidebarAndHeader from "./components/Layout";
 import { useDispatch } from "react-redux";
 import { load } from "./store/slices/authSlice";
 import ToolboxPage from "./components/toolbox/toolboxSettings";
+import LoadingOverlay from './components/LoadingOverlay';
+
 
 const App = () => {
   const dispatch = useDispatch();
@@ -41,6 +43,7 @@ const App = () => {
 
   return (
     <>
+      <LoadingOverlay />
       <Testing />
       <div className="flex">
         {/* Sidebar on the left */}
