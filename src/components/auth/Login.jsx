@@ -5,18 +5,53 @@ import GoogleButton from "react-google-button";
 import { FaEnvelope, FaLock } from "react-icons/fa";
 import { loginUser, signupUser } from "../../store/slices/authSlice";
 import { unwrapResult } from "@reduxjs/toolkit";
+import { useGoogleLogin } from '@react-oauth/google';
+import axios from 'axios';
 
+const api = axios.create({
+  baseURL: 'http://localhost:8000/api/v1',
+  withCredentials: true
+});
 const Auth = ({ path }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [isSignup, setIsSignup] = useState(path === "signup");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const handleGoogleLogin = () => {};
+  const handleGoogleLogin = useGoogleLogin({
+    flow: 'auth-code',
+    onSuccess: async (codeResponse) => {
+      try {
+        console.log('Google authorization code:', codeResponse.code);
+        
+        const response = await api.post('/auth/google-signin', {
+          code: codeResponse.code
+        });
+
+        if (response.data.token) {
+          localStorage.setItem('token', response.data.token);
+          navigate('/dash');
+        }
+      } catch (error) {
+        console.error('Google login error details:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          message: error.message
+        });
+        setError(`Google login failed: ${error.response?.data?.message || error.message}`);
+      }
+    },
+    onError: (error) => {
+      console.error('Google OAuth error:', error);
+      setError('Google login failed to initialize');
+    }
+  });
+
 
   useEffect(() => {
     setIsSignup(path === "signup");

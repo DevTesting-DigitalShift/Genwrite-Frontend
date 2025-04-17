@@ -5,16 +5,32 @@ import { motion } from "framer-motion";
 import SimpleMDE from "react-simplemde-editor";
 import "easymde/dist/easymde.min.css";
 import axiosInstance from "../../api";
+import AnimatedContent from "./AnimatedContent";
 
 const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
   const [content, setContent] = useState(blog?.content || "");
   const [isSaving, setIsSaving] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [hasAnimated, setHasAnimated] = useState(false);
+  const [blogId, setBlogId] = useState(null);
 
   useEffect(() => {
-    if (blog?.content) {
-      setContent(blog.content);
+    if (blog?._id !== blogId) {
+      setBlogId(blog?._id);
+      if (blog?.content && !hasAnimated) {
+        setIsAnimating(true);
+        setContent('');
+      } else {
+        setContent(blog?.content || '');
+      }
     }
-  }, [blog]);
+  }, [blog, blogId, hasAnimated]);
+
+  const handleAnimationComplete = () => {
+    setIsAnimating(false);
+    setHasAnimated(true);
+    setContent(blog.content);
+  };
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -26,7 +42,6 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
         focusKeywords: blog.focusKeywords,
         keywords,
       });
-      console.log("Blog updated successfully:", response.data);
       if (response.data && response.data) {
         setContent(response.data.content);
       }
@@ -38,6 +53,17 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
   };
 
   const renderEditor = () => {
+    if (isAnimating && blog?.content) {
+      return (
+        <div className="h-[calc(100vh-200px)] md:w-[936px] p-4 overflow-y-auto bg-white">
+          <AnimatedContent 
+            content={blog.content} 
+            onComplete={handleAnimationComplete}
+          />
+        </div>
+      );
+    }
+
     switch (activeTab) {
       case "normal":
         return (
@@ -46,7 +72,7 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
             onChange={setContent}
             modules={TextEditor.modules}
             formats={TextEditor.formats}
-            className="h-[calc(100vh-200px)] overflow-y-auto"
+            className="h-[calc(100vh-200px)] md:w-[936px] overflow-y-auto"
           />
         );
       case "markdown":
@@ -58,7 +84,9 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
               autofocus: true,
               spellChecker: false,
               minHeight: "calc(100vh - 200px)",
+              minWidth: "936px",
             }}
+            className="h-[calc(100vh-200px)] md:w-[936px] p-4 border rounded-md font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 overflow-y-auto"
           />
         );
       case "html":
@@ -66,7 +94,7 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            className="w-full h-[calc(100vh-200px)] p-4 border rounded-md font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full h-[calc(100vh-200px)] md:w-[936px] p-4 border rounded-md font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Enter your HTML here..."
           />
         );
@@ -83,7 +111,7 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
           className="px-4 py-2 bg-blue-600 text-white rounded-md shadow-md"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          disabled={isSaving}
+          disabled={isSaving || isAnimating}
         >
           {isSaving ? (
             <motion.span
