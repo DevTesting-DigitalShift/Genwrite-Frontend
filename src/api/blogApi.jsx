@@ -3,17 +3,21 @@ import axiosInstance from "."; // Import the Axios instance
 // Create a new blog
 export const createBlog = async (blogData) => {
   try {
+    console.log("Making single API call to create blog");
     const response = await axiosInstance.post("/blogs", blogData);
-    console.log("blogData")
-    console.log("blog data int he create blof api - ")
-    console.log(blogData)
-    console.log("blog data |||||")
-    console.log(response)
-    return response.data;
+    
+    // Wait for the blog to be fully generated with content
+    let blog = response.data;
+    while (!blog.content) {
+      await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
+      const checkResponse = await axiosInstance.get(`/blogs/${blog._id}`);
+      blog = checkResponse.data;
+    }
+    
+    console.log("Blog creation complete with content:", blog);
+    return blog;
   } catch (error) {
-    console.log("error + ===" + error)
-    console.log(blogData)
-    console.log(error)
+    console.error("Blog creation API error:", error);
     throw new Error(error.response?.data?.message || "Failed to create blog");
   }
 };

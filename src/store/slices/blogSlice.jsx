@@ -96,21 +96,26 @@ export const createNewBlog = (blogData, navigate) => async (dispatch) => {
   dispatch(setLoading(true));
   try {
     console.log("Creating new blog");
+    // This will wait until the blog is fully generated with content
     const blog = await createBlog(blogData);
-    console.log({ blog });
-    dispatch(setUserBlogs((prev) => [...prev, blog])); // Add the new blog to the list
+    
+    if (!blog || !blog.content) {
+      throw new Error('Blog creation failed: No content generated');
+    }
+
+    // Blog is ready with content
+    dispatch(setUserBlogs((prev) => [...prev, blog]));
     dispatch(setSelectedBlog(blog));
-    console.log(blogData)
-    navigate(`/toolbox/${blog._id}`); // Navigate to the editor page
+    navigate(`/toolbox/${blog._id}`);
     toast.success("Blog created successfully");
   } catch (error) {
+    console.error("Blog creation error:", error);
     dispatch(setError(error.message));
+    toast.error(error.message);
   } finally {
     dispatch(setLoading(false));
   }
 };
-
-
 
 export const createMultiBlog = (blogData, navigate) => async (dispatch) => {
   dispatch(setLoading(true));
@@ -130,8 +135,6 @@ export const createMultiBlog = (blogData, navigate) => async (dispatch) => {
   }
 };
 
-
-
 export const sendBrandVoice = (formData, navigate) => async (dispatch) => {
   dispatch(setLoading(true));
   try {
@@ -144,6 +147,5 @@ export const sendBrandVoice = (formData, navigate) => async (dispatch) => {
     dispatch(setLoading(false));
   }
 };
-
 
 export default blogSlice.reducer;
