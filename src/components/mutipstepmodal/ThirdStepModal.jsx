@@ -9,10 +9,9 @@ const ThirdStepModal = ({
   data,
   setData,
 }) => {
-  const [formData, setFormData] = useState({
+  const [localFormData, setLocalFormData] = useState({
     images: [],
     currentImageIndex: 0,
-    isCheckedGeneratedImages: false,
     referenceLinks: [],
     newLink: "",
   });
@@ -27,10 +26,10 @@ const ThirdStepModal = ({
         method: "POST",
         body: formData,
       });
-      const data = await response.json();
-      setFormData((prev) => ({
+      const resData = await response.json();
+      setLocalFormData((prev) => ({
         ...prev,
-        images: [...prev.images, data.imageUrl],
+        images: [...prev.images, resData.imageUrl],
       }));
     } catch (error) {
       console.error("Error uploading image:", error);
@@ -38,14 +37,14 @@ const ThirdStepModal = ({
   };
 
   const removeImage = (index) => {
-    setFormData((prev) => ({
+    setLocalFormData((prev) => ({
       ...prev,
       images: prev.images.filter((_, i) => i !== index),
     }));
   };
 
   const navigateImages = (direction) => {
-    setFormData((prev) => ({
+    setLocalFormData((prev) => ({
       ...prev,
       currentImageIndex:
         direction === "next"
@@ -55,8 +54,8 @@ const ThirdStepModal = ({
   };
 
   const handleAddLink = () => {
-    if (formData.newLink.trim()) {
-      setFormData((prev) => ({
+    if (localFormData.newLink.trim()) {
+      setLocalFormData((prev) => ({
         ...prev,
         referenceLinks: [...prev.referenceLinks, prev.newLink.trim()],
         newLink: "",
@@ -65,23 +64,29 @@ const ThirdStepModal = ({
   };
 
   const handleRemoveLink = (index) => {
-    setFormData((prev) => ({
+    setLocalFormData((prev) => ({
       ...prev,
       referenceLinks: prev.referenceLinks.filter((_, i) => i !== index),
+    }));
+  };
+
+  const handleCheckboxChange = () => {
+    setData(prevData => ({
+      ...prevData,
+      isCheckedGeneratedImages: !prevData.isCheckedGeneratedImages,
     }));
   };
 
   const handleNextClick = () => {
     const updatedData = {
       ...data,
-      images: [...(data.images || []), ...formData.images],
-      isCheckedGeneratedImages: formData.isCheckedGeneratedImages,
+      images: [...(data.images || []), ...localFormData.images],
       referenceLinks: [
         ...(data.referenceLinks || []),
-        ...formData.referenceLinks,
+        ...localFormData.referenceLinks,
       ],
     };
-    setData(updatedData);
+    console.log("ThirdStepModal: Submitting data:", updatedData);
     handleSubmit(updatedData);
   };
 
@@ -114,10 +119,10 @@ const ThirdStepModal = ({
                 Add Images
               </label>
               <div className="grid grid-cols-4 gap-4">
-                {formData.images
+                {localFormData.images
                   .slice(
-                    formData.currentImageIndex,
-                    formData.currentImageIndex + 3
+                    localFormData.currentImageIndex,
+                    localFormData.currentImageIndex + 3
                   )
                   .map((image, index) => (
                     <div
@@ -131,7 +136,7 @@ const ThirdStepModal = ({
                       />
                       <button
                         onClick={() =>
-                          removeImage(formData.currentImageIndex + index)
+                          removeImage(localFormData.currentImageIndex + index)
                         }
                         className="absolute top-2 right-2 p-1 bg-white rounded-full shadow-lg hover:bg-gray-100"
                       >
@@ -151,7 +156,7 @@ const ThirdStepModal = ({
                   />
                 </label>
               </div>
-              {formData.images.length > 3 && (
+              {localFormData.images.length > 3 && (
                 <div className="flex justify-center gap-2 mt-4">
                   <button
                     onClick={() => navigateImages("prev")}
@@ -174,13 +179,8 @@ const ThirdStepModal = ({
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={formData.isCheckedGeneratedImages}
-                  onChange={() =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      isCheckedGeneratedImages: !prev.isCheckedGeneratedImages,
-                    }))
-                  }
+                  checked={!!data.isCheckedGeneratedImages}
+                  onChange={handleCheckboxChange}
                   className="sr-only peer"
                 />
                 <div className="w-14 h-8 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 peer-checked:bg-[#1B6FC9] after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all" />
@@ -196,9 +196,9 @@ const ThirdStepModal = ({
                   type="text"
                   className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B6FC9]"
                   placeholder="Add link +"
-                  value={formData.newLink}
+                  value={localFormData.newLink}
                   onChange={(e) =>
-                    setFormData((prev) => ({
+                    setLocalFormData((prev) => ({
                       ...prev,
                       newLink: e.target.value,
                     }))
@@ -212,7 +212,7 @@ const ThirdStepModal = ({
                 </button>
               </div>
               <div className="mt-2 space-y-2">
-                {formData.referenceLinks.map((link, index) => (
+                {localFormData.referenceLinks.map((link, index) => (
                   <div
                     key={index}
                     className="flex items-center justify-between gap-2 p-2 bg-gray-50 rounded-lg"

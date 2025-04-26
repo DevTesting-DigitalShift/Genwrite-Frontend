@@ -18,6 +18,26 @@ const FirstStepModal = ({
     handleNext();
   };
 
+  // Update handler for image source selection
+  const handleImageSourceChange = (source) => {
+    setData(prev => ({
+      ...prev,
+      isCheckedGeneratedImages: true, // Always true since we removed the "no images" option
+      isUnsplashActive: source === 'unsplash'
+    }));
+  };
+
+  // Set default image source if not selected
+  useState(() => {
+    if (!data?.isCheckedGeneratedImages) {
+      setData(prev => ({
+        ...prev,
+        isCheckedGeneratedImages: true,
+        isUnsplashActive: true // Default to Unsplash
+      }));
+    }
+  }, []);
+
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/50">
       <div className="w-[800px] bg-white rounded-lg shadow-xl ">
@@ -68,6 +88,43 @@ const FirstStepModal = ({
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
               />
+            </div>
+
+            <div className="border-t pt-4">
+              <div className="flex items-center gap-8">
+                <label className="block text-sm font-medium">
+                  Image Source <span className="text-red-500">*</span>
+                </label>
+                <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      id="unsplash"
+                      name="imageSource"
+                      checked={data?.isUnsplashActive}
+                      onChange={() => handleImageSourceChange('unsplash')}
+                      className="h-4 w-4 text-[#1B6FC9] focus:ring-[#1B6FC9] border-gray-300"
+                    />
+                    <label htmlFor="unsplash" className="text-sm text-gray-700 whitespace-nowrap">
+                      Unsplash Images
+                    </label>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      id="ai-generated"
+                      name="imageSource"
+                      checked={!data?.isUnsplashActive}
+                      onChange={() => handleImageSourceChange('ai')}
+                      className="h-4 w-4 text-[#1B6FC9] focus:ring-[#1B6FC9] border-gray-300"
+                    />
+                    <label htmlFor="ai-generated" className="text-sm text-gray-700 whitespace-nowrap">
+                      AI-Generated Images
+                    </label>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-6">

@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { XIcon, PlusIcon } from "@heroicons/react/solid";
+import { toast } from "react-toastify";
 
-const TextEditorSidebar = ({ blog, keywords, setKeywords }) => {
+const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
   const [newKeyword, setNewKeyword] = useState("");
+  const [isPosting, setIsPosting] = useState(false);
 
   useEffect(() => {
     console.log(blog, "blog before");
@@ -33,6 +35,23 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords }) => {
     if (e.key === "Enter") {
       e.preventDefault();
       addKeywords();
+    }
+  };
+
+  const handlePostClick = async () => {
+    if (onPost) {
+      setIsPosting(true);
+      try {
+        await onPost();
+      } catch (error) {
+        console.error("Posting failed from sidebar trigger:", error);
+        toast.error("Posting failed. Please try again later.");
+      } finally {
+        setIsPosting(false);
+      }
+    } else {
+      console.warn("onPost handler is not provided to TextEditorSidebar");
+      toast.error("Posting function not available.");
     }
   };
 
@@ -145,11 +164,15 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords }) => {
         </motion.div>
       </div>
       <motion.button
+        onClick={handlePostClick}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        className="w-full bg-blue-600 text-white py-2 rounded-md shadow-md transition-colors hover:bg-blue-700"
+        disabled={isPosting}
+        className={`w-full flex items-center justify-center bg-blue-600 text-white py-2 rounded-md shadow-md transition-colors ${
+          isPosting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'
+        }`}
       >
-        Post
+        {isPosting ? "Posting..." : "Post to WordPress"}
       </motion.button>
     </motion.div>
   );
