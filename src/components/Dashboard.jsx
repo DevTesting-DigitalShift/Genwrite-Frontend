@@ -14,62 +14,104 @@ import TailwindcssLayout from "../TailwindcssLayout";
 import MultiStepModal from "./mutipstepmodal/DaisyUi";
 import DaisyUIModal from "./DaisyUIModal";
 import QuickBlogModal from "./mutipstepmodal/QuickBlogModal";
+import CompetitiveAnalysisModal from "./mutipstepmodal/CompetitiveAnalysisModal";
 import axiosInstance from "../api";
+import { setUser } from "../store/slices/authSlice";
 
 const Dashboard = () => {
+  // State declarations
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [daisyUIModal, setDaisyUIModal] = useState(false);
   const [multiStepModal, setMultiStepModal] = useState(false);
   const [quickBlogModal, setQuickBlogModal] = useState(false);
+  const [competitiveAnalysisModal, setCompetitiveAnalysisModal] = useState(false);
   const [modelData, setModelData] = useState({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [recentBlogData, setRecentBlogData] = useState([]);
+
+  // Hooks
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { user } = useSelector((state) => state.auth);
 
-  const showModal = () => {
-    setIsModalVisible(true);
-  };
+  // Load user data when component mounts
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          navigate('/login');
+          return;
+        }
 
-  const showDaisy = () => {
-    setDaisyUIModal(true);
-  };
+        // Only fetch if we don't have complete user data
+        if (!user?._id || !user?.name) {
+          const response = await axiosInstance.get('/auth/me');
+          
+          if (response.data.success && response.data.user) {
+            const userData = {
+              _id: response.data.user._id,
+              name: response.data.user.name,
+              email: response.data.user.email,
+              avatar: response.data.user.avatar,
+              interests: response.data.user.interests
+            };
+            // Ensure we have all required fields before dispatching
+            if (userData._id && userData.name) {
+              dispatch(setUser(userData));
+            }
+          }
+        }
+      } catch (error) {
+        if (error.response?.status === 401) {
+          localStorage.removeItem('token');
+          navigate('/login');
+        }
+      }
+    };
 
-  const hideDaisy = () => {
-    setDaisyUIModal(false);
-  };
+    loadUserData();
+  }, [dispatch, navigate, user?._id]);
 
-  const showMultiStepModal = () => {
-    setMultiStepModal(true);
-  };
+  // Fetch blogs
+  useEffect(() => {
+    const fetchBlogs = async () => {
+      try {
+        const response = await axiosInstance.get("/blogs/getAllBlogs");
+        const allBlogs = response.data;
 
-  const hideMultiStepModal = () => {
-    setMultiStepModal(false);
-  };
+        if (allBlogs.length >= 3) {
+          const lastThreeBlogs = allBlogs.slice(-3);
+          setRecentBlogData(lastThreeBlogs);
+        } else if (allBlogs.length > 0) {
+          setRecentBlogData(allBlogs);
+        }
+      } catch (error) {
+        console.error("Error fetching blogs:", error.response?.data?.message || "Failed to fetch blogs");
+      }
+    };
 
-  const showQuickBlogModal = () => {
-    setQuickBlogModal(true);
-  };
+    fetchBlogs();
+  }, []);
 
-  const hideQuickBlogModal = () => {
-    setQuickBlogModal(false);
-  };
+  // Event handlers
+  const showModal = () => setIsModalVisible(true);
+  const showDaisy = () => setDaisyUIModal(true);
+  const hideDaisy = () => setDaisyUIModal(false);
+  const showMultiStepModal = () => setMultiStepModal(true);
+  const hideMultiStepModal = () => setMultiStepModal(false);
+  const showQuickBlogModal = () => setQuickBlogModal(true);
+  const hideQuickBlogModal = () => setQuickBlogModal(false);
+  const showCompetitiveAnalysis = () => setCompetitiveAnalysisModal(true);
+  const hideCompetitiveAnalysis = () => setCompetitiveAnalysisModal(false);
 
   const handleSubmit = (updatedData) => {
     try {
-      // Instead of using modelData, use the updatedData directly
-      console.log("Updated Data in handleSubmit:", updatedData);
-
-      // Dispatch the action with the latest updated data
       dispatch(createNewBlog(updatedData, navigate));
-
-      // Close the modal and reset the step
       setIsModalVisible(false);
       setCurrentStep(0);
-
-      // Log success message
-      console.log("Form submitted successfully");
     } catch (error) {
-      // Log any errors for debugging
       console.error("Error submitting form:", error);
     }
   };
@@ -79,49 +121,11 @@ const Dashboard = () => {
     setCurrentStep(0);
   };
 
-  const handleNext = () => {
-    setCurrentStep(currentStep + 1);
-  };
-
-  const handlePrev = () => {
-    setCurrentStep(currentStep - 1);
-  };
+  const handleNext = () => setCurrentStep(currentStep + 1);
+  const handlePrev = () => setCurrentStep(currentStep - 1);
 
   console.log({ modelData });
 
-  const [recentBlogData, setrecentBlogData] = useState([]);
-  const fetchBlogs = async () => {
-    try {
-      const response = await axiosInstance.get("/blogs/getAllBlogs");
-      const allBlogs = response.data;
-
-      // Check if there are at least 3 blogs
-      if (allBlogs.length >= 3) {
-        // Get the last 3 blogs from the fetched data
-        const lastThreeBlogs = allBlogs.slice(-3);
-
-        // Update the state with the last 3 blogs
-        setrecentBlogData(lastThreeBlogs);
-
-        console.log(lastThreeBlogs);
-      } else if (allBlogs.length > 0) {
-        // If there are less than 3 blogs, return all of them
-        setRecentBlogData(allBlogs);
-
-        console.log(allBlogs);
-      } else {
-        console.log("No blogs found.");
-      }
-    } catch (error) {
-      console.error(
-        "Error fetching blogs:",
-        error.response?.data?.message || "Failed to fetch blogs"
-      );
-    }
-  };
-  useEffect(() => {
-    fetchBlogs();
-  }, []);
   return (
     <div className="p-7 ml-20 mt-12">
       <Modal
@@ -180,6 +184,10 @@ const Dashboard = () => {
 
       {quickBlogModal && <QuickBlogModal closefnc={hideQuickBlogModal} />}
 
+      {competitiveAnalysisModal && (
+        <CompetitiveAnalysisModal closefnc={hideCompetitiveAnalysis} />
+      )}
+
       <div className="">
         <h3 className="text-[24px] font-[600] mb-8 font-montserrat">
           Let's Begin{" "}
@@ -199,6 +207,7 @@ const Dashboard = () => {
                 showDaisy,
                 showMultiStepModal,
                 showQuickBlogModal,
+                showCompetitiveAnalysis,
               }}
             />
           ))}
@@ -217,6 +226,10 @@ const Dashboard = () => {
                 imageUrl={item.imageUrl}
                 title={item.title}
                 content={item.content}
+                id={item.id}
+                functions={{
+                  showCompetitiveAnalysis,
+                }}
               />
             );
           })}

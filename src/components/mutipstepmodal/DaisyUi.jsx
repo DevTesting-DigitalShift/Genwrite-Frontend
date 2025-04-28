@@ -3,7 +3,7 @@ import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { createMultiBlog } from "../../store/slices/blogSlice";
 import Carousel from "./Carousel";
-import { XIcon, PlusIcon } from "@heroicons/react/solid";
+import { X } from "lucide-react";
 import { toast } from "react-toastify";
 
 const MultiStepModal = ({ closefnc }) => {
@@ -23,6 +23,7 @@ const MultiStepModal = ({ closefnc }) => {
     useBrandVoice: false,
     includeInterlink: false,
     includeMetaHeadlines: false,
+    includeFAQ: false,
     wordpressStatus: true,
     numberOfBlogs: 1,
   });
@@ -269,7 +270,7 @@ const MultiStepModal = ({ closefnc }) => {
                       <span key={`${topic}-${index}`} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
                         {topic}
                         <button type="button" onClick={() => handleRemoveTopic(index)} className="ml-1.5 flex-shrink-0 text-indigo-400 hover:text-indigo-600 focus:outline-none">
-                           <XIcon className="w-3 h-3" />
+                           <X className="w-3 h-3" />
                         </button>
                       </span>
                     ))}
@@ -354,6 +355,13 @@ const MultiStepModal = ({ closefnc }) => {
                     <span className="text-sm font-medium text-gray-700">Include Meta Headlines<p className="text-xs text-gray-500">Generate suggested meta titles/headlines.</p></span>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input type="checkbox" name="includeMetaHeadlines" checked={formData.includeMetaHeadlines} onChange={handleCheckboxChange} className="sr-only peer"/>
+                       <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">Include FAQ Section<p className="text-xs text-gray-500">Generate relevant FAQ questions and answers for the blog.</p></span>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" name="includeFAQ" checked={formData.includeFAQ} onChange={handleCheckboxChange} className="sr-only peer"/>
                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                     </label>
                   </div>

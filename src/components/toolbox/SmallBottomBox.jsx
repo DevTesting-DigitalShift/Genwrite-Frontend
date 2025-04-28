@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import ImageGenerationModal from "./ImageGenerationModal.jsx";
+import ChatBox from "../generateBlog/ChatBox";
 
 const SmallBottomBox = () => {
   const [isModalOpen, setModalOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   const openModal = () => setModalOpen(true);
   const closeModal = () => setModalOpen(false);
@@ -21,7 +23,7 @@ const SmallBottomBox = () => {
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
         className="fixed bottom-2  transform -translate-x-1/2 bg-white flex flex-wrap items-center justify-center gap-4 p-2 w-full max-w-[40rem] rounded-xl shadow-lg"
       >
-        {["Copy", "Regenerate", "Readjust", "Generate Images"].map(
+        {["Copy", "Regenerate", "Generate Images", "Chat Box"].map(
           (text, index) => (
             <motion.button
               key={index}
@@ -29,7 +31,13 @@ const SmallBottomBox = () => {
               whileHover="hover"
               whileTap="tap"
               className="flex items-center justify-center bg-blue-600 text-white px-4 py-2 rounded-lg shadow-md transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
-              onClick={text === "Generate Images" ? openModal : undefined}
+              onClick={() => {
+                if (text === "Generate Images") {
+                  openModal();
+                } else if (text === "Chat Box") {
+                  setIsChatOpen(true);
+                }
+              }}
             >
               {text}
             </motion.button>
@@ -38,6 +46,7 @@ const SmallBottomBox = () => {
       </motion.div>
 
       {isModalOpen && <ImageGenerationModal onClose={closeModal} />}
+      <ChatBox isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
     </>
   );
 };

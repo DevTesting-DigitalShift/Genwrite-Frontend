@@ -31,110 +31,96 @@ const ToolBox = () => {
   useEffect(() => {
     setKeywords([]);
     setIsLoading(true);
-    console.log(`Effect(load): blogId=${blogId}, blogFromLocation exists=${!!blogFromLocation}`);
 
     if (blogId && !blogFromLocation) {
       dispatch(fetchBlogById(blogId))
         .then((action) => {
-          let fetchedContent = "";
-          let fetchedKeywords = [];
           if (action.payload) {
-            fetchedContent = action.payload.content || "";
-            fetchedKeywords = action.payload.keywords || [];
-            console.log("Effect(load): Fetched content length:", fetchedContent.length);
-          } else {
-             console.log("Effect(load): Fetch payload was empty.");
+            setEditorContent(action.payload.content || "");
+            setKeywords(action.payload.keywords || []);
           }
-          setEditorContent(fetchedContent);
-          setKeywords(fetchedKeywords);
           setIsLoading(false);
         })
         .catch((error) => {
-          console.error("Effect(load): Failed to fetch blog:", error);
+          console.error("Failed to fetch blog:", error);
           setEditorContent("");
           setKeywords([]);
           toast.error("Failed to load blog content.");
           setIsLoading(false);
         });
     } else if (blogFromLocation) {
-      const initialContent = blogFromLocation.content || "";
-      console.log("Effect(load): Using location state content length:", initialContent.length);
-      setEditorContent(initialContent);
+      setEditorContent(blogFromLocation.content || "");
       setKeywords(blogFromLocation.keywords || []);
       setIsLoading(false);
     } else {
-      console.log("Effect(load): No blogId/location. Setting content empty.");
       setEditorContent("");
       setKeywords([]);
       setIsLoading(false);
     }
   }, [blogId, dispatch, blogFromLocation]);
 
-  useEffect(() => {
-    console.log("Effect(log state): editorContent state updated. Length:", editorContent?.length ?? 'null/undefined', "Value:", editorContent);
-  }, [editorContent]);
-
   const blogToDisplay = blogFromLocation || blog;
 
   const handleContentChange = (markdownContent) => {
-    console.log("handleContentChange (markdown) called. New length:", markdownContent?.length ?? 'undefined');
     setEditorContent(markdownContent);
   };
 
   const handlePostToWordPress = async () => {
-    console.log("handlePost: Attempting post. Current editorContent:", editorContent);
-
     if (!blogToDisplay?.title) {
       toast.error("Blog title is missing.");
       return;
     }
 
-    if (!editorContent || editorContent.trim() === "") {
+    // Get the content from the preview container
+    const previewContainer = document.querySelector('.markdown-body');
+    const content = previewContainer?.innerHTML || editorContent;
+    
+    if (!content || content.trim() === "" || content === "<p></p>") {
       toast.error("Editor content is empty.");
       return;
     }
 
     const postData = {
       title: blogToDisplay.title,
-      content: editorContent,
+      content: content,
+      wpLink: import.meta.env.VITE_DEFAULT_WP_LINK
     };
 
-    console.log("handlePost: Posting Markdown via backend:", postData);
     const postingToastId = toast.info("Posting to WordPress...", { autoClose: false });
 
     try {
       const response = await axiosInstance.post("/wordpress/post", postData);
+      
+      if (response.status === 504) {
+        toast.update(postingToastId, {
+          render: "Post submitted successfully! (Check WordPress)",
+          type: "success",
+          isLoading: false,
+          autoClose: 5000,
+        });
+      } else {
+        toast.update(postingToastId, {
+          render: response.data?.message || "Successfully posted to WordPress!",
+          type: "success",
+          isLoading: false,
+          autoClose: 5000,
+        });
+      }
+    } catch (error) {
+      let errorMessage = "Failed to post to WordPress";
+      
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast.update(postingToastId, {
-        render: response.data?.message || "Successfully posted to WordPress!",
-        type: "success",
+        render: `WordPress posting failed: ${errorMessage}`,
+        type: "error",
         isLoading: false,
         autoClose: 5000,
       });
-      console.log("handlePost: Backend WP Response:", response.data);
-    } catch (error) {
-      console.error("handlePost: Error posting via backend:", error.response?.data || error.message);
-      if (error.response?.status === 504) {
-         console.warn("handlePost: Backend timed out. Treating as success for UI.");
-         toast.update(postingToastId, {
-           render: "Post submitted successfully! (Check WordPress)",
-           type: "success",
-           isLoading: false,
-           autoClose: 5000,
-         });
-      } else {
-         let errorDetail = "Unknown error";
-         if (error.response?.data?.error) {
-            errorDetail = error.response.data.error;
-         } else if (error.message) {
-            errorDetail = error.message;
-         }
-         toast.update(postingToastId, {
-           render: `WordPress posting failed: ${errorDetail}`,
-           type: "error",
-           isLoading: false,
-           autoClose: 5000,
-         });
-      }
     }
   };
 
@@ -144,8 +130,8 @@ const ToolBox = () => {
   };
 
   return (
-    <div className="p-7 ml-20 mt-12 bg-gray-100 min-h-screen">
-      <div className="max-w-7xl mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
+    <div className="p-7 ml-20 mt-12 bg-gray-100 h-[93vh] ">
+      <div className="max-w-8xl mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
         <div className="flex flex-col h-full ">
           <div className="flex justify-between items-center p-4 border-b">
             <h1 className="text-2xl font-bold text-gray-800">Blog Editor</h1>
@@ -167,7 +153,7 @@ const ToolBox = () => {
               ))}
             </div>
           </div>
-          <div className="flex flex-grow">
+          <div className="flex flex-grow h-[80vh]">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeTab}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { FaSearch, FaBell, FaCog } from "react-icons/fa";
@@ -10,6 +10,14 @@ const LayoutWithSidebarAndHeader = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const location = useLocation();
   const { user } = useSelector((selector) => selector.auth);
+  const [isUserLoaded, setIsUserLoaded] = useState(false);
+
+  useEffect(() => {
+    if (user?.name) {
+      setIsUserLoaded(true);
+    }
+  }, [user]);
+
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -106,20 +114,20 @@ const LayoutWithSidebarAndHeader = () => {
           </div>
           <div className="flex items-center space-x-4">
             <button className="p-2 text-gray-700 hover:bg-gray-100 rounded-full transition duration-150 flex items-center gap-2">
-              {!user ? (
+              {isUserLoaded && user?.name ? (
                 <>
-                  <RxAvatar size={30} />
+                  <div className="w-9 h-9 text-white font-bold rounded-full bg-primary flex justify-center items-center">
+                    {user.name.slice(0, 1).toUpperCase()}
+                  </div>
                   <span className="text-[#2E2E2E] text-[16px] font-[400]">
-                    Username
+                   Hello {user.name}!
                   </span>
                 </>
               ) : (
                 <>
-                  <div className="w-9 h-9 text-white font-bold rounded-full bg-primary flex justify-center items-center">
-                    {user.name?.slice(0, 1).toUpperCase()}
-                  </div>
+                  <RxAvatar size={30} />
                   <span className="text-[#2E2E2E] text-[16px] font-[400]">
-                    {user.name ? ` Hello ${user.name}!` : "Username"}
+                    UserName 
                   </span>
                 </>
               )}
