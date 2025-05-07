@@ -96,7 +96,10 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
         HTMLAttributes: { class: 'text-blue-600 underline' },
       }),
       Image.configure({
-        HTMLAttributes: { class: 'rounded-lg mx-auto my-4 max-w-full' },
+        HTMLAttributes: { 
+          class: 'rounded-lg mx-auto my-4 max-w-[800px] w-full h-auto object-contain',
+          style: 'display: block; margin: 2rem auto;'
+        },
       }),
       Underline,
       TextAlign.configure({ types: ['heading', 'paragraph'] }),

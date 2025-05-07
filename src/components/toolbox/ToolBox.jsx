@@ -75,14 +75,25 @@ const ToolBox = () => {
     const previewContainer = document.querySelector('.markdown-body');
     const content = previewContainer?.innerHTML || editorContent;
     
-    if (!content || content.trim() === "" || content === "<p></p>") {
-      toast.error("Editor content is empty.");
+    // Check if content is empty or just contains empty paragraph
+    if (!content || content.trim() === "" || content === "<p></p>" || content === "<p><br></p>") {
+      toast.error("Editor content is empty. Please add some content before posting.");
       return;
     }
 
+    // Process images in the content to ensure consistent sizing
+    const processedContent = content.replace(
+      /<img[^>]*src="([^"]*)"[^>]*>/g,
+      (match, src) => {
+        return `<div style="max-width: 600px; margin: 2rem auto; text-align: center;">
+          <img src="${src}" alt="Blog image" style="max-width: 100%; height: auto; display: block; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />
+        </div>`;
+      }
+    );
+
     const postData = {
       title: blogToDisplay.title,
-      content: content,
+      content: processedContent,
       wpLink: import.meta.env.VITE_DEFAULT_WP_LINK
     };
 

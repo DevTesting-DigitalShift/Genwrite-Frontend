@@ -16,6 +16,7 @@ const SecondStepModal = ({
     keywordInput: "",
     isCheckedQuick: data.isCheckedQuick || false,
     isCheckedBrand: data.isCheckedBrand || false,
+    aiModel: data.aiModel || "gemini",
   });
 
   const handleKeywordInputChange = (e, type) => {
@@ -110,6 +111,27 @@ const SecondStepModal = ({
           </div>
 
           <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Select AI Model
+              </label>
+              <select
+                value={formData.aiModel}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    aiModel: e.target.value,
+                  }))
+                }
+                className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="gemini">Gemini</option>
+                <option value="openai">OpenAI</option>
+                <option value="grok">Grok</option>
+                <option value="claude">Claude</option>
+              </select>
+            </div>
+
             <div className="grid grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium mb-2">
