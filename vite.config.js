@@ -7,4 +7,11 @@ export default defineConfig({
   server: {
     port: 5174,
   },
+  optimizeDeps: {
+    include: [
+      '@tiptap/extension-font-family',
+      '@tiptap/extension-history',
+      'prismjs'
+    ]
+  }
 });

@@ -42,7 +42,7 @@ export const quickTools = [
     id: 4,
     imageUrl: "./Images/competitor.png",
     title: "Competitor Analysis",
-    content: "Ellipse draft overflow arrange pen",
+    content: "Analyze your competitors' content and strategies",
   },
 ];
 
