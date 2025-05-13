@@ -4,7 +4,14 @@ import axiosInstance from "."; // Import the Axios instance
 export const createBlog = async (blogData) => {
   try {
     console.log("Making single API call to create blog");
-    const response = await axiosInstance.post("/blogs", blogData);
+    
+    // Ensure isUnsplashActive is boolean (Doesn't affect isCheckedGeneratedImages)
+    const sanitizedData = {
+      ...blogData,
+      isUnsplashActive: Boolean(blogData.isUnsplashActive)
+    };
+    
+    const response = await axiosInstance.post("/blogs", sanitizedData);
     
     // Wait for the blog to be fully generated with content
     let blog = response.data;

@@ -25,7 +25,12 @@ const blogSlice = createSlice({
   name: "blogs",
   initialState,
   reducers: {
+    addUserBlog: (state, action) => {
+      // Add the new blog to the existing array
+      state.userBlogs.push(action.payload);
+    },
     setUserBlogs: (state, action) => {
+      // Keep this reducer for fetching all blogs
       state.userBlogs = action.payload;
     },
     setSelectedBlog: (state, action) => {
@@ -44,6 +49,7 @@ const blogSlice = createSlice({
 });
 
 export const {
+  addUserBlog, // Export the new reducer action
   setUserBlogs,
   setSelectedBlog,
   clearSelectedBlog,
@@ -57,7 +63,7 @@ export const fetchUserBlogs = (authorId) => async (dispatch) => {
   dispatch(setLoading(true));
   try {
     const data = await getBlogsByAuthor(authorId);
-    dispatch(setUserBlogs(data));
+    dispatch(setUserBlogs(data)); // Use setUserBlogs when fetching the whole list
   } catch (error) {
     dispatch(setError(error.message));
   } finally {
@@ -92,26 +98,28 @@ export const updateBlogById = (id, updatedData) => async (dispatch) => {
   }
 };
 
-export const createNewBlog = (blogData, navigate) => async (dispatch) => {
+export const createNewBlog = (blogData, navigate) => async (dispatch, getState) => { // Add getState
   dispatch(setLoading(true));
   try {
-    console.log("Creating new blog");
+    console.log("Creating new blog with data:", blogData); // Log the data being sent
     // This will wait until the blog is fully generated with content
     const blog = await createBlog(blogData);
-    
-    if (!blog || !blog.content) {
-      throw new Error('Blog creation failed: No content generated');
+
+    if (!blog || !blog._id) { // Check for blog._id as confirmation
+      throw new Error('Blog creation failed: Invalid response from server');
     }
 
     // Blog is ready with content
-    dispatch(setUserBlogs((prev) => [...prev, blog]));
+    console.log("Blog created successfully on backend:", blog);
+    dispatch(addUserBlog(blog)); // Dispatch the new action with the blog object
     dispatch(setSelectedBlog(blog));
     navigate(`/toolbox/${blog._id}`);
     toast.success("Blog created successfully");
   } catch (error) {
     console.error("Blog creation error:", error);
-    dispatch(setError(error.message));
-    toast.error(error.message);
+    const errorMessage = error.response?.data?.message || error.message || "Blog creation failed";
+    dispatch(setError(errorMessage));
+    toast.error(errorMessage);
   } finally {
     dispatch(setLoading(false));
   }
@@ -123,7 +131,7 @@ export const createMultiBlog = (blogData, navigate) => async (dispatch) => {
     console.log("Creating multi new blog");
     const blog = await createBlogMultiple(blogData);
     console.log({ blog });
-    dispatch(setUserBlogs((prev) => [...prev, blog])); // Add the new blog to the list
+    dispatch(addUserBlog(blog)); // Dispatch the new action with the blog object
     dispatch(setSelectedBlog(blog));
     console.log(blogData)
     navigate(`/toolbox/${blog._id}`); // Navigate to the editor page

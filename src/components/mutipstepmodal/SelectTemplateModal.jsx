@@ -74,20 +74,10 @@ const SelectTemplateModal = ({ handleNext, handleClose, data, setData }) => {
   const handlePackageSelect = (index) => {
     setSelectedPackage(index);
     setData({ ...data, template: packages[index] });
-    const selectedPackageName = packages[index].name;
-    if (formData.template.includes(selectedPackageName)) {
-      setFormData({
-        ...formData,
-        template: formData.template.filter(
-          (name) => name !== selectedPackageName
-        ),
-      });
-    } else if (formData.template.length < 3) {
-      setFormData({
-        ...formData,
-        template: [...formData.template, selectedPackageName],
-      });
-    }
+    setFormData({
+      ...formData,
+      template: [packages[index].name]
+    });
   };
 
   const handleNextClick = () => {

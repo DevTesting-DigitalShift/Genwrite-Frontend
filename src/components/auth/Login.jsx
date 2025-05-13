@@ -3,7 +3,7 @@ import { useDispatch } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 import GoogleButton from "react-google-button";
 import { FaEnvelope, FaLock } from "react-icons/fa";
-import { loginUser, signupUser } from "../../store/slices/authSlice";
+import { loginUser, signupUser, setUser } from "../../store/slices/authSlice";
 import { unwrapResult } from "@reduxjs/toolkit";
 import { useGoogleLogin } from '@react-oauth/google';
 import axios from 'axios';
@@ -24,31 +24,45 @@ const Auth = ({ path }) => {
   const navigate = useNavigate();
 
   const handleGoogleLogin = useGoogleLogin({
-    flow: 'auth-code',
-    onSuccess: async (codeResponse) => {
+    flow: 'implicit',
+    onSuccess: async (tokenResponse) => {
       try {
-        console.log('Google authorization code:', codeResponse.code);
-        
+        setLoading(true);
         const response = await api.post('/auth/google-signin', {
-          code: codeResponse.code
+          access_token: tokenResponse.access_token
         });
 
-        if (response.data.token) {
+        if (response.data.success && response.data.token) {
           localStorage.setItem('token', response.data.token);
+          
+          // Ensure we have the complete user data
+          const userData = {
+            _id: response.data.user._id,
+            name: response.data.user.name,
+            email: response.data.user.email,
+            avatar: response.data.user.avatar,
+            interests: response.data.user.interests || []
+          };
+          
+          // Dispatch the user data to Redux immediately
+          dispatch(setUser(userData));
+          
+          // Navigate to dashboard
           navigate('/dash');
+        } else {
+          throw new Error(response.data.message || 'Invalid response from server');
         }
       } catch (error) {
-        console.error('Google login error details:', {
-          status: error.response?.status,
-          data: error.response?.data,
-          message: error.message
-        });
-        setError(`Google login failed: ${error.response?.data?.message || error.message}`);
+        console.error('Google login error:', error);
+        setError('Google login failed. Please try again.');
+      } finally {
+        setLoading(false);
       }
     },
     onError: (error) => {
       console.error('Google OAuth error:', error);
-      setError('Google login failed to initialize');
+      setError('Google login failed to initialize. Please try again.');
+      setLoading(false);
     }
   });
 
