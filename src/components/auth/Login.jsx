@@ -5,12 +5,12 @@ import GoogleButton from "react-google-button";
 import { FaEnvelope, FaLock } from "react-icons/fa";
 import { loginUser, signupUser, setUser } from "../../store/slices/authSlice";
 import { unwrapResult } from "@reduxjs/toolkit";
-import { useGoogleLogin } from '@react-oauth/google';
-import axios from 'axios';
+import { useGoogleLogin } from "@react-oauth/google";
+import axios from "axios";
 
 const api = axios.create({
-  baseURL: 'http://localhost:8000/api/v1',
-  withCredentials: true
+  baseURL: "http://localhost:8000/api/v1",
+  withCredentials: true,
 });
 const Auth = ({ path }) => {
   const [email, setEmail] = useState("");
@@ -24,48 +24,47 @@ const Auth = ({ path }) => {
   const navigate = useNavigate();
 
   const handleGoogleLogin = useGoogleLogin({
-    flow: 'implicit',
+    flow: "implicit",
     onSuccess: async (tokenResponse) => {
       try {
         setLoading(true);
-        const response = await api.post('/auth/google-signin', {
-          access_token: tokenResponse.access_token
+        const response = await api.post("/auth/google-signin", {
+          access_token: tokenResponse.access_token,
         });
 
         if (response.data.success && response.data.token) {
-          localStorage.setItem('token', response.data.token);
-          
+          localStorage.setItem("token", response.data.token);
+
           // Ensure we have the complete user data
           const userData = {
             _id: response.data.user._id,
             name: response.data.user.name,
             email: response.data.user.email,
             avatar: response.data.user.avatar,
-            interests: response.data.user.interests || []
+            interests: response.data.user.interests || [],
           };
-          
+
           // Dispatch the user data to Redux immediately
           dispatch(setUser(userData));
-          
+
           // Navigate to dashboard
-          navigate('/dash');
+          navigate("/dash");
         } else {
-          throw new Error(response.data.message || 'Invalid response from server');
+          throw new Error(response.data.message || "Invalid response from server");
         }
       } catch (error) {
-        console.error('Google login error:', error);
-        setError('Google login failed. Please try again.');
+        console.error("Google login error:", error);
+        setError("Google login failed. Please try again.");
       } finally {
         setLoading(false);
       }
     },
     onError: (error) => {
-      console.error('Google OAuth error:', error);
-      setError('Google login failed to initialize. Please try again.');
+      console.error("Google OAuth error:", error);
+      setError("Google login failed to initialize. Please try again.");
       setLoading(false);
-    }
+    },
   });
-
 
   useEffect(() => {
     setIsSignup(path === "signup");
@@ -99,9 +98,16 @@ const Auth = ({ path }) => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-blue-500 to-purple-600">
-      <div className="mb-0 animate-bounce">
-        <img src="./Images/logo_genwrite.svg" alt="Logo" className="h-20" />
+    <div className="flex flex-col items-center justify-center min-h-screen py-6 bg-gradient-to-r from-blue-500 to-purple-600">
+      <div className="mb-1 animate-bounce">
+        <img
+          src="/Images/logo_genwrite.png"
+          alt="Logo"
+          width={250}
+          height={80}
+          loading="lazy"
+          className="pl-4"
+        />
       </div>
       <div className="max-w-md w-full p-8 bg-white shadow-lg rounded-lg">
         <h2 className="text-3xl font-bold mb-6 text-center text-gray-800">
@@ -109,8 +115,7 @@ const Auth = ({ path }) => {
         </h2>
         <div className="mb-6 flex justify-center flex-col items-center">
           <p className="text-center text-gray-600 mb-4">
-            {isSignup ? "Sign up with your account" : "Login with your account"}
-            :
+            {isSignup ? "Sign up with your account" : "Login with your account"}:
           </p>
           <GoogleButton onClick={handleGoogleLogin} className="w-full" />
         </div>
@@ -122,10 +127,7 @@ const Auth = ({ path }) => {
         <form onSubmit={handleSubmit}>
           {isSignup && (
             <div className="mb-4">
-              <label
-                className="block text-gray-700 text-sm font-bold mb-2"
-                htmlFor="name"
-              >
+              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="name">
                 Name
               </label>
               <input
@@ -141,10 +143,7 @@ const Auth = ({ path }) => {
             </div>
           )}
           <div className="mb-4">
-            <label
-              className="block text-gray-700 text-sm font-bold mb-2"
-              htmlFor="email"
-            >
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="email">
               Email
             </label>
             <div className="relative">
@@ -162,10 +161,7 @@ const Auth = ({ path }) => {
             </div>
           </div>
           <div className="mb-6">
-            <label
-              className="block text-gray-700 text-sm font-bold mb-2"
-              htmlFor="password"
-            >
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="password">
               Password
             </label>
             <div className="relative">
@@ -200,13 +196,7 @@ const Auth = ({ path }) => {
             } bg-blue-500  hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full`}
             type="submit"
           >
-            {isSignup
-              ? loading
-                ? "Signing In"
-                : "Sign Up"
-              : loading
-              ? "Signing In"
-              : "Sign In"}
+            {isSignup ? (loading ? "Signing In" : "Sign Up") : loading ? "Signing In" : "Sign In"}
           </button>
         </form>
       </div>

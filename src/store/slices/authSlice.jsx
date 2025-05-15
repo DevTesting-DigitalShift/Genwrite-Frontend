@@ -38,7 +38,7 @@ export const loginUser =
         if (data.token) {
           localStorage.setItem("token", data.token);
         }
-        console.log(data, "data");
+        console.log(data);
         await dispatch(setUser({ user: data.user, token: data.token }));
       }
       return { success: true };

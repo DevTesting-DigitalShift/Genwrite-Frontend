@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 const DashboardBox = ({ imageUrl, title, content, id, functions }) => {
   return (
     <div
-      className=" w-1/2 md:w-1/3  h-44 p-4   break-words rounded-md bg-[#FAFAFA]  shadow-sm hover:shadow-md cursor-pointer"
+      className=" w-1/2 md:w-1/3 h-44 p-4 break-words rounded-md bg-[#FAFAFA]  shadow-sm hover:shadow-md cursor-pointer"
       onClick={() => {
         if (id === "A") {
           functions.showQuickBlogModal();

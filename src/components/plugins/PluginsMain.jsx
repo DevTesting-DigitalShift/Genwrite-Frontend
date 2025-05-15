@@ -129,12 +129,13 @@
 
 // export default PluginsMain;
 
-import React, { useState } from "react";
-import DifferentPlugins, { pluginsData } from "./DifferentPlugins";
+import { useState } from "react";
+import DifferentPlugins from "./DifferentPlugins";
 import Modal from "react-modal";
 import { CiGlobe } from "react-icons/ci";
 import { ImGithub } from "react-icons/im";
 import { RiCloseLine } from "react-icons/ri";
+import { pluginsData } from "@constants/pluginsData";
 
 Modal.setAppElement("#root");
 
@@ -150,8 +151,8 @@ const PluginsMain = () => {
   };
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-4 p-7 ml-20 mt-12">Plugins</h1>
+    <>
+      <h1 className="text-2xl font-bold mb-4">Plugins</h1>
 
       <div className="flex flex-col space-y-4">
         {pluginsData.map((item, index) => (
@@ -253,7 +254,7 @@ const PluginsMain = () => {
           </div>
         </Modal>
       )}
-    </div>
+    </>
   );
 };
 

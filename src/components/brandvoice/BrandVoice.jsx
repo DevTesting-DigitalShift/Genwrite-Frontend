@@ -106,8 +106,8 @@ const BrandVoice = () => {
   };
 
   return (
-    <div className="flex p-7 ml-20 mt-12">
-      <div className="w-[60%] p-8">
+    <div className="flex gap-2 justify-around">
+      <div className="w-[60%]">
         <div className="left-section w-full">
           <h1 className="text-[24px] font-[600]">
             Let’s create your Brand Voice
@@ -217,10 +217,10 @@ const BrandVoice = () => {
       </div>
 
       {/* vertical line */}
-      <div className="h-[100vh] w-[0.5px] bg-[#CFCFCF]"></div>
+      <div className="h-[100vh] w-[0.5px] bg-[#CFCFCF] mx-4"></div>
 
       {/* right part */}
-      <div className="right p-8">
+      <div className="right">
         <h1 className="font-[600] text-[20px]">Selected Brand Voice</h1>
 
         <div className="my-6">
@@ -232,8 +232,8 @@ const BrandVoice = () => {
                 </h1>
                 <div className="flex space-x-2">
                   <FaEdit className="text-blue-600 cursor-pointer" />
-                  <img src="./images/edit.png" alt="Edit" />
-                  <img src="./images/trash.png" alt="Delete" />
+                  {/* <img src="/Images/edit.png" alt="Edit" /> */}
+                  <img src="/Images/trash.png" alt="Delete" />
                 </div>
               </div>
               <p className="text-[14px] font-[400] text-[#454545] mt-2">

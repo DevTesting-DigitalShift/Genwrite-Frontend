@@ -1,6 +1,6 @@
-import React from 'react';
 import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
+
 const Loading = ({ message = "Loading...", size = "default" }) => {
   const containerVariants = {
     initial: { opacity: 0, y: 20 },
@@ -30,8 +30,8 @@ const Loading = ({ message = "Loading...", size = "default" }) => {
   };
 
   return (
-    <div className='flex flex-col items-center justify-center'>
-      <img src={"../../public/images/genwriteLogo.png"} alt="" />
+    <div className='min-h-screen absolute top-0 right-0 left-0 bottom-0 bg-gray-100 flex flex-col items-center justify-center'>
+      <img src="/Images/genwriteLogo.png" alt="Genwrite logo" />
      <motion.div
       className="flex flex-col items-center justify-center space-y-4 p-4"
       variants={containerVariants}

@@ -15,8 +15,8 @@ export default function ToolboxPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="p-6 max-w-7xl  mx-auto space-y-8">
-      <div className="flex justify-between items-center mt-20">
+    <div className="max-w-7xl mx-auto space-y-2">
+      <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Toolbox</h1>
           <p className="text-gray-500">
