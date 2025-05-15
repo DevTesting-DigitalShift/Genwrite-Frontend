@@ -98,7 +98,7 @@ const LayoutWithSidebarAndHeader = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 ml-20 w-[93vw] fixed">
+      <div className="flex-1 ml-20 w-[93vw] fixed z-30">
         {/* Header */}
         <header className="top-0 z-[9999]  bg-gray-50 p-4 flex items-center justify-between">
           <div className="flex items-center">

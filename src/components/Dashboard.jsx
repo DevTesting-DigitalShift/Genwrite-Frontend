@@ -39,23 +39,23 @@ const Dashboard = () => {
   useEffect(() => {
     const loadUserData = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem("token");
         if (!token) {
-          navigate('/login');
+          navigate("/login");
           return;
         }
 
         // Only fetch if we don't have complete user data
         if (!user?._id || !user?.name) {
-          const response = await axiosInstance.get('/auth/me');
-          
+          const response = await axiosInstance.get("/auth/me");
+
           if (response.data.success && response.data.user) {
             const userData = {
               _id: response.data.user._id,
               name: response.data.user.name,
               email: response.data.user.email,
               avatar: response.data.user.avatar,
-              interests: response.data.user.interests
+              interests: response.data.user.interests,
             };
             // Ensure we have all required fields before dispatching
             if (userData._id && userData.name) {
@@ -65,8 +65,8 @@ const Dashboard = () => {
         }
       } catch (error) {
         if (error.response?.status === 401) {
-          localStorage.removeItem('token');
-          navigate('/login');
+          localStorage.removeItem("token");
+          navigate("/login");
         }
       }
     };
@@ -78,17 +78,19 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchBlogs = async () => {
       try {
-        const response = await axiosInstance.get("/blogs/getAllBlogs");
+        const response = await axiosInstance.get("/blogs/");
         const allBlogs = response.data;
 
+        console.log(allBlogs.filter((e) => e.status == "complete"));
         if (allBlogs.length >= 3) {
-          const lastThreeBlogs = allBlogs.slice(-3);
+          const lastThreeBlogs = allBlogs.filter((e) => e.status == "complete").slice(-3);
           setRecentBlogData(lastThreeBlogs);
-        } else if (allBlogs.length > 0) {
-          setRecentBlogData(allBlogs);
         }
       } catch (error) {
-        console.error("Error fetching blogs:", error.response?.data?.message || "Failed to fetch blogs");
+        console.error(
+          "Error fetching blogs:",
+          error.response?.data?.message || "Failed to fetch blogs"
+        );
       }
     };
 
@@ -127,7 +129,7 @@ const Dashboard = () => {
   console.log({ modelData });
 
   return (
-    <div className="p-7 ml-20 mt-12">
+    <>
       <Modal
         title={`Step ${currentStep}/3`}
         visible={isModalVisible}
@@ -170,11 +172,7 @@ const Dashboard = () => {
           />
         )}
         <div className="flex items-center justify-center mt-4">
-          <progress
-            className="w-full max-w-md"
-            max="3"
-            value={currentStep}
-          ></progress>
+          <progress className="w-full max-w-md" max="3" value={currentStep}></progress>
         </div>
       </Modal>
 
@@ -184,14 +182,10 @@ const Dashboard = () => {
 
       {quickBlogModal && <QuickBlogModal closefnc={hideQuickBlogModal} />}
 
-      {competitiveAnalysisModal && (
-        <CompetitiveAnalysisModal closefnc={hideCompetitiveAnalysis} />
-      )}
+      {competitiveAnalysisModal && <CompetitiveAnalysisModal closefnc={hideCompetitiveAnalysis} />}
 
       <div className="">
-        <h3 className="text-[24px] font-[600] mb-8 font-montserrat">
-          Let's Begin{" "}
-        </h3>
+        <h3 className="text-[24px] font-[600] mb-8 font-montserrat">Let's Begin </h3>
 
         <div className="flex justify-between items-center gap-8 p-4 bg-white sm:flex-wrap md:flex-nowrap">
           {letsBegin.map((item, index) => (
@@ -215,9 +209,7 @@ const Dashboard = () => {
       </div>
 
       <div className="mt-5 ">
-        <h3 className="text-[24px] font-[600] mb-8 font-montserrat">
-          Quick Tools
-        </h3>
+        <h3 className="text-[24px] font-[600] mb-8 font-montserrat">Quick Tools</h3>
         <div className="grid m-4 gap-10 sm:grid-cols-4 bg-white p-4">
           {quickTools.map((item, index) => {
             return (
@@ -236,41 +228,41 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <div className="mt-5 ">
-        <div className="mt-8 mb-8 flex justify-between items-center">
-          <h3 className="text-[24px] font-[600] font-montserrat">
-            Recent Projects
-          </h3>
-          <span className="mr-5">
-            <select
-              name=""
-              id=""
-              className="font-hind text-md p-1 border-1 border-black bg-blue-50 rounded-xl"
-            >
-              <option className="font-hind" value="">
-                Top Performing
-              </option>
-            </select>
-          </span>
+      {recentBlogData.length > 0 && (
+        <div className="mt-5 ">
+          <div className="mt-8 mb-8 flex justify-between items-center">
+            <h3 className="text-[24px] font-[600] font-montserrat">Recent Projects</h3>
+            <span className="mr-5">
+              <select
+                name=""
+                id=""
+                className="font-hind text-md p-1 border-1 border-black bg-blue-50 rounded-xl"
+              >
+                <option className="font-hind" value="">
+                  Top Performing
+                </option>
+              </select>
+            </span>
+          </div>
+          <div className="grid m-4 gap-10 sm:grid-cols-3">
+            {recentBlogData.map((item, index) => {
+              return (
+                <RecentProjects
+                  key={index}
+                  title={item.title}
+                  content={item.content}
+                  tags={item.focusKeywords}
+                  item={item}
+                />
+              );
+            })}
+          </div>
         </div>
-        <div className="grid m-4 gap-10 sm:grid-cols-3">
-          {recentBlogData.map((item, index) => {
-            return (
-              <RecentProjects
-                key={index}
-                title={item.title}
-                content={item.content}
-                tags={item.focusKeywords}
-                item={item}
-              />
-            );
-          })}
-        </div>
-      </div>
+      )}
       <div className="">
         <QuestionButton />
       </div>
-    </div>
+    </>
   );
 };
 

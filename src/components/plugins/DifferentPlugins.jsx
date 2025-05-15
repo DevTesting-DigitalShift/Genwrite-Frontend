@@ -1,5 +1,3 @@
-import React from "react";
-
 const DifferentPlugins = ({
   pluginImage,
   pluginInstallUrl,
@@ -7,20 +5,17 @@ const DifferentPlugins = ({
   pluginTitle,
   name,
   updatedDate,
-  key,
   onClick,
 }) => {
   return (
-    <div key={key} onClick={onClick} className="border-b-2 border-gray-200">
+    <div onClick={onClick} className="border-b-2 border-gray-200 mx-8">
       <div className="flex bg-white h-[80px] items-center justify-between px-3">
-        <div>
+        <div className="flex gap-4">
           <img src={pluginImage} alt={pluginName} />
-        </div>
-        <div>
-          <h2 className="text-[20px] text-[#000000] font-[500]">
-            {pluginName}
-          </h2>
-          <p className="text-[12px] text-[#454545] font-[400]">{pluginTitle}</p>
+          <div>
+            <h2 className="text-[20px] text-[#000000] font-[500]">{pluginName}</h2>
+            <p className="text-[12px] text-[#454545] font-[400]">{pluginTitle}</p>
+          </div>
         </div>
         <div>
           <span className="text-[14px] text-[#454545] font-[400]">{name}</span>
@@ -97,23 +92,3 @@ export default DifferentPlugins;
 
 // export default DifferentPlugins;
 
-export const pluginsData = [
-  {
-    id: 111,
-    pluginImage: "./Images/wordpres.png",
-    pluginInstallUrl: "https://wordpress.org",
-    pluginName: "Wordpress",
-    pluginTitle: "Background layer project vertical list thumbnail pixel.",
-    name: "Aryan",
-    updatedDate: "2",
-  },
-  {
-    id: 112,
-    pluginImage: "./Images/grammerly.png",
-    pluginInstallUrl: "https://grammerly.org",
-    pluginName: "Grammerly",
-    pluginTitle: "Background layer project vertical list thumbnail pixel.",
-    name: "Atlas",
-    updatedDate: "11",
-  },
-];

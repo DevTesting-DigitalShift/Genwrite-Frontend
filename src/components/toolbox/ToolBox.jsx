@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
@@ -102,7 +102,7 @@ const ToolBox = () => {
     try {
       const response = await axiosInstance.post("/wordpress/post", postData);
       
-      if (response.status === 504) {
+      if (response.status === 204) {
         toast.update(postingToastId, {
           render: "Post submitted successfully! (Check WordPress)",
           type: "success",
@@ -141,7 +141,7 @@ const ToolBox = () => {
   };
 
   return (
-    <div className="p-7 ml-20 mt-12 bg-gray-100 h-[93vh] ">
+    <div className="h-[93vh] -m-2">
       <div className="max-w-8xl mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
         <div className="flex flex-col h-full ">
           <div className="flex justify-between items-center p-4 border-b">
