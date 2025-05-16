@@ -1,0 +1,22 @@
+name: Mirror to Personal Repository
+
+on:
+  push:
+    branches:
+      - main  # or your default branch
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source repository
+        uses: actions/checkout@v3
+
+      - name: Push to personal repository
+        env:
+          PERSONAL_REPO_PAT: ${{ secrets.PERSONAL_REPO_PAT }}
+        run: |
+          git config --global user.name "DevTesting-DigitalShift"
+          git config --global user.email "digitalshiftdevtesting@gmail.com"
+          git remote add personal https://x-access-token:${PERSONAL_REPO_PAT}@github.com/DevTesting-DigitalShift/Genwrite-Frontend.git
+          git push personal HEAD:main --force
