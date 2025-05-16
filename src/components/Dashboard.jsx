@@ -1,22 +1,21 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import Modal from "../utils/Modal";
 import SelectTemplateModal from "./mutipstepmodal/SelectTemplateModal";
 import FirstStepModal from "./mutipstepmodal/FirstStepModal";
 import SecondStepModal from "./mutipstepmodal/SecondStepModal";
 import ThirdStepModal from "./mutipstepmodal/ThirdStepModal";
-import { letsBegin, quickTools, recentProjects } from "./dashdata/dash";
+import { letsBegin, quickTools } from "./dashdata/dash";
 import DashboardBox, { QuickBox, RecentProjects } from "../utils/DashboardBox";
 import QuestionButton from "../utils/QuestionButton";
 import { useDispatch, useSelector } from "react-redux";
-import { createNewBlog } from "../store/slices/blogSlice";
+import { createNewBlog } from "@store/slices/blogSlice";
 import { useNavigate } from "react-router-dom";
-import TailwindcssLayout from "../TailwindcssLayout";
 import MultiStepModal from "./mutipstepmodal/DaisyUi";
 import DaisyUIModal from "./DaisyUIModal";
 import QuickBlogModal from "./mutipstepmodal/QuickBlogModal";
 import CompetitiveAnalysisModal from "./mutipstepmodal/CompetitiveAnalysisModal";
-import axiosInstance from "../api";
-import { setUser } from "../store/slices/authSlice";
+import axiosInstance from "@api/index";
+import { setUser } from "@store/slices/authSlice";
 
 const Dashboard = () => {
   // State declarations
