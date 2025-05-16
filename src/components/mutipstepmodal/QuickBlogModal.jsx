@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { createNewBlog } from "../../store/slices/blogSlice";
+import { useState } from "react";
+import { createNewQuickBlog } from "../../store/slices/blogSlice";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import Carousel from "./Carousel";
@@ -84,7 +84,7 @@ const QuickBlogModal = ({ closefnc }) => {
       videoLinks: inputs,
     };
     console.log("Form Data:", finalData);
-    dispatch(createNewBlog(finalData, navigate));
+    dispatch(createNewQuickBlog(finalData, navigate));
     console.log("Form submitted successfully");
     handleClose();
   };

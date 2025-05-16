@@ -1,6 +1,34 @@
 import axiosInstance from "."; // Import the Axios instance
 
 // Create a new blog
+export const createQuickBlog = async (blogData) => {
+  try {
+    console.log("Making single API call to create blog");
+    
+    // Ensure isUnsplashActive is boolean (Doesn't affect isCheckedGeneratedImages)
+    const sanitizedData = {
+      ...blogData,
+      isUnsplashActive: Boolean(blogData.isUnsplashActive)
+    };
+    
+    const response = await axiosInstance.post("/blogs/quick", sanitizedData);
+    
+    // Wait for the blog to be fully generated with content
+    let blog = response.data;
+    while (!blog.content) {
+      await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
+      const checkResponse = await axiosInstance.get(`/blogs/${blog._id}`);
+      blog = checkResponse.data;
+    }
+    
+    console.log("Quick Blog creation complete with content:", blog);
+    return blog;
+  } catch (error) {
+    console.error("Quick Blog creation API error:", error);
+    throw new Error(error.response?.data?.message || "Failed to create quickBlog");
+  }
+};
+
 export const createBlog = async (blogData) => {
   try {
     console.log("Making single API call to create blog");

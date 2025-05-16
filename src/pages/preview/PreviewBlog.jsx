@@ -13,14 +13,53 @@ function estimateReadingTime(text) {
 
 function generateTOC(markdown) {
   const lines = markdown.split("\n");
-  return lines
-    .filter((line) => /^#{2,3} /.test(line)) // h2 & h3
-    .map((line) => {
-      const level = line.startsWith("###") ? 3 : 2;
-      const text = line.replace(/^#{2,3} /, "").trim();
-      const id = text.toLowerCase().replace(/[^\w]+/g, "-");
-      return { text, id, level };
-    });
+
+  const seen = new Set();
+  const toc = [];
+  let h2Found = false;
+
+  for (const line of lines) {
+    if (/^## /.test(line)) {
+      h2Found = true;
+      let text = line.replace(/^## /, "").trim();
+
+      // Strip markdown formatting
+      text = text
+        .replace(/!\[.*?\]\(.*?\)/g, "")
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+        .replace(/[*_~`]+/g, "")
+        .replace(/<[^>]*>/g, "")
+        .trim();
+
+      const id = text.toLowerCase().replace(/[^\w]+/g, "-").replace(/^-+|-+$/g, "");
+
+      if (!seen.has(id)) {
+        seen.add(id);
+        toc.push({ text, id, level: 2 });
+      }
+    }
+
+    else if (/^### /.test(line) && !h2Found) {
+      let text = line.replace(/^### /, "").trim();
+
+      // Strip markdown formatting
+      text = text
+        .replace(/!\[.*?\]\(.*?\)/g, "")
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+        .replace(/[*_~`]+/g, "")
+        .replace(/<[^>]*>/g, "")
+        .trim();
+
+      const id = text.toLowerCase().replace(/[^\w]+/g, "-").replace(/^-+|-+$/g, "");
+
+      if (!seen.has(id)) {
+        seen.add(id);
+        toc.push({ text, id, level: 3 });
+      }
+    }
+  }
+
+  return toc;
 }
 
 function addHeadingIds(markdown) {

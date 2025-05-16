@@ -1,6 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 import {
   createBlog,
+  createQuickBlog,
   getAllBlogs,
   getBlogById,
   updateBlog,
@@ -118,6 +119,33 @@ export const createNewBlog = (blogData, navigate) => async (dispatch, getState) 
   } catch (error) {
     console.error("Blog creation error:", error);
     const errorMessage = error.response?.data?.message || error.message || "Blog creation failed";
+    dispatch(setError(errorMessage));
+    toast.error(errorMessage);
+  } finally {
+    dispatch(setLoading(false));
+  }
+};
+
+export const createNewQuickBlog = (blogData, navigate) => async (dispatch, getState) => { // Add getState
+  dispatch(setLoading(true));
+  try {
+    console.log("Creating new blog with data:", blogData); // Log the data being sent
+    // This will wait until the blog is fully generated with content
+    const blog = await createQuickBlog(blogData);
+
+    if (!blog || !blog._id) { // Check for blog._id as confirmation
+      throw new Error('Blog creation failed: Invalid response from server');
+    }
+
+    // Blog is ready with content
+    console.log("Blog created successfully on backend:", blog);
+    dispatch(addUserBlog(blog)); // Dispatch the new action with the blog object
+    dispatch(setSelectedBlog(blog));
+    navigate(`/toolbox/${blog._id}`);
+    toast.success("QuickBlog created successfully");
+  } catch (error) {
+    console.error("QuickBlog creation error:", error);
+    const errorMessage = error.response?.data?.message || error.message || "QuickBlog creation failed";
     dispatch(setError(errorMessage));
     toast.error(errorMessage);
   } finally {

@@ -111,7 +111,7 @@ const CompetitiveAnalysisModal = ({ closefnc }) => {
     }
 
     try {
-      const response = await axiosInstance.post("/analysis/competitors", {
+      const response = await axiosInstance.post("/analysis/run", {
         title: formData.title,
         content: formData.content,
         keywords: formData.keywords,
