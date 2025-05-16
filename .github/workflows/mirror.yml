@@ -12,6 +12,7 @@ jobs:
       - name: Checkout source repository
         uses: actions/checkout@v3
         with:
+          fetch-depth: 0
           persist-credentials: false  # Prevents using the default GITHUB_TOKEN
 
       - name: Configure Git
