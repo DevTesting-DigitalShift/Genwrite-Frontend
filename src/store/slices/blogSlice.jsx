@@ -8,7 +8,7 @@ import {
   getBlogsByAuthor,
   createBlogMultiple,
   sendBrand,
-} from "../../api/blogApi";
+} from "@api/blogApi";
 import { toast } from "react-toastify";
 
 const initialState = {
@@ -99,15 +99,17 @@ export const updateBlogById = (id, updatedData) => async (dispatch) => {
   }
 };
 
-export const createNewBlog = (blogData, navigate) => async (dispatch, getState) => { // Add getState
+export const createNewBlog = (blogData, navigate) => async (dispatch, getState) => {
+  // Add getState
   dispatch(setLoading(true));
   try {
     console.log("Creating new blog with data:", blogData); // Log the data being sent
     // This will wait until the blog is fully generated with content
     const blog = await createBlog(blogData);
 
-    if (!blog || !blog._id) { // Check for blog._id as confirmation
-      throw new Error('Blog creation failed: Invalid response from server');
+    if (!blog || !blog._id) {
+      // Check for blog._id as confirmation
+      throw new Error("Blog creation failed: Invalid response from server");
     }
 
     // Blog is ready with content
@@ -126,15 +128,17 @@ export const createNewBlog = (blogData, navigate) => async (dispatch, getState) 
   }
 };
 
-export const createNewQuickBlog = (blogData, navigate) => async (dispatch, getState) => { // Add getState
+export const createNewQuickBlog = (blogData, navigate) => async (dispatch, getState) => {
+  // Add getState
   dispatch(setLoading(true));
   try {
     console.log("Creating new blog with data:", blogData); // Log the data being sent
     // This will wait until the blog is fully generated with content
     const blog = await createQuickBlog(blogData);
 
-    if (!blog || !blog._id) { // Check for blog._id as confirmation
-      throw new Error('Blog creation failed: Invalid response from server');
+    if (!blog || !blog._id) {
+      // Check for blog._id as confirmation
+      throw new Error("Blog creation failed: Invalid response from server");
     }
 
     // Blog is ready with content
@@ -145,7 +149,8 @@ export const createNewQuickBlog = (blogData, navigate) => async (dispatch, getSt
     toast.success("QuickBlog created successfully");
   } catch (error) {
     console.error("QuickBlog creation error:", error);
-    const errorMessage = error.response?.data?.message || error.message || "QuickBlog creation failed";
+    const errorMessage =
+      error.response?.data?.message || error.message || "QuickBlog creation failed";
     dispatch(setError(errorMessage));
     toast.error(errorMessage);
   } finally {
@@ -161,7 +166,7 @@ export const createMultiBlog = (blogData, navigate) => async (dispatch) => {
     console.log({ blog });
     dispatch(addUserBlog(blog)); // Dispatch the new action with the blog object
     dispatch(setSelectedBlog(blog));
-    console.log(blogData)
+    console.log(blogData);
     navigate(`/toolbox/${blog._id}`); // Navigate to the editor page
     toast.success("Blog created successfully");
   } catch (error) {
@@ -175,7 +180,7 @@ export const sendBrandVoice = (formData, navigate) => async (dispatch) => {
   dispatch(setLoading(true));
   try {
     console.log("hitting /brand/addBrand ");
-    const blog = await  sendBrand(formData);
+    const blog = await sendBrand(formData);
     console.log({ blog });
   } catch (error) {
     dispatch(setError(error.message));

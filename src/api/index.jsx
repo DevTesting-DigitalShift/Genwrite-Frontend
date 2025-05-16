@@ -1,12 +1,8 @@
 import axios from "axios";
 
-//const apiUrl = import.meta.env.VITE_API_URL;
-//const apiUrl = `https://genwrite-api.techlyassist.com`;
-const apiUrl = `http://localhost:8000`;
-
 // Create an Axios instance
 const axiosInstance = axios.create({
-  baseURL: `${apiUrl}/api/v1`, // Replace with your API base URL
+  baseURL: `${import.meta.env.VITE_BACKEND_URL}/api/v1`, // Replace with your API base URL
   headers: {
     "Content-Type": "application/json",
   },
