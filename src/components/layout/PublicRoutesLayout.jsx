@@ -7,8 +7,12 @@ const PublicRoutesLayout = () => {
       {/* Header */}
       <header className="h-fit text-white shadow-md">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="w-28 bg-white flex items-center justify-center rounded-2xl"> 
-            <img src="/Images/genwriteLogo.png" alt="Genwrite logo" className="object-contain pl-1.5" />
+          <div className="w-28 bg-white flex items-center justify-center rounded-2xl">
+            <img
+              src="/Images/genwriteLogo.png"
+              alt="Genwrite logo"
+              className="object-contain pl-1.5"
+            />
           </div>
           <nav className="space-x-4">
             <Link to="/login" className="hover:underline">
