@@ -1,70 +1,70 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import axiosInstance from "../../api";
-import SkeletonLoader from "./SkeletonLoader";
-import { Tooltip } from "antd";
+import React, { useState, useEffect, Suspense } from "react"
+import { useNavigate } from "react-router-dom"
+import axiosInstance from "@api/index"
+import SkeletonLoader from "./SkeletonLoader"
+import { Tooltip } from "antd"
 
-const TRUNCATE_LENGTH = 85;
+const TRUNCATE_LENGTH = 85
 
 const MyProjects = () => {
-  const [blogsData, setBlogsData] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(5);
-  const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
+  const [blogsData, setBlogsData] = useState([])
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(5)
+  const [loading, setLoading] = useState(true)
+  const navigate = useNavigate()
 
   const fetchBlogs = async () => {
     try {
-      setLoading(true);
-      const response = await axiosInstance.get("/blogs/getAllBlogs");
-      setBlogsData(response.data);
-      setLoading(false);
+      setLoading(true)
+      const response = await axiosInstance.get("/blogs/")
+      setBlogsData(response.data?.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)))
     } catch (error) {
       console.error(
         "Error fetching blogs:",
         error.response?.data?.message || "Failed to fetch blogs"
-      );
-      setLoading(false);
+      )
+    } finally {
+      setLoading(false)
     }
-  };
+  }
 
   useEffect(() => {
-    fetchBlogs();
-  }, []);
+    fetchBlogs()
+  }, [])
 
   useEffect(() => {
     const updateItemsPerPage = () => {
       if (window.innerWidth >= 1024) {
-        setItemsPerPage(15);
+        setItemsPerPage(15)
       } else if (window.innerWidth >= 768) {
-        setItemsPerPage(12);
+        setItemsPerPage(12)
       } else {
-        setItemsPerPage(6);
+        setItemsPerPage(6)
       }
-    };
+    }
 
-    updateItemsPerPage();
-    window.addEventListener("resize", updateItemsPerPage);
+    updateItemsPerPage()
+    window.addEventListener("resize", updateItemsPerPage)
 
-    return () => window.removeEventListener("resize", updateItemsPerPage);
-  }, []);
+    return () => window.removeEventListener("resize", updateItemsPerPage)
+  }, [])
 
   const handleBlogClick = (blog) => {
-    navigate(`/toolbox/${blog._id}`, { state: { blog } });
-  };
+    navigate(`/toolbox/${blog._id}`, { state: { blog } })
+  }
 
   const truncateContent = (content, length = TRUNCATE_LENGTH) => {
-    if (!content) return "";
-    return content.length > length ? content.substring(0, length) + "..." : content;
-  };
+    if (!content) return ""
+    return content.length > length ? content.substring(0, length) + "..." : content
+  }
 
-  const totalPages = Math.ceil(blogsData.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const currentItems = blogsData.slice(startIndex, startIndex + itemsPerPage);
+  const totalPages = Math.ceil(blogsData.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const currentItems = blogsData.slice(startIndex, startIndex + itemsPerPage)
 
   const handlePageChange = (pageNumber) => {
-    setCurrentPage(pageNumber);
-  };
+    setCurrentPage(pageNumber)
+  }
 
   return (
     <div className="max-w-7xl mx-auto" style={{ overflowY: "auto" }}>
@@ -81,22 +81,26 @@ const MyProjects = () => {
         <p>No blogs available.</p>
       ) : (
         <>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {currentItems.map((blog) => {
-              const { _id, title, content, focusKeywords, status } = blog;
+              const { _id, title, content, focusKeywords, status } = blog
               return (
                 <Tooltip
                   title={status == "complete" ? title : `Blog generation is ${status}`}
                   key={_id}
                   color={status == "complete" ? "black" : status == "failed" ? "red" : "orange"}
-                  className={status == "failed" ? "border-red-500" : (status != "complete" && "border-yellow-500") + " border-2"}
+                  className={
+                    (status == "failed"
+                      ? "border-red-500"
+                      : status != "complete" && "border-yellow-500") + " border-2"
+                  }
                 >
                   <div
                     className="bg-white shadow-md hover:shadow-xl transition-shadow duration-300 rounded-xl p-4 cursor-pointer"
                     title={title}
                     onClick={() => {
                       if (status == "complete") {
-                        handleBlogClick(blog);
+                        handleBlogClick(blog)
                       }
                     }}
                   >
@@ -114,7 +118,7 @@ const MyProjects = () => {
                     </div>
                   </div>
                 </Tooltip>
-              );
+              )
             })}
           </div>
           {totalPages > 1 && (
@@ -144,7 +148,7 @@ const MyProjects = () => {
         </>
       )}
     </div>
-  );
-};
+  )
+}
 
-export default MyProjects;
+export default MyProjects

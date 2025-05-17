@@ -1,11 +1,14 @@
 import { Navigate, Outlet } from "react-router-dom";
 import LayoutWithSidebarAndHeader from "@components/Layout.jsx";
+import LoadingOverlay from "@components/LoadingOverlay";
 
 const PrivateRoutesLayout = () => {
   // Retrieve token from local storage
   const token = localStorage.getItem("token");
   // Check if token exists
   return token ? (
+    <>
+    <LoadingOverlay />
     <div className="flex">
       {/* Main content area */}
       <div className="flex-1 flex flex-col">
@@ -16,8 +19,9 @@ const PrivateRoutesLayout = () => {
         </div>
       </div>
     </div>
+    </>
   ) : (
-    <Navigate to="/login" replace/>
+    <Navigate to="/login" replace />
   );
 };
 

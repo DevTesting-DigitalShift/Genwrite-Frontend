@@ -27,9 +27,7 @@ const App = () => {
 
   return (
     <>
-      <Suspense fallback={<Loading />}>
-        <RouterProvider router={router} />
-      </Suspense>
+      <RouterProvider router={router} />
       <ToastContainer />
     </>
   );

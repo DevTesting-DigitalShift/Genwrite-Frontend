@@ -63,7 +63,7 @@ export const {
 export const fetchUserBlogs = (authorId) => async (dispatch) => {
   dispatch(setLoading(true));
   try {
-    const data = await getBlogsByAuthor(authorId);
+    const data = await getBlogsByAuthor();
     dispatch(setUserBlogs(data)); // Use setUserBlogs when fetching the whole list
   } catch (error) {
     dispatch(setError(error.message));
@@ -115,9 +115,9 @@ export const createNewBlog = (blogData, navigate) => async (dispatch, getState) 
     // Blog is ready with content
     console.log("Blog created successfully on backend:", blog);
     dispatch(addUserBlog(blog)); // Dispatch the new action with the blog object
-    dispatch(setSelectedBlog(blog));
-    navigate(`/toolbox/${blog._id}`);
-    toast.success("Blog created successfully");
+    // dispatch(setSelectedBlog(blog));
+    navigate(`/project`);
+    toast.success("Blog will be generated shortly");
   } catch (error) {
     console.error("Blog creation error:", error);
     const errorMessage = error.response?.data?.message || error.message || "Blog creation failed";
@@ -165,10 +165,10 @@ export const createMultiBlog = (blogData, navigate) => async (dispatch) => {
     const blog = await createBlogMultiple(blogData);
     console.log({ blog });
     dispatch(addUserBlog(blog)); // Dispatch the new action with the blog object
-    dispatch(setSelectedBlog(blog));
-    console.log(blogData);
-    navigate(`/toolbox/${blog._id}`); // Navigate to the editor page
-    toast.success("Blog created successfully");
+    // dispatch(setSelectedBlog(blog));
+    // console.log(blogData);
+    navigate(`/project`); // Navigate to the project page
+    toast.success("Bulk Blogs added successfully");
   } catch (error) {
     dispatch(setError(error.message));
   } finally {

@@ -7,11 +7,8 @@ import { loginUser, signupUser, setUser } from "../../store/slices/authSlice";
 import { unwrapResult } from "@reduxjs/toolkit";
 import { useGoogleLogin } from "@react-oauth/google";
 import axios from "axios";
+import axiosInstance from "@api/index";
 
-const api = axios.create({
-  baseURL: "http://localhost:8000/api/v1",
-  withCredentials: true,
-});
 const Auth = ({ path }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,10 +22,11 @@ const Auth = ({ path }) => {
 
   const handleGoogleLogin = useGoogleLogin({
     flow: "implicit",
+    redirect_uri: "https://genwrite-frontend-eight.vercel.app/login",
     onSuccess: async (tokenResponse) => {
       try {
         setLoading(true);
-        const response = await api.post("/auth/google-signin", {
+        const response = await axiosInstance.post("/auth/google-signin", {
           access_token: tokenResponse.access_token,
         });
 
