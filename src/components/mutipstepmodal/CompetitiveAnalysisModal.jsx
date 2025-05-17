@@ -19,7 +19,7 @@ const CompetitiveAnalysisModal = ({ closefnc }) => {
   useEffect(() => {
     const fetchRecentProjects = async () => {
       try {
-        const response = await axiosInstance.get("/blogs/getAllBlogs");
+        const response = await axiosInstance.get("/blogs");
         const allBlogs = response.data;
         // Get the 5 most recent blogs
         const recentBlogs = allBlogs.slice(-5).reverse();
@@ -56,7 +56,8 @@ const CompetitiveAnalysisModal = ({ closefnc }) => {
       title: project.title,
       content: project.content,
       keywords: project.focusKeywords || [],
-      selectedProject: project
+      selectedProject: project,
+      contentType:"markdown"
     }));
   };
 

@@ -1,4 +1,4 @@
-import { lazy } from "react";
+import { lazy, Suspense } from "react";
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import { previewBlogLoader } from "@pages/preview/previewLoader";
 import Loading from "@components/Loading";
@@ -16,33 +16,49 @@ const PreviewBlog = lazy(() => import("@pages/preview/PreviewBlog"));
 const Login = lazy(() => import("@components/auth/Login"));
 const ErrorPage = lazy(() => import("@components/ErrorPage"));
 
+/**
+ * Wraps a component in React.Suspense with fallback support.
+ *
+ * @param {React.ComponentType} Component - The lazy-loaded or regular component.
+ * @param {Object} props - The props to pass to the component.
+ * @param {React.ReactNode} [fallback=null] - Optional fallback content.
+ * @returns {JSX.Element}
+ */
+function withSuspense(Component, props = {}, fallback = null) {
+  return (
+    <Suspense fallback={<Loading />}>
+      <Component {...props} />
+    </Suspense>
+  );
+}
+
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <PrivateRoutesLayout />,
-    errorElement: <ErrorBoundary />,
+    element: withSuspense(PrivateRoutesLayout),
+    errorElement: withSuspense(ErrorBoundary),
     children: [
       { index: true, element: <Navigate to="/dash" replace /> },
-      { path: "dash", element: <Dashboard /> },
-      { path: "toolbox", element: <ToolboxSettings /> },
-      { path: "editor", element: <ToolBox /> },
-      { path: "toolbox/:id", element: <ToolBox /> },
-      { path: "project", element: <MyProjects /> },
-      { path: "plugins", element: <PluginsMain /> },
-      { path: "brandVoice", element: <BrandVoice /> },
-      { path: "*", element: <ErrorPage /> },
+      { path: "dash", element: withSuspense(Dashboard) },
+      { path: "toolbox", element: withSuspense(ToolboxSettings) },
+      { path: "editor", element: withSuspense(ToolBox) },
+      { path: "toolbox/:id", element: withSuspense(ToolBox) },
+      { path: "project", element: withSuspense(MyProjects) },
+      { path: "plugins", element: withSuspense(PluginsMain) },
+      { path: "brandVoice", element: withSuspense(BrandVoice) },
+      { path: "*", element: withSuspense(ErrorPage) },
     ],
   },
   {
     path: "/",
-    element: <PublicRoutesLayout />,
-    errorElement: <ErrorBoundary />,
+    element: withSuspense(PublicRoutesLayout),
+    errorElement: withSuspense(ErrorBoundary),
     children: [
-      { path: "login", element: <Login path="login" /> },
-      { path: "signup", element: <Login path="signup" /> },
+      { path: "login", element: withSuspense(Login, { path: "login" }) },
+      { path: "signup", element: withSuspense(Login, { path: "signup" }) },
       {
         path: "preview/:blogId",
-        element: <PreviewBlog />,
+        element: withSuspense(PreviewBlog),
         loader: previewBlogLoader,
         hydrateFallbackElement: <Loading />,
       },
