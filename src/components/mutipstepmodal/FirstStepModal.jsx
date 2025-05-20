@@ -173,30 +173,30 @@ const FirstStepModal = ({
                 <div className="relative">
                   <input
                     type="range"
-                    min="0"
-                    max="20"
-                    value={data?.userDefinedLength || 0}
+                    min="500"
+                    max="3000"
+                    value={data?.userDefinedLength || 500}
                     className={`w-full h-1 rounded-lg appearance-none cursor-pointer 
                       bg-gradient-to-r from-[#1B6FC9] to-gray-100
                       [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#1B6FC9]`}
                     style={{
                       background: `linear-gradient(to right, #1B6FC9 ${
-                        (data.userDefinedLength / 20) * 100
-                      }%, #E5E7EB ${(data.userDefinedLength / 20) * 100}%)`,
+                        ((data.userDefinedLength - 500) / 2500) * 100
+                      }%, #E5E7EB ${((data.userDefinedLength - 500) / 2500) * 100}%)`,
                     }}
                     onChange={(e) => {
                       setData((prev) => ({
                         ...prev,
                         userDefinedLength: e.target.value,
                       }));
-                      setErrors(prev => ({ ...prev, length: false }));
+                      setErrors((prev) => ({ ...prev, length: false }));
                     }}
                   />
                   <span className="mt-2 text-sm text-gray-600 block">
-                    {data?.userDefinedLength || 0} minutes
+                    {data?.userDefinedLength || 500} words
                   </span>
                   {errors.length && (
-                    <p className="mt-1 text-sm text-red-500">Please select a blog length</p>
+                    <p className="mt-1 text-sm text-red-500">Please select the number of words</p>
                   )}
                 </div>
               </div>

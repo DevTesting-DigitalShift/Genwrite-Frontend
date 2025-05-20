@@ -1,43 +1,43 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Plus, Search } from "lucide-react";
+import { X, Plus } from "lucide-react";
 import { toast } from "react-toastify";
 import axiosInstance from "../../api";
 import ProofreadingChat from "./ProofreadingChat";
 
-const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost, onToggleProofreading }) => {
+const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
   const [newKeyword, setNewKeyword] = useState("");
   const [isPosting, setIsPosting] = useState(false);
   const [showProofreading, setShowProofreading] = useState(false);
-  const [showCompetitiveAnalysis, setShowCompetitiveAnalysis] = useState(false);
   const [analysisResults, setAnalysisResults] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    if (blog && blog.keywords?.length > 0) {
-      setKeywords(blog.keywords);
+    if (blog) {
+      fetchCompetitiveAnalysis();
     }
   }, [blog]);
 
-  const handleCompetitiveAnalysis = async () => {
-    if (!searchQuery.trim() && keywords.length === 0) {
-      toast.error("Please add at least one keyword or search query");
+  const fetchCompetitiveAnalysis = async () => {
+    if (!blog || !blog.title || !blog.content) {
+      toast.error("Blog data is incomplete for analysis.");
       return;
     }
 
+    const validKeywords = keywords && keywords.length > 0 ? keywords : ["default"];
+
     setIsAnalyzing(true);
     try {
-      const response = await axiosInstance.post("/analysis/competitors", {
-        keyword: searchQuery || keywords[0],
-        blogTitle: blog.title,
-        blogMarkdown: blog.content
+      const response = await axiosInstance.post("/analysis/run", {
+        title: blog.title, // Correct field name
+        content: blog.content, // Correct field name
+        keywords: validKeywords, // Ensure this is an array
+        contentType: "text", // Add contentType (e.g., "text" or "markdown")
       });
       setAnalysisResults(response.data);
-      setShowCompetitiveAnalysis(true);
     } catch (error) {
-      console.error("Error getting competitive analysis:", error);
-      toast.error("Failed to get competitive analysis");
+      console.error("Error fetching competitive analysis:", error);
+      toast.error("Failed to fetch competitive analysis.");
     } finally {
       setIsAnalyzing(false);
     }
@@ -71,7 +71,7 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost, onToggleProofr
       await onPost();
     } catch (error) {
       console.error("Error posting:", error);
-      toast.error("Failed to post blog");
+      toast.error("Failed to post blog.");
     } finally {
       setIsPosting(false);
     }
@@ -118,7 +118,7 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost, onToggleProofr
             value={newKeyword}
             onChange={(e) => setNewKeyword(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Add Keywords (comma-separated)"
+            placeholder="Add Keywords"
             className="flex-grow px-2 py-1 border rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <motion.button
@@ -130,43 +130,60 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost, onToggleProofr
             <Plus className="w-5 h-5" />
           </motion.button>
         </div>
-        <div className="flex">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search query for analysis"
-            className="flex-grow px-2 py-1 border rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={handleCompetitiveAnalysis}
-            disabled={isAnalyzing}
-            className={`bg-blue-600 text-white px-2 py-1 rounded-r-md ${
-              isAnalyzing ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
-          >
-            <Search className="w-5 h-5" />
-          </motion.button>
-        </div>
       </div>
       <div className="mb-3">
-        <h3 className="font-semibold mb-1 text-gray-700">
-          Competitor Analysis
-        </h3>
-        {analysisResults && (
+        <h3 className="font-semibold mb-2 text-gray-700">Analysis Results</h3>
+        {isAnalyzing ? (
+          <p className="text-sm text-gray-500">Analyzing...</p>
+        ) : analysisResults ? (
           <div className="bg-white rounded-lg shadow-md p-4">
-            <div className="flex justify-between items-center mb-1">
-              <h4 className="font-medium text-gray-800">Analysis Results</h4>
-            </div>
             <div className="mt-2 space-y-3">
-              <div className="text-sm text-gray-600 whitespace-pre-line">
-                {analysisResults.analysis}
-              </div>
+              {/* Render analysis points */}
+              {analysisResults.analysis && (
+                <div className="text-sm text-gray-600">
+                  <strong>Analysis:</strong>
+                  <ul className="list-disc ml-5 mt-1">
+                    {Object.entries(analysisResults.analysis).map(([key, value]) => (
+                      <li key={key} className="mb-1">
+                        <strong>{key.replace(/([A-Z])/g, " $1")}: </strong>
+                        {value}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {/* Render suggestions */}
+              {analysisResults.suggestions && (
+                <div className="text-sm text-gray-600 whitespace-pre-line">
+                  <strong>Suggestions:</strong> {analysisResults.suggestions}
+                </div>
+              )}
+              {/* Render summary */}
+              {analysisResults.summary && (
+                <div className="text-sm text-gray-600 whitespace-pre-line">
+                  <strong>Summary:</strong> {analysisResults.summary}
+                </div>
+              )}
+              {/* Render blog score */}
+              {analysisResults.blogScore && (
+                <div className="text-sm text-gray-600 whitespace-pre-line">
+                  <strong>Blog Score:</strong> {analysisResults.blogScore} / 100
+                </div>
+              )}
             </div>
           </div>
+        ) : (
+          <p className="text-sm text-gray-500">No analysis available yet.</p>
         )}
+      </div>
+      <div className="mb-3">
+        <h3 className="font-semibold mb-2 text-gray-700">Blog Score</h3>
+        <div className="bg-white rounded-lg shadow-md p-4 flex items-center justify-center gap-4">
+          <span className="text-2xl font-bold text-gray-800">
+            {analysisResults?.blogScore || "N/A"}
+          </span>
+          <span className="text-2xl font-bold text-gray-600">/ 100</span>
+        </div>
       </div>
       <div className="mb-3">
         <h3 className="font-semibold mb-2 text-gray-700">More Tools</h3>
@@ -177,39 +194,27 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost, onToggleProofr
           <span className="text-2xl font-bold text-gray-400 mb-1 block">
             AA
           </span>
-          <h4 
+          <h4
             className="text-blue-600 font-medium hover:underline cursor-pointer"
             onClick={() => setShowProofreading(!showProofreading)}
           >
             Proofreading my blog
           </h4>
           {showProofreading && (
-            <ProofreadingChat 
-              blog={blog} 
-              onClose={() => setShowProofreading(false)} 
+            <ProofreadingChat
+              blog={blog}
+              onClose={() => setShowProofreading(false)}
             />
           )}
         </motion.div>
-        <motion.div
-          whileHover={{ scale: 1.02 }}
-          className="bg-white rounded-lg shadow-md p-4"
-        >
-          <span className="text-2xl font-bold text-gray-400 mb-1 block">
-            AA
-          </span>
-          <h4 className="text-blue-600 font-medium hover:underline cursor-pointer">
-            Headline Analyzer
-          </h4>
-        </motion.div>
       </div>
-
       <motion.button
         onClick={handlePostClick}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         disabled={isPosting}
         className={`w-full flex items-center justify-center bg-blue-600 text-white py-2 rounded-md shadow-md transition-colors ${
-          isPosting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'
+          isPosting ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-700"
         }`}
       >
         {isPosting ? "Posting..." : "Post"}

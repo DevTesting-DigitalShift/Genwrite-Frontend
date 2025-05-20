@@ -99,30 +99,16 @@ export const updateBlogById = (id, updatedData) => async (dispatch) => {
   }
 };
 
-export const createNewBlog = (blogData, navigate) => async (dispatch, getState) => {
-  // Add getState
+export const createNewBlog = (blogData, navigate) => async (dispatch) => {
   dispatch(setLoading(true));
   try {
-    console.log("Creating new blog with data:", blogData); // Log the data being sent
-    // This will wait until the blog is fully generated with content
-    const blog = await createBlog(blogData);
-
-    if (!blog || !blog._id) {
-      // Check for blog._id as confirmation
-      throw new Error("Blog creation failed: Invalid response from server");
-    }
-
-    // Blog is ready with content
-    console.log("Blog created successfully on backend:", blog);
-    dispatch(addUserBlog(blog)); // Dispatch the new action with the blog object
-    // dispatch(setSelectedBlog(blog));
+    const blog = await createBlog({ ...blogData, aiModel: blogData.aiModel || "Gemini" });
+    dispatch(addUserBlog(blog));
     navigate(`/project`);
-    toast.success("Blog will be generated shortly");
+    toast.success("Blog created successfully");
   } catch (error) {
-    console.error("Blog creation error:", error);
-    const errorMessage = error.response?.data?.message || error.message || "Blog creation failed";
-    dispatch(setError(errorMessage));
-    toast.error(errorMessage);
+    console.error("Error creating blog:", error);
+    toast.error("Failed to create blog");
   } finally {
     dispatch(setLoading(false));
   }
