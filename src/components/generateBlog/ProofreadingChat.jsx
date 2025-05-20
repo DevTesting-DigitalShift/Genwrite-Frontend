@@ -15,7 +15,7 @@ const ProofreadingChat = ({ blog, onClose }) => {
 
     setIsLoading(true);
     try {
-      const result = await axiosInstance.post("/api/proofreading", {
+      const result = await axiosInstance.post("/blogs/proofread", {
         content: blog.content,
         message: message,
       });
