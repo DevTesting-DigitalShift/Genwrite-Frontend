@@ -17,6 +17,7 @@ const MyProjects = () => {
     try {
       setLoading(true)
       const response = await axiosInstance.get("/blogs/")
+      console.log("Fetched Blogs Data:", response.data) // Ensure `aiModel` is logged
       setBlogsData(response.data?.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)))
     } catch (error) {
       console.error(
@@ -83,28 +84,40 @@ const MyProjects = () => {
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {currentItems.map((blog) => {
-              const { _id, title, content, focusKeywords, status } = blog
+              const { _id, title, content, focusKeywords, status, aiModel } = blog // Include `aiModel`
               return (
                 <Tooltip
-                  title={status == "complete" ? title : `Blog generation is ${status}`}
+                  title={status === "complete" ? title : `Blog generation is ${status}`}
                   key={_id}
-                  color={status == "complete" ? "black" : status == "failed" ? "red" : "orange"}
+                  color={status === "complete" ? "black" : status === "failed" ? "red" : "orange"}
                   className={
-                    (status == "failed"
+                    (status === "failed"
                       ? "border-red-500"
-                      : status != "complete" && "border-yellow-500") + " border-2"
+                      : status !== "complete" && "border-yellow-500") + " border-2"
                   }
                 >
                   <div
                     className="bg-white shadow-md hover:shadow-xl transition-shadow duration-300 rounded-xl p-4 cursor-pointer"
                     title={title}
                     onClick={() => {
-                      if (status == "complete") {
+                      if (status === "complete") {
                         handleBlogClick(blog)
                       }
                     }}
                   >
-                    <h3 className="text-lg font-semibold text-gray-800 mb-2">{title}</h3>
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+                      {aiModel ?(
+                        <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">
+                          {aiModel}
+                        </span>
+                      ):(
+                        
+                        <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">
+                        Gemini
+                      </span>
+            )}
+                    </div>
                     <p className="text-sm text-gray-600 mb-4">{truncateContent(content)}</p>
                     <div className="flex flex-wrap gap-2">
                       {focusKeywords.map((keyword, index) => (

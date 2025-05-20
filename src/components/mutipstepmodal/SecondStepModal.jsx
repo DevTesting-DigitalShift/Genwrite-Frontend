@@ -8,7 +8,7 @@ const SecondStepModal = ({
   setData,
 }) => {
   const [formData, setFormData] = useState({
-    numberOfCounts: data.numberOfCounts || 50,
+    numberOfCounts: data.numberOfCounts || 15,
     numberOfOrders: data.numberOfOrders || 50,
     focusKeywords: data.focusKeywords || [],
     keywords: data.keywords || [],
@@ -140,15 +140,15 @@ const SecondStepModal = ({
                 <input
                   type="range"
                   min="1"
-                  max="100"
+                  max="15"
                   value={formData.numberOfCounts}
                   className="w-full h-1 rounded-lg appearance-none cursor-pointer 
             bg-gray-100 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#1B6FC9]"
-                  style={{
-                    background: `linear-gradient(to right, #1B6FC9 ${
-                      (formData.numberOfCounts / 100) * 100
-                    }%, #E5E7EB ${(formData.numberOfCounts / 100) * 100}%)`,
-                  }}
+            style={{
+              background: `linear-gradient(to right, #1B6FC9 ${
+                ((formData.numberOfCounts - 1) / 14) * 100
+              }%, #E5E7EB ${((formData.numberOfCounts - 1) / 14) * 100}%)`,
+            }}
                   onChange={(e) =>
                     setFormData((prev) => ({
                       ...prev,
@@ -161,7 +161,7 @@ const SecondStepModal = ({
                 </span>
               </div>
 
-              <div>
+              {/* <div>
                 <label className="block text-sm font-medium mb-2">
                   Word Count (Optional)
                 </label>
@@ -187,7 +187,7 @@ const SecondStepModal = ({
                 <span className="mt-2 text-sm text-gray-600 block">
                   Current value: {formData.numberOfOrders}
                 </span>
-              </div>
+              </div> */}
             </div>
 
             <div>

@@ -194,7 +194,7 @@ const QuickBlogModal = ({ closefnc }) => {
                   </svg>
                 </button>
               </div>
-              <div className="p-6">
+              <div className="p-3">
                 <Carousel>
                   {packages.map((pkg, index) => (
                     <div
@@ -362,17 +362,64 @@ const QuickBlogModal = ({ closefnc }) => {
                   <h3 className="text-xl font-hind font-normal mb-2">
                     Add video embedded links (max 3)
                   </h3>
-                  {inputs.map((input, index) => (
+                  <div className="flex gap-2">
                     <input
-                      key={index}
                       type="text"
-                      value={input}
-                      onChange={(e) => handleInputChange(index, e.target.value)}
-                      onKeyDown={(e) => handleKeyPress(e, index)}
-                      placeholder={`Video URL ${index + 1}`}
-                      className="w-full p-2 border border-gray-300 rounded mb-2"
+                      value={formData.videoLinkInput || ""}
+                      onChange={(e) =>
+                        setFormData((prevState) => ({
+                          ...prevState,
+                          videoLinkInput: e.target.value,
+                        }))
+                      }
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      placeholder="Enter YouTube video link"
                     />
-                  ))}
+                    <button
+                      onClick={() => {
+                        const youtubeRegex =
+                          /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/;
+                        if (!formData.videoLinkInput) {
+                          alert("Please enter a video link.");
+                        } else if (!youtubeRegex.test(formData.videoLinkInput)) {
+                          alert("Please enter a valid YouTube link.");
+                        } else if (inputs.length >= 3) {
+                          alert("You can only add up to 3 video links.");
+                        } else if (inputs.includes(formData.videoLinkInput)) {
+                          alert("This link has already been added.");
+                        } else {
+                          setInputs([...inputs, formData.videoLinkInput]);
+                          setFormData((prevState) => ({
+                            ...prevState,
+                            videoLinkInput: "",
+                          }));
+                        }
+                      }}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm"
+                    >
+                      Add
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {inputs.map((input, index) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-700"
+                      >
+                        {input}
+                        <button
+                          onClick={() => {
+                            const updatedInputs = [...inputs];
+                            updatedInputs.splice(index, 1);
+                            setInputs(updatedInputs);
+                          }}
+                          className="ml-1 text-gray-400 hover:text-gray-600"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
 

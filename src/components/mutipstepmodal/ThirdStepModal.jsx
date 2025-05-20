@@ -114,7 +114,7 @@ const ThirdStepModal = ({
           </div>
 
           <div className="space-y-6">
-            <div>
+            {/* <div>
               <label className="block text-sm font-medium mb-2">
                 Add Images
               </label>
@@ -172,15 +172,69 @@ const ThirdStepModal = ({
                   </button>
                 </div>
               )}
-            </div>
+            </div> */}
 
-            <div className="flex items-center justify-between">
+            {/* <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Add Generated Images</span>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
                   type="checkbox"
                   checked={!!data.isCheckedGeneratedImages}
                   onChange={handleCheckboxChange}
+                  className="sr-only peer"
+                />
+                <div className="w-14 h-8 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 peer-checked:bg-[#1B6FC9] after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all" />
+              </label>
+            </div> */}
+
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Add FAQ</span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!!data.isFAQEnabled}
+                  onChange={() =>
+                    setData((prevData) => ({
+                      ...prevData,
+                      isFAQEnabled: !prevData.isFAQEnabled,
+                    }))
+                  }
+                  className="sr-only peer"
+                />
+                <div className="w-14 h-8 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 peer-checked:bg-[#1B6FC9] after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all" />
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between mt-4">
+              <span className="text-sm font-medium">Add Competitive Research</span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!!data.isCompetitiveResearchEnabled}
+                  onChange={() =>
+                    setData((prevData) => ({
+                      ...prevData,
+                      isCompetitiveResearchEnabled: !prevData.isCompetitiveResearchEnabled,
+                    }))
+                  }
+                  className="sr-only peer"
+                />
+                <div className="w-14 h-8 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 peer-checked:bg-[#1B6FC9] after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all" />
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between mt-4">
+              <span className="text-sm font-medium">Automatic Posting on WordPress</span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!!data.isAutoPostToWordPressEnabled}
+                  onChange={() =>
+                    setData((prevData) => ({
+                      ...prevData,
+                      isAutoPostToWordPressEnabled: !prevData.isAutoPostToWordPressEnabled,
+                    }))
+                  }
                   className="sr-only peer"
                 />
                 <div className="w-14 h-8 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 peer-checked:bg-[#1B6FC9] after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all" />
