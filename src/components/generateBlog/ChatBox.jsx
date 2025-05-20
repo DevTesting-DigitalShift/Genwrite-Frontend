@@ -15,17 +15,25 @@ const ChatBox = ({ isOpen, onClose }) => {
     scrollToBottom();
   }, [messages]);
 
-  const handleSend = () => {
-    if (message.trim()) {
-      setMessages([...messages, { text: message, sender: 'user' }]);
-      setMessage('');
-      // Here you would typically make an API call to get the AI response
-      // For now, we'll just simulate a response
-      setTimeout(() => {
-        setMessages(prev => [...prev, { text: 'This is a simulated response from the AI.', sender: 'ai' }]);
-      }, 1000);
+  const handleSend = async () => {
+    const trimmedMessage = message.trim()
+    if (!trimmedMessage) return
+
+    // Add user's message to chat
+    setMessages((prev) => [...prev, { text: trimmedMessage, sender: "user" }])
+
+    try {
+      const response = await axiosInstance.post("/user/chat", {
+        messages: [...messages, { text: trimmedMessage, sender: "user" }].slice(-5),
+      })
+
+      const reply = response.data?.trim?.() || "No response."
+      setMessages((prev) => [...prev, { text: reply, sender: "ai" }])
+    } catch (error) {
+      console.error("Chat request failed:", error)
+      setMessages((prev) => [...prev, { text: "Sorry, something went wrong.", sender: "ai" }])
     }
-  };
+  }
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
