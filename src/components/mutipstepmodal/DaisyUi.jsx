@@ -6,6 +6,9 @@ import Carousel from "./Carousel"
 import { X } from "lucide-react"
 import { toast } from "react-toastify"
 import { packages } from "@constants/templates"
+import DatePicker from "react-datepicker"
+import "react-datepicker/dist/react-datepicker.css"
+import MultiDatePicker from "react-multi-date-picker"
 
 const MultiStepModal = ({ closefnc }) => {
   const dispatch = useDispatch()
@@ -26,9 +29,10 @@ const MultiStepModal = ({ closefnc }) => {
     includeInterlinks: true,
     includeMetaHeadlines: true,
     includeFaqs: true,
-    numberOfBlogs: 2,
+    numberOfBlogs: 3,
     wordpressPostStatus: false,
     postFrequency: 10 * 60, // in seconds
+    selectedDates: null,
   })
 
   const handleNext = () => {
@@ -343,23 +347,30 @@ const MultiStepModal = ({ closefnc }) => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Approx. Blog Length (Words)
                   </label>
-                  <input
-                    type="range"
-                    name="userDefinedLength"
-                    min="500"
-                    max="3000"
-                    step="100"
-                    value={formData.userDefinedLength}
-                    onChange={handleInputChange}
-                    className="w-full h-1 rounded-lg appearance-none cursor-pointer bg-gradient-to-r from-[#1B6FC9] to-gray-100 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#1B6FC9]"
-                    style={{
-                      background: `linear-gradient(to right, #1B6FC9 ${
-                        ((formData.userDefinedLength - 500) / (3000 - 500)) * 100
-                      }%, #E5E7EB ${((formData.userDefinedLength - 500) / (3000 - 500)) * 100}%)`,
-                    }}
-                  />
-                  <div className="text-sm text-gray-600 mt-1 text-center">
-                    ~{formData.userDefinedLength} words
+                  <div className="relative">
+                    <input
+                      type="range"
+                      min="500"
+                      max="5000" // Updated max value
+                      value={formData.userDefinedLength}
+                      className={`w-full h-1 rounded-lg appearance-none cursor-pointer 
+      bg-gradient-to-r from-[#1B6FC9] to-gray-100
+      [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#1B6FC9]`}
+                      style={{
+                        background: `linear-gradient(to right, #1B6FC9 ${
+                          ((formData.userDefinedLength - 500) / 4500) * 100 // Adjusted for 5000 max
+                        }%, #E5E7EB ${((formData.userDefinedLength - 500) / 4500) * 100}%)`,
+                      }}
+                      onChange={(e) => {
+                        setFormData((prev) => ({
+                          ...prev,
+                          userDefinedLength: e.target.value,
+                        }))
+                      }}
+                    />
+                    <span className="mt-2 text-sm text-gray-600 block">
+                      {formData.userDefinedLength} words
+                    </span>
                   </div>
                 </div>
               </div>
@@ -387,7 +398,7 @@ const MultiStepModal = ({ closefnc }) => {
                         htmlFor="image-source-ai"
                         className="block text-sm font-medium leading-6 text-gray-900"
                       >
-                        AI Generated (DALL-E)
+                        AI Generated Images
                       </label>
                     </div>
                     <div className="flex items-center gap-x-2">
@@ -404,13 +415,13 @@ const MultiStepModal = ({ closefnc }) => {
                         htmlFor="image-source-unsplash"
                         className="block text-sm font-medium leading-6 text-gray-900"
                       >
-                        Stock Photos (Unsplash)
+                        Unsplash Stock Images
                       </label>
                     </div>
                   </div>
                 </fieldset>
               </div>
-              <div className="flex items-center justify-between">
+              {/* <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-700">
                   Use Brand Voice?
                   <p className="text-xs text-gray-500">
@@ -427,9 +438,9 @@ const MultiStepModal = ({ closefnc }) => {
                   />
                   <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                 </label>
-              </div>
+              </div> */}
               <div className="space-y-4 pt-4 border-t border-gray-200">
-                <div className="flex items-center justify-between">
+                {/* <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-700">
                     Include Interlinks
                     <p className="text-xs text-gray-500">
@@ -446,8 +457,8 @@ const MultiStepModal = ({ closefnc }) => {
                     />
                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                   </label>
-                </div>
-                <div className="flex items-center justify-between">
+                </div> */}
+                {/* <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-700">
                     Include Meta Headlines
                     <p className="text-xs text-gray-500">
@@ -464,7 +475,7 @@ const MultiStepModal = ({ closefnc }) => {
                     />
                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                   </label>
-                </div>
+                </div> */}
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-700">
                     Include FAQ Section
@@ -484,6 +495,25 @@ const MultiStepModal = ({ closefnc }) => {
                   </label>
                 </div>
               </div>
+            
+              <div className="flex items-center justify-between mt-4">
+                <span className="text-sm font-medium text-gray-700">
+                  Enable Competitive Research
+                  <p className="text-xs text-gray-500">
+                    Perform competitive research to analyze similar blogs.
+                  </p>
+                </span>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="useCompetitors"
+                    checked={formData.useCompetitors}
+                    onChange={handleCheckboxChange}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
               <div className="pt-4 border-t border-gray-200">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -501,6 +531,74 @@ const MultiStepModal = ({ closefnc }) => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
                     placeholder="e.g., 5"
                   />
+                </div>
+              </div>
+              <div className="pt-4 border-t border-gray-200">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Select Dates for Blog Posting
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">
+                    Choose specific dates to generate and post blogs. Only future dates are allowed.
+                  </p>
+                  <div className="flex flex-col md:flex-row gap-4">
+                    {/* Calendar for selecting multiple dates */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Select Dates
+                      </label>
+                      <MultiDatePicker
+                        value={formData.selectedDates}
+                        onChange={(dates) => {
+                          setFormData((prev) => ({
+                            ...prev,
+                            selectedDates: dates.map((date) => new Date(date)), // Ensure valid Date objects
+                          }))
+                        }}
+                        minDate={new Date()} // Restrict to today or future dates
+                        multiple
+                        className="border border-gray-300 rounded-md p-2 text-sm text-gray-700 bg-white shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+
+                    {/* Display selected dates */}
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Selected Dates
+                      </label>
+                      <div className="bg-gray-50 border border-gray-300 rounded-md p-3 text-sm text-gray-700">
+                        {formData.selectedDates?.length > 0 ? (
+                          formData.selectedDates.map((date, index) => (
+                            <span key={index} className="block">
+                              {date ? new Date(date).toLocaleDateString() : "Invalid date"}
+                            </span>
+                          ))
+                        ) : (
+                          <span>No dates selected</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Toggle for automatic posting */}
+                  <div className="flex items-center justify-between mt-4">
+                    <span className="text-sm font-medium text-gray-700">
+                      Enable Automatic Posting
+                      <p className="text-xs text-gray-500">
+                        Automatically post blogs on the selected dates.
+                      </p>
+                    </span>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        name="wordpressPostStatus"
+                        checked={formData.wordpressPostStatus}
+                        onChange={handleCheckboxChange}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
                 </div>
               </div>
             </div>

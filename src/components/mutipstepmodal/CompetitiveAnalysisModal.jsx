@@ -10,19 +10,20 @@ const CompetitiveAnalysisModal = ({ closefnc }) => {
     keywords: [],
     keywordInput: "",
     contentType: "text", // or "markdown"
-    selectedProject: null
+    selectedProject: null,
   });
 
   const [recentProjects, setRecentProjects] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisResults, setAnalysisResults] = useState(null);
 
   useEffect(() => {
     const fetchRecentProjects = async () => {
       try {
         const response = await axiosInstance.get("/blogs");
         const allBlogs = response.data;
-        // Get the 5 most recent blogs
-        const recentBlogs = allBlogs.slice(-5).reverse();
+        const recentBlogs = allBlogs.slice(-10).reverse();
         setRecentProjects(recentBlogs);
         setIsLoading(false);
       } catch (error) {
@@ -37,32 +38,25 @@ const CompetitiveAnalysisModal = ({ closefnc }) => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleContentTypeChange = (type) => {
-    setFormData(prev => ({
-      ...prev,
-      contentType: type
+      [name]: value,
     }));
   };
 
   const handleProjectSelect = (project) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       title: project.title,
       content: project.content,
       keywords: project.focusKeywords || [],
       selectedProject: project,
-      contentType:"markdown"
+      contentType: "markdown",
     }));
   };
 
   const handleKeywordInputChange = (e) => {
-    setFormData(prev => ({ ...prev, keywordInput: e.target.value }));
+    setFormData((prev) => ({ ...prev, keywordInput: e.target.value }));
   };
 
   const handleAddKeyword = () => {
@@ -74,19 +68,19 @@ const CompetitiveAnalysisModal = ({ closefnc }) => {
         .filter((keyword) => keyword !== "" && !formData.keywords.includes(keyword));
 
       if (newKeywords.length > 0) {
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
           keywords: [...prev.keywords, ...newKeywords],
-          keywordInput: ""
+          keywordInput: "",
         }));
       }
     }
   };
 
   const handleRemoveKeyword = (index) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      keywords: prev.keywords.filter((_, i) => i !== index)
+      keywords: prev.keywords.filter((_, i) => i !== index),
     }));
   };
 
@@ -111,21 +105,24 @@ const CompetitiveAnalysisModal = ({ closefnc }) => {
       return;
     }
 
+    setIsAnalyzing(true);
     try {
       const response = await axiosInstance.post("/analysis/run", {
         title: formData.title,
         content: formData.content,
         keywords: formData.keywords,
-        contentType: formData.contentType
+        contentType: formData.contentType,
       });
 
       if (response.data) {
+        setAnalysisResults(response.data);
         toast.success("Analysis completed successfully!");
-        closefnc();
       }
     } catch (error) {
       console.error("Error performing competitive analysis:", error);
       toast.error("Failed to perform competitive analysis");
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -141,120 +138,122 @@ const CompetitiveAnalysisModal = ({ closefnc }) => {
 
         <div className="px-6 py-4 overflow-y-auto">
           <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Select Recent Project
-              </label>
-              <select
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
-                onChange={(e) => {
-                  const project = recentProjects.find(p => p._id === e.target.value);
-                  if (project) handleProjectSelect(project);
-                }}
-                value={formData.selectedProject?._id || ""}
-              >
-                <option value="">Select a project</option>
-                {recentProjects.map((project) => (
-                  <option key={project._id} value={project._id}>
-                    {project.title}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Blog Title
-              </label>
-              <input
-                type="text"
-                name="title"
-                value={formData.title}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Enter your blog title"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Content Type
-              </label>
-              <div className="flex gap-4">
-                <button
-                  onClick={() => handleContentTypeChange("text")}
-                  className={`px-4 py-2 rounded-md text-sm font-medium ${
-                    formData.contentType === "text"
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-200 text-gray-800 hover:bg-gray-300"
-                  }`}
-                >
-                  Text
-                </button>
-                <button
-                  onClick={() => handleContentTypeChange("markdown")}
-                  className={`px-4 py-2 rounded-md text-sm font-medium ${
-                    formData.contentType === "markdown"
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-200 text-gray-800 hover:bg-gray-300"
-                  }`}
-                >
-                  Markdown
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Blog Content
-              </label>
-              <textarea
-                name="content"
-                value={formData.content}
-                onChange={handleInputChange}
-                className="w-full h-40 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
-                placeholder={`Enter your blog content in ${formData.contentType} format`}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Keywords
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={formData.keywordInput}
-                  onChange={handleKeywordInputChange}
-                  onKeyDown={handleKeyPress}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Add keywords (comma-separated)"
-                />
-                <button
-                  onClick={handleAddKeyword}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700"
-                >
-                  Add
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {formData.keywords.map((keyword, index) => (
-                  <span
-                    key={index}
-                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
+            {!analysisResults ? (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Select Recent Project
+                  </label>
+                  <select
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 max-h-[200px] overflow-y-auto"
+                    onChange={(e) => {
+                      const project = recentProjects.find((p) => p._id === e.target.value);
+                      if (project) handleProjectSelect(project);
+                    }}
+                    value={formData.selectedProject?._id || ""}
                   >
-                    {keyword}
+                    <option value="">Select a project</option>
+                    {recentProjects.map((project) => (
+                      <option key={project._id} value={project._id}>
+                        {project.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Blog Title
+                  </label>
+                  <input
+                    type="text"
+                    name="title"
+                    value={formData.title}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter your blog title"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Blog Content
+                  </label>
+                  <textarea
+                    name="content"
+                    value={formData.content}
+                    onChange={handleInputChange}
+                    className="w-full h-40 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                    placeholder={`Enter your blog content in ${formData.contentType} format`}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Keywords
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={formData.keywordInput}
+                      onChange={handleKeywordInputChange}
+                      onKeyDown={handleKeyPress}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Add keywords (comma-separated)"
+                    />
                     <button
-                      type="button"
-                      onClick={() => handleRemoveKeyword(index)}
-                      className="ml-1.5 flex-shrink-0 text-indigo-400 hover:text-indigo-600"
+                      onClick={handleAddKeyword}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700"
                     >
-                      <X className="w-3 h-3" />
+                      Add
                     </button>
-                  </span>
-                ))}
+                  </div>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {formData.keywords.map((keyword, index) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
+                      >
+                        {keyword}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveKeyword(index)}
+                          className="ml-1.5 flex-shrink-0 text-indigo-400 hover:text-indigo-600"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div>
+                <h3 className="text-lg font-medium text-gray-800 mb-4">Analysis Results</h3>
+                <div className="bg-gray-100 p-4 rounded-md">
+                  <div className="text-sm text-gray-600">
+                    <strong>Analysis:</strong>
+                    <ul className="list-disc ml-5 mt-1">
+                      {Object.entries(analysisResults.analysis).map(([key, value]) => (
+                        <li key={key} className="mb-1">
+                          <strong>{key.replace(/([A-Z])/g, " $1")}: </strong>
+                          {value}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="text-sm text-gray-600 mt-4">
+                    <strong>Suggestions:</strong> {analysisResults.suggestions}
+                  </div>
+                  <div className="text-sm text-gray-600 mt-4">
+                    <strong>Summary:</strong> {analysisResults.summary}
+                  </div>
+                  <div className="text-sm text-gray-600 mt-4">
+                    <strong>Blog Score:</strong> {analysisResults.blogScore} / 100
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 
@@ -263,18 +262,21 @@ const CompetitiveAnalysisModal = ({ closefnc }) => {
             onClick={closefnc}
             className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
           >
-            Cancel
+            Close
           </button>
-          <button
-            onClick={handleSubmit}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
-          >
-            Analyze
-          </button>
+          {!analysisResults && (
+            <button
+              onClick={handleSubmit}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+              disabled={isAnalyzing}
+            >
+              {isAnalyzing ? "Analyzing..." : "Analyze"}
+            </button>
+          )}
         </div>
       </div>
     </div>
   );
 };
 
-export default CompetitiveAnalysisModal; 
+export default CompetitiveAnalysisModal;

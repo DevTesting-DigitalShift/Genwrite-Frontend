@@ -28,6 +28,7 @@ const LayoutWithSidebarAndHeader = () => {
     { title: "Plugins", src: "pluginicon.svg", path: "/plugins" },
     { title: "Brand Voice", src: "brandvoiceicon.svg", path: "/brandvoice" },
     { title: "TrashCan", src: "trashcan.png", path: "/trashcan" },
+    { title: "Jobs", src: "jobsicon.svg", path: "/jobs" }, // Corrected icon for Jobs
   ];
 
   const path = location.pathname;
@@ -95,12 +96,35 @@ const LayoutWithSidebarAndHeader = () => {
             </li>
           ))}
         </ul>
+
+        {/* User Profile Section */}
+<div className="absolute bottom-0 w-full p-4">
+  <NavLink
+    to="/profile"
+    className="flex items-center py-3  w-full text-gray-300 hover:text-white transition duration-150"
+  >
+    <img
+      src="/Images/usericon.svg"
+      alt="User Profile"
+      className={`${
+        !sidebarOpen ? "w-8 ml-1 h-8 relative -left-5" : ""
+      }`}
+    />
+    <span
+      className={`${
+        !sidebarOpen && "hidden"
+      } ml-3 text-lg font-medium origin-left transition-opacity duration-500 ease-in-out`}
+    >
+      {user?.name || "UserName"}
+    </span>
+  </NavLink>
+</div>
       </div>
 
       {/* Main Content */}
       <div className="flex-1 ml-20 w-[93vw] fixed z-30">
         {/* Header */}
-        <header className="top-0 z-[9999]  bg-gray-50 p-4 flex items-center justify-between">
+        <header className="top-0 z-[9999] bg-gray-50 p-4 flex items-center justify-between">
           <div className="flex items-center">
             <button className="lg:hidden mr-4">{/* Button content */}</button>
             <div className="flex items-center bg-white rounded-full overflow-hidden w-64 lg:w-96 shadow-md hover:shadow-lg transition-shadow duration-300">
@@ -120,14 +144,14 @@ const LayoutWithSidebarAndHeader = () => {
                     {user.name.slice(0, 1).toUpperCase()}
                   </div>
                   <span className="text-[#2E2E2E] text-[16px] font-[400]">
-                   Hello {user.name}!
+                    Hello {user.name}!
                   </span>
                 </>
               ) : (
                 <>
                   <RxAvatar size={30} />
                   <span className="text-[#2E2E2E] text-[16px] font-[400]">
-                    UserName 
+                    UserName
                   </span>
                 </>
               )}
