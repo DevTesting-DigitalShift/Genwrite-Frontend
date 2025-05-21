@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, X } from 'lucide-react';
+import axiosInstance from '@api/index';
 
 const ChatBox = ({ isOpen, onClose }) => {
   const [message, setMessage] = useState('');
