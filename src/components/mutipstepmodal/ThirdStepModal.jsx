@@ -223,7 +223,7 @@ const ThirdStepModal = ({
               </label>
             </div>
 
-            <div className="flex items-center justify-between mt-4">
+            {/* <div className="flex items-center justify-between mt-4">
               <span className="text-sm font-medium">Automatic Posting on WordPress</span>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
@@ -239,7 +239,7 @@ const ThirdStepModal = ({
                 />
                 <div className="w-14 h-8 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 peer-checked:bg-[#1B6FC9] after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all" />
               </label>
-            </div>
+            </div> */}
 
             <div>
               <label className="block text-sm font-medium mb-2">

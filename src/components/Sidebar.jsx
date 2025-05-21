@@ -61,6 +61,7 @@ const Sidebar = () => {
           isSidebarOpen || isMobileMenuOpen ? "left-0" : "-left-64"
         } lg:left-0`}
       >
+        {/* Logo Section */}
         <div className="flex items-center justify-center h-16 bg-gray-900">
           <img
             src="./Images/logo_genwrite.svg"
@@ -68,6 +69,8 @@ const Sidebar = () => {
             className="h-8"
           />
         </div>
+
+        {/* Navigation Section */}
         <nav className="mt-6">
           <ul className="space-y-2">
             <NavItem
@@ -100,8 +103,25 @@ const Sidebar = () => {
               text="Trashcan"
               to="/trashcan"
             />
+            {/* Jobs Section */}
+            <NavItem
+              icon={<img src="./Images/jobsicon.svg" alt="jobs" />}
+              text="Jobs"
+              to="/jobs"
+            />
           </ul>
         </nav>
+
+        {/* User Profile Section */}
+        <div className="absolute bottom-0 w-full bg-gray-900 p-4">
+          <NavLink
+            to="/profile"
+            className="flex items-center py-3 px-4 w-full text-gray-300 hover:bg-gray-700 hover:text-white transition duration-150"
+          >
+            <img src="./Images/usericon.svg" alt="user profile" />
+            <span className="ml-3">User Profile</span>
+          </NavLink>
+        </div>
       </aside>
 
       {/* Main content */}
