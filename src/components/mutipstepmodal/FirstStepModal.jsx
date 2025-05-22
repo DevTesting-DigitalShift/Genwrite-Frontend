@@ -166,66 +166,66 @@ const FirstStepModal = ({
             </div>
 
             <div className="grid grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Choose length of Blog <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type="range"
-                    min="500"
-                    max="5000" // Updated max value
-                    value={data?.userDefinedLength || 500}
-                    className={`w-full h-1 rounded-lg appearance-none cursor-pointer 
-                      bg-gradient-to-r from-[#1B6FC9] to-gray-100
-                      [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#1B6FC9]`}
-                    style={{
-                      background: `linear-gradient(to right, #1B6FC9 ${
-                        ((data.userDefinedLength - 500) / 4500) * 100 // Adjusted for 5000 max
-                      }%, #E5E7EB ${((data.userDefinedLength - 500) / 4500) * 100}%)`,
-                    }}
-                    onChange={(e) => {
-                      setData((prev) => ({
-                        ...prev,
-                        userDefinedLength: e.target.value,
-                      }));
-                      setErrors((prev) => ({ ...prev, length: false }));
-                    }}
-                  />
-                  <span className="mt-2 text-sm text-gray-600 block">
-                    {data?.userDefinedLength || 500} words
-                  </span>
-                  {errors.length && (
-                    <p className="mt-1 text-sm text-red-500">Please select the number of words</p>
-                  )}
-                </div>
-              </div>
+  <div>
+    <label className="block text-sm font-medium mb-2">
+      Choose length of Blog <span className="text-red-500">*</span>
+    </label>
+    <div className="relative">
+      <input
+        type="range"
+        min="500"
+        max="5000"
+        value={data?.userDefinedLength ?? 1000} // Default to 1000 if undefined
+        className={`w-full h-1 rounded-lg appearance-none cursor-pointer 
+          bg-gradient-to-r from-[#1B6FC9] to-gray-100
+          [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#1B6FC9]`}
+        style={{
+          background: `linear-gradient(to right, #1B6FC9 ${
+            ((data.userDefinedLength - 500) / 4500) * 100
+          }%, #E5E7EB ${((data.userDefinedLength - 500) / 4500) * 100}%)`,
+        }}
+        onChange={(e) => {
+          setData((prev) => ({
+            ...prev,
+            userDefinedLength: e.target.value,
+          }));
+          setErrors((prev) => ({ ...prev, length: false }));
+        }}
+      />
+      <span className="mt-2 text-sm text-gray-600 block">
+        {data?.userDefinedLength ?? 1000} words {/* Default to 1000 if undefined */}
+      </span>
+      {errors.length && (
+        <p className="mt-1 text-sm text-red-500">Please select the number of words</p>
+      )}
+    </div>
+  </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Tone of Voice <span className="text-red-500">*</span>
-                </label>
-                <select
-                  className={`w-full px-3 py-2 bg-gray-50 border ${
-                    errors.tone ? "border-red-500" : "border-gray-200"
-                  } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B6FC9]`}
-                  value={data?.tone || ""}
-                  onChange={(e) => {
-                    setData((prev) => ({ ...prev, tone: e.target.value }));
-                    setErrors(prev => ({ ...prev, tone: false }));
-                  }}
-                >
-                  <option value="">Select</option>
-                  <option value="professional">Professional</option>
-                  <option value="casual">Casual</option>
-                  <option value="friendly">Friendly</option>
-                  <option value="formal">Formal</option>
-                </select>
-                {errors.tone && (
-                  <p className="mt-1 text-sm text-red-500">Please select a tone of voice</p>
-                )}
-              </div>
-            </div>
+  <div>
+    <label className="block text-sm font-medium mb-2">
+      Tone of Voice <span className="text-red-500">*</span>
+    </label>
+    <select
+      className={`w-full px-3 py-2 bg-gray-50 border ${
+        errors.tone ? "border-red-500" : "border-gray-200"
+      } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B6FC9]`}
+      value={data?.tone || ""}
+      onChange={(e) => {
+        setData((prev) => ({ ...prev, tone: e.target.value }));
+        setErrors(prev => ({ ...prev, tone: false }));
+      }}
+    >
+      <option value="">Select</option>
+      <option value="professional">Professional</option>
+      <option value="casual">Casual</option>
+      <option value="friendly">Friendly</option>
+      <option value="formal">Formal</option>
+    </select>
+    {errors.tone && (
+      <p className="mt-1 text-sm text-red-500">Please select a tone of voice</p>
+    )}
+  </div>
+</div>
 
             <div>
               <label className="block text-sm font-medium mb-2">

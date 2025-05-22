@@ -103,11 +103,15 @@ const Sidebar = () => {
               text="Trashcan"
               to="/trashcan"
             />
-            {/* Jobs Section */}
             <NavItem
               icon={<img src="./Images/jobsicon.svg" alt="jobs" />}
               text="Jobs"
               to="/jobs"
+            />
+            <NavItem
+              icon={<img src="./Images/jobsicon.svg" alt="jobs" />}
+              text="Upgrade"
+              to="/upgrade"
             />
           </ul>
         </nav>

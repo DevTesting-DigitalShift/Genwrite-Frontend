@@ -1,7 +1,7 @@
 import React, { useState } from "react"
 import { useDispatch } from "react-redux"
 import { useNavigate } from "react-router-dom"
-import { createMultiBlog } from "../../store/slices/blogSlice"
+import { createMultiBlog, addScheduledJob } from "../../store/slices/blogSlice"
 import Carousel from "./Carousel"
 import { X } from "lucide-react"
 import { toast } from "react-toastify"
@@ -74,24 +74,15 @@ const MultiStepModal = ({ closefnc }) => {
       return
     }
 
-    let finalTopics = formData.topics
-    if (formData.topicInput.trim() !== "") {
-      const newTopics = formData.topicInput
-        .split(",")
-        .map((topic) => topic.trim())
-        .filter((topic) => topic !== "" && !finalTopics.includes(topic))
-      finalTopics = [...finalTopics, ...newTopics]
+    const newJob = {
+      id: Date.now(),
+      topics: formData.topics,
+      tone: formData.tone,
+      dates: formData.selectedDates || [],
     }
 
-    const finalData = {
-      ...formData,
-      topics: finalTopics,
-      topicInput: "",
-    }
-
-    console.log("Form submitted with data:", finalData)
-    dispatch(createMultiBlog(finalData, navigate))
-    handleClose()
+    dispatch(addScheduledJob(newJob)) // Dispatch the action to add the job
+    closefnc() // Close the modal
   }
 
   const handlePackageSelect = (index) => {
@@ -265,7 +256,7 @@ const MultiStepModal = ({ closefnc }) => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Topics</label>
                 <p className="text-xs text-gray-500 mb-2">
-                  Enter the main topics for your blogs (comma-separated or add one by one).
+                  Enter the main topics for your blogs .
                 </p>
                 <div className="flex gap-2">
                   <input
@@ -440,7 +431,7 @@ const MultiStepModal = ({ closefnc }) => {
                 </label>
               </div> */}
               <div className="space-y-4 pt-4 border-t border-gray-200">
-                {/* <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-700">
                     Include Interlinks
                     <p className="text-xs text-gray-500">
@@ -457,7 +448,7 @@ const MultiStepModal = ({ closefnc }) => {
                     />
                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                   </label>
-                </div> */}
+                </div>
                 {/* <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-700">
                     Include Meta Headlines

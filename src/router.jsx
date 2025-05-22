@@ -14,6 +14,7 @@ const PluginsMain = lazy(() => import("@components/plugins/PluginsMain"));
 const BrandVoice = lazy(() => import("@components/brandvoice/BrandVoice"));
 const PreviewBlog = lazy(() => import("@pages/preview/PreviewBlog"));
 const jobs = lazy(() => import("@pages/Jobs"));
+const upgrade = lazy(() => import("@pages/Upgrade"));
 const Profile = lazy(() => import("@pages/Profile"));
 const Login = lazy(() => import("@components/auth/Login"));
 const ErrorPage = lazy(() => import("@components/ErrorPage"));
@@ -48,6 +49,7 @@ const router = createBrowserRouter([
       { path: "project", element: withSuspense(MyProjects) },
       { path: "plugins", element: withSuspense(PluginsMain) },
       { path: "jobs", element: withSuspense(jobs) },
+      { path: "upgrade", element: withSuspense(upgrade) },
       { path: "profile", element: withSuspense(Profile) },
       { path: "brandVoice", element: withSuspense(BrandVoice) },
       { path: "*", element: withSuspense(ErrorPage) },

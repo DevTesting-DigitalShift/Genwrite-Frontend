@@ -1,4 +1,5 @@
-import { createSlice } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import axiosInstance from "@api/index";
 import {
   createBlog,
   createQuickBlog,
@@ -11,6 +12,19 @@ import {
 } from "@api/blogApi";
 import { toast } from "react-toastify";
 
+// Async thunk to fetch recent projects
+export const fetchRecentProjects = createAsyncThunk(
+  "blogs/fetchRecentProjects",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.get("/blogs");
+      return response.data; // Return the fetched data
+    } catch (error) {
+      return rejectWithValue(error.response.data);
+    }
+  }
+);
+
 const initialState = {
   userBlogs: [],
   /**
@@ -20,6 +34,8 @@ const initialState = {
   loading: false,
   error: null,
   newBlog: {},
+  scheduledJobs: [], // Add scheduledJobs to the initial state
+  recentProjects: [],
 };
 
 const blogSlice = createSlice({
@@ -46,6 +62,35 @@ const blogSlice = createSlice({
     setError: (state, action) => {
       state.error = action.payload;
     },
+    addScheduledJob: (state, action) => {
+      state.scheduledJobs.push(action.payload); // Add a new job
+    },
+    deleteScheduledJob: (state, action) => {
+      state.scheduledJobs = state.scheduledJobs.filter(
+        (job) => job.id !== action.payload
+      ); // Delete a job by ID
+    },
+    editScheduledJob: (state, action) => {
+      const { id, updatedJob } = action.payload;
+      state.scheduledJobs = state.scheduledJobs.map((job) =>
+        job.id === id ? { ...job, ...updatedJob } : job
+      ); // Edit a job by ID
+    },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchRecentProjects.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchRecentProjects.fulfilled, (state, action) => {
+        state.loading = false;
+        state.recentProjects = action.payload;
+      })
+      .addCase(fetchRecentProjects.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      });
   },
 });
 
@@ -56,6 +101,9 @@ export const {
   clearSelectedBlog,
   setLoading,
   setError,
+  addScheduledJob,
+  deleteScheduledJob,
+  editScheduledJob,
 } = blogSlice.actions;
 
 // Thunks for asynchronous actions
