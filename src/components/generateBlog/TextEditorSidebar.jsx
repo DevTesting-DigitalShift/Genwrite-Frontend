@@ -2,23 +2,30 @@ import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Plus } from "lucide-react";
 import { toast } from "react-toastify";
-import axiosInstance from "../../api";
+import axiosInstance from "@api/index";
 import ProofreadingChat from "./ProofreadingChat";
 
 const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
   const [newKeyword, setNewKeyword] = useState("");
   const [isPosting, setIsPosting] = useState(false);
-  const [showProofreading, setShowProofreading] = useState(false);
-  const [analysisResults, setAnalysisResults] = useState(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isAnalyzingCompetitive, setIsAnalyzingCompetitive] = useState(false); // For Competitive Analysis
+  const [isAnalyzingProofreading, setIsAnalyzingProofreading] = useState(false); // For Proofreading
+  const [competitiveAnalysisResults, setCompetitiveAnalysisResults] = useState(null); // For Competitive Analysis Results
+  const [proofreadingResults, setProofreadingResults] = useState([]); // For Proofreading Results
 
   useEffect(() => {
     if (blog) {
-      // fetchCompetitiveAnalysis();
+      fetchCompetitiveAnalysis(); // Start Competitive Analysis when blog changes
     }
   }, [blog]);
 
   const fetchCompetitiveAnalysis = async () => {
+    // Check if analysis results already exist
+    if (competitiveAnalysisResults) {
+      console.log("Competitive Analysis already completed. Using cached results.");
+      return;
+    }
+
     if (!blog || !blog.title || !blog.content) {
       toast.error("Blog data is incomplete for analysis.");
       return;
@@ -26,20 +33,21 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
 
     const validKeywords = keywords && keywords.length > 0 ? keywords : ["default"];
 
-    setIsAnalyzing(true);
+    setIsAnalyzingCompetitive(true);
     try {
       const response = await axiosInstance.post("/analysis/run", {
-        title: blog.title, // Correct field name
-        content: blog.content, // Correct field name
-        keywords: validKeywords, // Ensure this is an array
-        contentType: "text", // Add contentType (e.g., "text" or "markdown")
+        title: blog.title,
+        content: blog.content,
+        keywords: validKeywords,
+        contentType: "text",
       });
-      setAnalysisResults(response.data);
+      setCompetitiveAnalysisResults(response.data); // Save Competitive Analysis Results
+      toast.success("Competitive analysis completed successfully!");
     } catch (error) {
       console.error("Error fetching competitive analysis:", error);
       toast.error("Failed to fetch competitive analysis.");
     } finally {
-      setIsAnalyzing(false);
+      setIsAnalyzingCompetitive(false);
     }
   };
 
@@ -74,6 +82,45 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
       toast.error("Failed to post blog.");
     } finally {
       setIsPosting(false);
+    }
+  };
+
+  const handleProofreadingClick = async () => {
+    if (!blog || !blog.content) {
+      toast.error("Blog content is required for proofreading.");
+      return;
+    }
+
+    if (isAnalyzingCompetitive) {
+      toast.error("Please wait for Competitive Analysis to complete before starting Proofreading.");
+      return;
+    }
+
+    setIsAnalyzingProofreading(true); // Show loading indicator
+    setProofreadingResults(null); // Clear previous response
+
+    try {
+      const result = await axiosInstance.post("/blogs/proofread", {
+        content: blog.content,
+        message: "Proofread this blog.",
+      });
+      console.log("AI Response:", result.data);
+
+
+      if (result.data && Array.isArray(result.data.suggestions)) {
+        setProofreadingResults(result.data.suggestions);
+      } else {
+        toast.error("Invalid proofreading suggestions format.");
+      }
+
+      
+     
+      toast.success("Proofreading suggestions received!");
+    } catch (error) {
+      console.error("Error getting proofreading suggestions:", error);
+      toast.error("Failed to fetch proofreading suggestions.");
+    } finally {
+      setIsAnalyzingProofreading(false); // Hide loading indicator
     }
   };
 
@@ -133,41 +180,34 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
       </div>
       <div className="mb-3">
         <h3 className="font-semibold mb-2 text-gray-700">Analysis Results</h3>
-        {isAnalyzing ? (
-          <p className="text-sm text-gray-500">Analyzing...</p>
-        ) : analysisResults ? (
+        {isAnalyzingCompetitive ? (
+          <p className="text-sm text-gray-500">Analyzing Competitive Analysis...</p>
+        ) : competitiveAnalysisResults ? (
           <div className="bg-white rounded-lg shadow-md p-4">
             <div className="mt-2 space-y-3">
-              {/* Render analysis points */}
-              {analysisResults.analysis && (
+              {/* Render Competitive Analysis Results */}
+              {competitiveAnalysisResults.analysis && (
                 <div className="text-sm text-gray-600">
                   <strong>Analysis:</strong>
                   <ul className="list-disc ml-5 mt-1">
-                    {Object.entries(analysisResults.analysis).map(([key, value]) => (
+                    {Object.entries(competitiveAnalysisResults.analysis).map(([key, value]) => (
                       <li key={key} className="mb-1">
                         <strong>{key.replace(/([A-Z])/g, " $1")}: </strong>
-                        {value}
+                        {typeof value === "object" ? (
+                          <ul className="list-disc ml-5">
+                            {Object.entries(value).map(([subKey, subValue]) => (
+                              <li key={subKey}>
+                                <strong>{subKey.replace(/([A-Z])/g, " $1")}: </strong>
+                                {subValue}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          value
+                        )}
                       </li>
                     ))}
                   </ul>
-                </div>
-              )}
-              {/* Render suggestions */}
-              {analysisResults.suggestions && (
-                <div className="text-sm text-gray-600 whitespace-pre-line">
-                  <strong>Suggestions:</strong> {analysisResults.suggestions}
-                </div>
-              )}
-              {/* Render summary */}
-              {analysisResults.summary && (
-                <div className="text-sm text-gray-600 whitespace-pre-line">
-                  <strong>Summary:</strong> {analysisResults.summary}
-                </div>
-              )}
-              {/* Render blog score */}
-              {analysisResults.blogScore && (
-                <div className="text-sm text-gray-600 whitespace-pre-line">
-                  <strong>Blog Score:</strong> {analysisResults.blogScore} / 100
                 </div>
               )}
             </div>
@@ -180,7 +220,7 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
         <h3 className="font-semibold mb-2 text-gray-700">Blog Score</h3>
         <div className="bg-white rounded-lg shadow-md p-4 flex items-center justify-center gap-4">
           <span className="text-2xl font-bold text-gray-800">
-            {analysisResults?.blogScore || "N/A"}
+            {competitiveAnalysisResults?.blogScore || "N/A"}
           </span>
           <span className="text-2xl font-bold text-gray-600">/ 100</span>
         </div>
@@ -196,17 +236,36 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
           </span>
           <h4
             className="text-blue-600 font-medium hover:underline cursor-pointer"
-            onClick={() => setShowProofreading(!showProofreading)}
+            onClick={handleProofreadingClick} // API is triggered here
           >
             Proofreading my blog
           </h4>
-          {showProofreading && (
-            <ProofreadingChat
-              blog={blog}
-              onClose={() => setShowProofreading(false)}
-            />
-          )}
         </motion.div>
+        {proofreadingResults !== null || isAnalyzingProofreading ? (
+          <div className="mt-4">
+            <h4 className="font-semibold text-gray-800 mb-2">Proofreading Results:</h4>
+            {isAnalyzingProofreading ? (
+              <p className="text-sm text-gray-500">Loading Proofreading Results...</p>
+            ) : proofreadingResults && proofreadingResults.length > 0 ? (
+              <div className="bg-white rounded-lg shadow-md p-4">
+                <ul className="list-disc ml-5">
+                  {proofreadingResults.map((suggestion, index) => (
+                    <li key={index} className="mb-2">
+                      <p className="text-sm text-gray-700">
+                        <strong>Original:</strong> {suggestion.original}
+                      </p>
+                      <p className="text-sm text-gray-700">
+                        <strong>Revised:</strong> {suggestion.change}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">No suggestions available.</p>
+            )}
+          </div>
+        ) : null}
       </div>
       <motion.button
         onClick={handlePostClick}
