@@ -28,7 +28,8 @@ const LayoutWithSidebarAndHeader = () => {
     { title: "Plugins", src: "pluginicon.svg", path: "/plugins" },
     { title: "Brand Voice", src: "brandvoiceicon.svg", path: "/brandvoice" },
     { title: "TrashCan", src: "trashcan.png", path: "/trashcan" },
-    { title: "Jobs", src: "jobsicon.svg", path: "/jobs" }, // Corrected icon for Jobs
+    { title: "Jobs", src: "jobsicon.svg", path: "/jobs" },
+    { title: "Upgrade", src: "upgrade.svg", path: "/upgrade" },
   ];
 
   const path = location.pathname;
