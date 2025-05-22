@@ -14,7 +14,7 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
 
   useEffect(() => {
     if (blog) {
-      fetchCompetitiveAnalysis();
+      // fetchCompetitiveAnalysis();
     }
   }, [blog]);
 
