@@ -3,7 +3,7 @@ import { Link, Outlet } from "react-router-dom";
 
 const PublicRoutesLayout = () => {
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-r from-blue-500 to-purple-600">
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-600 via-purple-700 to-pink-500">
       {/* Header */}
       <header className="h-fit text-white shadow-md">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">

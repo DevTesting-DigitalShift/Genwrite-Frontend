@@ -1,262 +1,567 @@
 import React, { useState, useEffect } from "react";
-import { useSelector, useDispatch } from "react-redux";
+import axiosInstance from "@api/index";
 import MultiDatePicker from "react-multi-date-picker";
-import MultiStepModal from "../components/mutipstepmodal/DaisyUi";
-import {
-  deleteScheduledJob,
-  editScheduledJob,
-  fetchRecentProjects,
-} from "../store/slices/blogSlice";
+import { motion, AnimatePresence } from "framer-motion";
+import SelectTemplateModal from "@components/mutipstepmodal/SelectTemplateModal";
+import Carousel from "@components/mutipstepmodal/Carousel";
+import { packages } from "@constants/templates";
+import { FiPlus, FiSettings, FiCalendar, FiFileText, FiEdit } from "react-icons/fi";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const Jobs = () => {
-  const dispatch = useDispatch();
-  const scheduledJobs = useSelector((state) => state.blog.scheduledJobs);
-  const recentProjects = useSelector((state) => state.blog.recentProjects);
-  const [showCreateJob, setShowCreateJob] = useState(false);
-  const [selectedDates, setSelectedDates] = useState([]);
-  const [selectedBlog, setSelectedBlog] = useState("");
-  const [scheduledBlogs, setScheduledBlogs] = useState([]);
+  const tones = ["Professional", "Casual", "Friendly", "Formal", "Technical"];
+  const wordLengths = [500, 750, 1000, 1500, 2000];
+
+  const [jobs, setJobs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showJobModal, setShowJobModal] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
+  const [newJob, setNewJob] = useState({
+    name: "",
+    schedule: { type: "daily", customDates: [], days: [] },
+    blogs: { numberOfBlogs: 1, topics: [], templates: [] },
+    options: { tone: "Professional", length: 1000, model: "gemini", includeFaqs: false }, // Replaced "default" with "gemini"
+    status: "active",
+  });
+  const [topicInput, setTopicInput] = useState("");
+
+  const fetchJobs = async () => {
+    setIsLoading(true);
+    try {
+      const response = await axiosInstance.get("/jobs");
+      setJobs(response.data);
+    } catch (error) {
+      console.error("Error fetching jobs:", error.response?.data?.message || error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Create a new job
+  const handleCreateJob = async () => {
+    try {
+      await axiosInstance.post("/jobs", newJob);
+      toast.success("Job created successfully!"); // Show success toast
+      setShowJobModal(false); // Close the modal
+      fetchJobs(); // Refresh the job list
+    } catch (error) {
+      console.error("Error creating job:", error.response?.data?.message || error.message);
+      toast.error("Failed to create job. Please try again."); // Show error toast
+    }
+  };
+
+  // Start a job
+  const handleStartJob = async (jobId) => {
+    try {
+      const job = jobs.find((job) => job._id === jobId);
+      if (job.status === "active") {
+        await axiosInstance.patch(`/jobs/${jobId}/stop`); // Stop the job
+        toast.info("Job stopped successfully!");
+      } else {
+        await axiosInstance.patch(`/jobs/${jobId}/start`); // Start the job
+        toast.success("Job started successfully!");
+      }
+      fetchJobs(); // Refresh the job list
+    } catch (error) {
+      console.error("Error toggling job status:", error.response?.data?.message || error.message);
+      toast.error("Failed to update job status. Please try again.");
+    }
+  };
+
+  // Delete a job
+  const handleDeleteJob = async (jobId) => {
+    try {
+      await axiosInstance.delete(`/jobs/${jobId}`);
+      fetchJobs();
+    } catch (error) {
+      console.error("Error deleting job:", error.response?.data?.message || error.message);
+    }
+  };
+
+  // Edit a job
+  const handleEditJob = (job) => {
+    setNewJob(job);
+    setShowJobModal(true);
+    setCurrentStep(1);
+  };
 
   useEffect(() => {
-    const fetchProjects = async () => {
-      setIsLoading(true);
-      try {
-        await dispatch(fetchRecentProjects()).unwrap();
-      } catch (error) {
-        console.error("Error fetching recent projects:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    fetchJobs();
+  }, []);
 
-    fetchProjects();
-  }, [dispatch]);
-
-  const handleScheduleBlog = () => {
-    if (!selectedBlog) {
-      alert("Please select a blog.");
-      return;
+  const renderStep = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="space-y-6"
+          >
+            <h3 className="text-xl font-semibold text-gray-800 mb-4">Select Templates (Step 1)</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Select up to 3 templates for the types of blogs you want to generate.
+            </p>
+            <Carousel>
+              {packages.map((pkg, index) => (
+                <div
+                  key={pkg.name}
+                  className={`cursor-pointer transition-all duration-200 ${
+                    newJob.blogs.templates.includes(pkg.name) ? "border-blue-500 border-2" : ""
+                  }`}
+                  onClick={() => {
+                    if (newJob.blogs.templates.includes(pkg.name)) {
+                      setNewJob((prev) => ({
+                        ...prev,
+                        blogs: {
+                          ...prev.blogs,
+                          templates: prev.blogs.templates.filter((template) => template !== pkg.name),
+                        },
+                      }));
+                    } else if (newJob.blogs.templates.length < 3) {
+                      setNewJob((prev) => ({
+                        ...prev,
+                        blogs: {
+                          ...prev.blogs,
+                          templates: [...prev.blogs.templates, pkg.name],
+                        },
+                      }));
+                    }
+                  }}
+                >
+                  <div className="bg-white rounded-lg overflow-hidden">
+                    <div className="relative">
+                      <img
+                        src={pkg.imgSrc || "/placeholder.svg"}
+                        alt={pkg.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="p-2">
+                      <h3 className="font-medium text-gray-900 mb-1">{pkg.name}</h3>
+                      <p className="text-sm text-gray-500 line-clamp-2">{pkg.description}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </Carousel>
+            <div className="flex justify-end mt-6">
+              <button
+                onClick={() => setCurrentStep(2)}
+                className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+              >
+                Next
+              </button>
+            </div>
+          </motion.div>
+        );
+      case 2:
+        return (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="space-y-6"
+          >
+            <h3 className="text-xl font-semibold text-gray-800 mb-4">Job Details (Step 2)</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Job Name</label>
+                <input
+                  type="text"
+                  value={newJob.name}
+                  onChange={(e) => setNewJob({ ...newJob, name: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Tone</label>
+                <select
+                  value={newJob.options.tone}
+                  onChange={(e) =>
+                    setNewJob({ ...newJob, options: { ...newJob.options, tone: e.target.value } })
+                  }
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  {tones.map((tone) => (
+                    <option key={tone} value={tone}>
+                      {tone}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Word Length</label>
+                <select
+                  value={newJob.options.length}
+                  onChange={(e) =>
+                    setNewJob({
+                      ...newJob,
+                      options: { ...newJob.options, length: parseInt(e.target.value) },
+                    })
+                  }
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  {wordLengths.map((length) => (
+                    <option key={length} value={length}>
+                      {length} words
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Topics</label>
+                <div className="flex gap-2 mb-2">
+                  <input
+                    type="text"
+                    value={topicInput}
+                    onChange={(e) => setTopicInput(e.target.value)}
+                    className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="Add a topic..."
+                  />
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      if (topicInput.trim() !== "") {
+                        setNewJob((prev) => ({
+                          ...prev,
+                          blogs: {
+                            ...prev.blogs,
+                            topics: [...prev.blogs.topics, topicInput.trim()],
+                          },
+                        }));
+                        setTopicInput("");
+                      }
+                    }}
+                    className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg"
+                  >
+                    Add
+                  </motion.button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {newJob.blogs.topics.map((topic, index) => (
+                    <motion.div
+                      key={index}
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="flex items-center bg-blue-50 px-3 py-1 rounded-full"
+                    >
+                      <span className="text-sm text-blue-600">{topic}</span>
+                      <button
+                        onClick={() =>
+                          setNewJob((prev) => ({
+                            ...prev,
+                            blogs: {
+                              ...prev.blogs,
+                              topics: prev.blogs.topics.filter((_, i) => i !== index),
+                            },
+                          }))
+                        }
+                        className="ml-2 text-blue-600 hover:text-blue-700"
+                      >
+                        ×
+                      </button>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">AI Model</label>
+                <select
+                  value={newJob.options.model}
+                  onChange={(e) =>
+                    setNewJob({ ...newJob, options: { ...newJob.options, model: e.target.value } })
+                  }
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="gemini">Gemini</option> {/* Updated */}
+                  <option value="open ai">Open AI</option> {/* Updated */}
+                </select>
+              </div>
+            </div>
+            <div className="flex justify-between mt-6">
+              <button
+                onClick={() => setCurrentStep(1)}
+                className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setCurrentStep(3)}
+                className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+              >
+                Next
+              </button>
+            </div>
+          </motion.div>
+        );
+      case 3:
+        return (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="space-y-6"
+          >
+            <h3 className="text-xl font-semibold text-gray-800 mb-4">Schedule Settings (Step 3)</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Number of Blogs</label>
+                <input
+                  type="number"
+                  value={newJob.blogs.numberOfBlogs}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value, 10);
+                    if (!isNaN(value) && value >= 0) {
+                      setNewJob({
+                        ...newJob,
+                        blogs: { ...newJob.blogs, numberOfBlogs: value },
+                      });
+                    }
+                  }}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter the number of blogs"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Schedule Type</label>
+                <select
+                  value={newJob.schedule.type}
+                  onChange={(e) =>
+                    setNewJob({ ...newJob, schedule: { ...newJob.schedule, type: e.target.value } })
+                  }
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="custom">Custom Dates</option>
+                </select>
+              </div>
+              {newJob.schedule.type === "weekly" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Select Days</label>
+                  <select
+                    multiple
+                    value={newJob.schedule.days || []}
+                    onChange={(e) =>
+                      setNewJob({
+                        ...newJob,
+                        schedule: {
+                          ...newJob.schedule,
+                          days: Array.from(e.target.selectedOptions, (option) => option.value),
+                        },
+                      })
+                    }
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(
+                      (day) => (
+                        <option key={day} value={day}>
+                          {day}
+                        </option>
+                      )
+                    )}
+                  </select>
+                </div>
+              )}
+              {newJob.schedule.type === "custom" && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="space-y-2"
+                >
+                  <label className="block text-sm font-medium text-gray-700">Select Dates</label>
+                  <MultiDatePicker
+                    value={newJob.schedule.customDates}
+                    onChange={(dates) =>
+                      setNewJob({
+                        ...newJob,
+                        schedule: { ...newJob.schedule, customDates: dates },
+                      })
+                    }
+                    className="w-full border border-gray-200 rounded-lg"
+                  />
+                </motion.div>
+              )}
+            </div>
+            <div className="flex justify-between mt-6">
+              <button
+                onClick={() => setCurrentStep(2)}
+                className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+              >
+                Previous
+              </button>
+              <button
+                onClick={handleCreateJob}
+                className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+              >
+                Create Job
+              </button>
+            </div>
+          </motion.div>
+        );
+      default:
+        return null;
     }
-    if (selectedDates.length === 0) {
-      alert("Please select at least one date for scheduling.");
-      return;
-    }
-
-    const newScheduledBlog = {
-      id: Date.now(),
-      title: selectedBlog,
-      aiModel: "GPT-4", // Default AI model
-      dates: selectedDates,
-    };
-
-    setScheduledBlogs([...scheduledBlogs, newScheduledBlog]);
-    setSelectedBlog("");
-    setSelectedDates([]);
-  };
-
-  const handleDeleteScheduledBlog = (id) => {
-    setScheduledBlogs(scheduledBlogs.filter((blog) => blog.id !== id));
-  };
-
-  const handleEditScheduledBlog = (id) => {
-    const blogToEdit = scheduledBlogs.find((blog) => blog.id === id);
-    const newTitle = prompt("Edit Blog Title:", blogToEdit.title);
-    const newAiModel = prompt("Edit AI Model:", blogToEdit.aiModel);
-    const newDates = prompt(
-      "Edit Scheduled Dates (comma-separated):",
-      blogToEdit.dates
-        .map((date) => new Date(date).toLocaleDateString())
-        .join(", ")
-    )
-      .split(",")
-      .map((date) => new Date(date.trim()));
-
-    if (newTitle && newAiModel && newDates.length > 0) {
-      setScheduledBlogs(
-        scheduledBlogs.map((blog) =>
-          blog.id === id
-            ? { ...blog, title: newTitle, aiModel: newAiModel, dates: newDates }
-            : blog
-        )
-      );
-    }
-  };
-
-  const handleCreateJob = (jobData) => {
-    const newJob = {
-      id: Date.now(),
-      ...jobData,
-    };
-
-    dispatch(editScheduledJob(newJob));
-    setShowCreateJob(false);
-  };
-
-  const handleDeleteJob = (id) => {
-    dispatch(deleteScheduledJob(id));
   };
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
-      <h1 className="text-3xl font-semibold text-gray-800 mb-6">Jobs</h1>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Left Side: Create Job Section */}
-        <div>
-          <button
-            onClick={() => setShowCreateJob(!showCreateJob)}
-            className="w-full bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
+    <div className="min-h-screen bg-gray-50 p-8">
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-8">
+          <motion.h1
+            initial={{ y: -20 }}
+            animate={{ y: 0 }}
+            className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
           >
-            {showCreateJob ? "Close Job Creator" : "Create Job"}
-          </button>
-          {showCreateJob && (
-            <div className="mt-4 bg-white shadow-md rounded-lg p-6">
-              <MultiStepModal
-                closefnc={() => setShowCreateJob(false)}
-                onSubmit={handleCreateJob}
-              />
-            </div>
-          )}
+            Jobs Automation
+          </motion.h1>
+          <p className="text-gray-600 mt-2">Manage your automated content generation jobs</p>
         </div>
 
-        {/* Right Side: Select Blog Section */}
-        <div className="bg-white shadow-md rounded-lg p-6">
-          <h2 className="text-xl font-semibold text-gray-700 mb-4">
-            Select a Blog
-          </h2>
-          {isLoading ? (
-            <p className="text-gray-500">Loading recent projects...</p>
-          ) : (
-            <>
-              <select
-                value={selectedBlog}
-                onChange={(e) => setSelectedBlog(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">Select a blog</option>
-                {recentProjects.map((project) => (
-                  <option key={project._id} value={project.title}>
-                    {project.title}
-                  </option>
-                ))}
-              </select>
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Select Dates
-                </label>
-                <MultiDatePicker
-                  value={selectedDates}
-                  onChange={setSelectedDates}
-                  minDate={new Date()}
-                  multiple
-                  className="border border-gray-300 rounded-md p-2 text-sm text-gray-700 bg-white shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
+        {/* Create Job Card */}
+        <motion.div
+          whileHover={{ y: -2 }}
+          className="w-full md:w-1/2 lg:w-1/3 h-48 p-6 bg-white rounded-xl shadow-sm hover:shadow-md cursor-pointer mb-8"
+          onClick={() => {
+            setShowJobModal(true);
+            setCurrentStep(1);
+          }}
+        >
+          <div className="flex items-center gap-4">
+            <span className="bg-blue-100 rounded-lg p-3">
+              <FiPlus className="w-6 h-6 text-blue-600" />
+            </span>
+          </div>
+          <div className="mt-4">
+            <h3 className="text-xl font-semibold text-gray-800">Create New Job</h3>
+            <p className="text-gray-500 mt-2 text-sm">
+              Set up automated content generation with custom templates and scheduling
+            </p>
+          </div>
+        </motion.div>
+
+        <h2 className="text-xl font-semibold text-gray-800 mb-6">Active Jobs</h2>
+
+        {/* Loading State */}
+        {isLoading ? (
+          <div className="text-center py-12 text-gray-500">
+            <div className="animate-spin inline-block w-8 h-8 border-4 border-blue-500 rounded-full border-t-transparent"></div>
+            <p className="mt-4">Loading jobs...</p>
+          </div>
+        ) : (
+          /* Job List */
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <AnimatePresence>
+              {jobs.map((job) => (
+                <motion.div
+                  key={job._id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  whileHover={{ y: -5 }}
+                  className="bg-white rounded-xl shadow-lg hover:shadow-xl p-6 transition-all duration-200"
+                >
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-800">{job.name}</h3>
+                      <p className="text-sm text-gray-500 mt-1">ID: {job._id.toString().slice(-6)}</p>
+                    </div>
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => handleStartJob(job._id)}
+                      className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        job.status === "active"
+                          ? "bg-red-100 text-red-600 hover:bg-red-200"
+                          : "bg-green-100 text-green-600 hover:bg-green-200"
+                      }`}
+                    >
+                      {job.status === "active" ? "Pause" : "Restart"}
+                    </motion.button>
+                  </div>
+
+                  <div className="space-y-3 text-sm text-gray-600">
+                    <div className="flex items-center gap-2">
+                      <FiCalendar className="w-4 h-4 text-blue-500" />
+                      <span>Scheduling: {job.schedule.type}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <FiFileText className="w-4 h-4 text-purple-500" />
+                      <span>Blogs Generated: {job.blogs.numberOfBlogs}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <FiSettings className="w-4 h-4 text-green-500" />
+                      <span>Model: {job.options.model}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <FiCalendar className="w-4 h-4 text-yellow-500" />
+                      <span>Duration: {job.duration || "N/A"}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <FiCalendar className="w-4 h-4 text-red-500" />
+                      <span>Status: {job.status}</span>
+                    </div>
+                    {job.blogs.topics.length > 0 && (
+                      <div className="flex items-start gap-2">
+                        <FiFileText className="w-4 h-4 text-purple-500 mt-0.5" />
+                        <div className="flex flex-wrap gap-2">
+                        Topics :
+                          {job.blogs.topics.map((topic, index) => (
+                            <span
+                              key={index}
+                              className="px-2 py-1 bg-gray-100 text-gray-600 rounded-md text-xs"
+                            >
+                             {topic}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2 mt-6">
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => handleEditJob(job)}
+                      className="px-4 py-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 flex items-center gap-2"
+                    >
+                      <FiEdit />
+                      Edit
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => handleDeleteJob(job._id)}
+                      className="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
+                    >
+                      Delete
+                    </motion.button>
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        )}
+
+        {/* Modal (keep your existing modal implementation) */}
+        {showJobModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-lg w-3/4 max-w-3xl p-6 relative">
               <button
-                onClick={handleScheduleBlog}
-                className="w-full mt-4 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
+                onClick={() => setShowJobModal(false)}
+                className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
               >
-                Schedule Blog
+                ✕
               </button>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Scheduled Jobs Section */}
-      <div className="mt-8">
-        <h2 className="text-2xl font-semibold text-gray-800 mb-4">
-          Scheduled Jobs
-        </h2>
-        {scheduledJobs.length === 0 ? (
-          <p className="text-gray-500">No jobs scheduled yet.</p>
-        ) : (
-          <div className="space-y-4 grid grid-cols-3 gap-4">
-            {scheduledJobs.map((job) => (
-              <div key={job.id} className="bg-white shadow-md rounded-lg p-6">
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                  Job ID: {job.id}
-                </h3>
-                <p className="text-gray-600 mb-2">
-                  <strong>Topics:</strong> {job.topics.join(", ")}
-                </p>
-                <p className="text-gray-600 mb-4">
-                  <strong>Dates:</strong>{" "}
-                  {job.dates
-                    .map((date) => new Date(date).toLocaleDateString())
-                    .join(", ")}
-                </p>
-                <div className="flex justify-end space-x-4">
-                  <button
-                    onClick={() =>
-                      handleEditJob(job.id, {
-                        topics: prompt(
-                          "Edit topics (comma-separated):",
-                          job.topics.join(", ")
-                        )
-                          .split(",")
-                          .map((topic) => topic.trim()),
-                      })
-                    }
-                    className="bg-yellow-500 text-white px-4 py-2 rounded-md hover:bg-yellow-600"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDeleteJob(job.id)}
-                    className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))}
+              {/* Render the modal content based on the current step */}
+              {renderStep()}
+            </div>
           </div>
         )}
-      </div>
 
-      {/* Scheduled Blogs Section */}
-      <div className="mt-8">
-        <h2 className="text-2xl font-semibold text-gray-800 mb-4">
-          Scheduled Blogs
-        </h2>
-        {scheduledBlogs.length === 0 ? (
-          <p className="text-gray-500">No blogs scheduled yet.</p>
-        ) : (
-          <div className="space-y-4 grid grid-cols-3 gap-4">
-            {scheduledBlogs.map((blog) => (
-              <div key={blog.id} className="bg-white shadow-md rounded-lg p-6">
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                  {blog.title}
-                </h3>
-                <p className="text-gray-600 mb-2">
-                  <strong>AI Model:</strong> {blog.aiModel}
-                </p>
-                <p className="text-gray-600 mb-4">
-                  <strong>Scheduled Dates:</strong>{" "}
-                  {blog.dates
-                    .map((date) => new Date(date).toLocaleDateString())
-                    .join(", ")}
-                </p>
-                <div className="flex justify-end space-x-4">
-                  <button
-                    onClick={() => handleEditScheduledBlog(blog.id)}
-                    className="bg-yellow-500 text-white px-4 py-2 rounded-md hover:bg-yellow-600"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDeleteScheduledBlog(blog.id)}
-                    className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        {/* Add ToastContainer */}
+        <ToastContainer />
       </div>
     </div>
   );

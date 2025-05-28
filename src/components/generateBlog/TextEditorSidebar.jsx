@@ -74,12 +74,26 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
   };
 
   const handlePostClick = async () => {
+    if (!blog || !blog._id) {
+      toast.error("Blog data is missing or invalid.");
+      return;
+    }
+
     setIsPosting(true);
     try {
-      await onPost();
+      const response = await axiosInstance.post("/wordpress/post", {
+        wpLink: "http://localhost/wordpress", // Replace with your WordPress site URL
+        blogId: blog._id,
+      });
+
+      if (response.status === 200 && response.data.success) {
+        toast.success("Blog posted to WordPress successfully!");
+      } else {
+        toast.error(response.data.message || "Failed to post blog to WordPress.");
+      }
     } catch (error) {
-      console.error("Error posting:", error);
-      toast.error("Failed to post blog.");
+      console.error("Error posting blog to WordPress:", error);
+      toast.error(error.response?.data?.message || "Failed to post blog to WordPress.");
     } finally {
       setIsPosting(false);
     }
