@@ -47,7 +47,7 @@ export const QuickBox = ({ imageUrl, title, content, id, functions }) => {
   };
 
   return (
-    <div 
+    <div
       className="rounded-md p-4 shadow-sm hover:shadow-md bg-[#FAFAFA] cursor-pointer"
       onClick={handleClick}
     >
@@ -66,8 +66,8 @@ export const QuickBox = ({ imageUrl, title, content, id, functions }) => {
 
 export const RecentProjects = ({ title, content, tags, item }) => {
   const navigate = useNavigate();
-  
-  // Truncate content to 40 characters and add ellipses if it's too long
+
+  // Truncate content to 80 characters and add ellipses if it's too long
   const truncatedContent =
     content && content.length > 40
       ? `${content.substring(0, 80)}...`
@@ -82,8 +82,14 @@ export const RecentProjects = ({ title, content, tags, item }) => {
   return (
     <div
       onClick={handleBlogClick}
-      className="p-2 cursor-pointer rounded-xl flex gap-2 flex-col justify-around items-start bg-white shadow-md hover:shadow-2xl"
+      className="p-2 cursor-pointer rounded-xl flex gap-2 flex-col justify-around items-start bg-white shadow-md hover:shadow-2xl relative"
     >
+      {/* AI Model Tag in top right */}
+      <div className="absolute top-2 right-2">
+        <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">
+          {item?.aiModel ? item.aiModel : "Gemini"}
+        </span>
+      </div>
       <div className="p-1">
         <h3 className="text-[#000000] font-[500] text-[18px] pt-3 mb-2">
           {title}

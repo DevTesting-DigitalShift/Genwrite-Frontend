@@ -6,6 +6,7 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useDispatch } from "react-redux";
 import { load } from "@store/slices/authSlice";
+import { NotificationProvider } from "./context/NotificationsContext";
 
 const App = () => {
   const dispatch = useDispatch();
@@ -26,10 +27,10 @@ const App = () => {
   }, []);
 
   return (
-    <>
+    <NotificationProvider>
       <RouterProvider router={router} />
       <ToastContainer />
-    </>
+    </NotificationProvider>
   );
 };
 

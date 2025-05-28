@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { FaEdit, FaTimes } from "react-icons/fa";
 import { brandVoiceData } from "./brandVoiceData";
 import { useDispatch, useSelector } from "react-redux";
@@ -42,7 +43,7 @@ const BrandVoice = () => {
       setFormData({
         ...formData,
         uploadedFile: file.name,
-        keywords: [...formData.keywords, file.name], // Add file name to keywords
+        keywords: [...formData.keywords, file.name],
       });
     }
   };
@@ -73,9 +74,7 @@ const BrandVoice = () => {
   };
 
   const handleSave = () => {
-    console.log("Form Data:", formData); // Print the whole form data
     dispatch(sendBrandVoice(formData, navigate));
-    console.log("Form submitted successfully");
   };
 
   const renderKeywords = () => {
@@ -85,202 +84,279 @@ const BrandVoice = () => {
     return (
       <>
         {remainingCount > 0 && (
-          <div className="flex items-center bg-gray-200 rounded-md px-2 py-1 mr-2">
+          <motion.div 
+            className="flex items-center bg-indigo-100 text-indigo-700 rounded-md px-2 py-1 mr-2"
+            initial={{ scale: 0.8 }}
+            animate={{ scale: 1 }}
+          >
             <span className="text-sm">{`+${remainingCount}`}</span>
-          </div>
+          </motion.div>
         )}
         {latestKeywords.map((keyword, index) => (
-          <div
+          <motion.div
             key={index}
-            className="flex items-center bg-gray-200 rounded-md px-2 py-1 mr-2"
+            className="flex items-center bg-indigo-100 text-indigo-700 rounded-md px-2 py-1 mr-2"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            whileHover={{ scale: 1.05 }}
           >
             <span className="text-sm">{keyword}</span>
             <FaTimes
-              className="ml-1 cursor-pointer"
+              className="ml-1 cursor-pointer text-indigo-500 hover:text-indigo-700 transition-colors"
               onClick={() => handleRemoveKeyword(keyword)}
             />
-          </div>
+          </motion.div>
         ))}
       </>
     );
   };
 
   return (
-    <div className="flex gap-2 justify-around">
-      <div className="w-[60%]">
-        <div className="left-section w-full">
-          <h1 className="text-[24px] font-[600]">
-            Let’s create your Brand Voice
-          </h1>
-          <p className="text-[14px] font-[400] mt-4">
-            Prototype group pixel duplicate ellipse hand draft style rotate.
-            Layout follower scale comment flows draft select.
-          </p>
-          <div className="text-[#454545] mt-6 space-y-6">
-            <div>
-              <label
-                htmlFor="nameOfVoice"
-                className="text-[14px] font-[600] block mb-2"
-              >
-                Name of Voice
-              </label>
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="flex gap-8 justify-around p-6"
+    >
+      {/* Left Section */}
+      <motion.div 
+        className="w-[60%] bg-white rounded-xl p-6 shadow-lg border border-gray-100"
+        initial={{ x: -20 }}
+        animate={{ x: 0 }}
+      >
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
+>
+          Let’s create your Brand Voice
+        </h1>
+        <p className="text-gray-500 mb-6">
+          Prototype group pixel duplicate ellipse hand draft style rotate.
+          Layout follower scale comment flows draft select.
+        </p>
+        
+        <div className="space-y-6">
+          <div>
+            <label className="text-sm font-medium text-gray-700 block mb-2">
+              Name of Voice
+            </label>
+            <motion.input
+              type="text"
+              name="nameOfVoice"
+              value={formData.nameOfVoice}
+              onChange={handleInputChange}
+              placeholder="e.g., How to get?"
+              className="w-full p-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              whileFocus={{ scale: 1.01 }}
+            />
+          </div>
+          
+          <div>
+            <label className="text-sm font-medium text-gray-700 block mb-2">
+              Paste link of your post or blog *
+            </label>
+            <motion.input
+              type="text"
+              name="postLink"
+              value={formData.postLink}
+              onChange={handleInputChange}
+              placeholder="e.g., How to get?"
+              className="w-full p-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              whileFocus={{ scale: 1.01 }}
+            />
+          </div>
+          
+          <div className="text-center my-4 relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
+            </div>
+            <div className="relative flex justify-center">
+              <span className="bg-white px-4 text-gray-500">OR</span>
+            </div>
+          </div>
+          
+          <div>
+            <label className="text-sm font-medium text-gray-700 block mb-2">
+              Keywords*
+            </label>
+            <motion.div 
+              className="flex items-center bg-white border border-gray-300 rounded-lg p-2 flex-wrap gap-2"
+              whileHover={{ boxShadow: "0 0 0 3px rgba(99, 102, 241, 0.2)" }}
+            >
+              {renderKeywords()}
               <input
                 type="text"
-                name="nameOfVoice"
-                value={formData.nameOfVoice}
-                onChange={handleInputChange}
-                placeholder="e.g., How to get?"
-                className="w-full p-2 border border-gray-300 rounded-md bg-white"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="flex-grow p-2 bg-white border-none outline-none rounded-l-md"
+                placeholder="e.g., Fun"
               />
-            </div>
-            <div>
               <label
-                htmlFor="postLink"
-                className="text-[14px] font-[600] block mb-2"
+                htmlFor="file-upload"
+                className="flex items-center cursor-pointer"
               >
-                Paste link of your post or blog *
-              </label>
-              <input
-                type="text"
-                name="postLink"
-                value={formData.postLink}
-                onChange={handleInputChange}
-                placeholder="e.g., How to get?"
-                className="w-full p-2 border border-gray-300 rounded-md bg-white"
-              />
-            </div>
-            <div className="text-center my-4">
-              <span>OR</span>
-            </div>
-            <div>
-              <label
-                htmlFor="keywords"
-                className="text-[14px] font-[600] block mb-2"
-              >
-                Keywords*
-              </label>
-              <div className="flex items-center bg-white border border-gray-300 rounded-md p-2 flex-wrap">
-                {renderKeywords()}
-                <input
-                  type="text"
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  className="flex-grow p-2 bg-white border-none outline-none rounded-l-md"
-                  placeholder="e.g., Fun"
-                />
-                <label
-                  htmlFor="file-upload"
-                  className="flex items-center cursor-pointer"
+                <motion.div 
+                  className="bg-indigo-100 p-2 rounded-lg"
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
                 >
                   <img
                     src="./Images/upload.png"
                     alt="Upload"
-                    className="w-10 h-10 p-2"
+                    className="w-6 h-6"
                   />
-                </label>
-                <input
-                  id="file-upload"
-                  type="file"
-                  className="hidden"
-                  onChange={handleFileChange}
-                />
-              </div>
-            </div>
-            <div>
-              <label
-                htmlFor="describeBrand"
-                className="text-[14px] font-[600] block mb-2"
-              >
-                Describe your Brand
+                </motion.div>
               </label>
-              <textarea
-                id="describeBrand"
-                name="describeBrand"
-                value={formData.describeBrand}
-                onChange={handleInputChange}
-                placeholder="Write a blog on how to cook pasta"
-                className="w-full p-2 border border-gray-300 rounded-md bg-white"
-                rows="4"
+              <input
+                id="file-upload"
+                type="file"
+                className="hidden"
+                onChange={handleFileChange}
               />
-            </div>
-            <div className="text-right">
-              <button
-                className="bg-[#498DD6] text-white px-6 py-2 rounded-md"
-                onClick={handleSave}
-              >
-                Save
-              </button>
-            </div>
+            </motion.div>
+          </div>
+          
+          <div>
+            <label className="text-sm font-medium text-gray-700 block mb-2">
+              Describe your Brand
+            </label>
+            <motion.textarea
+              name="describeBrand"
+              value={formData.describeBrand}
+              onChange={handleInputChange}
+              placeholder="Write a blog on how to cook pasta"
+              className="w-full p-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              rows="4"
+              whileFocus={{ scale: 1.01 }}
+            />
+          </div>
+          
+          <div className="text-right">
+            <motion.button
+              className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-8 py-3 rounded-lg font-medium shadow-md hover:shadow-lg transition-all"
+              onClick={handleSave}
+              whileHover={{ scale: 1.03, y: -2 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              Save Brand Voice
+            </motion.button>
           </div>
         </div>
-      </div>
+      </motion.div>
 
-      {/* vertical line */}
-      <div className="h-[100vh] w-[0.5px] bg-[#CFCFCF] mx-4"></div>
+      {/* Divider */}
+      <div className="h-auto w-px bg-gray-200 mx-2"></div>
 
-      {/* right part */}
-      <div className="right">
-        <h1 className="font-[600] text-[20px]">Selected Brand Voice</h1>
+      {/* Right Section */}
+      <motion.div 
+        className="flex-1 bg-white rounded-xl p-6 shadow-lg border border-gray-100"
+        initial={{ x: 20 }}
+        animate={{ x: 0 }}
+      >
+        <h1 className="text-xl font-bold text-gray-800 mb-4">
+          Selected Brand Voice
+        </h1>
 
-        <div className="my-6">
-          {formData.selectedVoice ? (
-            <div className="w-[385px] rounded-[4px] bg-white shadow-md border border-blue-500 p-4">
-              <div className="flex justify-between items-center">
-                <h1 className="text-[#1B6FC9] font-[400] text-[16px]">
-                  {formData.selectedVoice.brandName}
-                </h1>
-                <div className="flex space-x-2">
-                  <FaEdit className="text-blue-600 cursor-pointer" />
-                  {/* <img src="/Images/edit.png" alt="Edit" /> */}
-                  <img src="/Images/trash.png" alt="Delete" />
+        <div className="mb-8">
+          <AnimatePresence>
+            {formData.selectedVoice ? (
+              <motion.div 
+                className="rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-200 p-4 shadow-sm"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                whileHover={{ y: -5 }}
+              >
+                <div className="flex justify-between items-center">
+                  <h1 className="text-indigo-700 font-medium">
+                    {formData.selectedVoice.brandName}
+                  </h1>
+                  <div className="flex space-x-2">
+                    <motion.button 
+                      className="text-indigo-500 hover:text-indigo-700"
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                    >
+                      <FaEdit />
+                    </motion.button>
+                    <motion.button 
+                      className="text-gray-500 hover:text-red-500"
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                    >
+                      <img src="/Images/trash.png" alt="Delete" className="w-4 h-4" />
+                    </motion.button>
+                  </div>
                 </div>
-              </div>
-              <p className="text-[14px] font-[400] text-[#454545] mt-2">
-                {formData.selectedVoice.brandVoice.length > 100
-                  ? `${formData.selectedVoice.brandVoice.substring(0, 100)}...`
-                  : formData.selectedVoice.brandVoice}
-              </p>
-            </div>
-          ) : (
-            <p className="text-[14px] font-[400] text-[#454545] mt-2">
-              No brand voice selected.
-            </p>
-          )}
+                <p className="text-gray-600 mt-2 text-sm">
+                  {formData.selectedVoice.brandVoice.length > 100
+                    ? `${formData.selectedVoice.brandVoice.substring(0, 100)}...`
+                    : formData.selectedVoice.brandVoice}
+                </p>
+              </motion.div>
+            ) : (
+              <motion.div 
+                className="p-6 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300 text-center"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+              >
+                <p className="text-gray-500">
+                  No brand voice selected. Select one from below.
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
-        {/* select brand voices */}
-        <h2 className="font-[600] text-[20px] mb-4">Select Brand Voice</h2>
-        <div className="flex flex-col gap-5">
+        <h2 className="text-xl font-bold text-gray-800 mb-4">
+          Select Brand Voice
+        </h2>
+        
+        <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
           {brandVoiceData.map((item, index) => (
             <YourVoicesComponent
-              key={index}
+              key={item.id}
               id={item.id}
               brandName={item.brandName}
               brandVoice={item.brandVoice}
               onSelect={() => handleSelect(item)}
+              isSelected={formData.selectedVoice?.id === item.id}
             />
           ))}
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };
 
-const YourVoicesComponent = ({ id, brandName, brandVoice, onSelect }) => {
+const YourVoicesComponent = ({ id, brandName, brandVoice, onSelect, isSelected }) => {
   return (
-    <div
-      key={id}
-      className="w-[385px] h-[92px] rounded-[4px] bg-white shadow-md p-2 cursor-pointer"
+    <motion.div
+      className={`p-4 rounded-xl cursor-pointer transition-all ${
+        isSelected 
+          ? "bg-gradient-to-r from-indigo-100 to-purple-100 border-2 border-indigo-300 shadow-md" 
+          : "bg-white border border-gray-200 hover:border-indigo-300"
+      }`}
       onClick={onSelect}
+      whileHover={{ 
+        y: -3,
+        boxShadow: "0 4px 12px rgba(99, 102, 241, 0.1)"
+      }}
+      whileTap={{ scale: 0.98 }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2 }}
     >
-      <h1 className="text-[#1B6FC9] font-[400] text-[16px]">{brandName}</h1>
-      <p className="text-[14px] font-[400] text-[#454545] mt-2">
+      <h1 className={`font-medium ${
+        isSelected ? "text-indigo-700" : "text-gray-700"
+      }`}>
+        {brandName}
+      </h1>
+      <p className="text-sm text-gray-600 mt-2">
         {brandVoice.length > 100
           ? `${brandVoice.substring(0, 100)}...`
           : brandVoice}
       </p>
-    </div>
+    </motion.div>
   );
 };
 

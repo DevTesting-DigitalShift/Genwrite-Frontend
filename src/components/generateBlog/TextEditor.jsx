@@ -66,7 +66,7 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
   const AI_MODELS = [
     { id: "gemini", name: "Gemini", icon: "" },
     { id: "openai", name: "OpenAI", icon: "" },
-    { id: "grok", name: "Grok", icon: "" },
+    // { id: "grok", name: "Grok", icon: "" },
   ];
 
   useEffect(() => {
@@ -281,10 +281,21 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
   const ModelDropdown = () => (
     <div className="relative" ref={dropdownRef}>
       <button
-        onClick={() => setShowModelDropdown(!showModelDropdown)}
         className="flex items-center gap-2 font-bold mr-4 hover:bg-gray-100 p-2 rounded"
       >
         GenWrite
+      </button>
+
+     
+    </div>
+  );
+  const ModelDropdown1 = () => (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        onClick={() => setShowModelDropdown(!showModelDropdown)}
+        className="flex items-center gap-2 font-semibold mr-4 hover:bg-gray-100 p-2 rounded"
+      >
+        Gemini
       </button>
 
       {showModelDropdown && (
@@ -316,6 +327,7 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
   const renderToolbar = () => (
     <div className="border-b p-2 flex flex-wrap gap-2 bg-gray-50 items-center">
       <ModelDropdown />
+      <ModelDropdown1 />
       <FontDropdown />
 
       {[1, 2, 3].map((level) => (

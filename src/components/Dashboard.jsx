@@ -125,6 +125,17 @@ const Dashboard = () => {
   const handleNext = () => setCurrentStep(currentStep + 1);
   const handlePrev = () => setCurrentStep(currentStep - 1);
 
+  const handleArchive = async (id) => {
+    try {
+      const response = await axiosInstance.put(`/blogs/archive/${id}`);
+      if (response.status === 200) {
+        setBlogsData((prev) => prev.filter((blog) => blog._id !== id)); // Remove from MyProjects
+      }
+    } catch (error) {
+      console.error("Error archiving blog:", error.response?.data?.message || "Failed to archive blog");
+    }
+  };
+
   console.log({ modelData });
 
   return (

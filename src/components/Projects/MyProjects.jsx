@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"
 import axiosInstance from "@api/index"
 import SkeletonLoader from "./SkeletonLoader"
 import { Tooltip } from "antd"
+import { useNotification } from "@/context/NotificationsContext" // adjust path as needed
 
 const TRUNCATE_LENGTH = 85
 
@@ -12,13 +13,16 @@ const MyProjects = () => {
   const [itemsPerPage, setItemsPerPage] = useState(5)
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
+  const { updateNotifications } = useNotification();
 
   const fetchBlogs = async () => {
     try {
       setLoading(true)
-      const response = await axiosInstance.get("/blogs/")
-      console.log("Fetched Blogs Data:", response.data) // Ensure `aiModel` is logged
-      setBlogsData(response.data?.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)))
+      const response = await axiosInstance.get("/blogs/getAllBlogs")
+      const filteredBlogs = response.data.filter((blog) => !blog.isArchived) // Filter isArchived=false
+      const sortedBlogs = filteredBlogs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      setBlogsData(sortedBlogs)
+      updateNotifications(sortedBlogs); // <-- update notifications here
     } catch (error) {
       console.error(
         "Error fetching blogs:",
@@ -67,6 +71,19 @@ const MyProjects = () => {
     setCurrentPage(pageNumber)
   }
 
+  const handleArchive = async (id) => {
+    try {
+      // Call the backend to archive the blog
+      const response = await axiosInstance.put(`/blogs/archive/${id}`);
+      if (response.status === 200) {
+        // Remove the blog from MyProjects and update the state
+        setBlogsData((prev) => prev.filter((blog) => blog._id !== id));
+      }
+    } catch (error) {
+      console.error("Error archiving blog:", error.response?.data?.message || "Failed to archive blog")
+    }
+  }
+
   return (
     <div className="max-w-7xl mx-auto" style={{ overflowY: "auto" }}>
       <h1 className="text-3xl font-bold mb-6">Blogs Generated</h1>
@@ -97,7 +114,7 @@ const MyProjects = () => {
                   }
                 >
                   <div
-                    className="bg-white shadow-md hover:shadow-xl transition-shadow duration-300 rounded-xl p-4 cursor-pointer"
+                    className="bg-white shadow-md  hover:shadow-xl transition-shadow duration-300 rounded-xl p-4 cursor-pointer"
                     title={title}
                     onClick={() => {
                       if (status === "complete") {
@@ -107,7 +124,9 @@ const MyProjects = () => {
                   >
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
-                      {aiModel ?(
+                      <div className="flex items-center gap-4">
+                        <div>
+                        {aiModel ?(
                         <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">
                           {aiModel}
                         </span>
@@ -117,6 +136,20 @@ const MyProjects = () => {
                         Gemini
                       </span>
             )}
+                        </div>
+                        <div>
+                          <img
+  src="Images/trash.png"
+  alt="Trash"
+  className="cursor-pointer"
+  onClick={(e) => {
+    e.stopPropagation(); // Prevent triggering blog click
+    handleArchive(blog._id);
+  }}
+/>
+                        </div>
+                      </div>
+                     
                     </div>
                     <p className="text-sm text-gray-600 mb-4">{truncateContent(content)}</p>
                     <div className="flex flex-wrap gap-2">
