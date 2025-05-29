@@ -20,9 +20,24 @@ const Jobs = () => {
   const [newJob, setNewJob] = useState({
     name: "",
     schedule: { type: "daily", customDates: [], days: [] },
-    blogs: { numberOfBlogs: 1, topics: [], templates: [] },
-    options: { tone: "Professional", length: 1000, model: "gemini", includeFaqs: false }, // Replaced "default" with "gemini"
-    status: "active",
+    blogs: {
+      numberOfBlogs: 1,
+      topics: [],
+      templates: [],
+      tone: "Professional",
+      length: 1000,
+      imageSource: "unsplash"
+    },
+    options: {
+      wordpressPosting: false,
+      model: "gemini",
+      includeFaqs: false,
+      useBrandVoice: false,
+      includeCompetitorResearch: false,
+      includeHyperlinks: false,
+      includeQuickSummary: false
+    },
+    status: "stop", // default to stop (valid enum for backend)
   });
   const [topicInput, setTopicInput] = useState("");
 
@@ -41,7 +56,20 @@ const Jobs = () => {
   // Create a new job
   const handleCreateJob = async () => {
     try {
-      await axiosInstance.post("/jobs", newJob);
+      // Ensure only the required fields are sent, with new options fields
+      const jobPayload = {
+        ...newJob,
+        options: {
+          ...newJob.options,
+          // These fields should be set in the UI logic or defaulted here
+          includeFaqs: newJob.options.includeFaqs || false,
+          useBrandVoice: newJob.options.useBrandVoice || false,
+          includeCompetitorResearch: newJob.options.includeCompetitorResearch || false,
+          includeHyperlinks: newJob.options.includeHyperlinks || false,
+          includeQuickSummary: newJob.options.includeQuickSummary || false
+        }
+      };
+      await axiosInstance.post("/jobs", jobPayload);
       toast.success("Job created successfully!"); // Show success toast
       setShowJobModal(false); // Close the modal
       fetchJobs(); // Refresh the job list
@@ -56,20 +84,19 @@ const Jobs = () => {
     try {
       const job = jobs.find((job) => job._id === jobId);
       if (job.status === "active") {
-        await axiosInstance.patch(`/jobs/${jobId}/stop`); // Stop the job
-        toast.info("Job stopped successfully!");
+        await axiosInstance.patch(`/jobs/${jobId}/stop`);
+        toast.info("Job paused successfully!");
       } else {
-        await axiosInstance.patch(`/jobs/${jobId}/start`); // Start the job
+        await axiosInstance.patch(`/jobs/${jobId}/start`); 
         toast.success("Job started successfully!");
       }
-      fetchJobs(); // Refresh the job list
+      fetchJobs(); 
     } catch (error) {
       console.error("Error toggling job status:", error.response?.data?.message || error.message);
       toast.error("Failed to update job status. Please try again.");
     }
   };
 
-  // Delete a job
   const handleDeleteJob = async (jobId) => {
     try {
       await axiosInstance.delete(`/jobs/${jobId}`);
@@ -165,6 +192,7 @@ const Jobs = () => {
           >
             <h3 className="text-xl font-semibold text-gray-800 mb-4">Job Details (Step 2)</h3>
             <div className="space-y-4">
+              {/* Job Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Job Name</label>
                 <input
@@ -174,13 +202,12 @@ const Jobs = () => {
                   className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
+              {/* Tone (blogs) */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Tone</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Tone of Voice</label>
                 <select
-                  value={newJob.options.tone}
-                  onChange={(e) =>
-                    setNewJob({ ...newJob, options: { ...newJob.options, tone: e.target.value } })
-                  }
+                  value={newJob.blogs.tone}
+                  onChange={(e) => setNewJob({ ...newJob, blogs: { ...newJob.blogs, tone: e.target.value } })}
                   className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
                   {tones.map((tone) => (
@@ -190,16 +217,12 @@ const Jobs = () => {
                   ))}
                 </select>
               </div>
+              {/* Length (blogs) */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Word Length</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Length</label>
                 <select
-                  value={newJob.options.length}
-                  onChange={(e) =>
-                    setNewJob({
-                      ...newJob,
-                      options: { ...newJob.options, length: parseInt(e.target.value) },
-                    })
-                  }
+                  value={newJob.blogs.length}
+                  onChange={(e) => setNewJob({ ...newJob, blogs: { ...newJob.blogs, length: parseInt(e.target.value) } })}
                   className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
                   {wordLengths.map((length) => (
@@ -209,6 +232,19 @@ const Jobs = () => {
                   ))}
                 </select>
               </div>
+              {/* Image Source (blogs) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Image Source</label>
+                <select
+                  value={newJob.blogs.imageSource}
+                  onChange={(e) => setNewJob({ ...newJob, blogs: { ...newJob.blogs, imageSource: e.target.value } })}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="ai-generated">AI-Generated Images</option>
+                  <option value="unsplash">Unsplash Images</option>
+                </select>
+              </div>
+              {/* Topics, AI Model, etc. (keep existing) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Topics</label>
                 <div className="flex gap-2 mb-2">
@@ -303,14 +339,195 @@ const Jobs = () => {
             animate={{ opacity: 1 }}
             className="space-y-6"
           >
-            <h3 className="text-xl font-semibold text-gray-800 mb-4">Schedule Settings (Step 3)</h3>
+            <h3 className="text-xl font-semibold text-gray-800 mb-4">Blog Options (Step 3)</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* DaisyUI-style toggles for each option */}
+              <div className="flex items-center justify-between py-2 border-b">
+                <span className="text-sm font-medium text-gray-700">Add FAQ</span>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="sr-only peer"
+                    checked={newJob.options.includeFaqs}
+                    onChange={(e) => setNewJob({ ...newJob, options: { ...newJob.options, includeFaqs: e.target.checked } })}
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+              <div className="flex items-center justify-between py-2 border-b">
+                <span className="text-sm font-medium text-gray-700">Write with Brand Voice</span>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="sr-only peer"
+                    checked={newJob.options.useBrandVoice}
+                    onChange={(e) => setNewJob({ ...newJob, options: { ...newJob.options, useBrandVoice: e.target.checked } })}
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+              <div className="flex items-center justify-between py-2 border-b">
+                <span className="text-sm font-medium text-gray-700">Add Competitive Research</span>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="sr-only peer"
+                    checked={newJob.options.includeCompetitorResearch}
+                    onChange={(e) => setNewJob({ ...newJob, options: { ...newJob.options, includeCompetitorResearch: e.target.checked } })}
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+              <div className="flex items-center justify-between py-2 border-b">
+                <span className="text-sm font-medium text-gray-700">Add Reference Links</span>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="sr-only peer"
+                    checked={newJob.options.includeHyperlinks}
+                    onChange={(e) => setNewJob({ ...newJob, options: { ...newJob.options, includeHyperlinks: e.target.checked } })}
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+              <div className="flex items-center justify-between py-2 border-b">
+                <span className="text-sm font-medium text-gray-700">Add a Quick Summary</span>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="sr-only peer"
+                    checked={newJob.options.includeQuickSummary}
+                    onChange={(e) => setNewJob({ ...newJob, options: { ...newJob.options, includeQuickSummary: e.target.checked } })}
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+            </div>
+            <div className="flex justify-between mt-6">
+              <button
+                onClick={() => setCurrentStep(2)}
+                className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setCurrentStep(4)}
+                className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+              >
+                Next
+              </button>
+            </div>
+          </motion.div>
+        );
+      case 4:
+        return (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="space-y-6"
+          >
+            <h3 className="text-xl font-semibold text-gray-800 mb-4">Schedule Settings (Step 4)</h3>
             <div className="space-y-4">
+              {/* Schedule Type */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Schedule Type</label>
+                <select
+                  value={newJob.schedule.type}
+                  onChange={e => {
+                    const type = e.target.value;
+                    let days = [];
+                    let monthDates = [];
+                    if (type === "weekly") days = [];
+                    if (type === "monthly") monthDates = [];
+                    setNewJob({
+                      ...newJob,
+                      schedule: {
+                        ...newJob.schedule,
+                        type,
+                        days,
+                        monthDates,
+                        customDates: [],
+                      },
+                    });
+                  }}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="custom">Custom</option>
+                </select>
+              </div>
+              {/* Weekly: Select days of week */}
+              {newJob.schedule.type === "weekly" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Select Days of Week</label>
+                  <div className="flex gap-2 flex-wrap">
+                    {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((d, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        className={`px-2 py-1 rounded ${newJob.schedule.days?.includes(i) ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700"}`}
+                        onClick={() => {
+                          setNewJob(prev => {
+                            const days = prev.schedule.days?.includes(i)
+                              ? prev.schedule.days.filter(day => day !== i)
+                              : [...(prev.schedule.days || []), i];
+                            return { ...prev, schedule: { ...prev.schedule, days } };
+                          });
+                        }}
+                      >
+                        {d}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {/* Monthly: Select dates 1-31 */}
+              {newJob.schedule.type === "monthly" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Select Dates of Month</label>
+                  <div className="flex gap-2 flex-wrap">
+                    {Array.from({ length: 31 }, (_, i) => i + 1).map(date => (
+                      <button
+                        key={date}
+                        type="button"
+                        className={`px-2 py-1 rounded ${newJob.schedule.monthDates?.includes(date) ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700"}`}
+                        onClick={() => {
+                          setNewJob(prev => {
+                            const monthDates = prev.schedule.monthDates?.includes(date)
+                              ? prev.schedule.monthDates.filter(d => d !== date)
+                              : [...(prev.schedule.monthDates || []), date];
+                            return { ...prev, schedule: { ...prev.schedule, monthDates } };
+                          });
+                        }}
+                      >
+                        {date}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {/* Custom: MultiDatePicker */}
+              {newJob.schedule.type === "custom" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Select Dates</label>
+                  <MultiDatePicker
+                    value={newJob.schedule.customDates}
+                    onChange={dates => setNewJob({ ...newJob, schedule: { ...newJob.schedule, customDates: dates, days: [], monthDates: [] } })}
+                    multiple
+                    format="YYYY-MM-DD"
+                    className="w-full"
+                  />
+                </div>
+              )}
+              {/* Number of Blogs (keep existing) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Number of Blogs</label>
                 <input
                   type="number"
                   value={newJob.blogs.numberOfBlogs}
-                  onChange={(e) => {
+                  onChange={e => {
                     const value = parseInt(e.target.value, 10);
                     if (!isNaN(value) && value >= 0) {
                       setNewJob({
@@ -323,77 +540,17 @@ const Jobs = () => {
                   placeholder="Enter the number of blogs"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Schedule Type</label>
-                <select
-                  value={newJob.schedule.type}
-                  onChange={(e) =>
-                    setNewJob({ ...newJob, schedule: { ...newJob.schedule, type: e.target.value } })
-                  }
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="custom">Custom Dates</option>
-                </select>
-              </div>
-              {newJob.schedule.type === "weekly" && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Select Days</label>
-                  <select
-                    multiple
-                    value={newJob.schedule.days || []}
-                    onChange={(e) =>
-                      setNewJob({
-                        ...newJob,
-                        schedule: {
-                          ...newJob.schedule,
-                          days: Array.from(e.target.selectedOptions, (option) => option.value),
-                        },
-                      })
-                    }
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  >
-                    {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(
-                      (day) => (
-                        <option key={day} value={day}>
-                          {day}
-                        </option>
-                      )
-                    )}
-                  </select>
-                </div>
-              )}
-              {newJob.schedule.type === "custom" && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="space-y-2"
-                >
-                  <label className="block text-sm font-medium text-gray-700">Select Dates</label>
-                  <MultiDatePicker
-                    value={newJob.schedule.customDates}
-                    onChange={(dates) =>
-                      setNewJob({
-                        ...newJob,
-                        schedule: { ...newJob.schedule, customDates: dates },
-                      })
-                    }
-                    className="w-full border border-gray-200 rounded-lg"
-                  />
-                </motion.div>
-              )}
             </div>
             <div className="flex justify-between mt-6">
               <button
-                onClick={() => setCurrentStep(2)}
+                onClick={() => setCurrentStep(3)}
                 className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
               >
                 Previous
               </button>
               <button
                 onClick={handleCreateJob}
-                className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+                className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
               >
                 Create Job
               </button>
@@ -419,7 +576,6 @@ const Jobs = () => {
           <p className="text-gray-600 mt-2">Manage your automated content generation jobs</p>
         </div>
 
-        {/* Create Job Card */}
         <motion.div
           whileHover={{ y: -2 }}
           className="w-full md:w-1/2 lg:w-1/3 h-48 p-6 bg-white rounded-xl shadow-sm hover:shadow-md cursor-pointer mb-8"
@@ -476,7 +632,7 @@ const Jobs = () => {
                           : "bg-green-100 text-green-600 hover:bg-green-200"
                       }`}
                     >
-                      {job.status === "active" ? "Pause" : "Restart"}
+                      {job.status === "active" ? "Stop" : "Start"}
                     </motion.button>
                   </div>
 
