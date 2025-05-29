@@ -18,7 +18,7 @@ const MyProjects = () => {
   const fetchBlogs = async () => {
     try {
       setLoading(true)
-      const response = await axiosInstance.get("/blogs/getAllBlogs")
+      const response = await axiosInstance.get("/blogs/")
       const filteredBlogs = response.data.filter((blog) => !blog.isArchived) // Filter isArchived=false
       const sortedBlogs = filteredBlogs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
       setBlogsData(sortedBlogs)
@@ -123,7 +123,7 @@ const MyProjects = () => {
                     }}
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+                      <h3 className="text-lg font-semibold text-gray-800 max-w-72">{title}</h3>
                       <div className="flex items-center gap-4">
                         <div>
                         {aiModel ?(
@@ -141,7 +141,7 @@ const MyProjects = () => {
                           <img
   src="Images/trash.png"
   alt="Trash"
-  className="cursor-pointer"
+  className="cursor-pointer relative z-50"
   onClick={(e) => {
     e.stopPropagation(); // Prevent triggering blog click
     handleArchive(blog._id);
