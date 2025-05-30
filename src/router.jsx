@@ -1,24 +1,27 @@
-import { lazy, Suspense } from "react";
-import { createBrowserRouter, Navigate } from "react-router-dom";
-import { previewBlogLoader } from "@pages/preview/previewLoader";
-import Loading from "@components/Loading";
+import { lazy, Suspense } from "react"
+import { createBrowserRouter, Navigate } from "react-router-dom"
+import { previewBlogLoader } from "@pages/preview/previewLoader"
+import Loading from "@components/Loading"
 
-const ErrorBoundary = lazy(() => import("@components/ErrorBoundary"));
-const PublicRoutesLayout = lazy(() => import("@components/layout/PublicRoutesLayout"));
-const PrivateRoutesLayout = lazy(() => import("@components/layout/PrivateRoutesLayout"));
-const Dashboard = lazy(() => import("@components/Dashboard"));
-const ToolBox = lazy(() => import("@components/toolbox/ToolBox"));
-const ToolboxSettings = lazy(() => import("@components/toolbox/toolboxSettings"));
-const MyProjects = lazy(() => import("@components/Projects/MyProjects"));
-const PluginsMain = lazy(() => import("@components/plugins/PluginsMain"));
-const BrandVoice = lazy(() => import("@components/brandvoice/BrandVoice"));
-const PreviewBlog = lazy(() => import("@pages/preview/PreviewBlog"));
-const jobs = lazy(() => import("@pages/Jobs"));
-const trashcan = lazy(() => import("@pages/Trashcan"));
-const upgrade = lazy(() => import("@pages/Upgrade"));
-const Profile = lazy(() => import("@pages/Profile"));
-const Login = lazy(() => import("@components/auth/Login"));
-const ErrorPage = lazy(() => import("@components/ErrorPage"));
+const ErrorBoundary = lazy(() => import("@components/ErrorBoundary"))
+const PublicRoutesLayout = lazy(() => import("@components/layout/PublicRoutesLayout"))
+const PrivateRoutesLayout = lazy(() => import("@components/layout/PrivateRoutesLayout"))
+const Dashboard = lazy(() => import("@components/Dashboard"))
+const ToolBox = lazy(() => import("@components/toolbox/ToolBox"))
+const ToolboxSettings = lazy(() => import("@components/toolbox/toolboxSettings"))
+const MyProjects = lazy(() => import("@components/Projects/MyProjects"))
+const PluginsMain = lazy(() => import("@components/plugins/PluginsMain"))
+const BrandVoice = lazy(() => import("@components/brandvoice/BrandVoice"))
+const PreviewBlog = lazy(() => import("@pages/preview/PreviewBlog"))
+const jobs = lazy(() => import("@pages/Jobs"))
+const trashcan = lazy(() => import("@pages/Trashcan"))
+const upgrade = lazy(() => import("@pages/Upgrade"))
+const Profile = lazy(() => import("@pages/Profile"))
+const Login = lazy(() => import("@components/auth/Login"))
+const ErrorPage = lazy(() => import("@components/ErrorPage"))
+const PaymentConfirmation = lazy(() => import("@pages/payment/PaymentConfirmation"))
+const SuccessPage = lazy(() => import("@pages/payment/SuccessPage"))
+const CancelPage = lazy(() => import("@pages/payment/CancelPage"))
 
 /**
  * Wraps a component in React.Suspense with fallback support.
@@ -33,7 +36,7 @@ function withSuspense(Component, props = {}, fallback = null) {
     <Suspense fallback={<Loading />}>
       <Component {...props} />
     </Suspense>
-  );
+  )
 }
 
 const router = createBrowserRouter([
@@ -54,6 +57,23 @@ const router = createBrowserRouter([
       { path: "upgrade", element: withSuspense(upgrade) },
       { path: "profile", element: withSuspense(Profile) },
       { path: "brandVoice", element: withSuspense(BrandVoice) },
+      {
+        path: "payment",
+        children: [
+          {
+            path: "confirm",
+            element: withSuspense(PaymentConfirmation),
+          },
+          {
+            path: "success",
+            element: withSuspense(SuccessPage),
+          },
+          {
+            path: "cancel",
+            element: withSuspense(CancelPage),
+          },
+        ],
+      },
       { path: "*", element: withSuspense(ErrorPage) },
     ],
   },
@@ -72,6 +92,6 @@ const router = createBrowserRouter([
       },
     ],
   },
-]);
+])
 
-export default router;
+export default router
