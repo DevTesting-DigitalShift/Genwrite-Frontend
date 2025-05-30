@@ -12,7 +12,7 @@ const Trashcan = () => {
   const fetchTrashedBlogs = async () => {
     try {
       setLoading(true);
-      const response = await axiosInstance.get("/blogs/getAllBlogs");
+      const response = await axiosInstance.get("/blogs/");
       const filteredBlogs = response.data.filter((blog) => blog.isArchived); // Filter isArchived=true
       setTrashedBlogs(filteredBlogs);
     } catch (error) {
