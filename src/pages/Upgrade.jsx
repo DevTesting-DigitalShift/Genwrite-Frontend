@@ -1,19 +1,20 @@
-import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import axiosInstance from "@api/index";
+import React, { useState } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import axiosInstance from "@api/index"
+import { useNavigate } from "react-router-dom"
 
 const PricingCard = ({ plan, isAnnual, index, onBuy }) => {
-  const [customCredits, setCustomCredits] = useState(0); // State for custom credits
-  const calculatedPrice = isAnnual ? plan.price * 10 : plan.price;
+  const [customCredits, setCustomCredits] = useState(0) // State for custom credits
+  const calculatedPrice = isAnnual ? plan.price * 10 : plan.price
 
   const handleCustomCreditsChange = (e) => {
-    const value = parseInt(e.target.value, 10) || 0;
-    setCustomCredits(value);
-  };
+    const value = parseInt(e.target.value, 10) || 0
+    setCustomCredits(value)
+  }
 
   const calculateCustomPrice = () => {
-    return ((customCredits * 5) / 100).toFixed(2); // $5 per 100 credits
-  };
+    return ((customCredits * 5) / 100).toFixed(2) // $5 per 100 credits
+  }
 
   return (
     <motion.div
@@ -22,7 +23,7 @@ const PricingCard = ({ plan, isAnnual, index, onBuy }) => {
       transition={{ delay: index * 0.1, duration: 0.3 }}
       whileHover={{
         y: -5,
-        transition: { type: "spring", stiffness: 300 }
+        transition: { type: "spring", stiffness: 300 },
       }}
       className={`relative p-8 rounded-xl bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 ${
         plan.featured ? "border-2 border-blue-500" : "border border-gray-100"
@@ -52,9 +53,7 @@ const PricingCard = ({ plan, isAnnual, index, onBuy }) => {
                 placeholder="Enter credits"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <span className="text-gray-500 text-lg">
-                ${calculateCustomPrice()} (calculated)
-              </span>
+              <span className="text-gray-500 text-lg">${calculateCustomPrice()} (calculated)</span>
             </>
           ) : (
             <>
@@ -68,9 +67,7 @@ const PricingCard = ({ plan, isAnnual, index, onBuy }) => {
               >
                 ${calculatedPrice}
               </motion.span>
-              <span className="text-gray-500 text-lg">
-                /{isAnnual ? "year" : "month"}
-              </span>
+              <span className="text-gray-500 text-lg">/{isAnnual ? "year" : "month"}</span>
             </>
           )}
         </div>
@@ -80,7 +77,7 @@ const PricingCard = ({ plan, isAnnual, index, onBuy }) => {
       <motion.button
         whileHover={{
           scale: 1.05,
-          boxShadow: "0 10px 20px rgba(0,0,0,0.1)"
+          boxShadow: "0 10px 20px rgba(0,0,0,0.1)",
         }}
         whileTap={{ scale: 0.95 }}
         className={`w-full py-3 rounded-lg font-semibold transition-colors ${
@@ -88,11 +85,17 @@ const PricingCard = ({ plan, isAnnual, index, onBuy }) => {
             ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:shadow-lg"
             : "bg-gray-100 text-gray-700 hover:bg-gray-200"
         }`}
-        onClick={() =>
-          plan.type === "credit_purchase"
-            ? onBuy(plan, customCredits)
-            : onBuy(plan)
-        }
+        onClick={() => {
+          if(plan.type === "credit_purchase"){
+            if(customCredits == 0){
+              alert("Kindly add the credits first")
+            }else{
+              onBuy(plan, customCredits)
+            }
+          }else{
+            onBuy(plan)
+          }
+        }}
       >
         {plan.cta}
       </motion.button>
@@ -125,12 +128,12 @@ const PricingCard = ({ plan, isAnnual, index, onBuy }) => {
         ))}
       </ul>
     </motion.div>
-  );
-};
+  )
+}
 
 const Upgrade = () => {
-  const [isAnnual, setIsAnnual] = useState(false);
-
+  const [isAnnual, setIsAnnual] = useState(false)
+  const navigate = useNavigate()
   const plans = [
     {
       name: "GenWrite Pro Plan",
@@ -141,7 +144,7 @@ const Upgrade = () => {
       cta: "Subscribe Now",
       type: "subscription",
       frequency: "month",
-      featured: true
+      featured: true,
     },
     {
       name: "GenWrite Enterprise Plan",
@@ -151,7 +154,7 @@ const Upgrade = () => {
       features: ["50000 credits", "Monthly billing", "Priority support"],
       cta: "Subscribe Now",
       type: "subscription",
-      frequency: "month"
+      frequency: "month",
     },
     {
       name: "GenWrite Credit Pack",
@@ -160,44 +163,24 @@ const Upgrade = () => {
       description: "One-time credit top-up",
       features: ["Custom credits", "One-time purchase"],
       cta: "Buy Credits",
-      type: "credit_purchase"
-    }
-  ];
+      type: "credit_purchase",
+    },
+  ]
 
   const handleBuy = async (plan, customCredits = 0) => {
-    try {
-      const response = await axiosInstance.post("/stripe/checkout", {
-        planName: plan.name.toLowerCase().includes("pro")
-          ? "pro"
-          : plan.name.toLowerCase().includes("enterprise")
-          ? "enterprise"
-          : "credits",
-        credits: plan.type === "credit_purchase" ? customCredits : plan.credits,
-        success_url: `${window.location.origin}/success`,
-        cancel_url: `${window.location.origin}/cancel`
-      });
-
-      // Redirect to Stripe checkout
-      window.location.href = response.data.url;
-    } catch (error) {
-      console.error("Error creating checkout session:", error);
-      alert("Failed to initiate checkout. Please try again.");
-    }
-  };
+    navigate("/payment/confirm", {
+      state: {
+        plan,
+        customCredits,
+      },
+    })
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-20 px-4">
       <div className="max-w-7xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-center mb-16"
-        >
-          <motion.div
-            initial={{ y: -20 }}
-            animate={{ y: 0 }}
-            className="inline-block mb-4"
-          >
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center mb-16">
+          <motion.div initial={{ y: -20 }} animate={{ y: 0 }} className="inline-block mb-4">
             <motion.h1
               whileHover={{ scale: 1.02 }}
               className="text-4xl font-bold text-gray-900 mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
@@ -211,7 +194,7 @@ const Upgrade = () => {
               transition={{ delay: 0.3 }}
             />
           </motion.div>
-          
+
           <p className="text-gray-600 text-lg mb-8 max-w-2xl mx-auto">
             Choose the perfect plan for your team. Scale seamlessly as your needs grow.
           </p>
@@ -220,7 +203,9 @@ const Upgrade = () => {
             className="flex items-center justify-center gap-4 mb-12"
             whileHover={{ scale: 1.02 }}
           >
-            <span className={`text-sm ${!isAnnual ? 'font-semibold text-gray-900' : 'text-gray-500'}`}>
+            <span
+              className={`text-sm ${!isAnnual ? "font-semibold text-gray-900" : "text-gray-500"}`}
+            >
               Monthly
             </span>
             <button
@@ -236,7 +221,9 @@ const Upgrade = () => {
               />
             </button>
             <div className="flex items-center gap-2">
-              <span className={`text-sm ${isAnnual ? 'font-semibold text-gray-900' : 'text-gray-500'}`}>
+              <span
+                className={`text-sm ${isAnnual ? "font-semibold text-gray-900" : "text-gray-500"}`}
+              >
                 Yearly
               </span>
               <AnimatePresence>
@@ -268,7 +255,7 @@ const Upgrade = () => {
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default Upgrade;
+export default Upgrade
