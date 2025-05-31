@@ -2,12 +2,16 @@ import React, { useState, useEffect } from "react"
 import axiosInstance from "@api/index"
 import SkeletonLoader from "../components/Projects/SkeletonLoader"
 import { Tooltip } from "antd"
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { useNotification } from "@/context/NotificationsContext";
 
 const TRUNCATE_LENGTH = 85
 
 const Trashcan = () => {
   const [trashedBlogs, setTrashedBlogs] = useState([])
   const [loading, setLoading] = useState(true)
+  const { fetchNotificationsFromBackend } = useNotification();
 
   const fetchTrashedBlogs = async () => {
     try {
@@ -35,10 +39,16 @@ const Trashcan = () => {
     try {
       const response = await axiosInstance.put(`/blogs/restore/${id}`);
       if (response.status === 200) {
-        setTrashedBlogs((prev) => prev.filter((blog) => blog._id !== id)); // Remove from Trashcan
+        setTrashedBlogs((prev) => prev.filter((blog) => blog._id !== id));
+        toast.success("Blog restored successfully!");
+        // Fetch notifications from backend after restore
+        fetchNotificationsFromBackend && fetchNotificationsFromBackend();
+      } else {
+        toast.error("Failed to restore blog.");
       }
     } catch (error) {
-      console.error("Error restoring blog:", error.response?.data?.message || "Failed to restore blog");
+      toast.error("Failed to restore blog.");
+      console.error("Error restoring blog:", (error.response && error.response.data && error.response.data.message) || "Failed to restore blog");
     }
   }
 
@@ -92,6 +102,7 @@ const Trashcan = () => {
           })}
         </div>
       )}
+      <ToastContainer />
     </div>
   )
 }

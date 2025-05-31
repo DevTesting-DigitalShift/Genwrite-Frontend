@@ -4,19 +4,18 @@ import { useNavigate } from "react-router-dom";
 const DashboardBox = ({ imageUrl, title, content, id, functions }) => {
   return (
     <div
-      className=" w-1/2 md:w-1/3 h-44 p-4 break-words rounded-md bg-[#FAFAFA]  shadow-sm hover:shadow-md cursor-pointer"
+      className="w-1/2 md:w-1/3 h-44 p-4 break-words rounded-md bg-[#FAFAFA] shadow-sm hover:shadow-md cursor-pointer"
       onClick={() => {
         if (id === "A") {
-          functions.showQuickBlogModal();
-        }
-        if (id === 1) {
-          functions.showModal();
-        }
-        if (id === "B") {
-          functions.showMultiStepModal();
-        }
-        if (id === 4) {
-          functions.showCompetitiveAnalysis();
+          functions.showQuickBlogModal && functions.showQuickBlogModal();
+        } else if (id === 1) {
+          functions.showModal && functions.showModal();
+        } else if (id === "B") {
+          functions.showMultiStepModal && functions.showMultiStepModal();
+        } else if (id === 4) {
+          functions.showCompetitiveAnalysis && functions.showCompetitiveAnalysis();
+        } else if (id === 3) {
+          functions.showPerformanceMonitoring && functions.showPerformanceMonitoring();
         }
       }}
     >
@@ -41,8 +40,10 @@ export default DashboardBox;
 
 export const QuickBox = ({ imageUrl, title, content, id, functions }) => {
   const handleClick = () => {
-    if (id === 4) {
-      functions?.showCompetitiveAnalysis();
+    if (id === 4 && functions?.showCompetitiveAnalysis) {
+      functions.showCompetitiveAnalysis();
+    } else if (id === 3 && functions?.showPerformanceMonitoring) {
+      functions.showPerformanceMonitoring();
     }
   };
 
@@ -91,7 +92,7 @@ export const RecentProjects = ({ title, content, tags, item }) => {
         </span>
       </div>
       <div className="p-1">
-        <h3 className="text-[#000000] font-[500] text-[18px] pt-3 mb-2">
+        <h3 className="text-[#000000] font-[500] text-[18px] pt-2 mb-2 w-80">
           {title}
         </h3>
         <p className="text-[#454545] font-[400] text-[14px]">

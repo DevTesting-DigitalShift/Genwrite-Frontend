@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom"
 import axiosInstance from "@api/index"
 import SkeletonLoader from "./SkeletonLoader"
 import { Tooltip } from "antd"
-import { useNotification } from "@/context/NotificationsContext" // adjust path as needed
+import { useNotification } from "@/context/NotificationsContext";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
-const TRUNCATE_LENGTH = 85
+const TRUNCATE_LENGTH = 120
 
 const MyProjects = () => {
   const [blogsData, setBlogsData] = useState([])
@@ -13,7 +15,7 @@ const MyProjects = () => {
   const [itemsPerPage, setItemsPerPage] = useState(5)
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
-  const { updateNotifications } = useNotification();
+  const { updateNotifications, fetchNotificationsFromBackend } = useNotification();
 
   const fetchBlogs = async () => {
     try {
@@ -73,14 +75,18 @@ const MyProjects = () => {
 
   const handleArchive = async (id) => {
     try {
-      // Call the backend to archive the blog
       const response = await axiosInstance.put(`/blogs/archive/${id}`);
       if (response.status === 200) {
-        // Remove the blog from MyProjects and update the state
         setBlogsData((prev) => prev.filter((blog) => blog._id !== id));
+        toast.success("Blog archived successfully!");
+        // Fetch notifications from backend after archive
+        fetchNotificationsFromBackend && fetchNotificationsFromBackend();
+      } else {
+        toast.error("Failed to archive blog.");
       }
     } catch (error) {
-      console.error("Error archiving blog:", error.response?.data?.message || "Failed to archive blog")
+      toast.error("Failed to archive blog.");
+      console.error("Error archiving blog:", (error.response && error.response.data && error.response.data.message) || "Failed to archive blog");
     }
   }
 
@@ -114,7 +120,7 @@ const MyProjects = () => {
                   }
                 >
                   <div
-                    className="bg-white shadow-md  hover:shadow-xl transition-shadow duration-300 rounded-xl p-4 cursor-pointer"
+                    className="bg-white shadow-md  hover:shadow-xl  transition-all duration-300 rounded-xl p-4 cursor-pointer min-h-[180px] relative"
                     title={title}
                     onClick={() => {
                       if (status === "complete") {
@@ -122,34 +128,16 @@ const MyProjects = () => {
                       }
                     }}
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-lg font-semibold text-gray-800 max-w-72">{title}</h3>
-                      <div className="flex items-center gap-4">
-                        <div>
-                        {aiModel ?(
-                        <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">
-                          {aiModel}
-                        </span>
-                      ):(
-                        
-                        <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">
-                        Gemini
+                    {/* Gemini Model - Top Right */}
+                    <div className="absolute top-4 right-4 z-10  space-x-2">
+                      <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                      <img src="./Images/gemini.png" className="w-4 h-4" alt="" />
+                        {(aiModel ? aiModel.charAt(0).toUpperCase() + aiModel.slice(1) : "Gemini")}
                       </span>
-            )}
-                        </div>
-                        <div>
-                          <img
-  src="Images/trash.png"
-  alt="Trash"
-  className="cursor-pointer relative z-50"
-  onClick={(e) => {
-    e.stopPropagation(); // Prevent triggering blog click
-    handleArchive(blog._id);
-  }}
-/>
-                        </div>
-                      </div>
-                     
+                    </div>
+                    <div className="flex items-center justify-between mb-2 ">
+                      <h3 className="text-lg font-semibold text-gray-800 max-w-72">{title}</h3>
+                      {/* No model badge or logo here */}
                     </div>
                     <p className="text-sm text-gray-600 mb-4">{truncateContent(content)}</p>
                     <div className="flex flex-wrap gap-2">
@@ -161,6 +149,26 @@ const MyProjects = () => {
                           {keyword}
                         </span>
                       ))}
+                    </div>
+                    {/* Created Date - Bottom Left */}
+                    <div className="absolute bottom-4 left-4 text-sm font-semibold text-gray-900 mt-2">
+                      Created on  {blog.createdAt ? new Date(blog.createdAt).toLocaleDateString('en-US', {
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric'
+                      }) : ""}
+                    </div>
+                    {/* Trash Icon - Bottom Right */}
+                    <div className="absolute bottom-4 right-4">
+                      <img
+                        src="Images/trash.png"
+                        alt="Trash"
+                        className="cursor-pointer w-5 h-5 z-50 hover:scale-110 transition-transform"
+                        onClick={e => {
+                          e.stopPropagation();
+                          handleArchive(blog._id);
+                        }}
+                      />
                     </div>
                   </div>
                 </Tooltip>
@@ -175,13 +183,11 @@ const MyProjects = () => {
                     <li key={index}>
                       <button
                         onClick={() => handlePageChange(index + 1)}
-                        className={`px-4 py-2 border-r border-gray-200 text-sm font-medium ${
-                          currentPage === index + 1
+                        className={`px-4 py-2 border-r border-gray-200 text-sm font-medium ${currentPage === index + 1
                             ? "bg-blue-600 text-white"
                             : "bg-white text-gray-700 hover:bg-gray-50"
-                        } ${index === 0 ? "rounded-l-md" : ""} ${
-                          index === totalPages - 1 ? "rounded-r-md border-r-0" : ""
-                        }`}
+                          } ${index === 0 ? "rounded-l-md" : ""} ${index === totalPages - 1 ? "rounded-r-md border-r-0" : ""
+                          }`}
                       >
                         {index + 1}
                       </button>
@@ -193,6 +199,7 @@ const MyProjects = () => {
           )}
         </>
       )}
+      <ToastContainer />
     </div>
   )
 }
