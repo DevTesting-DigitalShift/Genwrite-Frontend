@@ -8,6 +8,7 @@ import { packages } from "@constants/templates";
 import { FiPlus, FiSettings, FiCalendar, FiFileText, FiEdit } from "react-icons/fi";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import SkeletonLoader from "@components/Projects/SkeletonLoader";
 
 const Jobs = () => {
   const tones = ["Professional", "Casual", "Friendly", "Formal", "Technical"];
@@ -601,10 +602,7 @@ const Jobs = () => {
 
         {/* Loading State */}
         {isLoading ? (
-          <div className="text-center py-12 text-gray-500">
-            <div className="animate-spin inline-block w-8 h-8 border-4 border-blue-500 rounded-full border-t-transparent"></div>
-            <p className="mt-4">Loading jobs...</p>
-          </div>
+          <SkeletonLoader count={3} />
         ) : (
           /* Job List */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

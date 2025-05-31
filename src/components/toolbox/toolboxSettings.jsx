@@ -13,12 +13,14 @@ import {
   CloseOutlined
 } from "@ant-design/icons";
 import { motion } from "framer-motion";
+import CompetitiveAnalysisModal from "../mutipstepmodal/CompetitiveAnalysisModal";
 
 export default function ToolboxPage() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("content");
   const [keywords, setKeywords] = useState([]);
   const [newKeyword, setNewKeyword] = useState("");
+  const [competitiveAnalysisModalOpen, setCompetitiveAnalysisModalOpen] = useState(false);
   
   const addKeyword = () => {
     if (newKeyword.trim() && !keywords.includes(newKeyword.trim())) {
@@ -37,6 +39,7 @@ export default function ToolboxPage() {
     }
   };
   
+  // Patch the cardItems so competitor-analysis opens modal
   const cardItems = [
     {
       key: "ai-writer",
@@ -70,7 +73,7 @@ export default function ToolboxPage() {
       title: "Competitor Analysis",
       icon: <GlobalOutlined className="text-red-500" />,
       description: "Analyze top performing content in your niche",
-      action: () => navigate("/competitors"),
+      action: () => setCompetitiveAnalysisModalOpen(true),
       actionText: "Start Analysis",
       color: "from-rose-500 to-pink-600"
     },
@@ -353,6 +356,10 @@ export default function ToolboxPage() {
       >
         <AnimatedCard item={cardItems[6]} />
       </motion.div>
+
+      {competitiveAnalysisModalOpen && (
+        <CompetitiveAnalysisModal closefnc={() => setCompetitiveAnalysisModalOpen(false)} />
+      )}
     </motion.div>
   );
 }

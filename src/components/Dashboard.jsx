@@ -14,6 +14,7 @@ import MultiStepModal from "./mutipstepmodal/DaisyUi";
 import DaisyUIModal from "./DaisyUIModal";
 import QuickBlogModal from "./mutipstepmodal/QuickBlogModal";
 import CompetitiveAnalysisModal from "./mutipstepmodal/CompetitiveAnalysisModal";
+import PerformanceMonitoringModal from "./mutipstepmodal/PerformanceMonitoringModal";
 import axiosInstance from "@api/index";
 import { setUser } from "@store/slices/authSlice";
 
@@ -25,9 +26,14 @@ const Dashboard = () => {
   const [multiStepModal, setMultiStepModal] = useState(false);
   const [quickBlogModal, setQuickBlogModal] = useState(false);
   const [competitiveAnalysisModal, setCompetitiveAnalysisModal] = useState(false);
+  const [performanceModal, setPerformanceModal] = useState(false);
   const [modelData, setModelData] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [recentBlogData, setRecentBlogData] = useState([]);
+  const [selectedBlogId, setSelectedBlogId] = useState(null);
+  const [allBlogs, setAllBlogs] = useState([]);
+  const [selectedPerformanceBlog, setSelectedPerformanceBlog] = useState("");
+  const [performanceStats, setPerformanceStats] = useState(null);
 
   // Hooks
   const dispatch = useDispatch();
@@ -94,6 +100,19 @@ const Dashboard = () => {
     };
 
     fetchBlogs();
+  }, []);
+
+  // Fetch all blogs for performance monitoring dropdown
+  useEffect(() => {
+    const fetchAllBlogs = async () => {
+      try {
+        const response = await axiosInstance.get("/blogs/");
+        setAllBlogs(response.data);
+      } catch (error) {
+        // ignore
+      }
+    };
+    fetchAllBlogs();
   }, []);
 
   // Event handlers
@@ -194,6 +213,10 @@ const Dashboard = () => {
 
       {competitiveAnalysisModal && <CompetitiveAnalysisModal closefnc={hideCompetitiveAnalysis} />}
 
+      {performanceModal && (
+        <PerformanceMonitoringModal closefnc={() => setPerformanceModal(false)} />
+      )}
+
       <div className="">
         <h3 className="text-[24px] font-[600] mb-8 font-montserrat">Let's Begin </h3>
 
@@ -221,20 +244,23 @@ const Dashboard = () => {
       <div className="mt-5 ">
         <h3 className="text-[24px] font-[600] mb-8 font-montserrat">Quick Tools</h3>
         <div className="grid m-4 gap-10 sm:grid-cols-4 bg-white p-4">
-          {quickTools.map((item, index) => {
-            return (
-              <QuickBox
-                key={index}
-                imageUrl={item.imageUrl}
-                title={item.title}
-                content={item.content}
-                id={item.id}
-                functions={{
-                  showCompetitiveAnalysis,
-                }}
-              />
-            );
-          })}
+          {quickTools.map((item, index) => (
+            <QuickBox
+              key={index}
+              imageUrl={item.imageUrl}
+              title={item.title}
+              content={item.content}
+              id={item.id}
+              functions={{
+                ...(item.id === 3
+                  ? { showPerformanceMonitoring: () => setPerformanceModal(true) }
+                  : {}),
+                ...(item.id === 4
+                  ? { showCompetitiveAnalysis }
+                  : {}),
+              }}
+            />
+          ))}
         </div>
       </div>
 

@@ -16,7 +16,7 @@ const LayoutWithSidebarAndHeader = () => {
   const location = useLocation()
   const { user } = useSelector((selector) => selector.auth)
   const [isUserLoaded, setIsUserLoaded] = useState(false)
-  const { notifications } = useNotification()
+  const { notifications, markAllAsRead, deleteNotification } = useNotification()
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -166,7 +166,8 @@ const LayoutWithSidebarAndHeader = () => {
                 !sidebarOpen && "hidden"
               } ml-3 text-lg font-medium origin-left transition-opacity duration-500 ease-in-out`}
             >
-              {user?.name || "UserName"}
+              {user?.name?.split(" ")[0] || "UserName"}
+
             </span>
           </NavLink>
         </div>
@@ -264,6 +265,8 @@ const LayoutWithSidebarAndHeader = () => {
                           className={`p-4 border-b last:border-b-0 transition-all duration-150 ${
                             notif.type === "generating"
                               ? "bg-amber-50/70 hover:bg-amber-100/50"
+                              : notif.type === "restored"
+                              ? "bg-blue-50/70 hover:bg-blue-100/50"
                               : "bg-emerald-50/70 hover:bg-emerald-100/50"
                           }`}
                         >
@@ -272,11 +275,15 @@ const LayoutWithSidebarAndHeader = () => {
                               className={`mt-0.5 p-2 rounded-full ${
                                 notif.type === "generating"
                                   ? "bg-amber-100 text-amber-700"
+                                  : notif.type === "restored"
+                                  ? "bg-blue-100 text-blue-700"
                                   : "bg-emerald-100 text-emerald-700"
                               }`}
                             >
                               {notif.type === "generating" ? (
                                 <FaHourglassHalf className="w-4 h-4" />
+                              ) : notif.type === "restored" ? (
+                                <FaCheck className="w-4 h-4" />
                               ) : (
                                 <FaCheck className="w-4 h-4" />
                               )}
@@ -286,6 +293,8 @@ const LayoutWithSidebarAndHeader = () => {
                                 className={`text-sm font-medium ${
                                   notif.type === "generating"
                                     ? "text-amber-700"
+                                    : notif.type === "restored"
+                                    ? "text-blue-700"
                                     : "text-emerald-700"
                                 }`}
                               >
@@ -302,14 +311,23 @@ const LayoutWithSidebarAndHeader = () => {
                                   className={`ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium ${
                                     notif.type === "generating"
                                       ? "bg-amber-100 text-amber-700"
+                                      : notif.type === "restored"
+                                      ? "bg-blue-100 text-blue-700"
                                       : "bg-emerald-100 text-emerald-700"
                                   }`}
                                 >
-                                  {notif.type === "generating" ? "In Progress" : "Completed"}
+                                  {notif.type === "generating"
+                                    ? "In Progress"
+                                    : notif.type === "restored"
+                                    ? "Restored"
+                                    : "Completed"}
                                 </div>
                               </div>
                             </div>
-                            <button className="text-gray-300 hover:text-gray-500 transition-colors">
+                            <button
+                              className="text-gray-300 hover:text-gray-500 transition-colors"
+                              onClick={() => deleteNotification(notif.id)}
+                            >
                               <FaTimes className="w-3 h-3" />
                             </button>
                           </div>
@@ -318,7 +336,10 @@ const LayoutWithSidebarAndHeader = () => {
                     </AnimatePresence>
 
                     <div className="sticky bottom-0 bg-gradient-to-t from-white to-white/80 py-2 px-4 border-t border-gray-100">
-                      <button className="w-full py-2 text-center text-xs text-indigo-500 hover:text-indigo-700 font-medium">
+                      <button
+                        className="w-full py-2 text-center text-xs text-indigo-500 hover:text-indigo-700 font-medium"
+                        onClick={markAllAsRead}
+                      >
                         Mark all as read
                       </button>
                     </div>
