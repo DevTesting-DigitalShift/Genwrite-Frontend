@@ -2,10 +2,12 @@ import React, { useState, useEffect, Suspense } from "react"
 import { useNavigate } from "react-router-dom"
 import axiosInstance from "@api/index"
 import SkeletonLoader from "./SkeletonLoader"
-import { Tooltip } from "antd"
-import { useNotification } from "@/context/NotificationsContext";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { Badge, Button, Tooltip } from "antd"
+import { useNotification } from "@/context/NotificationsContext"
+import { ToastContainer, toast } from "react-toastify"
+import "react-toastify/dist/ReactToastify.css"
+import { useConfirmPopup } from "@/hooks/useConfirmPopup"
+import { Trash2 } from "lucide-react"
 
 const TRUNCATE_LENGTH = 120
 
@@ -15,16 +17,19 @@ const MyProjects = () => {
   const [itemsPerPage, setItemsPerPage] = useState(5)
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
-  const { updateNotifications, fetchNotificationsFromBackend } = useNotification();
+  const { showConfirm, ConfirmPopup } = useConfirmPopup()
+  const { updateNotifications, fetchNotificationsFromBackend } = useNotification()
 
   const fetchBlogs = async () => {
     try {
       setLoading(true)
       const response = await axiosInstance.get("/blogs/")
       const filteredBlogs = response.data.filter((blog) => !blog.isArchived) // Filter isArchived=false
-      const sortedBlogs = filteredBlogs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      const sortedBlogs = filteredBlogs.sort(
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+      )
       setBlogsData(sortedBlogs)
-      updateNotifications(sortedBlogs); // <-- update notifications here
+      updateNotifications(sortedBlogs) // <-- update notifications here
     } catch (error) {
       console.error(
         "Error fetching blogs:",
@@ -73,20 +78,37 @@ const MyProjects = () => {
     setCurrentPage(pageNumber)
   }
 
+  const handleTrash = (blog) => {
+    showConfirm({
+      title: "Move to Trash",
+      description: `The blog "${blog.title}" will be moved to trash. You can restore it later.`,
+      confirmText: "Move to Trash",
+      cancelText: "Cancel",
+      onConfirm: () => {
+        console.log("Trashing blog:", blog._id)
+        handleArchive(blog._id)
+      },
+    })
+  }
+
   const handleArchive = async (id) => {
     try {
-      const response = await axiosInstance.put(`/blogs/archive/${id}`);
+      const response = await axiosInstance.put(`/blogs/archive/${id}`)
       if (response.status === 200) {
-        setBlogsData((prev) => prev.filter((blog) => blog._id !== id));
-        toast.success("Blog archived successfully!");
+        setBlogsData((prev) => prev.filter((blog) => blog._id !== id))
+        toast.success("Blog archived successfully!")
         // Fetch notifications from backend after archive
-        fetchNotificationsFromBackend && fetchNotificationsFromBackend();
+        fetchNotificationsFromBackend && fetchNotificationsFromBackend()
       } else {
-        toast.error("Failed to archive blog.");
+        toast.error("Failed to archive blog.")
       }
     } catch (error) {
-      toast.error("Failed to archive blog.");
-      console.error("Error archiving blog:", (error.response && error.response.data && error.response.data.message) || "Failed to archive blog");
+      toast.error("Failed to archive blog.")
+      console.error(
+        "Error archiving blog:",
+        (error.response && error.response.data && error.response.data.message) ||
+          "Failed to archive blog"
+      )
     }
   }
 
@@ -105,89 +127,110 @@ const MyProjects = () => {
         <p>No blogs available.</p>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 place-items-center p-2">
             {currentItems.map((blog) => {
               const { _id, title, content, focusKeywords, status, aiModel } = blog // Include `aiModel`
               return (
-                <Tooltip
-                  title={status === "complete" ? title : `Blog generation is ${status}`}
-                  key={_id}
-                  color={status === "complete" ? "black" : status === "failed" ? "red" : "orange"}
-                  className={
-                    (status === "failed"
-                      ? "border-red-500"
-                      : status !== "complete" && "border-yellow-500") + " border-2"
+                <Badge.Ribbon
+                  text={
+                    <span className="flex items-center justify-center gap-1 p-1 font-medium">
+                      <img
+                        src="./Images/gemini.png"
+                        alt=""
+                        width={16}
+                        height={16}
+                        loading="lazy"
+                        className="bg-white"
+                      />
+                      {aiModel ? aiModel.charAt(0).toUpperCase() + aiModel.slice(1) : "Gemini"}
+                    </span>
                   }
+                  className="absolute top-0"
                 >
                   <div
-                    className="bg-white shadow-md  hover:shadow-xl  transition-all duration-300 rounded-xl p-4 cursor-pointer min-h-[180px] relative"
+                    className={`bg-white shadow-md  hover:shadow-xl  transition-all duration-300 rounded-xl p-4 min-h-[180px] relative
+                        ${
+                          (status === "failed"
+                            ? "border-red-500"
+                            : status !== "complete" && "border-yellow-500") + " border-2"
+                        }
+                      `}
                     title={title}
-                    onClick={() => {
-                      if (status === "complete") {
-                        handleBlogClick(blog)
-                      }
-                    }}
                   >
-                    {/* Gemini Model - Top Right */}
-                    <div className="absolute top-4 right-4 z-10  space-x-2">
-                      <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                      <img src="./Images/gemini.png" className="w-4 h-4" alt="" />
-                        {(aiModel ? aiModel.charAt(0).toUpperCase() + aiModel.slice(1) : "Gemini")}
-                      </span>
+                    <div className="text-xs font-semibold text-gray-400 mb-2 -mt-2">
+                      {new Date(blog.createdAt).toLocaleDateString("en-US", {
+                        month: "long",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
                     </div>
-                    <div className="flex items-center justify-between mb-2 ">
-                      <h3 className="text-lg font-semibold text-gray-800 max-w-72">{title}</h3>
-                      {/* No model badge or logo here */}
-                    </div>
-                    <p className="text-sm text-gray-600 mb-4">{truncateContent(content)}</p>
-                    <div className="flex flex-wrap gap-2">
-                      {focusKeywords.map((keyword, index) => (
-                        <span
-                          key={index}
-                          className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full"
-                        >
-                          {keyword}
-                        </span>
-                      ))}
-                    </div>
-                    {/* Created Date - Bottom Left */}
-                    <div className="absolute bottom-4 left-4 text-sm font-semibold text-gray-900 mt-2">
-                      Created on  {blog.createdAt ? new Date(blog.createdAt).toLocaleDateString('en-US', {
-                        month: 'long',
-                        day: 'numeric',
-                        year: 'numeric'
-                      }) : ""}
-                    </div>
-                    {/* Trash Icon - Bottom Right */}
-                    <div className="absolute bottom-4 right-4">
-                      <img
-                        src="Images/trash.png"
-                        alt="Trash"
-                        className="cursor-pointer w-5 h-5 z-50 hover:scale-110 transition-transform"
-                        onClick={e => {
-                          e.stopPropagation();
-                          handleArchive(blog._id);
+                    <Tooltip
+                      title={status === "complete" ? title : `Blog generation is ${status}`}
+                      key={_id}
+                      color={
+                        status === "complete" ? "black" : status === "failed" ? "red" : "orange"
+                      }
+                    >
+                      <div
+                        className="cursor-pointer"
+                        onClick={() => {
+                          if (status === "complete") {
+                            handleBlogClick(blog)
+                          }
                         }}
-                      />
+                      >
+                        {/* Gemini Model - Top Right */}
+                        {/* <div className="absolute top-4 right-4 z-10  space-x-2"></div> */}
+                        <div className="flex flex-col gap-4 items-center justify-between mb-2 ">
+                          <h3 className="text-lg font-semibold text-gray-900 !text-left max-w-76">
+                            {title}
+                          </h3>
+                          <p className="text-sm text-gray-600 mb-4 line-clamp-3 break-all">
+                            {content || ""}
+                            {/* {truncateContent(content)} */}
+                          </p>
+                        </div>
+                      </div>
+                    </Tooltip>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex flex-wrap gap-2">
+                        {focusKeywords.map((keyword, index) => (
+                          <span
+                            key={index}
+                            className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full"
+                          >
+                            {keyword}
+                          </span>
+                        ))}
+                      </div>
+                      <Button
+                        type="outline"
+                        className="p-2 hover:!border-red-500 hover:text-red-500"
+                        onClick={() => handleTrash(blog)}
+                      >
+                        <Trash2 />
+                      </Button>
                     </div>
                   </div>
-                </Tooltip>
+                </Badge.Ribbon>
               )
             })}
           </div>
           {totalPages > 1 && (
-            <div className="flex justify-center mt-8">
+            <div className="flex justify-center mt-8 self-end">
               <nav className="inline-flex rounded-md shadow">
                 <ul className="flex">
                   {Array.from({ length: totalPages }, (_, index) => (
                     <li key={index}>
                       <button
                         onClick={() => handlePageChange(index + 1)}
-                        className={`px-4 py-2 border-r border-gray-200 text-sm font-medium ${currentPage === index + 1
+                        className={`px-4 py-2 border-r border-gray-200 text-sm font-medium ${
+                          currentPage === index + 1
                             ? "bg-blue-600 text-white"
                             : "bg-white text-gray-700 hover:bg-gray-50"
-                          } ${index === 0 ? "rounded-l-md" : ""} ${index === totalPages - 1 ? "rounded-r-md border-r-0" : ""
-                          }`}
+                        } ${index === 0 ? "rounded-l-md" : ""} ${
+                          index === totalPages - 1 ? "rounded-r-md border-r-0" : ""
+                        }`}
                       >
                         {index + 1}
                       </button>
@@ -199,6 +242,7 @@ const MyProjects = () => {
           )}
         </>
       )}
+      <ConfirmPopup />
       <ToastContainer />
     </div>
   )

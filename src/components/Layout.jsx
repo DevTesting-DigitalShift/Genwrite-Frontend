@@ -197,7 +197,7 @@ const LayoutWithSidebarAndHeader = () => {
                     className="flex gap-2 justify-center items-center mr-4 rounded-full p-2 hover:bg-gray-100"
                   >
                     <RiCoinsFill size={30} color="orange" />
-                    <span className="font-semibold text-lg">{user.credits}</span>
+                    <span className="font-semibold text-lg">{user.credits.base + user.credits.extra}</span>
                   </Tooltip>
                   <Tooltip
                     title={`Hello ${user.name}`}
