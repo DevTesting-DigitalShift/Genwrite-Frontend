@@ -117,9 +117,12 @@ const LayoutWithSidebarAndHeader = () => {
       >
         <div className="flex gap-x-4 items-center text-black">
           <img
-            src="/Images/logo_genwrite.svg"
+            src="/Images/logo_genwrite.png"
+            width={"50%"}
+            height={"50%"}
+            loading="lazy"
             className={`cursor-pointer transition-transform duration-700 ease-in-out ${
-              sidebarOpen && ""
+              sidebarOpen ? "" : "w-full"
             }`}
             alt="Logo"
           />
