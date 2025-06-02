@@ -82,7 +82,7 @@ const Auth = ({ path }) => {
      
       
       {/* Floating Logo */}
-      <motion.div
+      {/* <motion.div   (Not needed, removing as per Aryan sir's instruction)
         initial={{ y: 0 }}
         animate={{
           y: [-10, 10, -10],
@@ -99,7 +99,7 @@ const Auth = ({ path }) => {
           alt="Logo" 
           className="w-60 drop-shadow-2xl" 
         />
-      </motion.div>
+      </motion.div> */}
 
       {/* Main Card */}
       <div className="flex items-center -mt-3 justify-center min-h-screen">
