@@ -1,2 +1,0 @@
-import{r as s}from"./index-BY638ibE.js";import{Y as i,r}from"./Compact-BTZmPIZP.js";const x=(l,c)=>{const o=s.useContext(i),n=s.useMemo(()=>{var e;const t=c||r[l],u=(e=o==null?void 0:o[l])!==null&&e!==void 0?e:{};return Object.assign(Object.assign({},typeof t=="function"?t():t),u||{})},[l,c,o]),a=s.useMemo(()=>{const e=o==null?void 0:o.locale;return o!=null&&o.exist&&!e?r.locale:e},[o]);return[n,a]};export{x as u};
-//# sourceMappingURL=useLocale-CHwbmUZ8.js.map
