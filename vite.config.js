@@ -1,6 +1,6 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
-import path from "path";
+import { defineConfig } from "vite"
+import react from "@vitejs/plugin-react"
+import path from "path"
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -19,15 +19,18 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  build:{
+  build: {
     cssCodeSplit: true, // Split CSS into separate files based on entry points
-    sourcemap: true,     // Optional: useful for debugging
+    sourcemap: false, // Optional: useful for debugging
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          if (id.includes("tiptap")) return "chunk-tiptap"
+        },
+      },
+    },
   },
   optimizeDeps: {
-    include: [
-      "@tiptap/extension-font-family",
-      "@tiptap/extension-history",
-      "prismjs",
-    ],
+    include: ["@tiptap/extension-font-family", "@tiptap/extension-history", "prismjs"],
   },
-});
+})

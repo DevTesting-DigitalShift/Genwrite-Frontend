@@ -1,2 +1,0 @@
-import{f as a,j as t}from"./index-BY638ibE.js";import{R as r}from"./index-DxCTR2Dz.js";import{B as o}from"./button-YSkkfAN9.js";import"./ExclamationCircleFilled-BUH_y_b9.js";import"./Compact-BTZmPIZP.js";import"./compact-item-DYuUoMha.js";function c(){const e=a();return t.jsx(r,{status:"error",title:"Payment Cancelled",subTitle:"You cancelled the payment. No changes were made.",extra:[t.jsx(o,{onClick:()=>e("/"),children:"Return to Dashboard"})]})}export{c as default};
-//# sourceMappingURL=CancelPage-C1EhiT9F.js.map

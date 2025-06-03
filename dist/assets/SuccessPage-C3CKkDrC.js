@@ -1,2 +1,0 @@
-import{f as e,j as s}from"./index-BY638ibE.js";import{R as r}from"./index-DxCTR2Dz.js";import{B as o}from"./button-YSkkfAN9.js";import"./ExclamationCircleFilled-BUH_y_b9.js";import"./Compact-BTZmPIZP.js";import"./compact-item-DYuUoMha.js";function n(){const t=e();return s.jsx(r,{status:"success",title:"Payment Successful!",subTitle:"Your subscription or credit purchase has been processed.",extra:[s.jsx(o,{type:"primary",onClick:()=>t("/"),children:"Go to Dashboard"})]})}export{n as default};
-//# sourceMappingURL=SuccessPage-C3CKkDrC.js.map
