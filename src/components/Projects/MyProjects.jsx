@@ -6,8 +6,8 @@ import { Badge, Button, Tooltip } from "antd"
 import { useNotification } from "@/context/NotificationsContext"
 import { ToastContainer, toast } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
-import { useConfirmPopup } from "@/hooks/useConfirmPopup"
 import { Trash2 } from "lucide-react"
+import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 
 const TRUNCATE_LENGTH = 120
 
@@ -17,8 +17,8 @@ const MyProjects = () => {
   const [itemsPerPage, setItemsPerPage] = useState(5)
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
-  const { showConfirm, ConfirmPopup } = useConfirmPopup()
   const { updateNotifications, fetchNotificationsFromBackend } = useNotification()
+  const { handlePopup } = useConfirmPopup()
 
   const fetchBlogs = async () => {
     try {
@@ -78,22 +78,9 @@ const MyProjects = () => {
     setCurrentPage(pageNumber)
   }
 
-  const handleTrash = (blog) => {
-    showConfirm({
-      title: "Move to Trash",
-      description: `The blog "${blog.title}" will be moved to trash. You can restore it later.`,
-      confirmText: "Move to Trash",
-      cancelText: "Cancel",
-      onConfirm: () => {
-        console.log("Trashing blog:", blog._id)
-        handleArchive(blog._id)
-      },
-    })
-  }
-
   const handleArchive = async (id) => {
     try {
-      const response = await axiosInstance.put(`/blogs/archive/${id}`)
+      const response = await axiosInstance.patch(`/blogs/archive/${id}`)
       if (response.status === 200) {
         setBlogsData((prev) => prev.filter((blog) => blog._id !== id))
         toast.success("Blog archived successfully!")
@@ -132,6 +119,7 @@ const MyProjects = () => {
               const { _id, title, content, focusKeywords, status, aiModel } = blog // Include `aiModel`
               return (
                 <Badge.Ribbon
+                  key={_id}
                   text={
                     <span className="flex items-center justify-center gap-1 p-1 font-medium">
                       <img
@@ -166,7 +154,6 @@ const MyProjects = () => {
                     </div>
                     <Tooltip
                       title={status === "complete" ? title : `Blog generation is ${status}`}
-                      key={_id}
                       color={
                         status === "complete" ? "black" : status === "failed" ? "red" : "orange"
                       }
@@ -204,9 +191,30 @@ const MyProjects = () => {
                         ))}
                       </div>
                       <Button
-                        type="outline"
+                        type="undefined"
                         className="p-2 hover:!border-red-500 hover:text-red-500"
-                        onClick={() => handleTrash(blog)}
+                        onClick={() =>
+                          handlePopup({
+                            title: "Move to Trash",
+                            description: (
+                              <span className="my-2">
+                                Blog <b>{blog.title}</b> will be moved to trash. You can restore it later.
+                              </span>
+                            ),
+                            confirmText: "Archieve",
+                            onConfirm: () => {
+                              console.log("Trashing blog:", blog._id)
+                              handleArchive(blog._id)
+                            },
+                            confirmProps:{
+                              type:"undefined",
+                              className: "border-red-500 hover:bg-red-500 hover:text-white"
+                            },
+                            cancelProps:{
+                              danger:false
+                            }
+                          })
+                        }
                       >
                         <Trash2 />
                       </Button>
@@ -242,7 +250,6 @@ const MyProjects = () => {
           )}
         </>
       )}
-      <ConfirmPopup />
       <ToastContainer />
     </div>
   )

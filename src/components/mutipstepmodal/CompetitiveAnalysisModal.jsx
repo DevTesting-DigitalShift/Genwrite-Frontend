@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
-import { X } from "lucide-react";
-import { toast } from "react-toastify";
-import axiosInstance from "../../api";
+import React, { useState, useEffect } from "react"
+import { X } from "lucide-react"
+import { toast } from "react-toastify"
+import axiosInstance from "../../api"
+import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 
 const CompetitiveAnalysisModal = ({ closefnc }) => {
   const [formData, setFormData] = useState({
@@ -11,38 +12,39 @@ const CompetitiveAnalysisModal = ({ closefnc }) => {
     keywordInput: "",
     contentType: "text", // or "markdown"
     selectedProject: null,
-  });
+  })
 
-  const [recentProjects, setRecentProjects] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisResults, setAnalysisResults] = useState(null);
+  const [recentProjects, setRecentProjects] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [analysisResults, setAnalysisResults] = useState(null)
 
+  const { handlePopup } = useConfirmPopup()
   useEffect(() => {
     const fetchRecentProjects = async () => {
       try {
-        const response = await axiosInstance.get("/blogs");
-        const allBlogs = response.data;
-        const recentBlogs = allBlogs.slice(-10).reverse();
-        setRecentProjects(recentBlogs);
-        setIsLoading(false);
+        const response = await axiosInstance.get("/blogs")
+        const allBlogs = response.data
+        const recentBlogs = allBlogs.slice(-10).reverse()
+        setRecentProjects(recentBlogs)
+        setIsLoading(false)
       } catch (error) {
-        console.error("Error fetching recent projects:", error);
-        toast.error("Failed to load recent projects");
-        setIsLoading(false);
+        console.error("Error fetching recent projects:", error)
+        toast.error("Failed to load recent projects")
+        setIsLoading(false)
       }
-    };
+    }
 
-    fetchRecentProjects();
-  }, []);
+    fetchRecentProjects()
+  }, [])
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value } = e.target
     setFormData((prev) => ({
       ...prev,
       [name]: value,
-    }));
-  };
+    }))
+  }
 
   const handleProjectSelect = (project) => {
     setFormData((prev) => ({
@@ -52,79 +54,89 @@ const CompetitiveAnalysisModal = ({ closefnc }) => {
       keywords: project.focusKeywords || [],
       selectedProject: project,
       contentType: "markdown",
-    }));
-  };
+    }))
+  }
 
   const handleKeywordInputChange = (e) => {
-    setFormData((prev) => ({ ...prev, keywordInput: e.target.value }));
-  };
+    setFormData((prev) => ({ ...prev, keywordInput: e.target.value }))
+  }
 
   const handleAddKeyword = () => {
-    const inputValue = formData.keywordInput;
+    const inputValue = formData.keywordInput
     if (inputValue.trim() !== "") {
       const newKeywords = inputValue
         .split(",")
         .map((keyword) => keyword.trim())
-        .filter((keyword) => keyword !== "" && !formData.keywords.includes(keyword));
+        .filter((keyword) => keyword !== "" && !formData.keywords.includes(keyword))
 
       if (newKeywords.length > 0) {
         setFormData((prev) => ({
           ...prev,
           keywords: [...prev.keywords, ...newKeywords],
           keywordInput: "",
-        }));
+        }))
       }
     }
-  };
+  }
 
   const handleRemoveKeyword = (index) => {
     setFormData((prev) => ({
       ...prev,
       keywords: prev.keywords.filter((_, i) => i !== index),
-    }));
-  };
+    }))
+  }
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter") {
-      e.preventDefault();
-      handleAddKeyword();
+      e.preventDefault()
+      handleAddKeyword()
     }
-  };
+  }
 
   const handleSubmit = async () => {
     if (!formData.title.trim()) {
-      toast.error("Please enter a blog title");
-      return;
+      toast.error("Please enter a blog title")
+      return
     }
     if (!formData.content.trim()) {
-      toast.error("Please enter blog content");
-      return;
+      toast.error("Please enter blog content")
+      return
     }
     if (formData.keywords.length === 0) {
-      toast.error("Please add at least one keyword");
-      return;
+      toast.error("Please add at least one keyword")
+      return
     }
 
-    setIsAnalyzing(true);
-    try {
-      const response = await axiosInstance.post("/analysis/run", {
-        title: formData.title,
-        content: formData.content,
-        keywords: formData.keywords,
-        contentType: formData.contentType,
-      });
+    handlePopup({
+      title: "Analyse the competitors",
+      description: (
+        <p>
+          Competitors Analysis cost: <b>10</b> credits Do you wish to proceed ?
+        </p>
+      ),
+      onConfirm: async () => {
+        setIsAnalyzing(true)
+        try {
+          const response = await axiosInstance.post("/analysis/run", {
+            title: formData.title,
+            content: formData.content,
+            keywords: formData.keywords,
+            contentType: formData.contentType,
+          })
 
-      if (response.data) {
-        setAnalysisResults(response.data);
-        toast.success("Analysis completed successfully!");
-      }
-    } catch (error) {
-      console.error("Error performing competitive analysis:", error);
-      toast.error("Failed to perform competitive analysis");
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
+          if (response.data) {
+            setAnalysisResults(response.data)
+            toast.success("Analysis completed successfully!")
+          }
+        } catch (error) {
+          console.error("Error performing competitive analysis:", error)
+          toast.error("Failed to perform competitive analysis")
+        } finally {
+          setIsAnalyzing(false)
+        }
+      },
+    })
+  }
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
@@ -147,8 +159,8 @@ const CompetitiveAnalysisModal = ({ closefnc }) => {
                   <select
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 max-h-[200px] overflow-y-auto"
                     onChange={(e) => {
-                      const project = recentProjects.find((p) => p._id === e.target.value);
-                      if (project) handleProjectSelect(project);
+                      const project = recentProjects.find((p) => p._id === e.target.value)
+                      if (project) handleProjectSelect(project)
                     }}
                     value={formData.selectedProject?._id || ""}
                   >
@@ -162,9 +174,7 @@ const CompetitiveAnalysisModal = ({ closefnc }) => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Blog Title
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Blog Title</label>
                   <input
                     type="text"
                     name="title"
@@ -189,9 +199,7 @@ const CompetitiveAnalysisModal = ({ closefnc }) => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Keywords
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Keywords</label>
                   <div className="flex gap-2">
                     <input
                       type="text"
@@ -246,9 +254,6 @@ const CompetitiveAnalysisModal = ({ closefnc }) => {
                     <strong>Suggestions:</strong> {analysisResults.suggestions}
                   </div>
                   <div className="text-sm text-gray-600 mt-4">
-                    <strong>Summary:</strong> {analysisResults.summary}
-                  </div>
-                  <div className="text-sm text-gray-600 mt-4">
                     <strong>Blog Score:</strong> {analysisResults.blogScore} / 100
                   </div>
                 </div>
@@ -276,7 +281,7 @@ const CompetitiveAnalysisModal = ({ closefnc }) => {
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default CompetitiveAnalysisModal;
+export default CompetitiveAnalysisModal
