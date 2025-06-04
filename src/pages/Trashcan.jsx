@@ -37,7 +37,7 @@ const Trashcan = () => {
 
   const handleRestore = async (id) => {
     try {
-      const response = await axiosInstance.put(`/blogs/restore/${id}`);
+      const response = await axiosInstance.patch(`/blogs/restore/${id}`);
       if (response.status === 200) {
         setTrashedBlogs((prev) => prev.filter((blog) => blog._id !== id));
         toast.success("Blog restored successfully!");
