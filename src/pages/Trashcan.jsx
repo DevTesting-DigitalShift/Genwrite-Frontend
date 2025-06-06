@@ -4,14 +4,12 @@ import SkeletonLoader from "../components/Projects/SkeletonLoader"
 import { Tooltip } from "antd"
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { useNotification } from "@/context/NotificationsContext";
 
 const TRUNCATE_LENGTH = 85
 
 const Trashcan = () => {
   const [trashedBlogs, setTrashedBlogs] = useState([])
   const [loading, setLoading] = useState(true)
-  const { fetchNotificationsFromBackend } = useNotification();
 
   const fetchTrashedBlogs = async () => {
     try {
@@ -41,8 +39,6 @@ const Trashcan = () => {
       if (response.status === 200) {
         setTrashedBlogs((prev) => prev.filter((blog) => blog._id !== id));
         toast.success("Blog restored successfully!");
-        // Fetch notifications from backend after restore
-        fetchNotificationsFromBackend && fetchNotificationsFromBackend();
       } else {
         toast.error("Failed to restore blog.");
       }

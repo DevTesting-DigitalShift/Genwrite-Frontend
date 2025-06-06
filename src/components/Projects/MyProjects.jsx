@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom"
 import axiosInstance from "@api/index"
 import SkeletonLoader from "./SkeletonLoader"
 import { Badge, Button, Tooltip } from "antd"
-import { useNotification } from "@/context/NotificationsContext"
 import { ToastContainer, toast } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import { Trash2 } from "lucide-react"
@@ -17,7 +16,6 @@ const MyProjects = () => {
   const [itemsPerPage, setItemsPerPage] = useState(5)
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
-  const { updateNotifications, fetchNotificationsFromBackend } = useNotification()
   const { handlePopup } = useConfirmPopup()
 
   const fetchBlogs = async () => {
@@ -29,7 +27,6 @@ const MyProjects = () => {
         (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
       )
       setBlogsData(sortedBlogs)
-      updateNotifications(sortedBlogs) // <-- update notifications here
     } catch (error) {
       console.error(
         "Error fetching blogs:",
@@ -84,8 +81,6 @@ const MyProjects = () => {
       if (response.status === 200) {
         setBlogsData((prev) => prev.filter((blog) => blog._id !== id))
         toast.success("Blog archived successfully!")
-        // Fetch notifications from backend after archive
-        fetchNotificationsFromBackend && fetchNotificationsFromBackend()
       } else {
         toast.error("Failed to archive blog.")
       }
@@ -136,7 +131,7 @@ const MyProjects = () => {
                   className="absolute top-0"
                 >
                   <div
-                    className={`bg-white shadow-md  hover:shadow-xl  transition-all duration-300 rounded-xl p-4 min-h-[180px] relative
+                    className={`bg-white shadow-md w-full hover:shadow-xl  transition-all duration-300 rounded-xl p-4 min-h-[180px] relative
                         ${
                           (status === "failed"
                             ? "border-red-500"

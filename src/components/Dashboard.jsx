@@ -1,58 +1,61 @@
-import { useState, useEffect } from "react";
-import Modal from "../utils/Modal";
-import SelectTemplateModal from "./mutipstepmodal/SelectTemplateModal";
-import FirstStepModal from "./mutipstepmodal/FirstStepModal";
-import SecondStepModal from "./mutipstepmodal/SecondStepModal";
-import ThirdStepModal from "./mutipstepmodal/ThirdStepModal";
-import { letsBegin, quickTools } from "./dashdata/dash";
-import DashboardBox, { QuickBox, RecentProjects } from "../utils/DashboardBox";
-import QuestionButton from "../utils/QuestionButton";
-import { useDispatch, useSelector } from "react-redux";
-import { createNewBlog } from "@store/slices/blogSlice";
-import { useNavigate } from "react-router-dom";
-import MultiStepModal from "./mutipstepmodal/DaisyUi";
-import DaisyUIModal from "./DaisyUIModal";
-import QuickBlogModal from "./mutipstepmodal/QuickBlogModal";
-import CompetitiveAnalysisModal from "./mutipstepmodal/CompetitiveAnalysisModal";
-import PerformanceMonitoringModal from "./mutipstepmodal/PerformanceMonitoringModal";
-import axiosInstance from "@api/index";
-import { setUser } from "@store/slices/authSlice";
+import { useState, useEffect } from "react"
+import Modal from "../utils/Modal"
+import SelectTemplateModal from "./mutipstepmodal/SelectTemplateModal"
+import FirstStepModal from "./mutipstepmodal/FirstStepModal"
+import SecondStepModal from "./mutipstepmodal/SecondStepModal"
+import ThirdStepModal from "./mutipstepmodal/ThirdStepModal"
+import { letsBegin, quickTools } from "./dashdata/dash"
+import DashboardBox, { QuickBox, RecentProjects } from "../utils/DashboardBox"
+import QuestionButton from "../utils/QuestionButton"
+import { useDispatch, useSelector } from "react-redux"
+import { createNewBlog } from "@store/slices/blogSlice"
+import { useNavigate } from "react-router-dom"
+import MultiStepModal from "./mutipstepmodal/DaisyUi"
+import DaisyUIModal from "./DaisyUIModal"
+import QuickBlogModal from "./mutipstepmodal/QuickBlogModal"
+import CompetitiveAnalysisModal from "./mutipstepmodal/CompetitiveAnalysisModal"
+import PerformanceMonitoringModal from "./mutipstepmodal/PerformanceMonitoringModal"
+import axiosInstance from "@api/index"
+import { setUser } from "@store/slices/authSlice"
+import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import { getEstimatedCost } from "@utils/getEstimatedCost"
 
 const Dashboard = () => {
   // State declarations
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [currentStep, setCurrentStep] = useState(0);
-  const [daisyUIModal, setDaisyUIModal] = useState(false);
-  const [multiStepModal, setMultiStepModal] = useState(false);
-  const [quickBlogModal, setQuickBlogModal] = useState(false);
-  const [competitiveAnalysisModal, setCompetitiveAnalysisModal] = useState(false);
-  const [performanceModal, setPerformanceModal] = useState(false);
-  const [modelData, setModelData] = useState({});
-  const [isLoading, setIsLoading] = useState(true);
-  const [recentBlogData, setRecentBlogData] = useState([]);
-  const [selectedBlogId, setSelectedBlogId] = useState(null);
-  const [allBlogs, setAllBlogs] = useState([]);
-  const [selectedPerformanceBlog, setSelectedPerformanceBlog] = useState("");
-  const [performanceStats, setPerformanceStats] = useState(null);
+  const [isModalVisible, setIsModalVisible] = useState(false)
+  const [currentStep, setCurrentStep] = useState(0)
+  const [daisyUIModal, setDaisyUIModal] = useState(false)
+  const [multiStepModal, setMultiStepModal] = useState(false)
+  const [quickBlogModal, setQuickBlogModal] = useState(false)
+  const [competitiveAnalysisModal, setCompetitiveAnalysisModal] = useState(false)
+  const [performanceModal, setPerformanceModal] = useState(false)
+  const [modelData, setModelData] = useState({})
+  const [isLoading, setIsLoading] = useState(true)
+  const [recentBlogData, setRecentBlogData] = useState([])
+  const [selectedBlogId, setSelectedBlogId] = useState(null)
+  const [allBlogs, setAllBlogs] = useState([])
+  const [selectedPerformanceBlog, setSelectedPerformanceBlog] = useState("")
+  const [performanceStats, setPerformanceStats] = useState(null)
 
   // Hooks
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
-  const { user } = useSelector((state) => state.auth);
+  const dispatch = useDispatch()
+  const navigate = useNavigate()
+  const { user } = useSelector((state) => state.auth)
+  const { handlePopup } = useConfirmPopup()
 
   // Load user data when component mounts
   useEffect(() => {
     const loadUserData = async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("token")
         if (!token) {
-          navigate("/login");
-          return;
+          navigate("/login")
+          return
         }
 
         // Only fetch if we don't have complete user data
         if (!user?._id || !user?.name) {
-          const response = await axiosInstance.get("/auth/me");
+          const response = await axiosInstance.get("/auth/me")
 
           if (response.data.success && response.data.user) {
             const userData = {
@@ -61,90 +64,106 @@ const Dashboard = () => {
               email: response.data.user.email,
               avatar: response.data.user.avatar,
               interests: response.data.user.interests,
-            };
+            }
             // Ensure we have all required fields before dispatching
             if (userData._id && userData.name) {
-              dispatch(setUser(userData));
+              dispatch(setUser(userData))
             }
           }
         }
       } catch (error) {
         if (error.response?.status === 401) {
-          localStorage.removeItem("token");
-          navigate("/login");
+          localStorage.removeItem("token")
+          navigate("/login")
         }
       }
-    };
+    }
 
-    loadUserData();
-  }, [dispatch, navigate, user?._id]);
+    loadUserData()
+  }, [dispatch, navigate, user?._id])
 
   // Fetch blogs
   useEffect(() => {
     const fetchBlogs = async () => {
       try {
-        const response = await axiosInstance.get("/blogs/");
-        const allBlogs = response.data;
+        const response = await axiosInstance.get("/blogs/")
+        let allBlogs = response.data
 
-        console.log(allBlogs.filter((e) => e.status == "complete"));
+        console.log(allBlogs.filter((e) => e.status == "complete"))
         if (allBlogs.length >= 3) {
-         allBlogs = allBlogs.filter((e) => e.status == "complete").slice(-3);
+          allBlogs = allBlogs.filter((e) => e.status == "complete").slice(-3)
         }
-        setRecentBlogData(allBlogs);
+        setRecentBlogData(allBlogs)
       } catch (error) {
         console.error(
           "Error fetching blogs:",
           error.response?.data?.message || "Failed to fetch blogs"
-        );
+        )
       }
-    };
+    }
 
-    fetchBlogs();
-  }, []);
+    fetchBlogs()
+  }, [])
 
   // Fetch all blogs for performance monitoring dropdown
   useEffect(() => {
     const fetchAllBlogs = async () => {
       try {
-        const response = await axiosInstance.get("/blogs/");
-        setAllBlogs(response.data);
+        const response = await axiosInstance.get("/blogs/")
+        setAllBlogs(response.data)
       } catch (error) {
         // ignore
       }
-    };
-    fetchAllBlogs();
-  }, []);
+    }
+    fetchAllBlogs()
+  }, [])
 
   // Event handlers
-  const showModal = () => setIsModalVisible(true);
-  const showDaisy = () => setDaisyUIModal(true);
-  const hideDaisy = () => setDaisyUIModal(false);
-  const showMultiStepModal = () => setMultiStepModal(true);
-  const hideMultiStepModal = () => setMultiStepModal(false);
-  const showQuickBlogModal = () => setQuickBlogModal(true);
-  const hideQuickBlogModal = () => setQuickBlogModal(false);
-  const showCompetitiveAnalysis = () => setCompetitiveAnalysisModal(true);
-  const hideCompetitiveAnalysis = () => setCompetitiveAnalysisModal(false);
+  const showModal = () => setIsModalVisible(true)
+  const showDaisy = () => setDaisyUIModal(true)
+  const hideDaisy = () => setDaisyUIModal(false)
+  const showMultiStepModal = () => setMultiStepModal(true)
+  const hideMultiStepModal = () => setMultiStepModal(false)
+  const showQuickBlogModal = () => setQuickBlogModal(true)
+  const hideQuickBlogModal = () => setQuickBlogModal(false)
+  const showCompetitiveAnalysis = () => setCompetitiveAnalysisModal(true)
+  const hideCompetitiveAnalysis = () => setCompetitiveAnalysisModal(false)
 
-  const handleSubmit = (updatedData) => {
+  const handleSubmit = async (updatedData) => {
     try {
-      dispatch(createNewBlog(updatedData, navigate));
-      setIsModalVisible(false);
-      setCurrentStep(0);
+      handlePopup({
+        title: "Single Blog Generation",
+        description: (
+          <>
+            <span>
+              Single Blog generation cost:{" "}
+              <b>{getEstimatedCost("blog.single", modelData.aiModel)} credits.</b>
+            </span>
+            <br />
+            <span>Do you want to continue ?</span>
+          </>
+        ),
+        onConfirm: () => {
+          dispatch(createNewBlog(updatedData, navigate))
+          setIsModalVisible(false)
+          setCurrentStep(0)
+        },
+      })
     } catch (error) {
-      console.error("Error submitting form:", error);
+      console.error("Error submitting form:", error)
     }
-  };
+  }
 
   const handleCancel = () => {
-    setIsModalVisible(false);
-    setCurrentStep(0);
-  };
+    setIsModalVisible(false)
+    setCurrentStep(0)
+    setModelData({})
+  }
 
-  const handleNext = () => setCurrentStep(currentStep + 1);
-  const handlePrev = () => setCurrentStep(currentStep - 1);
+  const handleNext = () => setCurrentStep(currentStep + 1)
+  const handlePrev = () => setCurrentStep(currentStep - 1)
 
-  console.log({ modelData });
+  console.log({ modelData })
 
   return (
     <>
@@ -152,7 +171,7 @@ const Dashboard = () => {
         title={`Step ${currentStep}/3`}
         visible={isModalVisible}
         onCancel={handleCancel}
-        className=""
+        className="max-h-svh overflow-scroll"
       >
         {currentStep === 0 && (
           <SelectTemplateModal
@@ -244,9 +263,7 @@ const Dashboard = () => {
                 ...(item.id === 3
                   ? { showPerformanceMonitoring: () => setPerformanceModal(true) }
                   : {}),
-                ...(item.id === 4
-                  ? { showCompetitiveAnalysis }
-                  : {}),
+                ...(item.id === 4 ? { showCompetitiveAnalysis } : {}),
               }}
             />
           ))}
@@ -279,7 +296,7 @@ const Dashboard = () => {
                   tags={item.focusKeywords}
                   item={item}
                 />
-              );
+              )
             })}
           </div>
         </div>
@@ -288,7 +305,7 @@ const Dashboard = () => {
         <QuestionButton />
       </div>
     </>
-  );
-};
+  )
+}
 
-export default Dashboard;
+export default Dashboard

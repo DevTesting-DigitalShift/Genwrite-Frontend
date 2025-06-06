@@ -1,18 +1,19 @@
-import React, { useState } from "react"
+import { useState } from "react"
 import { useDispatch } from "react-redux"
 import { useNavigate } from "react-router-dom"
-import { createMultiBlog, addScheduledJob } from "../../store/slices/blogSlice"
 import Carousel from "./Carousel"
 import { X } from "lucide-react"
 import { toast } from "react-toastify"
 import { packages } from "@constants/templates"
-import DatePicker from "react-datepicker"
 import "react-datepicker/dist/react-datepicker.css"
-import MultiDatePicker from "react-multi-date-picker"
+import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import { createMultiBlog } from "@store/slices/blogSlice"
+import { getEstimatedCost } from "@utils/getEstimatedCost"
 
 const MultiStepModal = ({ closefnc }) => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
+  const {handlePopup} = useConfirmPopup()
 
   const [currentStep, setCurrentStep] = useState(0)
 
@@ -22,6 +23,7 @@ const MultiStepModal = ({ closefnc }) => {
     topicInput: "",
     performKeywordResearch: true,
     tone: "",
+    numberOfCounts:5,
     userDefinedLength: 1000,
     imageSource: "unsplash",
     useBrandVoice: true,
@@ -73,16 +75,21 @@ const MultiStepModal = ({ closefnc }) => {
       toast.error("Number of blogs must be at least 1.")
       return
     }
-
-    const newJob = {
-      id: Date.now(),
-      topics: formData.topics,
-      tone: formData.tone,
-      dates: formData.selectedDates || [],
+    if(formData.numberOfBlogs > 10){
+      toast.error("Number of blogs must be at most 10.")
+      return  
     }
-
-    dispatch(addScheduledJob(newJob)) // Dispatch the action to add the job
-    closefnc() // Close the modal
+    handlePopup({
+      title: "Bulk Blog Generation",
+      description:<>
+      <span>Estimated Cost for bulk blogs : <b>{formData.numberOfBlogs * getEstimatedCost("blog.single")} credits</b></span> <br />
+      <span>Do you want to continue ? </span>
+      </>,
+      onConfirm: () => {
+        dispatch(createMultiBlog(formData, navigate))
+      }
+    })
+    
   }
 
   const handlePackageSelect = (index) => {
@@ -477,7 +484,7 @@ const MultiStepModal = ({ closefnc }) => {
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
                       type="checkbox"
-                      name="includeFAQ"
+                      name="includeFaqs"
                       checked={formData.includeFaqs}
                       onChange={handleCheckboxChange}
                       className="sr-only peer"
@@ -517,23 +524,43 @@ const MultiStepModal = ({ closefnc }) => {
                     type="number"
                     name="numberOfBlogs"
                     min="1"
+                    max="10"
                     value={formData.numberOfBlogs}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
                     placeholder="e.g., 5"
                   />
                 </div>
+                  {/* Toggle for automatic posting */}
+                  <div className="flex items-center justify-between mt-6">
+                    <span className="text-sm font-medium text-gray-700">
+                      Enable Automatic Posting
+                      <p className="text-xs text-gray-500">
+                        Automatically post blogs on the selected dates.
+                      </p>
+                    </span>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        name="wordpressPostStatus"
+                        checked={formData.wordpressPostStatus}
+                        onChange={handleCheckboxChange}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
               </div>
               <div className="pt-4 border-t border-gray-200">
                 <div>
+                  {/* <div className="flex flex-col">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Select Dates for Blog Posting
                   </label>
                   <p className="text-xs text-gray-500 mb-2">
                     Choose specific dates to generate and post blogs. Only future dates are allowed.
                   </p>
-                  <div className="flex flex-col md:flex-row gap-4">
-                    {/* Calendar for selecting multiple dates */}
+                    {/* Calendar for selecting multiple dates *\/}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Select Dates
@@ -552,7 +579,7 @@ const MultiStepModal = ({ closefnc }) => {
                       />
                     </div>
 
-                    {/* Display selected dates */}
+                    {/* Display selected dates *\/}
                     <div className="flex-1">
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Selected Dates
@@ -569,27 +596,8 @@ const MultiStepModal = ({ closefnc }) => {
                         )}
                       </div>
                     </div>
-                  </div>
+                  </div> */}
 
-                  {/* Toggle for automatic posting */}
-                  <div className="flex items-center justify-between mt-4">
-                    <span className="text-sm font-medium text-gray-700">
-                      Enable Automatic Posting
-                      <p className="text-xs text-gray-500">
-                        Automatically post blogs on the selected dates.
-                      </p>
-                    </span>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        name="wordpressPostStatus"
-                        checked={formData.wordpressPostStatus}
-                        onChange={handleCheckboxChange}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                    </label>
-                  </div>
                 </div>
               </div>
             </div>

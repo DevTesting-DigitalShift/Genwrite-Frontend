@@ -3,8 +3,8 @@ import { motion, AnimatePresence } from "framer-motion"
 import { X, Plus } from "lucide-react"
 import { toast } from "react-toastify"
 import axiosInstance from "@api/index"
-import ProofreadingChat from "./ProofreadingChat"
-import { useConfirmPopup } from "@/hooks/useConfirmPopup"
+import { getEstimatedCost } from "@utils/getEstimatedCost"
+import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 
 const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
   const [newKeyword, setNewKeyword] = useState("")
@@ -13,7 +13,7 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
   const [isAnalyzingProofreading, setIsAnalyzingProofreading] = useState(false) // For Proofreading
   const [competitiveAnalysisResults, setCompetitiveAnalysisResults] = useState(null) // For Competitive Analysis Results
   const [proofreadingResults, setProofreadingResults] = useState([]) // For Proofreading Results
-  const { showConfirm, ConfirmPopup } = useConfirmPopup()
+  const {handlePopup} = useConfirmPopup()
 
   const fetchCompetitiveAnalysis = async () => {
     // Check if analysis results already exist
@@ -97,15 +97,6 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
     }
   }
 
-  const handlePopup = (title, description, onConfirm) => {
-    showConfirm({
-      title,
-      description,
-      confirmText: "Proceed",
-      onConfirm,
-    })
-  }
-
   const handleProofreadingClick = async () => {
     if (!blog || !blog.content) {
       toast.error("Blog content is required for proofreading.")
@@ -144,7 +135,6 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
 
   return (
     <>
-      <ConfirmPopup />
       <motion.div
         initial={{ x: "100%" }}
         animate={{ x: 0 }}
@@ -252,7 +242,13 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
             <span className="text-2xl font-bold text-gray-400 mb-1 block">AA</span>
             <h4
               className="text-blue-600 font-medium hover:underline cursor-pointer"
-              onClick={() => handlePopup("AI Proofreading", `Do you really want to proofread the blog ? It will be 5 credit.`,handleProofreadingClick)} // API is triggered here
+              onClick={() =>
+                handlePopup({
+                  title: "AI Proofreading",
+                  description: `Do you really want to proofread the blog ? \nIt will be ${getEstimatedCost("blog.proofread")} credits.`,
+                  onConfirm: handleProofreadingClick,
+                })
+              } // API is triggered here
             >
               Proofreading my blog
             </h4>
