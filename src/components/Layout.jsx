@@ -223,7 +223,7 @@ const LayoutWithSidebarAndHeader = () => {
               >
                 <FaBell className="w-6 h-6" />
               </button> */}
-              <NotificationDropdown notifications={user.notifications} />
+              <NotificationDropdown notifications={user?.notifications} />
             </div>
             <div className="relative">
               <button
