@@ -46,7 +46,7 @@ const NotificationDropdown = ({ notifications = [] }) => {
   const [localNotifications, setLocalNotifications] = useState([])
 
   useEffect(() => {
-    setLocalNotifications(notifications)
+    if (notifications) setLocalNotifications(notifications)
   }, [notifications])
 
   // Function to fetch notifications
@@ -73,7 +73,7 @@ const NotificationDropdown = ({ notifications = [] }) => {
   const unreadCount = localNotifications.filter((n) => !n.read).length
 
   const handleOpenChange = async (flag) => {
-  setOpen(flag)
+    setOpen(flag)
     if (!flag && unreadCount > 0) {
       try {
         await axiosInstance.patch("/user/notifications/read")
