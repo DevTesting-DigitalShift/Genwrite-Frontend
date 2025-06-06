@@ -22,8 +22,12 @@ export const ConfirmPopupProvider = ({ children }) => {
   }
 
   const handleConfirm = () => {
-    options?.onConfirm?.()
-    setVisible(false)
+    try {
+      options?.onConfirm?.()
+      setVisible(false)
+    } catch (err) {
+      throw err
+    }
   }
 
   const {
@@ -67,7 +71,9 @@ export const ConfirmPopupProvider = ({ children }) => {
                 <Title level={4} className="!mb-1 !text-gray-800">
                   {title}
                 </Title>
-                <Paragraph className="!mb-0 !text-gray-600 text-justify tracking-wide">{description}</Paragraph>
+                <Paragraph className="!mb-0 !text-gray-600 text-justify tracking-wide">
+                  {description}
+                </Paragraph>
               </div>
             </div>
             <div className="flex justify-end gap-2 mt-6">

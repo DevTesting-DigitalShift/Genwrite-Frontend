@@ -1,13 +1,17 @@
-import { useState } from "react";
-import { createNewQuickBlog } from "../../store/slices/blogSlice";
-import { useDispatch } from "react-redux";
-import { useNavigate } from "react-router-dom";
-import Carousel from "./Carousel";
+import { useState } from "react"
+import { createNewQuickBlog } from "../../store/slices/blogSlice"
+import { useDispatch } from "react-redux"
+import { useNavigate } from "react-router-dom"
+import Carousel from "./Carousel"
+import { packages } from "@constants/templates"
+import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import { getEstimatedCost } from "@utils/getEstimatedCost"
+import { toast, useToast } from "react-toastify"
 
 const QuickBlogModal = ({ closefnc }) => {
-  const [currentStep, setCurrentStep] = useState(0);
-  const [selectedPackage, setSelectedPackage] = useState(null);
-  const [inputs, setInputs] = useState([""]);
+  const [currentStep, setCurrentStep] = useState(0)
+  const [selectedPackage, setSelectedPackage] = useState(null)
+  const [inputs, setInputs] = useState([])
   const [formData, setFormData] = useState({
     package: null,
     keywords: [],
@@ -15,93 +19,66 @@ const QuickBlogModal = ({ closefnc }) => {
     videoLinks: [],
     keywordInput: "",
     focusKeywordInput: "",
-  });
+  })
 
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
+  const dispatch = useDispatch()
+  const navigate = useNavigate()
+  const { handlePopup } = useConfirmPopup()
 
-  const packages = [
-    {
-      imgSrc: "./Images/classicBlog.png",
-      name: "Classic",
-      description: "Timeless elegance for your classic blog journey",
-      author: "Author 1",
-    },
-    {
-      imgSrc: "./Images/classicBlog.png",
-      name: "Listicle",
-      description: "Tips for actionable success in list format.",
-      author: "Author 2",
-    },
-    {
-      imgSrc: "./Images/ProductReview.png",
-      name: "Product Review",
-      description: "Product insights: pros, cons, and more.",
-      author: "Author 3",
-    },
-    {
-      imgSrc: "./Images/BlogImage.png",
-      name: "How to....",
-      description: "Step-by-step guides for practical how-to solutions.",
-      author: "Author 4",
-    },
-    {
-      imgSrc: "./Images/classicBlog.png",
-      name: "News Article",
-      description: "Latest updates and breaking news coverage.",
-    },
-    {
-      imgSrc: "./Images/TipsBlog.png",
-      name: "Opinion Piece",
-      description: "Expert insights and analytical perspectives.",
-    },
-    {
-      imgSrc: "./Images/ProductReview.png",
-      name: "Case Study",
-      description: "In-depth analysis and real-world examples.",
-    },
-    {
-      imgSrc: "./Images/BlogImage.png",
-      name: "Interview",
-      description: "Engaging conversations with industry experts.",
-    },
-  ];
   const handleNext = () => {
-    setCurrentStep(currentStep + 1);
-  };
+    setCurrentStep(currentStep + 1)
+  }
 
   const handlePrev = () => {
-    setCurrentStep(currentStep - 1);
-  };
+    setCurrentStep(currentStep - 1)
+  }
 
   const handleClose = () => {
-    closefnc();
-  };
+    closefnc()
+  }
 
   const handleSubmit = () => {
-    const finalData = {
-      ...formData,
-      videoLinks: inputs,
-    };
-    console.log("Form Data:", finalData);
-    dispatch(createNewQuickBlog(finalData, navigate));
-    console.log("Form submitted successfully");
-    handleClose();
-  };
+    if (!(formData.focusKeywords.length && formData.keywords.length && inputs.length)) {
+      toast.error("Please fill all the fields")
+    } else {
+      const finalData = {
+        ...formData,
+        videoLinks: inputs,
+      }
+      console.log("Form Data:", finalData)
+      handlePopup({
+        title: "Quick Blog Generation",
+        description: (
+          <>
+            <span>
+              Quick blog generation is <b>{getEstimatedCost("blog.quick")} credits.</b>
+            </span>
+            <br />
+            <span>Are you sure ?</span>
+          </>
+        ),
+        onConfirm: () => {
+          dispatch(createNewQuickBlog(finalData, navigate))
+          console.log("Form submitted successfully")
+          handleClose()
+        },
+      })
+    }
+  }
 
   const handlePackageSelect = (index) => {
-    setSelectedPackage(index);
+    setSelectedPackage(index)
     setFormData({
       ...formData,
       package: packages[index].name,
-    });
-  };
+    })
+  }
 
   const handleInputChange = (index, value) => {
-    const newInputs = [...inputs];
-    newInputs[index] = value;
-    setInputs(newInputs);
-  };
+    const newInputs = [...inputs]
+    newInputs[index] = value
+    setInputs(newInputs)
+  }
 
   const handleKeywordInputChange = (e, type) => {
     if (type === "keywords") {
@@ -109,29 +86,26 @@ const QuickBlogModal = ({ closefnc }) => {
         ...prevState,
         [`${type}Input`]: e.target.value,
         keywordInput: e.target.value,
-      }));
+      }))
     } else {
       setFormData((prevState) => ({
         ...prevState,
         [`${type}Input`]: e.target.value,
         focusKeywordInput: e.target.value,
-      }));
+      }))
     }
-  };
+  }
 
   const handleAddKeyword = (type) => {
-    const inputValue = formData[`${type}Input`];
+    const inputValue = formData[`${type}Input`]
     if (inputValue.trim() !== "") {
       const newKeywords = inputValue
         .split(",")
         .map((keyword) => keyword.trim())
-        .filter((keyword) => keyword !== "");
-      if (
-        type === "focusKeywords" &&
-        formData[type].length + newKeywords.length > 3
-      ) {
-        alert("You can only add up to 3 focus keywords.");
-        return;
+        .filter((keyword) => keyword !== "")
+      if (type === "focusKeywords" && formData[type].length + newKeywords.length > 3) {
+        alert("You can only add up to 3 focus keywords.")
+        return
       }
       if (type === "focusKeywords") {
         setFormData({
@@ -139,30 +113,30 @@ const QuickBlogModal = ({ closefnc }) => {
           [type]: [...formData[type], ...newKeywords],
           [`${type}Input`]: "",
           focusKeywordInput: "",
-        });
+        })
       } else {
         setFormData({
           ...formData,
           [type]: [...formData[type], ...newKeywords],
           [`${type}Input`]: "",
           keywordInput: "",
-        });
+        })
       }
     }
-  };
+  }
 
   const handleRemoveKeyword = (index, type) => {
-    const updatedKeywords = [...formData[type]];
-    updatedKeywords.splice(index, 1);
-    setFormData({ ...formData, [type]: updatedKeywords });
-  };
+    const updatedKeywords = [...formData[type]]
+    updatedKeywords.splice(index, 1)
+    setFormData({ ...formData, [type]: updatedKeywords })
+  }
 
   const handleKeyPress = (e, type) => {
     if (e.key === "Enter") {
-      e.preventDefault();
-      handleAddKeyword(type);
+      e.preventDefault()
+      handleAddKeyword(type)
     }
-  };
+  }
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
@@ -171,9 +145,7 @@ const QuickBlogModal = ({ closefnc }) => {
           {currentStep === 0 && (
             <>
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-montserrat font-semibold">
-                  Create Quick Blog
-                </h2>
+                <h2 className="text-2xl font-montserrat font-semibold">Create Quick Blog</h2>
                 <button
                   onClick={handleClose}
                   className="text-gray-500 hover:text-gray-700 focus:outline-none"
@@ -200,9 +172,7 @@ const QuickBlogModal = ({ closefnc }) => {
                     <div
                       key={index}
                       className={`cursor-pointer transition-all duration-200 ${
-                        formData.package === pkg.name
-                          ? "border-blue-500 border-2"
-                          : ""
+                        formData.package === pkg.name ? "border-blue-500 border-2" : ""
                       }`}
                       onClick={() => handlePackageSelect(index)}
                     >
@@ -229,12 +199,8 @@ const QuickBlogModal = ({ closefnc }) => {
                               : ""
                           } p-2`}
                         >
-                          <h3 className="font-medium text-gray-900 mb-1">
-                            {pkg.name}
-                          </h3>
-                          <p className="text-sm text-gray-500 line-clamp-2">
-                            {pkg.description}
-                          </p>
+                          <h3 className="font-medium text-gray-900 mb-1">{pkg.name}</h3>
+                          <p className="text-sm text-gray-500 line-clamp-2">{pkg.description}</p>
                         </div>
                       </div>
                     </div>
@@ -254,9 +220,7 @@ const QuickBlogModal = ({ closefnc }) => {
           {currentStep === 1 && (
             <div>
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-montserrat font-semibold">
-                  Create Quick Blog
-                </h2>
+                <h2 className="text-2xl font-montserrat font-semibold">Create Quick Blog</h2>
                 <button
                   onClick={handleClose}
                   className="text-gray-500 hover:text-gray-700 focus:outline-none"
@@ -286,9 +250,7 @@ const QuickBlogModal = ({ closefnc }) => {
                     <input
                       type="text"
                       value={formData.focusKeywordInput}
-                      onChange={(e) =>
-                        handleKeywordInputChange(e, "focusKeywords")
-                      }
+                      onChange={(e) => handleKeywordInputChange(e, "focusKeywords")}
                       onKeyDown={(e) => handleKeyPress(e, "focusKeywords")}
                       className="flex-1 px-3 py-2 border border-gray-200 rounded-md text-sm"
                       placeholder="Enter focus keywords"
@@ -308,9 +270,7 @@ const QuickBlogModal = ({ closefnc }) => {
                       >
                         {keyword}
                         <button
-                          onClick={() =>
-                            handleRemoveKeyword(index, "focusKeywords")
-                          }
+                          onClick={() => handleRemoveKeyword(index, "focusKeywords")}
                           className="ml-1 text-blue-400 hover:text-blue-600"
                         >
                           ×
@@ -321,9 +281,7 @@ const QuickBlogModal = ({ closefnc }) => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Keywords
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Keywords</label>
                   <div className="flex gap-2">
                     <input
                       type="text"
@@ -377,22 +335,21 @@ const QuickBlogModal = ({ closefnc }) => {
                     />
                     <button
                       onClick={() => {
-                        const youtubeRegex =
-                          /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/;
+                        const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/
                         if (!formData.videoLinkInput) {
-                          alert("Please enter a video link.");
+                          toast.error("Please enter a video link.")
                         } else if (!youtubeRegex.test(formData.videoLinkInput)) {
-                          alert("Please enter a valid YouTube link.");
+                          toast.error("Please enter a valid YouTube link.")
                         } else if (inputs.length >= 3) {
-                          alert("You can only add up to 3 video links.");
+                          toast.error("You can only add up to 3 video links.")
                         } else if (inputs.includes(formData.videoLinkInput)) {
-                          alert("This link has already been added.");
+                          toast.error("This link has already been added.")
                         } else {
-                          setInputs([...inputs, formData.videoLinkInput]);
+                          setInputs([...inputs, formData.videoLinkInput])
                           setFormData((prevState) => ({
                             ...prevState,
                             videoLinkInput: "",
-                          }));
+                          }))
                         }
                       }}
                       className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm"
@@ -409,9 +366,9 @@ const QuickBlogModal = ({ closefnc }) => {
                         {input}
                         <button
                           onClick={() => {
-                            const updatedInputs = [...inputs];
-                            updatedInputs.splice(index, 1);
-                            setInputs(updatedInputs);
+                            const updatedInputs = [...inputs]
+                            updatedInputs.splice(index, 1)
+                            setInputs(updatedInputs)
                           }}
                           className="ml-1 text-gray-400 hover:text-gray-600"
                         >
@@ -442,7 +399,7 @@ const QuickBlogModal = ({ closefnc }) => {
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default QuickBlogModal;
+export default QuickBlogModal

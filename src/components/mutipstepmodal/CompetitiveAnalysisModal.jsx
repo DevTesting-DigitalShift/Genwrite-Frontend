@@ -3,6 +3,7 @@ import { X } from "lucide-react"
 import { toast } from "react-toastify"
 import axiosInstance from "../../api"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import { getEstimatedCost } from "@utils/getEstimatedCost"
 
 const CompetitiveAnalysisModal = ({ closefnc }) => {
   const [formData, setFormData] = useState({
@@ -111,7 +112,9 @@ const CompetitiveAnalysisModal = ({ closefnc }) => {
       title: "Analyse the competitors",
       description: (
         <p>
-          Competitors Analysis cost: <b>10</b> credits Do you wish to proceed ?
+          Competitors Analysis cost: <b>{getEstimatedCost("analysis.competitors")} credits</b>
+          <br />
+          Do you wish to proceed ?
         </p>
       ),
       onConfirm: async () => {

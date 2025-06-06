@@ -2,7 +2,7 @@ import axiosInstance from "@api/index";
 
 export async function previewBlogLoader({ params }) {
   try {
-    const response = await axiosInstance.get(`/public-blog/${params.blogId}`);
+    const response = await axiosInstance.get(`/public/blog/${params.blogId}`);
     return response.data;
   } catch (error) {
     // Axios error structure: error.response, error.message, etc.

@@ -6,7 +6,6 @@ import { ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import { useDispatch } from "react-redux"
 import { load } from "@store/slices/authSlice"
-import { NotificationProvider } from "./context/NotificationsContext"
 import { ConfirmPopupProvider } from "@/context/ConfirmPopupContext"
 
 const App = () => {
@@ -29,10 +28,8 @@ const App = () => {
 
   return (
     <ConfirmPopupProvider>
-      <NotificationProvider>
-        <RouterProvider router={router} />
-        <ToastContainer />
-      </NotificationProvider>
+      <RouterProvider router={router} />
+      <ToastContainer />
     </ConfirmPopupProvider>
   )
 }

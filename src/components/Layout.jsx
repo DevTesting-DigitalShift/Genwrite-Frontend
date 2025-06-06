@@ -4,11 +4,11 @@ import { useDispatch, useSelector } from "react-redux"
 import { FaSearch, FaBell, FaCog } from "react-icons/fa"
 import { RxAvatar } from "react-icons/rx"
 import { logoutUser } from "../store/slices/authSlice"
-import { useNotification } from "@/context/NotificationsContext" // adjust path as needed
 import { motion, AnimatePresence } from "framer-motion"
 import { FaHourglassHalf, FaCheck, FaTimes } from "react-icons/fa"
 import { Badge, Tooltip } from "antd"
 import { RiCoinsFill } from "react-icons/ri"
+import NotificationDropdown from "@components/NotificationDropdown"
 const LayoutWithSidebarAndHeader = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -16,7 +16,6 @@ const LayoutWithSidebarAndHeader = () => {
   const location = useLocation()
   const { user } = useSelector((selector) => selector.auth)
   const [isUserLoaded, setIsUserLoaded] = useState(false)
-  const { notifications, markAllAsRead, deleteNotification } = useNotification()
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -170,7 +169,6 @@ const LayoutWithSidebarAndHeader = () => {
               } ml-3 text-lg font-medium origin-left transition-opacity duration-500 ease-in-out`}
             >
               {user?.name?.split(" ")[0] || "UserName"}
-
             </span>
           </NavLink>
         </div>
@@ -200,7 +198,9 @@ const LayoutWithSidebarAndHeader = () => {
                     className="flex gap-2 justify-center items-center mr-4 rounded-full p-2 hover:bg-gray-100"
                   >
                     <RiCoinsFill size={30} color="orange" />
-                    <span className="font-semibold text-lg">{user.credits.base + user.credits.extra}</span>
+                    <span className="font-semibold text-lg">
+                      {user.credits.base + user.credits.extra}
+                    </span>
                   </Tooltip>
                   <Tooltip
                     title={`Hello ${user.name}`}
@@ -217,139 +217,14 @@ const LayoutWithSidebarAndHeader = () => {
               )}
             </button>
             <div className="relative">
-              <button
+              {/* <button
                 className="p-2 text-gray-700 hover:bg-gray-100 rounded-full transition duration-150"
                 onClick={toggleNotifications}
               >
                 <FaBell className="w-6 h-6" />
-              </button>
+              </button> */}
+              <NotificationDropdown notifications={user.notifications} />
             </div>
-
-            {notificationsOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2 }}
-                className="absolute right-0 mt-4 w-80 bg-white rounded-xl shadow-xl z-50 border border-gray-200 overflow-hidden"
-                style={{ top: "3.5rem" }}
-              >
-                {notifications.length === 0 ? (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="flex flex-col items-center justify-center py-8 px-4 text-gray-400"
-                  >
-                    <div className="bg-indigo-100 p-3 rounded-full mb-3">
-                      <FaBell className="w-6 h-6 text-indigo-500" />
-                    </div>
-                    <span className="text-base font-medium text-gray-500">No notifications</span>
-                    <p className="text-sm mt-1 text-gray-400">
-                      We'll notify you when something arrives
-                    </p>
-                  </motion.div>
-                ) : (
-                  <div className="max-h-80 overflow-y-auto">
-                    <div className="sticky top-0 bg-white z-10 border-b border-gray-100">
-                      <div className="flex items-center justify-center gap-2 py-3 text-lg font-semibold text-gray-700">
-                        <FaBell className="text-indigo-500" />
-                        Notifications
-                      </div>
-                    </div>
-
-                    <AnimatePresence>
-                      {notifications.map((notif) => (
-                        <motion.div
-                          key={notif.id}
-                          initial={{ opacity: 0, x: 10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -10 }}
-                          whileHover={{ backgroundColor: "#f9fafb" }}
-                          className={`p-4 border-b last:border-b-0 transition-all duration-150 ${
-                            notif.type === "generating"
-                              ? "bg-amber-50/70 hover:bg-amber-100/50"
-                              : notif.type === "restored"
-                              ? "bg-blue-50/70 hover:bg-blue-100/50"
-                              : "bg-emerald-50/70 hover:bg-emerald-100/50"
-                          }`}
-                        >
-                          <div className="flex items-start gap-3">
-                            <div
-                              className={`mt-0.5 p-2 rounded-full ${
-                                notif.type === "generating"
-                                  ? "bg-amber-100 text-amber-700"
-                                  : notif.type === "restored"
-                                  ? "bg-blue-100 text-blue-700"
-                                  : "bg-emerald-100 text-emerald-700"
-                              }`}
-                            >
-                              {notif.type === "generating" ? (
-                                <FaHourglassHalf className="w-4 h-4" />
-                              ) : notif.type === "restored" ? (
-                                <FaCheck className="w-4 h-4" />
-                              ) : (
-                                <FaCheck className="w-4 h-4" />
-                              )}
-                            </div>
-                            <div className="flex-1">
-                              <p
-                                className={`text-sm font-medium ${
-                                  notif.type === "generating"
-                                    ? "text-amber-700"
-                                    : notif.type === "restored"
-                                    ? "text-blue-700"
-                                    : "text-emerald-700"
-                                }`}
-                              >
-                                {notif.message}
-                              </p>
-                              <div className="flex items-center mt-1">
-                                <span className="text-xs text-gray-400">
-                                  {new Date().toLocaleTimeString([], {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })}
-                                </span>
-                                <div
-                                  className={`ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                                    notif.type === "generating"
-                                      ? "bg-amber-100 text-amber-700"
-                                      : notif.type === "restored"
-                                      ? "bg-blue-100 text-blue-700"
-                                      : "bg-emerald-100 text-emerald-700"
-                                  }`}
-                                >
-                                  {notif.type === "generating"
-                                    ? "In Progress"
-                                    : notif.type === "restored"
-                                    ? "Restored"
-                                    : "Completed"}
-                                </div>
-                              </div>
-                            </div>
-                            <button
-                              className="text-gray-300 hover:text-gray-500 transition-colors"
-                              onClick={() => deleteNotification(notif.id)}
-                            >
-                              <FaTimes className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </AnimatePresence>
-
-                    <div className="sticky bottom-0 bg-gradient-to-t from-white to-white/80 py-2 px-4 border-t border-gray-100">
-                      <button
-                        className="w-full py-2 text-center text-xs text-indigo-500 hover:text-indigo-700 font-medium"
-                        onClick={markAllAsRead}
-                      >
-                        Mark all as read
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </motion.div>
-            )}
             <div className="relative">
               <button
                 className="p-2 text-gray-700 hover:bg-gray-100 rounded-full transition duration-150"
