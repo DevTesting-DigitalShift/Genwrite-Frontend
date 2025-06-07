@@ -27,10 +27,12 @@ const App = () => {
   }, [])
 
   return (
-    <ConfirmPopupProvider>
-      <RouterProvider router={router} />
-      <ToastContainer />
-    </ConfirmPopupProvider>
+    <Suspense fallback={<Loading />}>
+      <ConfirmPopupProvider>
+        <RouterProvider router={router} />
+        <ToastContainer />
+      </ConfirmPopupProvider>
+    </Suspense>
   )
 }
 

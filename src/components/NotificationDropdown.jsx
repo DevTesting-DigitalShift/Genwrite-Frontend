@@ -41,12 +41,12 @@ const formatDate = (dateStr) => {
  * @param {Array} param0.notifications
  * @returns
  */
-const NotificationDropdown = ({ notifications = [] }) => {
+const NotificationDropdown = ({ notifications }) => {
   const [open, setOpen] = useState(false)
   const [localNotifications, setLocalNotifications] = useState([])
 
   useEffect(() => {
-    if (notifications) setLocalNotifications(notifications)
+    if (notifications || notifications?.length) setLocalNotifications(notifications)
   }, [notifications])
 
   // Function to fetch notifications

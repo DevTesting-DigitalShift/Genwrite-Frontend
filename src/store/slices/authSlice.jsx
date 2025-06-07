@@ -70,7 +70,7 @@ export const logoutUser = (navigate) => async (dispatch) => {
     if (data.success) {
       localStorage.removeItem("token");
       dispatch(logout());
-      navigate("/login");
+      navigate("/login", replace=true);
     }
     return { success: true };
   } catch (error) {
