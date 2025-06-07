@@ -166,7 +166,7 @@ const PerformanceMonitoringModal = ({ closefnc }) => {
               />
             </div>
 
-            <div>
+            {/* <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Blog Body
               </label>
@@ -178,7 +178,7 @@ const PerformanceMonitoringModal = ({ closefnc }) => {
                 placeholder="Blog content"
                 disabled
               />
-            </div>
+            </div> */}
 
             <div className="flex justify-end">
               <motion.button

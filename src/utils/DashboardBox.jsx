@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 
 const DashboardBox = ({ imageUrl, title, content, id, functions }) => {
   return (
@@ -21,7 +22,22 @@ const DashboardBox = ({ imageUrl, title, content, id, functions }) => {
     >
       <div className="flex items-center space-x-4">
         <span className="bg-[#E8F1FA] rounded-full p-2">
-          <img src={imageUrl} alt={title} className="w-6 h-6 object-contain" />
+          <motion.div
+            whileHover={{ scale: 1.15, rotate: 8 }}
+            animate={{
+              y: [0, -4, 0],
+              boxShadow: [
+                '0 0 0px #a5b4fc',
+                '0 0 12px #a5b4fc',
+                '0 0 0px #a5b4fc'
+              ],
+              transition: { repeat: Infinity, duration: 2, ease: 'easeInOut' }
+            }}
+            transition={{ type: 'spring', stiffness: 300 }}
+            className="inline-block"
+          >
+            <img src={imageUrl} alt={title} className="w-6 h-6 object-contain" />
+          </motion.div>
         </span>
       </div>
       <div className="mt-2">
@@ -54,7 +70,22 @@ export const QuickBox = ({ imageUrl, title, content, id, functions }) => {
     >
       <div className="flex items-center space-x-4">
         <span className="bg-[#E8F1FA] rounded-full p-2">
-          <img src={imageUrl} alt={title} className="w-6 h-6 object-contain" />
+          <motion.div
+            whileHover={{ scale: 1.15, rotate: 8 }}
+            animate={{
+              y: [0, -4, 0],
+              boxShadow: [
+                '0 0 0px #a5b4fc',
+                '0 0 12px #a5b4fc',
+                '0 0 0px #a5b4fc'
+              ],
+              transition: { repeat: Infinity, duration: 2, ease: 'easeInOut' }
+            }}
+            transition={{ type: 'spring', stiffness: 300 }}
+            className="inline-block"
+          >
+            <img src={imageUrl} alt={title} className="w-6 h-6 object-contain" />
+          </motion.div>
         </span>
       </div>
       <div className="mt-2">

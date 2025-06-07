@@ -31,7 +31,7 @@ const Loading = ({ message = "Loading...", size = "default" }) => {
 
   return (
     <div className='min-h-screen absolute top-0 right-0 left-0 bottom-0 bg-gray-100 flex flex-col items-center justify-center'>
-      <img src="/Images/genwriteLogo.png" alt="Genwrite logo" />
+      <img src="/Images/logo_genwrite_2.png" alt="Genwrite logo" className="h-72 w-72" />
      <motion.div
       className="flex flex-col items-center justify-center space-y-4 p-4"
       variants={containerVariants}

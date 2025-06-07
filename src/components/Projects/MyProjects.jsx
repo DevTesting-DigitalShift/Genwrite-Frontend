@@ -131,7 +131,7 @@ const MyProjects = () => {
                   className="absolute top-0"
                 >
                   <div
-                    className={`bg-white shadow-md w-full hover:shadow-xl  transition-all duration-300 rounded-xl p-4 min-h-[180px] relative
+                    className={`bg-white shadow-md  hover:shadow-xl  transition-all duration-300 rounded-xl p-4 min-h-[180px] min-w-[390px] relative
                         ${
                           (status === "failed"
                             ? "border-red-500"

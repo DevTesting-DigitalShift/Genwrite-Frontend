@@ -86,8 +86,8 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchBlogs = async () => {
       try {
-        const response = await axiosInstance.get("/blogs/")
-        let allBlogs = response.data
+        const response = await axiosInstance.get("/blogs/");
+        let allBlogs = response.data;
 
         console.log(allBlogs.filter((e) => e.status == "complete"))
         if (allBlogs.length >= 3) {
