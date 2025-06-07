@@ -8,6 +8,8 @@ import {
   ReloadOutlined,
 } from "@ant-design/icons"
 import axiosInstance from "@api/index"
+import { useDispatch } from "react-redux"
+import { load } from "@store/slices/authSlice"
 
 const { Text } = Typography
 
@@ -44,27 +46,33 @@ const formatDate = (dateStr) => {
 const NotificationDropdown = ({ notifications }) => {
   const [open, setOpen] = useState(false)
   const [localNotifications, setLocalNotifications] = useState([])
+  const dispatch = useDispatch()
 
   useEffect(() => {
     if (notifications || notifications?.length) setLocalNotifications(notifications)
   }, [notifications])
 
   // Function to fetch notifications
-  const fetchNotifications = async () => {
-    try {
-      const res = await axiosInstance.get("/user/notifications")
-      setLocalNotifications(res.data.notifications)
-    } catch (error) {
-      console.error("Error fetching notifications:", error)
-    }
+  // const fetchNotifications = async () => {
+  //   try {
+  //     const res = await axiosInstance.get("/user/notifications")
+  //     setLocalNotifications(res.data.notifications)
+  //   } catch (error) {
+  //     console.error("Error fetching notifications:", error)
+  //   }
+  // }
+
+  const loadUser = async () => {
+    console.log("Load User")
+    await load()(dispatch)
   }
 
   useEffect(() => {
     // Initial fetch
-    fetchNotifications()
+    // fetchNotifications()
 
     // Set up interval to fetch notifications every 30 seconds
-    const intervalId = setInterval(fetchNotifications, 30000) // 30000ms = 30s
+    const intervalId = setInterval(loadUser, 30000) // 30000ms = 30s
 
     // Clean up interval on component unmount
     return () => clearInterval(intervalId)

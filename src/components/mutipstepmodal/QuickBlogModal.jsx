@@ -13,7 +13,7 @@ const QuickBlogModal = ({ closefnc }) => {
   const [selectedPackage, setSelectedPackage] = useState(null)
   const [inputs, setInputs] = useState([])
   const [formData, setFormData] = useState({
-    package: null,
+    template: null,
     keywords: [],
     focusKeywords: [],
     videoLinks: [],
@@ -70,7 +70,7 @@ const QuickBlogModal = ({ closefnc }) => {
     setSelectedPackage(index)
     setFormData({
       ...formData,
-      package: packages[index].name,
+      template: packages[index].name,
     })
   }
 
@@ -172,7 +172,7 @@ const QuickBlogModal = ({ closefnc }) => {
                     <div
                       key={index}
                       className={`cursor-pointer transition-all duration-200 ${
-                        formData.package === pkg.name ? "border-blue-500 border-2" : ""
+                        formData.template === pkg.name ? "border-blue-500 border-2" : ""
                       }`}
                       onClick={() => handlePackageSelect(index)}
                     >

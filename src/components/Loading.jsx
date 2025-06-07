@@ -41,9 +41,9 @@ const Loading = ({ message = "Loading...", size = "default" }) => {
     >
       <Loader2 className={`animate-spin text-blue-600 ${getLoaderSize()}`} />
       {message && (
-        <p className={`text-gray-600 font-medium ${getTextSize()}`}>
+        <div className={`text-gray-600 font-medium ${getTextSize()}`}>
           {message}
-        </p>
+        </div>
       )}
       <div className="w-full max-w-md h-2 bg-gray-200 rounded-full overflow-hidden">
         <motion.div

@@ -1,18 +1,15 @@
 import { useState, useEffect } from "react"
 import { NavLink, useLocation, useNavigate } from "react-router-dom"
 import { useDispatch, useSelector } from "react-redux"
-import { FaSearch, FaBell, FaCog } from "react-icons/fa"
+import { FaSearch, FaCog } from "react-icons/fa"
 import { RxAvatar } from "react-icons/rx"
 import { logoutUser } from "../store/slices/authSlice"
-import { motion, AnimatePresence } from "framer-motion"
-import { FaHourglassHalf, FaCheck, FaTimes } from "react-icons/fa"
-import { Badge, Tooltip } from "antd"
+import { Tooltip } from "antd"
 import { RiCoinsFill } from "react-icons/ri"
 import NotificationDropdown from "@components/NotificationDropdown"
 const LayoutWithSidebarAndHeader = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [notificationsOpen, setNotificationsOpen] = useState(false)
   const location = useLocation()
   const { user } = useSelector((selector) => selector.auth)
   const [isUserLoaded, setIsUserLoaded] = useState(false)
@@ -92,9 +89,6 @@ const LayoutWithSidebarAndHeader = () => {
     setSettingsOpen(!settingsOpen)
   }
 
-  const toggleNotifications = () => {
-    setNotificationsOpen(!notificationsOpen)
-  }
   const handleLogout = async () => {
     try {
       setSettingsOpen(false)
@@ -199,7 +193,7 @@ const LayoutWithSidebarAndHeader = () => {
                   >
                     <RiCoinsFill size={30} color="orange" />
                     <span className="font-semibold text-lg">
-                      {user.credits.base + user.credits.extra}
+                      {(user?.credits?.base || 0) + (user?.credits?.extra || 0)}
                     </span>
                   </Tooltip>
                   <Tooltip
