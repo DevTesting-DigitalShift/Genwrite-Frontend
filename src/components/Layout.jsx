@@ -97,8 +97,8 @@ const LayoutWithSidebarAndHeader = () => {
   }
   const handleLogout = async () => {
     try {
-      await dispatch(logoutUser(navigate))
       setSettingsOpen(false)
+      await dispatch(logoutUser(navigate))
     } catch (error) {
       console.log(error)
     }
