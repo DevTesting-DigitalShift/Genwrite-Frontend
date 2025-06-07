@@ -3,15 +3,15 @@ import { Link, Outlet } from "react-router-dom";
 
 const PublicRoutesLayout = () => {
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-600 via-purple-700 to-pink-500">
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-600 to-purple-700">
       {/* Header */}
       <header className="h-fit text-white shadow-md">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="w-28 bg-white flex items-center justify-center rounded-2xl">
+          <div className="w-28 h-10 px-4 bg-white flex items-center justify-center rounded-2xl">
             <img
-              src="/Images/genwriteLogo.png"
+              src="/Images/logo_genwrite_2.png"
               alt="Genwrite logo"
-              className="object-contain pl-1.5"
+              className="object-fill scale-150"
             />
           </div>
           <nav className="space-x-4">

@@ -4,7 +4,10 @@ import { useDispatch, useSelector } from "react-redux"
 import { FaSearch, FaCog } from "react-icons/fa"
 import { RxAvatar } from "react-icons/rx"
 import { logoutUser } from "../store/slices/authSlice"
-import { Tooltip } from "antd"
+import { useNotification } from "@/context/NotificationsContext" // adjust path as needed
+import { motion, AnimatePresence } from "framer-motion"
+import { FaHourglassHalf, FaCheck, FaTimes } from "react-icons/fa"
+import { Badge, Tooltip, Switch } from "antd"
 import { RiCoinsFill } from "react-icons/ri"
 import NotificationDropdown from "@components/NotificationDropdown"
 const LayoutWithSidebarAndHeader = () => {
@@ -108,19 +111,55 @@ const LayoutWithSidebarAndHeader = () => {
         onMouseEnter={() => setSidebarOpen(true)}
         onMouseLeave={() => setSidebarOpen(false)}
       >
-        <div className="flex gap-x-4 items-center text-black">
+        <div className=" h-14 flex gap-x-4 items-center text-black mb-4">
           <img
-            src="/Images/logo_genwrite.png"
+            src="/Images/logo_genwrite_1.png"
             width={"50%"}
             height={"50%"}
             loading="lazy"
             className={`cursor-pointer transition-transform duration-700 ease-in-out ${
-              sidebarOpen ? "" : "w-full"
+              sidebarOpen ? "scale-150 pl-4" : "w-56 scale-150"
             }`}
             alt="Logo"
           />
         </div>
-        <ul className="pt-6">
+        <div className={`flex ${sidebarOpen ? 'justify-start pr-4' : 'justify-center'} mb-2`}>
+          <div className="w-full flex items-center justify-center gap-2 pl-4 py-2">
+            <Switch
+              checked={path === '/upgrade'}
+              onChange={(checked) => {
+                if (checked) navigate("/upgrade");
+                else navigate("/dash");
+              }}
+              className="mr-2 custom-blue-switch"
+            />
+            <span className={`font-bold text-white ${sidebarOpen ? 'pr-4' : 'hidden'} transition-all duration-300`}>Go Pro</span>
+          </div>
+        </div>
+        <style>
+          {`
+            .custom-blue-switch .ant-switch {
+              background-color: #e5e7eb !important; /* Tailwind gray-200 */
+              box-shadow: 0 0 0 2px #fff !important;
+              border: none !important;
+            }
+            .custom-blue-switch .ant-switch-checked {
+              background-color: #fff !important;
+              box-shadow: 0 0 0 2px #fff !important;
+              border: none !important;
+            }
+            .custom-blue-switch .ant-switch-handle {
+              background: #fff;
+              border-radius: 50% !important;
+              box-shadow: 0 0 2px #0002;
+            }
+            .custom-blue-switch .ant-switch-checked .ant-switch-handle {
+              background: #2563eb !important;
+              border-radius: 50% !important;
+            }
+          `}
+        </style>
+        <ul className="pt-1">
           {Menus.map((Menu, index) => (
             <li key={index} className={`mt-4 ${Menu.gap ? "mt-12" : ""}`}>
               <NavLink
@@ -192,9 +231,7 @@ const LayoutWithSidebarAndHeader = () => {
                     className="flex gap-2 justify-center items-center mr-4 rounded-full p-2 hover:bg-gray-100"
                   >
                     <RiCoinsFill size={30} color="orange" />
-                    <span className="font-semibold text-lg">
-                      {(user?.credits?.base || 0) + (user?.credits?.extra || 0)}
-                    </span>
+                    <span className="font-semibold text-lg">{user.credits?.base + user.credits?.extra}</span>
                   </Tooltip>
                   <Tooltip
                     title={`Hello ${user.name}`}

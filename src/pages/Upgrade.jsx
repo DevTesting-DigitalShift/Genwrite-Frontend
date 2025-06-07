@@ -199,7 +199,7 @@ const Upgrade = () => {
             Choose the perfect plan for your team. Scale seamlessly as your needs grow.
           </p>
 
-          <motion.div
+          {/* <motion.div
             className="flex items-center justify-center gap-4 mb-12"
             whileHover={{ scale: 1.02 }}
           >
@@ -239,7 +239,7 @@ const Upgrade = () => {
                 )}
               </AnimatePresence>
             </div>
-          </motion.div>
+          </motion.div> */}
         </motion.div>
 
         <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">

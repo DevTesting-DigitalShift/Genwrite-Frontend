@@ -76,7 +76,7 @@ const Trashcan = () => {
                     <img
                       src="Images/restore.svg"
                       alt="Restore"
-                      className="cursor-pointer"
+                      className="cursor-pointer restore-icon"
                       style={{ width: "20px", height: "20px" }}
                       onClick={() => handleRestore(_id)}
                     />
@@ -99,6 +99,16 @@ const Trashcan = () => {
         </div>
       )}
       <ToastContainer />
+      <style>
+        {`
+          .restore-icon {
+            transition: filter 0.2s, filter 0.2s;
+          }
+          .restore-icon:hover {
+            filter: invert(18%) sepia(99%) saturate(7482%) hue-rotate(357deg) brightness(97%) contrast(119%);
+          }
+        `}
+      </style>
     </div>
   )
 }

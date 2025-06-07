@@ -20,12 +20,6 @@ const Auth = ({ path }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  // Add glow animation variants
-  const glowVariants = {
-    initial: { opacity: 0.5, scale: 0.95 },
-    animate: { opacity: 1, scale: 1.05 },
-  };
-
   const handleGoogleLogin = useGoogleLogin({
     flow: "implicit",
     redirect_uri: "https://genwrite-frontend-eight.vercel.app/login",
@@ -78,134 +72,108 @@ const Auth = ({ path }) => {
   };
 
   return (
-    <div className="min-h-screen relative p-8 bg-gradient-to-br from-blue-600 via-purple-700 to-pink-500 overflow-hidden">
-     
-      
-      {/* Floating Logo */}
-      {/* <motion.div   (Not needed, removing as per Aryan sir's instruction)
-        initial={{ y: 0 }}
-        animate={{
-          y: [-10, 10, -10],
-        }}
-        transition={{
-          duration: 4,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
-        className="absolute -top-1 left-[42%] -translate-x-1/2 z-999"
-      >
+    <div className="min-h-screen relative p-8 bg-gradient-to-r from-gray-300 via-gray-100 to-gray-300 overflow-hidden">
+      {/* Logo */}
+      <div className="absolute -top-5 left-1/2 transform -translate-x-1/2 z-10">
         <img 
-          src="/Images/logo_genwrite.png" 
+          src="/Images/logo_genwrite_2.png" 
           alt="Logo" 
-          className="w-60 drop-shadow-2xl" 
+          className="w-48 scale-150" 
         />
-      </motion.div> */}
+      </div>
 
-      {/* Main Card */}
-      <div className="flex items-center -mt-3 justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen">
         <motion.div
           initial={{ scale: 0.95, opacity: 0, y: 20 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           transition={{ type: "spring", stiffness: 120, damping: 20 }}
-          className="w-full max-w-md bg-white/10 backdrop-blur-xl rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.18)] border border-white/20 p-8 relative overflow-hidden"
+          className="w-full max-w-md bg-white/90 backdrop-blur-lg rounded-2xl shadow-xl border border-gray-300 p-8 relative"
         >
-          {/* Card inner glow */}
-          <div className="absolute inset-0 rounded-2xl shadow-[inset_0_0_20px_rgba(255,255,255,0.1)]" />
-          
           {/* Header */}
-          <motion.div
-            initial={{ y: 20 }}
-            animate={{ y: 0 }}
-            className="mb-8 text-center"
-          >
-            <h1 className="text-3xl font-bold text-white drop-shadow-md">
+          <div className="mb-8 text-center">
+            <h1 className="text-3xl font-bold text-gray-800">
               {isSignup ? "Create Account" : "Welcome Back"}
             </h1>
-            <p className="text-white/80 mt-2 tracking-wide">
+            <p className="text-gray-600 mt-2">
               {isSignup ? "Get started with GenWrite" : "Continue your AI writing journey"}
             </p>
-          </motion.div>
+          </div>
 
           {/* Google Button */}
           <motion.button
-            whileHover={{ y: -2, scale: 1.02 }}
+            whileHover={{ y: -2 }}
             whileTap={{ scale: 0.98 }}
             onClick={handleGoogleLogin}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-3 py-3 px-6 bg-white/10 hover:bg-white/20 border-2 border-white/20 rounded-xl text-white hover:border-white/40 transition-all mb-8 group relative overflow-hidden"
+            className="w-full flex items-center justify-center gap-3 py-3 px-6 bg-white border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-all mb-6"
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity -translate-x-full group-hover:translate-x-full duration-300" />
-            <FcGoogle className="text-xl bg-white rounded-full" />
-            <span className="font-medium tracking-wide">
+            <FcGoogle className="text-xl" />
+            <span className="font-medium">
               {isSignup ? "Sign up with Google" : "Sign in with Google"}
             </span>
           </motion.button>
 
           {/* Divider */}
-          <div className="flex items-center my-8">
-            <hr className="flex-1 border-white/20" />
-            <span className="px-4 text-white/70 text-sm tracking-wide">or continue with email</span>
-            <hr className="flex-1 border-white/20" />
+          <div className="flex items-center my-6">
+            <hr className="flex-1 border-gray-300" />
+            <span className="px-4 text-gray-500 text-sm">or continue with email</span>
+            <hr className="flex-1 border-gray-300" />
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {isSignup && (
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="relative"
-              >
-                <FaUser className="absolute top-4 left-4 text-white/70" />
+              <div className="relative">
+                <FaUser className="absolute top-4 left-4 text-gray-400" />
                 <input
                   type="text"
                   placeholder="Full Name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
-                  className="w-full pl-12 pr-4 py-3 bg-white/10 border-2 border-white/20 rounded-xl text-white placeholder-white/60 focus:border-white/40 focus:bg-white/20 outline-none transition-all focus:ring-2 focus:ring-white/30"
+                  className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-300 rounded-xl text-gray-800 placeholder-gray-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
                 />
-              </motion.div>
+              </div>
             )}
 
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="relative"
-            >
-              <FaEnvelope className="absolute top-4 left-4 text-white/70" />
+            <div className="relative">
+              <FaEnvelope className="absolute top-4 left-4 text-gray-400" />
               <input
                 type="email"
                 placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full pl-12 pr-4 py-3 bg-white/10 border-2 border-white/20 rounded-xl text-white placeholder-white/60 focus:border-white/40 focus:bg-white/20 outline-none transition-all focus:ring-2 focus:ring-white/30"
+                className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-300 rounded-xl text-gray-800 placeholder-gray-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
               />
-            </motion.div>
+            </div>
 
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="relative"
-            >
-              <FaLock className="absolute top-4 left-4 text-white/70" />
+            <div className="relative">
+              <FaLock className="absolute top-4 left-4 text-gray-400 mb-2" />
               <input
                 type={showPassword ? "text" : "password"}
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full pl-12 pr-12 py-3 bg-white/10 border-2 border-white/20 rounded-xl text-white placeholder-white/60 focus:border-white/40 focus:bg-white/20 outline-none transition-all focus:ring-2 focus:ring-white/30"
+                className="w-full pl-12 pr-12 py-3 bg-gray-50 border border-gray-300 rounded-xl text-gray-800 placeholder-gray-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-4 text-white/70 hover:text-white/90 transition-colors"
+                className="absolute right-4 top-4 text-gray-500 hover:text-gray-700 transition-colors"
               >
                 {showPassword ? <FaEyeSlash /> : <FaEye />}
               </button>
-            </motion.div>
+            </div>
+
+            {/* {!isSignup && (
+              <div className="text-right">
+                <Link to="/forgot-password" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                  Forget?
+                </Link>
+              </div>
+            )} */}
 
             <AnimatePresence>
               {error && (
@@ -213,7 +181,7 @@ const Auth = ({ path }) => {
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="text-red-300 text-center text-sm tracking-wide"
+                  className="text-red-500 text-center text-sm "
                 >
                   {error}
                 </motion.p>
@@ -221,55 +189,41 @@ const Auth = ({ path }) => {
             </AnimatePresence>
 
             <motion.button
-  whileHover={{ 
-    y: -2,
-    scale: 1.02,
-    background: "linear-gradient(45deg, #6366f1, #8b5cf6, #ec4899)",
-    boxShadow: "0 4px 20px rgba(99, 102, 241, 0.3)"
-  }}
-  whileTap={{ scale: 0.98 }}
-  type="submit"
-  disabled={loading}
-  className={`w-full py-3.5 px-6 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-xl transition-all relative overflow-hidden group ${
-    loading ? "opacity-70 cursor-not-allowed" : ""
-  }`}
->
-  {/* Animated shine effect */}
-  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity -translate-x-full group-hover:translate-x-full duration-300" />
-
-  {/* Text with loading animation */}
-  {loading ? (
-    <div className="flex items-center justify-center gap-2">
-      <motion.div
-        animate={{ rotate: 360 }}
-        transition={{ duration: 1, repeat: Infinity }}
-        className="w-5 h-5 border-2 border-white/50 rounded-full border-t-transparent"
-      />
-      Processing...
-    </div>
-  ) : isSignup ? (
-    "Create Account"
-  ) : (
-    "Sign In"
-  )}
-</motion.button>
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.98 }}
+              type="submit"
+              disabled={loading}
+              className={`w-full py-3.5 px-6 bg-gradient-to-r from-blue-600 to-indigo-700 text-white font-semibold rounded-xl transition-all  ${
+                loading ? "opacity-70 cursor-not-allowed" : ""
+              }`}
+            >
+              {loading ? (
+                <div className="flex items-center justify-center gap-2 mt-2">
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity }}
+                    className="w-5 h-5 border-2 border-white/50 rounded-full border-t-transparent"
+                  />
+                  Processing...
+                </div>
+              ) : isSignup ? (
+                <span >Sign Up</span>
+              ) : (
+                "Sign In"
+              )}
+            </motion.button>
           </form>
 
           {/* Bottom Link */}
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center text-white/80 mt-6 tracking-wide"
-          >
+          <p className="text-center text-gray-600 mt-6">
             {isSignup ? "Already have an account? " : "Don't have an account? "}
             <Link
               to={isSignup ? "/login" : "/signup"}
-              className="text-white font-semibold hover:text-white/90 transition-colors relative group"
+              className="text-blue-600 font-semibold hover:text-blue-800 transition-colors"
             >
               {isSignup ? "Sign in" : "Sign up"}
-              <span className="absolute bottom-0 left-0 w-0 h-px bg-white group-hover:w-full transition-all duration-300" />
             </Link>
-          </motion.p>
+          </p>
         </motion.div>
       </div>
     </div>
