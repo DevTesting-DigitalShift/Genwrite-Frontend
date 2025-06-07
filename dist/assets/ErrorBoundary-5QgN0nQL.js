@@ -1,4 +1,4 @@
-import{c as o,u as c,i as s,j as t}from"./index-CfcK-_FJ.js";import"./chunk-tiptap-JX9QK0Ia.js";/**
+import{c as o,u as c,i as s,j as t}from"./index-Ma0rgsIm.js";import"./chunk-tiptap-JX9QK0Ia.js";/**
  * @license lucide-react v0.488.0 - ISC
  *
  * This source code is licensed under the ISC license.

@@ -200,11 +200,11 @@ export const createMultiBlog = (blogData, navigate) => async (dispatch) => {
     console.log("Creating multi new blog");
     const blog = await createBlogMultiple(blogData);
     console.log({ blog });
-    dispatch(addUserBlog(blog)); // Dispatch the new action with the blog object
+    // dispatch(addUserBlog(blog)); // Dispatch the new action with the blog object
     // dispatch(setSelectedBlog(blog));
     // console.log(blogData);
     navigate(`/project`); // Navigate to the project page
-    toast.success("Bulk Blogs added successfully");
+    toast.success("Bulk Blogs will be generated shortly on 10 min interval");
   } catch (error) {
     dispatch(setError(error.message));
   } finally {
