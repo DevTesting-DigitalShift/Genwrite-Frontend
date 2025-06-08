@@ -366,67 +366,67 @@ const BrandVoice = () => {
         animate={{ x: 0 }}
       >
         <h1 className="text-xl font-bold text-gray-800 mb-4">
-          Selected Brand Voice
+          Your Brand Voices
         </h1>
-
-        <div className="mb-8">
-          <AnimatePresence>
-            {formData.selectedVoice ? (
-              <motion.div 
-                className="rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-200 p-4 shadow-sm"
+        <div className="mb-8 space-y-4 max-h-[300px] overflow-y-auto pr-2">
+          {brands.length > 0 ? (
+            brands.map((brand) => (
+              <motion.div
+                key={brand._id}
+                className={`rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-200 p-4 shadow-sm flex items-center justify-between ${formData.selectedVoice?._id === brand._id ? 'ring-2 ring-indigo-500' : ''}`}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
                 whileHover={{ y: -5 }}
               >
-                <div className="flex justify-between items-center">
-                  <h1 className="text-indigo-700 font-medium">
-                    {formData.selectedVoice.nameOfVoice}
-                  </h1>
-                  <div className="flex space-x-2">
-                    <motion.button 
-                      className="text-indigo-500 hover:text-indigo-700"
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => handleEdit(formData.selectedVoice)}
-                    >
-                      <FaEdit />
-                    </motion.button>
-                    <motion.button 
-                      className="text-gray-500 hover:text-red-500"
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => handleDelete(formData.selectedVoice)}
-                    >
-                      <img src="/Images/trash.png" alt="Delete" className="w-4 h-4" />
-                    </motion.button>
+                <div className="flex items-center gap-3 flex-1">
+                  <input
+                    type="checkbox"
+                    checked={formData.selectedVoice?._id === brand._id}
+                    onChange={() => handleSelect(brand)}
+                    className="accent-indigo-500 w-5 h-5"
+                  />
+                  <div>
+                    <h1 className="text-indigo-700 font-medium">
+                      {brand.nameOfVoice}
+                    </h1>
+                    <p className="text-gray-600 mt-2 text-sm">
+                      {brand.describeBrand?.length > 100
+                        ? `${brand.describeBrand.substring(0, 100)}...`
+                        : brand.describeBrand}
+                    </p>
                   </div>
                 </div>
-                <p className="text-gray-600 mt-2 text-sm">
-                  {formData.selectedVoice.describeBrand?.length > 100
-                    ? `${formData.selectedVoice.describeBrand.substring(0, 100)}...`
-                    : formData.selectedVoice.describeBrand}
-                </p>
+                <div className="flex space-x-2">
+                  <motion.button 
+                    className="text-indigo-500 hover:text-indigo-700"
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => handleEdit(brand)}
+                  >
+                    <FaEdit />
+                  </motion.button>
+                  <motion.button 
+                    className="text-gray-500 hover:text-red-500"
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => handleDelete(brand)}
+                  >
+                    <img src="/Images/trash.png" alt="Delete" className="w-4 h-4" />
+                  </motion.button>
+                </div>
               </motion.div>
-            ) : (
-              <motion.div 
-                className="p-6 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300 text-center"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-              >
-                <p className="text-gray-500">
-                  No brand voice selected. Select one from below.
-                </p>
-              </motion.div>
-            )}
-          </AnimatePresence>
+            ))
+          ) : (
+            <div className="p-6 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300 text-center text-gray-500">
+              No brand voices created yet.
+            </div>
+          )}
         </div>
 
-        <h2 className="text-xl font-bold text-gray-800 mb-4">
+        <h2 className="text-xl font-bold text-gray-800 mb-4 mt-8">
           Select Brand Voice
         </h2>
-        
-        <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+        <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
           {brands.map((item) => (
             <YourVoicesComponent
               key={item._id}

@@ -5,6 +5,22 @@ import axiosInstance from "../../api"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 
+// Ensure axiosInstance always sends the auth token
+if (typeof window !== "undefined" && axiosInstance && !axiosInstance._authInterceptorSet) {
+  axiosInstance.interceptors.request.use(
+    (config) => {
+      const token = localStorage.getItem("token")
+      if (token) {
+        config.headers = config.headers || {}
+        config.headers["Authorization"] = `Bearer ${token}`
+      }
+      return config
+    },
+    (error) => Promise.reject(error)
+  )
+  axiosInstance._authInterceptorSet = true
+}
+
 const CompetitiveAnalysisModal = ({ closefnc }) => {
   const [formData, setFormData] = useState({
     title: "",

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom"
 import axiosInstance from "@api/index"
 import SkeletonLoader from "./SkeletonLoader"
 import { Badge, Button, Tooltip } from "antd"
-import { ToastContainer, toast } from "react-toastify"
+import { toast } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import { Trash2 } from "lucide-react"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
@@ -245,7 +245,6 @@ const MyProjects = () => {
           )}
         </>
       )}
-      <ToastContainer />
     </div>
   )
 }
