@@ -4,7 +4,6 @@ import { useDispatch, useSelector } from "react-redux"
 import { FaSearch, FaCog } from "react-icons/fa"
 import { RxAvatar } from "react-icons/rx"
 import { logoutUser } from "../store/slices/authSlice"
-import { useNotification } from "@/context/NotificationsContext" // adjust path as needed
 import { motion, AnimatePresence } from "framer-motion"
 import { FaHourglassHalf, FaCheck, FaTimes } from "react-icons/fa"
 import { Badge, Tooltip, Switch } from "antd"
@@ -149,12 +148,12 @@ const LayoutWithSidebarAndHeader = () => {
               border: none !important;
             }
             .custom-blue-switch .ant-switch-handle {
-              background: #fff;
+              background: #fff !important;
               border-radius: 50% !important;
               box-shadow: 0 0 2px #0002;
             }
             .custom-blue-switch .ant-switch-checked .ant-switch-handle {
-              background: #2563eb !important;
+              background: #fff !important;
               border-radius: 50% !important;
             }
           `}

@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axiosInstance from "@/api/index";
+import BrandVoiceSection from "./BrandVoiceSection";
 
 const ThirdStepModal = ({
   handleSubmit,
@@ -9,12 +11,40 @@ const ThirdStepModal = ({
   data,
   setData,
 }) => {
+  const [formData, setFormData] = useState({
+    isCheckedBrand: data.isCheckedBrand || false,
+    ...data,
+  });
   const [localFormData, setLocalFormData] = useState({
     images: [],
     currentImageIndex: 0,
     referenceLinks: [],
     newLink: "",
   });
+  const [brandVoices, setBrandVoices] = useState([]);
+  const [loadingBrands, setLoadingBrands] = useState(false);
+  const [brandError, setBrandError] = useState(null);
+
+  useEffect(() => {
+    if (formData.isCheckedBrand) {
+      setLoadingBrands(true);
+      axiosInstance
+        .get("/brand")
+        .then((res) => {
+          let brandsArr = Array.isArray(res.data)
+            ? res.data
+            : res.data
+            ? [res.data]
+            : [];
+          setBrandVoices(brandsArr);
+          setLoadingBrands(false);
+        })
+        .catch((err) => {
+          setBrandError("Failed to fetch brand voices");
+          setLoadingBrands(false);
+        });
+    }
+  }, [formData.isCheckedBrand]);
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
@@ -114,6 +144,61 @@ const ThirdStepModal = ({
           </div>
 
           <div className="space-y-6">
+            {/* --- Brand Voice Section from Step 2 --- */}
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">
+                Write with Brand Voice
+              </span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.isCheckedBrand}
+                  onChange={() =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      isCheckedBrand: !prev.isCheckedBrand,
+                    }))
+                  }
+                  className="sr-only peer"
+                />
+                <div className="w-14 h-8 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 peer-checked:bg-[#1B6FC9] after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all" />
+              </label>
+            </div>
+            {formData.isCheckedBrand && (
+              <div className="mt-4 p-4 rounded-lg border border-indigo-200 bg-indigo-50">
+                {loadingBrands ? (
+                  <div className="text-gray-500 text-sm">Loading brand voices...</div>
+                ) : brandError ? (
+                  <div className="text-red-500 text-sm">{brandError}</div>
+                ) : brandVoices.length > 0 ? (
+                  <div className="space-y-2">
+                    {brandVoices.map((voice) => (
+                      <label key={voice._id} className="flex items-center gap-3 mb-2 cursor-pointer p-2 rounded hover:bg-indigo-100 transition">
+                        <input
+                          type="radio"
+                          name="selectedBrandVoice"
+                          value={voice._id}
+                          checked={formData.selectedBrandVoice === voice._id}
+                          onChange={() => setFormData((prev) => ({
+                            ...prev,
+                            selectedBrandVoice: voice._id,
+                          }))}
+                          className="form-radio text-[#1B6FC9] focus:ring-[#1B6FC9]"
+                        />
+                        <div>
+                          <div className="font-semibold text-indigo-700">{voice.nameOfVoice}</div>
+                          <div className="text-gray-700 text-sm mt-1">{voice.describeBrand}</div>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-gray-500 text-sm">No brand voices created yet.</div>
+                )}
+              </div>
+            )}
+            {/* --- End Brand Voice Section --- */}
+
             {/* <div>
               <label className="block text-sm font-medium mb-2">
                 Add Images

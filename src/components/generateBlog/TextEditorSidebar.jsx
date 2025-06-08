@@ -13,6 +13,7 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
   const [isAnalyzingProofreading, setIsAnalyzingProofreading] = useState(false) // For Proofreading
   const [competitiveAnalysisResults, setCompetitiveAnalysisResults] = useState(null) // For Competitive Analysis Results
   const [proofreadingResults, setProofreadingResults] = useState([]) // For Proofreading Results
+  const [shouldRunCompetitive, setShouldRunCompetitive] = useState(false)
   const {handlePopup} = useConfirmPopup()
 
   const fetchCompetitiveAnalysis = async () => {
@@ -48,6 +49,13 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
       setIsAnalyzingCompetitive(false)
     }
   }
+
+  useEffect(() => {
+    if (shouldRunCompetitive) {
+      fetchCompetitiveAnalysis()
+      setShouldRunCompetitive(false)
+    }
+  }, [shouldRunCompetitive])
 
   const removeKeyword = (keyword) => {
     setKeywords(keywords.filter((k) => k !== keyword))
@@ -186,7 +194,25 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
             </motion.button>
           </div>
         </div>
-        <div className="mb-3">
+          <motion.div
+            whileHover={{ scale: 1.02 }}
+            className="bg-white rounded-lg shadow-md p-4 mb-1 relative mt-3"
+          >
+            <span className="text-2xl font-bold text-gray-400 mb-1 block">CA</span>
+            <h4
+              className="text-blue-600 font-medium hover:underline cursor-pointer"
+              onClick={() =>
+                handlePopup({
+                  title: "Competitive Analysis",
+                  description: `Do you really want to run competitive analysis?\nIt will be 10 credits.`,
+                  onConfirm: () => setShouldRunCompetitive(true),
+                })
+              }
+            >
+              {isAnalyzingCompetitive ? "Analyzing..." : "Run Competitive Analysis"}
+            </h4>
+          </motion.div>
+        <div className="mb-3 mt-3">
           <h3 className="font-semibold mb-2 text-gray-700">Analysis Results</h3>
           {isAnalyzingCompetitive ? (
             <p className="text-sm text-gray-500">Analyzing Competitive Analysis...</p>
@@ -223,6 +249,7 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
           ) : (
             <p className="text-sm text-gray-500">No analysis available yet.</p>
           )}
+        
         </div>
         <div className="mb-3">
           <h3 className="font-semibold mb-2 text-gray-700">Blog Score</h3>

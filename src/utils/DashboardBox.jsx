@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 const DashboardBox = ({ imageUrl, title, content, id, functions }) => {
   return (
     <div
-      className="w-1/2 md:w-1/3 h-44 p-4 break-words rounded-md bg-[#FAFAFA] shadow-sm hover:shadow-md cursor-pointer"
+      className="w-1/2 md:w-1/3 h-44 p-4 break-words rounded-md bg-[#FAFAFA] shadow-md hover:shadow-xl cursor-pointer border border-transparent hover:border-blue-100 hover:shadow-blue-100 shadow-blue-100 transition duration-200"
       onClick={() => {
         if (id === "A") {
           functions.showQuickBlogModal && functions.showQuickBlogModal();
@@ -65,7 +65,7 @@ export const QuickBox = ({ imageUrl, title, content, id, functions }) => {
 
   return (
     <div
-      className="rounded-md p-4 shadow-sm hover:shadow-md bg-[#FAFAFA] cursor-pointer"
+      className="rounded-md p-4 shadow-md hover:shadow-xl bg-[#FAFAFA] cursor-pointer border  hover:border-blue-100 hover:shadow-blue-100 shadow-blue-100 transition duration-200"
       onClick={handleClick}
     >
       <div className="flex items-center space-x-4">
@@ -114,7 +114,7 @@ export const RecentProjects = ({ title, content, tags, item }) => {
   return (
     <div
       onClick={handleBlogClick}
-      className="p-2 cursor-pointer rounded-xl flex gap-2 flex-col justify-around items-start bg-white shadow-md hover:shadow-2xl relative"
+      className="p-2 cursor-pointer rounded-xl flex gap-2 flex-col justify-around items-start bg-white shadow-md hover:shadow-xl relative border border-transparent hover:border-blue-200 hover:shadow-blue-200 transition duration-200"
     >
       {/* AI Model Tag in top right */}
       <div className="absolute top-2 right-2">

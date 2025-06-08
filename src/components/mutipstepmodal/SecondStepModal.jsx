@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axiosInstance from "@/api/index";
 
 const SecondStepModal = ({
   handleNext,
@@ -18,6 +19,10 @@ const SecondStepModal = ({
     isCheckedBrand: data.isCheckedBrand || false,
     aiModel: data.aiModel || "gemini",
   });
+
+  const [brandVoices, setBrandVoices] = useState([]);
+  const [loadingBrands, setLoadingBrands] = useState(false);
+  const [brandError, setBrandError] = useState(null);
 
   const handleKeywordInputChange = (e, type) => {
     if (type === "keywords") {
@@ -85,6 +90,27 @@ const SecondStepModal = ({
     handleNext();
   };
 
+  useEffect(() => {
+    if (formData.isCheckedBrand) {
+      setLoadingBrands(true);
+      axiosInstance
+        .get("/brand")
+        .then((res) => {
+          let brandsArr = Array.isArray(res.data)
+            ? res.data
+            : res.data
+            ? [res.data]
+            : [];
+          setBrandVoices(brandsArr);
+          setLoadingBrands(false);
+        })
+        .catch((err) => {
+          setBrandError("Failed to fetch brand voices");
+          setLoadingBrands(false);
+        });
+    }
+  }, [formData.isCheckedBrand]);
+
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/50">
       <div className="w-[800px] bg-white rounded-lg shadow-xl">
@@ -111,6 +137,7 @@ const SecondStepModal = ({
           </div>
 
           <div className="space-y-6">
+            {/* --- Brand Voice Section removed from Step 2, now in Step 3 --- */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Select AI Model
@@ -142,11 +169,11 @@ const SecondStepModal = ({
                   value={formData.numberOfCounts}
                   className="w-full h-1 rounded-lg appearance-none cursor-pointer 
             bg-gray-100 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#1B6FC9]"
-            style={{
-              background: `linear-gradient(to right, #1B6FC9 ${
-                ((formData.numberOfCounts - 5) / 10) * 100
-              }%, #E5E7EB ${((formData.numberOfCounts - 5)  / 10) * 100}%)`,
-            }}
+                  style={{
+                    background: `linear-gradient(to right, #1B6FC9 ${
+                      ((formData.numberOfCounts - 5) / 10) * 100
+                    }%, #E5E7EB ${((formData.numberOfCounts - 5) / 10) * 100}%)`,
+                  }}
                   onChange={(e) =>
                     setFormData((prev) => ({
                       ...prev,
@@ -284,7 +311,7 @@ const SecondStepModal = ({
               </label>
             </div>
 
-            <div className="flex items-center justify-between">
+            {/* <div className="flex items-center justify-between">
               <span className="text-sm font-medium">
                 Write with Brand Voice
               </span>
@@ -302,7 +329,9 @@ const SecondStepModal = ({
                 />
                 <div className="w-14 h-8 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 peer-checked:bg-[#1B6FC9] after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all" />
               </label>
-            </div>
+            </div> */}
+            {/* Show all brand voices if Write with Brand Voice is checked */}
+            {/* (Brand voice section moved to Step 3) */}
           </div>
 
           <div className="flex justify-end gap-3 mt-8">

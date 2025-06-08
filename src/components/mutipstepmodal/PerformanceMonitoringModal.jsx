@@ -51,7 +51,7 @@ const PerformanceMonitoringModal = ({ closefnc }) => {
     setIsAnalysing(true);
     try {
       // Use the main blog details endpoint
-      const response = await axiosInstance.get(`/blogs/${formData.selectedBlog._id}`);
+      const response = await axiosInstance.get(`/blogs/performaceMontioring/${formData.selectedBlog._id}`);
       setStats(response.data);
     } catch (error) {
       toast.error("Failed to load blog details");
@@ -229,9 +229,9 @@ const PerformanceMonitoringModal = ({ closefnc }) => {
                     
                     <div className="space-y-2">
                       <div className="flex items-center">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
-                        <span className="font-semibold text-gray-700">Flesch Score:</span>
-                        <span className="ml-2">{stats.fleschScore ?? "-"}</span>
+                        {/* <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div> */}
+                        {/* <span className="font-semibold text-gray-700">Flesch Score:</span> */}
+                        {/* <span className="ml-2">{stats.fleschScore ?? "-"}</span> */}
                       </div>
                       <div className="flex items-center">
                         <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
