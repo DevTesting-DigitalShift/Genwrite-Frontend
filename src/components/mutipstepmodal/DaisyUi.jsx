@@ -9,6 +9,7 @@ import "react-datepicker/dist/react-datepicker.css"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { createMultiBlog } from "@store/slices/blogSlice"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
+import axiosInstance from "@api/index"
 
 const MultiStepModal = ({ closefnc }) => {
   const dispatch = useDispatch()
@@ -121,8 +122,21 @@ const MultiStepModal = ({ closefnc }) => {
     })
   }
 
-  const handleCheckboxChange = (e) => {
+  const handleCheckboxChange = async (e) => {
     const { name, checked } = e.target
+    if (name === "wordpressPostStatus" && checked) {
+      try {
+        const res = await axiosInstance.get("/user/profile")
+        if (!res.data?.wordpressLink) {
+          toast.error("Please connect your WordPress account in your profile before enabling automatic posting.")
+          navigate("/profile")
+          return
+        }
+      } catch {
+        toast.error("Failed to check profile. Please try again.")
+        return
+      }
+    }
     setFormData({
       ...formData,
       [name]: checked,
@@ -531,7 +545,6 @@ const MultiStepModal = ({ closefnc }) => {
                     placeholder="e.g., 5"
                   />
                 </div>
-                  {/* Toggle for automatic posting */}
                   <div className="flex items-center justify-between mt-6">
                     <span className="text-sm font-medium text-gray-700">
                       Enable Automatic Posting

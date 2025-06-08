@@ -1,44 +1,50 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, Tabs, Input, Button } from "antd";
-import { 
-  SettingOutlined, 
-  EditOutlined, 
-  SearchOutlined, 
-  ThunderboltOutlined, 
-  GlobalOutlined, 
-  FileTextOutlined, 
-  ShareAltOutlined, 
+import {
+  SettingOutlined,
+  EditOutlined,
+  SearchOutlined,
+  ThunderboltOutlined,
+  GlobalOutlined,
+  FileTextOutlined,
+  ShareAltOutlined,
   BookOutlined,
   CloseOutlined
 } from "@ant-design/icons";
 import { motion } from "framer-motion";
 import CompetitiveAnalysisModal from "../mutipstepmodal/CompetitiveAnalysisModal";
-
+import axios from "axios";
+import axiosInstance from "../../api"; // adjust path if needed
 export default function ToolboxPage() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("content");
   const [keywords, setKeywords] = useState([]);
   const [newKeyword, setNewKeyword] = useState("");
   const [competitiveAnalysisModalOpen, setCompetitiveAnalysisModalOpen] = useState(false);
-  
+
+  // --- Add these states for keyword analysis ---
+  const [keywordAnalysisResult, setKeywordAnalysisResult] = useState(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysisError, setAnalysisError] = useState(null);
+
   const addKeyword = () => {
     if (newKeyword.trim() && !keywords.includes(newKeyword.trim())) {
       setKeywords([...keywords, newKeyword.trim()]);
       setNewKeyword("");
     }
   };
-  
+
   const removeKeyword = (index) => {
     setKeywords(keywords.filter((_, i) => i !== index));
   };
-  
+
   const handleKeyPress = (e) => {
     if (e.key === "Enter") {
       addKeyword();
     }
   };
-  
+
   // Patch the cardItems so competitor-analysis opens modal
   const cardItems = [
     {
@@ -108,22 +114,40 @@ export default function ToolboxPage() {
     }
   ];
 
+  const analyzeKeywords = async () => {
+    setAnalyzing(true);
+    setAnalysisError(null);
+    setKeywordAnalysisResult(null);
+    try {
+      // Use the first keyword as title, or join all keywords if you want
+      const response = await axiosInstance.get(
+        "/analysis/keywords",
+        { params: { title: keywords.join(",") } }
+      );
+      setKeywordAnalysisResult(response.data);
+    } catch (err) {
+      setAnalysisError(err?.response?.data?.message || "Failed to analyze keywords.");
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
       className="max-w-7xl mx-auto p-4 sm:p-6"
     >
       {/* Header */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1, duration: 0.4 }}
         className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8"
       >
         <div>
-          <motion.h1 
+          <motion.h1
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
@@ -131,7 +155,7 @@ export default function ToolboxPage() {
           >
             Toolbox
           </motion.h1>
-          <motion.p 
+          <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
@@ -140,7 +164,7 @@ export default function ToolboxPage() {
             All your content creation tools in one place. Streamline your workflow with our powerful suite of tools.
           </motion.p>
         </div>
-        
+
         <motion.div
           whileHover={{ scale: 1.03 }}
           whileTap={{ scale: 0.98 }}
@@ -172,7 +196,7 @@ export default function ToolboxPage() {
           {
             key: "content",
             label: (
-              <motion.div 
+              <motion.div
                 className="flex items-center gap-2 font-medium"
                 whileHover={{ scale: 1.05 }}
               >
@@ -191,7 +215,7 @@ export default function ToolboxPage() {
           {
             key: "seo",
             label: (
-              <motion.div 
+              <motion.div
                 className="flex items-center gap-2 font-medium"
                 whileHover={{ scale: 1.05 }}
               >
@@ -205,26 +229,26 @@ export default function ToolboxPage() {
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  whileHover={{ 
+                  whileHover={{
                     y: -10,
                     transition: { duration: 0.3 }
                   }}
                   className="relative"
                 >
                   <div className="absolute inset-0 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl blur-md opacity-20"></div>
-                  
+
                   <Card
                     title={
                       <div className="flex justify-between items-center">
                         <span className="font-medium text-gray-700">Keyword Research</span>
-                        <motion.div 
-                          animate={{ 
+                        <motion.div
+                          animate={{
                             y: [0, -5, 0],
-                            transition: { 
-                              repeat: Infinity, 
+                            transition: {
+                              repeat: Infinity,
                               duration: 2,
                               ease: "easeInOut"
-                            } 
+                            }
                           }}
                         >
                           <SearchOutlined className="text-green-500" />
@@ -234,10 +258,10 @@ export default function ToolboxPage() {
                     className="rounded-xl shadow-lg border-0 relative overflow-hidden transition-all duration-300 hover:shadow-xl"
                   >
                     <p className="mb-4 text-gray-600">Find and analyze keywords for your blog</p>
-                    
+
                     <div className="flex gap-2 mb-4">
-                      <Input 
-                        placeholder="Enter a keyword" 
+                      <Input
+                        placeholder="Enter a keyword"
                         value={newKeyword}
                         onChange={(e) => setNewKeyword(e.target.value)}
                         onKeyPress={handleKeyPress}
@@ -247,7 +271,7 @@ export default function ToolboxPage() {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                       >
-                        <Button 
+                        <Button
                           type="primary"
                           onClick={addKeyword}
                         >
@@ -255,7 +279,7 @@ export default function ToolboxPage() {
                         </Button>
                       </motion.div>
                     </div>
-                    
+
                     {/* Keywords Tags */}
                     <div className="flex flex-wrap gap-2 mb-6">
                       {keywords.map((keyword, index) => (
@@ -278,28 +302,49 @@ export default function ToolboxPage() {
                         </motion.div>
                       ))}
                     </div>
-                    
+
                     <motion.div
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                     >
-                      <Button 
-                        block 
+                      <Button
+                        block
                         type="primary"
-                        onClick={() => navigate("/keywords")}
+                        onClick={analyzeKeywords}
+                        loading={analyzing}
+                        disabled={keywords.length === 0}
                       >
                         Analyze Keywords
                       </Button>
                     </motion.div>
-                    
-                    {/* Animated border */}
-                    <motion.div 
+
+                    {analysisError && (
+                      <div className="text-red-500 mt-2">{analysisError}</div>
+                    )}
+                    {keywordAnalysisResult && Array.isArray(keywordAnalysisResult) && (
+                      <div className="mt-4 p-3 bg-blue-50 rounded">
+                        <div className="font-semibold text-blue-700 mb-2">Keyword Suggestions:</div>
+                        <ul className="space-y-2">
+                          {keywordAnalysisResult.map((kw, idx) => (
+                            <li
+                              key={idx}
+                              className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 shadow-sm border border-blue-100"
+                            >
+                              <span className="inline-block w-2 h-2 rounded-full bg-blue-400"></span>
+                              <span className="text-gray-800 text-sm">{kw}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    <motion.div
                       className="absolute inset-0 rounded-xl pointer-events-none"
-                      initial={{ 
+                      initial={{
                         background: "linear-gradient(45deg, transparent, transparent)",
                         opacity: 0
                       }}
-                      animate={{ 
+                      animate={{
                         background: [
                           "linear-gradient(45deg, transparent, transparent)",
                           "linear-gradient(45deg, #8b5cf6, #7c3aed)",
@@ -307,11 +352,11 @@ export default function ToolboxPage() {
                         ],
                         opacity: [0, 0.5, 0]
                       }}
-                      transition={{ 
+                      transition={{
                         duration: 3,
                         repeat: Infinity
                       }}
-                      style={{ 
+                      style={{
                         zIndex: -1,
                         margin: "-1px",
                         border: "1px solid transparent",
@@ -319,7 +364,7 @@ export default function ToolboxPage() {
                     ></motion.div>
                   </Card>
                 </motion.div>
-                
+
                 {/* Competitor Analysis Card */}
                 <AnimatedCard item={cardItems[3]} />
               </div>
@@ -328,7 +373,7 @@ export default function ToolboxPage() {
           {
             key: "integrations",
             label: (
-              <motion.div 
+              <motion.div
                 className="flex items-center gap-2 font-medium"
                 whileHover={{ scale: 1.05 }}
               >
@@ -370,7 +415,7 @@ function AnimatedCard({ item }) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ 
+      whileHover={{
         y: -10,
         transition: { duration: 0.3 }
       }}
@@ -378,19 +423,19 @@ function AnimatedCard({ item }) {
     >
       {/* Gradient background */}
       <div className={`absolute inset-0 bg-gradient-to-br ${item.color} rounded-xl blur-md opacity-20`}></div>
-      
+
       <Card
         title={
           <div className="flex justify-between items-center">
             <span className="font-medium text-gray-700">{item.title}</span>
-            <motion.div 
-              animate={{ 
+            <motion.div
+              animate={{
                 y: [0, -5, 0],
-                transition: { 
-                  repeat: Infinity, 
+                transition: {
+                  repeat: Infinity,
                   duration: 2,
                   ease: "easeInOut"
-                } 
+                }
               }}
             >
               {item.icon}
@@ -404,8 +449,8 @@ function AnimatedCard({ item }) {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
-          <Button 
-            block 
+          <Button
+            block
             type={item.disabled ? "default" : "primary"}
             onClick={item.action}
             disabled={item.disabled}
@@ -414,15 +459,15 @@ function AnimatedCard({ item }) {
             {item.actionText}
           </Button>
         </motion.div>
-        
+
         {/* Animated border */}
-        <motion.div 
+        <motion.div
           className="absolute inset-0 rounded-xl pointer-events-none"
-          initial={{ 
+          initial={{
             background: "linear-gradient(45deg, transparent, transparent)",
             opacity: 0
           }}
-          animate={{ 
+          animate={{
             background: [
               "linear-gradient(45deg, transparent, transparent)",
               `linear-gradient(45deg, ${getColorFromGradient(item.color, 0)}, ${getColorFromGradient(item.color, 1)})`,
@@ -430,11 +475,11 @@ function AnimatedCard({ item }) {
             ],
             opacity: [0, 0.5, 0]
           }}
-          transition={{ 
+          transition={{
             duration: 3,
             repeat: Infinity
           }}
-          style={{ 
+          style={{
             zIndex: -1,
             margin: "-1px",
             border: "1px solid transparent",
@@ -457,6 +502,6 @@ function getColorFromGradient(gradient, index) {
     "from-lime-500 to-green-500": ["#84cc16", "#22c55e"],
     "from-gray-500 to-gray-700": ["#6b7280", "#374151"]
   };
-  
+
   return colors[gradient]?.[index] || "#3b82f6";
 }
