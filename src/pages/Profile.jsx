@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DocumentArrowDownIcon, CreditCardIcon, BanknotesIcon, PencilIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/solid';
-import axiosInstance from '@api/index';// adjust path if needed
+import axiosInstance from '@api/index';
 
 const DEMO_PROFILE = {
   profilePicture: 'https://source.unsplash.com/random/800x800/?portrait',
@@ -272,6 +272,14 @@ const Profile = () => {
                 <div className="space-y-4">
                   <ProfileField label="Full Name" name="personalDetails.name" value={profileData.personalDetails.name} isEditing={isEditing} onChange={handleInputChange} placeholder={DEMO_PROFILE.personalDetails.name} />
                   <ProfileField label="Email" name="personalDetails.email" value={profileData.personalDetails.email} isEditing={isEditing} onChange={handleInputChange} placeholder={DEMO_PROFILE.personalDetails.email} />
+                  <ProfileField
+                    label="WordPress Link"
+                    name="personalDetails.wordpress"
+                    value={profileData.personalDetails.wordpress || ""}
+                    isEditing={isEditing}
+                    onChange={handleInputChange}
+                    placeholder="eg : https://yourblog.wordpress.com"
+                  />
                   <ProfileField label="Phone" name="personalDetails.phone" value={profileData.personalDetails.phone} isEditing={isEditing} onChange={handleInputChange} placeholder={DEMO_PROFILE.personalDetails.phone} />
                   <ProfileField label="Job Title" name="personalDetails.jobTitle" value={profileData.personalDetails.jobTitle} isEditing={isEditing} onChange={handleInputChange} placeholder={DEMO_PROFILE.personalDetails.jobTitle} />
                   <ProfileField label="Company" name="personalDetails.company" value={profileData.personalDetails.company} isEditing={isEditing} onChange={handleInputChange} placeholder={DEMO_PROFILE.personalDetails.company} />
