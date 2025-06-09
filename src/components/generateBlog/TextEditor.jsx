@@ -35,6 +35,9 @@ import {
   Type,
   MessageSquare,
 } from "lucide-react";
+import { useSelector } from "react-redux";
+import { useConfirmPopup } from "@/context/ConfirmPopupContext";
+import { useNavigate } from "react-router-dom";
 
 import { marked } from 'marked';
 import TurndownService from "turndown";
@@ -62,6 +65,9 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
   const hasInitializedRef = useRef(false);
   const dropdownRef = useRef(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const { handlePopup } = useConfirmPopup();
+  const userPlan = useSelector((state) => state.auth.user?.plan);
+  const navigate = useNavigate();
 
   const AI_MODELS = [
     { id: "gemini", name: "Gemini", icon: "" },
@@ -156,13 +162,42 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
     }
   }, [content, activeTab, showPreview]);
 
-  const handleAnimationComplete = () => {
-    setIsAnimating(false);
-    setHasAnimated(true);
-    if (blog?.content) setContent(blog.content);
+  
+
+  // Helper for upgrade popup
+  const showUpgradePopup = () => {
+    handlePopup({
+      title: "Upgrade Required",
+      description: (
+        <>
+          <span>
+            Editing blogs is only available for Pro and Enterprise users.
+          </span>
+          <br />
+          <span>Upgrade your plan to unlock this feature.</span>
+        </>
+      ),
+      confirmText: "Buy Now",
+      cancelText: "Cancel",
+      onConfirm: () => navigate("/upgrade"),
+    });
   };
 
+  // Wrap all edit actions with restriction check
+  const safeEditorAction = (action) => {
+    if (userPlan === "free" || userPlan === "basic") {
+      showUpgradePopup();
+      return;
+    }
+    action();
+  };
+
+  // Wrap Save button
   const handleSave = async () => {
+    if (userPlan === "free" || userPlan === "basic") {
+      showUpgradePopup();
+      return;
+    }
     setIsSaving(true);
     try {
       const response = await axiosInstance.put(`/blogs/update/${blog._id}`, {
@@ -178,6 +213,12 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleAnimationComplete = () => {
+    setIsAnimating(false);
+    setHasAnimated(true);
+    if (blog?.content) setContent(blog.content);
   };
 
   const handleTextSelection = (e) => {
@@ -199,33 +240,33 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
 
     const formatActions = {
       markdown: [
-        { icon: <Bold className="w-5 h-5" />, action: () => insertText("**", "**", editorRef) },
-        { icon: <Italic className="w-5 h-5" />, action: () => insertText("*", "*", editorRef) },
+        { icon: <Bold className="w-5 h-5" />, action: () => safeEditorAction(() => insertText("**", "**", editorRef)) },
+        { icon: <Italic className="w-5 h-5" />, action: () => safeEditorAction(() => insertText("*", "*", editorRef)) },
         {
           icon: <LinkIcon className="w-5 h-5" />,
-          action: () => insertText("[", "](url)", editorRef),
+          action: () => safeEditorAction(() => insertText("[", "](url)", editorRef)),
         },
         {
           icon: <ImageIcon className="w-5 h-5" />,
-          action: () => insertText("![alt](", ")", editorRef),
+          action: () => safeEditorAction(() => insertText("![alt](", ")", editorRef)),
         },
       ],
       html: [
         {
           icon: <Bold className="w-5 h-5" />,
-          action: () => insertText("<strong>", "</strong>", editorRef),
+          action: () => safeEditorAction(() => insertText("<strong>", "</strong>", editorRef)),
         },
         {
           icon: <Italic className="w-5 h-5" />,
-          action: () => insertText("<em>", "</em>", editorRef),
+          action: () => safeEditorAction(() => insertText("<em>", "</em>", editorRef)),
         },
         {
           icon: <LinkIcon className="w-5 h-5" />,
-          action: () => insertText('<a href="url">', "</a>", editorRef),
+          action: () => safeEditorAction(() => insertText('<a href="url">', "</a>", editorRef)),
         },
         {
           icon: <ImageIcon className="w-5 h-5" />,
-          action: () => insertText('<img src="', '" alt="description" />', editorRef),
+          action: () => safeEditorAction(() => insertText('<img src="', '" alt="description" />', editorRef)),
         },
       ],
     };
@@ -264,10 +305,17 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
     setSelectionPosition(null);
   };
 
+  // Restrict font change for free/basic users
   const FontDropdown = () => (
     <select
       value={selectedFont}
-      onChange={(e) => setSelectedFont(e.target.value)}
+      onChange={e => {
+        if (userPlan === "free" || userPlan === "basic") {
+          showUpgradePopup();
+          return;
+        }
+        setSelectedFont(e.target.value);
+      }}
       className="p-2 rounded border bg-white hover:bg-gray-100"
     >
       {FONT_OPTIONS.map((font) => (
@@ -333,7 +381,7 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
       {[1, 2, 3].map((level) => (
         <button
           key={level}
-          onClick={() => {
+          onClick={() => safeEditorAction(() => {
             if (activeTab === "normal") {
               normalEditor.chain().focus().toggleHeading({ level }).run();
             } else if (activeTab === "html") {
@@ -341,7 +389,7 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
             } else {
               insertText(`${"#".repeat(level)} `, "", mdEditorRef);
             }
-          }}
+          })}
           className={`p-2 rounded hover:bg-gray-100 ${
             activeTab === "normal" && normalEditor?.isActive("heading", { level })
               ? "bg-gray-200"
@@ -355,7 +403,7 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
       ))}
 
       <button
-        onClick={() => {
+        onClick={() => safeEditorAction(() => {
           if (activeTab === "normal") {
             normalEditor.chain().focus().toggleBold().run();
           } else if (activeTab === "html") {
@@ -363,7 +411,7 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
           } else {
             insertText("**", "**", mdEditorRef);
           }
-        }}
+        })}
         className={`p-2 rounded hover:bg-gray-100 ${
           activeTab === "normal" && normalEditor?.isActive("bold") ? "bg-gray-200" : ""
         }`}
@@ -372,7 +420,7 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
       </button>
 
       <button
-        onClick={() => {
+        onClick={() => safeEditorAction(() => {
           if (activeTab === "normal") {
             normalEditor.chain().focus().toggleItalic().run();
           } else if (activeTab === "html") {
@@ -380,7 +428,7 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
           } else {
             insertText("*", "*", mdEditorRef);
           }
-        }}
+        })}
         className={`p-2 rounded hover:bg-gray-100 ${
           activeTab === "normal" && normalEditor?.isActive("italic") ? "bg-gray-200" : ""
         }`}
@@ -389,14 +437,14 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
       </button>
 
       <button
-        onClick={() => {
+        onClick={() => safeEditorAction(() => {
           if (activeTab === "normal") {
             normalEditor.chain().focus().setTextAlign("left").run();
           } else {
             const editorRef = activeTab === "html" ? htmlEditorRef : mdEditorRef;
             insertText('<div style="text-align: left;">', "</div>", editorRef);
           }
-        }}
+        })}
         className={`p-2 rounded hover:bg-gray-100 ${
           activeTab === "normal" && normalEditor?.isActive({ textAlign: "left" })
             ? "bg-gray-200"
@@ -407,14 +455,14 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
       </button>
 
       <button
-        onClick={() => {
+        onClick={() => safeEditorAction(() => {
           if (activeTab === "normal") {
             normalEditor.chain().focus().setTextAlign("center").run();
           } else {
             const editorRef = activeTab === "html" ? htmlEditorRef : mdEditorRef;
             insertText('<div style="text-align: center;">', "</div>", editorRef);
           }
-        }}
+        })}
         className={`p-2 rounded hover:bg-gray-100 ${
           activeTab === "normal" && normalEditor?.isActive({ textAlign: "center" })
             ? "bg-gray-200"
@@ -425,14 +473,14 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
       </button>
 
       <button
-        onClick={() => {
+        onClick={() => safeEditorAction(() => {
           if (activeTab === "normal") {
             normalEditor.chain().focus().setTextAlign("right").run();
           } else {
             const editorRef = activeTab === "html" ? htmlEditorRef : mdEditorRef;
             insertText('<div style="text-align: right;">', "</div>", editorRef);
           }
-        }}
+        })}
         className={`p-2 rounded hover:bg-gray-100 ${
           activeTab === "normal" && normalEditor?.isActive({ textAlign: "right" })
             ? "bg-gray-200"
@@ -443,7 +491,7 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
       </button>
 
       <button
-        onClick={() => {
+        onClick={() => safeEditorAction(() => {
           if (activeTab === "normal") {
             normalEditor.chain().focus().toggleBulletList().run();
           } else if (activeTab === "html") {
@@ -451,7 +499,7 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
           } else {
             insertText("- ", "", mdEditorRef);
           }
-        }}
+        })}
         className={`p-2 rounded hover:bg-gray-100 ${
           activeTab === "normal" && normalEditor?.isActive("bulletList") ? "bg-gray-200" : ""
         }`}
@@ -460,7 +508,7 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
       </button>
 
       <button
-        onClick={() => {
+        onClick={() => safeEditorAction(() => {
           if (activeTab === "normal") {
             normalEditor.chain().focus().toggleOrderedList().run();
           } else if (activeTab === "html") {
@@ -468,7 +516,7 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
           } else {
             insertText("1. ", "", mdEditorRef);
           }
-        }}
+        })}
         className={`p-2 rounded hover:bg-gray-100 ${
           activeTab === "normal" && normalEditor?.isActive("orderedList") ? "bg-gray-200" : ""
         }`}
@@ -477,7 +525,7 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
       </button>
 
       <button
-        onClick={() => {
+        onClick={() => safeEditorAction(() => {
           const url = prompt("Enter URL");
           if (url) {
             if (activeTab === "normal") {
@@ -488,14 +536,14 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
               insertText("[", `](${url})`, mdEditorRef);
             }
           }
-        }}
+        })}
         className="p-2 rounded hover:bg-gray-100"
       >
         <LinkIcon className="w-5 h-5" />
       </button>
 
       <button
-        onClick={() => {
+        onClick={() => safeEditorAction(() => {
           const url = prompt("Enter Image URL");
           if (url) {
             if (activeTab === "normal") {
@@ -510,20 +558,20 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
               insertText(`![Image](${url})`, "", mdEditorRef);
             }
           }
-        }}
+        })}
         className="p-2 rounded hover:bg-gray-100"
       >
         <ImageIcon className="w-5 h-5" />
       </button>
 
       <button
-        onClick={() => normalEditor?.chain().focus().undo().run()}
+        onClick={() => safeEditorAction(() => normalEditor?.chain().focus().undo().run())}
         className="p-2 rounded hover:bg-gray-100"
       >
         <Undo2 className="w-5 h-5" />
       </button>
       <button
-        onClick={() => normalEditor?.chain().focus().redo().run()}
+        onClick={() => safeEditorAction(() => normalEditor?.chain().focus().redo().run())}
         className="p-2 rounded hover:bg-gray-100"
       >
         <Redo2 className="w-5 h-5" />
@@ -531,6 +579,7 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
     </div>
   );
 
+  // Restrict floating bar (BubbleMenu) edit options as well
   const renderContentArea = () => {
     if (!editorReady)
       return <div className="h-[calc(100vh-200px)] md:w-[1030px] p-4">Loading editor...</div>;
@@ -594,14 +643,14 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
                 tippyOptions={{ duration: 100 }}
                 className="flex gap-2 bg-white shadow-lg p-2 rounded border"
               >
-                <button onClick={() => normalEditor.chain().focus().toggleBold().run()}>
+                <button onClick={() => safeEditorAction(() => normalEditor.chain().focus().toggleBold().run())}>
                   <Bold className="w-5 h-5" />
                 </button>
-                <button onClick={() => normalEditor.chain().focus().toggleItalic().run()}>
+                <button onClick={() => safeEditorAction(() => normalEditor.chain().focus().toggleItalic().run())}>
                   <Italic className="w-5 h-5" />
                 </button>
                 <button
-                  onClick={() => normalEditor.chain().focus().toggleHeading({ level: 2 }).run()}
+                  onClick={() => safeEditorAction(() => normalEditor.chain().focus().toggleHeading({ level: 2 }).run())}
                 >
                   <Heading2 className="w-5 h-5" />
                 </button>

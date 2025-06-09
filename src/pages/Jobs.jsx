@@ -9,6 +9,9 @@ import { FiPlus, FiSettings, FiCalendar, FiFileText, FiEdit } from "react-icons/
 import { toast, ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import SkeletonLoader from "@components/Projects/SkeletonLoader"
+import { useSelector } from "react-redux"
+import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import { useNavigate } from "react-router-dom"
 
 const Jobs = () => {
   const tones = ["Professional", "Casual", "Friendly", "Formal", "Technical"]
@@ -42,6 +45,10 @@ const Jobs = () => {
   })
   const [topicInput, setTopicInput] = useState("")
 
+  const { handlePopup } = useConfirmPopup()
+  const userPlan = useSelector((state) => state.auth.user?.plan)
+  const navigate = useNavigate()
+
   const fetchJobs = async () => {
     setIsLoading(true)
     try {
@@ -56,6 +63,16 @@ const Jobs = () => {
 
   // Create a new job
   const handleCreateJob = async () => {
+    if (userPlan === "free" || userPlan === "basic") {
+      handlePopup({
+        title: "Upgrade Required",
+        description: "Job creation is only available for Pro and Enterprise users.",
+        confirmText: "Buy Now",
+        cancelText: "Cancel",
+        onConfirm: () => navigate("/upgrade"),
+      })
+      return
+    }
     try {
       // Ensure only the required fields are sent, with new options fields
       const jobPayload = {
@@ -616,6 +633,22 @@ const Jobs = () => {
     }
   }
 
+  // Also restrict opening the job modal for free/basic users
+  const handleOpenJobModal = () => {
+    if (userPlan === "free" || userPlan === "basic") {
+      handlePopup({
+        title: "Upgrade Required",
+        description: "Job creation is only available for Pro and Enterprise users.",
+        confirmText: "Buy Now",
+        cancelText: "Cancel",
+        onConfirm: () => navigate("/upgrade"),
+      })
+      return
+    }
+    setShowJobModal(true)
+    setCurrentStep(1)
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-7xl mx-auto">
@@ -633,10 +666,7 @@ const Jobs = () => {
         <motion.div
           whileHover={{ y: -2 }}
           className="w-full md:w-1/2 lg:w-1/3 h-48 p-6 bg-white rounded-xl shadow-sm hover:shadow-md cursor-pointer mb-8"
-          onClick={() => {
-            setShowJobModal(true)
-            setCurrentStep(1)
-          }}
+          onClick={handleOpenJobModal}
         >
           <div className="flex items-center gap-4">
             <span className="bg-blue-100 rounded-lg p-3">
