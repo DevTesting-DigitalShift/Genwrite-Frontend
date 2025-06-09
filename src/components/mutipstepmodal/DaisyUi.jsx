@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useDispatch } from "react-redux"
+import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import Carousel from "./Carousel"
 import { X } from "lucide-react"
@@ -15,6 +15,7 @@ const MultiStepModal = ({ closefnc }) => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const {handlePopup} = useConfirmPopup()
+  const {user} = useSelector(state => state.auth)
 
   const [currentStep, setCurrentStep] = useState(0)
 
@@ -126,10 +127,9 @@ const MultiStepModal = ({ closefnc }) => {
     const { name, checked } = e.target
     if (name === "wordpressPostStatus" && checked) {
       try {
-        const res = await axiosInstance.get("/user/profile")
-        if (!res.data?.wordpressLink) {
+        if (!user?.wordpressLink) {
           toast.error("Please connect your WordPress account in your profile before enabling automatic posting.")
-          navigate("/profile")
+          // navigate("/profile")
           return
         }
       } catch {

@@ -1,52 +1,117 @@
 import React, { useState } from "react";
-import { motion } from "framer-motion";
-import ImageGenerationModal from "./ImageGenerationModal.jsx";
+import { Button, Space, Tooltip } from "antd";
+import {
+  CopyOutlined,
+  ReloadOutlined,
+  PictureOutlined,
+  MessageOutlined,
+  PlusOutlined,
+  CloseOutlined,
+} from "@ant-design/icons";
+import { motion, AnimatePresence } from "framer-motion";
+
+import ImageGenerationModal from "./ImageGenerationModal";
 import ChatBox from "../generateBlog/ChatBox";
 
 const SmallBottomBox = () => {
+  const [isMenuOpen, setMenuOpen] = useState(false);
   const [isModalOpen, setModalOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
 
-  const openModal = () => setModalOpen(true);
+  const toggleMenu = () => setMenuOpen((prev) => !prev);
   const closeModal = () => setModalOpen(false);
+  const closeChat = () => setIsChatOpen(false);
 
-  const buttonVariants = {
-    hover: { scale: 1.05, transition: { duration: 0.2 } },
-    tap: { scale: 0.95, transition: { duration: 0.2 } },
-  };
+  const menuOptions = [
+    {
+      label: "Copy",
+      icon: <CopyOutlined />,
+      onClick: () => {
+        navigator.clipboard.writeText("Copied content"); // Replace with actual content
+        setMenuOpen(false);
+      },
+    },
+    {
+      label: "Regenerate",
+      icon: <ReloadOutlined />,
+      onClick: () => {
+        console.log("Regenerate clicked");
+        setMenuOpen(false);
+      },
+    },
+    {
+      label: "Generate Images",
+      icon: <PictureOutlined />,
+      onClick: () => {
+        setModalOpen(true);
+        setMenuOpen(false);
+      },
+    },
+    {
+      label: "Chat Box",
+      icon: <MessageOutlined />,
+      onClick: () => {
+        setIsChatOpen(true);
+        setMenuOpen(false);
+      },
+    },
+  ];
 
   return (
     <>
-      <motion.div
-        initial={{ y: 100, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className="fixed bottom-2  transform -translate-x-1/2 bg-white flex flex-wrap items-center justify-center gap-4 p-2 w-full max-w-[40rem] rounded-xl shadow-lg"
-      >
-        {["Copy", "Regenerate", "Generate Images", "Chat Box"].map(
-          (text, index) => (
-            <motion.button
-              key={index}
-              variants={buttonVariants}
-              whileHover="hover"
-              whileTap="tap"
-              className="flex items-center justify-center bg-blue-600 text-white px-4 py-2 rounded-lg shadow-md transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
-              onClick={() => {
-                if (text === "Generate Images") {
-                  openModal();
-                } else if (text === "Chat Box") {
-                  setIsChatOpen(true);
-                }
-              }}
+      <div className="fixed bottom-10 right-28 transform translate-x-12 z-50 flex flex-col items-end">
+        {/* Action List */}
+        <AnimatePresence>
+          {isMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              transition={{ duration: 0.2 }}
+              className="mb-3 flex flex-col gap-2 items-center p-2 rounded-xl bg-black/20 backdrop-blur-sm"
             >
-              {text}
-            </motion.button>
-          )
-        )}
-      </motion.div>
+              {menuOptions.map(({ label, icon, onClick }) => (
+                <motion.div
+                  key={label}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                >
+                  <Tooltip title={label} placement="left">
+                    <Button
+                      type="default"
+                      shape="round"
+                      icon={icon}
+                      size="large"
+                      onClick={onClick}
+                      className="w-48 text-left p-1 shadow-md font-medium"
+                    >
+                      {label}
+                    </Button>
+                  </Tooltip>
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
+        {/* Floating Button */}
+        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+          <Button
+            type="primary"
+            shape="circle"
+            size="large"
+            icon={isMenuOpen ? <CloseOutlined /> : <PlusOutlined />}
+            onClick={toggleMenu}
+            className="shadow-xl"
+          />
+        </motion.div>
+      </div>
+
+      {/* Modals */}
       {isModalOpen && <ImageGenerationModal onClose={closeModal} />}
-      <ChatBox isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+      <ChatBox isOpen={isChatOpen} onClose={closeChat} />
     </>
   );
 };
