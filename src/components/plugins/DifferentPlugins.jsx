@@ -8,9 +8,10 @@ const DifferentPlugins = ({
   onClick,
 }) => {
   return (
-    <div onClick={onClick} className="border-b-2 border-gray-200 mx-8">
+    <>
+    <div className="border-b-2 border-gray-200 mx-8">
       <div className="flex bg-white h-[80px] items-center justify-between px-3">
-        <div className="flex gap-4">
+        <div onClick={onClick} className="flex gap-4 cursor-pointer">
           <img src={pluginImage} alt={pluginName} />
           <div>
             <h2 className="text-[20px] text-[#000000] font-[500]">{pluginName}</h2>
@@ -26,14 +27,15 @@ const DifferentPlugins = ({
           </span>
         </div>
         <div>
-          <a href={pluginInstallUrl} target="_blank">
+          <a href="/ai-blogger-uploader.zip" download>
             <button className="bg-[#1B6FC9] text-[#ffffff] text-[14px] font-[400] px-4 py-2 rounded-md">
-              Install
+              Install Plugin
             </button>
           </a>
         </div>
       </div>
     </div>
+    </>
   );
 };
 

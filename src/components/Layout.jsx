@@ -6,9 +6,12 @@ import { RxAvatar } from "react-icons/rx"
 import { logoutUser } from "../store/slices/authSlice"
 import { motion, AnimatePresence } from "framer-motion"
 import { FaHourglassHalf, FaCheck, FaTimes } from "react-icons/fa"
-import { Badge, Tooltip, Switch } from "antd"
+import { Badge, Tooltip, Switch, Button } from "antd"
+import { CrownFilled } from "@ant-design/icons"
 import { RiCoinsFill } from "react-icons/ri"
 import NotificationDropdown from "@components/NotificationDropdown"
+import GoProButton from "@components/GoProButton"
+
 const LayoutWithSidebarAndHeader = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -122,7 +125,7 @@ const LayoutWithSidebarAndHeader = () => {
             alt="Logo"
           />
         </div>
-        <div className={`flex ${sidebarOpen ? 'justify-start pr-4' : 'justify-center'} mb-2`}>
+        {/* <div className={`flex ${sidebarOpen ? 'justify-start pr-4' : 'justify-center'} mb-2`}>
           <div className="w-full flex items-center justify-center gap-2 pl-4 py-2">
             <Switch
               checked={path === '/upgrade'}
@@ -134,7 +137,7 @@ const LayoutWithSidebarAndHeader = () => {
             />
             <span className={`font-bold text-white ${sidebarOpen ? 'pr-4' : 'hidden'} transition-all duration-300`}>Go Pro</span>
           </div>
-        </div>
+        </div> */}
         <style>
           {`
             .custom-blue-switch .ant-switch {
@@ -222,6 +225,7 @@ const LayoutWithSidebarAndHeader = () => {
             </div>
           </div>
           <div className="flex items-center space-x-4">
+            <GoProButton onClick={() => navigate("/upgrade")}/>
             <button className="p-2 text-gray-700 rounded-full transition duration-200 flex items-center gap-2">
               {isUserLoaded && user?.name ? (
                 <>
@@ -230,7 +234,9 @@ const LayoutWithSidebarAndHeader = () => {
                     className="flex gap-2 justify-center items-center mr-4 rounded-full p-2 hover:bg-gray-100"
                   >
                     <RiCoinsFill size={30} color="orange" />
-                    <span className="font-semibold text-lg">{user.credits?.base + user.credits?.extra}</span>
+                    <span className="font-semibold text-lg">
+                      {user.credits?.base + user.credits?.extra}
+                    </span>
                   </Tooltip>
                   <Tooltip
                     title={`Hello ${user.name}`}

@@ -16,7 +16,7 @@ import QuickBlogModal from "./mutipstepmodal/QuickBlogModal"
 import CompetitiveAnalysisModal from "./mutipstepmodal/CompetitiveAnalysisModal"
 import PerformanceMonitoringModal from "./mutipstepmodal/PerformanceMonitoringModal"
 import axiosInstance from "@api/index"
-import { setUser } from "@store/slices/authSlice"
+import { load } from "@store/slices/authSlice"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 
@@ -55,21 +55,7 @@ const Dashboard = () => {
 
         // Only fetch if we don't have complete user data
         if (!user?._id || !user?.name) {
-          const response = await axiosInstance.get("/auth/me")
-
-          if (response.data.success && response.data.user) {
-            const userData = {
-              _id: response.data.user._id,
-              name: response.data.user.name,
-              email: response.data.user.email,
-              avatar: response.data.user.avatar,
-              interests: response.data.user.interests,
-            }
-            // Ensure we have all required fields before dispatching
-            if (userData._id && userData.name) {
-              dispatch(setUser(userData))
-            }
-          }
+          await load()(dispatch)
         }
       } catch (error) {
         if (error.response?.status === 401) {
@@ -251,7 +237,7 @@ const Dashboard = () => {
 
       <div className="mt-5 ">
         <h3 className="text-[24px] font-[600] mb-8 font-montserrat">Quick Tools</h3>
-        <div className="grid m-4 gap-10 sm:grid-cols-4 bg-white p-4">
+        <div className="grid m-2 gap-8 sm:grid-cols-4 bg-white p-4">
           {quickTools.map((item, index) => (
             <QuickBox
               key={index}
