@@ -14,8 +14,9 @@ import axiosInstance from "@api/index"
 const MultiStepModal = ({ closefnc }) => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
-  const {handlePopup} = useConfirmPopup()
-  const {user} = useSelector(state => state.auth)
+  const { handlePopup } = useConfirmPopup()
+  const userPlan = useSelector((state) => state.auth.user?.plan) // <-- use userPlan
+  const user = useSelector((state) => state.auth.user); // <-- Add this line
 
   const [currentStep, setCurrentStep] = useState(0)
 
@@ -25,7 +26,7 @@ const MultiStepModal = ({ closefnc }) => {
     topicInput: "",
     performKeywordResearch: true,
     tone: "",
-    numberOfCounts:5,
+    numberOfCounts: 5,
     userDefinedLength: 1000,
     imageSource: "unsplash",
     useBrandVoice: true,
@@ -77,21 +78,38 @@ const MultiStepModal = ({ closefnc }) => {
       toast.error("Number of blogs must be at least 1.")
       return
     }
-    if(formData.numberOfBlogs > 10){
+    if (formData.numberOfBlogs > 10) {
       toast.error("Number of blogs must be at most 10.")
-      return  
+      return
     }
+
+    // Restrict for free/basic plans
+    if (userPlan === "free" || userPlan === "basic") {
+      handlePopup({
+        title: "Upgrade Required",
+        description: "Bulk blog generation is only available for Pro and Enterprise users.",
+        confirmText: "Buy Now",
+        cancelText: "Cancel",
+        onConfirm: () => navigate("/upgrade"),
+      })
+      return
+    }
+
     handlePopup({
       title: "Bulk Blog Generation",
-      description:<>
-      <span>Estimated Cost for bulk blogs : <b>{formData.numberOfBlogs * getEstimatedCost("blog.single")} credits</b></span> <br />
-      <span>Do you want to continue ? </span>
-      </>,
+      description: (
+        <>
+          <span>
+            Estimated Cost for bulk blogs : <b>{formData.numberOfBlogs * getEstimatedCost("blog.single")} credits</b>
+          </span>
+          <br />
+          <span>Do you want to continue ? </span>
+        </>
+      ),
       onConfirm: () => {
         dispatch(createMultiBlog(formData, navigate))
       }
     })
-    
   }
 
   const handlePackageSelect = (index) => {
@@ -129,7 +147,7 @@ const MultiStepModal = ({ closefnc }) => {
       try {
         if (!user?.wordpressLink) {
           toast.error("Please connect your WordPress account in your profile before enabling automatic posting.")
-          // navigate("/profile")
+          navigate("/profile")
           return
         }
       } catch {

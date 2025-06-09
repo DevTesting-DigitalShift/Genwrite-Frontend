@@ -5,6 +5,8 @@ import { toast } from "react-toastify"
 import axiosInstance from "@api/index"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import { useNavigate } from "react-router-dom"
+import { useSelector } from "react-redux";
 
 const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
   const [newKeyword, setNewKeyword] = useState("")
@@ -14,7 +16,9 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
   const [competitiveAnalysisResults, setCompetitiveAnalysisResults] = useState(null) // For Competitive Analysis Results
   const [proofreadingResults, setProofreadingResults] = useState([]) // For Proofreading Results
   const [shouldRunCompetitive, setShouldRunCompetitive] = useState(false)
-  const {handlePopup} = useConfirmPopup()
+  const { handlePopup } = useConfirmPopup()
+  const navigate = useNavigate()
+  const userPlan = useSelector((state) => state.auth.user?.plan);
 
   const fetchCompetitiveAnalysis = async () => {
     // Check if analysis results already exist
@@ -269,13 +273,23 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
             <span className="text-2xl font-bold text-gray-400 mb-1 block">AA</span>
             <h4
               className="text-blue-600 font-medium hover:underline cursor-pointer"
-              onClick={() =>
+              onClick={() => {
+                if (userPlan === "free" || userPlan === "basic") {
+                  handlePopup({
+                    title: "Upgrade Required",
+                    description: "Proofreading is only available for Pro and Enterprise users.",
+                    confirmText: "Buy Now",
+                    cancelText: "Cancel",
+                    onConfirm: () => navigate("/upgrade"),
+                  });
+                  return; 
+                }
                 handlePopup({
                   title: "AI Proofreading",
                   description: `Do you really want to proofread the blog ? \nIt will be ${getEstimatedCost("blog.proofread")} credits.`,
                   onConfirm: handleProofreadingClick,
-                })
-              } // API is triggered here
+                });
+              }}
             >
               Proofreading my blog
             </h4>

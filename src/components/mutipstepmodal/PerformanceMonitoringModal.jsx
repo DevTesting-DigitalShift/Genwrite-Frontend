@@ -1,400 +1,808 @@
-import { useEffect, useState } from "react"
-import { motion } from "framer-motion"
-import { X } from "lucide-react"
-import { toast } from "react-toastify"
-import axiosInstance from "@api"
-import {
-  Descriptions,
-  Tooltip,
-  Tag,
-  Statistic,
-  Typography,
-  Divider,
-  Table,
-} from "antd"
-import {
-  InfoCircleOutlined,
-  FieldTimeOutlined,
-} from "@ant-design/icons"
-
-const { Title, Text } = Typography
-
-const labelWithInfo = (label, tooltip) => (
-  <span className="flex items-center gap-1">
-    <Text strong>{label}</Text>
-    <Tooltip title={tooltip} placement="top">
-      <InfoCircleOutlined className="text-gray-600" />
-    </Tooltip>
-  </span>
-)
-
-/**
- * Props:
- * - stats: {
- *     readabililty: {...},
- *     seo: {...},
- *     engagement: {...},
- *     metadata: {...}
- *   }
- */
-const StatsInfoBox = ({ stats }) => {
-  if (!stats) return null
-
-  const { readabililty, seo, engagement, metadata } = stats
-
-  // Prepare keyword density table
-  const keywordData = Object.entries(seo?.keywordDensity || {}).map(
-    ([keyword, { count, density }], idx) => ({
-      key: idx,
-      keyword,
-      count,
-      density: `${density}%`,
-    })
-  )
-
-  const keywordColumns = [
-    {
-      title: "Keyword",
-      dataIndex: "keyword",
-      key: "keyword",
-      render: (text) => <Text code>{text}</Text>,
-      width: "50%",
-    },
-    {
-      title: "Count",
-      dataIndex: "count",
-      key: "count",
-      width: "25%",
-      align: "center",
-    },
-    {
-      title: "Density",
-      dataIndex: "density",
-      key: "density",
-      width: "25%",
-      align: "center",
-    },
-  ]
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="bg-white/60 backdrop-blur-md p-6 rounded-2xl shadow-lg border border-gray-200 max-w-3xl mx-auto"
-    >
-      <Title level={4} className="mb-4 text-center">📊 Blog Performance Overview</Title>
-
-      {/* Metadata */}
-      <Divider orientation="left">🧠 Metadata</Divider>
-      <Descriptions bordered column={1} size="small" className="mb-6">
-        <Descriptions.Item label="Title">{metadata.title}</Descriptions.Item>
-        <Descriptions.Item label="Tone">{metadata.tone}</Descriptions.Item>
-        <Descriptions.Item label="Template">{metadata.template}</Descriptions.Item>
-        <Descriptions.Item label="AI Model">{metadata.aiModel}</Descriptions.Item>
-        <Descriptions.Item label="Generated At">{new Date(metadata.generatedAt).toLocaleString('en-IN')}</Descriptions.Item>
-        {metadata.wordpressLink && (
-          <Descriptions.Item label="WordPress Link">
-            <a href={metadata.wordpressLink} target="_blank" rel="noreferrer">
-              {metadata.wordpressLink}
-            </a>
-          </Descriptions.Item>
-        )}
-      </Descriptions>
-
-      {/* Engagement */}
-      <Divider orientation="left">📈 Engagement</Divider>
-      <Descriptions bordered column={2} size="small" className="mb-6">
-        <Descriptions.Item label="GenWrite Views">👁️ {engagement.views}</Descriptions.Item>
-        <Descriptions.Item label="WordPress Views">📊 {engagement.wordpressViews}</Descriptions.Item>
-        <Descriptions.Item label="Public Status">{engagement.isPublic ? "✅ Public" : "❌ Private"}</Descriptions.Item>
-        {engagement.isPublic && engagement.publicUrl && (
-          <Descriptions.Item label="Public URL">
-            <a href={engagement.publicUrl} target="_blank" rel="noreferrer">
-              {engagement.publicUrl}
-            </a>
-          </Descriptions.Item>
-        )}
-      </Descriptions>
-
-      {/* SEO */}
-      <Divider orientation="left">🚀 SEO</Divider>
-      <Descriptions bordered column={2} size="small" className="mb-6">
-        <Descriptions.Item label="SEO Score">
-          <Statistic value={seo.score || 0} suffix="/100" valueStyle={{ color: "#52c41a" }} />
-        </Descriptions.Item>
-        <Descriptions.Item label="Meta Description Length">{seo.metaDescriptionLength} characters</Descriptions.Item>
-        <Descriptions.Item label="Internal Links">🔗 {seo.internalLinks}</Descriptions.Item>
-        <Descriptions.Item label="External Links">🌐 {seo.externalLinks}</Descriptions.Item>
-        <Descriptions.Item label="Focus Keywords">
-          {seo.focusKeywords.map(k => <Tag key={k}>{k}</Tag>)}
-        </Descriptions.Item>
-        <Descriptions.Item label="Other Keywords">
-          {seo.keywords.map(k => <Tag key={k} color="blue-inverse">{k}</Tag>)}
-        </Descriptions.Item>
-      </Descriptions>
-
-      {/* Keyword Density */}
-      {keywordData.length > 0 && (
-        <>
-          <Divider orientation="left">🧾 Keyword Density</Divider>
-          <Table
-            size="small"
-            columns={keywordColumns}
-            dataSource={keywordData}
-            pagination={false}
-            bordered
-            scroll={{ x: 400 }}
-            className="mb-6"
-          />
-        </>
-      )}
-
-      {/* Readability */}
-      <Divider orientation="left">📚 Readability</Divider>
-      <Descriptions bordered column={2} size="small">
-        <Descriptions.Item
-          label={labelWithInfo("Flesch Ease", "Ease of reading. Higher = simpler (80+ is best)")}
-        >
-          <Statistic value={readabililty.fleschEase.score} suffix="/100" valueStyle={{ color: "#1677ff" }} />
-          <Tag className="ml-2">{readabililty.fleschEase.level}</Tag>
-        </Descriptions.Item>
-
-        <Descriptions.Item
-          label={labelWithInfo("SMOG Index", "Grade level required to comprehend")}
-        >
-          <Statistic value={readabililty.smogIndex.score} suffix=" grade" />
-          <Tag className="ml-2">{readabililty.smogIndex.level}</Tag>
-        </Descriptions.Item>
-
-        <Descriptions.Item
-          label={labelWithInfo("ARI", "Automated Readability Index - grade-based")}
-        >
-          <Statistic value={readabililty.ari.score} suffix=" grade" />
-          <Tag className="ml-2">{readabililty.ari.level}</Tag>
-        </Descriptions.Item>
-
-        <Descriptions.Item label="Reading Time">
-          <FieldTimeOutlined className="mr-1" />
-          {readabililty.readingTime}
-        </Descriptions.Item>
-
-        <Descriptions.Item label="Word Count">📝 {readabililty.wordCount}</Descriptions.Item>
-        <Descriptions.Item label="Sentence Count">{readabililty.sentenceCount}</Descriptions.Item>
-        <Descriptions.Item label="Avg Sentence Length">{readabililty.avgSentenceLength}</Descriptions.Item>
-        <Descriptions.Item label="Avg Word Length">{readabililty.avgWordLength}</Descriptions.Item>
-        <Descriptions.Item label="Syllables">{readabililty.syllableCount}</Descriptions.Item>
-        <Descriptions.Item label="Paragraphs">{readabililty.paragraphCount}</Descriptions.Item>
-      </Descriptions>
-    </motion.div>
-  )
-}
-
-
+import React, { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import { X } from "lucide-react";
+import { toast } from "react-toastify";
+import axiosInstance from "../../api";
+import { useSelector } from "react-redux";
+import { useConfirmPopup } from "@/context/ConfirmPopupContext";
+import { getEstimatedCost } from "@utils/getEstimatedCost";
 
 const PerformanceMonitoringModal = ({ closefnc }) => {
   const [formData, setFormData] = useState({
     selectedBlog: null,
     title: "",
     content: "",
-  })
-  const [allBlogs, setAllBlogs] = useState([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [isAnalysing, setIsAnalysing] = useState(false)
-  const [stats, setStats] = useState(null)
+  });
+  const [allBlogs, setAllBlogs] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAnalysing, setIsAnalysing] = useState(false);
+  const [stats, setStats] = useState(null);
+
+  const user = useSelector((state) => state.auth.user);
+  const { handlePopup } = useConfirmPopup();
 
   useEffect(() => {
     const fetchBlogs = async () => {
       try {
-        const response = await axiosInstance.get("/blogs")
-        setAllBlogs(response.data)
-        setIsLoading(false)
+        const response = await axiosInstance.get("/blogs");
+        setAllBlogs(response.data);
+        setIsLoading(false);
       } catch (error) {
-        toast.error("Failed to load blogs")
-        setIsLoading(false)
+        toast.error("Failed to load blogs");
+        setIsLoading(false);
       }
-    }
-    fetchBlogs()
-  }, [])
+    };
+    fetchBlogs();
+  }, []);
 
   const handleBlogSelect = (blog) => {
     setFormData({
       selectedBlog: blog,
       title: blog.title,
       content: blog.content,
-    })
-    setStats(null)
-  }
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
+    });
+    setStats(null);
+  };
 
   const handleAnalyse = async () => {
     if (!formData.selectedBlog) {
-      toast.error("Please select a blog")
-      return
-    }
-    setIsAnalysing(true)
-    try {
-      // Use the main blog details endpoint
-      const response = await axiosInstance.get(`/blogs/${formData.selectedBlog._id}/stats`)
-      setStats(response.data)
-    } catch (error) {
-      toast.error("Failed to load blog details")
-    } finally {
-      setIsAnalysing(false)
-    }
-  }
-
-  // Helper function to extract colors from gradient string
-  const getColorFromGradient = (gradient, index) => {
-    const colors = {
-      "from-blue-500 to-indigo-600": ["#3b82f6", "#4f46e5"],
-      "from-emerald-500 to-teal-600": ["#10b981", "#0d9488"],
-      "from-amber-500 to-orange-500": ["#f59e0b", "#f97316"],
-      "from-violet-500 to-purple-600": ["#8b5cf6", "#7c3aed"],
-      "from-rose-500 to-pink-600": ["#f43f5e", "#db2777"],
-      "from-sky-500 to-cyan-500": ["#0ea5e9", "#06b6d4"],
-      "from-lime-500 to-green-500": ["#84cc16", "#22c55e"],
-      "from-gray-500 to-gray-700": ["#6b7280", "#374151"],
+      toast.error("Please select a blog");
+      return;
     }
 
-    return colors[gradient]?.[index] || "#3b82f6"
-  }
+    handlePopup({
+      title: "Performance Analysis",
+      description: (
+        <span>
+          Performance Analysis will cost{" "}
+          <b>{getEstimatedCost("analysis?.performance") || 10} credits</b>
+          .
+          <br />
+          Do you wish to proceed?
+        </span>
+      ),
+      onConfirm: async () => {
+        setIsAnalysing(true);
+        try {
+          const response = await axiosInstance.get(
+            `/blogs/${formData.selectedBlog._id}/stats`
+          );
+          setStats(response.data);
+          toast.success("Performance analysis completed!");
+        } catch (error) {
+          toast.error("Failed to load blog details or deduct credits");
+        } finally {
+          setIsAnalysing(false);
+        }
+      },
+    });
+  };
+
+  const StatCard = ({
+    icon,
+    label,
+    value,
+    color,
+    delay = 0,
+    suffix = "",
+    description = "",
+  }) => (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: delay * 0.1, duration: 0.3 }}
+      className={`p-4 bg-white rounded-xl border ${color} shadow-sm`}
+    >
+      <div className="flex items-center gap-3">
+        {icon && (
+          <div className="p-2 bg-blue-50 rounded-lg text-blue-500">{icon}</div>
+        )}
+        <div>
+          <p className="text-sm font-medium text-gray-600">{label}</p>
+          <p className="text-xl font-bold text-gray-800 mt-1">
+            {value}
+            {suffix}
+          </p>
+          {description && (
+            <p className="text-xs text-gray-500 mt-1">{description}</p>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+
+  const ScoreBox = ({ score, max, label, level, color }) => (
+    <div className="bg-white p-4 rounded-xl border border-gray-200">
+      <div className="flex justify-between items-center">
+        <span className="text-sm font-medium text-gray-600">{label}</span>
+        <span className="text-sm font-medium text-gray-600">{level}</span>
+      </div>
+      <div className="mt-2">
+        <div className="w-full bg-gray-100 rounded-full h-2">
+          <div
+            className={`h-2 rounded-full ${color}`}
+            style={{ width: `${(score / max) * 100}%` }}
+          ></div>
+        </div>
+        <div className="flex justify-between mt-1">
+          <span className="text-xs text-gray-500">{score}/{max}</span>
+        </div>
+      </div>
+    </div>
+  );
+
+  const StatsInfoBox = ({ stats }) => {
+    if (!stats) return null;
+    const { readabililty = {}, seo = {}, engagement = {}, metadata = {} } = stats;
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 mt-4"
+      >
+        <div className="mb-6 text-center">
+          <h3 className="text-xl font-bold text-gray-800">
+            Blog Performance Overview
+          </h3>
+        </div>
+
+        {/* Metadata Section */}
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="p-1 bg-purple-100 rounded text-purple-500">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                <path d="M12 17h.01" />
+              </svg>
+            </div>
+            <h4 className="text-lg font-semibold text-gray-800">Metadata</h4>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+              <p className="text-xs text-gray-500">Title</p>
+              <p className="text-sm font-medium text-gray-800 truncate">
+                {metadata?.title || "-"}
+              </p>
+            </div>
+
+            <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+              <p className="text-xs text-gray-500">Tone</p>
+              <p className="text-sm font-medium text-gray-800">
+                {metadata?.tone || "-"}
+              </p>
+            </div>
+
+            <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+              <p className="text-xs text-gray-500">Template</p>
+              <p className="text-sm font-medium text-gray-800">
+                {metadata?.template || "-"}
+              </p>
+            </div>
+
+            <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+              <p className="text-xs text-gray-500">AI Model</p>
+              <p className="text-sm font-medium text-gray-800">
+                {metadata?.aiModel || "-"}
+              </p>
+            </div>
+          </div>
+
+          {metadata?.generatedAt && (
+            <div className="mt-4 bg-gray-50 p-3 rounded-lg border border-gray-100">
+              <p className="text-xs text-gray-500">Generated At</p>
+              <p className="text-sm font-medium text-gray-800">
+                {new Date(metadata.generatedAt).toLocaleString("en-IN")}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Engagement Section */}
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="p-1 bg-green-100 rounded text-green-500">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M18 11.5V9a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v1.4" />
+                <path d="M14 10V8a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2" />
+                <path d="M10 9.9V9a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v5" />
+                <path d="M6 14v0a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0" />
+                <path d="M18 11v0a2 2 0 1 1 4 0v3a8 8 0 0 1-8 8h-4a8 8 0 0 1-8-8 2 2 0 1 1 4 0" />
+              </svg>
+            </div>
+            <h4 className="text-lg font-semibold text-gray-800">Engagement</h4>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <StatCard
+              icon={
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              }
+              label="GenWrite Views"
+              value={engagement?.views || 0}
+              color="border-green-100"
+              delay={0}
+            />
+
+            <StatCard
+              icon={
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M3 3v18h18" />
+                  <path d="m19 9-5 5-4-4-3 3" />
+                </svg>
+              }
+              label="WordPress Views"
+              value={engagement?.wordpressViews || 0}
+              color="border-green-100"
+              delay={1}
+            />
+          </div>
+
+          <div className="mt-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-gray-600">Public Status</span>
+              <span
+                className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  engagement?.isPublic
+                    ? "bg-green-100 text-green-800"
+                    : "bg-red-100 text-red-800"
+                }`}
+              >
+                {engagement?.isPublic ? "✅ Public" : "❌ Private"}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* SEO Section */}
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="p-1 bg-blue-100 rounded text-blue-500">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="m3 11 18-5v12L3 14v-3z" />
+                <path d="m11.6 16.8 3.9-2.4 3.9 2.4" />
+              </svg>
+            </div>
+            <h4 className="text-lg font-semibold text-gray-800">SEO</h4>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4">
+            <ScoreBox
+              score={seo?.score || 0}
+              max={100}
+              label="SEO Score"
+              level={`${seo?.score || 0}/100`}
+              color="bg-blue-500"
+            />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <StatCard
+                icon={
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
+                  </svg>
+                }
+                label="Meta Description Length"
+                value={seo?.metaDescriptionLength || 0}
+                suffix=" characters"
+                color="border-blue-100"
+                delay={1}
+              />
+
+              <StatCard
+                icon={
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="m10 14 2-2 2 2" />
+                    <path d="M12 12v8" />
+                    <circle cx="12" cy="12" r="10" />
+                  </svg>
+                }
+                label="Internal Links"
+                value={seo?.internalLinks || 0}
+                color="border-purple-100"
+                delay={2}
+              />
+
+              <StatCard
+                icon={
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="2" y1="12" x2="22" y2="12" />
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                  </svg>
+                }
+                label="External Links"
+                value={seo?.externalLinks || 0}
+                color="border-indigo-100"
+                delay={3}
+              />
+            </div>
+          </div>
+
+          <div className="mt-6">
+            <h5 className="text-sm font-medium text-gray-700 mb-3">
+              Focus Keywords
+            </h5>
+            <div className="flex flex-wrap gap-2">
+              {seo?.focusKeywords?.map((k, i) => (
+                <motion.span
+                  key={k}
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                  className="px-3 py-1 bg-blue-50 rounded-full text-sm text-blue-700 border border-blue-100"
+                >
+                  {k}
+                </motion.span>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <h5 className="text-sm font-medium text-gray-700 mb-3">
+              Other Keywords
+            </h5>
+            <div className="flex flex-wrap gap-2">
+              {seo?.keywords?.map((k, i) => (
+                <motion.span
+                  key={k}
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                  className="px-3 py-1 bg-gray-100 rounded-full text-sm text-gray-700 border border-gray-200"
+                >
+                  {k}
+                </motion.span>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Readability Section */}
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <div className="p-1 bg-teal-100 rounded text-teal-500">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+              </svg>
+            </div>
+            <h4 className="text-lg font-semibold text-gray-800">Readability</h4>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <ScoreBox
+              score={readabililty?.fleschEase?.score || 0}
+              max={100}
+              label="Flesch Ease"
+              level={readabililty?.fleschEase?.level || "-"}
+              color="bg-teal-500"
+            />
+
+            <div className="bg-white p-4 rounded-xl border border-gray-200">
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-gray-600">SMOG Index</span>
+                <span className="text-sm font-medium text-gray-600">
+                  {readabililty?.smogIndex?.level || "-"}
+                </span>
+              </div>
+              <p className="text-xl font-bold text-gray-800 mt-2">
+                {readabililty?.smogIndex?.score || 0} grade
+              </p>
+            </div>
+
+            <div className="bg-white p-4 rounded-xl border border-gray-200">
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-gray-600">ARI</span>
+                <span className="text-sm font-medium text-gray-600">
+                  {readabililty?.ari?.level || "-"}
+                </span>
+              </div>
+              <p className="text-xl font-bold text-gray-800 mt-2">
+                {readabililty?.ari?.score || 0} grade
+              </p>
+            </div>
+
+            <StatCard
+              icon={
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+              }
+              label="Reading Time"
+              value={readabililty?.readingTime || 0}
+              suffix=" min"
+              color="border-teal-100"
+              delay={0}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <StatCard
+              icon={
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z" />
+                </svg>
+              }
+              label="Word Count"
+              value={readabililty?.wordCount || 0}
+              color="border-amber-100"
+              delay={1}
+            />
+
+            <div className="bg-white p-4 rounded-xl border border-gray-200">
+              <p className="text-sm font-medium text-gray-600">Sentence Count</p>
+              <p className="text-xl font-bold text-gray-800 mt-1">
+                {readabililty?.sentenceCount || 0}
+              </p>
+            </div>
+
+            <div className="bg-white p-4 rounded-xl border border-gray-200">
+              <p className="text-sm font-medium text-gray-600">
+                Avg Sentence Length
+              </p>
+              <p className="text-xl font-bold text-gray-800 mt-1">
+                {readabililty?.avgSentenceLength || 0}
+              </p>
+            </div>
+
+            <div className="bg-white p-4 rounded-xl border border-gray-200">
+              <p className="text-sm font-medium text-gray-600">Avg Word Length</p>
+              <p className="text-xl font-bold text-gray-800 mt-1">
+                {readabililty?.avgWordLength || 0}
+              </p>
+            </div>
+
+            <div className="bg-white p-4 rounded-xl border border-gray-200">
+              <p className="text-sm font-medium text-gray-600">Syllables</p>
+              <p className="text-xl font-bold text-gray-800 mt-1">
+                {readabililty?.syllableCount || 0}
+              </p>
+            </div>
+
+            <div className="bg-white p-4 rounded-xl border border-gray-200">
+              <p className="text-sm font-medium text-gray-600">Paragraphs</p>
+              <p className="text-xl font-bold text-gray-800 mt-1">
+                {readabililty?.paragraphCount || 0}
+              </p>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    );
+  };
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
       <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
+        initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="relative w-[800px] bg-white rounded-lg shadow-xl max-h-[90vh] flex flex-col"
+        exit={{ opacity: 0, scale: 0.95 }}
+        className="relative w-full max-w-4xl bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200"
       >
-        {/* Gradient background */}
-        <div className="absolute inset-0 bg-white rounded-xl blur-md opacity-20"></div>
-
-        {/* Animated border */}
-        <motion.div
-          className="absolute inset-0 rounded-xl pointer-events-none"
-          initial={{
-            background: "linear-gradient(45deg, transparent, transparent)",
-            opacity: 0,
-          }}
-          animate={{
-            background: [
-              "linear-gradient(45deg, transparent, transparent)",
-              "linear-gradient(45deg, #3b82f6, #4f46e5)",
-              "linear-gradient(45deg, transparent, transparent)",
-            ],
-            opacity: [0, 0.5, 0],
-          }}
-          transition={{
-            duration: 3,
-            repeat: Infinity,
-          }}
-          style={{
-            zIndex: -1,
-            margin: "-1px",
-            border: "1px solid transparent",
-          }}
-        ></motion.div>
-
-        <div className="flex items-center justify-between p-6 border-b relative z-10">
-          <motion.h2
+        <div className="flex items-center justify-between p-5 border-b border-gray-100">
+          <motion.div
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
-            className="text-lg font-semibold bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent"
+            className="flex items-center gap-3"
           >
-            Performance Monitoring
-          </motion.h2>
+            <div className="p-2 bg-blue-500 rounded-lg text-white">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-bold text-gray-800">
+              Performance Dashboard
+            </h2>
+          </motion.div>
+
           <motion.button
             onClick={closefnc}
-            className="text-gray-400 hover:text-gray-600"
-            whileHover={{ scale: 1.1 }}
+            className="p-2 rounded-full hover:bg-gray-100 transition-all"
+            whileHover={{ rotate: 90, scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
           >
-            <X className="h-6 w-6" />
+            <X className="h-6 w-6 text-gray-500 hover:text-gray-700" />
           </motion.button>
         </div>
 
-        <div className="px-6 py-4 overflow-y-auto relative z-10">
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Select Blog</label>
-              <select
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 max-h-[200px] overflow-y-auto"
-                onChange={(e) => {
-                  const blog = allBlogs.find((b) => b._id === e.target.value)
-                  if (blog) handleBlogSelect(blog)
-                }}
-                value={formData.selectedBlog?._id || ""}
-              >
-                <option value="">Select a blog</option>
-                {allBlogs.map((blog) => (
-                  <option key={blog._id} value={blog._id}>
-                    {blog.title}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Blog Title</label>
-              <input
-                type="text"
-                name="title"
-                value={formData.title}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Blog title"
-                disabled
-              />
-            </div>
-
-            {/* <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Blog Body
+        <div className="p-5 overflow-y-auto max-h-[80vh]">
+          <div className="space-y-5">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Select Blog
               </label>
-              <textarea
-                name="content"
-                value={formData.content}
-                onChange={handleInputChange}
-                className="w-full h-32 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Blog content"
-                disabled
-              />
-            </div> */}
+              <div className="relative">
+                <select
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 appearance-none"
+                  onChange={(e) => {
+                    const blog = allBlogs.find((b) => b._id === e.target.value);
+                    if (blog) handleBlogSelect(blog);
+                  }}
+                  value={formData.selectedBlog?._id || ""}
+                >
+                  <option value="" className="bg-gray-50">
+                    Select a blog
+                  </option>
+                  {allBlogs.map((blog) => (
+                    <option
+                      key={blog._id}
+                      value={blog._id}
+                      className="bg-gray-50"
+                    >
+                      {blog.title}
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+                  <svg
+                    className="h-5 w-5"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+              </div>
+            </motion.div>
 
-            <div className="flex justify-end">
+            {formData.selectedBlog && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="border border-gray-200 rounded-lg overflow-hidden"
+              >
+                <div className="p-3 bg-gray-50 border-b border-gray-200">
+                  <h3 className="font-medium text-gray-700">Preview</h3>
+                </div>
+                <div className="p-4">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-2 truncate">
+                    {formData.title}
+                  </h3>
+                  <p className="text-gray-600 text-sm line-clamp-3">
+                    {formData.content}
+                  </p>
+                </div>
+              </motion.div>
+            )}
+
+            <motion.div
+              className="flex justify-end pt-2"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
               <motion.button
                 onClick={handleAnalyse}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md"
+                className={`px-5 py-2.5 rounded-lg font-medium flex items-center gap-2 ${
+                  isAnalysing
+                    ? "bg-blue-400 cursor-not-allowed"
+                    : "bg-blue-600 hover:bg-blue-700 text-white"
+                } transition-all duration-300 shadow`}
                 disabled={isAnalysing || !formData.selectedBlog}
-                whileHover={{ scale: 1.03 }}
+                whileHover={{
+                  scale: !isAnalysing && formData.selectedBlog ? 1.03 : 1,
+                }}
                 whileTap={{ scale: 0.97 }}
               >
-                {isAnalysing ? "Analysing..." : "Analyse"}
+                {isAnalysing ? (
+                  <>
+                    <svg
+                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M3 3v18h18" />
+                      <path d="m19 9-5 5-4-4-3 3" />
+                    </svg>
+                    Analyze Performance
+                  </>
+                )}
               </motion.button>
-            </div>
+            </motion.div>
+
+            {isAnalysing && !stats && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4"
+              >
+                {[...Array(6)].map((_, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: i * 0.1 }}
+                    className="h-32 bg-gray-100 rounded-xl animate-pulse"
+                  />
+                ))}
+              </motion.div>
+            )}
 
             <StatsInfoBox stats={stats} />
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 p-6 border-t relative z-10">
+        <div className="flex justify-end gap-3 p-5 border-t border-gray-100">
           <motion.button
             onClick={closefnc}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+            className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-all duration-300"
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
           >
-            Close
+            Close Dashboard
           </motion.button>
         </div>
       </motion.div>
     </div>
-  )
-}
+  );
+};
 
-export default PerformanceMonitoringModal
+export default PerformanceMonitoringModal;

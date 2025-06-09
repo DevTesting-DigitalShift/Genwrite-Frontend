@@ -25,7 +25,7 @@ const PricingCard = ({ plan, isAnnual, index, onBuy }) => {
         y: -5,
         transition: { type: "spring", stiffness: 300 },
       }}
-      className={`relative p-8 rounded-xl bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 ${
+      className={`relative  p-8 rounded-xl bg-white shadow-lg  hover:shadow-xl transition-shadow duration-300 ${
         plan.featured ? "border-2 border-blue-500" : "border border-gray-100"
       }`}
     >
@@ -136,11 +136,22 @@ const Upgrade = () => {
   const navigate = useNavigate()
   const plans = [
     {
+      name: "Basic Plan",
+      price: 20,
+      credits: 500,
+      description: "Get started with 500 free credits per month. Ideal for individuals exploring GenWrite.",
+      features: ["500 credits", "Monthly renewal", "Community support" , "Basic AI features"],
+      cta: "Buy Now",
+      type: "subscription",
+      frequency: "month",
+      featured: false,
+    },
+    {
       name: "GenWrite Pro Plan",
       price: 5000 / 100, // Convert cents to dollars
       credits: 3000,
       description: "GenWrite Pro — 3000 credits/month, AI blogging, proofreading, images.",
-      features: ["3000 credits", "Monthly billing", "Priority support"],
+      features: ["3000 credits", "Monthly billing", "Priority support" , "Advanced AI features"],
       cta: "Subscribe Now",
       type: "subscription",
       frequency: "month",
@@ -148,11 +159,11 @@ const Upgrade = () => {
     },
     {
       name: "GenWrite Enterprise Plan",
-      price: 50000 / 100, // Convert cents to dollars
+      price: "custom", // Convert cents to dollars
       credits: 50000,
       description: "GenWrite Enterprise — Custom limits & priority support. Contact us.",
-      features: ["50000 credits", "Monthly billing", "Priority support"],
-      cta: "Subscribe Now",
+      features: ["50000 credits", "Monthly billing", "Priority support" , "Custom AI features"],
+      cta: "Contact Team",
       type: "subscription",
       frequency: "month",
     },
@@ -161,7 +172,7 @@ const Upgrade = () => {
       price: null, // Price will be calculated dynamically
       credits: null, // Credits will be entered by the user
       description: "One-time credit top-up",
-      features: ["Custom credits", "One-time purchase"],
+      features: ["Custom credits", "One-time purchase", "flexible payment", "user defined"],
       cta: "Buy Credits",
       type: "credit_purchase",
     },
@@ -242,7 +253,7 @@ const Upgrade = () => {
           </motion.div> */}
         </motion.div>
 
-        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <div className="grid md:grid-cols-3 gap-10 max-w-6xl mx-auto">
           {plans.map((plan, index) => (
             <PricingCard
               key={plan.name}
