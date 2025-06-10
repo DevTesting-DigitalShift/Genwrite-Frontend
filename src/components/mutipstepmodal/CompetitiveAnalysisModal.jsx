@@ -5,6 +5,7 @@ import axiosInstance from "../../api"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 
+
 // Ensure axiosInstance always sends the auth token
 if (typeof window !== "undefined" && axiosInstance && !axiosInstance._authInterceptorSet) {
   axiosInstance.interceptors.request.use(
@@ -255,6 +256,7 @@ const CompetitiveAnalysisModal = ({ closefnc }) => {
                 </div>
               </>
             ) : (
+              // TODO change ui for the analysed data
               <div>
                 <h3 className="text-lg font-medium text-gray-800 mb-4">Analysis Results</h3>
                 <div className="bg-gray-100 p-4 rounded-md">

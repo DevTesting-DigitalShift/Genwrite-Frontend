@@ -20,6 +20,7 @@ import { load } from "@store/slices/authSlice"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 
+// TODO instead of asking for upgrade, show animation of crown with toast & disable features on plan based like free & basic can't open bulk blogs & other features
 const Dashboard = () => {
   // State declarations
   const [isModalVisible, setIsModalVisible] = useState(false)
@@ -72,8 +73,8 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchBlogs = async () => {
       try {
-        const response = await axiosInstance.get("/blogs/");
-        let allBlogs = response.data;
+        const response = await axiosInstance.get("/blogs/")
+        let allBlogs = response.data
 
         console.log(allBlogs.filter((e) => e.status == "complete"))
         if (allBlogs.length >= 3) {

@@ -1,92 +1,68 @@
-import React, { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { X } from "lucide-react";
-import { toast } from "react-toastify";
-import axiosInstance from "../../api";
-import { useSelector } from "react-redux";
-import { useConfirmPopup } from "@/context/ConfirmPopupContext";
-import { getEstimatedCost } from "@utils/getEstimatedCost";
+import React, { useEffect, useState } from "react"
+import { motion } from "framer-motion"
+import { X } from "lucide-react"
+import { toast } from "react-toastify"
+import axiosInstance from "../../api"
+import { useSelector } from "react-redux"
+import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import { getEstimatedCost } from "@utils/getEstimatedCost"
 
 const PerformanceMonitoringModal = ({ closefnc }) => {
   const [formData, setFormData] = useState({
     selectedBlog: null,
     title: "",
     content: "",
-  });
-  const [allBlogs, setAllBlogs] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAnalysing, setIsAnalysing] = useState(false);
-  const [stats, setStats] = useState(null);
+  })
+  const [allBlogs, setAllBlogs] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isAnalysing, setIsAnalysing] = useState(false)
+  const [stats, setStats] = useState(null)
 
-  const user = useSelector((state) => state.auth.user);
-  const { handlePopup } = useConfirmPopup();
+  const user = useSelector((state) => state.auth.user)
+  const { handlePopup } = useConfirmPopup()
 
   useEffect(() => {
     const fetchBlogs = async () => {
       try {
-        const response = await axiosInstance.get("/blogs");
-        setAllBlogs(response.data);
-        setIsLoading(false);
+        const response = await axiosInstance.get("/blogs")
+        setAllBlogs(response.data)
+        setIsLoading(false)
       } catch (error) {
-        toast.error("Failed to load blogs");
-        setIsLoading(false);
+        toast.error("Failed to load blogs")
+        setIsLoading(false)
       }
-    };
-    fetchBlogs();
-  }, []);
+    }
+    fetchBlogs()
+  }, [])
 
   const handleBlogSelect = (blog) => {
     setFormData({
       selectedBlog: blog,
       title: blog.title,
       content: blog.content,
-    });
-    setStats(null);
-  };
+    })
+    setStats(null)
+  }
 
   const handleAnalyse = async () => {
     if (!formData.selectedBlog) {
-      toast.error("Please select a blog");
-      return;
+      toast.error("Please select a blog")
+      return
     }
+    // no need for credit
+    setIsAnalysing(true)
+    try {
+      const response = await axiosInstance.get(`/blogs/${formData.selectedBlog._id}/stats`)
+      setStats(response.data)
+      toast.success("Performance analysis completed!")
+    } catch (error) {
+      toast.error("Failed to load blog details or deduct credits")
+    } finally {
+      setIsAnalysing(false)
+    }
+  }
 
-    handlePopup({
-      title: "Performance Analysis",
-      description: (
-        <span>
-          Performance Analysis will cost{" "}
-          <b>{getEstimatedCost("analysis?.performance") || 10} credits</b>
-          .
-          <br />
-          Do you wish to proceed?
-        </span>
-      ),
-      onConfirm: async () => {
-        setIsAnalysing(true);
-        try {
-          const response = await axiosInstance.get(
-            `/blogs/${formData.selectedBlog._id}/stats`
-          );
-          setStats(response.data);
-          toast.success("Performance analysis completed!");
-        } catch (error) {
-          toast.error("Failed to load blog details or deduct credits");
-        } finally {
-          setIsAnalysing(false);
-        }
-      },
-    });
-  };
-
-  const StatCard = ({
-    icon,
-    label,
-    value,
-    color,
-    delay = 0,
-    suffix = "",
-    description = "",
-  }) => (
+  const StatCard = ({ icon, label, value, color, delay = 0, suffix = "", description = "" }) => (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
@@ -94,22 +70,18 @@ const PerformanceMonitoringModal = ({ closefnc }) => {
       className={`p-4 bg-white rounded-xl border ${color} shadow-sm`}
     >
       <div className="flex items-center gap-3">
-        {icon && (
-          <div className="p-2 bg-blue-50 rounded-lg text-blue-500">{icon}</div>
-        )}
+        {icon && <div className="p-2 bg-blue-50 rounded-lg text-blue-500">{icon}</div>}
         <div>
           <p className="text-sm font-medium text-gray-600">{label}</p>
           <p className="text-xl font-bold text-gray-800 mt-1">
             {value}
             {suffix}
           </p>
-          {description && (
-            <p className="text-xs text-gray-500 mt-1">{description}</p>
-          )}
+          {description && <p className="text-xs text-gray-500 mt-1">{description}</p>}
         </div>
       </div>
     </motion.div>
-  );
+  )
 
   const ScoreBox = ({ score, max, label, level, color }) => (
     <div className="bg-white p-4 rounded-xl border border-gray-200">
@@ -125,15 +97,17 @@ const PerformanceMonitoringModal = ({ closefnc }) => {
           ></div>
         </div>
         <div className="flex justify-between mt-1">
-          <span className="text-xs text-gray-500">{score}/{max}</span>
+          <span className="text-xs text-gray-500">
+            {score}/{max}
+          </span>
         </div>
       </div>
     </div>
-  );
+  )
 
   const StatsInfoBox = ({ stats }) => {
-    if (!stats) return null;
-    const { readabililty = {}, seo = {}, engagement = {}, metadata = {} } = stats;
+    if (!stats) return null
+    const { readabililty = {}, seo = {}, engagement = {}, metadata = {} } = stats
 
     return (
       <motion.div
@@ -143,11 +117,8 @@ const PerformanceMonitoringModal = ({ closefnc }) => {
         className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 mt-4"
       >
         <div className="mb-6 text-center">
-          <h3 className="text-xl font-bold text-gray-800">
-            Blog Performance Overview
-          </h3>
+          <h3 className="text-xl font-bold text-gray-800">Blog Performance Overview</h3>
         </div>
-
         {/* Metadata Section */}
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-4">
@@ -174,30 +145,22 @@ const PerformanceMonitoringModal = ({ closefnc }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
               <p className="text-xs text-gray-500">Title</p>
-              <p className="text-sm font-medium text-gray-800 truncate">
-                {metadata?.title || "-"}
-              </p>
+              <p className="text-sm font-medium text-gray-800 truncate">{metadata?.title || "-"}</p>
             </div>
 
             <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
               <p className="text-xs text-gray-500">Tone</p>
-              <p className="text-sm font-medium text-gray-800">
-                {metadata?.tone || "-"}
-              </p>
+              <p className="text-sm font-medium text-gray-800">{metadata?.tone || "-"}</p>
             </div>
 
             <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
               <p className="text-xs text-gray-500">Template</p>
-              <p className="text-sm font-medium text-gray-800">
-                {metadata?.template || "-"}
-              </p>
+              <p className="text-sm font-medium text-gray-800">{metadata?.template || "-"}</p>
             </div>
 
             <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
               <p className="text-xs text-gray-500">AI Model</p>
-              <p className="text-sm font-medium text-gray-800">
-                {metadata?.aiModel || "-"}
-              </p>
+              <p className="text-sm font-medium text-gray-800">{metadata?.aiModel || "-"}</p>
             </div>
           </div>
 
@@ -210,7 +173,6 @@ const PerformanceMonitoringModal = ({ closefnc }) => {
             </div>
           )}
         </div>
-
         {/* Engagement Section */}
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-4">
@@ -289,9 +251,7 @@ const PerformanceMonitoringModal = ({ closefnc }) => {
               <span className="text-sm font-medium text-gray-600">Public Status</span>
               <span
                 className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  engagement?.isPublic
-                    ? "bg-green-100 text-green-800"
-                    : "bg-red-100 text-red-800"
+                  engagement?.isPublic ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
                 }`}
               >
                 {engagement?.isPublic ? "✅ Public" : "❌ Private"}
@@ -299,7 +259,7 @@ const PerformanceMonitoringModal = ({ closefnc }) => {
             </div>
           </div>
         </div>
-
+        // TODO show keyword densities percent in seo part
         {/* SEO Section */}
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-4">
@@ -406,9 +366,7 @@ const PerformanceMonitoringModal = ({ closefnc }) => {
           </div>
 
           <div className="mt-6">
-            <h5 className="text-sm font-medium text-gray-700 mb-3">
-              Focus Keywords
-            </h5>
+            <h5 className="text-sm font-medium text-gray-700 mb-3">Focus Keywords</h5>
             <div className="flex flex-wrap gap-2">
               {seo?.focusKeywords?.map((k, i) => (
                 <motion.span
@@ -425,9 +383,7 @@ const PerformanceMonitoringModal = ({ closefnc }) => {
           </div>
 
           <div className="mt-4">
-            <h5 className="text-sm font-medium text-gray-700 mb-3">
-              Other Keywords
-            </h5>
+            <h5 className="text-sm font-medium text-gray-700 mb-3">Other Keywords</h5>
             <div className="flex flex-wrap gap-2">
               {seo?.keywords?.map((k, i) => (
                 <motion.span
@@ -443,7 +399,7 @@ const PerformanceMonitoringModal = ({ closefnc }) => {
             </div>
           </div>
         </div>
-
+        // TODO use info icon in Readability tools to show user 1-2 line info about flesch score, smog & ari
         {/* Readability Section */}
         <div>
           <div className="flex items-center gap-2 mb-4">
@@ -555,9 +511,7 @@ const PerformanceMonitoringModal = ({ closefnc }) => {
             </div>
 
             <div className="bg-white p-4 rounded-xl border border-gray-200">
-              <p className="text-sm font-medium text-gray-600">
-                Avg Sentence Length
-              </p>
+              <p className="text-sm font-medium text-gray-600">Avg Sentence Length</p>
               <p className="text-xl font-bold text-gray-800 mt-1">
                 {readabililty?.avgSentenceLength || 0}
               </p>
@@ -586,8 +540,8 @@ const PerformanceMonitoringModal = ({ closefnc }) => {
           </div>
         </div>
       </motion.div>
-    );
-  };
+    )
+  }
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
@@ -618,9 +572,7 @@ const PerformanceMonitoringModal = ({ closefnc }) => {
                 <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
               </svg>
             </div>
-            <h2 className="text-xl font-bold text-gray-800">
-              Performance Dashboard
-            </h2>
+            <h2 className="text-xl font-bold text-gray-800">Performance Dashboard</h2>
           </motion.div>
 
           <motion.button
@@ -640,15 +592,13 @@ const PerformanceMonitoringModal = ({ closefnc }) => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
             >
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Select Blog
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Select Blog</label>
               <div className="relative">
                 <select
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 appearance-none"
                   onChange={(e) => {
-                    const blog = allBlogs.find((b) => b._id === e.target.value);
-                    if (blog) handleBlogSelect(blog);
+                    const blog = allBlogs.find((b) => b._id === e.target.value)
+                    if (blog) handleBlogSelect(blog)
                   }}
                   value={formData.selectedBlog?._id || ""}
                 >
@@ -656,11 +606,7 @@ const PerformanceMonitoringModal = ({ closefnc }) => {
                     Select a blog
                   </option>
                   {allBlogs.map((blog) => (
-                    <option
-                      key={blog._id}
-                      value={blog._id}
-                      className="bg-gray-50"
-                    >
+                    <option key={blog._id} value={blog._id} className="bg-gray-50">
                       {blog.title}
                     </option>
                   ))}
@@ -696,9 +642,7 @@ const PerformanceMonitoringModal = ({ closefnc }) => {
                   <h3 className="text-lg font-semibold text-gray-800 mb-2 truncate">
                     {formData.title}
                   </h3>
-                  <p className="text-gray-600 text-sm line-clamp-3">
-                    {formData.content}
-                  </p>
+                  <p className="text-gray-600 text-sm line-clamp-3">{formData.content}</p>
                 </div>
               </motion.div>
             )}
@@ -802,7 +746,7 @@ const PerformanceMonitoringModal = ({ closefnc }) => {
         </div>
       </motion.div>
     </div>
-  );
-};
+  )
+}
 
-export default PerformanceMonitoringModal;
+export default PerformanceMonitoringModal
