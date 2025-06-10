@@ -138,9 +138,9 @@ const Upgrade = () => {
     {
       name: "Basic Plan",
       price: 20,
-      credits: 500,
+      credits: 450,
       description: "Get started with 500 free credits per month. Ideal for individuals exploring GenWrite.",
-      features: ["500 credits", "Monthly renewal", "Community support" , "Basic AI features"],
+      features: ["450 credits", "Monthly renewal", "Community support" , "Basic AI features"],
       cta: "Buy Now",
       type: "subscription",
       frequency: "month",
@@ -149,20 +149,21 @@ const Upgrade = () => {
     {
       name: "GenWrite Pro Plan",
       price: 5000 / 100, // Convert cents to dollars
-      credits: 3000,
+      credits: 1200,
       description: "GenWrite Pro — 3000 credits/month, AI blogging, proofreading, images.",
-      features: ["3000 credits", "Monthly billing", "Priority support" , "Advanced AI features"],
+      features: ["1200 credits", "Monthly billing", "Priority support" , "Advanced AI features"],
       cta: "Subscribe Now",
       type: "subscription",
       frequency: "month",
       featured: true,
     },
     {
+      // TODO on clicking contact team, open email to support@genwrite.com with subject request for genwrite enterprise plan or something
       name: "GenWrite Enterprise Plan",
       price: "custom", // Convert cents to dollars
-      credits: 50000,
+      credits: "",
       description: "GenWrite Enterprise — Custom limits & priority support. Contact us.",
-      features: ["50000 credits", "Monthly billing", "Priority support" , "Custom AI features"],
+      features: ["unlimited credits", "Monthly billing", "Priority support" , "Custom AI features"],
       cta: "Contact Team",
       type: "subscription",
       frequency: "month",

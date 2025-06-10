@@ -5,6 +5,7 @@ import { loadStripe } from "@stripe/stripe-js"
 
 const { Title } = Typography
 
+// TODO remove this permanently, direclty go to stripe page
 export default function PaymentConfirmation() {
   const navigate = useNavigate()
   const location = useLocation()
