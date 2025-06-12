@@ -16,7 +16,7 @@ const MultiStepModal = ({ closefnc }) => {
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
   const userPlan = useSelector((state) => state.auth.user?.plan) // <-- use userPlan
-  const user = useSelector((state) => state.auth.user); // <-- Add this line
+  const user = useSelector((state) => state.auth.user) // <-- Add this line
 
   const [currentStep, setCurrentStep] = useState(0)
 
@@ -34,7 +34,7 @@ const MultiStepModal = ({ closefnc }) => {
     includeInterlinks: true,
     includeMetaHeadlines: true,
     includeFaqs: true,
-    numberOfBlogs: 3,
+    numberOfBlogs: 1,
     wordpressPostStatus: false,
     postFrequency: 10 * 60, // in seconds
     selectedDates: null,
@@ -100,7 +100,13 @@ const MultiStepModal = ({ closefnc }) => {
       description: (
         <>
           <span>
-            Estimated Cost for bulk blogs : <b>{formData.numberOfBlogs * getEstimatedCost("blog.single")} credits</b>
+            Estimated Cost for bulk blogs :{" "}
+            <b>
+              {formData.numberOfBlogs *
+                (getEstimatedCost("blog.single") +
+                  (formData.imageSource == "unsplash" ? 0 : getEstimatedCost("aiImages")))}{" "}
+              credits
+            </b>
           </span>
           <br />
           <span>Do you want to continue ? </span>
@@ -108,7 +114,7 @@ const MultiStepModal = ({ closefnc }) => {
       ),
       onConfirm: () => {
         dispatch(createMultiBlog(formData, navigate))
-      }
+      },
     })
   }
 
@@ -146,7 +152,9 @@ const MultiStepModal = ({ closefnc }) => {
     if (name === "wordpressPostStatus" && checked) {
       try {
         if (!user?.wordpressLink) {
-          toast.error("Please connect your WordPress account in your profile before enabling automatic posting.")
+          toast.error(
+            "Please connect your WordPress account in your profile before enabling automatic posting."
+          )
           navigate("/profile")
           return
         }
@@ -294,9 +302,7 @@ const MultiStepModal = ({ closefnc }) => {
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Topics</label>
-                <p className="text-xs text-gray-500 mb-2">
-                  Enter the main topics for your blogs .
-                </p>
+                <p className="text-xs text-gray-500 mb-2">Enter the main topics for your blogs .</p>
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -525,7 +531,7 @@ const MultiStepModal = ({ closefnc }) => {
                   </label>
                 </div>
               </div>
-            
+
               <div className="flex items-center justify-between mt-4">
                 <span className="text-sm font-medium text-gray-700">
                   Enable Competitive Research
@@ -563,24 +569,24 @@ const MultiStepModal = ({ closefnc }) => {
                     placeholder="e.g., 5"
                   />
                 </div>
-                  <div className="flex items-center justify-between mt-6">
-                    <span className="text-sm font-medium text-gray-700">
-                      Enable Automatic Posting
-                      <p className="text-xs text-gray-500">
-                        Automatically post blogs on the selected dates.
-                      </p>
-                    </span>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        name="wordpressPostStatus"
-                        checked={formData.wordpressPostStatus}
-                        onChange={handleCheckboxChange}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                    </label>
-                  </div>
+                <div className="flex items-center justify-between mt-6">
+                  <span className="text-sm font-medium text-gray-700">
+                    Enable Automatic Posting
+                    <p className="text-xs text-gray-500">
+                      Automatically post blogs on the selected dates.
+                    </p>
+                  </span>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="wordpressPostStatus"
+                      checked={formData.wordpressPostStatus}
+                      onChange={handleCheckboxChange}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  </label>
+                </div>
               </div>
               <div className="pt-4 border-t border-gray-200">
                 <div>
@@ -628,7 +634,6 @@ const MultiStepModal = ({ closefnc }) => {
                       </div>
                     </div>
                   </div> */}
-
                 </div>
               </div>
             </div>

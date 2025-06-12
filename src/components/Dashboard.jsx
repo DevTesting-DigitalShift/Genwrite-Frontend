@@ -118,13 +118,18 @@ const Dashboard = () => {
 
   const handleSubmit = async (updatedData) => {
     try {
+      console.log("Blog Data: ", modelData.isUnsplashActive)
       handlePopup({
         title: "Single Blog Generation",
         description: (
           <>
             <span>
               Single Blog generation cost:{" "}
-              <b>{getEstimatedCost("blog.single", modelData.aiModel)} credits.</b>
+              <b>
+                {getEstimatedCost("blog.single", modelData.aiModel) + (modelData.isUnsplashActive
+                  ? 0
+                  : getEstimatedCost("aiImages"))} credits.
+              </b>
             </span>
             <br />
             <span>Do you want to continue ?</span>
@@ -150,7 +155,7 @@ const Dashboard = () => {
   const handleNext = () => setCurrentStep(currentStep + 1)
   const handlePrev = () => setCurrentStep(currentStep - 1)
 
-  console.log({ modelData })
+  console.log(modelData)
 
   return (
     <>

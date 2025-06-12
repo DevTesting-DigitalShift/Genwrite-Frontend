@@ -31,15 +31,15 @@ const Jobs = () => {
       tone: "Professional",
       length: 1000,
       imageSource: "unsplash",
+      aiModel: "gemini",
     },
     options: {
       wordpressPosting: false,
-      model: "gemini",
       includeFaqs: false,
       useBrandVoice: false,
       includeCompetitorResearch: false,
-      includeHyperlinks: false,
-      includeQuickSummary: false,
+      includeInterlinks: false,
+      performKeywordResearch: false,
     },
     status: "stop", // default to stop (valid enum for backend)
   })
@@ -83,8 +83,8 @@ const Jobs = () => {
           includeFaqs: newJob.options.includeFaqs || false,
           useBrandVoice: newJob.options.useBrandVoice || false,
           includeCompetitorResearch: newJob.options.includeCompetitorResearch || false,
-          includeHyperlinks: newJob.options.includeHyperlinks || false,
-          includeQuickSummary: newJob.options.includeQuickSummary || false,
+          includeInterlinks: newJob.options.includeInterlinks || false,
+          performKeywordResearch: newJob.options.performKeywordResearch || false,
         },
       }
       await axiosInstance.post("/jobs", jobPayload)
@@ -331,14 +331,14 @@ const Jobs = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">AI Model</label>
                 <select
-                  value={newJob.options.model}
+                  value={newJob.blogs.aiModel}
                   onChange={(e) =>
-                    setNewJob({ ...newJob, options: { ...newJob.options, model: e.target.value } })
+                    setNewJob({ ...newJob, blogs: { ...newJob.blogs, aiModel: e.target.value } })
                   }
                   className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="gemini">Gemini</option> {/* Updated */}
-                  <option value="open ai">Open AI</option> {/* Updated */}
+                  <option value="openai">Open AI</option> {/* Updated */}
                 </select>
               </div>
             </div>
@@ -382,16 +382,16 @@ const Jobs = () => {
                 </label>
               </div>
               <div className="flex items-center justify-between py-2 border-b">
-                <span className="text-sm font-medium text-gray-700">Write with Brand Voice</span>
+                <span className="text-sm font-medium text-gray-700">Perform Keyword Research</span>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
                     type="checkbox"
                     className="sr-only peer"
-                    checked={newJob.options.useBrandVoice}
+                    checked={newJob.options.performKeywordResearch}
                     onChange={(e) =>
                       setNewJob({
                         ...newJob,
-                        options: { ...newJob.options, useBrandVoice: e.target.checked },
+                        options: { ...newJob.options, performKeywordResearch: e.target.checked },
                       })
                     }
                   />
@@ -416,16 +416,16 @@ const Jobs = () => {
                 </label>
               </div>
               <div className="flex items-center justify-between py-2 border-b">
-                <span className="text-sm font-medium text-gray-700">Add Reference Links</span>
+                <span className="text-sm font-medium text-gray-700">Add InterLinks</span>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
                     type="checkbox"
                     className="sr-only peer"
-                    checked={newJob.options.includeHyperlinks}
+                    checked={newJob.options.includeInterlinks}
                     onChange={(e) =>
                       setNewJob({
                         ...newJob,
-                        options: { ...newJob.options, includeHyperlinks: e.target.checked },
+                        options: { ...newJob.options, includeInterlinks: e.target.checked },
                       })
                     }
                   />
@@ -433,16 +433,16 @@ const Jobs = () => {
                 </label>
               </div>
               <div className="flex items-center justify-between py-2 border-b">
-                <span className="text-sm font-medium text-gray-700">Add a Quick Summary</span>
+                <span className="text-sm font-medium text-gray-700">WordPress Automatic Posting</span>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
                     type="checkbox"
                     className="sr-only peer"
-                    checked={newJob.options.includeQuickSummary}
+                    checked={newJob.options.wordpressPosting}
                     onChange={(e) =>
                       setNewJob({
                         ...newJob,
-                        options: { ...newJob.options, includeQuickSummary: e.target.checked },
+                        options: { ...newJob.options, wordpressPosting: e.target.checked },
                       })
                     }
                   />

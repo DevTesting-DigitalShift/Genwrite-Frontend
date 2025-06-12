@@ -21,7 +21,6 @@ export const creditCostswithGemini = Object.freeze({
 /**
  *
  * @param {"analysis.competitors"|"analysis.keywords"|"blog.quick"|"blog.proofread"|"blog.single"|"aiImages"} type
- * @param {string} [aiModel]
  * @returns {number}
  */
 export function getEstimatedCost(type, aiModel = "gemini") {

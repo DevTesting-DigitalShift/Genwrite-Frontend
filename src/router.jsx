@@ -51,7 +51,7 @@ const router = createBrowserRouter([
       { path: "editor", element: withSuspense(ToolBox) },
       { path: "toolbox/:id", element: withSuspense(ToolBox) },
       { path: "project", element: withSuspense(MyProjects) },
-      { path: "plugins", element: withSuspense(PluginsMain) },
+      { path: "integrations", element: withSuspense(PluginsMain) },
       { path: "jobs", element: withSuspense(jobs) },
       { path: "trashcan", element: withSuspense(trashcan) },
       { path: "upgrade", element: withSuspense(upgrade) },
