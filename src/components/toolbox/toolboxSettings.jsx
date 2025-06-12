@@ -46,35 +46,6 @@ export default function ToolboxPage() {
     }
   }
 
-  const checkWordpress = async (e) => {
-    const btn = e.currentTarget
-    try {
-      btn.innerText = "Connecting WordPress"
-      btn.disabled = true
-
-      const res = await axiosInstance.get("/wordpress/check")
-      if (res.data.success) {
-        toast.success(res.data.message)
-      }
-    } catch (err) {
-      console.log(err)
-      switch (err.status) {
-        case 400:
-          toast.error("No wordpress link found. Add wordpress link into your profile.")
-          break
-        case 502:
-          toast.error("Wordpress connection failed, check plugin is installed & active")
-          break
-        default:
-          toast.error("Wordpress Connection Error")
-      }
-      // navigate("/profile")
-    } finally {
-      btn.innerText = "Connect WordPress"
-      btn.disabled = false
-    }
-  }
-
   // Patch the cardItems so competitor-analysis opens modal
   const cardItems = [
     {
@@ -113,34 +84,34 @@ export default function ToolboxPage() {
       actionText: "Start Analysis",
       color: "from-rose-500 to-pink-600",
     },
-    {
-      key: "wordpress-integration",
-      title: "WordPress Integration",
-      icon: <ShareAltOutlined className="text-indigo-500" />,
-      description: "Connect your WordPress site",
-      action: checkWordpress,
-      actionText: "Connect WordPress",
-      color: "from-sky-500 to-cyan-500",
-    },
-    {
-      key: "content-platforms",
-      title: "Content Platforms",
-      icon: <BookOutlined className="text-teal-500" />,
-      description: "Manage your content distribution",
-      action: () => navigate("/platforms"),
-      actionText: "Manage Platforms",
-      color: "from-lime-500 to-green-500",
-    },
-    {
-      key: "quick-settings",
-      title: "Quick Settings",
-      icon: <SettingOutlined className="text-gray-500" />,
-      description: "Configure your toolbox preferences and personalize your experience",
-      action: () => navigate("/settings"),
-      actionText: "Open Settings",
-      color: "from-gray-500 to-gray-700",
-      fullWidth: true,
-    },
+    // {
+    //   key: "wordpress-integration",
+    //   title: "WordPress Integration",
+    //   icon: <ShareAltOutlined className="text-indigo-500" />,
+    //   description: "Connect your WordPress site",
+    //   action: checkWordpress,
+    //   actionText: "Connect WordPress",
+    //   color: "from-sky-500 to-cyan-500",
+    // },
+    // {
+    //   key: "content-platforms",
+    //   title: "Content Platforms",
+    //   icon: <BookOutlined className="text-teal-500" />,
+    //   description: "Manage your content distribution",
+    //   action: () => navigate("/platforms"),
+    //   actionText: "Manage Platforms",
+    //   color: "from-lime-500 to-green-500",
+    // },
+    // {
+    //   key: "quick-settings",
+    //   title: "Quick Settings",
+    //   icon: <SettingOutlined className="text-gray-500" />,
+    //   description: "Configure your toolbox preferences and personalize your experience",
+    //   action: () => navigate("/settings"),
+    //   actionText: "Open Settings",
+    //   color: "from-gray-500 to-gray-700",
+    //   fullWidth: true,
+    // },
   ]
 
   const analyzeKeywords = async () => {
@@ -388,29 +359,29 @@ export default function ToolboxPage() {
                 </div>
               ),
             },
-            {
-              key: "integrations",
-              label: (
-                <motion.div
-                  className="flex items-center gap-2 font-medium"
-                  whileHover={{ scale: 1.05 }}
-                >
-                  <ShareAltOutlined className="text-green-500" />
-                  <span>Integrations</span>
-                </motion.div>
-              ),
-              children: (
-                <div className="grid md:grid-cols-2 gap-6 mt-6">
-                  {cardItems.slice(4, 6).map((item) => (
-                    <AnimatedCard key={item.key} item={item} />
-                  ))}
-                </div>
-              ),
-            },
+            // {
+            //   key: "integrations",
+            //   label: (
+            //     <motion.div
+            //       className="flex items-center gap-2 font-medium"
+            //       whileHover={{ scale: 1.05 }}
+            //     >
+            //       <ShareAltOutlined className="text-green-500" />
+            //       <span>Integrations</span>
+            //     </motion.div>
+            //   ),
+            //   children: (
+            //     <div className="grid md:grid-cols-2 gap-6 mt-6">
+            //       {cardItems.slice(4, 6).map((item) => (
+            //         <AnimatedCard key={item.key} item={item} />
+            //       ))}
+            //     </div>
+            //   ),
+            // },
           ]}
         />
 
-        {/* Quick Settings Card */}
+        {/* Quick Settings Card
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -418,7 +389,7 @@ export default function ToolboxPage() {
           className="mt-8"
         >
           <AnimatedCard item={cardItems[6]} />
-        </motion.div>
+        </motion.div> */}
 
         {competitiveAnalysisModalOpen && (
           <CompetitiveAnalysisModal closefnc={() => setCompetitiveAnalysisModalOpen(false)} />

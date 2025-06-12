@@ -136,6 +136,7 @@ import { CiGlobe } from "react-icons/ci";
 import { ImGithub } from "react-icons/im";
 import { RiCloseLine } from "react-icons/ri";
 import { pluginsData } from "@constants/pluginsData";
+import { ToastContainer } from "react-toastify";
 
 Modal.setAppElement("#root");
 
@@ -152,6 +153,7 @@ const PluginsMain = () => {
 
   return (
     <>
+      <ToastContainer />
       <h1 className="text-2xl font-bold mb-4">Plugins</h1>
 
       <div className="flex flex-col space-y-4">
@@ -163,8 +165,9 @@ const PluginsMain = () => {
             pluginTitle={item.pluginTitle}
             name={item.name}
             updatedDate={item.updatedDate}
-            pluginInstallUrl={item.pluginInstallUrl}
+            pluginLink={item.pluginLink}
             onClick={() => handlePluginClick(item)}
+            onCheck={item.onCheck}
           />
         ))}
       </div>

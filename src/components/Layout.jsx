@@ -81,7 +81,7 @@ const LayoutWithSidebarAndHeader = () => {
     { title: "Dashboard", src: "dashicon.svg", path: "/dash" },
     { title: "My Projects", src: "myprojecticon.svg", path: "/project" },
     { title: "Toolbox", src: "toolboxicon.png", path: "/toolbox" },
-    { title: "Plugins", src: "pluginicon.svg", path: "/plugins" },
+    { title: "Integrations", src: "pluginicon.svg", path: "/integrations" },
     { title: "Brand Voice", src: "brandvoiceicon.svg", path: "/brandvoice" },
     { title: "TrashCan", src: "trashcan.png", path: "/trashcan" },
     { title: "Jobs", src: "jobsicon.svg", path: "/jobs" },
@@ -231,6 +231,7 @@ const LayoutWithSidebarAndHeader = () => {
                 <>
                   <Tooltip
                     title="User Credits"
+                    onClick={() => navigate("/upgrade")}
                     className="flex gap-2 justify-center items-center mr-4 rounded-full p-2 hover:bg-gray-100"
                   >
                     <RiCoinsFill size={30} color="orange" />
