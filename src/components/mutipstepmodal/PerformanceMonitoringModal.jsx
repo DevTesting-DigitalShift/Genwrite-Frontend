@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { X } from "lucide-react"
 import { toast } from "react-toastify"
-import axiosInstance from "../../api"
+import axiosInstance from "@api"
 import { useSelector } from "react-redux"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
-import { getEstimatedCost } from "@utils/getEstimatedCost"
+import { Table, Tooltip } from "antd"
+import { InfoCircleOutlined } from "@ant-design/icons"
 
 const PerformanceMonitoringModal = ({ closefnc }) => {
   const [formData, setFormData] = useState({
@@ -62,6 +63,19 @@ const PerformanceMonitoringModal = ({ closefnc }) => {
     }
   }
 
+  const scoreInfo = {
+    flesch:
+      "📘 Flesch Reading Ease (0–100): Higher is easier to read. Aim for 60+ for general audiences.",
+    smog: "📗 SMOG Index: Estimates education level needed to understand. Lower is better (ideal < 10).",
+    ari: "📙 ARI (Automated Readability Index): Based on sentence and word length. Lower = easier.",
+    seo: "📈 SEO Score: Evaluates keyword use, metadata, and structure. Aim for 80+ for strong SEO.",
+  }
+  const InfoTooltip = ({ type = "seo" }) => (
+    <Tooltip title={scoreInfo[type]} trigger={["hover", "click"]} placement="top">
+      <InfoCircleOutlined className="ml-2 text-black size-8 hover:text-blue-500 cursor-pointer" />
+    </Tooltip>
+  )
+
   const StatCard = ({ icon, label, value, color, delay = 0, suffix = "", description = "" }) => (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -83,10 +97,19 @@ const PerformanceMonitoringModal = ({ closefnc }) => {
     </motion.div>
   )
 
+  /**
+   *
+   * @param {object} param0
+   * @param {string} param0.label
+   * @returns
+   */
   const ScoreBox = ({ score, max, label, level, color }) => (
     <div className="bg-white p-4 rounded-xl border border-gray-200">
       <div className="flex justify-between items-center">
-        <span className="text-sm font-medium text-gray-600">{label}</span>
+        <span className="text-sm font-medium text-gray-600 flex items-center gap-2">
+          {label}
+          <InfoTooltip type={/seo/gi.test(label) ? "seo" : "flesch"} />
+        </span>
         <span className="text-sm font-medium text-gray-600">{level}</span>
       </div>
       <div className="mt-2">
@@ -96,9 +119,9 @@ const PerformanceMonitoringModal = ({ closefnc }) => {
             style={{ width: `${(score / max) * 100}%` }}
           ></div>
         </div>
-        <div className="flex justify-between mt-1">
-          <span className="text-xs text-gray-500">
-            {score}/{max}
+        <div className="flex justify-end mt-1">
+          <span className="text-sm text-gray-600 font-medium">
+            {score} / {max}
           </span>
         </div>
       </div>
@@ -108,6 +131,44 @@ const PerformanceMonitoringModal = ({ closefnc }) => {
   const StatsInfoBox = ({ stats }) => {
     if (!stats) return null
     const { readabililty = {}, seo = {}, engagement = {}, metadata = {} } = stats
+    const keywordDensity = seo?.keywordDensity || {}
+
+    // Convert object to array of data
+    const dataSource = Object.entries(keywordDensity).map(
+      ([keyword, { count, density }], index) => ({
+        key: keyword,
+        keyword,
+        count,
+        density: density,
+        animationDelay: index * 0.1,
+      })
+    )
+
+    const columns = [
+      {
+        title: "Keywords",
+        dataIndex: "keyword",
+        key: "keyword",
+        width: "60%", // More space for keywords
+        ellipsis: true,
+      },
+      {
+        title: "Count",
+        dataIndex: "count",
+        key: "count",
+        align: "center",
+        width: "5ch",
+      },
+      {
+        title: "Density",
+        dataIndex: "density",
+        key: "density",
+        sorter: (a, b) => a.density - b.density,
+        render: (value) => `${value.toFixed(2)}%`,
+        align: "center",
+        width: "5ch",
+      },
+    ]
 
     return (
       <motion.div
@@ -259,8 +320,7 @@ const PerformanceMonitoringModal = ({ closefnc }) => {
             </div>
           </div>
         </div>
-        // TODO show keyword densities percent in seo part
-        {/* SEO Section */}
+        {/*  SEO Section         */}
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-4">
             <div className="p-1 bg-blue-100 rounded text-blue-500">
@@ -382,25 +442,61 @@ const PerformanceMonitoringModal = ({ closefnc }) => {
             </div>
           </div>
 
-          <div className="mt-4">
-            <h5 className="text-sm font-medium text-gray-700 mb-3">Other Keywords</h5>
-            <div className="flex flex-wrap gap-2">
-              {seo?.keywords?.map((k, i) => (
-                <motion.span
-                  key={k}
-                  initial={{ opacity: 0, y: 5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.1 }}
-                  className="px-3 py-1 bg-gray-100 rounded-full text-sm text-gray-700 border border-gray-200"
-                >
-                  {k}
-                </motion.span>
-              ))}
+          {seo?.keywords.length > 0 && (
+            <div className="mt-4">
+              <h5 className="text-sm font-medium text-gray-700 mb-3">Other Keywords</h5>
+              <div className="flex flex-wrap gap-2">
+                {seo?.keywords?.map((k, i) => (
+                  <motion.span
+                    key={k}
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.1 }}
+                    className="px-3 py-1 bg-gray-100 rounded-full text-sm text-gray-700 border border-gray-200"
+                  >
+                    {k}
+                  </motion.span>
+                ))}
+              </div>
             </div>
+          )}
+
+          <div className="mt-4">
+            <h5 className="text-sm font-medium text-gray-700 mb-3">Keyword Densities</h5>
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={{
+                visible: { transition: { staggerChildren: 0.1 } },
+              }}
+            >
+              <Table
+                dataSource={dataSource}
+                columns={columns}
+                pagination={false}
+                components={{
+                  body: {
+                    row: ({ children, ...restProps }) => {
+                      const delay = dataSource[restProps["data-row-key"]]?.animationDelay || 0
+                      return (
+                        <motion.tr
+                          {...restProps}
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay }}
+                        >
+                          {children}
+                        </motion.tr>
+                      )
+                    },
+                  },
+                }}
+                className="rounded-md overflow-hidden"
+              />
+            </motion.div>
           </div>
         </div>
-        // TODO use info icon in Readability tools to show user 1-2 line info about flesch score, smog & ari
-        {/* Readability Section */}
+        {/*         Readability Section         */}
         <div>
           <div className="flex items-center gap-2 mb-4">
             <div className="p-1 bg-teal-100 rounded text-teal-500">
@@ -433,7 +529,10 @@ const PerformanceMonitoringModal = ({ closefnc }) => {
 
             <div className="bg-white p-4 rounded-xl border border-gray-200">
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-gray-600">SMOG Index</span>
+                <span className="text-sm font-medium text-gray-600">
+                  SMOG Index
+                  <InfoTooltip type="smog" />
+                </span>
                 <span className="text-sm font-medium text-gray-600">
                   {readabililty?.smogIndex?.level || "-"}
                 </span>
@@ -445,7 +544,9 @@ const PerformanceMonitoringModal = ({ closefnc }) => {
 
             <div className="bg-white p-4 rounded-xl border border-gray-200">
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-gray-600">ARI</span>
+                <span className="text-sm font-medium text-gray-600">
+                  ARI <InfoTooltip type="ari" />
+                </span>
                 <span className="text-sm font-medium text-gray-600">
                   {readabililty?.ari?.level || "-"}
                 </span>

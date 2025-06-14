@@ -2,9 +2,9 @@ import React, { useState, useEffect, Suspense } from "react"
 import { useNavigate } from "react-router-dom"
 import axiosInstance from "@api/index"
 import SkeletonLoader from "./SkeletonLoader"
-import { Badge, Button, Tooltip } from "antd"
 import { toast } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
+import { Badge, Button, Tooltip } from "antd"
 import { Trash2 } from "lucide-react"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 
@@ -110,25 +110,27 @@ const MyProjects = () => {
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 place-items-center p-2">
-            {currentItems.map((blog) => {
-              const { _id, title, content, focusKeywords, status, aiModel } = blog // Include `aiModel`
+            {currentItems?.map((blog) => {
+              const { _id, title, status, createdAt, content, aiModel, focusKeywords, updatedAt } =
+                blog
+              const isGemini = /gemini/gi.test(aiModel)
               return (
                 <Badge.Ribbon
-                  key={_id}
                   text={
-                    <span className="flex items-center justify-center gap-1 p-1 font-medium">
+                    <span className="flex items-center justify-center gap-1 py-1 font-medium tracking-wide">
                       <img
-                        src="./Images/gemini.png"
+                        src={`./Images/${isGemini ? "gemini" : "chatgpt"}.png`}
                         alt=""
-                        width={16}
-                        height={16}
+                        width={20}
+                        height={20}
                         loading="lazy"
                         className="bg-white"
                       />
-                      {aiModel ? aiModel.charAt(0).toUpperCase() + aiModel.slice(1) : "Gemini"}
+                      {isGemini ? "Gemini-1.5-flash" : "Chatgpt-4o-mini"}
                     </span>
                   }
                   className="absolute top-0"
+                  color={isGemini ? "#4796E3" : "#74AA9C"}
                 >
                   <div
                     className={`bg-white shadow-md  hover:shadow-xl  transition-all duration-300 rounded-xl p-4 min-h-[180px] min-w-[390px] relative
@@ -141,10 +143,8 @@ const MyProjects = () => {
                     title={title}
                   >
                     <div className="text-xs font-semibold text-gray-400 mb-2 -mt-2">
-                      {new Date(blog.createdAt).toLocaleDateString("en-US", {
-                        month: "long",
-                        day: "numeric",
-                        year: "numeric",
+                      {new Date(createdAt).toLocaleDateString("en-US", {
+                        dateStyle: "medium",
                       })}
                     </div>
                     <Tooltip
@@ -156,6 +156,7 @@ const MyProjects = () => {
                       <div
                         className="cursor-pointer"
                         onClick={() => {
+                          const { status } = blog
                           if (status === "complete") {
                             handleBlogClick(blog)
                           }
@@ -176,7 +177,7 @@ const MyProjects = () => {
                     </Tooltip>
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex flex-wrap gap-2">
-                        {focusKeywords.map((keyword, index) => (
+                        {focusKeywords?.map((keyword, index) => (
                           <span
                             key={index}
                             className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full"
@@ -193,26 +194,35 @@ const MyProjects = () => {
                             title: "Move to Trash",
                             description: (
                               <span className="my-2">
-                                Blog <b>{blog.title}</b> will be moved to trash. You can restore it later.
+                                Blog <b>{title}</b> will be moved to trash. You can restore it
+                                later.
                               </span>
                             ),
-                            confirmText: "Archieve",
+                            confirmText: "Archive",
                             onConfirm: () => {
-                              console.log("Trashing blog:", blog._id)
-                              handleArchive(blog._id)
+                              console.log("Trashing blog:", _id)
+                              handleArchive(_id)
                             },
-                            confirmProps:{
-                              type:"undefined",
-                              className: "border-red-500 hover:bg-red-500 hover:text-white"
+                            confirmProps: {
+                              type: "undefined",
+                              className: "border-red-500 hover:bg-red-500 hover:text-white",
                             },
-                            cancelProps:{
-                              danger:false
-                            }
+                            cancelProps: {
+                              danger: false,
+                            },
                           })
                         }
                       >
                         <Trash2 />
                       </Button>
+                    </div>
+                    <div className="mt-2">
+                      <span className="block text-xs text-right">
+                        Last updated : &nbsp;
+                        {new Date(updatedAt).toLocaleDateString("en-US", {
+                          dateStyle: "medium",
+                        })}
+                      </span>
                     </div>
                   </div>
                 </Badge.Ribbon>

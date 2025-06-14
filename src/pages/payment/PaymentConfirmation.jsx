@@ -11,34 +11,7 @@ export default function PaymentConfirmation() {
   const location = useLocation()
   const { plan, customCredits } = location.state || {}
   const handleProceed = async () => {
-    const stripe = await loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
-
-    try {
-      const response = await axiosInstance.post("/stripe/checkout", {
-        planName: plan.name.toLowerCase().includes("pro")
-          ? "pro"
-          : plan.name.toLowerCase().includes("enterprise")
-          ? "enterprise"
-          : "credits",
-        credits: plan.type === "credit_purchase" ? customCredits : plan.credits,
-        success_url: `${window.location.origin}/payment/success`,
-        cancel_url: `${window.location.origin}/payment/cancel`,
-      })
-
-      // Redirect to Stripe checkout
-      console.log(response.data)
-      if (response?.data.sessionId) {
-        const result = await stripe.redirectToCheckout({sessionId: response.data.sessionId})
-        if(result?.error){
-          throw error
-        }
-      }else{
-        throw new Error("Something went wrong")
-      }
-    } catch (error) {
-      console.error("Error creating checkout session:", error)
-      alert("Failed to initiate checkout. Please try again.")
-    }
+    
   }
 
   if (!plan?.name) throw new Error("Invalid Payment Request")
