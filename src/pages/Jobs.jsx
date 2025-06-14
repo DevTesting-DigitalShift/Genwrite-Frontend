@@ -15,7 +15,7 @@ import { useNavigate } from "react-router-dom"
 
 const Jobs = () => {
   const tones = ["Professional", "Casual", "Friendly", "Formal", "Technical"]
-  const wordLengths = [500, 750, 1000, 1500, 2000]
+  const wordLengths = [500, 1000, 1500, 2000, 3000]
 
   const [jobs, setJobs] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -29,7 +29,7 @@ const Jobs = () => {
       topics: [],
       templates: [],
       tone: "Professional",
-      length: 1000,
+      userDefinedLength: 1000,
       imageSource: "unsplash",
       aiModel: "gemini",
     },
@@ -115,17 +115,47 @@ const Jobs = () => {
     }
   }
 
+  const handleUpdateJob = async (jobId) => {
+    try {
+      // Ensure only the required fields are sent, with new options fields
+      const jobPayload = {
+        ...newJob,
+        options: {
+          ...newJob.options,
+          // These fields should be set in the UI logic or defaulted here
+          includeFaqs: newJob.options.includeFaqs || false,
+          useBrandVoice: newJob.options.useBrandVoice || false,
+          includeCompetitorResearch: newJob.options.includeCompetitorResearch || false,
+          includeInterlinks: newJob.options.includeInterlinks || false,
+          performKeywordResearch: newJob.options.performKeywordResearch || false,
+        },
+      }
+      await axiosInstance.put(`/jobs/${jobId}`, jobPayload)
+      toast.success("Job updated successfully!") // Show success toast
+      setShowJobModal(false) // Close the modal
+      fetchJobs() // Refresh the job list
+    } catch (error) {
+      console.error("Error updating job:", error.response?.data?.message || error.message)
+      toast.error("Failed to update job. Please try again.") // Show error toast
+    }
+  }
+
   const handleDeleteJob = async (jobId) => {
     try {
       await axiosInstance.delete(`/jobs/${jobId}`)
       fetchJobs()
     } catch (error) {
       console.error("Error deleting job:", error.response?.data?.message || error.message)
+      toast.error(error.response?.data)
     }
   }
 
   // Edit a job
   const handleEditJob = (job) => {
+    if(job.status == "active"){
+      toast.error("Stop the job before editing")
+      return
+    }
     setNewJob(job)
     setShowJobModal(true)
     setCurrentStep(1)
@@ -237,11 +267,11 @@ const Jobs = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Length</label>
                 <select
-                  value={newJob.blogs.length}
+                  value={newJob.blogs.userDefinedLength}
                   onChange={(e) =>
                     setNewJob({
                       ...newJob,
-                      blogs: { ...newJob.blogs, length: parseInt(e.target.value) },
+                      blogs: { ...newJob.blogs, userDefinedLength: parseInt(e.target.value) },
                     })
                   }
                   className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
@@ -433,7 +463,9 @@ const Jobs = () => {
                 </label>
               </div>
               <div className="flex items-center justify-between py-2 border-b">
-                <span className="text-sm font-medium text-gray-700">WordPress Automatic Posting</span>
+                <span className="text-sm font-medium text-gray-700">
+                  WordPress Automatic Posting
+                </span>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
                     type="checkbox"
@@ -620,10 +652,10 @@ const Jobs = () => {
                 Previous
               </button>
               <button
-                onClick={handleCreateJob}
+                onClick={newJob?._id ? () => handleUpdateJob(newJob._id ): handleCreateJob}
                 className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
               >
-                Create Job
+                {newJob?._id ? "Update": "Create"} Job
               </button>
             </div>
           </motion.div>
@@ -726,15 +758,11 @@ const Jobs = () => {
                     </div>
                     <div className="flex items-center gap-2">
                       <FiFileText className="w-4 h-4 text-purple-500" />
-                      <span>Blogs Generated: {job.blogs.numberOfBlogs}</span>
+                      <span>Daily Blogs : {job.blogs.numberOfBlogs}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <FiSettings className="w-4 h-4 text-green-500" />
-                      <span>Model: {job.options.model}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <FiCalendar className="w-4 h-4 text-yellow-500" />
-                      <span>Duration: {job.duration || "N/A"}</span>
+                      <span>Model: {job.blogs.aiModel}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <FiCalendar className="w-4 h-4 text-red-500" />
@@ -756,6 +784,20 @@ const Jobs = () => {
                         </div>
                       </div>
                     )}
+                    <div className="flex items-center gap-2">
+                      <FiCalendar className="w-4 h-4 text-yellow-500" />
+                      <span>
+                        Created:{" "}
+                        {new Date(job.createdAt).toLocaleString("en-IN", {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        }) || "N/A"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <FiFileText className="w-4 h-4 text-purple-500" />
+                      <span>Generated Blogs: {job?.createdBlogs?.length}</span>
+                    </div>
                   </div>
 
                   <div className="flex gap-2 mt-6">

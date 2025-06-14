@@ -113,14 +113,14 @@ const LayoutWithSidebarAndHeader = () => {
         onMouseEnter={() => setSidebarOpen(true)}
         onMouseLeave={() => setSidebarOpen(false)}
       >
-        <div className=" h-14 flex gap-x-4 items-center text-black mb-4">
+        <div className="h-10 flex gap-x-4 items-center text-black mb-4 overflow-clip">
           <img
             src="/Images/logo_genwrite_1.png"
-            width={"50%"}
-            height={"50%"}
+            // width={"150"}
+            // height={"100"}
             loading="lazy"
             className={`cursor-pointer transition-transform duration-700 ease-in-out ${
-              sidebarOpen ? "scale-150 pl-4" : "w-56 scale-150"
+              sidebarOpen ? "" : "object-contain min-w-[90px] -ml-2.5"
             }`}
             alt="Logo"
           />

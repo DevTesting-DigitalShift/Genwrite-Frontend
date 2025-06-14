@@ -2,6 +2,7 @@ import React, { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import axiosInstance from "@api/index"
 import { useNavigate } from "react-router-dom"
+import { loadStripe } from "@stripe/stripe-js"
 
 const PricingCard = ({ plan, isAnnual, index, onBuy }) => {
   const [customCredits, setCustomCredits] = useState(0) // State for custom credits
@@ -86,13 +87,13 @@ const PricingCard = ({ plan, isAnnual, index, onBuy }) => {
             : "bg-gray-100 text-gray-700 hover:bg-gray-200"
         }`}
         onClick={() => {
-          if(plan.type === "credit_purchase"){
-            if(customCredits == 0){
+          if (plan.type === "credit_purchase") {
+            if (customCredits == 0) {
               alert("Kindly add the credits first")
-            }else{
+            } else {
               onBuy(plan, customCredits)
             }
-          }else{
+          } else {
             onBuy(plan)
           }
         }}
@@ -139,8 +140,9 @@ const Upgrade = () => {
       name: "Basic Plan",
       price: 20,
       credits: 450,
-      description: "Get started with 500 free credits per month. Ideal for individuals exploring GenWrite.",
-      features: ["450 credits", "Monthly renewal", "Community support" , "Basic AI features"],
+      description:
+        "Get started with 500 free credits per month. Ideal for individuals exploring GenWrite.",
+      features: ["450 credits", "Monthly renewal", "Community support", "Basic AI features"],
       cta: "Buy Now",
       type: "subscription",
       frequency: "month",
@@ -151,7 +153,7 @@ const Upgrade = () => {
       price: 5000 / 100, // Convert cents to dollars
       credits: 1200,
       description: "GenWrite Pro — 3000 credits/month, AI blogging, proofreading, images.",
-      features: ["1200 credits", "Monthly billing", "Priority support" , "Advanced AI features"],
+      features: ["1200 credits", "Monthly billing", "Priority support", "Advanced AI features"],
       cta: "Subscribe Now",
       type: "subscription",
       frequency: "month",
@@ -163,7 +165,7 @@ const Upgrade = () => {
       price: "custom", // Convert cents to dollars
       credits: "",
       description: "GenWrite Enterprise — Custom limits & priority support. Contact us.",
-      features: ["unlimited credits", "Monthly billing", "Priority support" , "Custom AI features"],
+      features: ["unlimited credits", "Monthly billing", "Priority support", "Custom AI features"],
       cta: "Contact Team",
       type: "subscription",
       frequency: "month",
@@ -180,12 +182,34 @@ const Upgrade = () => {
   ]
 
   const handleBuy = async (plan, customCredits = 0) => {
-    navigate("/payment/confirm", {
-      state: {
-        plan,
-        customCredits,
-      },
-    })
+    const stripe = await loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
+
+    try {
+      const response = await axiosInstance.post("/stripe/checkout", {
+        planName: plan.name.toLowerCase().includes("pro")
+          ? "pro"
+          : plan.name.toLowerCase().includes("basic")
+          ? "basic"
+          : "credits",
+        credits: plan.type === "credit_purchase" ? customCredits : plan.credits,
+        success_url: `${window.location.origin}/payment/success`,
+        cancel_url: `${window.location.origin}/payment/cancel`,
+      })
+
+      // Redirect to Stripe checkout
+      console.log(response.data)
+      if (response?.data.sessionId) {
+        const result = await stripe.redirectToCheckout({ sessionId: response.data.sessionId })
+        if (result?.error) {
+          throw error
+        }
+      } else {
+        throw new Error("Something went wrong")
+      }
+    } catch (error) {
+      console.error("Error creating checkout session:", error)
+      alert("Failed to initiate checkout. Please try again.")
+    }
   }
 
   return (

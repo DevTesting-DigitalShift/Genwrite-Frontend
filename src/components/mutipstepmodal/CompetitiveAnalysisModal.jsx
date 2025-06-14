@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { X } from "lucide-react"
 import { toast } from "react-toastify"
 import axiosInstance from "../../api"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
-
+import { Collapse, Card, Progress } from "antd"
+import { motion } from "framer-motion"
 
 // Ensure axiosInstance always sends the auth token
 if (typeof window !== "undefined" && axiosInstance && !axiosInstance._authInterceptorSet) {
@@ -22,6 +23,8 @@ if (typeof window !== "undefined" && axiosInstance && !axiosInstance._authInterc
   axiosInstance._authInterceptorSet = true
 }
 
+const { Panel } = Collapse
+
 const CompetitiveAnalysisModal = ({ closefnc }) => {
   const [formData, setFormData] = useState({
     title: "",
@@ -35,7 +38,29 @@ const CompetitiveAnalysisModal = ({ closefnc }) => {
   const [recentProjects, setRecentProjects] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [analysisResults, setAnalysisResults] = useState(null)
+  const [analysisResults, setAnalysisResults] = useState({
+    analysis: {
+      "Keyword Usage":
+        "16/20 — The target keywords are used appropriately throughout the title, headings, and body.  However, keyword stuffing is avoided.  More strategic placement of long-tail keywords could improve the score.",
+      "Content Depth & Relevance":
+        "18/20 — The blog provides a good overview of Generative AI in SEO.  However,  more in-depth analysis of specific AI tools and case studies would enhance its value.",
+      "Headline Strength":
+        "8/10 — The headline is clear and incorporates the target keyword. However, it could be made more compelling and click-worthy by adding a benefit-driven element.",
+      "Content Structure & Readability":
+        "12/15 — The blog uses subheadings, lists, and paragraphs effectively. The flow is generally good, though some transitions could be smoother.",
+      "Use of Media":
+        "6/10 — The blog includes images, but alt text is missing for some images, and placeholder images detract from the overall quality.  More relevant and high-quality images are needed.",
+      "Unique Value & Differentiation":
+        "7/10 — The blog offers a decent overview, but lacks truly unique insights or a distinctive angle compared to existing content on the topic.  More original analysis and case studies are needed.",
+      "Tone and Style":
+        "4/5 — The tone is consistent and informative. The style is suitable for the topic, though it could benefit from a more engaging writing style.",
+      "On-Page SEO Extras":
+        "8/10 —  Internal links are used, and the blog includes relevant external links. However, meta descriptions and schema markup are missing, which would greatly improve SEO.",
+    },
+    blogScore: "79",
+    suggestions:
+      "To beat competitors, focus on creating more in-depth content with unique case studies and data-driven analysis.  Improve the visual appeal by using high-quality, relevant images with proper alt text.  Implement schema markup and optimize meta descriptions.  Strengthen the headline to increase click-through rates. Conduct thorough keyword research to identify long-tail keywords and incorporate them strategically. Explore advanced AI SEO tools and their specific applications to provide more practical advice.  Finally, focus on building more authoritative backlinks from relevant websites.",
+  })
 
   const { handlePopup } = useConfirmPopup()
   useEffect(() => {
@@ -142,9 +167,11 @@ const CompetitiveAnalysisModal = ({ closefnc }) => {
             content: formData.content,
             keywords: formData.keywords,
             contentType: formData.contentType,
+            blogId: formData?.selectedProject?._id,
           })
 
           if (response.data) {
+            console.log(response.data)
             setAnalysisResults(response.data)
             toast.success("Analysis completed successfully!")
           }
@@ -256,29 +283,85 @@ const CompetitiveAnalysisModal = ({ closefnc }) => {
                 </div>
               </>
             ) : (
-              // TODO change ui for the analysed data
-              <div>
-                <h3 className="text-lg font-medium text-gray-800 mb-4">Analysis Results</h3>
-                <div className="bg-gray-100 p-4 rounded-md">
-                  <div className="text-sm text-gray-600">
-                    <strong>Analysis:</strong>
-                    <ul className="list-disc ml-5 mt-1">
-                      {Object.entries(analysisResults.analysis).map(([key, value]) => (
-                        <li key={key} className="mb-1">
-                          <strong>{key.replace(/([A-Z])/g, " $1")}: </strong>
-                          {value}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div className="text-sm text-gray-600 mt-4">
-                    <strong>Suggestions:</strong> {analysisResults.suggestions}
-                  </div>
-                  <div className="text-sm text-gray-600 mt-4">
-                    <strong>Blog Score:</strong> {analysisResults.blogScore} / 100
-                  </div>
-                </div>
-              </div>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+                className="space-y-4"
+              >
+                {/* Blog Score Progress */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.2, duration: 0.5 }}
+                  className="flex flex-col items-center"
+                >
+                  <Progress
+                    type="dashboard"
+                    percent={parseInt(analysisResults.blogScore || 0)}
+                    format={(percent) => `${percent} / 100`}
+                    strokeColor={{ "0%": "#108ee9", "100%": "#87d068" }}
+                    trailColor="#d1d5db"
+                  />
+                  <div className="text-gray-700 text-base font-semibold mb-2">Blog SEO Score</div>
+                </motion.div>
+
+                {/* Suggestions */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4, duration: 0.4 }}
+                >
+                  <Card
+                    title="Suggestions to Beat Competitors"
+                    className="bg-gray-50 border border-gray-200 rounded-lg"
+                    headStyle={{ background: "#f9fafb", fontWeight: 600 }}
+                  >
+                    <p className="text-gray-700 text-sm whitespace-pre-line">
+                      {analysisResults.suggestions}
+                    </p>
+                  </Card>
+                </motion.div>
+
+                {/* Detailed Analysis */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5, duration: 0.4 }}
+                >
+                  <Collapse
+                    accordion
+                    className="bg-white border border-gray-200 rounded-lg"
+                    expandIconPosition="right"
+                  >
+                    {Object.entries(analysisResults.analysis).map(([key, value]) => {
+                      // Extract "16/20" and description
+                      const match = value.match(/^(\d+\/\d+)\s+—\s+(.*)$/)
+                      const score = match ? match[1] : null
+                      const description = match ? match[2] : value
+
+                      return (
+                        <Panel
+                          key={key}
+                          header={
+                            <div className="flex justify-between items-center w-full pr-2">
+                              <span className="font-medium text-gray-800">{key}</span>
+                              {score && (
+                                <span className="text-sm text-center w-[10ch] font-semibold text-blue-700 bg-gray-100 tracking-wide px-2 py-0.5 rounded-md">
+                                  {score?.replace('/', " / ")}
+                                </span>
+                              )}
+                            </div>
+                          }
+                          className="text-sm text-gray-700 leading-relaxed"
+                        >
+                          <p>{description}</p>
+                        </Panel>
+                      )
+                    })}
+                  </Collapse>
+                </motion.div>
+              </motion.div>
             )}
           </div>
         </div>
