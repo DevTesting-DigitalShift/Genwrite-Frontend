@@ -1,5 +1,6 @@
 import React, { memo, useState, useEffect } from "react";
 import Carousel from "./Carousel";
+import { toast } from "react-toastify";
 
 const SelectTemplateModal = ({ handleNext, handleClose, data, setData }) => {
   const [selectedPackage, setSelectedPackage] = useState(null);
@@ -87,7 +88,7 @@ const SelectTemplateModal = ({ handleNext, handleClose, data, setData }) => {
       setData(updatedData);
       handleNext();
     } else {
-      alert("Please select a template before proceeding.");
+      toast.error("Please select a template before proceeding.");
     }
   };
 

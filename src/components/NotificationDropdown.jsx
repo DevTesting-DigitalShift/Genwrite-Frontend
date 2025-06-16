@@ -126,7 +126,7 @@ const NotificationDropdown = ({ notifications }) => {
             >
               <List.Item.Meta
                 avatar={
-                  <div className="text-xl text-blue-500">
+                  <div className="text-xl text-blue-500 ml-4">
                     {typeIconMap[item.type] || <BellOutlined />}
                   </div>
                 }

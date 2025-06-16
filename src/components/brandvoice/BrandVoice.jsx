@@ -263,7 +263,7 @@ const BrandVoice = () => {
 
           <div>
             <label className="text-sm font-medium text-gray-700 block mb-2">
-              Paste link of your post or blog *
+              Paste link of your post or blog <span className="text-red-500">*</span>
             </label>
             <motion.input
               type="text"
@@ -286,7 +286,7 @@ const BrandVoice = () => {
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-2">Keywords*</label>
+            <label className="text-sm font-medium text-gray-700 block mb-2">Keywords <span className="text-red-500">*</span></label>
             <motion.div
               className="flex items-center bg-white border border-gray-300 rounded-lg p-2 flex-wrap gap-2"
               whileHover={{ boxShadow: "0 0 0 3px rgba(99, 102, 241, 0.2)" }}
