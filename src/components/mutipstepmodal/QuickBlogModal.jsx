@@ -135,6 +135,9 @@ const QuickBlogModal = ({ closefnc }) => {
     if (e.key === "Enter") {
       e.preventDefault()
       handleAddKeyword(type)
+    } else if (e.key === ",") {
+      e.preventDefault()
+      handleAddKeyword(type)
     }
   }
 

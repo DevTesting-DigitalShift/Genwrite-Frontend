@@ -40,6 +40,9 @@ const MultiStepModal = ({ closefnc }) => {
     selectedDates: null,
   })
 
+  console.log("userDefinedLength", formData.userDefinedLength);
+  
+
   const handleNext = () => {
     if (currentStep === 1) {
       if (formData.topics.length === 0 && formData.topicInput.trim() === "") {

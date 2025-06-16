@@ -1,13 +1,8 @@
-import { useState, useEffect } from "react";
-import axiosInstance from "@/api/index";
+import { useState, useEffect } from "react"
+import axiosInstance from "@/api/index"
+import { toast } from "react-toastify"
 
-const SecondStepModal = ({
-  handleNext,
-  handlePrevious,
-  handleClose,
-  data,
-  setData,
-}) => {
+const SecondStepModal = ({ handleNext, handlePrevious, handleClose, data, setData }) => {
   const [formData, setFormData] = useState({
     numberOfCounts: data.numberOfCounts || 5,
     // numberOfOrders: data.numberOfOrders || 50,
@@ -18,11 +13,11 @@ const SecondStepModal = ({
     isCheckedQuick: data.isCheckedQuick || false,
     isCheckedBrand: data.isCheckedBrand || false,
     aiModel: data.aiModel || "gemini",
-  });
+  })
 
-  const [brandVoices, setBrandVoices] = useState([]);
-  const [loadingBrands, setLoadingBrands] = useState(false);
-  const [brandError, setBrandError] = useState(null);
+  const [brandVoices, setBrandVoices] = useState([])
+  const [loadingBrands, setLoadingBrands] = useState(false)
+  const [brandError, setBrandError] = useState(null)
 
   const handleKeywordInputChange = (e, type) => {
     if (type === "keywords") {
@@ -30,29 +25,26 @@ const SecondStepModal = ({
         ...prevState,
         [`${type}Input`]: e.target.value,
         keywordInput: e.target.value,
-      }));
+      }))
     } else {
       setFormData((prevState) => ({
         ...prevState,
         [`${type}Input`]: e.target.value,
         focusKeywordInput: e.target.value,
-      }));
+      }))
     }
-  };
+  }
 
   const handleAddKeyword = (type) => {
-    const inputValue = formData[`${type}Input`];
+    const inputValue = formData[`${type}Input`]
     if (inputValue.trim() !== "") {
       const newKeywords = inputValue
         .split(",")
         .map((keyword) => keyword.trim())
-        .filter((keyword) => keyword !== "");
-      if (
-        type === "focusKeywords" &&
-        formData[type].length + newKeywords.length > 3
-      ) {
-        alert("You can only add up to 3 focus keywords.");
-        return;
+        .filter((keyword) => keyword !== "")
+      if (type === "focusKeywords" && formData[type].length + newKeywords.length > 3) {
+        toast.error("You can only add up to 3 focus keywords.")
+        return
       }
       if (type === "focusKeywords") {
         setFormData({
@@ -60,69 +52,63 @@ const SecondStepModal = ({
           [type]: [...formData[type], ...newKeywords],
           [`${type}Input`]: "",
           focusKeywordInput: "",
-        });
+        })
       } else {
         setFormData({
           ...formData,
           [type]: [...formData[type], ...newKeywords],
           [`${type}Input`]: "",
           keywordInput: "",
-        });
+        })
       }
     }
-  };
+  }
 
   const handleRemoveKeyword = (index, type) => {
-    const updatedKeywords = [...formData[type]];
-    updatedKeywords.splice(index, 1);
-    setFormData({ ...formData, [type]: updatedKeywords });
-  };
+    const updatedKeywords = [...formData[type]]
+    updatedKeywords.splice(index, 1)
+    setFormData({ ...formData, [type]: updatedKeywords })
+  }
 
   const handleKeyPress = (e, type) => {
     if (e.key === "Enter") {
-      e.preventDefault();
-      handleAddKeyword(type);
+      e.preventDefault()
+      handleAddKeyword(type)
+    } else if (e.key === ",") {
+      e.preventDefault()
+      handleAddKeyword(type)
     }
-  };
+  }
 
   const handleNextStep = () => {
-    setData((prev) => ({ ...prev, ...formData }));
-    handleNext();
-  };
+    setData((prev) => ({ ...prev, ...formData }))
+    handleNext()
+  }
 
   useEffect(() => {
     if (formData.isCheckedBrand) {
-      setLoadingBrands(true);
+      setLoadingBrands(true)
       axiosInstance
         .get("/brand")
         .then((res) => {
-          let brandsArr = Array.isArray(res.data)
-            ? res.data
-            : res.data
-            ? [res.data]
-            : [];
-          setBrandVoices(brandsArr);
-          setLoadingBrands(false);
+          let brandsArr = Array.isArray(res.data) ? res.data : res.data ? [res.data] : []
+          setBrandVoices(brandsArr)
+          setLoadingBrands(false)
         })
         .catch((err) => {
-          setBrandError("Failed to fetch brand voices");
-          setLoadingBrands(false);
-        });
+          setBrandError("Failed to fetch brand voices")
+          setLoadingBrands(false)
+        })
     }
-  }, [formData.isCheckedBrand]);
+  }, [formData.isCheckedBrand])
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/50">
       <div className="w-[800px] bg-white rounded-lg shadow-xl">
         <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-lg font-medium">
-            Step 2: Let's make it Compelling
-          </h2>
-          <button
-            onClick={handleClose}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            X
+          <h2 className="text-lg font-medium">Step 2: Let's make it Compelling</h2>
+            <button onClick={handleClose} className="ml-4 text-4xl text-gray-400 hover:text-gray-600">
+            ×
           </button>
         </div>
 
@@ -159,9 +145,7 @@ const SecondStepModal = ({
 
             <div className="grid grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium mb-2">
-                  Number of Paragraphs
-                </label>
+                <label className="block text-sm font-medium mb-2">Number of Paragraphs</label>
                 <input
                   type="range"
                   min="5"
@@ -216,9 +200,7 @@ const SecondStepModal = ({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Focus Keywords
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Focus Keywords</label>
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -243,9 +225,7 @@ const SecondStepModal = ({
                   >
                     {keyword}
                     <button
-                      onClick={() =>
-                        handleRemoveKeyword(index, "focusKeywords")
-                      }
+                      onClick={() => handleRemoveKeyword(index, "focusKeywords")}
                       className="ml-1 text-blue-400 hover:text-blue-600"
                     >
                       ×
@@ -256,9 +236,7 @@ const SecondStepModal = ({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Keywords
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Keywords</label>
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -351,7 +329,7 @@ const SecondStepModal = ({
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default SecondStepModal;
+export default SecondStepModal

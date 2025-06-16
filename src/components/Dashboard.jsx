@@ -19,6 +19,7 @@ import axiosInstance from "@api/index"
 import { load } from "@store/slices/authSlice"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
+import { ToastContainer } from "react-toastify"
 
 // TODO instead of asking for upgrade, show animation of crown with toast & disable features on plan based like free & basic can't open bulk blogs & other features
 const Dashboard = () => {
@@ -115,10 +116,10 @@ const Dashboard = () => {
   const hideQuickBlogModal = () => setQuickBlogModal(false)
   const showCompetitiveAnalysis = () => setCompetitiveAnalysisModal(true)
   const hideCompetitiveAnalysis = () => setCompetitiveAnalysisModal(false)
-
+  
+  console.log("Blog Data: ", modelData)
   const handleSubmit = async (updatedData) => {
     try {
-      console.log("Blog Data: ", modelData.isUnsplashActive)
       handlePopup({
         title: "Single Blog Generation",
         description: (
@@ -159,6 +160,7 @@ const Dashboard = () => {
 
   return (
     <>
+     <ToastContainer />
       <Modal
         title={`Step ${currentStep}/3`}
         visible={isModalVisible}

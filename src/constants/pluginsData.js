@@ -1,7 +1,7 @@
 import axiosInstance from "@api/index"
 import { toast } from "react-toastify"
 
-export const pluginsData = [
+export const pluginsData = (setWordpressStatus) => [
   {
     id: 111,
     pluginImage: "./Images/wordpres.png",
@@ -18,8 +18,10 @@ export const pluginsData = [
         btn.disabled = true
 
         const res = await axiosInstance.get("/wordpress/check")
+        console.log("res", res)
+        setWordpressStatus(res)
         if (res.data.success) {
-          toast.success(res.data.message)
+          toast.success(res.data.message) 
         }
       } catch (err) {
         console.log(err)

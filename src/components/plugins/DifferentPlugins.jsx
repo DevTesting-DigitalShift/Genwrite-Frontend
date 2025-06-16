@@ -9,7 +9,9 @@ const DifferentPlugins = ({
   updatedDate,
   onClick,
   onCheck,
+  wordpressStatus,
 }) => {
+  console.log("wordpressStatus", wordpressStatus?.status)
   return (
     <>
       <div className="border-b-2 border-gray-200 mx-8">
@@ -31,12 +33,16 @@ const DifferentPlugins = ({
           </div>
           <div className="flex items-center gap-4">
             <a href={pluginLink} download>
-              <Button block type="primary" className="bg-[#1B6FC9] text-[#ffffff] text-[14px] font-[400] px-4 py-2 rounded-md">
+              <Button
+                block
+                type="primary"
+                className="bg-[#1B6FC9] text-[#ffffff] text-[14px] font-[400] px-4 py-2 rounded-md"
+              >
                 Install Plugin
               </Button>
             </a>
             <Button block type="primary" onClick={onCheck} className="transition-all">
-              Connect
+              {wordpressStatus?.status === "200" ? "Connected" : "Connect"}
             </Button>
           </div>
         </div>

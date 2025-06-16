@@ -1,38 +1,38 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Send, X, Bot, User, Loader2 } from 'lucide-react';
-import axiosInstance from '@api/index';
+import React, { useState, useRef, useEffect } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import { Send, X, Bot, User, Loader2 } from "lucide-react"
+import axiosInstance from "@api/index"
 
 const ChatBox = ({ isOpen, onClose }) => {
-  const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState([]);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const messagesEndRef = useRef(null);
+  const [message, setMessage] = useState("")
+  const [messages, setMessages] = useState([])
+  const [isGenerating, setIsGenerating] = useState(false)
+  const messagesEndRef = useRef(null)
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    scrollToBottom()
+  }, [messages])
 
   const handleSend = async () => {
     const trimmedMessage = message.trim()
     if (!trimmedMessage) return
-    
+
     // Add user's message to chat
     const userMessage = {
       id: Date.now(),
       text: trimmedMessage,
       sender: "user",
-      timestamp: new Date()
-    };
-    
+      timestamp: new Date(),
+    }
+
     setMessages((prev) => [...prev, userMessage])
-    setMessage('')
+    setMessage("")
     setIsGenerating(true)
-    
+
     try {
       const response = await axiosInstance.post("/user/chat", {
         messages: [...messages, userMessage].slice(-5),
@@ -40,24 +40,24 @@ const ChatBox = ({ isOpen, onClose }) => {
 
       const reply = response.data?.trim?.() || "I couldn't process that. Could you try again?"
       setMessages((prev) => [
-        ...prev, 
-        { 
+        ...prev,
+        {
           id: Date.now() + 1,
-          text: reply, 
+          text: reply,
           sender: "ai",
-          timestamp: new Date()
-        }
+          timestamp: new Date(),
+        },
       ])
     } catch (error) {
       console.error("Chat request failed:", error)
       setMessages((prev) => [
-        ...prev, 
-        { 
+        ...prev,
+        {
           id: Date.now() + 1,
-          text: "Sorry, I'm having trouble connecting. Please try again later.", 
+          text: "Sorry, I'm having trouble connecting. Please try again later.",
           sender: "ai",
-          timestamp: new Date()
-        }
+          timestamp: new Date(),
+        },
       ])
     } finally {
       setIsGenerating(false)
@@ -65,11 +65,14 @@ const ChatBox = ({ isOpen, onClose }) => {
   }
 
   const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault()
+      handleSend()
+    } else if (e.key === ",") {
+      e.preventDefault()
+      handleAddKeyword(type)
     }
-  };
+  }
 
   return (
     <AnimatePresence>
@@ -113,8 +116,7 @@ const ChatBox = ({ isOpen, onClose }) => {
                 </div>
                 <h4 className="font-medium text-gray-700">Welcome to AI Assistant</h4>
                 <p className="text-sm text-gray-500 mt-2">
-                  Ask me anything about content creation, SEO, or blog writing.
-                  I'm here to help!
+                  Ask me anything about content creation, SEO, or blog writing. I'm here to help!
                 </p>
               </motion.div>
             ) : (
@@ -126,49 +128,54 @@ const ChatBox = ({ isOpen, onClose }) => {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.3 }}
-                      className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                      className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
                     >
                       <div
                         className={`max-w-[85%] rounded-2xl p-3 relative ${
-                          msg.sender === 'user'
-                            ? 'bg-indigo-500 text-white rounded-tr-none'
-                            : 'bg-white text-gray-700 rounded-tl-none border border-gray-200'
+                          msg.sender === "user"
+                            ? "bg-indigo-500 text-white rounded-tr-none"
+                            : "bg-white text-gray-700 rounded-tl-none border border-gray-200"
                         }`}
                       >
                         <div className="flex items-start gap-2">
-                          {msg.sender === 'ai' && (
+                          {msg.sender === "ai" && (
                             <div className="bg-indigo-100 p-1.5 rounded-full mt-0.5">
                               <Bot className="w-4 h-4 text-indigo-600" />
                             </div>
                           )}
                           <div>
                             <p className="text-sm">{msg.text}</p>
-                            <div className={`text-xs mt-1.5 ${
-                              msg.sender === 'user' 
-                                ? 'text-indigo-200' 
-                                : 'text-gray-400'
-                            }`}>
-                              {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            <div
+                              className={`text-xs mt-1.5 ${
+                                msg.sender === "user" ? "text-indigo-200" : "text-gray-400"
+                              }`}
+                            >
+                              {msg.timestamp.toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
                             </div>
                           </div>
-                          {msg.sender === 'user' && (
+                          {msg.sender === "user" && (
                             <div className="bg-indigo-400/30 p-1.5 rounded-full ml-2">
                               <User className="w-4 h-4" />
                             </div>
                           )}
                         </div>
-                        
+
                         {/* Message triangle */}
-                        <div className={`absolute top-0 w-3 h-3 ${
-                          msg.sender === 'user'
-                            ? '-right-3 bg-indigo-500 clip-path-user'
-                            : '-left-3 bg-white clip-path-ai border-l border-t border-gray-200'
-                        }`}></div>
+                        <div
+                          className={`absolute top-0 w-3 h-3 ${
+                            msg.sender === "user"
+                              ? "-right-3 bg-indigo-500 clip-path-user"
+                              : "-left-3 bg-white clip-path-ai border-l border-t border-gray-200"
+                          }`}
+                        ></div>
                       </div>
                     </motion.div>
                   ))}
                 </AnimatePresence>
-                
+
                 {isGenerating && (
                   <motion.div
                     initial={{ opacity: 0 }}
@@ -230,8 +237,8 @@ const ChatBox = ({ isOpen, onClose }) => {
                 disabled={isGenerating || !message.trim()}
                 className={`p-3 rounded-xl flex items-center justify-center ${
                   isGenerating || !message.trim()
-                    ? 'bg-gray-200 text-gray-400'
-                    : 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white'
+                    ? "bg-gray-200 text-gray-400"
+                    : "bg-gradient-to-r from-indigo-500 to-purple-500 text-white"
                 }`}
               >
                 {isGenerating ? (
@@ -241,11 +248,9 @@ const ChatBox = ({ isOpen, onClose }) => {
                 )}
               </motion.button>
             </div>
-            <p className="text-xs text-gray-400 text-center mt-2">
-              Press ⏎ Enter to send
-            </p>
+            <p className="text-xs text-gray-400 text-center mt-2">Press ⏎ Enter to send</p>
           </div>
-          
+
           {/* Custom clip paths for message bubbles */}
           <style jsx>{`
             .clip-path-user {
@@ -258,7 +263,7 @@ const ChatBox = ({ isOpen, onClose }) => {
         </motion.div>
       )}
     </AnimatePresence>
-  );
-};
+  )
+}
 
-export default ChatBox;
+export default ChatBox
