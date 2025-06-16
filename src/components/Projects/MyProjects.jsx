@@ -39,6 +39,7 @@ const MyProjects = () => {
 
   useEffect(() => {
     fetchBlogs()
+    axiosInstance.get("/user/transcations").then(console.log)
   }, [])
 
   useEffect(() => {
@@ -111,7 +112,7 @@ const MyProjects = () => {
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 place-items-center p-2">
             {currentItems?.map((blog) => {
-              const { _id, title, status, createdAt, content, aiModel, focusKeywords, updatedAt } =
+              const { _id, title, status, createdAt, content, aiModel, focusKeywords, updatedAt, wordpress } =
                 blog
               const isGemini = /gemini/gi.test(aiModel)
               return (
@@ -216,8 +217,14 @@ const MyProjects = () => {
                         <Trash2 />
                       </Button>
                     </div>
-                    <div className="mt-2">
-                      <span className="block text-xs text-right">
+                    <div className="mt-3 -mb-2 flex justify-end text-xs text-right text-gray-500 font-medium">
+                     {wordpress?.postedOn && <span className="">
+                        Posted on : &nbsp;
+                        {new Date(wordpress.postedOn).toLocaleDateString("en-US", {
+                          dateStyle: "medium",
+                        })}
+                      </span>}
+                      <span className="ml-auto">
                         Last updated : &nbsp;
                         {new Date(updatedAt).toLocaleDateString("en-US", {
                           dateStyle: "medium",

@@ -12,6 +12,7 @@ import SkeletonLoader from "@components/Projects/SkeletonLoader"
 import { useSelector } from "react-redux"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useNavigate } from "react-router-dom"
+import { CrownFilled } from "@ant-design/icons"
 
 const Jobs = () => {
   const tones = ["Professional", "Casual", "Friendly", "Formal", "Technical"]
@@ -41,7 +42,7 @@ const Jobs = () => {
       includeInterlinks: false,
       performKeywordResearch: false,
     },
-    status: "stop", // default to stop (valid enum for backend)
+    status: "active", // default to stop (valid enum for backend)
   })
   const [topicInput, setTopicInput] = useState("")
 
@@ -152,7 +153,7 @@ const Jobs = () => {
 
   // Edit a job
   const handleEditJob = (job) => {
-    if(job.status == "active"){
+    if (job.status == "active") {
       toast.error("Stop the job before editing")
       return
     }
@@ -652,10 +653,10 @@ const Jobs = () => {
                 Previous
               </button>
               <button
-                onClick={newJob?._id ? () => handleUpdateJob(newJob._id ): handleCreateJob}
+                onClick={newJob?._id ? () => handleUpdateJob(newJob._id) : handleCreateJob}
                 className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
               >
-                {newJob?._id ? "Update": "Create"} Job
+                {newJob?._id ? "Update" : "Create"} Job
               </button>
             </div>
           </motion.div>
@@ -700,10 +701,16 @@ const Jobs = () => {
           className="w-full md:w-1/2 lg:w-1/3 h-48 p-6 bg-white rounded-xl shadow-sm hover:shadow-md cursor-pointer mb-8"
           onClick={handleOpenJobModal}
         >
-          <div className="flex items-center gap-4">
+          <div className="flex items-center justify-between gap-4">
             <span className="bg-blue-100 rounded-lg p-3">
               <FiPlus className="w-6 h-6 text-blue-600" />
             </span>
+            {["free", "basic"].includes(userPlan.toLowerCase()) && (
+              <span className="flex items-center gap-2 rounded-md text-white font-semibold border p-1 px-2 bg-gradient-to-tr from-blue-500 to-purple-500">
+                <CrownFilled />
+                Pro
+              </span>
+            )}
           </div>
           <div className="mt-4">
             <h3 className="text-xl font-semibold text-gray-800">Create New Job</h3>

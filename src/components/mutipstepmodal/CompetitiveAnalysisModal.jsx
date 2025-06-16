@@ -38,29 +38,7 @@ const CompetitiveAnalysisModal = ({ closefnc }) => {
   const [recentProjects, setRecentProjects] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [analysisResults, setAnalysisResults] = useState({
-    analysis: {
-      "Keyword Usage":
-        "16/20 — The target keywords are used appropriately throughout the title, headings, and body.  However, keyword stuffing is avoided.  More strategic placement of long-tail keywords could improve the score.",
-      "Content Depth & Relevance":
-        "18/20 — The blog provides a good overview of Generative AI in SEO.  However,  more in-depth analysis of specific AI tools and case studies would enhance its value.",
-      "Headline Strength":
-        "8/10 — The headline is clear and incorporates the target keyword. However, it could be made more compelling and click-worthy by adding a benefit-driven element.",
-      "Content Structure & Readability":
-        "12/15 — The blog uses subheadings, lists, and paragraphs effectively. The flow is generally good, though some transitions could be smoother.",
-      "Use of Media":
-        "6/10 — The blog includes images, but alt text is missing for some images, and placeholder images detract from the overall quality.  More relevant and high-quality images are needed.",
-      "Unique Value & Differentiation":
-        "7/10 — The blog offers a decent overview, but lacks truly unique insights or a distinctive angle compared to existing content on the topic.  More original analysis and case studies are needed.",
-      "Tone and Style":
-        "4/5 — The tone is consistent and informative. The style is suitable for the topic, though it could benefit from a more engaging writing style.",
-      "On-Page SEO Extras":
-        "8/10 —  Internal links are used, and the blog includes relevant external links. However, meta descriptions and schema markup are missing, which would greatly improve SEO.",
-    },
-    blogScore: "79",
-    suggestions:
-      "To beat competitors, focus on creating more in-depth content with unique case studies and data-driven analysis.  Improve the visual appeal by using high-quality, relevant images with proper alt text.  Implement schema markup and optimize meta descriptions.  Strengthen the headline to increase click-through rates. Conduct thorough keyword research to identify long-tail keywords and incorporate them strategically. Explore advanced AI SEO tools and their specific applications to provide more practical advice.  Finally, focus on building more authoritative backlinks from relevant websites.",
-  })
+  const [analysisResults, setAnalysisResults] = useState(null)
 
   const { handlePopup } = useConfirmPopup()
   useEffect(() => {
@@ -348,7 +326,7 @@ const CompetitiveAnalysisModal = ({ closefnc }) => {
                               <span className="font-medium text-gray-800">{key}</span>
                               {score && (
                                 <span className="text-sm text-center w-[10ch] font-semibold text-blue-700 bg-gray-100 tracking-wide px-2 py-0.5 rounded-md">
-                                  {score?.replace('/', " / ")}
+                                  {score?.replace("/", " / ")}
                                 </span>
                               )}
                             </div>

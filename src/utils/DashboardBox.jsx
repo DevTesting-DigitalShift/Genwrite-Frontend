@@ -1,101 +1,143 @@
-import React, { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import React, { useEffect } from "react"
+import { useNavigate } from "react-router-dom"
+import { motion } from "framer-motion"
+import { useSelector } from "react-redux"
+import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import { CrownFilled } from "@ant-design/icons"
 
 const DashboardBox = ({ imageUrl, title, content, id, functions }) => {
+  const user = useSelector((state) => state.auth.user)
+  const userPlan = user?.plan ?? user?.subscription?.plan
+  const { handlePopup } = useConfirmPopup()
+  const showPopup = () => {
+    handlePopup({
+      title: "Upgrade Required",
+      description: "Bulk blog generation is only available for Pro and Enterprise users.",
+      confirmText: "Buy Now",
+      cancelText: "Cancel",
+      onConfirm: () => navigate("/upgrade"),
+    })
+  }
   return (
     <div
       className="w-1/2 md:w-1/3 h-44 p-4 break-words rounded-md bg-[#FAFAFA] shadow-sm cursor-pointer border hover:shadow-md transition duration-200"
       onClick={() => {
         if (id === "A") {
-          functions.showQuickBlogModal && functions.showQuickBlogModal();
+          functions.showQuickBlogModal && functions.showQuickBlogModal()
         } else if (id === 1) {
-          functions.showModal && functions.showModal();
+          functions.showModal && functions.showModal()
         } else if (id === "B") {
-          functions.showMultiStepModal && functions.showMultiStepModal();
+          // Restrict for free/basic plans
+          if (["free", "basic"].includes(userPlan.toLowerCase())) {
+            showPopup()
+            return
+          }
+          functions.showMultiStepModal && functions.showMultiStepModal()
         } else if (id === 4) {
-          functions.showCompetitiveAnalysis && functions.showCompetitiveAnalysis();
+          functions.showCompetitiveAnalysis && functions.showCompetitiveAnalysis()
         } else if (id === 3) {
-          functions.showPerformanceMonitoring && functions.showPerformanceMonitoring();
+          functions.showPerformanceMonitoring && functions.showPerformanceMonitoring()
         }
       }}
     >
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center justify-between space-x-4">
         <span className="bg-[#E8F1FA] rounded-full p-2">
           <motion.div
             whileHover={{ scale: 1.15, rotate: 8 }}
             animate={{
               y: [0, -4, 0],
-              transition: { repeat: Infinity, duration: 2, ease: 'easeInOut' }
+              transition: { repeat: Infinity, duration: 2, ease: "easeInOut" },
             }}
-            transition={{ type: 'spring', stiffness: 300 }}
+            transition={{ type: "spring", stiffness: 300 }}
             className="inline-block"
           >
             <img src={imageUrl} alt={title} className="w-6 h-6 object-contain" />
           </motion.div>
         </span>
+          {["free", "basic"].includes(userPlan.toLowerCase()) && id=='B' && (
+            <span className="flex items-center gap-2 rounded-md text-white font-semibold border p-1 px-2 bg-gradient-to-tr from-blue-500 to-purple-500">
+              <CrownFilled />
+              Pro
+            </span>
+          )}
       </div>
       <div className="mt-2">
-        <h3 className="font-hind text-[#000000] font-[500] text-[18px] pt-3">
-          {title}
-        </h3>
-        <p className="font-hind text-[#454545] font-[400] text-[14px] break-words">
-          {content}
-        </p>
+        <h3 className="font-hind text-[#000000] font-[500] text-[18px] pt-3">{title}</h3>
+        <p className="font-hind text-[#454545] font-[400] text-[14px] break-words">{content}</p>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default DashboardBox;
+export default DashboardBox
 
 export const QuickBox = ({ imageUrl, title, content, id, functions }) => {
+  const user = useSelector((state) => state.auth.user)
+  const userPlan = user.plan ?? user?.subscription?.plan
+  const { handlePopup } = useConfirmPopup()
+  const showPopup = () => {
+    handlePopup({
+      title: "Upgrade Required",
+      description: "Competitor Analysis is only available for Pro and Enterprise users.",
+      confirmText: "Buy Now",
+      cancelText: "Cancel",
+      onConfirm: () => navigate("/upgrade"),
+    })
+  }
   const handleClick = () => {
     if (id === 4 && functions?.showCompetitiveAnalysis) {
-      functions.showCompetitiveAnalysis();
+      if (["free", "basic"].includes(userPlan.toLowerCase())) {
+        showPopup()
+        return
+      }
+      functions.showCompetitiveAnalysis()
     } else if (id === 3 && functions?.showPerformanceMonitoring) {
-      functions.showPerformanceMonitoring();
+      functions.showPerformanceMonitoring()
     }
-  };
+  }
 
   return (
     <div
       className="rounded-md p-4 shadow-sm hover:shadow-md bg-[#FAFAFA] cursor-pointer border transition duration-200"
       onClick={handleClick}
     >
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center justify-between space-x-4">
         <span className="bg-[#E8F1FA] rounded-full p-2">
           <motion.div
             whileHover={{ scale: 1.15, rotate: 8 }}
-            transition={{ type: 'spring', stiffness: 300 }}
+            transition={{ type: "spring", stiffness: 300 }}
             className="inline-block"
           >
             <img src={imageUrl} alt={title} className="w-6 h-6 object-contain" />
           </motion.div>
         </span>
+         {["free", "basic"].includes(userPlan.toLowerCase()) && id==4 && (
+            <span className="flex items-center gap-2 rounded-md text-white font-semibold border p-1 px-2 bg-gradient-to-tr from-blue-500 to-purple-500">
+              <CrownFilled />
+              Pro
+            </span>
+          )}
       </div>
       <div className="mt-2">
         <h3 className="text-[#000000] font-[500] text-[18px] pt-3">{title}</h3>
         <p className="text-[#454545] font-[400] text-[14px]">{content}</p>
       </div>
     </div>
-  );
-};
+  )
+}
 
 export const RecentProjects = ({ title, content, tags, item }) => {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
   // Truncate content to 80 characters and add ellipses if it's too long
   const truncatedContent =
-    content && content.length > 40
-      ? `${content.substring(0, 80)}...`
-      : content || ""; // Default to an empty string if content is null
+    content && content.length > 40 ? `${content.substring(0, 80)}...` : content || "" // Default to an empty string if content is null
 
   const handleBlogClick = () => {
     if (item && item._id) {
-      navigate(`/toolbox/${item._id}`, { state: { blog: item } });
+      navigate(`/toolbox/${item._id}`, { state: { blog: item } })
     }
-  };
+  }
 
   return (
     <div
@@ -109,23 +151,16 @@ export const RecentProjects = ({ title, content, tags, item }) => {
         </span>
       </div>
       <div className="p-1 pt-2">
-        <h3 className="text-[#000000] font-[500] text-[18px] pt-2 mb-2 w-80">
-          {title}
-        </h3>
-        <p className="text-[#454545] font-[400] text-[14px]">
-          {truncatedContent}
-        </p>
+        <h3 className="text-[#000000] font-[500] text-[18px] pt-2 mb-2 w-80">{title}</h3>
+        <p className="text-[#454545] font-[400] text-[14px]">{truncatedContent}</p>
       </div>
       <div className="flex items-center justify-start flex-wrap text-ellipsis gap-3 ml-3">
         {tags?.map((tag, index) => (
-          <span
-            key={index}
-            className="text-md border-2 p-1 rounded-xl bg-blue-50"
-          >
+          <span key={index} className="text-md border-2 p-1 rounded-xl bg-blue-50">
             {tag}
           </span>
         ))}
       </div>
     </div>
-  );
-};
+  )
+}

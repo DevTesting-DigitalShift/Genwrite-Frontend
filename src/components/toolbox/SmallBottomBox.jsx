@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Button, Space, Tooltip } from "antd";
+import React, { useState } from "react"
+import { Button, Space, Tooltip } from "antd"
 import {
   CopyOutlined,
   ReloadOutlined,
@@ -7,59 +7,52 @@ import {
   MessageOutlined,
   PlusOutlined,
   CloseOutlined,
-} from "@ant-design/icons";
-import { motion, AnimatePresence } from "framer-motion";
+} from "@ant-design/icons"
+import { motion, AnimatePresence } from "framer-motion"
 
-import ImageGenerationModal from "./ImageGenerationModal";
-import ChatBox from "../generateBlog/ChatBox";
+import ImageGenerationModal from "./ImageGenerationModal"
+import ChatBox from "../generateBlog/ChatBox"
+import { Menu } from "lucide-react"
 
 const SmallBottomBox = () => {
-  const [isMenuOpen, setMenuOpen] = useState(false);
-  const [isModalOpen, setModalOpen] = useState(false);
-  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isMenuOpen, setMenuOpen] = useState(false)
+  const [isModalOpen, setModalOpen] = useState(false)
+  const [isChatOpen, setIsChatOpen] = useState(false)
 
-  const toggleMenu = () => setMenuOpen((prev) => !prev);
-  const closeModal = () => setModalOpen(false);
-  const closeChat = () => setIsChatOpen(false);
+  const toggleMenu = () => setMenuOpen((prev) => !prev)
+  const closeModal = () => setModalOpen(false)
+  const closeChat = () => setIsChatOpen(false)
 
   const menuOptions = [
     {
       label: "Copy",
       icon: <CopyOutlined />,
       onClick: () => {
-        navigator.clipboard.writeText("Copied content"); // Replace with actual content
-        setMenuOpen(false);
+        navigator.clipboard.writeText("Copied content") // Replace with actual content
+        setMenuOpen(false)
       },
     },
     {
       label: "Regenerate",
       icon: <ReloadOutlined />,
       onClick: () => {
-        console.log("Regenerate clicked");
-        setMenuOpen(false);
+        console.log("Regenerate clicked")
+        setMenuOpen(false)
       },
     },
     {
       label: "Generate Images",
       icon: <PictureOutlined />,
       onClick: () => {
-        setModalOpen(true);
-        setMenuOpen(false);
+        setModalOpen(true)
+        setMenuOpen(false)
       },
     },
-    {
-      label: "Chat Box",
-      icon: <MessageOutlined />,
-      onClick: () => {
-        setIsChatOpen(true);
-        setMenuOpen(false);
-      },
-    },
-  ];
+  ]
 
   return (
     <>
-      <div className="fixed bottom-10 right-28 transform translate-x-12 z-50 flex flex-col items-end">
+      <div className="relative mt-1 ml-auto flex flex-col items-end">
         {/* Action List */}
         <AnimatePresence>
           {isMenuOpen && (
@@ -68,7 +61,7 @@ const SmallBottomBox = () => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
               transition={{ duration: 0.2 }}
-              className="mb-3 flex flex-col gap-2 items-center p-2 rounded-xl bg-black/20 backdrop-blur-sm"
+              className="mb-3 absolute top-10 z-50 flex flex-col gap-2 items-center p-2 rounded-xl bg-black/50 backdrop-blur-xl"
             >
               {menuOptions.map(({ label, icon, onClick }) => (
                 <motion.div
@@ -85,7 +78,7 @@ const SmallBottomBox = () => {
                       icon={icon}
                       size="large"
                       onClick={onClick}
-                      className="w-48 text-left p-1 shadow-md font-medium"
+                      className="w-48 text-left shadow-md font-medium"
                     >
                       {label}
                     </Button>
@@ -99,12 +92,10 @@ const SmallBottomBox = () => {
         {/* Floating Button */}
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
           <Button
-            type="primary"
-            shape="circle"
-            size="large"
-            icon={isMenuOpen ? <CloseOutlined /> : <PlusOutlined />}
+            type="default"
+            icon={isMenuOpen ? <CloseOutlined /> : <Menu />}
             onClick={toggleMenu}
-            className="shadow-xl"
+            className="pt-1"
           />
         </motion.div>
       </div>
@@ -113,7 +104,7 @@ const SmallBottomBox = () => {
       {isModalOpen && <ImageGenerationModal onClose={closeModal} />}
       <ChatBox isOpen={isChatOpen} onClose={closeChat} />
     </>
-  );
-};
+  )
+}
 
-export default SmallBottomBox;
+export default SmallBottomBox
