@@ -38,7 +38,7 @@ const DEMO_PROFILE = {
   subscription: {
     type: "Free",
     startDate: "2024-01-01",
-    renewalDate: "2025-01-01",
+    renewalDate: "1/1/2025",
     credits: 1500,
     planFeatures: ["Unlimited Projects", "Priority Support", "Advanced Analytics"],
     paymentHistory: [
@@ -46,10 +46,6 @@ const DEMO_PROFILE = {
       { id: 2, date: "2024-02-01", amount: "$1500", status: "paid" },
     ],
   },
-  invoices: [
-    { id: 1, date: "2024-03-01", amount: "$1500", downloadLink: "#", status: "paid" },
-    { id: 2, date: "2024-02-01", amount: "$1500", downloadLink: "#", status: "pending" },
-  ],
 }
 
 const Profile = () => {
@@ -109,7 +105,7 @@ const Profile = () => {
       try {
         const res = await axiosInstance.put("/user/profile", data)
         if (res?.data) {
-         await load()(dispatch)
+          await load()(dispatch)
         }
         toast.success("User updated successfully")
       } catch (err) {
@@ -197,21 +193,25 @@ const Profile = () => {
                   hover: { scale: 1.03 },
                 }}
               >
-                <img
-                  src={profileData.profilePicture}
-                  alt="Profile"
-                  className="w-40 h-40 rounded-full border-4 border-white/80 object-cover shadow-2xl relative z-10"
-                  onClick={() => isEditing && fileInputRef.current.click()}
-                  style={{ cursor: isEditing ? "pointer" : "default" }}
-                />
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleImageUpload}
-                  className="hidden"
-                  accept="image/*"
-                  disabled={!isEditing}
-                />
+                {profileData?.profilePicture && (
+                  <>
+                    <img
+                      src={profileData.profilePicture}
+                      alt="Profile"
+                      className="w-40 h-40 rounded-full border-4 border-white/80 object-cover shadow-2xl relative z-10"
+                      onClick={() => isEditing && fileInputRef.current.click()}
+                      style={{ cursor: isEditing ? "pointer" : "default" }}
+                    />
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleImageUpload}
+                      className="hidden"
+                      accept="image/*"
+                      disabled={!isEditing}
+                    />
+                  </>
+                )}
               </motion.div>
 
               <motion.div className="space-y-3 text-white" initial={{ x: -20 }} animate={{ x: 0 }}>
@@ -379,7 +379,7 @@ const Profile = () => {
                 >
                   <div className="absolute -top-20 -right-20 w-40 h-40 bg-purple-200/20 rounded-full blur-3xl" />
                   <h2 className="text-2xl font-bold text-slate-800 mb-6">Subscription & Credits</h2>
-                  <div className="space-y-4">
+                  <div className="space-y-4 ">
                     <div className="flex justify-between items-center p-3 rounded-lg bg-white/80">
                       <span className="font-medium">Plan Type</span>
                       <span className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-1 rounded-full">
@@ -387,9 +387,15 @@ const Profile = () => {
                       </span>
                     </div>
                     <div className="flex justify-between items-center p-3 rounded-lg bg-white/80">
+                      <span className="font-medium">Credits Available</span>
+                      <span className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-4 py-1 rounded-full">
+                        {profileData.subscription.credits || DEMO_PROFILE.subscription.credits}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 rounded-lg bg-white/80">
                       <span className="font-medium">Start Date</span>
                       <span>
-                        {profileData.subscription.startDate || DEMO_PROFILE.subscription.startDate}
+                        {new Date(profileData.subscription.startDate).toLocaleDateString('en-IN',) || DEMO_PROFILE.subscription.startDate}
                       </span>
                     </div>
                     <div className="flex justify-between items-center p-3 rounded-lg bg-white/80">
@@ -397,12 +403,6 @@ const Profile = () => {
                       <span>
                         {profileData.subscription.renewalDate ||
                           DEMO_PROFILE.subscription.renewalDate}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 rounded-lg bg-white/80">
-                      <span className="font-medium">Credits Available</span>
-                      <span className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-4 py-1 rounded-full">
-                        {profileData.subscription.credits || DEMO_PROFILE.subscription.credits}
                       </span>
                     </div>
                   </div>
@@ -483,60 +483,6 @@ const Profile = () => {
                       onChange={handleInputChange}
                       placeholder={DEMO_PROFILE.billingDetails.companyEmail}
                     />
-                  </div>
-                </motion.div>
-
-                {/* Invoice Management */}
-                <motion.div
-                  variants={cardVariants}
-                  whileHover="hover"
-                  className="bg-white/80 backdrop-blur-sm p-8 rounded-2xl border-2 border-slate-200 shadow-lg"
-                >
-                  <h2 className="text-2xl font-bold text-slate-800 mb-6">Invoice Management</h2>
-                  <div className="space-y-4">
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      className="w-full py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
-                    >
-                      <DocumentArrowDownIcon className="w-5 h-5" />
-                      Create New Invoice
-                    </motion.button>
-
-                    <div className="space-y-2">
-                      {(profileData.invoices.length
-                        ? profileData.invoices
-                        : DEMO_PROFILE.invoices
-                      ).map((invoice, index) => (
-                        <motion.div
-                          key={invoice.id}
-                          className="flex justify-between items-center p-3 rounded-lg border-2 border-slate-200 bg-white/90"
-                          initial={{ opacity: 0, x: 20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.1 }}
-                          whileHover={{ x: 5 }}
-                        >
-                          <div>
-                            <span className="font-medium">Invoice #{invoice.id}</span>
-                            <span className="text-slate-500 ml-4">{invoice.date}</span>
-                            <span
-                              className={`ml-4 px-2 py-1 rounded-full text-sm ${
-                                invoice.status === "paid"
-                                  ? "bg-green-100 text-green-800"
-                                  : "bg-yellow-100 text-yellow-800"
-                              }`}
-                            >
-                              {invoice.status}
-                            </span>
-                          </div>
-                          <motion.button
-                            className="text-blue-500 hover:text-blue-600"
-                            whileHover={{ scale: 1.05 }}
-                          >
-                            <DocumentArrowDownIcon className="w-5 h-5" />
-                          </motion.button>
-                        </motion.div>
-                      ))}
-                    </div>
                   </div>
                 </motion.div>
               </div>

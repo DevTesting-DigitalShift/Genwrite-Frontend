@@ -163,7 +163,7 @@ const Dashboard = () => {
         title={`Step ${currentStep}/3`}
         visible={isModalVisible}
         onCancel={handleCancel}
-        className="max-h-svh overflow-scroll"
+        className="max-h-[90vh] overflow-scroll"
       >
         {currentStep === 0 && (
           <SelectTemplateModal
@@ -293,9 +293,6 @@ const Dashboard = () => {
           </div>
         </div>
       )}
-      <div className="">
-        <QuestionButton />
-      </div>
     </>
   )
 }

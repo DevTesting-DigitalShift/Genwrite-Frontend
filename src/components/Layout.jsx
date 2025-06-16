@@ -6,7 +6,7 @@ import { RxAvatar } from "react-icons/rx"
 import { logoutUser } from "../store/slices/authSlice"
 import { motion, AnimatePresence } from "framer-motion"
 import { FaHourglassHalf, FaCheck, FaTimes } from "react-icons/fa"
-import { Badge, Tooltip, Switch, Button } from "antd"
+import { Badge, Tooltip, Switch, Dropdown, Avatar, Menu } from "antd"
 import { CrownFilled } from "@ant-design/icons"
 import { RiCoinsFill } from "react-icons/ri"
 import NotificationDropdown from "@components/NotificationDropdown"
@@ -14,59 +14,9 @@ import GoProButton from "@components/GoProButton"
 
 const LayoutWithSidebarAndHeader = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [settingsOpen, setSettingsOpen] = useState(false)
   const location = useLocation()
   const { user } = useSelector((selector) => selector.auth)
   const [isUserLoaded, setIsUserLoaded] = useState(false)
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-        when: "beforeChildren",
-      },
-    },
-  }
-
-  const itemVariants = {
-    hidden: { opacity: 0, x: 20 },
-    visible: {
-      opacity: 1,
-      x: 0,
-      transition: { type: "spring", stiffness: 300 },
-    },
-    exit: { opacity: 0, x: -20 },
-    hover: {
-      y: -2,
-      scale: 1.02,
-      boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-    },
-    tap: { scale: 0.98 },
-  }
-
-  // Modern color palette
-  const typeStyles = {
-    generating: {
-      bg: "bg-amber-50/80",
-      text: "text-amber-700",
-      border: "border-amber-200",
-      icon: "⏳", // Hourglass icon
-    },
-    completed: {
-      bg: "bg-emerald-50/80",
-      text: "text-emerald-700",
-      border: "border-emerald-200",
-      icon: "✅", // Checkmark icon
-    },
-    error: {
-      bg: "bg-rose-50/80",
-      text: "text-rose-700",
-      border: "border-rose-200",
-      icon: "⚠️", // Warning icon
-    },
-  }
 
   useEffect(() => {
     if (user?.name) {
@@ -85,22 +35,43 @@ const LayoutWithSidebarAndHeader = () => {
     { title: "Brand Voice", src: "brandvoiceicon.svg", path: "/brandvoice" },
     { title: "TrashCan", src: "trashcan.png", path: "/trashcan" },
     { title: "Jobs", src: "jobsicon.svg", path: "/jobs" },
-    { title: "Upgrade", src: "upgrade.svg", path: "/upgrade" },
   ]
 
   const path = location.pathname
 
-  const toggleSettings = () => {
-    setSettingsOpen(!settingsOpen)
-  }
-
   const handleLogout = async () => {
     try {
-      setSettingsOpen(false)
       await dispatch(logoutUser(navigate))
     } catch (error) {
       console.log(error)
     }
+  }
+
+  /** @type {import("antd").MenuProps} */
+  const userMenu = {
+    onClick: ({ key }) => {
+      if (key === "logout") handleLogout()
+      else navigate(`/${key}`)
+    },
+    rootClassName: "!px-4 !py-2 rounded-lg shadow-md w-[20ch] text-lg !bg-gray-50 gap-4",
+    items: [
+      {
+        key: "name",
+        label: (
+          <Tooltip title={user?.name} className="block font-medium text-gray-900 text-center text-lg whitespace-nowrap w-full overflow-hidden text-ellipsis">
+            {user?.name}
+          </Tooltip>
+        ),
+        disabled: true, // Show name but non-clickable
+      },
+      { type: "divider" },
+      { key: "profile", label: "Profile", className: "!py-1.5 hover:bg-gray-100" },
+      { key: "transactions", label: "Transactions", className: "!py-1.5 hover:bg-gray-100" },
+      { key: "credit-logs", label: "Credit Logs", className: "!py-1.5 hover:bg-gray-100" },
+      { key: "upgrade", label: "Upgrade", className: "!py-1.5 hover:bg-gray-100" },
+      { type: "divider" },
+      { key: "logout", danger: true, label: "Logout", className: "!py-2 hover:bg-gray-100" },
+    ],
   }
 
   return (
@@ -116,8 +87,6 @@ const LayoutWithSidebarAndHeader = () => {
         <div className="h-10 flex gap-x-4 items-center text-black mb-4 overflow-clip">
           <img
             src="/Images/logo_genwrite_1.png"
-            // width={"150"}
-            // height={"100"}
             loading="lazy"
             className={`cursor-pointer transition-transform duration-700 ease-in-out ${
               sidebarOpen ? "" : "object-contain min-w-[90px] -ml-2.5"
@@ -125,19 +94,6 @@ const LayoutWithSidebarAndHeader = () => {
             alt="Logo"
           />
         </div>
-        {/* <div className={`flex ${sidebarOpen ? 'justify-start pr-4' : 'justify-center'} mb-2`}>
-          <div className="w-full flex items-center justify-center gap-2 pl-4 py-2">
-            <Switch
-              checked={path === '/upgrade'}
-              onChange={(checked) => {
-                if (checked) navigate("/upgrade");
-                else navigate("/dash");
-              }}
-              className="mr-2 custom-blue-switch"
-            />
-            <span className={`font-bold text-white ${sidebarOpen ? 'pr-4' : 'hidden'} transition-all duration-300`}>Go Pro</span>
-          </div>
-        </div> */}
         <style>
           {`
             .custom-blue-switch .ant-switch {
@@ -186,33 +142,12 @@ const LayoutWithSidebarAndHeader = () => {
             </li>
           ))}
         </ul>
-
-        {/* User Profile Section */}
-        <div className="absolute bottom-0 w-full p-4">
-          <NavLink
-            to="/profile"
-            className="flex items-center py-3  w-full text-gray-300 hover:text-white transition duration-150"
-          >
-            <img
-              src="/Images/usericon.svg"
-              alt="User Profile"
-              className={`${!sidebarOpen ? "w-8 ml-1 h-8 relative -left-5" : ""}`}
-            />
-            <span
-              className={`${
-                !sidebarOpen && "hidden"
-              } ml-3 text-lg font-medium origin-left transition-opacity duration-500 ease-in-out`}
-            >
-              {user?.name?.split(" ")[0] || "UserName"}
-            </span>
-          </NavLink>
-        </div>
       </div>
 
       {/* Main Content */}
       <div className="flex-1 ml-20 w-[93vw] fixed z-30">
-        {/* Header */}
         <header className="top-0 z-[9999] bg-gray-50 p-4 flex items-center justify-between">
+          {/* Left side: search */}
           <div className="flex items-center">
             <button className="lg:hidden mr-4">{/* Button content */}</button>
             <div className="flex items-center bg-white rounded-full overflow-hidden w-64 lg:w-96 shadow-md hover:shadow-lg transition-shadow duration-300">
@@ -224,44 +159,50 @@ const LayoutWithSidebarAndHeader = () => {
               />
             </div>
           </div>
+
+          {/* Right side */}
           <div className="flex items-center space-x-4">
-            <GoProButton onClick={() => navigate("/upgrade")}/>
-            <button className="p-2 text-gray-700 rounded-full transition duration-200 flex items-center gap-2">
-              {isUserLoaded && user?.name ? (
-                <>
-                  <Tooltip
-                    title="User Credits"
+            <GoProButton onClick={() => navigate("/upgrade")} />
+
+            {/* Credits */}
+            {isUserLoaded && user?.name ? (
+              <>
+                <Tooltip title="User Credits">
+                  <button
                     onClick={() => navigate("/upgrade")}
-                    className="flex gap-2 justify-center items-center mr-4 rounded-full p-2 hover:bg-gray-100"
+                    className="flex gap-2 justify-center items-center mr-4 rounded-full p-2 hover:bg-gray-100 transition"
                   >
                     <RiCoinsFill size={30} color="orange" />
                     <span className="font-semibold text-lg">
-                      {user.credits?.base + user.credits?.extra}
+                      {user?.credits?.base + user?.credits?.extra}
                     </span>
-                  </Tooltip>
-                  <Tooltip
-                    title={`Hello ${user.name}`}
-                    className="size-10 bg-gradient-to-tr from-blue-400 to-purple-700 text-white rounded-full hover:bg-gray-100 text-xl p-2"
+                  </button>
+                </Tooltip>
+
+                {/* Notifications */}
+                <div className="relative">
+                  <NotificationDropdown notifications={user?.notifications} />
+                </div>
+                {/* Dropdown Avatar with menu */}
+                <Dropdown menu={userMenu} trigger={["click"]} placement="bottomRight">
+                  {/* <Tooltip title={`Hello ${user.name}`} > */}
+                  <Avatar
+                    className="bg-gradient-to-tr from-blue-400 to-purple-700 text-white text-lg font-bold cursor-pointer hover:ring-2 hover:ring-offset-2 hover:ring-purple-500 transition"
+                    size="large"
                   >
                     {user.name.slice(0, 1).toUpperCase()}
-                  </Tooltip>
-                </>
-              ) : (
-                <>
-                  <RxAvatar size={30} />
-                  <span className="text-[#2E2E2E] text-[16px] font-[400]">UserName</span>
-                </>
-              )}
-            </button>
-            <div className="relative">
-              {/* <button
-                className="p-2 text-gray-700 hover:bg-gray-100 rounded-full transition duration-150"
-                onClick={toggleNotifications}
-              >
-                <FaBell className="w-6 h-6" />
-              </button> */}
-              <NotificationDropdown notifications={user?.notifications} />
-            </div>
+                  </Avatar>
+                  {/* </Tooltip> */}
+                </Dropdown>
+              </>
+            ) : (
+              <div className="flex items-center gap-2">
+                <RxAvatar size={30} />
+                <span className="text-[#2E2E2E] text-[16px] font-[400]">UserName</span>
+              </div>
+            )}
+
+            {/* Settings Dropdown (Animated)
             <div className="relative">
               <button
                 className="p-2 text-gray-700 hover:bg-gray-100 rounded-full transition duration-150"
@@ -270,16 +211,22 @@ const LayoutWithSidebarAndHeader = () => {
                 <FaCog className="w-6 h-6" />
               </button>
               {settingsOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md overflow-hidden shadow-xl z-10">
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="absolute right-0 mt-2 w-48 bg-white rounded-md overflow-hidden shadow-xl z-10"
+                >
                   <button
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
                     onClick={handleLogout}
                   >
                     Logout
                   </button>
-                </div>
+                </motion.div>
               )}
-            </div>
+            </div> */}
           </div>
         </header>
       </div>

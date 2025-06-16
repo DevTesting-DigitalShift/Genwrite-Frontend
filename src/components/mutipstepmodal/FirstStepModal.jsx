@@ -61,7 +61,7 @@ const FirstStepModal = ({
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/50">
-      <div className="w-[800px] bg-white rounded-lg shadow-xl ">
+      <div className="w-[800px] h-[90vh] bg-white rounded-lg shadow-xl overflow-y-auto ">
         <div className="flex items-center justify-between p-4 border-b">
           <h2 className="text-lg font-medium">Step 1: Let's get started</h2>
           <button

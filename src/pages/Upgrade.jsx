@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import axiosInstance from "@api/index"
 import { useNavigate } from "react-router-dom"
 import { loadStripe } from "@stripe/stripe-js"
+import { MailOutlined } from "@ant-design/icons"
 
 const PricingCard = ({ plan, isAnnual, index, onBuy }) => {
   const [customCredits, setCustomCredits] = useState(0) // State for custom credits
@@ -93,11 +94,14 @@ const PricingCard = ({ plan, isAnnual, index, onBuy }) => {
             } else {
               onBuy(plan, customCredits)
             }
+          } else if (plan.name.toLowerCase().includes("enterprise")) {
+           window.location.href = 'mailto:supportGenwrite@gmail.com?subject=Genwrite Enterprise Subscription';
           } else {
             onBuy(plan)
           }
         }}
       >
+        {plan.name.toLowerCase().includes("enterprise") && <MailOutlined className="mr-2" />}{" "}
         {plan.cta}
       </motion.button>
 
