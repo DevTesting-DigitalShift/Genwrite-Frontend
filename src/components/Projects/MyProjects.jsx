@@ -39,7 +39,6 @@ const MyProjects = () => {
 
   useEffect(() => {
     fetchBlogs()
-    axiosInstance.get("/user/transcations").then(console.log)
   }, [])
 
   useEffect(() => {
@@ -112,11 +111,22 @@ const MyProjects = () => {
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 place-items-center p-2">
             {currentItems?.map((blog) => {
-              const { _id, title, status, createdAt, content, aiModel, focusKeywords, updatedAt, wordpress } =
-                blog
+              const {
+                _id,
+                title,
+                status,
+                createdAt,
+                content,
+                aiModel,
+                focusKeywords,
+                updatedAt,
+                wordpress,
+                agendaJob,
+              } = blog
               const isGemini = /gemini/gi.test(aiModel)
               return (
                 <Badge.Ribbon
+                  key={_id}
                   text={
                     <span className="flex items-center justify-center gap-1 py-1 font-medium tracking-wide">
                       <img
@@ -149,7 +159,21 @@ const MyProjects = () => {
                       })}
                     </div>
                     <Tooltip
-                      title={status === "complete" ? title : `Blog generation is ${status}`}
+                      title={
+                        status === "complete"
+                          ? title
+                          : ["failed", "in-progress"].includes(status)
+                          ? `Blog generation is ${status}`
+                          : `Pending Blog will be generated ${
+                              agendaJob?.nextRunAt
+                                ? "at " +
+                                  new Date(agendaJob.nextRunAt).toLocaleString("en-IN", {
+                                    dateStyle: "medium",
+                                    timeStyle: "short",
+                                  })
+                                : "shortly"
+                            }`
+                      }
                       color={
                         status === "complete" ? "black" : status === "failed" ? "red" : "orange"
                       }
@@ -218,12 +242,14 @@ const MyProjects = () => {
                       </Button>
                     </div>
                     <div className="mt-3 -mb-2 flex justify-end text-xs text-right text-gray-500 font-medium">
-                     {wordpress?.postedOn && <span className="">
-                        Posted on : &nbsp;
-                        {new Date(wordpress.postedOn).toLocaleDateString("en-US", {
-                          dateStyle: "medium",
-                        })}
-                      </span>}
+                      {wordpress?.postedOn && (
+                        <span className="">
+                          Posted on : &nbsp;
+                          {new Date(wordpress.postedOn).toLocaleDateString("en-US", {
+                            dateStyle: "medium",
+                          })}
+                        </span>
+                      )}
                       <span className="ml-auto">
                         Last updated : &nbsp;
                         {new Date(updatedAt).toLocaleDateString("en-US", {
