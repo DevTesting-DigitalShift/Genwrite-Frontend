@@ -4,11 +4,23 @@ import axiosInstance from "@api/index"
 import SkeletonLoader from "./SkeletonLoader"
 import { toast } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
-import { Badge, Button, Tooltip } from "antd"
-import { Trash2 } from "lucide-react"
+import { Badge, Button, Popconfirm, Tooltip } from "antd"
+import { RotateCcw, Trash2 } from "lucide-react"
+import { motion } from "framer-motion"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 
 const TRUNCATE_LENGTH = 120
+
+// [ ] refresh button on the top right
+// [ ] sorting and filter option
+// [ ] 1. a-z 2. created date 3. status = pending, failed, success 4. gemini and chatgpt (optional) 
+// [ ] search bar: based on title and keyboard (focus keyboard)
+// [ ] archive replace trash
+
+// [ ] in editor blog score, Analysis Results, ca to SEO score
+// [ ] save functionality in editor, if user doesn't save those changes show blog
+// [ ] when ctrl+- editor width not correct 
+// [ ] once blog is post show re-post & show blog link
 
 const MyProjects = () => {
   const [blogsData, setBlogsData] = useState([])
@@ -62,6 +74,25 @@ const MyProjects = () => {
     navigate(`/toolbox/${blog._id}`, { state: { blog } })
   }
 
+  const handleRetry = async (id) => {
+    try {
+      const response = await axiosInstance.post(`blogs/${id}/retry`)
+      console.log("response", response)
+      if (response.status === 200) {
+        toast.success(response?.data?.message || "Blog regenerated successfully!")
+      } else {
+        toast.error("Failed to regenerated blog.")
+      }
+    } catch (error) {
+      toast.error("Failed to regenerated blog.")
+      console.error(
+        "Error regenerating blog:",
+        (error.response && error.response.data && error.response.data.message) ||
+          "Failed to restore blog"
+      )
+    }
+  }
+
   const truncateContent = (content, length = TRUNCATE_LENGTH) => {
     if (!content) return ""
     return content.length > length ? content.substring(0, length) + "..." : content
@@ -95,8 +126,24 @@ const MyProjects = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">Blogs Generated</h1>
+    <div className="p-5">
+      <motion.h1
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2 }}
+        className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
+      >
+        Blogs Generated
+      </motion.h1>
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.3 }}
+        className="text-gray-600 max-w-xl mt-2 mb-5"
+      >
+        All your content creation tools in one place. Streamline your workflow with our powerful
+        suite of tools.
+      </motion.p>
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {[...Array(itemsPerPage)].map((_, index) => (
@@ -106,7 +153,10 @@ const MyProjects = () => {
           ))}
         </div>
       ) : currentItems.length === 0 ? (
-        <div className="flex flex-col justify-center items-center h-[35rem]">
+        <div
+          className="flex flex-col justify-center items-center"
+          style={{ minHeight: "calc(100vh - 270px)" }}
+        >
           <img src="Images/no-blog.png" alt="Trash" style={{ width: "8rem" }} />
           <p className="text-xl mt-5">No blogs available.</p>
         </div>
@@ -127,7 +177,7 @@ const MyProjects = () => {
                 agendaJob,
               } = blog
               const isGemini = /gemini/gi.test(aiModel)
-              // [ ] Create a universal blog card to show wherever we need, use it here & in trashcan with all event handlers
+              // [ s] Create a universal blog card to show wherever we need, use it here & in trashcan with all event handlers
               // [ ] When blog is failed show user retry button [/blogs/:id/retry] - POST payload: create_new- boolean.
               return (
                 <Badge.Ribbon
@@ -195,7 +245,7 @@ const MyProjects = () => {
                         {/* Gemini Model - Top Right */}
                         {/* <div className="absolute top-4 right-4 z-10  space-x-2"></div> */}
                         <div className="flex flex-col gap-4 items-center justify-between mb-2 ">
-                          <h3 className="text-lg font-semibold text-gray-900 !text-left max-w-76">
+                          <h3 className="text-lg capitalize font-semibold text-gray-900 !text-left max-w-76">
                             {title}
                           </h3>
                           <p className="text-sm text-gray-600 mb-4 line-clamp-3 break-all">
@@ -205,7 +255,7 @@ const MyProjects = () => {
                         </div>
                       </div>
                     </Tooltip>
-                    <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center justify-end gap-2">
                       <div className="flex flex-wrap gap-2">
                         {focusKeywords?.map((keyword, index) => (
                           <span
@@ -216,6 +266,20 @@ const MyProjects = () => {
                           </span>
                         ))}
                       </div>
+                      {status === "failed" && (
+                        <Popconfirm
+                          title="Retry Blog Generation"
+                          description="Are you sure you want to retry generating this blog?"
+                          icon={
+                            <RotateCcw style={{ color: "red" }} size={15} className="mt-1 mr-1" />
+                          }
+                          okText="Yes"
+                          cancelText="No"
+                          onConfirm={() => handleRetry(_id)}
+                        >
+                          <RotateCcw />
+                        </Popconfirm>
+                      )}
                       <Button
                         type="undefined"
                         className="p-2 hover:!border-red-500 hover:text-red-500"

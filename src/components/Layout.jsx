@@ -147,7 +147,7 @@ const LayoutWithSidebarAndHeader = () => {
 
       {/* Main Content */}
       <div className="flex-1 ml-20 w-[93vw] fixed z-30">
-        <header className="top-0 z-[9999] bg-gray-50 p-4 flex items-center justify-between">
+        <header className="top-0 z-[9999] bg-gray-50 p-8 flex items-center justify-between">
           {/* Left side: search */}
           <div className="flex items-center">
             <button className="lg:hidden mr-4">{/* Button content */}</button>
@@ -175,7 +175,7 @@ const LayoutWithSidebarAndHeader = () => {
                   >
                     <RiCoinsFill size={30} color="orange" />
                     <span className="font-semibold text-lg">
-                      {user?.credits?.base + user?.credits?.extra}
+                      {user?.credits?.base + user?.credits?.extra || 0}
                     </span>
                   </button>
                 </Tooltip>

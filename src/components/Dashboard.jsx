@@ -19,13 +19,16 @@ import axiosInstance from "@api/index"
 import { load } from "@store/slices/authSlice"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
-import { ToastContainer } from "react-toastify"
+import { toast, ToastContainer } from "react-toastify"
 
 /*
- [ ] instead of asking for upgrade, show animation of crown with toast & disable features on plan based like free & basic can't open bulk blogs & other features
+ [s ] instead of asking for upgrade, show animation of crown with toast & disable features on plan based like free & basic can't open bulk blogs & other features
   check the ui first for free version & then change it in a more good way
  */
- const Dashboard = () => {
+
+  // [ ] remove search 
+  // [ ] skeleton loading
+const Dashboard = () => {
   // State declarations
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [currentStep, setCurrentStep] = useState(0)
@@ -119,30 +122,35 @@ import { ToastContainer } from "react-toastify"
   const hideQuickBlogModal = () => setQuickBlogModal(false)
   const showCompetitiveAnalysis = () => setCompetitiveAnalysisModal(true)
   const hideCompetitiveAnalysis = () => setCompetitiveAnalysisModal(false)
-  
-  console.log("Blog Data: ", modelData)
+
   const handleSubmit = async (updatedData) => {
     try {
+      const totalCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
+      const estimatedCost =
+        getEstimatedCost("blog.single", modelData.aiModel) +
+        (modelData.isUnsplashActive ? 0 : getEstimatedCost("aiImages"))
+      console.log("estimatedCost", estimatedCost)
       handlePopup({
-        title: "Single Blog Generation",
+        title: "  ",
         description: (
           <>
             <span>
-              Single Blog generation cost:{" "}
-              <b>
-                {getEstimatedCost("blog.single", modelData.aiModel) + (modelData.isUnsplashActive
-                  ? 0
-                  : getEstimatedCost("aiImages"))} credits.
-              </b>
+              Single Blog generation cost: <b>{estimatedCost} credits.</b>
             </span>
             <br />
             <span>Do you want to continue ?</span>
           </>
         ),
         onConfirm: () => {
-          dispatch(createNewBlog(updatedData, navigate))
-          setIsModalVisible(false)
-          setCurrentStep(0)
+          if (estimatedCost > totalCredits) {
+            toast.error("You do not have enough credits to generate this blog.")
+            handlePopup(false) // Close the modal
+            return
+          } else {
+            dispatch(createNewBlog(updatedData, navigate))
+            setIsModalVisible(false)
+            setCurrentStep(0)
+          }
         },
       })
     } catch (error) {
@@ -163,7 +171,7 @@ import { ToastContainer } from "react-toastify"
 
   return (
     <>
-     <ToastContainer />
+      <ToastContainer />
       <Modal
         title={`Step ${currentStep}/3`}
         visible={isModalVisible}
@@ -222,7 +230,7 @@ import { ToastContainer } from "react-toastify"
         <PerformanceMonitoringModal closefnc={() => setPerformanceModal(false)} />
       )}
 
-      <div className="">
+      <div className="p-10">
         <h3 className="text-[24px] font-[600] mb-8 font-montserrat">Let's Begin </h3>
 
         <div className="flex justify-between items-center gap-8 p-4 bg-white sm:flex-wrap md:flex-nowrap">
@@ -244,60 +252,60 @@ import { ToastContainer } from "react-toastify"
             />
           ))}
         </div>
-      </div>
 
-      <div className="mt-5 ">
-        <h3 className="text-[24px] font-[600] mb-8 font-montserrat">Quick Tools</h3>
-        <div className="grid m-2 gap-8 sm:grid-cols-4 bg-white p-4">
-          {quickTools.map((item, index) => (
-            <QuickBox
-              key={index}
-              imageUrl={item.imageUrl}
-              title={item.title}
-              content={item.content}
-              id={item.id}
-              functions={{
-                ...(item.id === 3
-                  ? { showPerformanceMonitoring: () => setPerformanceModal(true) }
-                  : {}),
-                ...(item.id === 4 ? { showCompetitiveAnalysis } : {}),
-              }}
-            />
-          ))}
-        </div>
-      </div>
-
-      {recentBlogData.length > 0 && (
         <div className="mt-5 ">
-          <div className="mt-8 mb-8 flex justify-between items-center">
-            <h3 className="text-[24px] font-[600] font-montserrat">Recent Projects</h3>
-            <span className="mr-5">
-              <select
-                name=""
-                id=""
-                className="font-hind text-md p-1 border-1 border-black bg-blue-50 rounded-xl"
-              >
-                <option className="font-hind" value="">
-                  Top Performing
-                </option>
-              </select>
-            </span>
-          </div>
-          <div className="grid m-4 gap-10 sm:grid-cols-3">
-            {recentBlogData.map((item, index) => {
-              return (
-                <RecentProjects
-                  key={index}
-                  title={item.title}
-                  content={item.content}
-                  tags={item.focusKeywords}
-                  item={item}
-                />
-              )
-            })}
+          <h3 className="text-[24px] font-[600] mb-8 font-montserrat">Quick Tools</h3>
+          <div className="grid m-2 gap-8 sm:grid-cols-4 bg-white p-4">
+            {quickTools.map((item, index) => (
+              <QuickBox
+                key={index}
+                imageUrl={item.imageUrl}
+                title={item.title}
+                content={item.content}
+                id={item.id}
+                functions={{
+                  ...(item.id === 3
+                    ? { showPerformanceMonitoring: () => setPerformanceModal(true) }
+                    : {}),
+                  ...(item.id === 4 ? { showCompetitiveAnalysis } : {}),
+                }}
+              />
+            ))}
           </div>
         </div>
-      )}
+
+        {recentBlogData.length > 0 && (
+          <div className="mt-5 ">
+            <div className="mt-8 mb-8 flex justify-between items-center">
+              <h3 className="text-[24px] font-[600] font-montserrat">Recent Projects</h3>
+              <span className="mr-5">
+                <select
+                  name=""
+                  id=""
+                  className="font-hind text-md p-1 border-1 border-black bg-blue-50 rounded-xl"
+                >
+                  <option className="font-hind" value="">
+                    Top Performing
+                  </option>
+                </select>
+              </span>
+            </div>
+            <div className="grid m-4 gap-10 sm:grid-cols-3">
+              {recentBlogData.map((item, index) => {
+                return (
+                  <RecentProjects
+                    key={index}
+                    title={item.title}
+                    content={item.content}
+                    tags={item.focusKeywords}
+                    item={item}
+                  />
+                )
+              })}
+            </div>
+          </div>
+        )}
+      </div>
     </>
   )
 }
