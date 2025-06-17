@@ -70,7 +70,7 @@ export const logoutUser = (navigate) => async (dispatch) => {
     if (data.success) {
       localStorage.removeItem("token");
       dispatch(logout());
-      navigate("/login", replace=true);
+      navigate("/login");
     }
     return { success: true };
   } catch (error) {
@@ -78,6 +78,7 @@ export const logoutUser = (navigate) => async (dispatch) => {
   }
 };
 
+// [ ] check the cause for showing nan creits & no user data on login via google at first but avaliable after refresh or first polling
 export const load = () => async (dispatch) => {
   try {
     const data = await loadUser();
@@ -89,6 +90,7 @@ export const load = () => async (dispatch) => {
     }
   } catch (error) {
     console.log(error);
+    // localStorage.removeItem("token")
   }
 };
 

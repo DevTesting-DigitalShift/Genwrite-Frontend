@@ -4,8 +4,6 @@ import { toast } from "react-toastify"
 
 const SecondStepModal = ({ handleNext, handlePrevious, handleClose, data, setData }) => {
   const [formData, setFormData] = useState({
-    numberOfCounts: data.numberOfCounts || 5,
-    // numberOfOrders: data.numberOfOrders || 50,
     focusKeywords: data.focusKeywords || [],
     keywords: data.keywords || [],
     focusKeywordInput: "",
@@ -139,64 +137,8 @@ const SecondStepModal = ({ handleNext, handlePrevious, handleClose, data, setDat
                 className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="gemini">Gemini</option>
-                <option value="openai">Chatgpt</option>
+                <option value="chatgpt">Chatgpt</option>
               </select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium mb-2">Number of Paragraphs</label>
-                <input
-                  type="range"
-                  min="5"
-                  max="15"
-                  value={formData.numberOfCounts}
-                  className="w-full h-1 rounded-lg appearance-none cursor-pointer 
-            bg-gray-100 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#1B6FC9]"
-                  style={{
-                    background: `linear-gradient(to right, #1B6FC9 ${
-                      ((formData.numberOfCounts - 5) / 10) * 100
-                    }%, #E5E7EB ${((formData.numberOfCounts - 5) / 10) * 100}%)`,
-                  }}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      numberOfCounts: e.target.value,
-                    }))
-                  }
-                />
-                <span className="mt-2 text-sm text-gray-600 block">
-                  Current value: {formData.numberOfCounts}
-                </span>
-              </div>
-
-              {/* <div>
-                <label className="block text-sm font-medium mb-2">
-                  Word Count (Optional)
-                </label>
-                <input
-                  type="range"
-                  min="1"
-                  max="100"
-                  value={formData.numberOfOrders}
-                  className="w-full h-1 rounded-lg appearance-none cursor-pointer 
-            bg-gray-100 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#1B6FC9]"
-                  style={{
-                    background: `linear-gradient(to right, #1B6FC9 ${
-                      (formData.numberOfOrders / 100) * 100
-                    }%, #E5E7EB ${(formData.numberOfOrders / 100) * 100}%)`,
-                  }}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      numberOfOrders: e.target.value,
-                    }))
-                  }
-                />
-                <span className="mt-2 text-sm text-gray-600 block">
-                  Current value: {formData.numberOfOrders}
-                </span>
-              </div> */}
             </div>
 
             <div>

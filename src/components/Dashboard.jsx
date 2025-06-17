@@ -21,8 +21,11 @@ import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { ToastContainer } from "react-toastify"
 
-// TODO instead of asking for upgrade, show animation of crown with toast & disable features on plan based like free & basic can't open bulk blogs & other features
-const Dashboard = () => {
+/*
+ [ ] instead of asking for upgrade, show animation of crown with toast & disable features on plan based like free & basic can't open bulk blogs & other features
+  check the ui first for free version & then change it in a more good way
+ */
+ const Dashboard = () => {
   // State declarations
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [currentStep, setCurrentStep] = useState(0)
@@ -165,7 +168,7 @@ const Dashboard = () => {
         title={`Step ${currentStep}/3`}
         visible={isModalVisible}
         onCancel={handleCancel}
-        className="max-h-svh overflow-scroll"
+        className="max-h-[90vh] overflow-scroll"
       >
         {currentStep === 0 && (
           <SelectTemplateModal
@@ -295,9 +298,6 @@ const Dashboard = () => {
           </div>
         </div>
       )}
-      <div className="">
-        <QuestionButton />
-      </div>
     </>
   )
 }

@@ -12,6 +12,8 @@ import SkeletonLoader from "@components/Projects/SkeletonLoader"
 import { useSelector } from "react-redux"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useNavigate } from "react-router-dom"
+import { CrownFilled, QuestionCircleOutlined } from "@ant-design/icons"
+import { Popconfirm } from "antd"
 
 const Jobs = () => {
   const tones = ["Professional", "Casual", "Friendly", "Formal", "Technical"]
@@ -21,7 +23,7 @@ const Jobs = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [showJobModal, setShowJobModal] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
-  const [newJob, setNewJob] = useState({
+  const initialJob = {
     name: "",
     schedule: { type: "daily", customDates: [], days: [] },
     blogs: {
@@ -41,8 +43,9 @@ const Jobs = () => {
       includeInterlinks: false,
       performKeywordResearch: false,
     },
-    status: "stop", // default to stop (valid enum for backend)
-  })
+    status: "active", // default to stop (valid enum for backend)
+  }
+  const [newJob, setNewJob] = useState(initialJob)
   const [topicInput, setTopicInput] = useState("")
 
   const { handlePopup } = useConfirmPopup()
@@ -144,15 +147,17 @@ const Jobs = () => {
     try {
       await axiosInstance.delete(`/jobs/${jobId}`)
       fetchJobs()
+      toast.success("Job deleted successfully")
     } catch (error) {
-      console.error("Error deleting job:", error.response?.data?.message || error.message)
-      toast.error(error.response?.data)
+      const errorMessage = error.response?.data?.message || error.message
+      console.error("Error deleting job:", errorMessage)
+      toast.error(errorMessage || "Failed to delete job")
     }
   }
 
   // Edit a job
   const handleEditJob = (job) => {
-    if(job.status == "active"){
+    if (job.status == "active") {
       toast.error("Stop the job before editing")
       return
     }
@@ -652,10 +657,10 @@ const Jobs = () => {
                 Previous
               </button>
               <button
-                onClick={newJob?._id ? () => handleUpdateJob(newJob._id ): handleCreateJob}
+                onClick={newJob?._id ? () => handleUpdateJob(newJob._id) : handleCreateJob}
                 className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
               >
-                {newJob?._id ? "Update": "Create"} Job
+                {newJob?._id ? "Update" : "Create"} Job
               </button>
             </div>
           </motion.div>
@@ -677,174 +682,191 @@ const Jobs = () => {
       })
       return
     }
+    setNewJob(initialJob)
     setShowJobModal(true)
     setCurrentStep(1)
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <motion.h1
-            initial={{ y: -20 }}
-            animate={{ y: 0 }}
-            className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
+    <>
+      <div className="min-h-screen bg-gray-50 p-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-8">
+            <motion.h1
+              initial={{ y: -20 }}
+              animate={{ y: 0 }}
+              className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
+            >
+              Jobs Automation
+            </motion.h1>
+            <p className="text-gray-600 mt-2">Manage your automated content generation jobs</p>
+          </div>
+
+          <motion.div
+            whileHover={{ y: -2 }}
+            className="w-full md:w-1/2 lg:w-1/3 h-48 p-6 bg-white rounded-xl shadow-sm hover:shadow-md cursor-pointer mb-8"
+            onClick={handleOpenJobModal}
           >
-            Jobs Automation
-          </motion.h1>
-          <p className="text-gray-600 mt-2">Manage your automated content generation jobs</p>
-        </div>
-
-        <motion.div
-          whileHover={{ y: -2 }}
-          className="w-full md:w-1/2 lg:w-1/3 h-48 p-6 bg-white rounded-xl shadow-sm hover:shadow-md cursor-pointer mb-8"
-          onClick={handleOpenJobModal}
-        >
-          <div className="flex items-center gap-4">
-            <span className="bg-blue-100 rounded-lg p-3">
-              <FiPlus className="w-6 h-6 text-blue-600" />
-            </span>
-          </div>
-          <div className="mt-4">
-            <h3 className="text-xl font-semibold text-gray-800">Create New Job</h3>
-            <p className="text-gray-500 mt-2 text-sm">
-              Set up automated content generation with custom templates and scheduling
-            </p>
-          </div>
-        </motion.div>
-
-        <h2 className="text-xl font-semibold text-gray-800 mb-6">Active Jobs</h2>
-
-        {/* Loading State */}
-        {isLoading ? (
-          <SkeletonLoader count={3} />
-        ) : (
-          /* Job List */
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <AnimatePresence>
-              {jobs.map((job) => (
-                <motion.div
-                  key={job._id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  whileHover={{ y: -5 }}
-                  className="bg-white rounded-xl shadow-lg hover:shadow-xl p-6 transition-all duration-200"
-                >
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-800">{job.name}</h3>
-                      <p className="text-sm text-gray-500 mt-1">
-                        ID: {job._id.toString().slice(-6)}
-                      </p>
-                    </div>
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => handleStartJob(job._id)}
-                      className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        job.status === "active"
-                          ? "bg-red-100 text-red-600 hover:bg-red-200"
-                          : "bg-green-100 text-green-600 hover:bg-green-200"
-                      }`}
-                    >
-                      {job.status === "active" ? "Stop" : "Start"}
-                    </motion.button>
-                  </div>
-
-                  <div className="space-y-3 text-sm text-gray-600">
-                    <div className="flex items-center gap-2">
-                      <FiCalendar className="w-4 h-4 text-blue-500" />
-                      <span>Scheduling: {job.schedule.type}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <FiFileText className="w-4 h-4 text-purple-500" />
-                      <span>Daily Blogs : {job.blogs.numberOfBlogs}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <FiSettings className="w-4 h-4 text-green-500" />
-                      <span>Model: {job.blogs.aiModel}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <FiCalendar className="w-4 h-4 text-red-500" />
-                      <span>Status: {job.status}</span>
-                    </div>
-                    {job.blogs.topics.length > 0 && (
-                      <div className="flex items-start gap-2">
-                        <FiFileText className="w-4 h-4 text-purple-500 mt-0.5" />
-                        <div className="flex flex-wrap gap-2">
-                          Topics :
-                          {job.blogs.topics.map((topic, index) => (
-                            <span
-                              key={index}
-                              className="px-2 py-1 bg-gray-100 text-gray-600 rounded-md text-xs"
-                            >
-                              {topic}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-2">
-                      <FiCalendar className="w-4 h-4 text-yellow-500" />
-                      <span>
-                        Created:{" "}
-                        {new Date(job.createdAt).toLocaleString("en-IN", {
-                          dateStyle: "medium",
-                          timeStyle: "short",
-                        }) || "N/A"}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <FiFileText className="w-4 h-4 text-purple-500" />
-                      <span>Generated Blogs: {job?.createdBlogs?.length}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2 mt-6">
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => handleEditJob(job)}
-                      className="px-4 py-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 flex items-center gap-2"
-                    >
-                      <FiEdit />
-                      Edit
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => handleDeleteJob(job._id)}
-                      className="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
-                    >
-                      Delete
-                    </motion.button>
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
-        )}
-
-        {/* Modal (keep your existing modal implementation) */}
-        {showJobModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-lg w-3/4 max-w-3xl p-6 relative">
-              <button
-                onClick={() => setShowJobModal(false)}
-                className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
-              >
-                ✕
-              </button>
-              {/* Render the modal content based on the current step */}
-              {renderStep()}
+            <div className="flex items-center justify-between gap-4">
+              <span className="bg-blue-100 rounded-lg p-3">
+                <FiPlus className="w-6 h-6 text-blue-600" />
+              </span>
+              {["free", "basic"].includes(userPlan.toLowerCase()) && (
+                <span className="flex items-center gap-2 rounded-md text-white font-semibold border p-1 px-2 bg-gradient-to-tr from-blue-500 to-purple-500">
+                  <CrownFilled />
+                  Pro
+                </span>
+              )}
             </div>
-          </div>
-        )}
+            <div className="mt-4">
+              <h3 className="text-xl font-semibold text-gray-800">Create New Job</h3>
+              <p className="text-gray-500 mt-2 text-sm">
+                Set up automated content generation with custom templates and scheduling
+              </p>
+            </div>
+          </motion.div>
 
-        {/* Add ToastContainer */}
-        <ToastContainer />
+          <h2 className="text-xl font-semibold text-gray-800 mb-6">Active Jobs</h2>
+
+          {/* Loading State */}
+          {isLoading ? (
+            <SkeletonLoader count={3} />
+          ) : (
+            /* Job List */
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <AnimatePresence>
+                {jobs.map((job) => (
+                  <motion.div
+                    key={job._id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    whileHover={{ y: -5 }}
+                    className="bg-white rounded-xl shadow-lg hover:shadow-xl p-6 transition-all duration-200"
+                  >
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-800">{job.name}</h3>
+                        <p className="text-sm text-gray-500 mt-1">
+                          ID: {job._id.toString().slice(-6)}
+                        </p>
+                      </div>
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => handleStartJob(job._id)}
+                        className={`px-3 py-1 rounded-full text-sm font-medium ${
+                          job.status === "active"
+                            ? "bg-red-100 text-red-600 hover:bg-red-200"
+                            : "bg-green-100 text-green-600 hover:bg-green-200"
+                        }`}
+                      >
+                        {job.status === "active" ? "Stop" : "Start"}
+                      </motion.button>
+                    </div>
+
+                    <div className="space-y-3 text-sm text-gray-600">
+                      <div className="flex items-center gap-2">
+                        <FiCalendar className="w-4 h-4 text-blue-500" />
+                        <span>Scheduling: {job.schedule.type}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <FiFileText className="w-4 h-4 text-purple-500" />
+                        <span>Daily Blogs : {job.blogs.numberOfBlogs}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <FiSettings className="w-4 h-4 text-green-500" />
+                        <span>Model: {job.blogs.aiModel}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <FiCalendar className="w-4 h-4 text-red-500" />
+                        <span>Status: {job.status}</span>
+                      </div>
+                      {job.blogs.topics.length > 0 && (
+                        <div className="flex items-start gap-2">
+                          <FiFileText className="w-4 h-4 text-purple-500 mt-0.5" />
+                          <div className="flex flex-wrap gap-2">
+                            Topics :
+                            {job.blogs.topics.map((topic, index) => (
+                              <span
+                                key={index}
+                                className="px-2 py-1 bg-gray-100 text-gray-600 rounded-md text-xs"
+                              >
+                                {topic}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <FiCalendar className="w-4 h-4 text-yellow-500" />
+                        <span>
+                          Created:{" "}
+                          {new Date(job.createdAt).toLocaleString("en-IN", {
+                            dateStyle: "medium",
+                            timeStyle: "short",
+                          }) || "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <FiFileText className="w-4 h-4 text-purple-500" />
+                        <span>Generated Blogs: {job?.createdBlogs?.length}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 mt-6">
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => handleEditJob(job)}
+                        className="px-4 py-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 flex items-center gap-2"
+                      >
+                        <FiEdit />
+                        Edit
+                      </motion.button>
+                      <Popconfirm
+                        title="Job Deletion"
+                        description="Are you sure to delete the job ?"
+                        icon={<QuestionCircleOutlined style={{ color: "red" }} />}
+                        okText="Yes"
+                        cancelText="No"
+                        onConfirm={() => handleDeleteJob(job._id)}
+                      >
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          className="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
+                        >
+                          Delete
+                        </motion.button>
+                      </Popconfirm>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+          )}
+
+          {/* Modal (keep your existing modal implementation) */}
+          {showJobModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg shadow-lg w-3/4 max-w-3xl p-6 relative">
+                <button
+                  onClick={() => setShowJobModal(false)}
+                  className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+                >
+                  ✕
+                </button>
+                {/* Render the modal content based on the current step */}
+                {renderStep()}
+              </div>
+            </div>
+          )}
+
+          {/* Add ToastContainer */}
+          <ToastContainer />
+        </div>
       </div>
-    </div>
+    </>
   )
 }
 
