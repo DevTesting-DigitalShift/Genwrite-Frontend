@@ -12,7 +12,7 @@ export const ConfirmPopupProvider = ({ children }) => {
   const [options, setOptions] = useState({})
 
   const handlePopup = useCallback((opts) => {
-    // TODO get credit cost (optional) here & use it for checking user has enough credits
+    // [ ] get credit cost (optional) here & use it for checking user has enough credits
     setOptions(opts)
     setVisible(true)
   }, [])
@@ -24,7 +24,7 @@ export const ConfirmPopupProvider = ({ children }) => {
 
   const handleConfirm = () => {
     try {
-      // TODO Check for credits that user has sufficient amount for operation
+      // [ ] Check for credits that user has sufficient amount for operation if not abort & give warning
       options?.onConfirm?.()
       setVisible(false)
     } catch (err) {

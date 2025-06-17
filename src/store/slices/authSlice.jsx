@@ -78,6 +78,7 @@ export const logoutUser = (navigate) => async (dispatch) => {
   }
 };
 
+// [ ] check the cause for showing nan creits & no user data on login via google at first but avaliable after refresh or first polling
 export const load = () => async (dispatch) => {
   try {
     const data = await loadUser();

@@ -124,6 +124,7 @@ const MyProjects = () => {
                 agendaJob,
               } = blog
               const isGemini = /gemini/gi.test(aiModel)
+              // [ ] Create a universal blog card to show wherever we need, use it here & in trashcan with all event handlers
               return (
                 <Badge.Ribbon
                   key={_id}

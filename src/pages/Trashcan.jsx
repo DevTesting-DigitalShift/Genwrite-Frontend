@@ -8,6 +8,7 @@ import { QuestionCircleOutlined } from "@ant-design/icons"
 
 const TRUNCATE_LENGTH = 85
 
+// [ ] add delete all & call delete /blogs/ & other features in it & use main branch from now on
 const Trashcan = () => {
   const [trashedBlogs, setTrashedBlogs] = useState([])
   const [loading, setLoading] = useState(true)
@@ -77,6 +78,7 @@ const Trashcan = () => {
           {trashedBlogs.map((blog) => {
             const { _id, title, content, focusKeywords, aiModel, archiveDate } = blog
             return (
+        
               <Tooltip key={_id} title={title} color="gray">
                 <div className="bg-white shadow-md hover:shadow-xl transition-shadow duration-300 rounded-xl p-4">
                   <div className="flex items-center justify-between mb-2">
