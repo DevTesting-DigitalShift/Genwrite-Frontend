@@ -1,21 +1,23 @@
 import React, { useState, useEffect } from "react"
 import axiosInstance from "@api/index"
 import SkeletonLoader from "../components/Projects/SkeletonLoader"
-import { Button, Tooltip } from "antd"
+import { Button, Tooltip, Popconfirm, Badge } from "antd"
 import { ToastContainer, toast } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import { FaTrash } from "react-icons/fa"
 import { Trash2 } from "lucide-react"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
-import { Popconfirm, Tooltip } from "antd"
-import { ToastContainer, toast } from "react-toastify"
 import { QuestionCircleOutlined } from "@ant-design/icons"
+import { motion } from "framer-motion"
 
 const TRUNCATE_LENGTH = 85
 
-// [ ] add delete all & call delete /blogs/ & other features in it & use main branch from now on
+// [ ] refresh button here too
+
+// [s ] add delete all & call delete /blogs/ & other features in it & use main branch from now on
 const Trashcan = () => {
   const [trashedBlogs, setTrashedBlogs] = useState([])
+  const [bulkDelete, setBulkDelete] = useState()
   const [loading, setLoading] = useState(true)
   const { handlePopup } = useConfirmPopup()
 
@@ -63,10 +65,39 @@ const Trashcan = () => {
     }
   }
 
+  const handleBulkDelete = async () => {
+    try {
+      const response = await axiosInstance.delete("/blogs")
+      console.log("response", response)
+      const deletedCount = response?.data?.deletedCount || 0
+      if (response.status === 200) {
+        toast.success(
+          // response?.data?.message ||
+          `${deletedCount || 0} ${deletedCount === 1 ? "blog" : "blogs"} deleted successfully`
+        )
+      } else {
+        toast.error("Cant delete")
+      }
+    } catch (error) {
+      console.error(
+        "Error restoring blog:"
+        // (error.response && error.response.data && error.response.data.message) ||
+        // "Failed to restore blog"
+      )
+    }
+  }
+
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="p-5">
       <div className="flex items-center justify-between gap-2">
-        <h1 className="text-3xl font-bold mb-6">Trashcan</h1>
+        <motion.h1
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="text-3xl md:text-4xl font-bold bg-blue-600 bg-clip-text text-transparent"
+        >
+          Trashcan
+        </motion.h1>
         {trashedBlogs.length !== 0 && (
           <Button
             type="button"
@@ -82,8 +113,7 @@ const Trashcan = () => {
                 ),
                 confirmText: "Delete",
                 onConfirm: () => {
-                  // console.log("Trashing blog:", _id)
-                  // handleArchive(_id)
+                  handleBulkDelete()
                 },
                 confirmProps: {
                   type: "undefined",
@@ -99,6 +129,14 @@ const Trashcan = () => {
           </Button>
         )}
       </div>
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.3 }}
+        className="text-gray-600 max-w-xl mt-2"
+      >
+        Restore valuable work or permanently delete clutter.
+      </motion.p>
       {trashedBlogs.length !== 0 && (
         <p className="text-yellow-500 font-semibold mb-4">
           Warning: Trashed items will be permanently deleted after 7 days.
@@ -113,16 +151,18 @@ const Trashcan = () => {
           ))}
         </div>
       ) : trashedBlogs.length === 0 ? (
-        <div className="flex flex-col justify-center items-center h-[35rem]">
+        <div
+          className="flex flex-col justify-center items-center"
+          style={{ minHeight: "calc(100vh - 250px)" }}
+        >
           <img src="Images/trash-can.png" alt="Trash" style={{ width: "8rem" }} />
           <p className="text-xl mt-5">No trashed blogs available.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 p-2">
-          {trashedBlogs.map((blog) => {
+          {/* {trashedBlogs.map((blog) => {
             const { _id, title, content, focusKeywords, aiModel, archiveDate } = blog
             return (
-        
               <Tooltip key={_id} title={title} color="gray">
                 <div className="bg-white shadow-md hover:shadow-xl transition-shadow duration-300 rounded-xl p-4">
                   <div className="flex items-center justify-between mb-2">
@@ -163,6 +203,141 @@ const Trashcan = () => {
                   </span>
                 </div>
               </Tooltip>
+            )
+          })} */}
+          {trashedBlogs?.map((blog) => {
+            const {
+              _id,
+              title,
+              status,
+              createdAt,
+              content,
+              aiModel,
+              focusKeywords,
+              updatedAt,
+              wordpress,
+              archiveDate
+            } = blog
+            const isGemini = /gemini/gi.test(aiModel)
+            // [ s] Create a universal blog card to show wherever we need, use it here & in trashcan with all event handlers
+            // [s ] When blog is failed show user retry button [/blogs/:id/retry] - POST payload: create_new- boolean.
+            return (
+              <Badge.Ribbon
+                key={_id}
+                text={
+                  <span className="flex items-center justify-center gap-1 py-1 font-medium tracking-wide">
+                    <img
+                      src={`./Images/${isGemini ? "gemini" : "chatgpt"}.png`}
+                      alt=""
+                      width={20}
+                      height={20}
+                      loading="lazy"
+                      className="bg-white"
+                    />
+                    {isGemini ? "Gemini-1.5-flash" : "Chatgpt-4o-mini"}
+                  </span>
+                }
+                className="absolute top-0"
+                color={isGemini ? "#4796E3" : "#74AA9C"}
+              >
+                <div
+                  className={`bg-white shadow-md  hover:shadow-xl  transition-all duration-300 rounded-xl p-4 min-h-[180px] min-w-[390px] relative
+                                  ${
+                                    (status === "failed"
+                                      ? "border-red-500"
+                                      : status !== "complete" && "border-yellow-500") + " border-2"
+                                  }
+                                `}
+                  title={title}
+                >
+                  <div className="text-xs font-semibold text-gray-400 mb-2 -mt-2">
+                    {new Date(createdAt).toLocaleDateString("en-US", {
+                      dateStyle: "medium",
+                    })}
+                  </div>
+                  <Tooltip
+                    // title={
+                    //   status === "complete"
+                    //     ? title
+                    //     : ["failed", "in-progress"].includes(status)
+                    //     ? `Blog generation is ${status}`
+                    //     : `Pending Blog will be generated ${
+                    //         agendaJob?.nextRunAt
+                    //           ? "at " +
+                    //             new Date(agendaJob.nextRunAt).toLocaleString("en-IN", {
+                    //               dateStyle: "medium",
+                    //               timeStyle: "short",
+                    //             })
+                    //           : "shortly"
+                    //       }`
+                    // }
+                    color={status === "complete" ? "black" : status === "failed" ? "red" : "orange"}
+                  >
+                    <div
+                      className="cursor-pointer"
+                      onClick={() => {
+                        const { status } = blog
+                        if (status === "complete") {
+                          handleBlogClick(blog)
+                        }
+                      }}
+                    >
+                      <div className="flex flex-col gap-4 items-center justify-between mb-2 ">
+                        <h3 className="text-lg capitalize font-semibold text-gray-900 !text-left max-w-76">
+                          {title}
+                        </h3>
+                        <p className="text-sm text-gray-600 mb-4 line-clamp-3 break-all">
+                          {content || ""}
+                        </p>
+                      </div>
+                    </div>
+                  </Tooltip>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex flex-wrap gap-2">
+                      {focusKeywords?.map((keyword, index) => (
+                        <span
+                          key={index}
+                          className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full"
+                        >
+                          {keyword}
+                        </span>
+                      ))}
+                    </div>
+                    <Popconfirm
+                      title="Restore Blog"
+                      description="Are you sure to restore the blog ?"
+                      icon={<QuestionCircleOutlined style={{ color: "red" }} />}
+                      okText="Yes"
+                      cancelText="No"
+                      onConfirm={() => handleRestore(_id)}
+                    >
+                      <img
+                        src="Images/restore.svg"
+                        alt="Restore"
+                        width="20"
+                        height="20"
+                        className="cursor-pointer restore-icon"
+                      />
+                    </Popconfirm>
+                  </div>
+                  <div className="mt-3 mb-2 flex justify-end text-xs text-right text-gray-500 font-medium">
+                    {wordpress?.postedOn && (
+                      <span className="">
+                        Posted on : &nbsp;
+                        {new Date(wordpress.postedOn).toLocaleDateString("en-US", {
+                          dateStyle: "medium",
+                        })}
+                      </span>
+                    )}
+                     <span className="block -mb-2 text-sm text-right">
+            Archive Date:{" "}
+            {new Date(archiveDate).toLocaleDateString("en-US", {
+              dateStyle: "medium",
+            })}
+          </span>
+                  </div>
+                </div>
+              </Badge.Ribbon>
             )
           })}
         </div>

@@ -150,6 +150,7 @@ export const updateBlogById = (id, updatedData) => async (dispatch) => {
 };
 
 export const createNewBlog = (blogData, navigate) => async (dispatch) => {
+  console.log("blogData", blogData)
   dispatch(setLoading(true));
   try {
     const blog = await createBlog({ ...blogData, aiModel: blogData.aiModel || "Gemini" });

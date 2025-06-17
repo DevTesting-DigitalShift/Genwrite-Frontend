@@ -4,6 +4,7 @@ import { motion } from "framer-motion"
 import { useSelector } from "react-redux"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { CrownFilled } from "@ant-design/icons"
+import { Gem } from "lucide-react"
 
 const DashboardBox = ({ imageUrl, title, content, id, functions }) => {
   const user = useSelector((state) => state.auth.user)
@@ -15,9 +16,11 @@ const DashboardBox = ({ imageUrl, title, content, id, functions }) => {
       description: "Bulk blog generation is only available for Pro and Enterprise users.",
       confirmText: "Buy Now",
       cancelText: "Cancel",
+      icon: <Gem style={{ fontSize: 50, color: "#a47dab" }} />,
       onConfirm: () => navigate("/upgrade"),
     })
   }
+  
   return (
     <div
       className="w-1/2 md:w-1/3 h-44 p-4 break-words rounded-md bg-[#FAFAFA] shadow-sm cursor-pointer border hover:shadow-md transition duration-200"
@@ -54,12 +57,12 @@ const DashboardBox = ({ imageUrl, title, content, id, functions }) => {
             <img src={imageUrl} alt={title} className="w-6 h-6 object-contain" />
           </motion.div>
         </span>
-          {["free", "basic"].includes(userPlan?.toLowerCase?.()) && id=='B' && (
-            <span className="flex items-center gap-2 rounded-md text-white font-semibold border p-1 px-2 bg-gradient-to-tr from-blue-500 to-purple-500">
-              <CrownFilled />
-              Pro
-            </span>
-          )}
+        {["free", "basic"].includes(userPlan?.toLowerCase?.()) && id == "B" && (
+          <span className="flex items-center gap-2 rounded-md text-white font-semibold border p-1 px-2 bg-gradient-to-tr from-blue-500 to-purple-500 shadow-md hover:shadow-xl hover:scale-105 transition-all duration-300 ease-in-out animate-pulse backdrop-blur-sm text-lg">
+            <Gem className="w-4 h-4 animate-bounce" />
+            Pro
+          </span>
+        )}
       </div>
       <div className="mt-2">
         <h3 className="font-hind text-[#000000] font-[500] text-[18px] pt-3">{title}</h3>
@@ -111,12 +114,12 @@ export const QuickBox = ({ imageUrl, title, content, id, functions }) => {
             <img src={imageUrl} alt={title} className="w-6 h-6 object-contain" />
           </motion.div>
         </span>
-         {["free", "basic"].includes(userPlan?.toLowerCase?.()) && id==4 && (
-            <span className="flex items-center gap-2 rounded-md text-white font-semibold border p-1 px-2 bg-gradient-to-tr from-blue-500 to-purple-500">
-              <CrownFilled />
-              Pro
-            </span>
-          )}
+        {["free", "basic"].includes(userPlan?.toLowerCase?.()) && id == 4 && (
+           <span className="flex items-center gap-2 rounded-md text-white font-semibold border p-1 px-2 bg-gradient-to-tr from-blue-500 to-purple-500 shadow-md hover:shadow-xl hover:scale-105 transition-all duration-300 ease-in-out animate-pulse backdrop-blur-sm text-lg">
+            <Gem className="w-4 h-4 animate-bounce" />
+            Pro
+          </span>
+        )}
       </div>
       <div className="mt-2">
         <h3 className="text-[#000000] font-[500] text-[18px] pt-3">{title}</h3>
@@ -146,12 +149,12 @@ export const RecentProjects = ({ title, content, tags, item }) => {
     >
       {/* AI Model Tag in top right */}
       <div className="absolute top-2 right-2">
-        <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">
+        <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full capitalize">
           {item?.aiModel ? item.aiModel : "Gemini"}
         </span>
       </div>
       <div className="p-1 pt-2">
-        <h3 className="text-[#000000] font-[500] text-[18px] pt-2 mb-2 w-80">{title}</h3>
+        <h3 className="text-[#000000] font-[500] text-[18px] pt-2 mb-2 w-80 capitalize">{title}</h3>
         <p className="text-[#454545] font-[400] text-[14px]">{truncatedContent}</p>
       </div>
       <div className="flex items-center justify-start flex-wrap text-ellipsis gap-3 ml-3">

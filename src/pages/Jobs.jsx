@@ -14,6 +14,9 @@ import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useNavigate } from "react-router-dom"
 import { CrownFilled, QuestionCircleOutlined } from "@ant-design/icons"
 import { Popconfirm } from "antd"
+import { Gem } from "lucide-react"
+
+  // [ ] active jobs don't show if there is no job 
 
 const Jobs = () => {
   const tones = ["Professional", "Casual", "Friendly", "Formal", "Technical"]
@@ -678,6 +681,7 @@ const Jobs = () => {
         description: "Job creation is only available for Pro and Enterprise users.",
         confirmText: "Buy Now",
         cancelText: "Cancel",
+        icon: <Gem style={{ fontSize: 50, color: "#a47dab" }} />,
         onConfirm: () => navigate("/upgrade"),
       })
       return
@@ -690,7 +694,7 @@ const Jobs = () => {
   return (
     <>
       <div className="min-h-screen bg-gray-50 p-8">
-        <div className="max-w-7xl mx-auto">
+        <div>
           <div className="mb-8">
             <motion.h1
               initial={{ y: -20 }}
@@ -712,8 +716,8 @@ const Jobs = () => {
                 <FiPlus className="w-6 h-6 text-blue-600" />
               </span>
               {["free", "basic"].includes(userPlan.toLowerCase()) && (
-                <span className="flex items-center gap-2 rounded-md text-white font-semibold border p-1 px-2 bg-gradient-to-tr from-blue-500 to-purple-500">
-                  <CrownFilled />
+                <span className="flex items-center gap-2 rounded-md text-white font-semibold border p-1 px-2 bg-gradient-to-tr from-blue-500 to-purple-500 shadow-md hover:shadow-xl hover:scale-105 transition-all duration-300 ease-in-out animate-pulse backdrop-blur-sm text-lg">
+                  <Gem className="w-4 h-4 animate-bounce" />
                   Pro
                 </span>
               )}
