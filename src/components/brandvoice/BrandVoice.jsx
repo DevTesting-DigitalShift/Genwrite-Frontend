@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import { sendBrandVoice } from "../../store/slices/blogSlice"
 import axiosInstance from "@api/index"
+import { UploadOutlined } from "@ant-design/icons"
 
 const BrandVoice = () => {
   const dispatch = useDispatch()
@@ -306,7 +307,8 @@ const BrandVoice = () => {
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <img src="./Images/upload.png" alt="Upload" className="w-6 h-6" />
+                  <UploadOutlined />
+                  {/* <img src="./Images/upload.png" alt="Upload" className="size-4" /> */}
                 </motion.div>
               </label>
               <input

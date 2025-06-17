@@ -10,6 +10,7 @@ import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 
 const TRUNCATE_LENGTH = 85
 
+// [ ] add delete all & call delete /blogs/ & other features in it & use main branch from now on
 const Trashcan = () => {
   const [trashedBlogs, setTrashedBlogs] = useState([])
   const [loading, setLoading] = useState(true)
@@ -17,6 +18,10 @@ const Trashcan = () => {
 
   const fetchTrashedBlogs = async () => {
     try {
+      setLoading(true)
+      // const response = await axiosInstance.get("/blogs/")
+      // const filteredBlogs = response.data.filter((blog) => blog.isArchived) // Filter isArchived=true
+      setTrashedBlogs(filteredBlogs)
       setLoading(true)
       const response = await axiosInstance.get("/blogs/")
       const filteredBlogs = response.data.filter((blog) => blog.isArchived) // Filter isArchived=true
@@ -26,7 +31,12 @@ const Trashcan = () => {
         "Error fetching trashed blogs:",
         error.response?.data?.message || "Failed to fetch trashed blogs"
       )
+      console.error(
+        "Error fetching trashed blogs:",
+        error.response?.data?.message || "Failed to fetch trashed blogs"
+      )
     } finally {
+      setLoading(false)
       setLoading(false)
     }
   }
@@ -114,23 +124,35 @@ const Trashcan = () => {
           <p className="text-xl mt-5">No trashed blogs available.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 p-2">
           {trashedBlogs.map((blog) => {
-            const { _id, title, content, focusKeywords, aiModel } = blog
+            const { _id, title, content, focusKeywords, aiModel, archiveDate } = blog
             return (
+        
               <Tooltip key={_id} title={title} color="gray">
                 <div className="bg-white shadow-md hover:shadow-xl transition-shadow duration-300 rounded-xl p-4">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
-                    <img
-                      src="Images/restore.svg"
-                      alt="Restore"
-                      className="cursor-pointer restore-icon"
-                      style={{ width: "20px", height: "20px" }}
-                      onClick={() => handleRestore(_id)}
-                    />
+                    <Popconfirm
+                      title="Restore Blog"
+                      description="Are you sure to restore the blog ?"
+                      icon={<QuestionCircleOutlined style={{ color: "red" }} />}
+                      okText="Yes"
+                      cancelText="No"
+                      onConfirm={() => handleRestore(_id)}
+                    >
+                      <img
+                        src="Images/restore.svg"
+                        alt="Restore"
+                        width="20"
+                        height="20"
+                        className="cursor-pointer restore-icon"
+                      />
+                    </Popconfirm>
                   </div>
-                  <p className="text-sm text-gray-600 mb-4">{truncateContent(content)}</p>
+                  <p className="text-sm text-gray-600 mb-4 line-clamp-1">
+                    {truncateContent(content)}
+                  </p>
                   <div className="flex flex-wrap gap-2">
                     {focusKeywords.map((keyword, index) => (
                       <span
@@ -141,6 +163,10 @@ const Trashcan = () => {
                       </span>
                     ))}
                   </div>
+                  <span className="block mt-4 -mb-2 text-sm text-right">
+                    Archive Date:{" "}
+                    {new Date(archiveDate).toLocaleDateString("en-US", { dateStyle: "medium" })}
+                  </span>
                 </div>
               </Tooltip>
             )

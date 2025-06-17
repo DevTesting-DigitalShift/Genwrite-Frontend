@@ -86,18 +86,6 @@ const MultiStepModal = ({ closefnc }) => {
       return
     }
 
-    // Restrict for free/basic plans
-    if (userPlan === "free" || userPlan === "basic") {
-      handlePopup({
-        title: "Upgrade Required",
-        description: "Bulk blog generation is only available for Pro and Enterprise users.",
-        confirmText: "Buy Now",
-        cancelText: "Cancel",
-        onConfirm: () => navigate("/upgrade"),
-      })
-      return
-    }
-
     handlePopup({
       title: "Bulk Blog Generation",
       description: (

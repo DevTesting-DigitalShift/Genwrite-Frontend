@@ -18,15 +18,8 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
   const [shouldRunCompetitive, setShouldRunCompetitive] = useState(false)
   const { handlePopup } = useConfirmPopup()
   const navigate = useNavigate()
-  const userPlan = useSelector((state) => state.auth.user?.plan);
 
   const fetchCompetitiveAnalysis = async () => {
-    // Check if analysis results already exist
-    if (competitiveAnalysisResults) {
-      console.log("Competitive Analysis already completed. Using cached results.")
-      return
-    }
-
     if (!blog || !blog.title || !blog.content) {
       toast.error("Blog data is incomplete for analysis.")
       return
@@ -42,7 +35,7 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
         title: blog.title,
         content: blog.content,
         keywords: validKeywords,
-        contentType: "text",
+        contentType: "markdown",
       })
       setCompetitiveAnalysisResults(response.data) // Save Competitive Analysis Results
       toast.success("Competitive analysis completed successfully!")
@@ -60,6 +53,15 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
       setShouldRunCompetitive(false)
     }
   }, [shouldRunCompetitive])
+
+  useEffect(() => {
+    if(blog?.seoScore || blog?.generatedMetadata?.competitorsAnalysis){
+      setCompetitiveAnalysisResults({
+        blogScore: blog.seoScore,
+        ...blog?.generatedMetadata?.competitorsAnalysis
+      })
+    }
+  }, [])
 
   const removeKeyword = (keyword) => {
     setKeywords(keywords.filter((k) => k !== keyword))
@@ -274,16 +276,6 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
             <h4
               className="text-blue-600 font-medium hover:underline cursor-pointer"
               onClick={() => {
-                if (userPlan === "free" || userPlan === "basic") {
-                  handlePopup({
-                    title: "Upgrade Required",
-                    description: "Proofreading is only available for Pro and Enterprise users.",
-                    confirmText: "Buy Now",
-                    cancelText: "Cancel",
-                    onConfirm: () => navigate("/upgrade"),
-                  });
-                  return; 
-                }
                 handlePopup({
                   title: "AI Proofreading",
                   description: `Do you really want to proofread the blog ? \nIt will be ${getEstimatedCost("blog.proofread")} credits.`,

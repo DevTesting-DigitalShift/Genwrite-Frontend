@@ -41,6 +41,7 @@ import { useNavigate } from "react-router-dom";
 
 import { marked } from 'marked';
 import TurndownService from "turndown";
+import SmallBottomBox from "@components/toolbox/SmallBottomBox";
 
 const FONT_OPTIONS = [
   { label: "Inter", value: "font-sans" },
@@ -570,12 +571,15 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
       >
         <Undo2 className="w-5 h-5" />
       </button>
+
       <button
         onClick={() => safeEditorAction(() => normalEditor?.chain().focus().redo().run())}
         className="p-2 rounded hover:bg-gray-100"
       >
         <Redo2 className="w-5 h-5" />
       </button>
+      
+      <SmallBottomBox />
     </div>
   );
 
@@ -746,7 +750,6 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
       </div>
       {renderToolbar()}
       {renderContentArea()}
-      <ChatBox isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
     </div>
   );
 };

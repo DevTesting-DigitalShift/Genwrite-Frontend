@@ -2,7 +2,8 @@ import { lazy, Suspense } from "react"
 import { createBrowserRouter, Navigate } from "react-router-dom"
 import { previewBlogLoader } from "@pages/preview/previewLoader"
 import Loading from "@components/Loading"
-
+const CreditLogsTable = lazy(() => import("@pages/CreditLogs"))
+const Transactions = lazy(() => import("@pages/Transactions"))
 const ErrorBoundary = lazy(() => import("@components/ErrorBoundary"))
 const PublicRoutesLayout = lazy(() => import("@components/layout/PublicRoutesLayout"))
 const PrivateRoutesLayout = lazy(() => import("@components/layout/PrivateRoutesLayout"))
@@ -19,7 +20,6 @@ const upgrade = lazy(() => import("@pages/Upgrade"))
 const Profile = lazy(() => import("@pages/Profile"))
 const Login = lazy(() => import("@components/auth/Login"))
 const ErrorPage = lazy(() => import("@components/ErrorPage"))
-const PaymentConfirmation = lazy(() => import("@pages/payment/PaymentConfirmation"))
 const SuccessPage = lazy(() => import("@pages/payment/SuccessPage"))
 const CancelPage = lazy(() => import("@pages/payment/CancelPage"))
 
@@ -57,13 +57,11 @@ const router = createBrowserRouter([
       { path: "upgrade", element: withSuspense(upgrade) },
       { path: "profile", element: withSuspense(Profile) },
       { path: "brandVoice", element: withSuspense(BrandVoice) },
+      { path: "transactions", element: withSuspense(Transactions) },
+      { path: "credit-logs", element: withSuspense(CreditLogsTable) },
       {
         path: "payment",
         children: [
-          {
-            path: "confirm",
-            element: withSuspense(PaymentConfirmation),
-          },
           {
             path: "success",
             element: withSuspense(SuccessPage),

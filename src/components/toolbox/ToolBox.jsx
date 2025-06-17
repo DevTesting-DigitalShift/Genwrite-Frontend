@@ -7,7 +7,6 @@ import { toast, ToastContainer } from "react-toastify"
 import { fetchBlogById } from "../../store/slices/blogSlice"
 import TextEditor from "../generateBlog/TextEditor"
 import TextEditorSidebar from "../generateBlog/TextEditorSidebar"
-import SmallBottomBox from "./SmallBottomBox"
 import { Loader2 } from "lucide-react"
 
 const ToolBox = () => {
@@ -196,7 +195,6 @@ const ToolBox = () => {
               />
             </div>
           </div>
-          <SmallBottomBox />
         </div>
       </div>
     </>

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import axiosInstance from "@api/index"
 import { useNavigate } from "react-router-dom"
 import { loadStripe } from "@stripe/stripe-js"
+import { MailOutlined } from "@ant-design/icons"
 
 const PricingCard = ({ plan, isAnnual, index, onBuy }) => {
   const [customCredits, setCustomCredits] = useState(0) // State for custom credits
@@ -40,7 +41,6 @@ const PricingCard = ({ plan, isAnnual, index, onBuy }) => {
           Most Popular
         </motion.div>
       )}
-
       <div className="mb-6">
         <h3 className="text-2xl font-bold text-gray-800 mb-2">{plan.name}</h3>
         <div className="flex items-end gap-2 mb-4">
@@ -74,7 +74,8 @@ const PricingCard = ({ plan, isAnnual, index, onBuy }) => {
         </div>
         <p className="text-gray-600 text-sm">{plan.description}</p>
       </div>
-
+      {/* [ ] on clicking contact team for enterprise, open email to support@genwrite.com with
+      subject request for genwrite enterprise plan or something. Use anchor tag instead of button for enterprise*/ }
       <motion.button
         whileHover={{
           scale: 1.05,
@@ -93,14 +94,17 @@ const PricingCard = ({ plan, isAnnual, index, onBuy }) => {
             } else {
               onBuy(plan, customCredits)
             }
+          } else if (plan.name.toLowerCase().includes("enterprise")) {
+            window.location.href =
+              "mailto:supportGenwrite@gmail.com?subject=Genwrite Enterprise Subscription"
           } else {
             onBuy(plan)
           }
         }}
       >
+        {plan.name.toLowerCase().includes("enterprise") && <MailOutlined className="mr-2" />}{" "}
         {plan.cta}
       </motion.button>
-
       <ul className="mt-8 space-y-3">
         {plan.features.map((feature, idx) => (
           <motion.li
@@ -133,6 +137,7 @@ const PricingCard = ({ plan, isAnnual, index, onBuy }) => {
 }
 
 const Upgrade = () => {
+  // [ ] Remove annual plan config completely
   const [isAnnual, setIsAnnual] = useState(false)
   const navigate = useNavigate()
   const plans = [
@@ -160,7 +165,6 @@ const Upgrade = () => {
       featured: true,
     },
     {
-      // TODO on clicking contact team, open email to support@genwrite.com with subject request for genwrite enterprise plan or something
       name: "GenWrite Enterprise Plan",
       price: "custom", // Convert cents to dollars
       credits: "",
@@ -278,6 +282,7 @@ const Upgrade = () => {
           </motion.div> */}
         </motion.div>
 
+            {/* [ ] Use framer-motion to show skeletons & then cards with animate presence. Also update ui of the card header & all */}
         <div className="grid md:grid-cols-3 gap-10 max-w-6xl mx-auto">
           {plans.map((plan, index) => (
             <PricingCard
