@@ -20,12 +20,13 @@ const PrivateRoutesLayout = () => {
           {/* Header at the top */}
           <LayoutWithSidebarAndHeader />
           <div className="flex-1 ml-20 mt-20 p-6 pt-4">
-            <Tooltip
-              title="Chatbot"
-              onClick={() => setChatOpen(true)}
-              className="rounded-full bg-blue-500 fixed z-40 bottom-6 right-8 transition ease-linear duration-500 cursor-pointer hover:translate-y-0.5"
-            >
-              <RiChatAiLine className="p-2 size-10 text-white" />
+            <Tooltip title="Chatbot">
+              <div
+                onClick={() => setChatOpen(true)}
+                className="rounded-full bg-blue-500 fixed z-40 bottom-6 right-8 transition ease-linear duration-500 cursor-pointer hover:translate-y-0.5"
+              >
+                <RiChatAiLine className="p-2 size-10 text-white" />
+              </div>
             </Tooltip>
             <Outlet />
             <ChatBox isOpen={chatOpen} onClose={() => setChatOpen(false)} />
