@@ -142,6 +142,8 @@ Modal.setAppElement("#root");
 
 const PluginsMain = () => {
   const [selectedPlugin, setSelectedPlugin] = useState(null);
+  const [wordpressStatus, setWordpressStatus] = useState();
+  const plugins = pluginsData(setWordpressStatus)
 
   const handlePluginClick = (plugin) => {
     setSelectedPlugin(plugin);
@@ -157,7 +159,7 @@ const PluginsMain = () => {
       <h1 className="text-2xl font-bold mb-4">Plugins</h1>
 
       <div className="flex flex-col space-y-4">
-        {pluginsData.map((item, index) => (
+        {plugins.map((item, index) => (
           <DifferentPlugins
             key={index}
             pluginImage={item.pluginImage}
@@ -168,6 +170,7 @@ const PluginsMain = () => {
             pluginLink={item.pluginLink}
             onClick={() => handlePluginClick(item)}
             onCheck={item.onCheck}
+            wordpressStatus={wordpressStatus}
           />
         ))}
       </div>

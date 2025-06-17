@@ -95,7 +95,7 @@ const MyProjects = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto" style={{ overflowY: "auto" }}>
+    <div className="max-w-7xl mx-auto">
       <h1 className="text-3xl font-bold mb-6">Blogs Generated</h1>
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -106,7 +106,10 @@ const MyProjects = () => {
           ))}
         </div>
       ) : currentItems.length === 0 ? (
-        <p>No blogs available.</p>
+        <div className="flex flex-col justify-center items-center h-[35rem]">
+          <img src="Images/no-blog.png" alt="Trash" style={{ width: "8rem" }} />
+          <p className="text-xl mt-5">No blogs available.</p>
+        </div>
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 place-items-center p-2">
