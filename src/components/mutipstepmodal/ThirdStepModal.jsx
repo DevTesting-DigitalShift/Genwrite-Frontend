@@ -1,77 +1,67 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
-import axiosInstance from "@/api/index";
-import BrandVoiceSection from "./BrandVoiceSection";
+import { useState, useEffect } from "react"
+import axiosInstance from "@/api/index"
+import BrandVoiceSection from "./BrandVoiceSection"
 
-const ThirdStepModal = ({
-  handleSubmit,
-  handlePrevious,
-  handleClose,
-  data,
-  setData,
-}) => {
+const ThirdStepModal = ({ handleSubmit, handlePrevious, handleClose, data, setData }) => {
   const [formData, setFormData] = useState({
     isCheckedBrand: data.isCheckedBrand || false,
     ...data,
-  });
+  })
   const [localFormData, setLocalFormData] = useState({
     images: [],
     currentImageIndex: 0,
     referenceLinks: [],
     newLink: "",
-  });
-  const [brandVoices, setBrandVoices] = useState([]);
-  const [loadingBrands, setLoadingBrands] = useState(false);
-  const [brandError, setBrandError] = useState(null);
+  })
+  const [brandVoices, setBrandVoices] = useState([])
+  const [loadingBrands, setLoadingBrands] = useState(false)
+  const [brandError, setBrandError] = useState(null)
 
   useEffect(() => {
     if (formData.isCheckedBrand) {
-      setLoadingBrands(true);
+      setLoadingBrands(true)
       axiosInstance
         .get("/brand")
         .then((res) => {
-          let brandsArr = Array.isArray(res.data)
-            ? res.data
-            : res.data
-            ? [res.data]
-            : [];
-          setBrandVoices(brandsArr);
-          setLoadingBrands(false);
+          let brandsArr = Array.isArray(res.data) ? res.data : res.data ? [res.data] : []
+          setBrandVoices(brandsArr)
+          setLoadingBrands(false)
         })
         .catch((err) => {
-          setBrandError("Failed to fetch brand voices");
-          setLoadingBrands(false);
-        });
+          setBrandError("Failed to fetch brand voices")
+          setLoadingBrands(false)
+        })
     }
-  }, [formData.isCheckedBrand]);
+  }, [formData.isCheckedBrand])
 
   const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
-    const formData = new FormData();
-    formData.append("file", file);
+    const file = e.target.files[0]
+    const formData = new FormData()
+    formData.append("file", file)
 
     try {
       const response = await fetch("http://localhost:6500/api/upload", {
         method: "POST",
         body: formData,
-      });
-      const resData = await response.json();
+      })
+      const resData = await response.json()
       setLocalFormData((prev) => ({
         ...prev,
         images: [...prev.images, resData.imageUrl],
-      }));
+      }))
     } catch (error) {
-      console.error("Error uploading image:", error);
+      console.error("Error uploading image:", error)
     }
-  };
+  }
 
   const removeImage = (index) => {
     setLocalFormData((prev) => ({
       ...prev,
       images: prev.images.filter((_, i) => i !== index),
-    }));
-  };
+    }))
+  }
 
   const navigateImages = (direction) => {
     setLocalFormData((prev) => ({
@@ -80,8 +70,8 @@ const ThirdStepModal = ({
         direction === "next"
           ? Math.min(prev.currentImageIndex + 1, prev.images.length - 1)
           : Math.max(prev.currentImageIndex - 1, 0),
-    }));
-  };
+    }))
+  }
 
   const handleAddLink = () => {
     if (localFormData.newLink.trim()) {
@@ -89,47 +79,41 @@ const ThirdStepModal = ({
         ...prev,
         referenceLinks: [...prev.referenceLinks, prev.newLink.trim()],
         newLink: "",
-      }));
+      }))
     }
-  };
+  }
 
   const handleRemoveLink = (index) => {
     setLocalFormData((prev) => ({
       ...prev,
       referenceLinks: prev.referenceLinks.filter((_, i) => i !== index),
-    }));
-  };
+    }))
+  }
 
   const handleCheckboxChange = () => {
-    setData(prevData => ({
+    setData((prevData) => ({
       ...prevData,
       isCheckedGeneratedImages: !prevData.isCheckedGeneratedImages,
-    }));
-  };
+    }))
+  }
 
   const handleNextClick = () => {
     const updatedData = {
       ...data,
       images: [...(data.images || []), ...localFormData.images],
-      referenceLinks: [
-        ...(data.referenceLinks || []),
-        ...localFormData.referenceLinks,
-      ],
-    };
-    console.log("ThirdStepModal: Submitting data:", updatedData);
-    handleSubmit(updatedData);
-  };
+      referenceLinks: [...(data.referenceLinks || []), ...localFormData.referenceLinks],
+    }
+    console.log("ThirdStepModal: Submitting data:", updatedData)
+    handleSubmit(updatedData)
+  }
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/50">
       <div className="w-[800px] bg-white rounded-lg shadow-xl">
         <div className="flex items-center justify-between p-6 border-b">
           <h2 className="text-lg font-medium">Step 3: One last step</h2>
-          <button
-            onClick={handleClose}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            X
+          <button onClick={handleClose} className="ml-4 text-4xl text-gray-400 hover:text-gray-600">
+            ×
           </button>
         </div>
 
@@ -146,9 +130,7 @@ const ThirdStepModal = ({
           <div className="space-y-6">
             {/* --- Brand Voice Section from Step 2 --- */}
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">
-                Write with Brand Voice
-              </span>
+              <span className="text-sm font-medium">Write with Brand Voice</span>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
                   type="checkbox"
@@ -173,16 +155,21 @@ const ThirdStepModal = ({
                 ) : brandVoices.length > 0 ? (
                   <div className="space-y-2">
                     {brandVoices.map((voice) => (
-                      <label key={voice._id} className="flex items-center gap-3 mb-2 cursor-pointer p-2 rounded hover:bg-indigo-100 transition">
+                      <label
+                        key={voice._id}
+                        className="flex items-center gap-3 mb-2 cursor-pointer p-2 rounded hover:bg-indigo-100 transition"
+                      >
                         <input
                           type="radio"
                           name="selectedBrandVoice"
                           value={voice._id}
                           checked={formData.selectedBrandVoice === voice._id}
-                          onChange={() => setFormData((prev) => ({
-                            ...prev,
-                            selectedBrandVoice: voice._id,
-                          }))}
+                          onChange={() =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              selectedBrandVoice: voice._id,
+                            }))
+                          }
                           className="form-radio text-[#1B6FC9] focus:ring-[#1B6FC9]"
                         />
                         <div>
@@ -364,11 +351,14 @@ const ThirdStepModal = ({
                     >
                       {link}
                     </a>
+                  
+                  
+                   */}
                     <button
                       onClick={() => handleRemoveLink(index)}
-                      className="text-gray-400 hover:text-gray-600"
+                      className="ml-4 text-4xl text-gray-400 hover:text-gray-600"
                     >
-                      X
+                      ×
                     </button>
                   </div>
                 ))}
@@ -393,7 +383,7 @@ const ThirdStepModal = ({
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default ThirdStepModal;
+export default ThirdStepModal

@@ -111,6 +111,9 @@ const CompetitiveAnalysisModal = ({ closefnc }) => {
     if (e.key === "Enter") {
       e.preventDefault()
       handleAddKeyword()
+    }  else if (e.key === ",") {
+      e.preventDefault()
+      handleAddKeyword(type)
     }
   }
 

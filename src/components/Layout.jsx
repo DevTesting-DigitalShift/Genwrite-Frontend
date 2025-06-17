@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { NavLink, useLocation, useNavigate } from "react-router-dom"
 import { useDispatch, useSelector } from "react-redux"
 import { FaSearch, FaCog } from "react-icons/fa"
+import { IoIosLogOut } from "react-icons/io"
 import { RxAvatar } from "react-icons/rx"
 import { logoutUser } from "../store/slices/authSlice"
 import { motion, AnimatePresence } from "framer-motion"
@@ -14,18 +15,18 @@ import GoProButton from "@components/GoProButton"
 
 const LayoutWithSidebarAndHeader = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const location = useLocation()
-  const { user } = useSelector((selector) => selector.auth)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [isUserLoaded, setIsUserLoaded] = useState(false)
+  const location = useLocation()
+  const dispatch = useDispatch()
+  const navigate = useNavigate()
+  const { user } = useSelector((selector) => selector.auth)
 
   useEffect(() => {
     if (user?.name) {
       setIsUserLoaded(true)
     }
   }, [user])
-
-  const dispatch = useDispatch()
-  const navigate = useNavigate()
 
   const Menus = [
     { title: "Dashboard", src: "dashicon.svg", path: "/dash" },
@@ -205,8 +206,8 @@ const LayoutWithSidebarAndHeader = () => {
             {/* Settings Dropdown (Animated)
             <div className="relative">
               <button
+                onClick={() => navigate("/profile")}
                 className="p-2 text-gray-700 hover:bg-gray-100 rounded-full transition duration-150"
-                onClick={toggleSettings}
               >
                 <FaCog className="w-6 h-6" />
               </button>
@@ -219,10 +220,10 @@ const LayoutWithSidebarAndHeader = () => {
                   className="absolute right-0 mt-2 w-48 bg-white rounded-md overflow-hidden shadow-xl z-10"
                 >
                   <button
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                    className="flex px-4 py-2 text-md text-gray-700 hover:bg-gray-100 w-full text-left justify-between"
                     onClick={handleLogout}
                   >
-                    Logout
+                    <span>Logout</span> <IoIosLogOut size={20} />
                   </button>
                 </motion.div>
               )}

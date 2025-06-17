@@ -43,6 +43,9 @@ export default function ToolboxPage() {
   const handleKeyPress = (e) => {
     if (e.key === "Enter") {
       addKeyword()
+    } else if (e.key === ",") {
+      e.preventDefault()
+      handleAddKeyword(type)
     }
   }
 
