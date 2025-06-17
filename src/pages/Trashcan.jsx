@@ -7,6 +7,9 @@ import "react-toastify/dist/ReactToastify.css"
 import { FaTrash } from "react-icons/fa"
 import { Trash2 } from "lucide-react"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import { Popconfirm, Tooltip } from "antd"
+import { ToastContainer, toast } from "react-toastify"
+import { QuestionCircleOutlined } from "@ant-design/icons"
 
 const TRUNCATE_LENGTH = 85
 
@@ -19,10 +22,6 @@ const Trashcan = () => {
   const fetchTrashedBlogs = async () => {
     try {
       setLoading(true)
-      // const response = await axiosInstance.get("/blogs/")
-      // const filteredBlogs = response.data.filter((blog) => blog.isArchived) // Filter isArchived=true
-      setTrashedBlogs(filteredBlogs)
-      setLoading(true)
       const response = await axiosInstance.get("/blogs/")
       const filteredBlogs = response.data.filter((blog) => blog.isArchived) // Filter isArchived=true
       setTrashedBlogs(filteredBlogs)
@@ -31,12 +30,7 @@ const Trashcan = () => {
         "Error fetching trashed blogs:",
         error.response?.data?.message || "Failed to fetch trashed blogs"
       )
-      console.error(
-        "Error fetching trashed blogs:",
-        error.response?.data?.message || "Failed to fetch trashed blogs"
-      )
     } finally {
-      setLoading(false)
       setLoading(false)
     }
   }
