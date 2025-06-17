@@ -54,7 +54,7 @@ const DashboardBox = ({ imageUrl, title, content, id, functions }) => {
             <img src={imageUrl} alt={title} className="w-6 h-6 object-contain" />
           </motion.div>
         </span>
-          {["free", "basic"].includes(userPlan.toLowerCase()) && id=='B' && (
+          {["free", "basic"].includes(userPlan?.toLowerCase?.()) && id=='B' && (
             <span className="flex items-center gap-2 rounded-md text-white font-semibold border p-1 px-2 bg-gradient-to-tr from-blue-500 to-purple-500">
               <CrownFilled />
               Pro
@@ -73,7 +73,7 @@ export default DashboardBox
 
 export const QuickBox = ({ imageUrl, title, content, id, functions }) => {
   const user = useSelector((state) => state.auth.user)
-  const userPlan = user.plan ?? user?.subscription?.plan
+  const userPlan = user?.plan ?? user?.subscription?.plan
   const { handlePopup } = useConfirmPopup()
   const showPopup = () => {
     handlePopup({
@@ -111,7 +111,7 @@ export const QuickBox = ({ imageUrl, title, content, id, functions }) => {
             <img src={imageUrl} alt={title} className="w-6 h-6 object-contain" />
           </motion.div>
         </span>
-         {["free", "basic"].includes(userPlan.toLowerCase()) && id==4 && (
+         {["free", "basic"].includes(userPlan?.toLowerCase?.()) && id==4 && (
             <span className="flex items-center gap-2 rounded-md text-white font-semibold border p-1 px-2 bg-gradient-to-tr from-blue-500 to-purple-500">
               <CrownFilled />
               Pro

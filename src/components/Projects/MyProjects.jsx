@@ -125,6 +125,7 @@ const MyProjects = () => {
               } = blog
               const isGemini = /gemini/gi.test(aiModel)
               // [ ] Create a universal blog card to show wherever we need, use it here & in trashcan with all event handlers
+              // [ ] When blog is failed show user retry button [/blogs/:id/retry] - POST payload: create_new- boolean.
               return (
                 <Badge.Ribbon
                   key={_id}
