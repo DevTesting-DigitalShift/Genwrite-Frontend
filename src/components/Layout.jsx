@@ -170,12 +170,6 @@ const LayoutWithSidebarAndHeader = () => {
               <>
                 <Tooltip title="User Credits">
                   <button
-            <GoProButton onClick={() => navigate("/upgrade")} />
-            <button className="p-2 text-gray-700 rounded-full transition duration-200 flex items-center gap-2">
-              {isUserLoaded && user?.name ? (
-                <>
-                  <Tooltip
-                    title="User Credits"
                     onClick={() => navigate("/upgrade")}
                     className="flex gap-2 justify-center items-center mr-4 rounded-full p-2 hover:bg-gray-100 transition"
                   >
@@ -196,11 +190,6 @@ const LayoutWithSidebarAndHeader = () => {
                   <Avatar
                     className="bg-gradient-to-tr from-blue-400 to-purple-700 text-white text-lg font-bold cursor-pointer hover:ring-2 hover:ring-offset-2 hover:ring-purple-500 transition"
                     size="large"
-                  </Tooltip>
-                  <Tooltip
-                    title={`Hello ${user.name}`}
-                    onClick={toggleSettings}
-                    className="size-10 bg-gradient-to-tr from-blue-400 to-purple-700 text-white rounded-full hover:bg-gray-100 text-xl p-2"
                   >
                     {user.name.slice(0, 1).toUpperCase()}
                   </Avatar>
