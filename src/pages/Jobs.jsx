@@ -16,7 +16,7 @@ import { CrownFilled, QuestionCircleOutlined } from "@ant-design/icons"
 import { Popconfirm } from "antd"
 import { Gem } from "lucide-react"
 
-  // [ ] active jobs don't show if there is no job 
+// [ ] active jobs don't show if there is no job
 
 const Jobs = () => {
   const tones = ["Professional", "Casual", "Friendly", "Formal", "Technical"]
@@ -715,7 +715,7 @@ const Jobs = () => {
               <span className="bg-blue-100 rounded-lg p-3">
                 <FiPlus className="w-6 h-6 text-blue-600" />
               </span>
-              {["free", "basic"].includes(userPlan.toLowerCase()) && (
+              {["free", "basic"].includes(userPlan?.toLowerCase?.()) && (
                 <span className="flex items-center gap-2 rounded-md text-white font-semibold border p-1 px-2 bg-gradient-to-tr from-blue-500 to-purple-500 shadow-md hover:shadow-xl hover:scale-105 transition-all duration-300 ease-in-out animate-pulse backdrop-blur-sm text-lg">
                   <Gem className="w-4 h-4 animate-bounce" />
                   Pro
@@ -729,8 +729,9 @@ const Jobs = () => {
               </p>
             </div>
           </motion.div>
-
-          <h2 className="text-xl font-semibold text-gray-800 mb-6">Active Jobs</h2>
+          {jobs.length > 0 && (
+            <h2 className="text-xl font-semibold text-gray-800 mb-6">Active Jobs</h2>
+          )}
 
           {/* Loading State */}
           {isLoading ? (
@@ -749,7 +750,7 @@ const Jobs = () => {
                   >
                     <div className="flex justify-between items-start mb-4">
                       <div>
-                        <h3 className="text-lg font-semibold text-gray-800">{job.name}</h3>
+                        <h3 className="text-lg font-semibold text-gray-800 capitalize">{job.name}</h3>
                         <p className="text-sm text-gray-500 mt-1">
                           ID: {job._id.toString().slice(-6)}
                         </p>
@@ -769,24 +770,24 @@ const Jobs = () => {
                     </div>
 
                     <div className="space-y-3 text-sm text-gray-600">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 capitalize">
                         <FiCalendar className="w-4 h-4 text-blue-500" />
                         <span>Scheduling: {job.schedule.type}</span>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 capitalize">
                         <FiFileText className="w-4 h-4 text-purple-500" />
                         <span>Daily Blogs : {job.blogs.numberOfBlogs}</span>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 capitalize">
                         <FiSettings className="w-4 h-4 text-green-500" />
                         <span>Model: {job.blogs.aiModel}</span>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 capitalize">
                         <FiCalendar className="w-4 h-4 text-red-500" />
                         <span>Status: {job.status}</span>
                       </div>
                       {job.blogs.topics.length > 0 && (
-                        <div className="flex items-start gap-2">
+                        <div className="flex items-start gap-2 capitalize">
                           <FiFileText className="w-4 h-4 text-purple-500 mt-0.5" />
                           <div className="flex flex-wrap gap-2">
                             Topics :

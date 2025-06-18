@@ -220,7 +220,6 @@ const Upgrade = () => {
       })
 
       // Redirect to Stripe checkout
-      console.log(response.data)
       if (response?.data.sessionId) {
         const result = await stripe.redirectToCheckout({ sessionId: response.data.sessionId })
         if (result?.error) {
@@ -307,10 +306,10 @@ const Upgrade = () => {
             <PricingCard key={plan.name} plan={plan} index={index} onBuy={handleBuy} />
           ))}
         </div> */}
-        <div className="grid md:grid-cols-4 gap-10 ">
+        <div className="grid md:grid-cols-3 gap-10 ">
           <AnimatePresence mode="wait">
             {loading
-              ? Array.from({ length: 3 }).map((_, idx) => <SkeletonCard key={idx} />)
+              ? Array.from({ length: 4 }).map((_, idx) => <SkeletonCard key={idx} />)
               : plans.map((plan, index) => (
                   <PricingCard key={plan.name} plan={plan} index={index} onBuy={handleBuy} />
                 ))}

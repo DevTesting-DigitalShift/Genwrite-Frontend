@@ -38,12 +38,11 @@ export const loginUser =
         if (data.token) {
           localStorage.setItem("token", data.token);
         }
-        console.log(data);
         await dispatch(setUser({ user: data.user, token: data.token }));
       }
       return { success: true };
     } catch (error) {
-      console.log(error);
+      console.error(error);
       return { success: false };
     }
   };
@@ -59,7 +58,7 @@ export const signupUser =
       }
       return { success: true };
     } catch (error) {
-      console.log(error);
+      console.error(error);
       return { success: false };
     }
   };
@@ -74,11 +73,11 @@ export const logoutUser = (navigate) => async (dispatch) => {
     }
     return { success: true };
   } catch (error) {
-    console.log(error);
+    console.error(error);
   }
 };
 
-// [s ] check the cause for showing nan creits & no user data on login via google at first but avaliable after refresh or first polling
+// [s ] check the cause for showing nan credits & no user data on login via google at first but available after refresh or first polling
 export const load = () => async (dispatch) => {
   try {
     const data = await loadUser();
@@ -89,8 +88,7 @@ export const load = () => async (dispatch) => {
       }
     }
   } catch (error) {
-    console.log(error);
-    // localStorage.removeItem("token")
+    console.error(error);
   }
 };
 

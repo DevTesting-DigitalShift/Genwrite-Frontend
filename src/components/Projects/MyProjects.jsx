@@ -2,25 +2,31 @@ import React, { useState, useEffect, Suspense } from "react"
 import { useNavigate } from "react-router-dom"
 import axiosInstance from "@api/index"
 import SkeletonLoader from "./SkeletonLoader"
-import { toast } from "react-toastify"
+import { toast, ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
-import { Badge, Button, Popconfirm, Tooltip } from "antd"
-import { RotateCcw, Trash2 } from "lucide-react"
-import { motion } from "framer-motion"
+import { Badge, Button, Input, Popconfirm, Tooltip } from "antd"
+import { Menu, RefreshCcw, RotateCcw, Search, Trash2 } from "lucide-react"
+import { AnimatePresence, motion } from "framer-motion"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import {
+  CalendarOutlined,
+  CheckCircleOutlined,
+  CloseOutlined,
+  SortAscendingOutlined,
+} from "@ant-design/icons"
 
 const TRUNCATE_LENGTH = 120
 
-// [ ] refresh button on the top right
+// [ ] DONE refresh button on the top right
 // [ ] sorting and filter option
-// [ ] 1. a-z 2. created date 3. status = pending, failed, success 4. gemini and chatgpt (optional) 
+// 1. a-z 2. created date 3. status = pending, failed, complete 4. gemini and chatgpt (optional)
 // [ ] search bar: based on title and keyboard (focus keyboard)
-// [ ] archive replace trash
+// [ ] DONE archive replace trash
 
 // [ ] in editor blog score, Analysis Results, ca to SEO score
 // [ ] save functionality in editor, if user doesn't save those changes show blog
-// [ ] when ctrl+- editor width not correct 
-// [ ] once blog is post show re-post & show blog link
+// [ ]  DONE when ctrl+- editor width not correct
+// [ ] QUERY once blog is post show re-post & show blog link
 
 const MyProjects = () => {
   const [blogsData, setBlogsData] = useState([])
@@ -28,17 +34,36 @@ const MyProjects = () => {
   const [itemsPerPage, setItemsPerPage] = useState(5)
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
+  const [isMenuOpen, setMenuOpen] = useState(false)
+  const [isSearchOpen, setSearchOpen] = useState(false)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [debouncedSearch, setDebouncedSearch] = useState("")
   const { handlePopup } = useConfirmPopup()
 
-  const fetchBlogs = async () => {
+  const toggleMenu = () => setMenuOpen((prev) => !prev)
+  const toggleSearch = () => setSearchOpen((prev) => !prev)
+
+  const handleSearch = () => {
+    setSearchTerm("")
+  }
+
+  const fetchBlogs = async ({ sortType = "date", filterStatus = null, search = "" } = {}) => {
     try {
       setLoading(true)
-      const response = await axiosInstance.get("/blogs/")
-      const filteredBlogs = response.data.filter((blog) => !blog.isArchived) // Filter isArchived=false
-      const sortedBlogs = filteredBlogs.sort(
-        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-      )
-      setBlogsData(sortedBlogs)
+
+      // Build query params only if they are present
+      const params = {}
+      if (search) params.search = search
+      if (filterStatus) params.status = filterStatus
+      if (sortType) params.sortBy = sortType
+
+      // Send the query to backend for better optimization
+      const response = await axiosInstance.get("/blogs", { params })
+
+      // Filter isArchived blogs (assuming backend doesn’t filter this)
+      const blogs = response.data.filter((blog) => !blog.isArchived)
+
+      setBlogsData(blogs)
     } catch (error) {
       console.error(
         "Error fetching blogs:",
@@ -50,7 +75,20 @@ const MyProjects = () => {
   }
 
   useEffect(() => {
-    fetchBlogs()
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm)
+    }, 400) // 400ms debounce
+
+    return () => clearTimeout(handler)
+  }, [searchTerm])
+
+  // Trigger blog fetch when debouncedSearch changes
+  useEffect(() => {
+    fetchBlogs({ sortBy: "date", search: debouncedSearch })
+  }, [debouncedSearch])
+
+  useEffect(() => {
+    fetchBlogs("date") // default
   }, [])
 
   useEffect(() => {
@@ -75,9 +113,11 @@ const MyProjects = () => {
   }
 
   const handleRetry = async (id) => {
+    const payload = {
+      create_new: false,
+    }
     try {
-      const response = await axiosInstance.post(`blogs/${id}/retry`)
-      console.log("response", response)
+      const response = await axiosInstance.post(`blogs/${id}/retry`, payload)
       if (response.status === 200) {
         toast.success(response?.data?.message || "Blog regenerated successfully!")
       } else {
@@ -125,25 +165,134 @@ const MyProjects = () => {
     }
   }
 
+  const menuOptions = [
+    {
+      label: "A-Z",
+      icon: <SortAscendingOutlined />,
+      onClick: () => {
+        fetchBlogs("az")
+        setMenuOpen(false)
+      },
+    },
+    {
+      label: "Created Date",
+      icon: <CalendarOutlined />,
+      onClick: () => {
+        fetchBlogs("date")
+        setMenuOpen(false)
+      },
+    },
+    {
+      label: "Status",
+      icon: <CheckCircleOutlined />,
+      onClick: () => {
+        // Example: Filter only 'published' status
+        fetchBlogs("date", "published")
+        setMenuOpen(false)
+      },
+    },
+  ]
+
+  const handleRefresh = async () => {
+    await fetchBlogs()
+  }
+
   return (
     <div className="p-5">
-      <motion.h1
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.2 }}
-        className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
-      >
-        Blogs Generated
-      </motion.h1>
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.3 }}
-        className="text-gray-600 max-w-xl mt-2 mb-5"
-      >
-        All your content creation tools in one place. Streamline your workflow with our powerful
-        suite of tools.
-      </motion.p>
+      <ToastContainer  />
+      <div className="flex justify-between align-middle items-center">
+        <div>
+          <motion.h1
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
+          >
+            Blogs Generated
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="text-gray-600 max-w-xl mt-2 mb-5"
+          >
+            All your content creation tools in one place. Streamline your workflow with our powerful
+            suite of tools.
+          </motion.p>
+        </div>
+        <div className="flex gap-3">
+          {isSearchOpen ? (
+            <Input
+              autoFocus
+              size="small"
+              placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onPressEnter={handleSearch}
+              onBlur={() => setSearchOpen(false)} // closes when clicked outside
+              className="w-48"
+            />
+          ) : (
+            <Button
+              type="button"
+              className="p-0 hover:!border-yellow-500 hover:text-yellow-500"
+              onClick={toggleSearch}
+            >
+              <Search />
+            </Button>
+          )}
+          <Button
+            type="button"
+            className="p-2 hover:!border-yellow-500 hover:text-yellow-500"
+            onClick={() => handleRefresh()}
+          >
+            <RefreshCcw />
+          </Button>
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Button
+              type="default"
+              icon={isMenuOpen ? <CloseOutlined /> : <Menu />}
+              onClick={toggleMenu}
+              className="pt-1"
+            />
+          </motion.div>
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {isMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            transition={{ duration: 0.2 }}
+            className="absolute top-[12rem] right-10 z-50 min-w-[200px] rounded-lg shadow-lg border bg-white backdrop-blur-md p-2 space-y-1"
+          >
+            {menuOptions.map(({ label, icon, onClick }) => (
+              <motion.div
+                key={label}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              >
+                <Tooltip title={label} placement="left">
+                  <button
+                    onClick={() => {
+                      onClick()
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                  >
+                    <span className="text-lg">{icon}</span>
+                    <span>{label}</span>
+                  </button>
+                </Tooltip>
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {[...Array(itemsPerPage)].map((_, index) => (
@@ -178,7 +327,7 @@ const MyProjects = () => {
               } = blog
               const isGemini = /gemini/gi.test(aiModel)
               // [ s] Create a universal blog card to show wherever we need, use it here & in trashcan with all event handlers
-              // [ ] When blog is failed show user retry button [/blogs/:id/retry] - POST payload: create_new- boolean.
+              // [ s] When blog is failed show user retry button [/blogs/:id/retry] - POST payload: create_new- boolean.
               return (
                 <Badge.Ribbon
                   key={_id}
@@ -292,9 +441,8 @@ const MyProjects = () => {
                                 later.
                               </span>
                             ),
-                            confirmText: "Archive",
+                            confirmText: "Delete",
                             onConfirm: () => {
-                              console.log("Trashing blog:", _id)
                               handleArchive(_id)
                             },
                             confirmProps: {

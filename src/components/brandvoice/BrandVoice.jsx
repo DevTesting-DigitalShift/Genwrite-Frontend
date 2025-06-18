@@ -30,7 +30,6 @@ const BrandVoice = () => {
     try {
       const res = await axiosInstance.get("/brand")
       let brandsArr = Array.isArray(res.data) ? res.data : res.data ? [res.data] : []
-      console.log("Fetched brands:", brandsArr)
       setBrands(brandsArr)
       if (brandsArr.length > 0 && !formData.selectedVoice) {
         setFormData((prev) => ({ ...prev, selectedVoice: brandsArr[0] }))

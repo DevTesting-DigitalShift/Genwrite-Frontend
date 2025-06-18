@@ -109,7 +109,6 @@ const Profile = () => {
         }
         toast.success("User updated successfully")
       } catch (err) {
-        console.log(err)
         toast.error("User update error, try after some time")
       }
     }
@@ -225,7 +224,7 @@ const Profile = () => {
                 </p>
                 <div className="flex flex-wrap gap-3">
                   <motion.div
-                    className="px-4 py-2 bg-white/20 rounded-full backdrop-blur-sm flex items-center gap-2"
+                    className="px-4 py-2 bg-white/20 rounded-full capitalize backdrop-blur-sm flex items-center gap-2"
                     whileHover={{ y: -2 }}
                   >
                     <CreditCardIcon className="w-5 h-5" />
@@ -293,7 +292,7 @@ const Profile = () => {
             </div>
 
             {/* Profile Sections */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-1 gap-8">
               {/* Left Column */}
               <div className="space-y-6">
                 {/* Personal Details */}
@@ -382,7 +381,7 @@ const Profile = () => {
                   <div className="space-y-4 ">
                     <div className="flex justify-between items-center p-3 rounded-lg bg-white/80">
                       <span className="font-medium">Plan Type</span>
-                      <span className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-1 rounded-full">
+                      <span className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-1 rounded-full capitalize">
                         {profileData.subscription.type}
                       </span>
                     </div>
@@ -410,8 +409,7 @@ const Profile = () => {
               </div>
 
               {/* Right Column */}
-              <div className="space-y-6">
-                {/* Billing Information */}
+              {/* <div className="space-y-6">
                 <motion.div
                   variants={cardVariants}
                   whileHover="hover"
@@ -485,7 +483,7 @@ const Profile = () => {
                     />
                   </div>
                 </motion.div>
-              </div>
+              </div> */}
             </div>
           </motion.div>
         </motion.div>

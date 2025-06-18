@@ -5,7 +5,7 @@ import FirstStepModal from "./mutipstepmodal/FirstStepModal"
 import SecondStepModal from "./mutipstepmodal/SecondStepModal"
 import ThirdStepModal from "./mutipstepmodal/ThirdStepModal"
 import { letsBegin, quickTools } from "./dashdata/dash"
-import DashboardBox, { QuickBox, RecentProjects } from "../utils/DashboardBox"
+import { DashboardBox, QuickBox, RecentProjects } from "../utils/DashboardBox"
 import QuestionButton from "../utils/QuestionButton"
 import { useDispatch, useSelector } from "react-redux"
 import { createNewBlog } from "@store/slices/blogSlice"
@@ -20,14 +20,17 @@ import { load } from "@store/slices/authSlice"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { toast, ToastContainer } from "react-toastify"
+import { loadUser } from "@api/authApi"
+import { SkeletonDashboardCard, SkeletonGridCard } from "./Projects/SkeletonLoader"
+import { AnimatePresence } from "framer-motion"
 
 /*
  [s ] instead of asking for upgrade, show animation of crown with toast & disable features on plan based like free & basic can't open bulk blogs & other features
   check the ui first for free version & then change it in a more good way
  */
 
-  // [ ] remove search 
-  // [ ] skeleton loading
+// [ ] remove search
+// [ ] skeleton loading
 const Dashboard = () => {
   // State declarations
   const [isModalVisible, setIsModalVisible] = useState(false)
@@ -38,12 +41,9 @@ const Dashboard = () => {
   const [competitiveAnalysisModal, setCompetitiveAnalysisModal] = useState(false)
   const [performanceModal, setPerformanceModal] = useState(false)
   const [modelData, setModelData] = useState({})
-  const [isLoading, setIsLoading] = useState(true)
   const [recentBlogData, setRecentBlogData] = useState([])
-  const [selectedBlogId, setSelectedBlogId] = useState(null)
   const [allBlogs, setAllBlogs] = useState([])
-  const [selectedPerformanceBlog, setSelectedPerformanceBlog] = useState("")
-  const [performanceStats, setPerformanceStats] = useState(null)
+  const [loading, setLoading] = useState(true)
 
   // Hooks
   const dispatch = useDispatch()
@@ -51,65 +51,55 @@ const Dashboard = () => {
   const { user } = useSelector((state) => state.auth)
   const { handlePopup } = useConfirmPopup()
 
-  // Load user data when component mounts
   useEffect(() => {
-    const loadUserData = async () => {
-      try {
-        const token = localStorage.getItem("token")
-        if (!token) {
-          navigate("/login")
-          return
-        }
+    const timer = setTimeout(() => {
+      setLoading(false)
+    }, 1200) // 1.2s delay for animation simulation
 
-        // Only fetch if we don't have complete user data
-        if (!user?._id || !user?.name) {
+    return () => clearTimeout(timer)
+  }, [])
+
+  useEffect(() => {
+    const initUser = async () => {
+      const token = localStorage.getItem("token")
+      if (!token) {
+        navigate("/login")
+        return
+      }
+
+      try {
+        // Avoid duplicate call by combining
+        const userRes = await loadUser(navigate)
+
+        if (!userRes?._id || !userRes?.name) {
           await load()(dispatch)
         }
       } catch (error) {
-        if (error.response?.status === 401) {
-          localStorage.removeItem("token")
-          navigate("/login")
-        }
+        console.error("User init failed:", error)
       }
     }
 
-    loadUserData()
-  }, [dispatch, navigate, user?._id])
+    initUser()
+  }, [dispatch, navigate])
 
-  // Fetch blogs
   useEffect(() => {
     const fetchBlogs = async () => {
       try {
         const response = await axiosInstance.get("/blogs/")
-        let allBlogs = response.data
+        const blogs = response.data
 
-        console.log(allBlogs.filter((e) => e.status == "complete"))
-        if (allBlogs.length >= 3) {
-          allBlogs = allBlogs.filter((e) => e.status == "complete").slice(-3)
-        }
-        setRecentBlogData(allBlogs)
+        // For recent complete blogs
+        const recent = blogs.filter((b) => b.status === "complete").slice(-3)
+        setRecentBlogData(recent)
+
+        // Set all blogs for dropdown
+        setAllBlogs(blogs)
       } catch (error) {
-        console.error(
-          "Error fetching blogs:",
-          error.response?.data?.message || "Failed to fetch blogs"
-        )
+        console.error("Error fetching blogs:", error.response?.data?.message || error.message)
       }
     }
 
     fetchBlogs()
-  }, [])
-
-  // Fetch all blogs for performance monitoring dropdown
-  useEffect(() => {
-    const fetchAllBlogs = async () => {
-      try {
-        const response = await axiosInstance.get("/blogs/")
-        setAllBlogs(response.data)
-      } catch (error) {
-        // ignore
-      }
-    }
-    fetchAllBlogs()
   }, [])
 
   // Event handlers
@@ -129,7 +119,6 @@ const Dashboard = () => {
       const estimatedCost =
         getEstimatedCost("blog.single", modelData.aiModel) +
         (modelData.isUnsplashActive ? 0 : getEstimatedCost("aiImages"))
-      console.log("estimatedCost", estimatedCost)
       handlePopup({
         title: "  ",
         description: (
@@ -164,10 +153,10 @@ const Dashboard = () => {
     setModelData({})
   }
 
+  
+
   const handleNext = () => setCurrentStep(currentStep + 1)
   const handlePrev = () => setCurrentStep(currentStep - 1)
-
-  console.log(modelData)
 
   return (
     <>
@@ -233,44 +222,52 @@ const Dashboard = () => {
       <div className="p-10">
         <h3 className="text-[24px] font-[600] mb-8 font-montserrat">Let's Begin </h3>
 
-        <div className="flex justify-between items-center gap-8 p-4 bg-white sm:flex-wrap md:flex-nowrap">
-          {letsBegin.map((item, index) => (
-            <DashboardBox
-              key={index}
-              imageUrl={item.imageUrl}
-              title={item.title}
-              content={item.content}
-              id={item.id}
-              functions={{
-                showModal,
-                setModelData,
-                showDaisy,
-                showMultiStepModal,
-                showQuickBlogModal,
-                showCompetitiveAnalysis,
-              }}
-            />
-          ))}
+        <div className="flex justify-between items-center gap-8 p-4 sm:flex-wrap md:flex-nowrap">
+          <AnimatePresence mode="wait">
+            {loading
+              ? Array.from({ length: 4 }).map((_, idx) => <SkeletonDashboardCard key={idx} />)
+              : letsBegin.map((item, index) => (
+                  <DashboardBox
+                    key={index}
+                    imageUrl={item.imageUrl}
+                    title={item.title}
+                    content={item.content}
+                    id={item.id}
+                    functions={{
+                      showModal,
+                      setModelData,
+                      showDaisy,
+                      showMultiStepModal,
+                      showQuickBlogModal,
+                      showCompetitiveAnalysis,
+                    }}
+                  />
+                ))}
+          </AnimatePresence>
         </div>
 
         <div className="mt-5 ">
           <h3 className="text-[24px] font-[600] mb-8 font-montserrat">Quick Tools</h3>
-          <div className="grid m-2 gap-8 sm:grid-cols-4 bg-white p-4">
-            {quickTools.map((item, index) => (
-              <QuickBox
-                key={index}
-                imageUrl={item.imageUrl}
-                title={item.title}
-                content={item.content}
-                id={item.id}
-                functions={{
-                  ...(item.id === 3
-                    ? { showPerformanceMonitoring: () => setPerformanceModal(true) }
-                    : {}),
-                  ...(item.id === 4 ? { showCompetitiveAnalysis } : {}),
-                }}
-              />
-            ))}
+          <div className="grid m-2 gap-8 sm:grid-cols-4 p-4">
+            <AnimatePresence mode="wait">
+              {loading
+                ? Array.from({ length: 4 }).map((_, idx) => <SkeletonGridCard key={idx} />)
+                : quickTools.map((item, index) => (
+                    <QuickBox
+                      key={index}
+                      imageUrl={item.imageUrl}
+                      title={item.title}
+                      content={item.content}
+                      id={item.id}
+                      functions={{
+                        ...(item.id === 3
+                          ? { showPerformanceMonitoring: () => setPerformanceModal(true) }
+                          : {}),
+                        ...(item.id === 4 ? { showCompetitiveAnalysis } : {}),
+                      }}
+                    />
+                  ))}
+            </AnimatePresence>
           </div>
         </div>
 
@@ -291,17 +288,21 @@ const Dashboard = () => {
               </span>
             </div>
             <div className="grid m-4 gap-10 sm:grid-cols-3">
-              {recentBlogData.map((item, index) => {
-                return (
-                  <RecentProjects
-                    key={index}
-                    title={item.title}
-                    content={item.content}
-                    tags={item.focusKeywords}
-                    item={item}
-                  />
-                )
-              })}
+              <AnimatePresence mode="wait">
+                {loading
+                  ? Array.from({ length: 4 }).map((_, idx) => <SkeletonGridCard key={idx} />)
+                  : recentBlogData.map((item, index) => {
+                      return (
+                        <RecentProjects
+                          key={index}
+                          title={item.title}
+                          content={item.content}
+                          tags={item.focusKeywords}
+                          item={item}
+                        />
+                      )
+                    })}
+              </AnimatePresence>
             </div>
           </div>
         )}

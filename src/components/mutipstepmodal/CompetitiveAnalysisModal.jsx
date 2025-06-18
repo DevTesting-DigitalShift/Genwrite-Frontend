@@ -152,7 +152,6 @@ const CompetitiveAnalysisModal = ({ closefnc }) => {
           })
 
           if (response.data) {
-            console.log(response.data)
             setAnalysisResults(response.data)
             toast.success("Analysis completed successfully!")
           }

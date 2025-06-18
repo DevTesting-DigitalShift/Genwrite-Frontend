@@ -103,7 +103,6 @@ const ThirdStepModal = ({ handleSubmit, handlePrevious, handleClose, data, setDa
       images: [...(data.images || []), ...localFormData.images],
       referenceLinks: [...(data.referenceLinks || []), ...localFormData.referenceLinks],
     }
-    console.log("ThirdStepModal: Submitting data:", updatedData)
     handleSubmit(updatedData)
   }
 
@@ -351,9 +350,6 @@ const ThirdStepModal = ({ handleSubmit, handlePrevious, handleClose, data, setDa
                     >
                       {link}
                     </a>
-                  
-                  
-                   */}
                     <button
                       onClick={() => handleRemoveLink(index)}
                       className="ml-4 text-4xl text-gray-400 hover:text-gray-600"

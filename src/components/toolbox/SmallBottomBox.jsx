@@ -1,20 +1,15 @@
 import React, { useState } from "react"
 import { Button, Space, Tooltip } from "antd"
-import {
-  CopyOutlined,
-  ReloadOutlined,
-  PictureOutlined,
-  MessageOutlined,
-  PlusOutlined,
-  CloseOutlined,
-} from "@ant-design/icons"
+import { CopyOutlined, ReloadOutlined, PictureOutlined, CloseOutlined } from "@ant-design/icons"
 import { motion, AnimatePresence } from "framer-motion"
 
 import ImageGenerationModal from "./ImageGenerationModal"
 import ChatBox from "../generateBlog/ChatBox"
 import { Menu } from "lucide-react"
+import { toast } from "react-toastify"
+import axiosInstance from "@api/index"
 
-const SmallBottomBox = () => {
+const SmallBottomBox = (id) => {
   const [isMenuOpen, setMenuOpen] = useState(false)
   const [isModalOpen, setModalOpen] = useState(false)
   const [isChatOpen, setIsChatOpen] = useState(false)
@@ -22,6 +17,25 @@ const SmallBottomBox = () => {
   const toggleMenu = () => setMenuOpen((prev) => !prev)
   const closeModal = () => setModalOpen(false)
   const closeChat = () => setIsChatOpen(false)
+
+  const handleRetry = async ({ id }) => {
+    const payload = {
+      create_new: true,
+    }
+    try {
+      const response = await axiosInstance.post(`blogs/${id}/retry`, payload)
+      if (response.status === 200) {
+        toast.success(response?.data?.message || "Blog regenerated successfully!")
+        setMenuOpen(false)
+      } else {
+        toast.error("Failed to regenerated blog.")
+      }
+    } catch (error) {
+      console.log("in catch", error)
+      toast.error(error.response.data.message || "Failed to regenerated blog.")
+      console.error("Error regenerating blog:", error)
+    }
+  }
 
   const menuOptions = [
     {
@@ -36,8 +50,7 @@ const SmallBottomBox = () => {
       label: "Regenerate",
       icon: <ReloadOutlined />,
       onClick: () => {
-        console.log("Regenerate clicked")
-        setMenuOpen(false)
+        handleRetry(id)
       },
     },
     {
@@ -57,31 +70,30 @@ const SmallBottomBox = () => {
         <AnimatePresence>
           {isMenuOpen && (
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
+              exit={{ opacity: 0, y: 10 }}
               transition={{ duration: 0.2 }}
-              className="mb-3 absolute top-10 z-50 flex flex-col gap-2 items-center p-2 rounded-xl bg-black/50 backdrop-blur-xl"
+              className="absolute top-12 right-0 z-50 min-w-[200px] rounded-lg shadow-lg border bg-white backdrop-blur-md p-2 space-y-1"
             >
               {menuOptions.map(({ label, icon, onClick }) => (
                 <motion.div
                   key={label}
-                  initial={{ opacity: 0, scale: 0.8 }}
+                  initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ type: "spring", stiffness: 300, damping: 20 }}
                 >
                   <Tooltip title={label} placement="left">
-                    <Button
-                      type="default"
-                      shape="round"
-                      icon={icon}
-                      size="large"
-                      onClick={onClick}
-                      className="w-48 text-left shadow-md font-medium"
+                    <button
+                      onClick={() => {
+                        onClick()
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
                     >
-                      {label}
-                    </Button>
+                      <span className="text-lg">{icon}</span>
+                      <span>{label}</span>
+                    </button>
                   </Tooltip>
                 </motion.div>
               ))}

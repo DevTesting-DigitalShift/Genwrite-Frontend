@@ -34,7 +34,7 @@ const ImageGenerationModal = ({ onClose }) => {
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-      <div className="w-[80vw] h-[85vh] max-w-[1200px] mx-4 bg-white rounded-lg shadow-xl overflow-y-auto p-6">
+      <div className="w-[80vw] max-w-[1200px] mx-4 bg-white rounded-lg shadow-xl overflow-y-auto p-6">
         <div className="p-6 flex justify-between items-center mb-4">
           <h3 className="text-3xl font-montserrat font-semibold">Generate an Image</h3>
           <button

@@ -117,7 +117,7 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
         TextAlign.configure({ types: ["heading", "paragraph"] }),
       ],
       content: content,
-      onUpdate: ({ editor }) => setContent(editor.getHTML()),
+        onUpdate: ({ editor }) => setContent(editor.getHTML()),
       editorProps: {
         attributes: {
           class: `prose max-w-none focus:outline-none p-4 min-h-[400px] opacity-100 ${selectedFont} blog-content`,
@@ -144,7 +144,6 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
 
     if (normalEditor && !normalEditor.isDestroyed) {
       normalEditor.commands.setContent(marked.parse(initialContent));
-      console.log(marked.parse(initialContent))
     }
 
     setShowPreview(false);
@@ -579,18 +578,18 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
         <Redo2 className="w-5 h-5" />
       </button>
       
-      <SmallBottomBox />
+      <SmallBottomBox id={blog._id}/>
     </div>
   );
 
   // Restrict floating bar (BubbleMenu) edit options as well
   const renderContentArea = () => {
     if (!editorReady)
-      return <div className="h-[calc(100vh-200px)] md:w-[1030px] p-4">Loading editor...</div>;
+      return <div className="h-[calc(100vh-200px)] p-4">Loading editor...</div>;
 
     if (isAnimating && blog?.content) {
       return (
-        <div className="h-[calc(100vh-200px)] md:w-[1030px] p-4 overflow-y-auto bg-white">
+        <div className="h-[calc(100vh-200px)] p-4 overflow-y-auto bg-white">
           <AnimatedContent content={blog.content} onComplete={handleAnimationComplete} />
         </div>
       );
@@ -599,7 +598,7 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
     if (showPreview && (activeTab === "markdown" || activeTab === "html")) {
       return (
         <div
-          className={`h-[calc(100vh-200px)] md:w-[1030px] p-6 border rounded-md overflow-y-auto bg-white ${selectedFont}`}
+          className={`h-[calc(100vh-200px)] p-6 border rounded-md overflow-y-auto bg-white ${selectedFont}`}
         >
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
@@ -640,7 +639,7 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
     switch (activeTab) {
       case "normal":
         return (
-          <div className="h-[calc(100vh-200px)] md:w-[1030px] overflow-y-auto bg-white border rounded-lg">
+          <div className="h-[calc(100vh-300px)] overflow-y-auto bg-white border rounded-lg">
             {normalEditor && (
               <BubbleMenu
                 editor={normalEditor}
@@ -666,7 +665,7 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
 
       case "markdown":
         return (
-          <div className="h-[calc(100vh-200px)] md:w-[1030px] overflow-y-auto bg-white border rounded-lg relative">
+          <div className="h-[calc(100vh-300px)] overflow-y-auto bg-white border rounded-lg relative">
             <textarea
               ref={mdEditorRef}
               value={content}
@@ -682,7 +681,7 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords }) => {
 
       case "html":
         return (
-          <div className="h-[calc(100vh-200px)] md:w-[1030px] overflow-y-auto bg-white border rounded-lg relative">
+          <div className="h-[calc(100vh-300px)] overflow-y-auto bg-white border rounded-lg relative">
             <textarea
               ref={htmlEditorRef}
               value={marked.parse(content).replace(/>(\s*)</g, '>\n<')}

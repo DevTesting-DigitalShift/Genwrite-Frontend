@@ -150,7 +150,6 @@ export const updateBlogById = (id, updatedData) => async (dispatch) => {
 };
 
 export const createNewBlog = (blogData, navigate) => async (dispatch) => {
-  console.log("blogData", blogData)
   dispatch(setLoading(true));
   try {
     const blog = await createBlog({ ...blogData, aiModel: blogData.aiModel || "Gemini" });
@@ -169,7 +168,6 @@ export const createNewQuickBlog = (blogData, navigate) => async (dispatch, getSt
   // Add getState
   dispatch(setLoading(true));
   try {
-    console.log("Creating new blog with data:", blogData); // Log the data being sent
     // This will wait until the blog is fully generated with content
     const blog = await createQuickBlog(blogData);
 
@@ -179,7 +177,6 @@ export const createNewQuickBlog = (blogData, navigate) => async (dispatch, getSt
     }
 
     // Blog is ready with content
-    console.log("Blog created successfully on backend:", blog);
     dispatch(addUserBlog(blog)); // Dispatch the new action with the blog object
     dispatch(setSelectedBlog(blog));
     navigate(`/toolbox/${blog._id}`);
@@ -198,12 +195,7 @@ export const createNewQuickBlog = (blogData, navigate) => async (dispatch, getSt
 export const createMultiBlog = (blogData, navigate) => async (dispatch) => {
   dispatch(setLoading(true));
   try {
-    console.log("Creating multi new blog");
     const blog = await createBlogMultiple(blogData);
-    console.log({ blog });
-    // dispatch(addUserBlog(blog)); // Dispatch the new action with the blog object
-    // dispatch(setSelectedBlog(blog));
-    // console.log(blogData);
     navigate(`/project`); // Navigate to the project page
     toast.success("Bulk Blogs will be generated shortly on 10 min interval");
   } catch (error) {
@@ -216,9 +208,7 @@ export const createMultiBlog = (blogData, navigate) => async (dispatch) => {
 export const sendBrandVoice = (formData, navigate) => async (dispatch) => {
   dispatch(setLoading(true));
   try {
-    console.log("hitting /brand/addBrand ");
     const blog = await sendBrand(formData);
-    console.log({ blog });
   } catch (error) {
     dispatch(setError(error.message));
   } finally {

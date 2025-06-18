@@ -38,10 +38,7 @@ const MultiStepModal = ({ closefnc }) => {
     wordpressPostStatus: false,
     postFrequency: 10 * 60, // in seconds
     selectedDates: null,
-  })
-
-  console.log("userDefinedLength", formData.userDefinedLength);
-  
+  })  
 
   const handleNext = () => {
     if (currentStep === 1) {
