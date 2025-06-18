@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { X, Plus } from "lucide-react"
+import { X, Plus, Gem } from "lucide-react"
 import { toast } from "react-toastify"
 import axiosInstance from "@api/index"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useNavigate } from "react-router-dom"
-import { useSelector } from "react-redux";
+import { useSelector } from "react-redux"
 
 const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
   const [newKeyword, setNewKeyword] = useState("")
@@ -16,7 +16,10 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
   const [competitiveAnalysisResults, setCompetitiveAnalysisResults] = useState(null) // For Competitive Analysis Results
   const [proofreadingResults, setProofreadingResults] = useState([]) // For Proofreading Results
   const [shouldRunCompetitive, setShouldRunCompetitive] = useState(false)
+  const user = useSelector((state) => state.auth.user)
+  const userPlan = user?.plan ?? user?.subscription?.plan
   const { handlePopup } = useConfirmPopup()
+  const [postRes, setPostRes] = useState()
   const navigate = useNavigate()
 
   const fetchCompetitiveAnalysis = async () => {
@@ -55,10 +58,10 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
   }, [shouldRunCompetitive])
 
   useEffect(() => {
-    if(blog?.seoScore || blog?.generatedMetadata?.competitorsAnalysis){
+    if (blog?.seoScore || blog?.generatedMetadata?.competitorsAnalysis) {
       setCompetitiveAnalysisResults({
         blogScore: blog.seoScore,
-        ...blog?.generatedMetadata?.competitorsAnalysis
+        ...blog?.generatedMetadata?.competitorsAnalysis,
       })
     }
   }, [])
@@ -98,7 +101,10 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
         blogId: blog._id,
       })
 
-      if (response.status === 200 && response.data.success) {
+      setPostRes(response?.status)
+      console.log("postRes", postRes)
+
+      if (response.status === 200) {
         toast.success("Blog posted to WordPress successfully!")
       } else {
         toast.error(response.data.message || "Failed to post blog to WordPress.")
@@ -130,7 +136,6 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
         content: blog.content,
         message: "Proofread this blog.",
       })
-      console.log("AI Response:", result.data)
 
       if (result.data && Array.isArray(result.data.suggestions)) {
         setProofreadingResults(result.data.suggestions)
@@ -145,6 +150,43 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
     } finally {
       setIsAnalyzingProofreading(false) // Hide loading indicator
     }
+  }
+
+  const handleAnalyzing = () => {
+    if (userPlan === "free" || userPlan === "basic") {
+      handlePopup({
+        title: "Upgrade Required",
+        description: "Competitor Analysis is only available for Pro and Enterprise users.",
+        confirmText: "Buy Now",
+        cancelText: "Cancel",
+        onConfirm: () => navigate("/upgrade"),
+      })
+    } else {
+      handlePopup({
+        title: "Competitive Analysis",
+        description: `Do you really want to run competitive analysis?\nIt will be 10 credits.`,
+        onConfirm: () => setShouldRunCompetitive(true),
+      })
+    }
+  }
+
+  const handleProofreadingBlog = () => {
+    if (userPlan === "free" || userPlan === "basic") {
+      handlePopup({
+        title: "Upgrade Required",
+        description: "AI Proofreading is only available for Pro and Enterprise users.",
+        confirmText: "Buy Now",
+        cancelText: "Cancel",
+        onConfirm: () => navigate("/upgrade"),
+      })
+    } else
+      handlePopup({
+        title: "AI Proofreading",
+        description: `Do you really want to proofread the blog ? \nIt will be ${getEstimatedCost(
+          "blog.proofread"
+        )} credits.`,
+        onConfirm: handleProofreadingClick,
+      })
   }
 
   return (
@@ -200,24 +242,26 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
             </motion.button>
           </div>
         </div>
-          <motion.div
-            whileHover={{ scale: 1.02 }}
-            className="bg-white rounded-lg shadow-md p-4 mb-1 relative mt-3"
-          >
+        <motion.div
+          whileHover={{ scale: 1.02 }}
+          className="bg-white rounded-lg shadow-md p-4 mb-1 relative mt-3"
+        >
+          <div className="flex justify-between mb-5">
             <span className="text-2xl font-bold text-gray-400 mb-1 block">CA</span>
-            <h4
-              className="text-blue-600 font-medium hover:underline cursor-pointer"
-              onClick={() =>
-                handlePopup({
-                  title: "Competitive Analysis",
-                  description: `Do you really want to run competitive analysis?\nIt will be 10 credits.`,
-                  onConfirm: () => setShouldRunCompetitive(true),
-                })
-              }
-            >
-              {isAnalyzingCompetitive ? "Analyzing..." : "Run Competitive Analysis"}
-            </h4>
-          </motion.div>
+            {["free", "basic"].includes(userPlan?.toLowerCase?.()) && (
+              <span className="flex items-center gap-2 rounded-md text-white font-semibold border p-1 px-2 bg-gradient-to-tr from-blue-500 to-purple-500 shadow-md hover:shadow-xl hover:scale-105 transition-all duration-300 ease-in-out animate-pulse backdrop-blur-sm text-lg">
+                <Gem className="w-4 h-4 animate-bounce" />
+                Pro
+              </span>
+            )}
+          </div>
+          <h4
+            className="text-blue-600 font-medium hover:underline cursor-pointer"
+            onClick={() => handleAnalyzing()}
+          >
+            {isAnalyzingCompetitive ? "Analyzing..." : "Run Competitive Analysis"}
+          </h4>
+        </motion.div>
         <div className="mb-3 mt-3">
           <h3 className="font-semibold mb-2 text-gray-700">Analysis Results</h3>
           {isAnalyzingCompetitive ? (
@@ -255,7 +299,6 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
           ) : (
             <p className="text-sm text-gray-500">No analysis available yet.</p>
           )}
-        
         </div>
         <div className="mb-3">
           <h3 className="font-semibold mb-2 text-gray-700">Blog Score</h3>
@@ -272,16 +315,18 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
             whileHover={{ scale: 1.02 }}
             className="bg-white rounded-lg shadow-md p-4 mb-1 relative"
           >
-            <span className="text-2xl font-bold text-gray-400 mb-1 block">AA</span>
+            <div className="flex justify-between mb-5">
+              <span className="text-2xl font-bold text-gray-400 mb-1 block">AA</span>
+              {["free", "basic"].includes(userPlan?.toLowerCase?.()) && (
+                <span className="flex items-center gap-2 rounded-md text-white font-semibold border p-1 px-2 bg-gradient-to-tr from-blue-500 to-purple-500 shadow-md hover:shadow-xl hover:scale-105 transition-all duration-300 ease-in-out animate-pulse backdrop-blur-sm text-lg">
+                  <Gem className="w-4 h-4 animate-bounce" />
+                  Pro
+                </span>
+              )}
+            </div>
             <h4
               className="text-blue-600 font-medium hover:underline cursor-pointer"
-              onClick={() => {
-                handlePopup({
-                  title: "AI Proofreading",
-                  description: `Do you really want to proofread the blog ? \nIt will be ${getEstimatedCost("blog.proofread")} credits.`,
-                  onConfirm: handleProofreadingClick,
-                });
-              }}
+              onClick={() => handleProofreadingBlog()}
             >
               Proofreading my blog
             </h4>
@@ -321,7 +366,7 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
             isPosting ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-700"
           }`}
         >
-          {isPosting ? "Posting..." : "Post"}
+          {isPosting ? "Posting..." : postRes === 200 ? "Re-Post" : "Post"}
         </motion.button>
       </motion.div>
     </>

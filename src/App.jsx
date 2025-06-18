@@ -18,7 +18,7 @@ const App = () => {
         await load()(dispatch)
       }
     } catch (error) {
-      console.log("App:", error)
+      console.error("App:", error)
     }
   }
 

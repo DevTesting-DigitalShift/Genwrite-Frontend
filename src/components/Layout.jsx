@@ -1,21 +1,15 @@
 import { useState, useEffect } from "react"
 import { NavLink, useLocation, useNavigate } from "react-router-dom"
 import { useDispatch, useSelector } from "react-redux"
-import { FaSearch, FaCog } from "react-icons/fa"
-import { IoIosLogOut } from "react-icons/io"
 import { RxAvatar } from "react-icons/rx"
 import { logoutUser } from "../store/slices/authSlice"
-import { motion, AnimatePresence } from "framer-motion"
-import { FaHourglassHalf, FaCheck, FaTimes } from "react-icons/fa"
-import { Badge, Tooltip, Switch, Dropdown, Avatar, Menu } from "antd"
-import { CrownFilled } from "@ant-design/icons"
+import { Tooltip, Dropdown, Avatar } from "antd"
 import { RiCoinsFill } from "react-icons/ri"
 import NotificationDropdown from "@components/NotificationDropdown"
 import GoProButton from "@components/GoProButton"
 
 const LayoutWithSidebarAndHeader = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [settingsOpen, setSettingsOpen] = useState(false)
   const [isUserLoaded, setIsUserLoaded] = useState(false)
   const location = useLocation()
   const dispatch = useDispatch()
@@ -23,7 +17,7 @@ const LayoutWithSidebarAndHeader = () => {
   const { user } = useSelector((selector) => selector.auth)
 
   useEffect(() => {
-    if (user?.name) {
+    if (user?.name || user?.credits) {
       setIsUserLoaded(true)
     }
   }, [user])
@@ -44,7 +38,7 @@ const LayoutWithSidebarAndHeader = () => {
     try {
       await dispatch(logoutUser(navigate))
     } catch (error) {
-      console.log(error)
+      console.error(error)
     }
   }
 
@@ -59,7 +53,10 @@ const LayoutWithSidebarAndHeader = () => {
       {
         key: "name",
         label: (
-          <Tooltip title={user?.name} className="block font-medium text-gray-900 text-center text-lg whitespace-nowrap w-full overflow-hidden text-ellipsis">
+          <Tooltip
+            title={user?.name}
+            className="block font-medium text-gray-900 text-center text-lg whitespace-nowrap w-full overflow-hidden text-ellipsis"
+          >
             {user?.name}
           </Tooltip>
         ),
@@ -73,6 +70,14 @@ const LayoutWithSidebarAndHeader = () => {
       { type: "divider" },
       { key: "logout", danger: true, label: "Logout", className: "!py-2 hover:bg-gray-100" },
     ],
+  }
+
+  const noUserMenu = {
+    onClick: ({ key }) => {
+      if (key === "login") navigate("/login")
+    },
+    rootClassName: "!px-4 !py-2 rounded-lg shadow-md w-[20ch] text-lg !bg-gray-50 gap-4",
+    items: [{ key: "login", danger: true, label: "Login", className: "!py-1.5 hover:bg-gray-100" }],
   }
 
   return (
@@ -147,10 +152,9 @@ const LayoutWithSidebarAndHeader = () => {
 
       {/* Main Content */}
       <div className="flex-1 ml-20 w-[93vw] fixed z-30">
-        <header className="top-0 z-[9999] bg-gray-50 p-8 flex items-center justify-between">
+        <header className="top-0 z-[9999] bg-gray-50 p-8 flex items-center justify-end">
           {/* Left side: search */}
-          <div className="flex items-center">
-            <button className="lg:hidden mr-4">{/* Button content */}</button>
+          {/* <div className="flex items-center">
             <div className="flex items-center bg-white rounded-full overflow-hidden w-64 lg:w-96 shadow-md hover:shadow-lg transition-shadow duration-300">
               <FaSearch className="w-5 h-5 text-gray-500 mx-3" />
               <input
@@ -159,7 +163,7 @@ const LayoutWithSidebarAndHeader = () => {
                 placeholder="Search"
               />
             </div>
-          </div>
+          </div> */}
 
           {/* Right side */}
           <div className="flex items-center space-x-4">
@@ -199,7 +203,9 @@ const LayoutWithSidebarAndHeader = () => {
             ) : (
               <div className="flex items-center gap-2">
                 <RxAvatar size={30} />
-                <span className="text-[#2E2E2E] text-[16px] font-[400]">UserName</span>
+                <Dropdown menu={noUserMenu} trigger={["click"]} placement="bottomRight">
+                  <span className="text-[#2E2E2E] text-[16px] font-[400]">UserName</span>
+                </Dropdown>
               </div>
             )}
 
@@ -234,5 +240,5 @@ const LayoutWithSidebarAndHeader = () => {
     </div>
   )
 }
-
+;``
 export default LayoutWithSidebarAndHeader

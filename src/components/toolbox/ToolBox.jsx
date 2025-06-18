@@ -96,7 +96,7 @@ const ToolBox = () => {
     try {
       const response = await axiosInstance.post("/wordpress/post", postData)
 
-      if (response.status === 204) {
+      if (response.status === 200) {
         toast.update(postingToastId, {
           render: "Post submitted successfully! (Check WordPress)",
           type: "success",
@@ -137,11 +137,12 @@ const ToolBox = () => {
   return (
     <>
       <ToastContainer />
-      <div className="h-[93vh] -m-2">
+      <div className="h-full">
         <div className="max-w-8xl mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
-          <div className="flex flex-col h-full ">
-            <div className="flex justify-between items-center p-4 border-b">
+          <div className="flex flex-col h-full">
+            <div className="flex items-center justify-between p-4 border-b text-center space-y-4">
               <h1 className="text-2xl font-bold text-gray-800">Blog Editor</h1>
+
               <div className="flex space-x-2">
                 {["normal", "markdown", "html"].map((tab) => (
                   <motion.button
@@ -160,6 +161,7 @@ const ToolBox = () => {
                 ))}
               </div>
             </div>
+
             <div className="flex flex-grow h-[80vh]">
               <AnimatePresence mode="wait">
                 <motion.div
@@ -169,7 +171,7 @@ const ToolBox = () => {
                   exit="hidden"
                   variants={tabVariants}
                   transition={{ duration: 0.3 }}
-                  className="flex-grow"
+                  className="flex-grow w-1/2"
                 >
                   {isLoading ? (
                     <div className="flex justify-center items-center h-full min-h-[calc(100vh-200px)]">

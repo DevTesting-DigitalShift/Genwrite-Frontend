@@ -5,7 +5,7 @@ import { Button, Tooltip, Popconfirm, Badge } from "antd"
 import { ToastContainer, toast } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import { FaTrash } from "react-icons/fa"
-import { Trash2 } from "lucide-react"
+import { RefreshCcw, Trash2 } from "lucide-react"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { QuestionCircleOutlined } from "@ant-design/icons"
 import { motion } from "framer-motion"
@@ -13,11 +13,10 @@ import { motion } from "framer-motion"
 const TRUNCATE_LENGTH = 85
 
 // [ ] refresh button here too
-
 // [s ] add delete all & call delete /blogs/ & other features in it & use main branch from now on
+
 const Trashcan = () => {
   const [trashedBlogs, setTrashedBlogs] = useState([])
-  const [bulkDelete, setBulkDelete] = useState()
   const [loading, setLoading] = useState(true)
   const { handlePopup } = useConfirmPopup()
 
@@ -50,7 +49,7 @@ const Trashcan = () => {
     try {
       const response = await axiosInstance.patch(`/blogs/restore/${id}`)
       if (response.status === 200) {
-        setTrashedBlogs((prev) => prev.filter((blog) => blog._id !== id))
+        setTrashedBlogs([])
         toast.success("Blog restored successfully!")
       } else {
         toast.error("Failed to restore blog.")
@@ -68,7 +67,6 @@ const Trashcan = () => {
   const handleBulkDelete = async () => {
     try {
       const response = await axiosInstance.delete("/blogs")
-      console.log("response", response)
       const deletedCount = response?.data?.deletedCount || 0
       if (response.status === 200) {
         toast.success(
@@ -87,6 +85,10 @@ const Trashcan = () => {
     }
   }
 
+  const handleRefresh = async () => {
+    await fetchTrashedBlogs()
+  }
+
   return (
     <div className="p-5">
       <div className="flex items-center justify-between gap-2">
@@ -99,34 +101,43 @@ const Trashcan = () => {
           Trashcan
         </motion.h1>
         {trashedBlogs.length !== 0 && (
-          <Button
-            type="button"
-            className="p-2 hover:!border-red-500 hover:text-red-500"
-            onClick={() =>
-              handlePopup({
-                title: "Delete All",
-                description: (
-                  <span className="my-2">
-                    All selected blogs will be <b>permanently deleted</b>. This action cannot be
-                    undone.
-                  </span>
-                ),
-                confirmText: "Delete",
-                onConfirm: () => {
-                  handleBulkDelete()
-                },
-                confirmProps: {
-                  type: "undefined",
-                  className: "border-red-500 hover:bg-red-500 hover:text-white",
-                },
-                cancelProps: {
-                  danger: false,
-                },
-              })
-            }
-          >
-            <Trash2 />
-          </Button>
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              className="p-2 hover:!border-yellow-500 hover:text-yellow-500"
+              onClick={() => handleRefresh()}
+            >
+              <RefreshCcw />
+            </Button>
+            <Button
+              type="button"
+              className="p-2 hover:!border-red-500 hover:text-red-500"
+              onClick={() =>
+                handlePopup({
+                  title: "Delete All",
+                  description: (
+                    <span className="my-2">
+                      All selected blogs will be <b>permanently deleted</b>. This action cannot be
+                      undone.
+                    </span>
+                  ),
+                  confirmText: "Delete",
+                  onConfirm: () => {
+                    handleBulkDelete()
+                  },
+                  confirmProps: {
+                    type: "undefined",
+                    className: "border-red-500 hover:bg-red-500 hover:text-white",
+                  },
+                  cancelProps: {
+                    danger: false,
+                  },
+                })
+              }
+            >
+              <Trash2 />
+            </Button>
+          </div>
         )}
       </div>
       <motion.p
@@ -160,51 +171,6 @@ const Trashcan = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 p-2">
-          {/* {trashedBlogs.map((blog) => {
-            const { _id, title, content, focusKeywords, aiModel, archiveDate } = blog
-            return (
-              <Tooltip key={_id} title={title} color="gray">
-                <div className="bg-white shadow-md hover:shadow-xl transition-shadow duration-300 rounded-xl p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
-                    <Popconfirm
-                      title="Restore Blog"
-                      description="Are you sure to restore the blog ?"
-                      icon={<QuestionCircleOutlined style={{ color: "red" }} />}
-                      okText="Yes"
-                      cancelText="No"
-                      onConfirm={() => handleRestore(_id)}
-                    >
-                      <img
-                        src="Images/restore.svg"
-                        alt="Restore"
-                        width="20"
-                        height="20"
-                        className="cursor-pointer restore-icon"
-                      />
-                    </Popconfirm>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-4 line-clamp-1">
-                    {truncateContent(content)}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {focusKeywords.map((keyword, index) => (
-                      <span
-                        key={index}
-                        className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full"
-                      >
-                        {keyword}
-                      </span>
-                    ))}
-                  </div>
-                  <span className="block mt-4 -mb-2 text-sm text-right">
-                    Archive Date:{" "}
-                    {new Date(archiveDate).toLocaleDateString("en-US", { dateStyle: "medium" })}
-                  </span>
-                </div>
-              </Tooltip>
-            )
-          })} */}
           {trashedBlogs?.map((blog) => {
             const {
               _id,
@@ -216,7 +182,7 @@ const Trashcan = () => {
               focusKeywords,
               updatedAt,
               wordpress,
-              archiveDate
+              archiveDate,
             } = blog
             const isGemini = /gemini/gi.test(aiModel)
             // [ s] Create a universal blog card to show wherever we need, use it here & in trashcan with all event handlers
@@ -256,21 +222,6 @@ const Trashcan = () => {
                     })}
                   </div>
                   <Tooltip
-                    // title={
-                    //   status === "complete"
-                    //     ? title
-                    //     : ["failed", "in-progress"].includes(status)
-                    //     ? `Blog generation is ${status}`
-                    //     : `Pending Blog will be generated ${
-                    //         agendaJob?.nextRunAt
-                    //           ? "at " +
-                    //             new Date(agendaJob.nextRunAt).toLocaleString("en-IN", {
-                    //               dateStyle: "medium",
-                    //               timeStyle: "short",
-                    //             })
-                    //           : "shortly"
-                    //       }`
-                    // }
                     color={status === "complete" ? "black" : status === "failed" ? "red" : "orange"}
                   >
                     <div
@@ -329,12 +280,12 @@ const Trashcan = () => {
                         })}
                       </span>
                     )}
-                     <span className="block -mb-2 text-sm text-right">
-            Archive Date:{" "}
-            {new Date(archiveDate).toLocaleDateString("en-US", {
-              dateStyle: "medium",
-            })}
-          </span>
+                    <span className="block -mb-2 text-sm text-right">
+                      Archive Date:{" "}
+                      {new Date(archiveDate).toLocaleDateString("en-US", {
+                        dateStyle: "medium",
+                      })}
+                    </span>
                   </div>
                 </div>
               </Badge.Ribbon>

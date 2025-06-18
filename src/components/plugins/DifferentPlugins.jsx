@@ -11,7 +11,6 @@ const DifferentPlugins = ({
   onCheck,
   wordpressStatus,
 }) => {
-  console.log("wordpressStatus", wordpressStatus?.status)
   return (
     <>
       <div className="border-b-2 border-gray-200 mx-8">

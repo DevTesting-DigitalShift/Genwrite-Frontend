@@ -6,7 +6,7 @@ import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { CrownFilled } from "@ant-design/icons"
 import { Gem } from "lucide-react"
 
-const DashboardBox = ({ imageUrl, title, content, id, functions }) => {
+export const DashboardBox = ({ imageUrl, title, content, id, functions }) => {
   const user = useSelector((state) => state.auth.user)
   const userPlan = user?.plan ?? user?.subscription?.plan
   const { handlePopup } = useConfirmPopup()
@@ -23,7 +23,7 @@ const DashboardBox = ({ imageUrl, title, content, id, functions }) => {
   
   return (
     <div
-      className="w-1/2 md:w-1/3 h-44 p-4 break-words rounded-md bg-[#FAFAFA] shadow-sm cursor-pointer border hover:shadow-md transition duration-200"
+      className="w-1/2 md:w-1/3 h-44 p-4 break-words bg-white rounded-xl shadow-sm cursor-pointer border hover:shadow-md transition duration-200"
       onClick={() => {
         if (id === "A") {
           functions.showQuickBlogModal && functions.showQuickBlogModal()
@@ -72,8 +72,6 @@ const DashboardBox = ({ imageUrl, title, content, id, functions }) => {
   )
 }
 
-export default DashboardBox
-
 export const QuickBox = ({ imageUrl, title, content, id, functions }) => {
   const user = useSelector((state) => state.auth.user)
   const userPlan = user?.plan ?? user?.subscription?.plan
@@ -101,11 +99,11 @@ export const QuickBox = ({ imageUrl, title, content, id, functions }) => {
 
   return (
     <div
-      className="rounded-md p-4 shadow-sm hover:shadow-md bg-[#FAFAFA] cursor-pointer border transition duration-200"
+      className="p-4 shadow-sm hover:shadow-md cursor-pointer border bg-white rounded-xl transition duration-200"
       onClick={handleClick}
     >
       <div className="flex items-center justify-between space-x-4">
-        <span className="bg-[#E8F1FA] rounded-full p-2">
+        <span className="rounded-full p-2">
           <motion.div
             whileHover={{ scale: 1.15, rotate: 8 }}
             transition={{ type: "spring", stiffness: 300 }}

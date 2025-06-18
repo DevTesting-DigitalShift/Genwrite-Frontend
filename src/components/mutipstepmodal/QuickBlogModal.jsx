@@ -45,7 +45,6 @@ const QuickBlogModal = ({ closefnc }) => {
         ...formData,
         videoLinks: inputs,
       }
-      console.log("Form Data:", finalData)
       handlePopup({
         title: "Quick Blog Generation",
         description: (
@@ -59,7 +58,6 @@ const QuickBlogModal = ({ closefnc }) => {
         ),
         onConfirm: () => {
           dispatch(createNewQuickBlog(finalData, navigate))
-          console.log("Form submitted successfully")
           handleClose()
         },
       })

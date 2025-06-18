@@ -63,11 +63,10 @@ const NotificationDropdown = ({ notifications }) => {
   // }
 
   const loadUser = async () => {
-    console.log("Load User")
     await load()(dispatch)
   }
 
-  //[ ] send to layout and use debouncing gap of 60s 
+  //[ ] send to layout and use debouncing gap of 60s
 
   useEffect(() => {
     // Initial fetch
