@@ -242,26 +242,17 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
             </motion.button>
           </div>
         </div>
-        <motion.div
-          whileHover={{ scale: 1.02 }}
-          className="bg-white rounded-lg shadow-md p-4 mb-1 relative mt-3"
-        >
-          <div className="flex justify-between mb-5">
-            <span className="text-2xl font-bold text-gray-400 mb-1 block">CA</span>
-            {["free", "basic"].includes(userPlan?.toLowerCase?.()) && (
-              <span className="flex items-center gap-2 rounded-md text-white font-semibold border p-1 px-2 bg-gradient-to-tr from-blue-500 to-purple-500 shadow-md hover:shadow-xl hover:scale-105 transition-all duration-300 ease-in-out animate-pulse backdrop-blur-sm text-lg">
-                <Gem className="w-4 h-4 animate-bounce" />
-                Pro
-              </span>
-            )}
+
+        <div className="mb-3">
+          <h3 className="font-semibold mb-2 text-gray-700">Blog Score</h3>
+          <div className="bg-white rounded-lg shadow-md p-4 flex items-center justify-center gap-4">
+            <span className="text-2xl font-bold text-gray-800">
+              {competitiveAnalysisResults?.blogScore || "N/A"}
+            </span>
+            <span className="text-2xl font-bold text-gray-600">/ 100</span>
           </div>
-          <h4
-            className="text-blue-600 font-medium hover:underline cursor-pointer"
-            onClick={() => handleAnalyzing()}
-          >
-            {isAnalyzingCompetitive ? "Analyzing..." : "Run Competitive Analysis"}
-          </h4>
-        </motion.div>
+        </div>
+
         <div className="mb-3 mt-3">
           <h3 className="font-semibold mb-2 text-gray-700">Analysis Results</h3>
           {isAnalyzingCompetitive ? (
@@ -300,15 +291,28 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
             <p className="text-sm text-gray-500">No analysis available yet.</p>
           )}
         </div>
-        <div className="mb-3">
-          <h3 className="font-semibold mb-2 text-gray-700">Blog Score</h3>
-          <div className="bg-white rounded-lg shadow-md p-4 flex items-center justify-center gap-4">
-            <span className="text-2xl font-bold text-gray-800">
-              {competitiveAnalysisResults?.blogScore || "N/A"}
-            </span>
-            <span className="text-2xl font-bold text-gray-600">/ 100</span>
+
+        <motion.div
+          whileHover={{ scale: 1.02 }}
+          className="bg-white rounded-lg shadow-md p-4 mb-1 relative mt-3"
+        >
+          <div className="flex justify-between mb-5">
+            <span className="text-2xl font-bold text-gray-400 mb-1 block">CA</span>
+            {["free", "basic"].includes(userPlan?.toLowerCase?.()) && (
+              <span className="flex items-center gap-2 rounded-md text-white font-semibold border p-1 px-2 bg-gradient-to-tr from-blue-500 to-purple-500 shadow-md hover:shadow-xl hover:scale-105 transition-all duration-300 ease-in-out animate-pulse backdrop-blur-sm text-lg">
+                <Gem className="w-4 h-4 animate-bounce" />
+                Pro
+              </span>
+            )}
           </div>
-        </div>
+          <h4
+            className="text-blue-600 font-medium hover:underline cursor-pointer"
+            onClick={() => handleAnalyzing()}
+          >
+            {isAnalyzingCompetitive ? "Analyzing..." : "Run Competitive Analysis"}
+          </h4>
+        </motion.div>
+
         <div className="mb-3">
           <h3 className="font-semibold mb-2 text-gray-700">More Tools</h3>
           <motion.div

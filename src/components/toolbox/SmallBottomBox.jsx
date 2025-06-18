@@ -8,11 +8,13 @@ import ChatBox from "../generateBlog/ChatBox"
 import { Menu } from "lucide-react"
 import { toast } from "react-toastify"
 import axiosInstance from "@api/index"
+import { useNavigate } from "react-router-dom"
 
 const SmallBottomBox = (id) => {
   const [isMenuOpen, setMenuOpen] = useState(false)
   const [isModalOpen, setModalOpen] = useState(false)
   const [isChatOpen, setIsChatOpen] = useState(false)
+  const navigate = useNavigate()
 
   const toggleMenu = () => setMenuOpen((prev) => !prev)
   const closeModal = () => setModalOpen(false)
@@ -20,13 +22,14 @@ const SmallBottomBox = (id) => {
 
   const handleRetry = async ({ id }) => {
     const payload = {
-      create_new: true,
+      createNew: true,
     }
     try {
       const response = await axiosInstance.post(`blogs/${id}/retry`, payload)
       if (response.status === 200) {
         toast.success(response?.data?.message || "Blog regenerated successfully!")
         setMenuOpen(false)
+        navigate("/project")
       } else {
         toast.error("Failed to regenerated blog.")
       }
