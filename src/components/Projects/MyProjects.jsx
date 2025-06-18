@@ -4,66 +4,63 @@ import axiosInstance from "@api/index"
 import SkeletonLoader from "./SkeletonLoader"
 import { toast, ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
-import { Badge, Button, Input, Popconfirm, Tooltip } from "antd"
-import { Menu, RefreshCcw, RotateCcw, Search, Trash2 } from "lucide-react"
+import { Badge, Button, Input, Popconfirm, Tooltip, Select, Modal } from "antd"
+import { ArrowDownUp, Menu, RefreshCcw, RotateCcw, Search, Trash2 } from "lucide-react"
 import { AnimatePresence, motion } from "framer-motion"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import {
   CalendarOutlined,
   CheckCircleOutlined,
-  CloseOutlined,
   SortAscendingOutlined,
+  HourglassOutlined,
+  CloseCircleOutlined,
 } from "@ant-design/icons"
 
 const TRUNCATE_LENGTH = 120
 
-// [ ] DONE refresh button on the top right
-// [ ] sorting and filter option
-// 1. a-z 2. created date 3. status = pending, failed, complete 4. gemini and chatgpt (optional)
-// [ ] search bar: based on title and keyboard (focus keyboard)
-// [ ] DONE archive replace trash
-
-// [ ] in editor blog score, Analysis Results, ca to SEO score
-// [ ] save functionality in editor, if user doesn't save those changes show blog
-// [ ]  DONE when ctrl+- editor width not correct
-// [ ] QUERY once blog is post show re-post & show blog link
-
 const MyProjects = () => {
   const [blogsData, setBlogsData] = useState([])
+  const [filteredBlogs, setFilteredBlogs] = useState([])
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(5)
   const [loading, setLoading] = useState(true)
+  const [sortType, setSortType] = useState("createdAt")
+  const [sortOrder, setSortOrder] = useState("desc")
+  const [statusFilter, setStatusFilter] = useState("all") // New state for status filter
   const navigate = useNavigate()
   const [isMenuOpen, setMenuOpen] = useState(false)
   const [isSearchOpen, setSearchOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
+  const [searchType, setSearchType] = useState("title")
+  const [isSearchModalOpen, setSearchModalOpen] = useState(false)
   const { handlePopup } = useConfirmPopup()
 
   const toggleMenu = () => setMenuOpen((prev) => !prev)
-  const toggleSearch = () => setSearchOpen((prev) => !prev)
+  const toggleSearch = () => setSearchModalOpen(true)
 
   const handleSearch = () => {
     setSearchTerm("")
+    setDebouncedSearch("")
+    setSearchOpen(false)
   }
 
-  const fetchBlogs = async ({ sortType = "date", filterStatus = null, search = "" } = {}) => {
+  const handleSearchModalOk = () => {
+    setSearchOpen(true)
+    setSearchModalOpen(false)
+  }
+
+  const handleSearchModalCancel = () => {
+    setSearchModalOpen(false)
+  }
+
+  const fetchBlogs = async () => {
     try {
       setLoading(true)
-
-      // Build query params only if they are present
-      const params = {}
-      if (search) params.search = search
-      if (filterStatus) params.status = filterStatus
-      if (sortType) params.sortBy = sortType
-
-      // Send the query to backend for better optimization
-      const response = await axiosInstance.get("/blogs", { params })
-
-      // Filter isArchived blogs (assuming backend doesn’t filter this)
-      const blogs = response.data.filter((blog) => !blog.isArchived)
-
-      setBlogsData(blogs)
+      const response = await axiosInstance.get("/blogs/")
+      const filteredBlogs = response.data.filter((blog) => !blog.isArchived)
+      setBlogsData(filteredBlogs)
+      applySortAndFilter(filteredBlogs, sortType, sortOrder, debouncedSearch, searchType, statusFilter)
     } catch (error) {
       console.error(
         "Error fetching blogs:",
@@ -74,22 +71,59 @@ const MyProjects = () => {
     }
   }
 
+  const applySortAndFilter = (blogs, sortBy, order, search, searchType, status) => {
+    let sortedBlogs = [...blogs]
+
+    // Apply status filter
+    if (status !== "all") {
+      sortedBlogs = sortedBlogs.filter((blog) => blog.status.toLowerCase() === status.toLowerCase())
+    }
+
+    // Apply search filter
+    if (search) {
+      sortedBlogs = sortedBlogs.filter((blog) => {
+        if (searchType === "title") {
+          return blog.title.toLowerCase().includes(search.toLowerCase())
+        } else {
+          return blog.focusKeywords && blog.focusKeywords.some((keyword) =>
+            keyword.toLowerCase().includes(search.toLowerCase())
+          )
+        }
+      })
+    }
+
+    // Apply sorting
+    sortedBlogs.sort((a, b) => {
+      if (sortBy === "az") {
+        return order === "asc"
+          ? a.title.localeCompare(b.title)
+          : b.title.localeCompare(a.title)
+      } else {
+        return order === "asc"
+          ? new Date(a.createdAt) - new Date(b.createdAt)
+          : new Date(b.createdAt) - new Date(a.createdAt)
+      }
+    })
+
+    setFilteredBlogs(sortedBlogs)
+    setCurrentPage(1)
+  }
+
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearch(searchTerm)
-    }, 400) // 400ms debounce
+    }, 400)
 
     return () => clearTimeout(handler)
   }, [searchTerm])
 
-  // Trigger blog fetch when debouncedSearch changes
   useEffect(() => {
-    fetchBlogs({ sortBy: "date", search: debouncedSearch })
-  }, [debouncedSearch])
+    fetchBlogs()
+  }, [])
 
   useEffect(() => {
-    fetchBlogs("date") // default
-  }, [])
+    applySortAndFilter(blogsData, sortType, sortOrder, debouncedSearch, searchType, statusFilter)
+  }, [blogsData, sortType, sortOrder, debouncedSearch, searchType, statusFilter])
 
   useEffect(() => {
     const updateItemsPerPage = () => {
@@ -114,21 +148,21 @@ const MyProjects = () => {
 
   const handleRetry = async (id) => {
     const payload = {
-      create_new: false,
+      createNew: false,
     }
     try {
       const response = await axiosInstance.post(`blogs/${id}/retry`, payload)
       if (response.status === 200) {
         toast.success(response?.data?.message || "Blog regenerated successfully!")
+        fetchBlogs()
       } else {
-        toast.error("Failed to regenerated blog.")
+        toast.error("Failed to regenerate blog.")
       }
     } catch (error) {
-      toast.error("Failed to regenerated blog.")
+      toast.error("Failed to regenerate blog.")
       console.error(
         "Error regenerating blog:",
-        (error.response && error.response.data && error.response.data.message) ||
-          "Failed to restore blog"
+        error.response?.data?.message || "Failed to restore blog"
       )
     }
   }
@@ -138,9 +172,9 @@ const MyProjects = () => {
     return content.length > length ? content.substring(0, length) + "..." : content
   }
 
-  const totalPages = Math.ceil(blogsData.length / itemsPerPage)
+  const totalPages = Math.ceil(filteredBlogs.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
-  const currentItems = blogsData.slice(startIndex, startIndex + itemsPerPage)
+  const currentItems = filteredBlogs.slice(startIndex, startIndex + itemsPerPage)
 
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber)
@@ -159,35 +193,77 @@ const MyProjects = () => {
       toast.error("Failed to archive blog.")
       console.error(
         "Error archiving blog:",
-        (error.response && error.response.data && error.response.data.message) ||
-          "Failed to archive blog"
+        error.response?.data?.message || "Failed to archive blog"
       )
     }
   }
 
   const menuOptions = [
     {
-      label: "A-Z",
+      label: "A-Z (Ascending)",
       icon: <SortAscendingOutlined />,
       onClick: () => {
-        fetchBlogs("az")
+        setSortType("az")
+        setSortOrder("asc")
         setMenuOpen(false)
       },
     },
     {
-      label: "Created Date",
+      label: "A-Z (Descending)",
+      icon: <SortAscendingOutlined />,
+      onClick: () => {
+        setSortType("az")
+        setSortOrder("desc")
+        setMenuOpen(false)
+      },
+    },
+    {
+      label: "Created Date (Newest)",
       icon: <CalendarOutlined />,
       onClick: () => {
-        fetchBlogs("date")
+        setSortType("createdAt")
+        setSortOrder("desc")
         setMenuOpen(false)
       },
     },
     {
-      label: "Status",
+      label: "Created Date (Oldest)",
+      icon: <CalendarOutlined />,
+      onClick: () => {
+        setSortType("createdAt")
+        setSortOrder("asc")
+        setMenuOpen(false)
+      },
+    },
+    {
+      label: "Status: All",
       icon: <CheckCircleOutlined />,
       onClick: () => {
-        // Example: Filter only 'published' status
-        fetchBlogs("date", "published")
+        setStatusFilter("all")
+        setMenuOpen(false)
+      },
+    },
+    {
+      label: "Status: Completed",
+      icon: <CheckCircleOutlined />,
+      onClick: () => {
+        setStatusFilter("complete")
+        setMenuOpen(false)
+      },
+    },
+    {
+      label: "Status: Pending",
+      icon: <HourglassOutlined />,
+      onClick: () => {
+        setStatusFilter("pending")
+        setMenuOpen(false)
+      },
+    },
+    {
+      label: "Status: Failed",
+      icon: <CloseCircleOutlined />,
+      onClick: () => {
+        setStatusFilter("failed")
         setMenuOpen(false)
       },
     },
@@ -199,7 +275,33 @@ const MyProjects = () => {
 
   return (
     <div className="p-5">
-      <ToastContainer  />
+      <ToastContainer />
+      <Modal
+        title="Search Blogs"
+        open={isSearchModalOpen}
+        onOk={handleSearchModalOk}
+        onCancel={handleSearchModalCancel}
+        okText="Search"
+        cancelText="Cancel"
+      >
+        <div className="flex flex-col gap-4">
+          <Select
+            defaultValue="title"
+            onChange={(value) => setSearchType(value)}
+            options={[
+              { value: "title", label: "Search by Title" },
+              { value: "keywords", label: "Search by Focus Keywords" },
+            ]}
+            className="w-full"
+          />
+          <Input
+            placeholder={`Search by ${searchType === "title" ? "title" : "focus keywords"}...`}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onPressEnter={handleSearchModalOk}
+          />
+        </div>
+      </Modal>
       <div className="flex justify-between align-middle items-center">
         <div>
           <motion.h1
@@ -219,23 +321,33 @@ const MyProjects = () => {
             All your content creation tools in one place. Streamline your workflow with our powerful
             suite of tools.
           </motion.p>
+          {/* Display current filters */}
+          <div className="flex gap-2 items-center text-sm text-gray-500">
+            <span>Filter:</span>
+            <span className="font-medium capitalize">
+              {statusFilter === "all" ? "All Statuses" : statusFilter}
+            </span>
+            <span>| Sort:</span>
+            <span className="font-medium">
+              {sortType === "az" ? `A-Z (${sortOrder})` : `Date (${sortOrder === "desc" ? "Newest" : "Oldest"})`}
+            </span>
+          </div>
         </div>
         <div className="flex gap-3">
           {isSearchOpen ? (
             <Input
               autoFocus
               size="small"
-              placeholder="Search..."
+              placeholder={`Search by ${searchType === "title" ? "title" : "focus keywords"}...`}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onPressEnter={handleSearch}
-              onBlur={() => setSearchOpen(false)} // closes when clicked outside
+              onBlur={() => setSearchOpen(false)}
               className="w-48"
             />
           ) : (
             <Button
               type="button"
-              className="p-0 hover:!border-yellow-500 hover:text-yellow-500"
               onClick={toggleSearch}
             >
               <Search />
@@ -243,15 +355,14 @@ const MyProjects = () => {
           )}
           <Button
             type="button"
-            className="p-2 hover:!border-yellow-500 hover:text-yellow-500"
             onClick={() => handleRefresh()}
           >
             <RefreshCcw />
           </Button>
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <Button
-              type="default"
-              icon={isMenuOpen ? <CloseOutlined /> : <Menu />}
+              type="button"
+              icon={<ArrowDownUp />}
               onClick={toggleMenu}
               className="pt-1"
             />
@@ -278,9 +389,7 @@ const MyProjects = () => {
               >
                 <Tooltip title={label} placement="left">
                   <button
-                    onClick={() => {
-                      onClick()
-                    }}
+                    onClick={onClick}
                     className="w-full flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
                   >
                     <span className="text-lg">{icon}</span>
@@ -326,8 +435,6 @@ const MyProjects = () => {
                 agendaJob,
               } = blog
               const isGemini = /gemini/gi.test(aiModel)
-              // [ s] Create a universal blog card to show wherever we need, use it here & in trashcan with all event handlers
-              // [ s] When blog is failed show user retry button [/blogs/:id/retry] - POST payload: create_new- boolean.
               return (
                 <Badge.Ribbon
                   key={_id}
@@ -348,13 +455,15 @@ const MyProjects = () => {
                   color={isGemini ? "#4796E3" : "#74AA9C"}
                 >
                   <div
-                    className={`bg-white shadow-md  hover:shadow-xl  transition-all duration-300 rounded-xl p-4 min-h-[180px] min-w-[390px] relative
-                        ${
-                          (status === "failed"
-                            ? "border-red-500"
-                            : status !== "complete" && "border-yellow-500") + " border-2"
-                        }
-                      `}
+                    className={`bg-white shadow-md hover:shadow-xl transition-all duration-300 rounded-xl p-4 min-h-[180px] min-w-[390px] relative
+                      ${
+                        (status === "failed"
+                          ? "border-red-500"
+                          : status === "pending"
+                          ? "border-yellow-500"
+                          : "border-green-500") + " border-2"
+                      }
+                    `}
                     title={title}
                   >
                     <div className="text-xs font-semibold text-gray-400 mb-2 -mt-2">
@@ -366,9 +475,10 @@ const MyProjects = () => {
                       title={
                         status === "complete"
                           ? title
-                          : ["failed", "in-progress"].includes(status)
-                          ? `Blog generation is ${status}`
-                          : `Pending Blog will be generated ${
+                          : status === "failed"
+                          ? "Blog generation failed"
+                          : status === "pending"
+                          ? `Pending Blog will be generated ${
                               agendaJob?.nextRunAt
                                 ? "at " +
                                   new Date(agendaJob.nextRunAt).toLocaleString("en-IN", {
@@ -377,29 +487,26 @@ const MyProjects = () => {
                                   })
                                 : "shortly"
                             }`
+                          : `Blog generation is ${status}`
                       }
                       color={
-                        status === "complete" ? "black" : status === "failed" ? "red" : "orange"
+                        status === "complete" ? "green" : status === "failed" ? "red" : "yellow"
                       }
                     >
                       <div
                         className="cursor-pointer"
                         onClick={() => {
-                          const { status } = blog
                           if (status === "complete") {
                             handleBlogClick(blog)
                           }
                         }}
                       >
-                        {/* Gemini Model - Top Right */}
-                        {/* <div className="absolute top-4 right-4 z-10  space-x-2"></div> */}
-                        <div className="flex flex-col gap-4 items-center justify-between mb-2 ">
+                        <div className="flex flex-col gap-4 items-center justify-between mb-2">
                           <h3 className="text-lg capitalize font-semibold text-gray-900 !text-left max-w-76">
                             {title}
                           </h3>
                           <p className="text-sm text-gray-600 mb-4 line-clamp-3 break-all">
                             {content || ""}
-                            {/* {truncateContent(content)} */}
                           </p>
                         </div>
                       </div>
@@ -461,14 +568,14 @@ const MyProjects = () => {
                     <div className="mt-3 -mb-2 flex justify-end text-xs text-right text-gray-500 font-medium">
                       {wordpress?.postedOn && (
                         <span className="">
-                          Posted on : &nbsp;
+                          Posted on :  
                           {new Date(wordpress.postedOn).toLocaleDateString("en-US", {
                             dateStyle: "medium",
                           })}
                         </span>
                       )}
                       <span className="ml-auto">
-                        Last updated : &nbsp;
+                        Last updated :  
                         {new Date(updatedAt).toLocaleDateString("en-US", {
                           dateStyle: "medium",
                         })}

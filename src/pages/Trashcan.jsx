@@ -70,9 +70,9 @@ const Trashcan = () => {
       const deletedCount = response?.data?.deletedCount || 0
       if (response.status === 200) {
         toast.success(
-          // response?.data?.message ||
           `${deletedCount || 0} ${deletedCount === 1 ? "blog" : "blogs"} deleted successfully`
         )
+        fetchTrashedBlogs()
       } else {
         toast.error("Cant delete")
       }
