@@ -78,7 +78,7 @@ export const logoutUser = (navigate) => async (dispatch) => {
 };
 
 // [s ] check the cause for showing nan credits & no user data on login via google at first but available after refresh or first polling
-export const load = () => async (dispatch) => {
+export const CreditLogsTable = () => async (dispatch) => {
   try {
     const data = await loadUser();
     if (data.success) {
@@ -92,7 +92,7 @@ export const load = () => async (dispatch) => {
   }
 };
 
-// [ ] call the load api once user is signed in 
+// [ s] call the load api once user is signed in 
 
 export const getUser = () => async (dispatch) => {
   try {

@@ -8,7 +8,7 @@ import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useNavigate } from "react-router-dom"
 import { useSelector } from "react-redux"
 
-const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
+const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost, activeTab }) => {
   const [newKeyword, setNewKeyword] = useState("")
   const [isPosting, setIsPosting] = useState(false)
   const [isAnalyzingCompetitive, setIsAnalyzingCompetitive] = useState(false) // For Competitive Analysis
@@ -102,7 +102,6 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
       })
 
       setPostRes(response?.status)
-      console.log("postRes", postRes)
 
       if (response.status === 200) {
         toast.success("Blog posted to WordPress successfully!")
@@ -134,7 +133,6 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
     try {
       const result = await axiosInstance.post("/blogs/proofread", {
         content: blog.content,
-        message: "Proofread this blog.",
       })
 
       if (result.data && Array.isArray(result.data.suggestions)) {
@@ -164,7 +162,7 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
     } else {
       handlePopup({
         title: "Competitive Analysis",
-        description: `Do you really want to run competitive analysis?\nIt will be 10 credits.`,
+        description: `Do you really want to run competitive analysis?\nIt will be of 10 credits.`,
         onConfirm: () => setShouldRunCompetitive(true),
       })
     }
@@ -312,61 +310,62 @@ const TextEditorSidebar = ({ blog, keywords, setKeywords, onPost }) => {
             {isAnalyzingCompetitive ? "Analyzing..." : "Run Competitive Analysis"}
           </h4>
         </motion.div>
-
-        <div className="mb-3">
-          <h3 className="font-semibold mb-2 text-gray-700">More Tools</h3>
-          <motion.div
-            whileHover={{ scale: 1.02 }}
-            className="bg-white rounded-lg shadow-md p-4 mb-1 relative"
-          >
-            <div className="flex justify-between mb-5">
-              <span className="text-2xl font-bold text-gray-400 mb-1 block">AA</span>
-              {["free", "basic"].includes(userPlan?.toLowerCase?.()) && (
-                <span className="flex items-center gap-2 rounded-md text-white font-semibold border p-1 px-2 bg-gradient-to-tr from-blue-500 to-purple-500 shadow-md hover:shadow-xl hover:scale-105 transition-all duration-300 ease-in-out animate-pulse backdrop-blur-sm text-lg">
-                  <Gem className="w-4 h-4 animate-bounce" />
-                  Pro
-                </span>
-              )}
-            </div>
-            <h4
-              className="text-blue-600 font-medium hover:underline cursor-pointer"
-              onClick={() => handleProofreadingBlog()}
+        {activeTab === "normal" && (
+          <div className="my-3">
+            <h3 className="font-semibold mb-2 text-gray-700">More Tools</h3>
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              className="bg-white rounded-lg shadow-md p-4 mb-1 relative"
             >
-              Proofreading my blog
-            </h4>
-          </motion.div>
-          {proofreadingResults !== null || isAnalyzingProofreading ? (
-            <div className="mt-4">
-              <h4 className="font-semibold text-gray-800 mb-2">Proofreading Results:</h4>
-              {isAnalyzingProofreading ? (
-                <p className="text-sm text-gray-500">Loading Proofreading Results...</p>
-              ) : proofreadingResults && proofreadingResults.length > 0 ? (
-                <div className="bg-white rounded-lg shadow-md p-4">
-                  <ul className="list-disc ml-5">
-                    {proofreadingResults.map((suggestion, index) => (
-                      <li key={index} className="mb-2">
-                        <p className="text-sm text-gray-700">
-                          <strong>Original:</strong> {suggestion.original}
-                        </p>
-                        <p className="text-sm text-gray-700">
-                          <strong>Revised:</strong> {suggestion.change}
-                        </p>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : (
-                <p className="text-sm text-gray-500">No suggestions available.</p>
-              )}
-            </div>
-          ) : null}
-        </div>
+              <div className="flex justify-between mb-5">
+                <span className="text-2xl font-bold text-gray-400 mb-1 block">AA</span>
+                {["free", "basic"].includes(userPlan?.toLowerCase?.()) && (
+                  <span className="flex items-center gap-2 rounded-md text-white font-semibold border p-1 px-2 bg-gradient-to-tr from-blue-500 to-purple-500 shadow-md hover:shadow-xl hover:scale-105 transition-all duration-300 ease-in-out animate-pulse backdrop-blur-sm text-lg">
+                    <Gem className="w-4 h-4 animate-bounce" />
+                    Pro
+                  </span>
+                )}
+              </div>
+              <h4
+                className="text-blue-600 font-medium hover:underline cursor-pointer"
+                onClick={() => handleProofreadingBlog()}
+              >
+                Proofreading my blog
+              </h4>
+            </motion.div>
+            {proofreadingResults !== null || isAnalyzingProofreading ? (
+              <div className="mt-4">
+                <h4 className="font-semibold text-gray-800 mb-2">Proofreading Results:</h4>
+                {isAnalyzingProofreading ? (
+                  <p className="text-sm text-gray-500">Loading Proofreading Results...</p>
+                ) : proofreadingResults && proofreadingResults.length > 0 ? (
+                  <div className="bg-white rounded-lg shadow-md p-4">
+                    <ul className="list-disc ml-5">
+                      {proofreadingResults.map((suggestion, index) => (
+                        <li key={index} className="mb-2">
+                          <p className="text-sm text-gray-700">
+                            <strong>Original:</strong> {suggestion.original}
+                          </p>
+                          <p className="text-sm text-gray-700">
+                            <strong>Revised:</strong> {suggestion.change}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">No suggestions available.</p>
+                )}
+              </div>
+            ) : null}
+          </div>
+        )}
         <motion.button
           onClick={handlePostClick}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           disabled={isPosting}
-          className={`w-full flex items-center justify-center bg-blue-600 text-white py-2 rounded-md shadow-md transition-colors ${
+          className={`w-full flex items-center justify-center bg-blue-600 text-white py-2 mt-4 rounded-md shadow-md transition-colors ${
             isPosting ? "opacity-50 cursor-not-allowed" : "hover:bg-blue-700"
           }`}
         >

@@ -11,6 +11,10 @@ import { createMultiBlog } from "@store/slices/blogSlice"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import axiosInstance from "@api/index"
 
+// [ ] check the height of all models
+// [ ] DONE in bulk jobs add file uploder same as jobs
+// [ ] DONE ai model default gemini
+
 const MultiStepModal = ({ closefnc }) => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
@@ -38,20 +42,23 @@ const MultiStepModal = ({ closefnc }) => {
     wordpressPostStatus: false,
     postFrequency: 10 * 60, // in seconds
     selectedDates: null,
-  })  
+    aiModel: "gemini",
+  })
 
   const handleNext = () => {
-    if (currentStep === 1) {
-      if (formData.topics.length === 0 && formData.topicInput.trim() === "") {
+    if (currentStep === 0) {
+      if (formData.templates.length === 0) {
         toast.error("Please add at least one topic.")
         return
+      }
+    }
+    if (currentStep === 1) {
+      if (formData.topicInput.trim() !== "") {
+        handleAddTopic()
       }
       if (!formData.tone) {
         toast.error("Please select a Tone of Voice.")
         return
-      }
-      if (formData.topicInput.trim() !== "") {
-        handleAddTopic()
       }
     }
     setCurrentStep((prev) => prev + 1)
@@ -202,7 +209,7 @@ const MultiStepModal = ({ closefnc }) => {
     setFormData((prev) => ({ ...prev, imageSource: source }))
   }
 
-  const steps = ["Select Template(s)", "Add Details", "Configure Output"]
+  const steps = ["Select Template's", "Add Details", "Configure Output"]
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
@@ -403,6 +410,24 @@ const MultiStepModal = ({ closefnc }) => {
 
           {currentStep === 2 && (
             <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Select AI Model
+                </label>
+                <select
+                  value={formData.aiModel}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      aiModel: e.target.value,
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="gemini">Gemini</option>
+                  <option value="chatgpt">Chatgpt</option>
+                </select>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Image Source</label>
                 <fieldset className="mt-2">

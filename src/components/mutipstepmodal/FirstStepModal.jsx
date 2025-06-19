@@ -6,7 +6,7 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
     title: false,
     topic: false,
     tone: false,
-    length: false,
+    // length: false,
     imageSource: false,
   })
 
@@ -15,7 +15,7 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
       title: !data?.title?.trim(),
       topic: !topic?.trim(),
       tone: !data?.tone,
-      length: !data?.userDefinedLength || data.userDefinedLength <= 0,
+      // length: !data?.userDefinedLength || data.userDefinedLength <= 0,
       imageSource: !data?.isCheckedGeneratedImages,
     }
 
@@ -157,9 +157,7 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
 
             <div className="grid grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium mb-2">
-                  Choose length of Blog <span className="text-red-500">*</span>
-                </label>
+                <label className="block text-sm font-medium mb-2">Choose length of Blog</label>
                 <div className="relative">
                   <input
                     type="range"
@@ -179,7 +177,7 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
                         ...prev,
                         userDefinedLength: e.target.value,
                       }))
-                      setErrors((prev) => ({ ...prev, length: false }))
+                      // setErrors((prev) => ({ ...prev, length: false }))
                     }}
                   />
                   <span className="mt-2 text-sm text-gray-600 block">

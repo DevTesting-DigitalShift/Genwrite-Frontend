@@ -12,7 +12,7 @@ import { motion } from "framer-motion"
 
 const TRUNCATE_LENGTH = 85
 
-// [ ] refresh button here too
+// [s ] refresh button here too
 // [s ] add delete all & call delete /blogs/ & other features in it & use main branch from now on
 
 const Trashcan = () => {

@@ -2,11 +2,13 @@ import { useState, useEffect } from "react"
 import { NavLink, useLocation, useNavigate } from "react-router-dom"
 import { useDispatch, useSelector } from "react-redux"
 import { RxAvatar } from "react-icons/rx"
+import { FiMenu } from "react-icons/fi"
 import { logoutUser } from "../store/slices/authSlice"
 import { Tooltip, Dropdown, Avatar } from "antd"
 import { RiCoinsFill } from "react-icons/ri"
 import NotificationDropdown from "@components/NotificationDropdown"
 import GoProButton from "@components/GoProButton"
+import { loadUser } from "../api/authApi"
 
 const LayoutWithSidebarAndHeader = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -14,8 +16,25 @@ const LayoutWithSidebarAndHeader = () => {
   const location = useLocation()
   const dispatch = useDispatch()
   const navigate = useNavigate()
-  const { user } = useSelector((selector) => selector.auth)
+  // const { user } = useSelector((selector) => selector.auth)
+  const [user, setUser] = useState(null)
 
+  
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const user = await loadUser(navigate)
+        dispatch(setUser(user?.user))
+      } catch (err) {
+        console.error("User load failed:", err)
+      }
+    }
+    
+    fetchCurrentUser()
+  }, [dispatch, navigate])
+
+  console.log({ user })
+  
   useEffect(() => {
     if (user?.name || user?.credits) {
       setIsUserLoaded(true)
@@ -42,7 +61,6 @@ const LayoutWithSidebarAndHeader = () => {
     }
   }
 
-  /** @type {import("antd").MenuProps} */
   const userMenu = {
     onClick: ({ key }) => {
       if (key === "logout") handleLogout()
@@ -60,7 +78,7 @@ const LayoutWithSidebarAndHeader = () => {
             {user?.name}
           </Tooltip>
         ),
-        disabled: true, // Show name but non-clickable
+        disabled: true,
       },
       { type: "divider" },
       { key: "profile", label: "Profile", className: "!py-1.5 hover:bg-gray-100" },
@@ -84,161 +102,93 @@ const LayoutWithSidebarAndHeader = () => {
     <div className={`${path.includes("signup") || path.includes("login") ? "hidden" : "flex"}`}>
       {/* Sidebar */}
       <div
-        className={`fixed top-0 left-0 h-full ${
-          sidebarOpen ? "w-64 z-40 text-2xl transition-all ease-linear" : "w-20 z-40"
-        } bg-[#180E3C] text-black p-5 pt-8 transition-width duration-300`}
+        className={`fixed top-0 left-0 h-full z-40 transition-all duration-300 bg-gradient-to-br from-purple-800 to-blue-600 text-white overflow-hidden p-2 ${
+          sidebarOpen ? "w-56" : "w-16"
+        }`}
         onMouseEnter={() => setSidebarOpen(true)}
         onMouseLeave={() => setSidebarOpen(false)}
       >
-        <div className="h-10 flex gap-x-4 items-center text-black mb-4 overflow-clip">
-          <img
-            src="/Images/logo_genwrite_1.png"
-            loading="lazy"
-            className={`cursor-pointer transition-transform duration-700 ease-in-out ${
-              sidebarOpen ? "" : "object-contain min-w-[90px] -ml-2.5"
-            }`}
-            alt="Logo"
-          />
+        <div className="flex justify-center items-center h-14 mb-4">
+          {!sidebarOpen ? (
+            <FiMenu size={24} className="text-white" />
+          ) : (
+            <img
+              src="/Images/logo_genwrite_1.png"
+              loading="lazy"
+              alt="Logo"
+              className="w-52 mt-4"
+            />
+          )}
         </div>
-        <style>
-          {`
-            .custom-blue-switch .ant-switch {
-              background-color: #e5e7eb !important; /* Tailwind gray-200 */
-              box-shadow: 0 0 0 2px #fff !important;
-              border: none !important;
-            }
-            .custom-blue-switch .ant-switch-checked {
-              background-color: #fff !important;
-              box-shadow: 0 0 0 2px #fff !important;
-              border: none !important;
-            }
-            .custom-blue-switch .ant-switch-handle {
-              background: #fff !important;
-              border-radius: 50% !important;
-              box-shadow: 0 0 2px #0002;
-            }
-            .custom-blue-switch .ant-switch-checked .ant-switch-handle {
-              background: #fff !important;
-              border-radius: 50% !important;
-            }
-          `}
-        </style>
-        <ul className="pt-1">
-          {Menus.map((Menu, index) => (
-            <li key={index} className={`mt-4 ${Menu.gap ? "mt-12" : ""}`}>
-              <NavLink
-                to={Menu.path}
-                className={({ isActive }) =>
-                  `flex rounded-md p-2 cursor-pointer hover:bg-light-white text-gray-300 text-sm items-center gap-x-4 ${
-                    isActive || location.pathname.startsWith(Menu.path)
-                      ? "shadow-[rgba(0,_0,_0,_0.4)_0px_30px_90px] bg-gray-800 text-black"
-                      : ""
-                  }`
-                }
-              >
-                <img src={`/Images/${Menu.src}`} alt={Menu.title} />
-                <span
-                  className={`${
-                    !sidebarOpen && "hidden"
-                  } origin-left transition-opacity duration-500 ease-in-out`}
+        <ul className="space-y-3">
+          {Menus.map((Menu, index) => {
+            const isActive = location.pathname.startsWith(Menu.path)
+            return (
+              <li key={index}>
+                <NavLink
+                  to={Menu.path}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors duration-200 text-white hover:bg-white/10 ${
+                    isActive ? "bg-white/20 font-semibold" : ""
+                  }`}
                 >
-                  {Menu.title}
-                </span>
-              </NavLink>
-            </li>
-          ))}
+                  <img
+                    src={`/Images/${Menu.src}`}
+                    alt={Menu.title}
+                    className={`w-5 h-5 ${isActive ? "opacity-100" : "opacity-60"}`}
+                  />
+                  <span className={`${!sidebarOpen ? "hidden" : "block"}`}>{Menu.title}</span>
+                </NavLink>
+              </li>
+            )
+          })}
         </ul>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 ml-20 w-[93vw] fixed z-30">
-        <header className="top-0 z-[9999] bg-gray-50 p-8 flex items-center justify-end">
-          {/* Left side: search */}
-          {/* <div className="flex items-center">
-            <div className="flex items-center bg-white rounded-full overflow-hidden w-64 lg:w-96 shadow-md hover:shadow-lg transition-shadow duration-300">
-              <FaSearch className="w-5 h-5 text-gray-500 mx-3" />
-              <input
-                className="w-full bg-white px-4 py-2 text-gray-700 focus:outline-none"
-                type="text"
-                placeholder="Search"
-              />
-            </div>
-          </div> */}
-
-          {/* Right side */}
+      <div className="flex-1 ml-16 fixed z-30 w-[calc(100%-4rem)]">
+        <header className="top-0 z-[9999] bg-gray-50 p-4 flex items-center justify-between border-b border-gray-200">
+          <div className="flex items-center gap-2">
+            <img src="/Images/logo_genwrite_2.png" loading="lazy" alt="Logo" className="w-36" />
+          </div>
           <div className="flex items-center space-x-4">
             <GoProButton onClick={() => navigate("/upgrade")} />
 
-            {/* Credits */}
-            {isUserLoaded && user?.name ? (
+            {isUserLoaded ? (
               <>
                 <Tooltip title="User Credits">
                   <button
                     onClick={() => navigate("/upgrade")}
-                    className="flex gap-2 justify-center items-center mr-4 rounded-full p-2 hover:bg-gray-100 transition"
+                    className="flex gap-2 justify-center items-center rounded-full p-2 hover:bg-gray-100 transition"
                   >
-                    <RiCoinsFill size={30} color="orange" />
-                    <span className="font-semibold text-lg">
+                    <RiCoinsFill size={24} color="orange" />
+                    <span className="font-semibold">
                       {user?.credits?.base + user?.credits?.extra || 0}
                     </span>
                   </button>
                 </Tooltip>
-
-                {/* Notifications */}
-                <div className="relative">
-                  <NotificationDropdown notifications={user?.notifications} />
-                </div>
-                {/* Dropdown Avatar with menu */}
+                <NotificationDropdown notifications={user?.notifications} />
                 <Dropdown menu={userMenu} trigger={["click"]} placement="bottomRight">
-                  {/* <Tooltip title={`Hello ${user.name}`} > */}
                   <Avatar
-                    className="bg-gradient-to-tr from-blue-400 to-purple-700 text-white text-lg font-bold cursor-pointer hover:ring-2 hover:ring-offset-2 hover:ring-purple-500 transition"
+                    className="bg-gradient-to-tr from-blue-400 to-purple-700 text-white font-bold cursor-pointer hover:ring-2 hover:ring-offset-2 hover:ring-purple-500 transition"
                     size="large"
                   >
                     {user.name.slice(0, 1).toUpperCase()}
                   </Avatar>
-                  {/* </Tooltip> */}
                 </Dropdown>
               </>
             ) : (
               <div className="flex items-center gap-2">
                 <RxAvatar size={30} />
                 <Dropdown menu={noUserMenu} trigger={["click"]} placement="bottomRight">
-                  <span className="text-[#2E2E2E] text-[16px] font-[400]">UserName</span>
+                  <span className="text-gray-700 text-sm">UserName</span>
                 </Dropdown>
               </div>
             )}
-
-            {/* Settings Dropdown (Animated)
-            <div className="relative">
-              <button
-                onClick={() => navigate("/profile")}
-                className="p-2 text-gray-700 hover:bg-gray-100 rounded-full transition duration-150"
-              >
-                <FaCog className="w-6 h-6" />
-              </button>
-              {settingsOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.2 }}
-                  className="absolute right-0 mt-2 w-48 bg-white rounded-md overflow-hidden shadow-xl z-10"
-                >
-                  <button
-                    className="flex px-4 py-2 text-md text-gray-700 hover:bg-gray-100 w-full text-left justify-between"
-                    onClick={handleLogout}
-                  >
-                    <span>Logout</span> <IoIosLogOut size={20} />
-                  </button>
-                </motion.div>
-              )}
-            </div> */}
           </div>
         </header>
       </div>
     </div>
   )
 }
-;``
+
 export default LayoutWithSidebarAndHeader

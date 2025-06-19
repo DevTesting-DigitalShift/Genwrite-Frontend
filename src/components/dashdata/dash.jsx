@@ -2,22 +2,22 @@ export const letsBegin = [
   {
     id: 1,
     imageUrl: "./Images/createnew.png",
-    title: "Create a New",
+    title: "Create New BLog",
     content: "Generate blogs, email, product, description, etc.",
   },
   {
-    id: 'A',
+    id: "A",
     imageUrl: "./Images/quickblog.png",
-    title: "Generate a Quick Blog",
+    title: "Generate Quick Blog",
     content: "With few inputs you are good to go to create Awesome blogs!",
   },
   {
-    id: 'B',
+    id: "B",
     imageUrl: "./Images/createmultipleblog.png",
     title: "Create Multiple Blog's",
     content: "Ellipse draft overflow arrange pen",
   },
-];
+]
 
 export const quickTools = [
   {
@@ -44,7 +44,7 @@ export const quickTools = [
     title: "Competitor Analysis",
     content: "Analyze your competitors' content and strategies",
   },
-];
+]
 
 export const recentProjects = [
   {
@@ -61,4 +61,4 @@ export const recentProjects = [
       "Our cutting-edge technology allows you to create shoes that are uniquely tailored to your feet, providing ...",
     tags: ["Facebook Post", "Post", "Footwear"],
   },
-];
+]

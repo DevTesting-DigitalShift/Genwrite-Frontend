@@ -16,7 +16,7 @@ import QuickBlogModal from "./mutipstepmodal/QuickBlogModal"
 import CompetitiveAnalysisModal from "./mutipstepmodal/CompetitiveAnalysisModal"
 import PerformanceMonitoringModal from "./mutipstepmodal/PerformanceMonitoringModal"
 import axiosInstance from "@api/index"
-import { load } from "@store/slices/authSlice"
+// import { load } from "@store/slices/authSlice"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { toast, ToastContainer } from "react-toastify"
@@ -29,8 +29,8 @@ import { AnimatePresence } from "framer-motion"
   check the ui first for free version & then change it in a more good way
  */
 
-// [ ] remove search
-// [ ] skeleton loading
+// [ s] remove search
+// [s ] skeleton loading
 const Dashboard = () => {
   // State declarations
   const [isModalVisible, setIsModalVisible] = useState(false)
@@ -233,6 +233,7 @@ const Dashboard = () => {
                     title={item.title}
                     content={item.content}
                     id={item.id}
+                    // icon={item.imageUrl}
                     functions={{
                       showModal,
                       setModelData,
