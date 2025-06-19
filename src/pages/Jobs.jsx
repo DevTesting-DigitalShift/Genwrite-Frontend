@@ -16,42 +16,44 @@ import { CrownFilled, QuestionCircleOutlined } from "@ant-design/icons"
 import { Popconfirm } from "antd"
 import { Gem } from "lucide-react"
 
-// [ ] active jobs don't show if there is no job
+// [ ] in topic user can upload csv or text- read that file split on basic of arr store that in arr show 3-4 text after ... or count
+// [ ] DONE validation in job picker
+// [ s] active jobs don't show if there is no job
+
+const initialJob = {
+  name: "",
+  schedule: { type: "daily", customDates: [], days: [] },
+  blogs: {
+    numberOfBlogs: 1,
+    topics: [],
+    templates: [],
+    tone: "Professional",
+    userDefinedLength: 1000,
+    imageSource: "unsplash",
+    aiModel: "gemini",
+  },
+  options: {
+    wordpressPosting: false,
+    includeFaqs: false,
+    useBrandVoice: false,
+    includeCompetitorResearch: false,
+    includeInterlinks: false,
+    performKeywordResearch: false,
+  },
+  status: "active", // default to stop (valid enum for backend)
+}
 
 const Jobs = () => {
   const tones = ["Professional", "Casual", "Friendly", "Formal", "Technical"]
   const wordLengths = [500, 1000, 1500, 2000, 3000]
-
   const [jobs, setJobs] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [showJobModal, setShowJobModal] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
-  const initialJob = {
-    name: "",
-    schedule: { type: "daily", customDates: [], days: [] },
-    blogs: {
-      numberOfBlogs: 1,
-      topics: [],
-      templates: [],
-      tone: "Professional",
-      userDefinedLength: 1000,
-      imageSource: "unsplash",
-      aiModel: "gemini",
-    },
-    options: {
-      wordpressPosting: false,
-      includeFaqs: false,
-      useBrandVoice: false,
-      includeCompetitorResearch: false,
-      includeInterlinks: false,
-      performKeywordResearch: false,
-    },
-    status: "active", // default to stop (valid enum for backend)
-  }
   const [newJob, setNewJob] = useState(initialJob)
   const [topicInput, setTopicInput] = useState("")
-
   const { handlePopup } = useConfirmPopup()
+  const [errors, setErrors] = useState({})
   const userPlan = useSelector((state) => state.auth.user?.plan)
   const navigate = useNavigate()
 
@@ -158,6 +160,56 @@ const Jobs = () => {
     }
   }
 
+  const validateSteps = (step) => {
+    const errors = {}
+
+    if (step === 1) {
+      if (newJob.blogs.templates.length === 0) {
+        errors.template = true
+        toast.error("Please select a template before proceeding ")
+      }
+    }
+
+    if (step === 2) {
+      if (!newJob.name) {
+        errors.name = true
+        toast.error("Please fill all the required fields")
+        return
+      }
+      // if (!newJob.blogs.tone) errors.tone = true
+      // if (!newJob.blogs.userDefinedLength) errors.length = true
+      // if (!newJob.blogs.imageSource) errors.image = true
+      // if (newJob.blogs.topics.length === 0) errors.topic = true
+    }
+
+    setErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
+  const handleAddKeyword = (type) => {
+    // const inputValue = formData[`${type}Input`]
+    if (topicInput.trim() !== "") {
+      setNewJob((prev) => ({
+        ...prev,
+        blogs: {
+          ...prev.blogs,
+          topics: [...prev.blogs.topics, topicInput.trim()],
+        },
+      }))
+      setTopicInput("")
+    }
+  }
+
+  const handleKeyPress = (e, type) => {
+    if (e.key === "Enter") {
+      e.preventDefault()
+      handleAddKeyword(type)
+    } else if (e.key === ",") {
+      e.preventDefault()
+      handleAddKeyword(type)
+    }
+  }
+
   // Edit a job
   const handleEditJob = (job) => {
     if (job.status == "active") {
@@ -178,7 +230,7 @@ const Jobs = () => {
       case 1:
         return (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-            <h3 className="text-xl font-semibold text-gray-800 mb-4">Select Templates (Step 1)</h3>
+            <h3 className="text-xl font-semibold text-gray-800 mb-4">Step 1: Select Templates</h3>
             <p className="text-sm text-gray-600 mb-4">
               Select up to 3 templates for the types of blogs you want to generate.
             </p>
@@ -187,7 +239,11 @@ const Jobs = () => {
                 <div
                   key={pkg.name}
                   className={`cursor-pointer transition-all duration-200 ${
-                    newJob.blogs.templates.includes(pkg.name) ? "border-blue-500 border-2" : ""
+                    newJob.blogs.templates.includes(pkg.name)
+                      ? "border-blue-500 border-2"
+                      : errors.templates
+                      ? "border-red-500 border-2"
+                      : ""
                   }`}
                   onClick={() => {
                     if (newJob.blogs.templates.includes(pkg.name)) {
@@ -229,7 +285,9 @@ const Jobs = () => {
             </Carousel>
             <div className="flex justify-end mt-6">
               <button
-                onClick={() => setCurrentStep(2)}
+                onClick={() => {
+                  if (validateSteps(1)) setCurrentStep(2)
+                }}
                 className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
               >
                 Next
@@ -240,7 +298,7 @@ const Jobs = () => {
       case 2:
         return (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-            <h3 className="text-xl font-semibold text-gray-800 mb-4">Job Details (Step 2)</h3>
+            <h3 className="text-xl font-semibold text-gray-800 mb-4">Step 2: Job Details</h3>
             <div className="space-y-4">
               {/* Job Name */}
               <div>
@@ -249,7 +307,9 @@ const Jobs = () => {
                   type="text"
                   value={newJob.name}
                   onChange={(e) => setNewJob({ ...newJob, name: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    errors.name ? "border-red-500" : "border-gray-200"
+                  }`}
                 />
               </div>
               {/* Tone (blogs) */}
@@ -262,7 +322,9 @@ const Jobs = () => {
                   onChange={(e) =>
                     setNewJob({ ...newJob, blogs: { ...newJob.blogs, tone: e.target.value } })
                   }
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                    errors.tone ? "border-red-500" : "border-gray-200"
+                  }`}
                 >
                   {tones.map((tone) => (
                     <option key={tone} value={tone}>
@@ -315,25 +377,17 @@ const Jobs = () => {
                   <input
                     type="text"
                     value={topicInput}
+                    onKeyDown={(e) => handleKeyPress(e, "topics")}
                     onChange={(e) => setTopicInput(e.target.value)}
-                    className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                      errors.topic ? "border-red-500" : "border-gray-200"
+                    }`}
                     placeholder="Add a topic..."
                   />
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => {
-                      if (topicInput.trim() !== "") {
-                        setNewJob((prev) => ({
-                          ...prev,
-                          blogs: {
-                            ...prev.blogs,
-                            topics: [...prev.blogs.topics, topicInput.trim()],
-                          },
-                        }))
-                        setTopicInput("")
-                      }
-                    }}
+                    onClick={() => handleAddKeyword("topics")}
                     className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg"
                   >
                     Add
@@ -388,7 +442,9 @@ const Jobs = () => {
                 Previous
               </button>
               <button
-                onClick={() => setCurrentStep(3)}
+                onClick={() => {
+                  if (validateSteps(2)) setCurrentStep(3)
+                }}
                 className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
               >
                 Next
@@ -399,7 +455,7 @@ const Jobs = () => {
       case 3:
         return (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-            <h3 className="text-xl font-semibold text-gray-800 mb-4">Blog Options (Step 3)</h3>
+            <h3 className="text-xl font-semibold text-gray-800 mb-4">Step 3: Blog Options</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* DaisyUI-style toggles for each option */}
               <div className="flex items-center justify-between py-2 border-b">
@@ -509,7 +565,7 @@ const Jobs = () => {
       case 4:
         return (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-            <h3 className="text-xl font-semibold text-gray-800 mb-4">Schedule Settings (Step 4)</h3>
+            <h3 className="text-xl font-semibold text-gray-800 mb-4">Step 4: Schedule Settings</h3>
             <div className="space-y-4">
               {/* Schedule Type */}
               <div>
@@ -750,7 +806,9 @@ const Jobs = () => {
                   >
                     <div className="flex justify-between items-start mb-4">
                       <div>
-                        <h3 className="text-lg font-semibold text-gray-800 capitalize">{job.name}</h3>
+                        <h3 className="text-lg font-semibold text-gray-800 capitalize">
+                          {job.name}
+                        </h3>
                         <p className="text-sm text-gray-500 mt-1">
                           ID: {job._id.toString().slice(-6)}
                         </p>

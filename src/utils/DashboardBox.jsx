@@ -6,7 +6,7 @@ import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { CrownFilled } from "@ant-design/icons"
 import { Gem } from "lucide-react"
 
-export const DashboardBox = ({ imageUrl, title, content, id, functions }) => {
+export const DashboardBox = ({ imageUrl, title, content, id, functions, icon }) => {
   const user = useSelector((state) => state.auth.user)
   const userPlan = user?.plan ?? user?.subscription?.plan
   const { handlePopup } = useConfirmPopup()
@@ -20,7 +20,7 @@ export const DashboardBox = ({ imageUrl, title, content, id, functions }) => {
       onConfirm: () => navigate("/upgrade"),
     })
   }
-  
+
   return (
     <div
       className="w-1/2 md:w-1/3 h-44 p-4 break-words bg-white rounded-xl shadow-sm cursor-pointer border hover:shadow-md transition duration-200"
@@ -44,18 +44,11 @@ export const DashboardBox = ({ imageUrl, title, content, id, functions }) => {
       }}
     >
       <div className="flex items-center justify-between space-x-4">
-        <span className="bg-[#E8F1FA] rounded-full p-2">
-          <motion.div
-            whileHover={{ scale: 1.15, rotate: 8 }}
-            animate={{
-              y: [0, -4, 0],
-              transition: { repeat: Infinity, duration: 2, ease: "easeInOut" },
-            }}
-            transition={{ type: "spring", stiffness: 300 }}
-            className="inline-block"
-          >
+        <span className=" rounded-full p-2">
+          <div className="inline-block">
             <img src={imageUrl} alt={title} className="w-6 h-6 object-contain" />
-          </motion.div>
+            {/* {icon} */}
+          </div>
         </span>
         {["free", "basic"].includes(userPlan?.toLowerCase?.()) && id == "B" && (
           <span className="flex items-center gap-2 rounded-md text-white font-semibold border p-1 px-2 bg-gradient-to-tr from-blue-500 to-purple-500 shadow-md hover:shadow-xl hover:scale-105 transition-all duration-300 ease-in-out animate-pulse backdrop-blur-sm text-lg">
@@ -113,7 +106,7 @@ export const QuickBox = ({ imageUrl, title, content, id, functions }) => {
           </motion.div>
         </span>
         {["free", "basic"].includes(userPlan?.toLowerCase?.()) && id == 4 && (
-           <span className="flex items-center gap-2 rounded-md text-white font-semibold border p-1 px-2 bg-gradient-to-tr from-blue-500 to-purple-500 shadow-md hover:shadow-xl hover:scale-105 transition-all duration-300 ease-in-out animate-pulse backdrop-blur-sm text-lg">
+          <span className="flex items-center gap-2 rounded-md text-white font-semibold border p-1 px-2 bg-gradient-to-tr from-blue-500 to-purple-500 shadow-md hover:shadow-xl hover:scale-105 transition-all duration-300 ease-in-out animate-pulse backdrop-blur-sm text-lg">
             <Gem className="w-4 h-4 animate-bounce" />
             Pro
           </span>

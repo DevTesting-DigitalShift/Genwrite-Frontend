@@ -12,8 +12,6 @@ import {
 } from "@api/blogApi";
 import { toast } from "react-toastify";
 
-
-
 // Async thunk to fetch recent projects
 export const fetchRecentProjects = createAsyncThunk(
   "blogs/fetchRecentProjects",

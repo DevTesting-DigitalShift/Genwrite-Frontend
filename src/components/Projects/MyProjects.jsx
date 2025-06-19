@@ -1,11 +1,11 @@
-import React, { useState, useEffect, Suspense } from "react"
+import React, { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import axiosInstance from "@api/index"
 import SkeletonLoader from "./SkeletonLoader"
 import { toast, ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
-import { Badge, Button, Input, Popconfirm, Tooltip, Select, Modal } from "antd"
-import { ArrowDownUp, Menu, RefreshCcw, RotateCcw, Search, Trash2 } from "lucide-react"
+import { Badge, Button, Input, Popconfirm, Tooltip, Select, Modal, Popover } from "antd"
+import { ArrowDownUp, Funnel, Menu, RefreshCcw, RotateCcw, Search, Trash2 } from "lucide-react"
 import { AnimatePresence, motion } from "framer-motion"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import {
@@ -14,9 +14,21 @@ import {
   SortAscendingOutlined,
   HourglassOutlined,
   CloseCircleOutlined,
+  SortDescendingOutlined,
 } from "@ant-design/icons"
 
 const TRUNCATE_LENGTH = 120
+
+// [ ] save logic in blog editor
+// [ ] decorators to show lines are that wrong give option accept all reject all
+// [ ] DONE fix ui of sorting and filtering like leet code and install button to clear filter
+// [ ] DONE in editor send the keywords to backend
+// [ ] DONE in editor regenerate show the credit deduct it will minus 10 credit.
+// [ ] DONE remove filter status line
+// [ ] DONE in progress border yellow & change color of tooltip in pending
+// [ ] DONE proofreading will be work only in normal editor
+// [ ] DONE remove message in proofreading payload
+// [ ] DONE get blog by id call in editor store the changes in redux
 
 const MyProjects = () => {
   const [blogsData, setBlogsData] = useState([])
@@ -29,6 +41,7 @@ const MyProjects = () => {
   const [statusFilter, setStatusFilter] = useState("all") // New state for status filter
   const navigate = useNavigate()
   const [isMenuOpen, setMenuOpen] = useState(false)
+  const [funnelMenuOpen, setFunnelMenuOpen] = useState(false)
   const [isSearchOpen, setSearchOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
@@ -36,8 +49,26 @@ const MyProjects = () => {
   const [isSearchModalOpen, setSearchModalOpen] = useState(false)
   const { handlePopup } = useConfirmPopup()
 
-  const toggleMenu = () => setMenuOpen((prev) => !prev)
   const toggleSearch = () => setSearchModalOpen(true)
+  const toggleMenu = () => {
+    setMenuOpen((prev) => {
+      if (!prev) setFunnelMenuOpen(false) // close funnel if opening menu
+      return !prev
+    })
+  }
+
+  const toggleFunnelMenu = () => {
+    setFunnelMenuOpen((prev) => {
+      if (!prev) setMenuOpen(false) // close menu if opening funnel
+      return !prev
+    })
+  }
+
+  const resetFilters = () => {
+    setSortOrder("")
+    setSortType("")
+    setStatusFilter("all")
+  }
 
   const handleSearch = () => {
     setSearchTerm("")
@@ -60,7 +91,14 @@ const MyProjects = () => {
       const response = await axiosInstance.get("/blogs/")
       const filteredBlogs = response.data.filter((blog) => !blog.isArchived)
       setBlogsData(filteredBlogs)
-      applySortAndFilter(filteredBlogs, sortType, sortOrder, debouncedSearch, searchType, statusFilter)
+      applySortAndFilter(
+        filteredBlogs,
+        sortType,
+        sortOrder,
+        debouncedSearch,
+        searchType,
+        statusFilter
+      )
     } catch (error) {
       console.error(
         "Error fetching blogs:",
@@ -85,8 +123,11 @@ const MyProjects = () => {
         if (searchType === "title") {
           return blog.title.toLowerCase().includes(search.toLowerCase())
         } else {
-          return blog.focusKeywords && blog.focusKeywords.some((keyword) =>
-            keyword.toLowerCase().includes(search.toLowerCase())
+          return (
+            blog.focusKeywords &&
+            blog.focusKeywords.some((keyword) =>
+              keyword.toLowerCase().includes(search.toLowerCase())
+            )
           )
         }
       })
@@ -95,9 +136,7 @@ const MyProjects = () => {
     // Apply sorting
     sortedBlogs.sort((a, b) => {
       if (sortBy === "az") {
-        return order === "asc"
-          ? a.title.localeCompare(b.title)
-          : b.title.localeCompare(a.title)
+        return order === "asc" ? a.title.localeCompare(b.title) : b.title.localeCompare(a.title)
       } else {
         return order === "asc"
           ? new Date(a.createdAt) - new Date(b.createdAt)
@@ -209,8 +248,8 @@ const MyProjects = () => {
       },
     },
     {
-      label: "A-Z (Descending)",
-      icon: <SortAscendingOutlined />,
+      label: "Z-A (Descending)",
+      icon: <SortDescendingOutlined />,
       onClick: () => {
         setSortType("az")
         setSortOrder("desc")
@@ -235,20 +274,23 @@ const MyProjects = () => {
         setMenuOpen(false)
       },
     },
-    {
-      label: "Status: All",
-      icon: <CheckCircleOutlined />,
-      onClick: () => {
-        setStatusFilter("all")
-        setMenuOpen(false)
-      },
-    },
+  ]
+
+  const funnelMenuOptions = [
+    // {
+    //   label: "Status: All",
+    //   icon: <CheckCircleOutlined />,
+    //   onClick: () => {
+    //     setStatusFilter("all")
+    //     setFunnelMenuOpen(false)
+    //   },
+    // },
     {
       label: "Status: Completed",
       icon: <CheckCircleOutlined />,
       onClick: () => {
         setStatusFilter("complete")
-        setMenuOpen(false)
+        setFunnelMenuOpen(false)
       },
     },
     {
@@ -256,7 +298,7 @@ const MyProjects = () => {
       icon: <HourglassOutlined />,
       onClick: () => {
         setStatusFilter("pending")
-        setMenuOpen(false)
+        setFunnelMenuOpen(false)
       },
     },
     {
@@ -264,7 +306,7 @@ const MyProjects = () => {
       icon: <CloseCircleOutlined />,
       onClick: () => {
         setStatusFilter("failed")
-        setMenuOpen(false)
+        setFunnelMenuOpen(false)
       },
     },
   ]
@@ -276,32 +318,6 @@ const MyProjects = () => {
   return (
     <div className="p-5">
       <ToastContainer />
-      <Modal
-        title="Search Blogs"
-        open={isSearchModalOpen}
-        onOk={handleSearchModalOk}
-        onCancel={handleSearchModalCancel}
-        okText="Search"
-        cancelText="Cancel"
-      >
-        <div className="flex flex-col gap-4">
-          <Select
-            defaultValue="title"
-            onChange={(value) => setSearchType(value)}
-            options={[
-              { value: "title", label: "Search by Title" },
-              { value: "keywords", label: "Search by Focus Keywords" },
-            ]}
-            className="w-full"
-          />
-          <Input
-            placeholder={`Search by ${searchType === "title" ? "title" : "focus keywords"}...`}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onPressEnter={handleSearchModalOk}
-          />
-        </div>
-      </Modal>
       <div className="flex justify-between align-middle items-center">
         <div>
           <motion.h1
@@ -322,85 +338,151 @@ const MyProjects = () => {
             suite of tools.
           </motion.p>
           {/* Display current filters */}
-          <div className="flex gap-2 items-center text-sm text-gray-500">
+          {/* <div className="flex gap-2 items-center text-sm text-gray-500">
             <span>Filter:</span>
             <span className="font-medium capitalize">
               {statusFilter === "all" ? "All Statuses" : statusFilter}
             </span>
             <span>| Sort:</span>
             <span className="font-medium">
-              {sortType === "az" ? `A-Z (${sortOrder})` : `Date (${sortOrder === "desc" ? "Newest" : "Oldest"})`}
+              {sortType === "az"
+                ? `A-Z (${sortOrder})`
+                : `Date (${sortOrder === "desc" ? "Newest" : "Oldest"})`}
             </span>
-          </div>
+          </div> */}
         </div>
         <div className="flex gap-3">
-          {isSearchOpen ? (
-            <Input
-              autoFocus
-              size="small"
-              placeholder={`Search by ${searchType === "title" ? "title" : "focus keywords"}...`}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onPressEnter={handleSearch}
-              onBlur={() => setSearchOpen(false)}
-              className="w-48"
-            />
-          ) : (
-            <Button
-              type="button"
-              onClick={toggleSearch}
-            >
-              <Search />
-            </Button>
-          )}
-          <Button
-            type="button"
-            onClick={() => handleRefresh()}
+          <Popover
+            content={
+              <div className="flex flex-col gap-4 w-64">
+                <Select
+                  defaultValue="title"
+                  onChange={(value) => setSearchType(value)}
+                  options={[
+                    { value: "title", label: "Search by Title" },
+                    { value: "keywords", label: "Search by Focus Keywords" },
+                  ]}
+                />
+                <Input
+                  placeholder={`Search by ${
+                    searchType === "title" ? "title" : "focus keywords"
+                  }...`}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onPressEnter={handleSearchModalOk}
+                />
+                <Button type="primary" onClick={handleSearchModalOk}>
+                  Search
+                </Button>
+              </div>
+            }
+            title="Search Blogs"
+            trigger="click"
+            placement="bottomRight"
+            open={isSearchModalOpen}
+            onOpenChange={(visible) => setSearchModalOpen(visible)}
           >
-            <RefreshCcw />
-          </Button>
+            <Tooltip title="Search">
+              {isSearchOpen ? (
+                <Input
+                  autoFocus
+                  size="small"
+                  placeholder={`Search by ${
+                    searchType === "title" ? "title" : "focus keywords"
+                  }...`}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onPressEnter={handleSearch}
+                  onBlur={() => setSearchOpen(false)}
+                  className="w-48"
+                />
+              ) : (
+                <Button type="text" icon={<Search />} onClick={toggleSearch} />
+              )}
+            </Tooltip>
+          </Popover>
+
+          <Tooltip title="Refresh">
+            <Button type="button" className="p-0" onClick={handleRefresh}>
+              <RefreshCcw />
+            </Button>
+          </Tooltip>
+
+          <Popover
+            open={isMenuOpen}
+            onOpenChange={(visible) => setMenuOpen(visible)}
+            trigger="click"
+            placement="bottomRight"
+            overlayInnerStyle={{ padding: 0 }}
+            content={
+              <div className="min-w-[200px] rounded-lg shadow-lg border bg-white backdrop-blur-md p-2 space-y-1">
+                {menuOptions.map(({ label, icon, onClick }) => (
+                  <Tooltip title={label} placement="left" key={label}>
+                    <button
+                      onClick={onClick}
+                      className="w-full flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                    >
+                      <span className="text-lg">{icon}</span>
+                      <span>{label}</span>
+                    </button>
+                  </Tooltip>
+                ))}
+              </div>
+            }
+          >
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Tooltip title="Sort">
+                <Button
+                  type="button"
+                  icon={<ArrowDownUp />}
+                  onClick={toggleMenu}
+                  className="pt-1"
+                />
+              </Tooltip>
+            </motion.div>
+          </Popover>
+
+          <Popover
+            open={funnelMenuOpen}
+            onOpenChange={(visible) => setFunnelMenuOpen(visible)}
+            trigger="click"
+            placement="bottomRight"
+            overlayInnerStyle={{ padding: 0 }}
+            content={
+              <div className="min-w-[200px] rounded-lg shadow-lg border bg-white backdrop-blur-md p-2 space-y-1">
+                {funnelMenuOptions.map(({ label, icon, onClick }) => (
+                  <Tooltip title={label} placement="left" key={label}>
+                    <button
+                      onClick={onClick}
+                      className="w-full flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                    >
+                      <span className="text-lg">{icon}</span>
+                      <span>{label}</span>
+                    </button>
+                  </Tooltip>
+                ))}
+              </div>
+            }
+          >
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Tooltip title="Filter">
+                <Button
+                  type="button"
+                  icon={<Funnel />}
+                  onClick={toggleFunnelMenu}
+                  className="pt-1"
+                />
+              </Tooltip>
+            </motion.div>
+          </Popover>
+
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Button
-              type="button"
-              icon={<ArrowDownUp />}
-              onClick={toggleMenu}
-              className="pt-1"
-            />
+            <Tooltip title="Reset Filters">
+              <Button type="button" icon={<RotateCcw />} onClick={resetFilters} className="pt-1" />
+            </Tooltip>
           </motion.div>
         </div>
       </div>
-
-      <AnimatePresence>
-        {isMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            transition={{ duration: 0.2 }}
-            className="absolute top-[12rem] right-10 z-50 min-w-[200px] rounded-lg shadow-lg border bg-white backdrop-blur-md p-2 space-y-1"
-          >
-            {menuOptions.map(({ label, icon, onClick }) => (
-              <motion.div
-                key={label}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              >
-                <Tooltip title={label} placement="left">
-                  <button
-                    onClick={onClick}
-                    className="w-full flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
-                  >
-                    <span className="text-lg">{icon}</span>
-                    <span>{label}</span>
-                  </button>
-                </Tooltip>
-              </motion.div>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -459,7 +541,7 @@ const MyProjects = () => {
                       ${
                         (status === "failed"
                           ? "border-red-500"
-                          : status === "pending"
+                          : status === "pending" || status === "in-progress"
                           ? "border-yellow-500"
                           : "border-green-500") + " border-2"
                       }
@@ -490,7 +572,7 @@ const MyProjects = () => {
                           : `Blog generation is ${status}`
                       }
                       color={
-                        status === "complete" ? "green" : status === "failed" ? "red" : "yellow"
+                        status === "complete" ? "green" : status === "failed" ? "red" : "#eab308"
                       }
                     >
                       <div

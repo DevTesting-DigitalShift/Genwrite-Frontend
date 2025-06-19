@@ -5,26 +5,26 @@ import Loading from "@components/Loading"
 import { ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import { useDispatch } from "react-redux"
-import { load } from "@store/slices/authSlice"
+// import { load } from "@store/slices/authSlice"
 import { ConfirmPopupProvider } from "@/context/ConfirmPopupContext"
 
 const App = () => {
-  const dispatch = useDispatch()
+  // const dispatch = useDispatch()
 
-  const loadCurrentUser = async () => {
-    try {
-      const token = localStorage.getItem("token")
-      if (token) {
-        await load()(dispatch)
-      }
-    } catch (error) {
-      console.error("App:", error)
-    }
-  }
+  // const loadCurrentUser = async () => {
+  //   try {
+  //     const token = localStorage.getItem("token")
+  //     if (token) {
+  //       await load()(dispatch)
+  //     }
+  //   } catch (error) {
+  //     console.error("App:", error)
+  //   }
+  // }
 
-  useEffect(() => {
-    loadCurrentUser()
-  }, [])
+  // useEffect(() => {
+  //   loadCurrentUser()
+  // }, [])
 
   return (
     <Suspense fallback={<Loading />}>

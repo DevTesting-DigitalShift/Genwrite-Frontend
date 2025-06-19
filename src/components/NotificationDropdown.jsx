@@ -9,7 +9,7 @@ import {
 } from "@ant-design/icons"
 import axiosInstance from "@api/index"
 import { useDispatch } from "react-redux"
-import { load } from "@store/slices/authSlice"
+// import { load } from "@store/slices/authSlice"
 
 const { Text } = Typography
 
@@ -62,22 +62,22 @@ const NotificationDropdown = ({ notifications }) => {
   //   }
   // }
 
-  const loadUser = async () => {
-    await load()(dispatch)
-  }
+  // const loadUser = async () => {
+  //   await load()(dispatch)
+  // }
 
-  //[ ] send to layout and use debouncing gap of 60s
+  //[s ] send to layout and use debouncing gap of 60s
 
-  useEffect(() => {
-    // Initial fetch
-    // fetchNotifications()
+  // useEffect(() => {
+  //   // Initial fetch
+  //   // fetchNotifications()
 
-    // Set up interval to fetch notifications every 30 seconds
-    const intervalId = setInterval(loadUser, 30000) // 30000ms = 30s
+  //   // Set up interval to fetch notifications every 30 seconds
+  //   const intervalId = setInterval(loadUser, 30000) // 30000ms = 30s
 
-    // Clean up interval on component unmount
-    return () => clearInterval(intervalId)
-  }, [])
+  //   // Clean up interval on component unmount
+  //   return () => clearInterval(intervalId)
+  // }, [])
 
   const unreadCount = localNotifications.filter((n) => !n.read).length
 

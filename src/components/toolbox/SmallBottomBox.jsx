@@ -9,11 +9,13 @@ import { Menu } from "lucide-react"
 import { toast } from "react-toastify"
 import axiosInstance from "@api/index"
 import { useNavigate } from "react-router-dom"
+import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 
 const SmallBottomBox = (id) => {
   const [isMenuOpen, setMenuOpen] = useState(false)
   const [isModalOpen, setModalOpen] = useState(false)
   const [isChatOpen, setIsChatOpen] = useState(false)
+  const { handlePopup } = useConfirmPopup()
   const navigate = useNavigate()
 
   const toggleMenu = () => setMenuOpen((prev) => !prev)
@@ -34,7 +36,6 @@ const SmallBottomBox = (id) => {
         toast.error("Failed to regenerated blog.")
       }
     } catch (error) {
-      console.log("in catch", error)
       toast.error(error.response.data.message || "Failed to regenerated blog.")
       console.error("Error regenerating blog:", error)
     }
@@ -53,7 +54,11 @@ const SmallBottomBox = (id) => {
       label: "Regenerate",
       icon: <ReloadOutlined />,
       onClick: () => {
-        handleRetry(id)
+        handlePopup({
+          title: "Retry Blog Generation",
+          description: `Are you sure you want to retry generating this blog?\nIt will be of 10 credits`,
+          onConfirm: () => handleRetry(id),
+        })
       },
     },
     {

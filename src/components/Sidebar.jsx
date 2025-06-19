@@ -8,6 +8,9 @@ const Sidebar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
+// [ ] DONE fix the ui changes of sidebar
+// [ ] DONE button to close and hide
+
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth >= 1024) {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { useLocation } from "react-router-dom"
+import { useLocation, useParams } from "react-router-dom"
 import { useDispatch, useSelector } from "react-redux"
 import { motion, AnimatePresence } from "framer-motion"
 import axiosInstance from "../../api"
@@ -10,8 +10,8 @@ import TextEditorSidebar from "../generateBlog/TextEditorSidebar"
 import { Loader2 } from "lucide-react"
 
 const ToolBox = () => {
+  const { id } = useParams()
   const location = useLocation()
-  const [blogId, setBlogId] = useState(null)
   const dispatch = useDispatch()
   const blog = useSelector((state) => state.blog.selectedBlog)
   const [activeTab, setActiveTab] = useState("normal")
@@ -22,43 +22,45 @@ const ToolBox = () => {
   const blogFromLocation = location.state?.blog
 
   useEffect(() => {
-    const queryParams = new URLSearchParams(location.search)
-    const id = queryParams.get("blogId")
-    setBlogId(id)
-  }, [location.search])
+    if (id) {
+      dispatch(fetchBlogById(id))
+    }
+  }, [id, dispatch])
 
   useEffect(() => {
-    setKeywords([])
+    if (blog?.keywords) {
+      setKeywords(blog.keywords)
+    }
+  }, [blog?.keywords])
+
+  useEffect(() => {
     setIsLoading(true)
 
-    if (blogId && !blogFromLocation) {
-      dispatch(fetchBlogById(blogId))
-        .then((action) => {
-          if (action.payload) {
+    const handleLoadBlog = async () => {
+      try {
+        if (id && !blogFromLocation) {
+          const action = await dispatch(fetchBlogById(id))
+          if (action) {
             setEditorContent(action.payload.content || "")
-            setKeywords(action.payload.keywords || [])
           }
-          setIsLoading(false)
-        })
-        .catch((error) => {
-          console.error("Failed to fetch blog:", error)
+        } else if (blogFromLocation) {
+          setEditorContent(blogFromLocation.content || "")
+        } else {
           setEditorContent("")
-          setKeywords([])
-          toast.error("Failed to load blog content.")
-          setIsLoading(false)
-        })
-    } else if (blogFromLocation) {
-      setEditorContent(blogFromLocation.content || "")
-      setKeywords(blogFromLocation.keywords || [])
-      setIsLoading(false)
-    } else {
-      setEditorContent("")
-      setKeywords([])
-      setIsLoading(false)
+        }
+      } catch (error) {
+        console.error("Failed to fetch blog:", error)
+        setEditorContent("")
+        toast.error("Failed to load blog content.")
+      } finally {
+        setIsLoading(false)
+      }
     }
-  }, [blogId, dispatch, blogFromLocation])
 
-  const blogToDisplay = blogFromLocation || blog
+    handleLoadBlog()
+  }, [id, dispatch, blogFromLocation])
+
+  const blogToDisplay = blog
 
   const handleContentChange = (markdownContent) => {
     setEditorContent(markdownContent)
@@ -88,7 +90,7 @@ const ToolBox = () => {
     })
 
     const postData = {
-      blogId: blogToDisplay._id,
+      id: blogToDisplay._id,
     }
 
     const postingToastId = toast.info("Posting to WordPress...", { autoClose: false })
@@ -142,7 +144,6 @@ const ToolBox = () => {
           <div className="flex flex-col h-full">
             <div className="flex items-center justify-between p-4 border-b text-center space-y-4">
               <h1 className="text-2xl font-bold text-gray-800">Blog Editor</h1>
-
               <div className="flex space-x-2">
                 {["normal", "markdown", "html"].map((tab) => (
                   <motion.button
@@ -194,6 +195,7 @@ const ToolBox = () => {
                 keywords={keywords}
                 setKeywords={setKeywords}
                 onPost={handlePostToWordPress}
+                activeTab={activeTab}
               />
             </div>
           </div>
