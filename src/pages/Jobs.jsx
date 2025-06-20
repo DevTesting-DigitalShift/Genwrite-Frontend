@@ -17,7 +17,7 @@ import { Popconfirm } from "antd"
 import { Gem } from "lucide-react"
 
 // [ ] in topic user can upload csv or text- read that file split on basic of arr store that in arr show 3-4 text after ... or count
-// [ ] DONE validation in job picker
+// [ s] DONE validation in job picker
 // [ s] active jobs don't show if there is no job
 
 const initialJob = {
@@ -312,6 +312,56 @@ const Jobs = () => {
                   }`}
                 />
               </div>
+              {/* Topics, AI Model, etc. (keep existing) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Topics</label>
+                <div className="flex gap-2 mb-2">
+                  <input
+                    type="text"
+                    value={topicInput}
+                    onKeyDown={(e) => handleKeyPress(e, "topics")}
+                    onChange={(e) => setTopicInput(e.target.value)}
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                      errors.topic ? "border-red-500" : "border-gray-200"
+                    }`}
+                    placeholder="Add a topic..."
+                  />
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => handleAddKeyword("topics")}
+                    className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg"
+                  >
+                    Add
+                  </motion.button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {newJob.blogs.topics.map((topic, index) => (
+                    <motion.div
+                      key={index}
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="flex items-center bg-blue-50 px-3 py-1 rounded-full"
+                    >
+                      <span className="text-sm text-blue-600">{topic}</span>
+                      <button
+                        onClick={() =>
+                          setNewJob((prev) => ({
+                            ...prev,
+                            blogs: {
+                              ...prev.blogs,
+                              topics: prev.blogs.topics.filter((_, i) => i !== index),
+                            },
+                          }))
+                        }
+                        className="ml-2 text-blue-600 hover:text-blue-700"
+                      >
+                        ×
+                      </button>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
               {/* Tone (blogs) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -369,56 +419,6 @@ const Jobs = () => {
                   <option value="ai-generated">AI-Generated Images</option>
                   <option value="unsplash">Unsplash Images</option>
                 </select>
-              </div>
-              {/* Topics, AI Model, etc. (keep existing) */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Topics</label>
-                <div className="flex gap-2 mb-2">
-                  <input
-                    type="text"
-                    value={topicInput}
-                    onKeyDown={(e) => handleKeyPress(e, "topics")}
-                    onChange={(e) => setTopicInput(e.target.value)}
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                      errors.topic ? "border-red-500" : "border-gray-200"
-                    }`}
-                    placeholder="Add a topic..."
-                  />
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => handleAddKeyword("topics")}
-                    className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg"
-                  >
-                    Add
-                  </motion.button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {newJob.blogs.topics.map((topic, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="flex items-center bg-blue-50 px-3 py-1 rounded-full"
-                    >
-                      <span className="text-sm text-blue-600">{topic}</span>
-                      <button
-                        onClick={() =>
-                          setNewJob((prev) => ({
-                            ...prev,
-                            blogs: {
-                              ...prev.blogs,
-                              topics: prev.blogs.topics.filter((_, i) => i !== index),
-                            },
-                          }))
-                        }
-                        className="ml-2 text-blue-600 hover:text-blue-700"
-                      >
-                        ×
-                      </button>
-                    </motion.div>
-                  ))}
-                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">AI Model</label>

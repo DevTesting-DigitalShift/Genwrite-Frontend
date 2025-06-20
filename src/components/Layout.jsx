@@ -33,7 +33,7 @@ const LayoutWithSidebarAndHeader = () => {
     fetchCurrentUser()
   }, [dispatch, navigate])
 
-  console.log({ user })
+  // console.log({ user })
   
   useEffect(() => {
     if (user?.name || user?.credits) {
@@ -44,11 +44,11 @@ const LayoutWithSidebarAndHeader = () => {
   const Menus = [
     { title: "Dashboard", src: "dashicon.svg", path: "/dash" },
     { title: "My Projects", src: "myprojecticon.svg", path: "/project" },
+    { title: "Content Agent", src: "jobsicon.svg", path: "/jobs" },
     { title: "Toolbox", src: "toolboxicon.png", path: "/toolbox" },
     { title: "Integrations", src: "pluginicon.svg", path: "/integrations" },
     { title: "Brand Voice", src: "brandvoiceicon.svg", path: "/brandvoice" },
     { title: "TrashCan", src: "trashcan.png", path: "/trashcan" },
-    { title: "Jobs", src: "jobsicon.svg", path: "/jobs" },
   ]
 
   const path = location.pathname

@@ -12,8 +12,8 @@ import { getEstimatedCost } from "@utils/getEstimatedCost"
 import axiosInstance from "@api/index"
 
 // [ ] check the height of all models
-// [ ] DONE in bulk jobs add file uploder same as jobs
-// [ ] DONE ai model default gemini
+// [s ] DONE in bulk jobs add file uploder same as jobs
+// [s ] DONE ai model default gemini
 
 const MultiStepModal = ({ closefnc }) => {
   const dispatch = useDispatch()

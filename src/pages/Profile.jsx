@@ -11,7 +11,8 @@ import {
 import axiosInstance from "@api/index"
 import { toast, ToastContainer } from "react-toastify"
 import { useSelector, useDispatch } from "react-redux"
-import { load, setUser } from "@store/slices/authSlice"
+// import { load } from "@store/slices/authSlice"
+import { loadUser } from "@api/authApi"
 
 const DEMO_PROFILE = {
   profilePicture: "https://source.unsplash.com/random/800x800/?portrait",
@@ -59,7 +60,7 @@ const Profile = () => {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        await load()(dispatch)
+        await loadUser()(dispatch)
         setProfileData((prev) => ({
           profilePicture: user.avatar || prev.profilePicture,
           personalDetails: {
@@ -105,7 +106,7 @@ const Profile = () => {
       try {
         const res = await axiosInstance.put("/user/profile", data)
         if (res?.data) {
-          await load()(dispatch)
+          await loadUser()(dispatch)
         }
         toast.success("User updated successfully")
       } catch (err) {
