@@ -152,3 +152,28 @@ input[type="number"] {
   }
 }
 
+.proofreading-mark {
+  position: relative;
+  background: #fff7dd;
+  border-bottom: 2px dotted orange;
+  cursor: pointer;
+}
+
+.proofreading-mark::after {
+  content: " → " attr(data-suggestion);
+  color: #888;
+  font-size: 0.95em;
+  font-style: italic;
+  margin-left: 4px;
+}
+
+.proof-ui-bubble {
+  position: absolute;
+  background: white;
+  border: 1px solid #ddd;
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 14px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+}
