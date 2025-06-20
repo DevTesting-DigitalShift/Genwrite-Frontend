@@ -13,7 +13,7 @@ import remarkGfm from "remark-gfm"
 import rehypeRaw from "rehype-raw"
 import Prism from "prismjs"
 import "prismjs/themes/prism-tomorrow.css"
-import ChatBox from "./ChatBox"
+
 import {
   Eye,
   EyeOff,
@@ -42,6 +42,7 @@ import SmallBottomBox from "@components/toolbox/SmallBottomBox"
 import { fetchBlogById } from "@store/slices/blogSlice"
 import { toast } from "react-toastify"
 import { ProofreadingDecoration } from "@/extensions/ProofreadingDecoration"
+import { useProofreadingUI } from "@components/generateBlog/useProofreadingUI"
 
 const FONT_OPTIONS = [
   { label: "Inter", value: "font-sans" },
@@ -79,7 +80,7 @@ const TextEditor = ({
   const userPlan = useSelector((state) => state.auth.user?.plan)
   const navigate = useNavigate()
   const dispatch = useDispatch()
-
+  
   const AI_MODELS = [
     { id: "gemini", name: "Gemini", icon: "" },
     { id: "openai", name: "OpenAI", icon: "" },
@@ -91,8 +92,8 @@ const TextEditor = ({
   useEffect(() => {
     const style = document.createElement("style")
     style.innerHTML = `
-        .font-comic { font-family: "Comic Sans MS", cursive; }
-        .prose { max-width: none !important; }
+    .font-comic { font-family: "Comic Sans MS", cursive; }
+    .prose { max-width: none !important; }
         .suggestion-highlight { 
           position: relative; 
           text-decoration: none; 
@@ -172,7 +173,8 @@ const TextEditor = ({
     },
     [activeTab, selectedFont]
   )
-
+  
+  const { activeSpan, bubbleRef, applyChange, rejectChange } = useProofreadingUI(normalEditor)
   useEffect(() => {
     if (normalEditor) {
       const ext = normalEditor.extensionManager.extensions.find(
@@ -714,7 +716,10 @@ const TextEditor = ({
                                 >
                                   {match[0]}
                                   {hoveredSuggestion === suggestion && (
-                                    <div className="suggestion-tooltip" style={{ top: "100%", left: 0 }}>
+                                    <div
+                                      className="suggestion-tooltip"
+                                      style={{ top: "100%", left: 0 }}
+                                    >
                                       <p className="text-sm mb-2">
                                         <strong>Suggested:</strong> {suggestion.change}
                                       </p>
@@ -830,6 +835,25 @@ const TextEditor = ({
               </BubbleMenu>
             )}
             <EditorContent editor={normalEditor} />
+            {activeSpan && (
+              <div
+                className="proof-ui-bubble"
+                ref={bubbleRef}
+                style={{
+                  position: "absolute",
+                  top: activeSpan.getBoundingClientRect().bottom + window.scrollY + 5,
+                  left: activeSpan.getBoundingClientRect().left + window.scrollX,
+                }}
+              >
+                <div style={{ marginBottom: 4 }}>
+                  Replace with: <strong>{activeSpan.dataset.suggestion}</strong>
+                </div>
+                <button onClick={applyChange}>✅ Accept</button>
+                <button onClick={rejectChange} style={{ marginLeft: 6 }}>
+                  ❌ Reject
+                </button>
+              </div>
+            )}
           </div>
         )
 

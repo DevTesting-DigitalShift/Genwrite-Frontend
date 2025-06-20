@@ -1,15 +1,15 @@
-import { Decoration, DecorationSet } from '@tiptap/pm/view'
-import { Plugin, PluginKey } from '@tiptap/pm/state'
-import { Extension } from '@tiptap/core'
+import { Extension } from "@tiptap/core"
+import { Plugin, PluginKey } from "@tiptap/pm/state"
+import { Decoration, DecorationSet } from "@tiptap/pm/view"
 
-export const proofreadingPluginKey = new PluginKey('proofreading')
+export const proofreadingPluginKey = new PluginKey("proofreading")
 
 export const ProofreadingDecoration = Extension.create({
-  name: 'proofreadingDecoration',
+  name: "proofreadingDecoration",
 
   addOptions() {
     return {
-      suggestions: [],
+      suggestions: [], // should be [{ original: '', change: '' }]
     }
   },
 
@@ -20,28 +20,40 @@ export const ProofreadingDecoration = Extension.create({
         props: {
           decorations: (state) => {
             const decorations = []
-            const docText = state.doc.textContent
+            const { doc } = state
+            const suggestions = this.options.suggestions
 
-            this.options.suggestions.forEach((suggestion) => {
-              const original = suggestion.original
-              const startIndex = docText.indexOf(original)
+            doc.descendants((node, pos) => {
+              if (!node.isText) return
 
-              if (startIndex !== -1) {
-                const from = startIndex
-                const to = startIndex + original.length
+              const text = node.text || ""
 
-                decorations.push(
-                  Decoration.inline(from, to, {
-                    class: 'proofreading-underline',
-                    nodeName: 'span',
-                    'data-original': original,
-                    'data-suggestion': suggestion.change,
-                  })
-                )
-              }
+              suggestions.forEach(({ original, change }) => {
+                let start = 0
+                while (start < text.length) {
+                  const index = text.indexOf(original, start)
+                  if (index === -1) break
+
+                  const from = pos + index
+                  const to = from + original.length
+
+                  decorations.push(
+                    Decoration.inline(from, to, {
+                      class: "proofreading-mark",
+                      nodeName: "span",
+                      "data-original": original,
+                      "data-suggestion": change,
+                      "data-from": from,
+                      "data-to": to,
+                    })
+                  )
+
+                  start = index + original.length
+                }
+              })
             })
 
-            return DecorationSet.create(state.doc, decorations)
+            return DecorationSet.create(doc, decorations)
           },
         },
       }),
