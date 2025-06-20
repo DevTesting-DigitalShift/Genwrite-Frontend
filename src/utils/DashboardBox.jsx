@@ -31,7 +31,7 @@ export const DashboardBox = ({ imageUrl, title, content, id, functions, icon }) 
           functions.showModal && functions.showModal()
         } else if (id === "B") {
           // Restrict for free/basic plans
-          if (["free", "basic"].includes(userPlan.toLowerCase())) {
+          if (["free", "basic"].includes(userPlan?.toLowerCase())) {
             showPopup()
             return
           }
@@ -80,7 +80,7 @@ export const QuickBox = ({ imageUrl, title, content, id, functions }) => {
   }
   const handleClick = () => {
     if (id === 4 && functions?.showCompetitiveAnalysis) {
-      if (["free", "basic"].includes(userPlan.toLowerCase())) {
+      if (["free", "basic"].includes(userPlan?.toLowerCase())) {
         showPopup()
         return
       }

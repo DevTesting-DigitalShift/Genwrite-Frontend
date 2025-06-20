@@ -1,4 +1,3 @@
-// TextEditorSidebar.jsx
 import React, { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { X, Plus, Gem } from "lucide-react"
@@ -16,7 +15,7 @@ const TextEditorSidebar = ({
   setKeywords,
   onPost,
   activeTab,
-  onReplaceSuggestion,
+  handleReplace,
   setProofreadingResults,
   proofreadingResults,
 }) => {
@@ -138,7 +137,7 @@ const TextEditorSidebar = ({
     try {
       const result = await axiosInstance.post("/blogs/proofread", {
         content: blog.content,
-        message: "working fine"
+        message: "working fine",
       })
 
       if (result.data && Array.isArray(result.data.suggestions)) {
@@ -153,6 +152,19 @@ const TextEditorSidebar = ({
     } finally {
       setIsAnalyzingProofreading(false)
     }
+  }
+
+  const handleApplyAllSuggestions = () => {
+    if (proofreadingResults.length === 0) {
+      toast.info("No suggestions available to apply.")
+      return
+    }
+
+    proofreadingResults.forEach((suggestion) => {
+      handleReplace(suggestion.original, suggestion.change)
+    })
+    setProofreadingResults([]) // Clear all suggestions after applying
+    toast.success("All proofreading suggestions applied successfully!")
   }
 
   const handleAnalyzing = () => {
@@ -343,6 +355,14 @@ const TextEditorSidebar = ({
           ) : (
             <div className="mt-4">
               <h4 className="font-semibold text-gray-800 mb-2">Proofreading Results:</h4>
+              <Button
+                type="link"
+                onClick={handleApplyAllSuggestions}
+                className="mt-1"
+                disabled={proofreadingResults.length === 0}
+              >
+                Apply All Suggestions
+              </Button>
               {proofreadingResults && proofreadingResults.length > 0 ? (
                 <div className="bg-white rounded-lg shadow-md p-4">
                   <ul className="list-disc ml-5">
@@ -356,9 +376,7 @@ const TextEditorSidebar = ({
                         </p>
                         <Button
                           type="link"
-                          onClick={() =>
-                            onReplaceSuggestion(suggestion.original, suggestion.change)
-                          }
+                          onClick={() => handleReplace(suggestion.original, suggestion.change)}
                           className="mt-1"
                         >
                           Apply Suggestion

@@ -1,10 +1,12 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { loadUser, login, signup, Userlogout } from "@api/authApi";
+import { login, signup, Userlogout, loadUser } from "@api/authApi";
 import { getProfile } from "@api/userApi";
 
 const initialState = {
   user: null,
-  token: null,
+  token: localStorage.getItem("token") || null,
+  loading: false,
+  error: null,
 };
 
 const authSlice = createSlice({
@@ -12,98 +14,112 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     setUser: (state, action) => {
-      if (action.payload.user) {
-        state.user = action.payload.user;
-        state.token = action.payload.token;
-      } else {
-        state.user = action.payload;
-        state.token = localStorage.getItem("token");
-      }
+      state.user = action.payload.user;
+      state.token = action.payload.token;
     },
     logout: (state) => {
       state.user = null;
       state.token = null;
+      localStorage.removeItem("token");
+    },
+    setLoading: (state, action) => {
+      state.loading = action.payload;
+    },
+    setError: (state, action) => {
+      state.error = action.payload;
     },
   },
 });
 
-export const { setUser, logout } = authSlice.actions;
+export const { setUser, logout, setLoading, setError } = authSlice.actions;
+export default authSlice.reducer;
 
-export const loginUser =
-  ({ email, password }) =>
-  async (dispatch) => {
-    try {
-      const data = await login(email, password);
-      if (data.token) {
-        if (data.token) {
-          localStorage.setItem("token", data.token);
-        }
-        await dispatch(setUser({ user: data.user, token: data.token }));
-      }
-      return { success: true };
-    } catch (error) {
-      console.error(error);
-      return { success: false };
-    }
-  };
-
-export const signupUser =
-  ({ email, password, name }) =>
-  async (dispatch) => {
-    try {
-      const data = await signup(email, password, name);
-      if (data.token) {
-        localStorage.setItem("token", data.token);
-        await dispatch(setUser({ user: data.user, token: data.token }));
-      }
-      return { success: true };
-    } catch (error) {
-      console.error(error);
-      return { success: false };
-    }
-  };
-
-export const logoutUser = (navigate) => async (dispatch) => {
+// ───────────────────────────────────────────────────────────────
+// 🔐 Thunk: Login
+export const loginUser = ({ email, password }) => async (dispatch) => {
+  dispatch(setLoading(true));
   try {
-    const data = await Userlogout();
-    if (data.success) {
-      localStorage.removeItem("token");
-      dispatch(logout());
-      navigate("/login");
+    const data = await login(email, password);
+    if (data.token) {
+      localStorage.setItem("token", data.token);
+      dispatch(setUser({ user: data.user, token: data.token }));
     }
     return { success: true };
   } catch (error) {
-    console.error(error);
+    dispatch(setError("Login failed"));
+    console.error("Login error:", error);
+    return { success: false };
+  } finally {
+    dispatch(setLoading(false));
   }
 };
 
-// [s ] check the cause for showing nan credits & no user data on login via google at first but available after refresh or first polling
-export const CreditLogsTable = () => async (dispatch) => {
+// 📝 Thunk: Signup
+export const signupUser = ({ email, password, name }) => async (dispatch) => {
+  dispatch(setLoading(true));
   try {
-    const data = await loadUser();
-    if (data.success) {
-      const token = localStorage.getItem("token");
-      if (token) {
-        dispatch(setUser({ user: data.user, token }));
-      }
+    const data = await signup(email, password, name);
+    if (data.token) {
+      localStorage.setItem("token", data.token);
+      dispatch(setUser({ user: data.user, token: data.token }));
+    }
+    return { success: true };
+  } catch (error) {
+    dispatch(setError("Signup failed"));
+    console.error("Signup error:", error);
+    return { success: false };
+  } finally {
+    dispatch(setLoading(false));
+  }
+};
+
+// 🚪 Thunk: Logout
+export const logoutUser = (navigate) => async (dispatch) => {
+  try {
+    await Userlogout();
+  } catch (error) {
+    console.warn("Logout error (ignored)", error);
+  }
+
+  dispatch(logout());
+  navigate("/login");
+};
+
+// 🧠 Thunk: Load User (fix for Google login)
+export const loadAuthenticatedUser = () => async (dispatch) => {
+  const token = localStorage.getItem("token");
+  if (!token) return;
+
+  dispatch(setLoading(true));
+  try {
+    const data = await loadUser(); // or getProfile() if needed
+    if (data.success && data.user) {
+      dispatch(setUser({ user: data.user, token }));
     }
   } catch (error) {
-    console.error(error);
+    dispatch(setError("Failed to load user"));
+    console.error("Auth reload error:", error);
+  } finally {
+    dispatch(setLoading(false));
   }
 };
 
-// [ s] call the load api once user is signed in 
-
+// 🧠 Thunk: Get Profile (optional if loadUser doesn't exist)
 export const getUser = () => async (dispatch) => {
+  const token = localStorage.getItem("token");
+  if (!token) return;
+
   try {
-    const token = localStorage.getItem("token");
-    if (token) {
-      const { user } = await getProfile();
-      dispatch(setUser({ user, token }));
-    }
+    const { user } = await getProfile();
+    dispatch(setUser({ user, token }));
   } catch (error) {
-    console.error("Get user error:", error);
+    console.error("Get profile error:", error);
+    dispatch(setError("Failed to fetch profile"));
   }
 };
 
-export default authSlice.reducer;
+// 📦 Optional: Selectors
+export const selectAuth = (state) => state.auth;
+export const selectUser = (state) => state.auth.user;
+export const selectToken = (state) => state.auth.token;
+export const selectAuthLoading = (state) => state.auth.loading;

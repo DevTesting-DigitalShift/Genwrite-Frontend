@@ -1,20 +1,19 @@
-// TextEditor.jsx
-import { useState, useEffect, useRef } from "react";
-import { useEditor, EditorContent, BubbleMenu } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import Link from "@tiptap/extension-link";
-import Image from "@tiptap/extension-image";
-import Underline from "@tiptap/extension-underline";
-import TextAlign from "@tiptap/extension-text-align";
-import { motion } from "framer-motion";
-import axiosInstance from "../../api";
-import AnimatedContent from "./AnimatedContent";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import rehypeRaw from "rehype-raw";
-import Prism from "prismjs";
-import "prismjs/themes/prism-tomorrow.css";
-import ChatBox from "./ChatBox";
+import { useState, useEffect, useRef } from "react"
+import { useEditor, EditorContent, BubbleMenu } from "@tiptap/react"
+import StarterKit from "@tiptap/starter-kit"
+import Link from "@tiptap/extension-link"
+import Image from "@tiptap/extension-image"
+import Underline from "@tiptap/extension-underline"
+import TextAlign from "@tiptap/extension-text-align"
+import { motion } from "framer-motion"
+import axiosInstance from "../../api"
+import AnimatedContent from "./AnimatedContent"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
+import rehypeRaw from "rehype-raw"
+import Prism from "prismjs"
+import "prismjs/themes/prism-tomorrow.css"
+import ChatBox from "./ChatBox"
 import {
   Eye,
   EyeOff,
@@ -33,100 +32,110 @@ import {
   Image as ImageIcon,
   Undo2,
   Redo2,
-  Type,
-  MessageSquare,
-} from "lucide-react";
-import { useDispatch, useSelector } from "react-redux";
-import { useConfirmPopup } from "@/context/ConfirmPopupContext";
-import { useNavigate, useParams } from "react-router-dom";
-import { marked } from "marked";
-import TurndownService from "turndown";
-import SmallBottomBox from "@components/toolbox/SmallBottomBox";
-import { fetchBlogById } from "@store/slices/blogSlice";
-import { toast } from "react-toastify";
+} from "lucide-react"
+import { useDispatch, useSelector } from "react-redux"
+import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import { useNavigate, useParams } from "react-router-dom"
+import { marked } from "marked"
+import TurndownService from "turndown"
+import SmallBottomBox from "@components/toolbox/SmallBottomBox"
+import { fetchBlogById } from "@store/slices/blogSlice"
+import { toast } from "react-toastify"
+import { ProofreadingDecoration } from "@/extensions/ProofreadingDecoration"
 
 const FONT_OPTIONS = [
   { label: "Inter", value: "font-sans" },
   { label: "Serif", value: "font-serif" },
   { label: "Mono", value: "font-mono" },
   { label: "Comic Sans", value: "font-comic" },
-];
+]
 
-const TextEditor = ({ blog, activeTab, keywords, setKeywords, proofreadingResults, onReplaceSuggestion }) => {
-  const [content, setContent] = useState("");
-  const [showPreview, setShowPreview] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isAnimating, setIsAnimating] = useState(false);
-  const [hasAnimated, setHasAnimated] = useState(false);
-  const [editorReady, setEditorReady] = useState(false);
-  const [selectedFont, setSelectedFont] = useState(FONT_OPTIONS[0].value);
-  const [selectionPosition, setSelectionPosition] = useState(null);
-  const [showModelDropdown, setShowModelDropdown] = useState(false);
-  const [selectedModel, setSelectedModel] = useState("gemini");
-  const [hoveredSuggestion, setHoveredSuggestion] = useState(null);
-  const htmlEditorRef = useRef(null);
-  const mdEditorRef = useRef(null);
-  const hasInitializedRef = useRef(false);
-  const dropdownRef = useRef(null);
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const { handlePopup } = useConfirmPopup();
-  const userPlan = useSelector((state) => state.auth.user?.plan);
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
+const TextEditor = ({
+  blog,
+  activeTab,
+  keywords,
+  setKeywords,
+  proofreadingResults,
+  handleReplace,
+  content,
+  setContent,
+}) => {
+  const [showPreview, setShowPreview] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const [hasAnimated, setHasAnimated] = useState(false)
+  const [editorReady, setEditorReady] = useState(false)
+  const [selectedFont, setSelectedFont] = useState(FONT_OPTIONS[0].value)
+  const [selectionPosition, setSelectionPosition] = useState(null)
+  const [showModelDropdown, setShowModelDropdown] = useState(false)
+  const [selectedModel, setSelectedModel] = useState("gemini")
+  const [hoveredSuggestion, setHoveredSuggestion] = useState(null)
+  const htmlEditorRef = useRef(null)
+  const mdEditorRef = useRef(null)
+  const hasInitializedRef = useRef(false)
+  const dropdownRef = useRef(null)
+  const [isChatOpen, setIsChatOpen] = useState(false)
+  const { handlePopup } = useConfirmPopup()
+  const userPlan = useSelector((state) => state.auth.user?.plan)
+  const navigate = useNavigate()
+  const dispatch = useDispatch()
 
   const AI_MODELS = [
     { id: "gemini", name: "Gemini", icon: "" },
     { id: "openai", name: "OpenAI", icon: "" },
-  ];
+  ]
+
+  // Ensure content is a string
+  const safeContent = content ?? ""
 
   useEffect(() => {
-    const style = document.createElement("style");
+    const style = document.createElement("style")
     style.innerHTML = `
-      .font-comic { font-family: "Comic Sans MS", cursive; }
-      .prose { max-width: none !important; }
-      .suggestion-highlight { 
-        position: relative; 
-        text-decoration: none; 
-        background-image: linear-gradient(to right, red, red);
-        background-position: bottom;
-        background-size: 100% 2px;
-        background-repeat: repeat-x;
-        display: inline-block;
-      }
-      .suggestion-highlight:hover::after {
-        content: '';
-        position: absolute;
-        left: 0;
-        right: 0;
-        bottom: -2px;
-        height: 2px;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 2' preserveAspectRatio='none'%3E%3Cpolyline points='0,0 5,2 10,0' style='fill:none;stroke:red;stroke-width:1'/%3E%3C/svg%3E");
-        background-repeat: repeat-x;
-      }
-      .suggestion-tooltip {
-        position: absolute;
-        background: #fff;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        padding: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        z-index: 1000;
-        max-width: 300px;
-      }
-    `;
-    document.head.appendChild(style);
-    return () => document.head.removeChild(style);
-  }, []);
+        .font-comic { font-family: "Comic Sans MS", cursive; }
+        .prose { max-width: none !important; }
+        .suggestion-highlight { 
+          position: relative; 
+          text-decoration: none; 
+          background-image: linear-gradient(to right, red, red);
+          background-position: bottom;
+          background-size: 100% 2px;
+          background-repeat: repeat-x;
+          display: inline;
+        }
+        .suggestion-highlight:hover::after {
+          content: '';
+          position: absolute;
+          left: 0;
+          right: 0;
+          bottom: -2px;
+          height: 2px;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 2' preserveAspectRatio='none'%3E%3Cpolyline points='0,0 5,2 10,0' style='fill:none;stroke:red;stroke-width:1'/%3E%3C/svg%3E");
+          background-repeat: repeat-x;
+        }
+        .suggestion-tooltip {
+          position: absolute;
+          background: #fff;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+          padding: 8px;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          z-index: 1000;
+          max-width: 300px;
+        }
+      `
+    document.head.appendChild(style)
+    return () => document.head.removeChild(style)
+  }, [])
 
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setShowModelDropdown(false);
+        setShowModelDropdown(false)
       }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
 
   const normalEditor = useEditor(
     {
@@ -145,9 +154,16 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords, proofreadingResult
         }),
         Underline,
         TextAlign.configure({ types: ["heading", "paragraph"] }),
+        ProofreadingDecoration.configure({
+          suggestions: proofreadingResults,
+        }),
       ],
-      content: content,
-      onUpdate: ({ editor }) => setContent(editor.getHTML()),
+      content: safeContent ? marked.parse(safeContent) : "<p></p>",
+      onUpdate: ({ editor }) => {
+        const turndownService = new TurndownService()
+        const markdown = turndownService.turndown(editor.getHTML())
+        setContent(markdown)
+      },
       editorProps: {
         attributes: {
           class: `prose max-w-none focus:outline-none p-4 min-h-[400px] opacity-100 ${selectedFont} blog-content`,
@@ -155,42 +171,54 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords, proofreadingResult
       },
     },
     [activeTab, selectedFont]
-  );
+  )
 
   useEffect(() => {
     if (normalEditor) {
-      setEditorReady(true);
-      return () => {
-        if (!normalEditor.isDestroyed) {
-          normalEditor.destroy();
-        }
-      };
+      const ext = normalEditor.extensionManager.extensions.find(
+        (e) => e.name === "proofreadingDecoration"
+      )
+      if (ext) {
+        ext.options.suggestions = proofreadingResults
+        normalEditor.view.dispatch(normalEditor.view.state.tr) // Re-render
+      }
     }
-  }, [normalEditor]);
+  }, [proofreadingResults, normalEditor])
 
   useEffect(() => {
-    const initialContent = blog?.content || "";
-    setContent(initialContent);
+    if (normalEditor) {
+      setEditorReady(true)
+      return () => {
+        if (!normalEditor.isDestroyed) {
+          normalEditor.destroy()
+        }
+      }
+    }
+  }, [normalEditor])
 
-    if (normalEditor && !normalEditor.isDestroyed) {
-      normalEditor.commands.setContent(marked.parse(initialContent));
+  useEffect(() => {
+    const initialContent = blog?.content ?? ""
+    setContent(initialContent)
+
+    if (normalEditor && !normalEditor.isDestroyed && activeTab === "normal") {
+      normalEditor.commands.setContent(initialContent ? marked.parse(initialContent) : "<p></p>")
     }
 
-    setShowPreview(false);
+    setShowPreview(false)
 
     if (initialContent && !hasAnimated && !hasInitializedRef.current) {
-      setIsAnimating(true);
-      hasInitializedRef.current = true;
+      setIsAnimating(true)
+      hasInitializedRef.current = true
     } else {
-      setIsAnimating(false);
+      setIsAnimating(false)
     }
-  }, [blog, normalEditor, activeTab]);
+  }, [blog, normalEditor, activeTab, setContent])
 
   useEffect(() => {
     if (activeTab === "html" && !showPreview) {
-      Prism.highlightAll();
+      Prism.highlightAll()
     }
-  }, [content, activeTab, showPreview]);
+  }, [safeContent, activeTab, showPreview])
 
   const showUpgradePopup = () => {
     handlePopup({
@@ -205,86 +233,91 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords, proofreadingResult
       confirmText: "Buy Now",
       cancelText: "Cancel",
       onConfirm: () => navigate("/upgrade"),
-    });
-  };
+    })
+  }
 
   const safeEditorAction = (action) => {
     if (userPlan === "free" || userPlan === "basic") {
-      showUpgradePopup();
-      return;
+      showUpgradePopup()
+      return
     }
-    action();
-  };
+    action()
+  }
 
   const handleSave = async () => {
     if (userPlan === "free" || userPlan === "basic") {
-      showUpgradePopup();
-      return;
+      showUpgradePopup()
+      return
     }
 
-    setIsSaving(true);
+    setIsSaving(true)
 
     try {
       const response = await axiosInstance.put(`/blogs/update/${blog._id}`, {
         title: blog?.title,
-        content,
+        content: safeContent,
         published: blog?.published,
         focusKeywords: blog?.focusKeywords,
         keywords,
-      });
+      })
 
       if (response.data?.content) {
-        const updated = await dispatch(fetchBlogById(blog._id));
-        const payload = updated?.payload;
+        const updated = await dispatch(fetchBlogById(blog._id))
+        const payload = updated?.payload
         if (payload) {
-          setContent(payload.content || "");
-          setKeywords(payload.keywords || []);
+          setContent(payload.content ?? "")
+          setKeywords(payload.keywords ?? [])
         }
-        toast.success("Blog updated successfully");
+        toast.success("Blog updated successfully")
       }
     } catch (error) {
-      console.error("Error updating the blog:", error);
-      toast.error("Failed to save blog.");
+      console.error("Error updating the blog:", error)
+      toast.error("Failed to save blog.")
     } finally {
-      setIsSaving(false);
+      setIsSaving(false)
     }
-  };
+  }
 
   const handleAnimationComplete = () => {
-    setIsAnimating(false);
-    setHasAnimated(true);
-    if (blog?.content) setContent(blog.content);
-  };
+    setIsAnimating(false)
+    setHasAnimated(true)
+    if (blog?.content) setContent(blog.content)
+  }
+
+  const insertText = (before, after, editorRef) => {
+    const textarea = editorRef.current
+    if (!textarea) return
+
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+    const selectedText = textarea.value.substring(start, end)
+    const newText = `${before}${selectedText}${after}`
+
+    const newValue = textarea.value.substring(0, start) + newText + textarea.value.substring(end)
+    setContent(newValue)
+
+    setTimeout(() => {
+      textarea.selectionStart = textarea.selectionEnd = start + before.length + selectedText.length
+      textarea.focus()
+    }, 0)
+  }
 
   const handleTextSelection = (e) => {
-    const textarea = e.target;
+    const textarea = e.target
     if (textarea.selectionStart !== textarea.selectionEnd) {
-      const rect = textarea.getBoundingClientRect();
-      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const rect = textarea.getBoundingClientRect()
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop
       setSelectionPosition({
         top: rect.top + scrollTop - 40,
         left: rect.left + 10,
-      });
+      })
     } else {
-      setSelectionPosition(null);
+      setSelectionPosition(null)
     }
-  };
-
-  const handleReplace = (original, change) => {
-    const lines = content.split("\n");
-    const updatedLines = lines.map((line) =>
-      line.trim() === original.trim() ? change : line
-    );
-    const newContent = updatedLines.join("\n");
-    setContent(newContent);
-    if (normalEditor && !normalEditor.isDestroyed) {
-      normalEditor.commands.setContent(marked.parse(newContent));
-    }
-    onReplaceSuggestion(original, change); // Notify sidebar to update suggestions
-  };
+  }
 
   const FloatingToolbar = ({ editorRef, mode }) => {
-    if (!selectionPosition || !editorRef.current) return null;
+    if (!selectionPosition || !editorRef.current) return null
 
     const formatActions = {
       markdown: [
@@ -324,7 +357,7 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords, proofreadingResult
             safeEditorAction(() => insertText('<img src="', '" alt="description" />', editorRef)),
         },
       ],
-    };
+    }
 
     return (
       <motion.div
@@ -339,18 +372,18 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords, proofreadingResult
           </button>
         ))}
       </motion.div>
-    );
-  };
+    )
+  }
 
   const FontDropdown = () => (
     <select
       value={selectedFont}
       onChange={(e) => {
         if (userPlan === "free" || userPlan === "basic") {
-          showUpgradePopup();
-          return;
+          showUpgradePopup()
+          return
         }
-        setSelectedFont(e.target.value);
+        setSelectedFont(e.target.value)
       }}
       className="p-2 rounded border bg-white hover:bg-gray-100"
     >
@@ -360,7 +393,7 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords, proofreadingResult
         </option>
       ))}
     </select>
-  );
+  )
 
   const ModelDropdown = () => (
     <div className="relative" ref={dropdownRef}>
@@ -368,7 +401,7 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords, proofreadingResult
         GenWrite
       </button>
     </div>
-  );
+  )
 
   const ModelDropdown1 = () => (
     <div className="relative" ref={dropdownRef}>
@@ -388,8 +421,8 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords, proofreadingResult
             <button
               key={model.id}
               onClick={() => {
-                setSelectedModel(model.id);
-                setShowModelDropdown(false);
+                setSelectedModel(model.id)
+                setShowModelDropdown(false)
               }}
               className={`w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 ${
                 selectedModel === model.id ? "bg-gray-50" : ""
@@ -402,7 +435,7 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords, proofreadingResult
         </motion.div>
       )}
     </div>
-  );
+  )
 
   const renderToolbar = () => (
     <div className="border-b p-2 flex flex-wrap gap-2 bg-gray-50 items-center">
@@ -415,11 +448,11 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords, proofreadingResult
           onClick={() =>
             safeEditorAction(() => {
               if (activeTab === "normal") {
-                normalEditor.chain().focus().toggleHeading({ level }).run();
+                normalEditor.chain().focus().toggleHeading({ level }).run()
               } else if (activeTab === "html") {
-                insertText(`<h${level}>`, `</h${level}>`, htmlEditorRef);
+                insertText(`<h${level}>`, `</h${level}>`, htmlEditorRef)
               } else {
-                insertText(`${"#".repeat(level)} `, "", mdEditorRef);
+                insertText(`${"#".repeat(level)} `, "", mdEditorRef)
               }
             })
           }
@@ -438,11 +471,11 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords, proofreadingResult
         onClick={() =>
           safeEditorAction(() => {
             if (activeTab === "normal") {
-              normalEditor.chain().focus().toggleBold().run();
+              normalEditor.chain().focus().toggleBold().run()
             } else if (activeTab === "html") {
-              insertText("<strong>", "</strong>", htmlEditorRef);
+              insertText("<strong>", "</strong>", htmlEditorRef)
             } else {
-              insertText("**", "**", mdEditorRef);
+              insertText("**", "**", mdEditorRef)
             }
           })
         }
@@ -456,11 +489,11 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords, proofreadingResult
         onClick={() =>
           safeEditorAction(() => {
             if (activeTab === "normal") {
-              normalEditor.chain().focus().toggleItalic().run();
+              normalEditor.chain().focus().toggleItalic().run()
             } else if (activeTab === "html") {
-              insertText("<em>", "</em>", htmlEditorRef);
+              insertText("<em>", "</em>", htmlEditorRef)
             } else {
-              insertText("*", "*", mdEditorRef);
+              insertText("*", "*", mdEditorRef)
             }
           })
         }
@@ -474,10 +507,10 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords, proofreadingResult
         onClick={() =>
           safeEditorAction(() => {
             if (activeTab === "normal") {
-              normalEditor.chain().focus().setTextAlign("left").run();
+              normalEditor.chain().focus().setTextAlign("left").run()
             } else {
-              const editorRef = activeTab === "html" ? htmlEditorRef : mdEditorRef;
-              insertText('<div style="text-align: left;">', "</div>", editorRef);
+              const editorRef = activeTab === "html" ? htmlEditorRef : mdEditorRef
+              insertText('<div style="text-align: left;">', "</div>", editorRef)
             }
           })
         }
@@ -493,10 +526,10 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords, proofreadingResult
         onClick={() =>
           safeEditorAction(() => {
             if (activeTab === "normal") {
-              normalEditor.chain().focus().setTextAlign("center").run();
+              normalEditor.chain().focus().setTextAlign("center").run()
             } else {
-              const editorRef = activeTab === "html" ? htmlEditorRef : mdEditorRef;
-              insertText('<div style="text-align: center;">', "</div>", editorRef);
+              const editorRef = activeTab === "html" ? htmlEditorRef : mdEditorRef
+              insertText('<div style="text-align: center;">', "</div>", editorRef)
             }
           })
         }
@@ -512,10 +545,10 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords, proofreadingResult
         onClick={() =>
           safeEditorAction(() => {
             if (activeTab === "normal") {
-              normalEditor.chain().focus().setTextAlign("right").run();
+              normalEditor.chain().focus().setTextAlign("right").run()
             } else {
-              const editorRef = activeTab === "html" ? htmlEditorRef : mdEditorRef;
-              insertText('<div style="text-align: right;">', "</div>", editorRef);
+              const editorRef = activeTab === "html" ? htmlEditorRef : mdEditorRef
+              insertText('<div style="text-align: right;">', "</div>", editorRef)
             }
           })
         }
@@ -531,11 +564,11 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords, proofreadingResult
         onClick={() =>
           safeEditorAction(() => {
             if (activeTab === "normal") {
-              normalEditor.chain().focus().toggleBulletList().run();
+              normalEditor.chain().focus().toggleBulletList().run()
             } else if (activeTab === "html") {
-              insertText("<ul>\n<li>", "</li>\n</ul>", htmlEditorRef);
+              insertText("<ul>\n<li>", "</li>\n</ul>", htmlEditorRef)
             } else {
-              insertText("- ", "", mdEditorRef);
+              insertText("- ", "", mdEditorRef)
             }
           })
         }
@@ -549,11 +582,11 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords, proofreadingResult
         onClick={() =>
           safeEditorAction(() => {
             if (activeTab === "normal") {
-              normalEditor.chain().focus().toggleOrderedList().run();
+              normalEditor.chain().focus().toggleOrderedList().run()
             } else if (activeTab === "html") {
-              insertText("<ol>\n<li>", "</li>\n</ol>", htmlEditorRef);
+              insertText("<ol>\n<li>", "</li>\n</ol>", htmlEditorRef)
             } else {
-              insertText("1. ", "", mdEditorRef);
+              insertText("1. ", "", mdEditorRef)
             }
           })
         }
@@ -566,14 +599,14 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords, proofreadingResult
       <button
         onClick={() =>
           safeEditorAction(() => {
-            const url = prompt("Enter URL");
+            const url = prompt("Enter URL")
             if (url) {
               if (activeTab === "normal") {
-                normalEditor.chain().focus().setLink({ href: url }).run();
+                normalEditor.chain().focus().setLink({ href: url }).run()
               } else if (activeTab === "html") {
-                insertText(`<a href="${url}">`, "</a>", htmlEditorRef);
+                insertText(`<a href="${url}">`, "</a>", htmlEditorRef)
               } else {
-                insertText("[", `](${url})`, mdEditorRef);
+                insertText("[", `](${url})`, mdEditorRef)
               }
             }
           })
@@ -585,18 +618,18 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords, proofreadingResult
       <button
         onClick={() =>
           safeEditorAction(() => {
-            const url = prompt("Enter Image URL");
+            const url = prompt("Enter Image URL")
             if (url) {
               if (activeTab === "normal") {
-                normalEditor.chain().focus().setImage({ src: url }).run();
+                normalEditor.chain().focus().setImage({ src: url }).run()
               } else if (activeTab === "html") {
                 insertText(
                   `<img src="${url}" alt="description" class="max-w-full my-4 rounded-lg mx-auto" />`,
                   "",
                   htmlEditorRef
-                );
+                )
               } else {
-                insertText(`![Image](${url})`, "", mdEditorRef);
+                insertText(`![Image](${url})`, "", mdEditorRef)
               }
             }
           })
@@ -619,17 +652,17 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords, proofreadingResult
       </button>
       <SmallBottomBox id={blog?._id} />
     </div>
-  );
+  )
 
   const renderContentArea = () => {
-    if (!editorReady) return <div className="h-[calc(100vh-200px)] p-4">Loading editor...</div>;
+    if (!editorReady) return <div className="h-[calc(100vh-200px)] p-4">Loading editor...</div>
 
     if (isAnimating && blog?.content) {
       return (
         <div className="h-[calc(100vh-200px)] p-4 overflow-y-auto bg-white">
           <AnimatedContent content={blog.content} onComplete={handleAnimationComplete} />
         </div>
-      );
+      )
     }
 
     if (showPreview && (activeTab === "markdown" || activeTab === "html")) {
@@ -650,39 +683,94 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords, proofreadingResult
               h3: ({ node, ...props }) => (
                 <h3 className="text-xl lg:text-2xl font-bold mt-8 mb-3" {...props} />
               ),
-              p: ({ node, ...props }) => {
-                const text = props.children[0];
-                const suggestion = proofreadingResults.find(
-                  (s) => s.original.trim() === text?.trim()
-                );
-                if (suggestion) {
-                  return (
-                    <p
-                      className="my-4 leading-relaxed suggestion-highlight"
-                      onMouseEnter={() => setHoveredSuggestion(suggestion)}
-                      onMouseLeave={() => setHoveredSuggestion(null)}
-                    >
-                      {props.children}
-                      {hoveredSuggestion === suggestion && (
-                        <div
-                          className="suggestion-tooltip"
-                          style={{ top: "100%", left: 0 }}
-                        >
-                          <p className="text-sm mb-2">
-                            <strong>Suggested:</strong> {suggestion.change}
-                          </p>
-                          <button
-                            className="bg-blue-600 text-white px-2 py-1 rounded"
-                            onClick={() => handleReplace(suggestion.original, suggestion.change)}
-                          >
-                            Replace
-                          </button>
-                        </div>
-                      )}
-                    </p>
-                  );
-                }
-                return <p className="my-4 leading-relaxed" {...props} />;
+              p: ({ node, children, ...props }) => {
+                // Convert children to a string to check for suggestions
+                const textContent = React.Children.toArray(children)
+                  .map((child) => (typeof child === "string" ? child : ""))
+                  .join("")
+                return (
+                  <p className="my-4 leading-relaxed" {...props}>
+                    {React.Children.map(children, (child, index) => {
+                      if (typeof child === "string") {
+                        let remainingText = child
+                        let elements = []
+                        let keyIndex = 0
+
+                        while (remainingText.length > 0) {
+                          let matched = false
+                          for (const suggestion of proofreadingResults) {
+                            const regex = new RegExp(
+                              suggestion.original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+                              "i"
+                            )
+                            const match = remainingText.match(regex)
+                            if (match && match.index === 0) {
+                              elements.push(
+                                <span
+                                  key={`${index}-${keyIndex++}`}
+                                  className="suggestion-highlight"
+                                  onMouseEnter={() => setHoveredSuggestion(suggestion)}
+                                  onMouseLeave={() => setHoveredSuggestion(null)}
+                                >
+                                  {match[0]}
+                                  {hoveredSuggestion === suggestion && (
+                                    <div className="suggestion-tooltip" style={{ top: "100%", left: 0 }}>
+                                      <p className="text-sm mb-2">
+                                        <strong>Suggested:</strong> {suggestion.change}
+                                      </p>
+                                      <button
+                                        className="bg-blue-600 text-white px-2 py-1 rounded"
+                                        onClick={() =>
+                                          handleReplace(suggestion.original, suggestion.change)
+                                        }
+                                      >
+                                        Replace
+                                      </button>
+                                    </div>
+                                  )}
+                                </span>
+                              )
+                              remainingText = remainingText.slice(match[0].length)
+                              matched = true
+                              break
+                            }
+                          }
+                          if (!matched) {
+                            // Find the next potential match
+                            let minIndex = remainingText.length
+                            let nextMatchLength = 0
+                            for (const suggestion of proofreadingResults) {
+                              const regex = new RegExp(
+                                suggestion.original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+                                "i"
+                              )
+                              const match = remainingText.match(regex)
+                              if (match && match.index < minIndex) {
+                                minIndex = match.index
+                                nextMatchLength = match[0].length
+                              }
+                            }
+                            if (minIndex === remainingText.length) {
+                              elements.push(
+                                <span key={`${index}-${keyIndex++}`}>{remainingText}</span>
+                              )
+                              remainingText = ""
+                            } else {
+                              elements.push(
+                                <span key={`${index}-${keyIndex++}`}>
+                                  {remainingText.slice(0, minIndex)}
+                                </span>
+                              )
+                              remainingText = remainingText.slice(minIndex)
+                            }
+                          }
+                        }
+                        return elements
+                      }
+                      return child
+                    })}
+                  </p>
+                )
               },
               ul: ({ node, ...props }) => <ul className="list-disc pl-6 my-4" {...props} />,
               ol: ({ node, ...props }) => <ol className="list-decimal pl-6 my-4" {...props} />,
@@ -700,10 +788,10 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords, proofreadingResult
               ),
             }}
           >
-            {content}
+            {safeContent}
           </ReactMarkdown>
         </div>
-      );
+      )
     }
 
     switch (activeTab) {
@@ -743,14 +831,14 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords, proofreadingResult
             )}
             <EditorContent editor={normalEditor} />
           </div>
-        );
+        )
 
       case "markdown":
         return (
           <div className="h-[calc(100vh-300px)] overflow-y-auto bg-white border rounded-lg relative">
             <textarea
               ref={mdEditorRef}
-              value={content}
+              value={safeContent}
               onChange={(e) => setContent(e.target.value)}
               onMouseUp={handleTextSelection}
               onKeyUp={handleTextSelection}
@@ -759,19 +847,19 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords, proofreadingResult
             />
             <FloatingToolbar editorRef={mdEditorRef} mode="markdown" />
           </div>
-        );
+        )
 
       case "html":
         return (
           <div className="h-[calc(100vh-300px)] overflow-y-auto bg-white border rounded-lg relative">
             <textarea
               ref={htmlEditorRef}
-              value={marked.parse(content).replace(/>(\s*)</g, ">\n<")}
+              value={safeContent ? marked.parse(safeContent).replace(/>(\s*)</g, ">\n<") : ""}
               onChange={(e) => {
-                const text = e.target.value;
-                const turndownService = new TurndownService();
-                const markdown = turndownService.turndown(text);
-                setContent(markdown);
+                const text = e.target.value
+                const turndownService = new TurndownService()
+                const markdown = turndownService.turndown(text)
+                setContent(markdown)
               }}
               onMouseUp={handleTextSelection}
               onKeyUp={handleTextSelection}
@@ -781,12 +869,12 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords, proofreadingResult
             />
             <FloatingToolbar editorRef={htmlEditorRef} mode="html" />
           </div>
-        );
+        )
 
       default:
-        return null;
+        return null
     }
-  };
+  }
 
   return (
     <div className="flex-grow p-4 relative -top-16">
@@ -831,7 +919,7 @@ const TextEditor = ({ blog, activeTab, keywords, setKeywords, proofreadingResult
       {renderToolbar()}
       {renderContentArea()}
     </div>
-  );
-};
+  )
+}
 
-export default TextEditor;
+export default TextEditor
