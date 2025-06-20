@@ -116,6 +116,7 @@ const Dashboard = () => {
   const handleSubmit = async (updatedData) => {
     try {
       const totalCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
+      console.log("totalCredits", totalCredits)
       const estimatedCost =
         getEstimatedCost("blog.single", modelData.aiModel) +
         (modelData.isUnsplashActive ? 0 : getEstimatedCost("aiImages"))

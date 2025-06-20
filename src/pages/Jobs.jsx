@@ -14,9 +14,9 @@ import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useNavigate } from "react-router-dom"
 import { CrownFilled, QuestionCircleOutlined } from "@ant-design/icons"
 import { Popconfirm } from "antd"
-import { Gem } from "lucide-react"
+import { Gem, Info, Upload, X } from "lucide-react"
 
-// [ ] in topic user can upload csv or text- read that file split on basic of arr store that in arr show 3-4 text after ... or count
+// [ ] DONE in topic user can upload csv or text- read that file split on basic of arr store that in arr show 3-4 text after ... or count
 // [ s] DONE validation in job picker
 // [ s] active jobs don't show if there is no job
 
@@ -56,6 +56,11 @@ const Jobs = () => {
   const [errors, setErrors] = useState({})
   const userPlan = useSelector((state) => state.auth.user?.plan)
   const navigate = useNavigate()
+  const [recentlyUploadedCount, setRecentlyUploadedCount] = useState(null)
+  const [formData, setFormData] = useState({
+    focusKeywords: [],
+    focusKeywordInput: "",
+  })
 
   const fetchJobs = async () => {
     setIsLoading(true)
@@ -225,6 +230,117 @@ const Jobs = () => {
     fetchJobs()
   }, [])
 
+  const handleKeywordInputChange = (e, type) => {
+    if (type === "keywords") {
+      setFormData((prevState) => ({
+        ...prevState,
+        [`${type}Input`]: e.target.value,
+        keywordInput: e.target.value,
+      }))
+    } else {
+      setFormData((prevState) => ({
+        ...prevState,
+        [`${type}Input`]: e.target.value,
+        focusKeywordInput: e.target.value,
+      }))
+    }
+  }
+
+  const handleAddFocusKeyword = (type) => {
+    const inputValue = formData[`${type}Input`]
+    if (inputValue.trim() !== "") {
+      const newKeywords = inputValue
+        .split(",")
+        .map((keyword) => keyword.trim())
+        .filter((keyword) => keyword !== "")
+      if (type === "focusKeywords" && formData[type].length + newKeywords.length > 3) {
+        toast.error("You can only add up to 3 focus keywords.")
+        return
+      }
+      if (type === "focusKeywords") {
+        setFormData({
+          ...formData,
+          [type]: [...formData[type], ...newKeywords],
+          [`${type}Input`]: "",
+          focusKeywordInput: "",
+        })
+      } else {
+        setFormData({
+          ...formData,
+          [type]: [...formData[type], ...newKeywords],
+          [`${type}Input`]: "",
+          keywordInput: "",
+        })
+      }
+    }
+  }
+
+  const handleKeyFocusPress = (e, type) => {
+    if (e.key === "Enter") {
+      e.preventDefault()
+      handleAddFocusKeyword(type)
+    } else if (e.key === ",") {
+      e.preventDefault()
+      handleAddFocusKeyword(type)
+    }
+  }
+
+  const handleRemoveKeyword = (index, type) => {
+    const updatedKeywords = [...formData[type]]
+    updatedKeywords.splice(index, 1)
+    setFormData({ ...formData, [type]: updatedKeywords })
+  }
+
+  const handleCSVUpload = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+
+    reader.onload = (event) => {
+      const text = event.target?.result
+      if (!text) return
+
+      const lines = text.trim().split(/\r?\n/).slice(1)
+
+      const keywords = lines
+        .map((line) => {
+          const parts = line.split(",")
+          if (parts.length < 2) return null
+          return parts[1]?.trim() || null
+        })
+        .filter((kw) => Boolean(kw))
+
+      const existingTopics = newJob.blogs.topics.map((t) => t.toLowerCase().trim())
+
+      const uniqueNewTopics = keywords.filter((kw) => {
+        const normalized = kw.toLowerCase().trim()
+        return !existingTopics.includes(normalized)
+      })
+
+      if (uniqueNewTopics.length === 0) {
+        toast.warning("No new topics found in the CSV.")
+        return
+      }
+
+      setNewJob((prev) => ({
+        ...prev,
+        blogs: {
+          ...prev.blogs,
+          topics: [...prev.blogs.topics, ...uniqueNewTopics],
+        },
+      }))
+
+      if (uniqueNewTopics.length > 8) {
+        setRecentlyUploadedCount(uniqueNewTopics.length)
+        setTimeout(() => setRecentlyUploadedCount(null), 5000)
+      }
+    }
+
+    reader.readAsText(file)
+    e.target.value = "" // Reset file input
+  }
+
   const renderStep = () => {
     switch (currentStep) {
       case 1:
@@ -306,15 +422,25 @@ const Jobs = () => {
                 <input
                   type="text"
                   value={newJob.name}
+                  placeholder="Enter job name"
                   onChange={(e) => setNewJob({ ...newJob, name: e.target.value })}
                   className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                     errors.name ? "border-red-500" : "border-gray-200"
                   }`}
                 />
               </div>
-              {/* Topics, AI Model, etc. (keep existing) */}
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Topics</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Topics
+                  <div className="relative group cursor-pointer inline-flex ml-1">
+                    <Info size={16} className="text-blue-500 top-1 relative " />
+                    <div className="absolute bottom-5 left-0 mt-1 w-max text-xs bg-white text-gray-700 border rounded shadow px-2 py-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                      Upload a .csv file in the format: `S.No., Keyword`
+                    </div>
+                  </div>
+                </label>
+
                 <div className="flex gap-2 mb-2">
                   <input
                     type="text"
@@ -334,34 +460,55 @@ const Jobs = () => {
                   >
                     Add
                   </motion.button>
+                  <label className="px-4 py-2 bg-gray-100 text-gray-700 border rounded-md text-sm cursor-pointer flex items-center gap-1 hover:bg-gray-200">
+                    <Upload size={16} />
+                    <input type="file" accept=".csv" onChange={handleCSVUpload} hidden />
+                  </label>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {newJob.blogs.topics.map((topic, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="flex items-center bg-blue-50 px-3 py-1 rounded-full"
-                    >
-                      <span className="text-sm text-blue-600">{topic}</span>
-                      <button
-                        onClick={() =>
-                          setNewJob((prev) => ({
-                            ...prev,
-                            blogs: {
-                              ...prev.blogs,
-                              topics: prev.blogs.topics.filter((_, i) => i !== index),
-                            },
-                          }))
-                        }
-                        className="ml-2 text-blue-600 hover:text-blue-700"
-                      >
-                        ×
-                      </button>
-                    </motion.div>
-                  ))}
+
+                <div className="flex flex-wrap gap-2 mt-2 min-h-[28px]">
+                  {newJob.blogs.topics
+                    .slice()
+                    .reverse()
+                    .slice(0, 18)
+                    .map((topic, reversedIndex) => {
+                      const actualIndex = newJob.blogs.topics.length - 1 - reversedIndex
+                      return (
+                        <span
+                          key={`${topic}-${actualIndex}`}
+                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
+                        >
+                          {topic}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setNewJob((prev) => ({
+                                ...prev,
+                                blogs: {
+                                  ...prev.blogs,
+                                  topics: prev.blogs.topics.filter((_, i) => i !== actualIndex),
+                                },
+                              }))
+                            }
+                            className="ml-1.5 flex-shrink-0 text-indigo-400 hover:text-indigo-600 focus:outline-none"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )
+                    })}
+
+                  {/* 👇 Combined "+X more" and "+Y uploaded" */}
+                  {(newJob.blogs.topics.length > 18 || recentlyUploadedCount) && (
+                    <span className="text-xs font-medium text-blue-600 self-center">
+                      {newJob.blogs.topics.length > 18 &&
+                        `+${newJob.blogs.topics.length - 18} more `}
+                      {recentlyUploadedCount && `(+${recentlyUploadedCount} uploaded)`}
+                    </span>
+                  )}
                 </div>
               </div>
+
               {/* Tone (blogs) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

@@ -19,8 +19,6 @@ import {
 
 const TRUNCATE_LENGTH = 120
 
-// [ ] save logic in blog editor
-// [ ] decorators to show lines are that wrong give option accept all reject all
 // [ s] DONE fix ui of sorting and filtering like leet code and install button to clear filter
 // [ s] DONE in editor send the keywords to backend
 // [ s] DONE in editor regenerate show the credit deduct it will minus 10 credit.
