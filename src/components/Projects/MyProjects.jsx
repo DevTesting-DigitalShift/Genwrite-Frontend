@@ -21,14 +21,14 @@ const TRUNCATE_LENGTH = 120
 
 // [ ] save logic in blog editor
 // [ ] decorators to show lines are that wrong give option accept all reject all
-// [ ] DONE fix ui of sorting and filtering like leet code and install button to clear filter
-// [ ] DONE in editor send the keywords to backend
-// [ ] DONE in editor regenerate show the credit deduct it will minus 10 credit.
-// [ ] DONE remove filter status line
-// [ ] DONE in progress border yellow & change color of tooltip in pending
-// [ ] DONE proofreading will be work only in normal editor
-// [ ] DONE remove message in proofreading payload
-// [ ] DONE get blog by id call in editor store the changes in redux
+// [ s] DONE fix ui of sorting and filtering like leet code and install button to clear filter
+// [ s] DONE in editor send the keywords to backend
+// [ s] DONE in editor regenerate show the credit deduct it will minus 10 credit.
+// [ s] DONE remove filter status line
+// [ s] DONE in progress border yellow & change color of tooltip in pending
+// [ s] DONE proofreading will be work only in normal editor
+// [ s] DONE remove message in proofreading payload
+// [ s] DONE get blog by id call in editor store the changes in redux
 
 const MyProjects = () => {
   const [blogsData, setBlogsData] = useState([])

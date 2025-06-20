@@ -2,14 +2,15 @@ import { Table, Tag, Tooltip, Input, DatePicker } from "antd"
 import { motion, AnimatePresence } from "framer-motion"
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { useSelector } from "react-redux"
+import { useDispatch, useSelector } from "react-redux"
 import { SearchOutlined } from "@ant-design/icons"
 import moment from "moment"
 import { toast } from "react-toastify"
+import { loadUser } from "@api/authApi"
 
-// [ ] DONE filter in blogs to search functionality
-// [ ] DONE link if the status is completed else not
-// [ ] DONE date range filter near to search - add line blog this to this and date this use from ant design
+// [s ] DONE filter in blogs to search functionality
+// [ s] DONE link if the status is completed else not
+// [s ] DONE date range filter near to search - add line blog this to this and date this use from ant design
 
 const CreditLogsTable = () => {
   const [logs, setLogs] = useState([])
@@ -17,15 +18,29 @@ const CreditLogsTable = () => {
   const [loading, setLoading] = useState(true)
   const [searchText, setSearchText] = useState("")
   const [dateRange, setDateRange] = useState([])
-  const { user } = useSelector((state) => state.auth)
+  const [user, setUser] = useState(null)
   const navigate = useNavigate()
   const { RangePicker } = DatePicker
+  const dispatch = useDispatch()
+
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const user = await loadUser(navigate)
+        dispatch(setUser(user?.user))
+      } catch (err) {
+        console.error("User load failed:", err)
+      }
+    }
+
+    fetchCurrentUser()
+  }, [dispatch, navigate])
 
   useEffect(() => {
     const fetchLogs = async () => {
       try {
         setLogs(user?.creditLogs)
-        setFilteredLogs(user?.creditLogs) 
+        setFilteredLogs(user?.creditLogs)
       } catch (err) {
         toast.error("Failed to load credit logs")
         console.error("Failed to load credit logs", err)
@@ -36,31 +51,32 @@ const CreditLogsTable = () => {
     fetchLogs()
   }, [user])
 
+  console.log({ user })
+
   // Handle search and date filter
   useEffect(() => {
-  let filtered = [...logs]
+    let filtered = logs
 
-  // Search filter
-  if (searchText) {
-    filtered = filtered?.filter(
-      (log) =>
+    // Search filter
+    if (searchText) {
+      filtered = filtered?.filter((log) =>
         log.meta?.blogTitle?.toLowerCase().includes(searchText.toLowerCase())
-    )
-  }
+      )
+    }
 
-  // Date range filter
-  if (dateRange && dateRange.length === 2 && dateRange[0] && dateRange[1]) {
-    const start = dateRange[0].startOf("day").toDate()
-    const end = dateRange[1].endOf("day").toDate()
+    // Date range filter
+    if (dateRange && dateRange.length === 2 && dateRange[0] && dateRange[1]) {
+      const start = dateRange[0].startOf("day").toDate()
+      const end = dateRange[1].endOf("day").toDate()
 
-    filtered = filtered.filter((log) => {
-      const logDate = new Date(log.createdAt)
-      return logDate >= start && logDate <= end
-    })
-  }
+      filtered = filtered.filter((log) => {
+        const logDate = new Date(log.createdAt)
+        return logDate >= start && logDate <= end
+      })
+    }
 
-  setFilteredLogs(filtered)
-}, [searchText, dateRange, logs])
+    setFilteredLogs(filtered)
+  }, [searchText, dateRange, logs])
 
   const columns = [
     {

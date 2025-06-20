@@ -1,102 +1,120 @@
-import { useEffect, useState } from "react"
-import { useLocation, useParams } from "react-router-dom"
-import { useDispatch, useSelector } from "react-redux"
-import { motion, AnimatePresence } from "framer-motion"
-import axiosInstance from "../../api"
-import { toast, ToastContainer } from "react-toastify"
-import { fetchBlogById } from "../../store/slices/blogSlice"
-import TextEditor from "../generateBlog/TextEditor"
-import TextEditorSidebar from "../generateBlog/TextEditorSidebar"
-import { Loader2 } from "lucide-react"
+import { useEffect, useState } from "react";
+import { useLocation, useParams } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { motion, AnimatePresence } from "framer-motion";
+import axiosInstance from "../../api";
+import { toast, ToastContainer } from "react-toastify";
+import { fetchBlogById } from "../../store/slices/blogSlice";
+import TextEditor from "../generateBlog/TextEditor";
+import TextEditorSidebar from "../generateBlog/TextEditorSidebar";
+import { Loader2 } from "lucide-react";
 
 const ToolBox = () => {
-  const { id } = useParams()
-  const location = useLocation()
-  const dispatch = useDispatch()
-  const blog = useSelector((state) => state.blog.selectedBlog)
-  const [activeTab, setActiveTab] = useState("normal")
-  const [isLoading, setIsLoading] = useState(true)
-  const [keywords, setKeywords] = useState([])
-  const [editorContent, setEditorContent] = useState("")
-
-  const blogFromLocation = location.state?.blog
+  const { id } = useParams();
+  const location = useLocation();
+  const dispatch = useDispatch();
+  const blog = useSelector((state) => state.blog.selectedBlog);
+  const [activeTab, setActiveTab] = useState("normal");
+  const [isLoading, setIsLoading] = useState(true);
+  const [keywords, setKeywords] = useState([]);
+  const [editorContent, setEditorContent] = useState("");
+  const [proofreadingResults, setProofreadingResults] = useState([]);
+  const blogFromLocation = location.state?.blog;
 
   useEffect(() => {
     if (id) {
-      dispatch(fetchBlogById(id))
+      dispatch(fetchBlogById(id));
     }
-  }, [id, dispatch])
+  }, [id, dispatch]);
 
   useEffect(() => {
     if (blog?.keywords) {
-      setKeywords(blog.keywords)
+      setKeywords(blog.keywords);
     }
-  }, [blog?.keywords])
+  }, [blog?.keywords]);
 
   useEffect(() => {
-    setIsLoading(true)
+    setIsLoading(true);
 
     const handleLoadBlog = async () => {
       try {
         if (id && !blogFromLocation) {
-          const action = await dispatch(fetchBlogById(id))
+          const action = await dispatch(fetchBlogById(id));
           if (action) {
-            setEditorContent(action.payload.content || "")
+            setEditorContent(action.payload.content || "");
           }
         } else if (blogFromLocation) {
-          setEditorContent(blogFromLocation.content || "")
+          setEditorContent(blogFromLocation.content || "");
         } else {
-          setEditorContent("")
+          setEditorContent("");
         }
       } catch (error) {
-        console.error("Failed to fetch blog:", error)
-        setEditorContent("")
-        toast.error("Failed to load blog content.")
+        console.error("Failed to fetch blog:", error);
+        setEditorContent("");
+        toast.error("Failed to load blog content.");
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
+    };
 
-    handleLoadBlog()
-  }, [id, dispatch, blogFromLocation])
+    handleLoadBlog();
+  }, [id, dispatch, blogFromLocation]);
 
-  const blogToDisplay = blog
+  const blogToDisplay = blog || blogFromLocation;
 
   const handleContentChange = (markdownContent) => {
-    setEditorContent(markdownContent)
-  }
+    setEditorContent(markdownContent);
+  };
+
+  const handleReplaceSuggestion = (original, change) => {
+    // Update editor content
+    const lines = editorContent.split("\n");
+    const updatedLines = lines.map((line) =>
+      line.trim() === original.trim() ? change : line
+    );
+    const newContent = updatedLines.join("\n");
+    setEditorContent(newContent);
+
+    // Update proofreading results
+    setProofreadingResults((prev) =>
+      prev.filter((suggestion) => suggestion.original !== original)
+    );
+
+    toast.success("Suggestion applied successfully!");
+  };
 
   const handlePostToWordPress = async () => {
     if (!blogToDisplay?.title) {
-      toast.error("Blog title is missing.")
-      return
+      toast.error("Blog title is missing.");
+      return;
     }
 
-    // Get the content from the preview container
-    const previewContainer = document.querySelector(".markdown-body")
-    const content = previewContainer?.innerHTML || editorContent
+    // Get the content from the preview container or editorContent
+    const previewContainer = document.querySelector(".markdown-body");
+    const content = previewContainer?.innerHTML || editorContent;
 
     // Check if content is empty or just contains empty paragraph
     if (!content || content.trim() === "" || content === "<p></p>" || content === "<p><br></p>") {
-      toast.error("Editor content is empty. Please add some content before posting.")
-      return
+      toast.error("Editor content is empty. Please add some content before posting.");
+      return;
     }
 
     // Process images in the content to ensure consistent sizing
     const processedContent = content.replace(/<img[^>]*src="([^"]*)"[^>]*>/g, (match, src) => {
       return `<div style="max-width: 600px; margin: 2rem auto; text-align: center;">
           <img src="${src}" alt="Blog image" style="max-width: 100%; height: auto; display: block; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />
-        </div>`
-    })
+        </div>`;
+    });
 
     const postData = {
       id: blogToDisplay._id,
-    }
+      content: processedContent,
+    };
 
-    const postingToastId = toast.info("Posting to WordPress...", { autoClose: false })
+    const postingToastId = toast.info("Posting to WordPress...", { autoClose: false });
 
     try {
-      const response = await axiosInstance.post("/wordpress/post", postData)
+      const response = await axiosInstance.post("/wordpress/post", postData);
 
       if (response.status === 200) {
         toast.update(postingToastId, {
@@ -104,22 +122,22 @@ const ToolBox = () => {
           type: "success",
           isLoading: false,
           autoClose: 5000,
-        })
+        });
       } else {
         toast.update(postingToastId, {
           render: response.data?.message || "Successfully posted to WordPress!",
           type: "success",
           isLoading: false,
           autoClose: 5000,
-        })
+        });
       }
     } catch (error) {
-      let errorMessage = "Failed to post to WordPress"
+      let errorMessage = "Failed to post to WordPress";
 
       if (error.response?.data?.error) {
-        errorMessage = error.response.data.error
+        errorMessage = error.response.data.error;
       } else if (error.message) {
-        errorMessage = error.message
+        errorMessage = error.message;
       }
 
       toast.update(postingToastId, {
@@ -127,14 +145,14 @@ const ToolBox = () => {
         type: "error",
         isLoading: false,
         autoClose: 5000,
-      })
+      });
     }
-  }
+  };
 
   const tabVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 },
-  }
+  };
 
   return (
     <>
@@ -186,6 +204,8 @@ const ToolBox = () => {
                       activeTab={activeTab}
                       content={editorContent}
                       onContentChange={handleContentChange}
+                      proofreadingResults={proofreadingResults}
+                      onReplaceSuggestion={handleReplaceSuggestion}
                     />
                   )}
                 </motion.div>
@@ -196,13 +216,15 @@ const ToolBox = () => {
                 setKeywords={setKeywords}
                 onPost={handlePostToWordPress}
                 activeTab={activeTab}
+                onReplaceSuggestion={handleReplaceSuggestion}
+                setProofreadingResults={setProofreadingResults} // Pass setter to update suggestions
               />
             </div>
           </div>
         </div>
       </div>
     </>
-  )
-}
+  );
+};
 
-export default ToolBox
+export default ToolBox;
