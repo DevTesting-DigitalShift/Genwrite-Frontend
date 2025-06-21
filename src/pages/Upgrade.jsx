@@ -5,10 +5,10 @@ import { useNavigate } from "react-router-dom"
 import { loadStripe } from "@stripe/stripe-js"
 import { MailOutlined } from "@ant-design/icons"
 import { SkeletonCard } from "@components/Projects/SkeletonLoader"
+import { Check, Coins, Crown, Mail, Shield, Star, Zap } from "lucide-react"
 
 const PricingCard = ({ plan, index, onBuy }) => {
-  const [customCredits, setCustomCredits] = useState(0) // State for custom credits
-  const calculatedPrice = plan.price
+  const [customCredits, setCustomCredits] = useState(5)
 
   const handleCustomCreditsChange = (e) => {
     const value = parseInt(e.target.value, 10) || 0
@@ -16,133 +16,120 @@ const PricingCard = ({ plan, index, onBuy }) => {
   }
 
   const calculateCustomPrice = () => {
-    return ((customCredits * 5) / 100).toFixed(2) // $5 per 100 credits
+    return ((customCredits * 5) / 100).toFixed(2)
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.1, duration: 0.3 }}
-      whileHover={{
-        y: -5,
-        scale: 1.02,
-        transition: { type: "spring", stiffness: 300 },
-      }}
-      className={`relative p-8 rounded-xl bg-white shadow-md hover:shadow-xl transition-all duration-300 ${
+    <div
+      className={`relative bg-white rounded-2xl transition-all duration-300 hover:scale-105 hover:shadow-2xl ${
         plan.featured
-          ? "border-2 border-blue-500 bg-gradient-to-br from-blue-50 via-blue-100 to-violet-100 text-gray-800"
-          : "border-gray-200 hover:border-blue-500 border-2"
+          ? "ring-2 ring-blue-500 shadow-xl scale-105"
+          : "shadow-lg hover:shadow-xl border border-gray-100"
       }`}
     >
       {plan.featured && (
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ type: "spring", stiffness: 200 }}
-          className="absolute top-0 right-0 bg-blue-500 text-white px-3 py-1 rounded-bl-lg rounded-tr-lg text-sm font-semibold"
-        >
-          Most Popular
-        </motion.div>
+        <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+          <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-1">
+            <Star className="w-4 h-4" /> Most Popular
+          </div>
+        </div>
       )}
-      <div className="mb-6">
-        <h3 className="text-2xl font-bold text-gray-800 mb-2">{plan.name}</h3>
-        <div className="flex items-end gap-2 mb-4">
+
+      <div className="p-8">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div
+            className={`w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center ${
+              plan.featured
+                ? "bg-gradient-to-br from-blue-500 to-purple-600 text-white"
+                : "bg-gray-100 text-gray-600"
+            }`}
+          >
+            {plan.icon || <Check />}
+          </div>
+          <h3 className="text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
+          <p className="text-gray-600 text-sm">{plan.description}</p>
+        </div>
+
+        {/* Pricing */}
+        <div className="text-center mb-8">
           {plan.type === "credit_purchase" ? (
-            <>
+            <div className="flex gap-4">
               <input
                 type="number"
-                min="0"
+                min="5"
                 value={customCredits}
                 onChange={handleCustomCreditsChange}
-                placeholder="0"
-                className="w-full px-4 py-2  text-gray-800 bg-transparent border-b-2 border-gray-300 focus:outline-none focus:border-blue-500 appearance-none"
+                className={`w-full px-4 py-2 text-center text-gray-800 bg-transparent border-b-2 focus:outline-none appearance-none mb-2 ${
+                  customCredits < 5
+                    ? "border-red-500 focus:border-red-500"
+                    : "border-gray-300 focus:border-blue-500"
+                }`}
               />
-
-              <span className="text-gray-500 text-lg">
-                ${calculateCustomPrice()}
-                <p className="text-xs">(calculated) </p>
-              </span>
-            </>
+              <div className="text-gray-500 text-lg">
+                ${calculateCustomPrice()} <p className="text-xs">(calculated)</p>
+              </div>
+            </div>
           ) : (
-            <>
-              <motion.span
-                key={calculatedPrice}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2 }}
-                className="text-4xl font-bold text-gray-900"
-              >
-                ${calculatedPrice}
-              </motion.span>
-              <span className="text-gray-500 text-sm">/month</span>
-            </>
+            <div className="flex items-baseline justify-center gap-1 mb-2">
+              <span className="text-4xl font-bold text-gray-900">
+                {typeof plan.price === "string" ? plan.price : `$${plan.price}`}
+              </span>
+              {typeof plan.price !== "string" && (
+                <span className="text-gray-500 text-lg">/{plan.period}</span>
+              )}
+            </div>
           )}
         </div>
-        <p className="text-gray-600 text-sm">{plan.description}</p>
-      </div>
-      {/* [ s] on clicking contact team for enterprise, open email to support@genwrite.com with
-      subject request for genwrite enterprise plan or something. Use anchor tag instead of button for enterprise*/}
-      <motion.button
-        whileHover={{
-          scale: 1.05,
-          boxShadow: "0 10px 20px rgba(0,0,0,0.1)",
-        }}
-        whileTap={{ scale: 0.95 }}
-        className={`w-full py-3 rounded-lg font-semibold transition-all duration-300 ease-in-out transform hover:scale-[1.02] ${
-          plan.featured
-            ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:shadow-lg"
-            : "bg-gray-100 text-gray-700 border border-gray-200 shadow-lg tracking-wider hover:bg-gradient-to-br hover:from-blue-100 hover:via-blue-200 hover:to-violet-200 hover:text-blue-700 hover:shadow-xl hover:backdrop-blur-md"
-        }`}
-        onClick={() => {
-          if (plan.type === "credit_purchase") {
-            if (customCredits == 0) {
-              alert("Kindly add the credits first")
-            } else {
+
+        {/* Features */}
+        <ul className="space-y-4 mb-8">
+          {plan.features.map((feature, index) => (
+            <li key={index} className="flex items-start gap-3">
+              <div
+                className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                  plan.featured ? "bg-blue-100 text-blue-600" : "bg-green-100 text-green-600"
+                }`}
+              >
+                <Check className="w-3 h-3" />
+              </div>
+              <span className="text-gray-700 text-sm">{feature}</span>
+            </li>
+          ))}
+        </ul>
+
+        {/* CTA Button */}
+        <button
+          onClick={() => {
+            if (plan.type === "credit_purchase") {
+              if (customCredits < 5) return
               onBuy(plan, customCredits)
+            } else if (plan.name.toLowerCase().includes("enterprise")) {
+              window.open(
+                `https://mail.google.com/mail/?view=cm&fs=1&to=supportGenwrite@gmail.com&su=Genwrite Enterprise Subscription&body=.`,
+                "_blank"
+              )
+            } else {
+              onBuy(plan)
             }
-          } else if (plan.name.toLowerCase().includes("enterprise")) {
-            window.open(
-              `https://mail.google.com/mail/?view=cm&fs=1&to=supportGenwrite@gmail.com&su=Genwrite Enterprise Subscription&body=.`,
-              "_blank"
-            )
-          } else {
-            onBuy(plan)
-          }
-        }}
-      >
-        {plan.name.toLowerCase().includes("enterprise") && <MailOutlined className="mr-2" />}{" "}
-        {plan.cta}
-      </motion.button>
-      <ul className="mt-8 space-y-3">
-        {plan.features.map((feature, idx) => (
-          <motion.li
-            key={feature}
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 + idx * 0.05 }}
-            className="flex items-center gap-3 text-gray-600"
-          >
-            <motion.svg
-              className="w-5 h-5 text-green-500 flex-shrink-0"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              whileHover={{ scale: 1.2 }}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M5 13l4 4L19 7"
-              />
-            </motion.svg>
-            {feature}
-          </motion.li>
-        ))}
-      </ul>
-    </motion.div>
+          }}
+          className={`w-full py-4 px-6 rounded-xl font-semibold text-sm transition-all duration-300 hover:transform hover:scale-105 ${
+            plan.featured
+              ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:shadow-lg hover:shadow-blue-500/25"
+              : "bg-gray-900 text-white hover:bg-gray-800 hover:shadow-lg"
+          } ${
+            plan.type === "credit_purchase" && customCredits < 5
+              ? "opacity-50 cursor-not-allowed"
+              : ""
+          }`}
+        >
+          {plan.name.toLowerCase().includes("enterprise") && (
+            <Mail className="inline mr-2 w-4 h-4" />
+          )}
+          {plan.cta}
+        </button>
+      </div>
+    </div>
   )
 }
 
@@ -158,7 +145,6 @@ const Upgrade = () => {
     return () => clearTimeout(timer)
   }, [])
 
-  const navigate = useNavigate()
   const plans = [
     {
       name: "Basic Plan",
@@ -170,7 +156,9 @@ const Upgrade = () => {
       cta: "Buy Now",
       type: "subscription",
       frequency: "month",
+      icon: <Zap className="w-8 h-8" />,
       featured: false,
+      period: "month",
     },
     {
       name: "GenWrite Pro Plan",
@@ -181,16 +169,19 @@ const Upgrade = () => {
       cta: "Subscribe Now",
       type: "subscription",
       frequency: "month",
+      icon: <Shield className="w-8 h-8" />,
       featured: true,
+      period: "month",
     },
     {
       name: "GenWrite Enterprise Plan",
-      price: "custom", // Convert cents to dollars
+      price: "Custom", // Convert cents to dollars
       credits: "",
       description: "GenWrite Enterprise — Custom limits & priority support. Contact us.",
       features: ["Unlimited credits", "Monthly billing", "Priority support", "Custom AI features"],
       cta: "Contact Team",
       type: "subscription",
+      icon: <Crown className="w-8 h-8" />,
       frequency: "month",
     },
     {
@@ -198,8 +189,9 @@ const Upgrade = () => {
       price: null, // Price will be calculated dynamically
       credits: null, // Credits will be entered by the user
       description: "One-time credit top-up",
-      features: ["Custom credits", "One-time purchase", "flexible payment", "user defined"],
+      features: ["Custom credits", "One-time purchase", "Flexible payment", "User defined"],
       cta: "Buy Credits",
+      icon: <Coins className="w-8 h-8" />,
       type: "credit_purchase",
     },
   ]
@@ -256,57 +248,8 @@ const Upgrade = () => {
           <p className="text-gray-600 text-lg mb-8 max-w-2xl mx-auto">
             Choose the perfect plan for your team. Scale seamlessly as your needs grow.
           </p>
-
-          {/* <motion.div
-            className="flex items-center justify-center gap-4 mb-12"
-            whileHover={{ scale: 1.02 }}
-          >
-            <span
-              className={`text-sm ${!isAnnual ? "font-semibold text-gray-900" : "text-gray-500"}`}
-            >
-              Monthly
-            </span>
-            <button
-              onClick={() => setIsAnnual(!isAnnual)}
-              className={`w-14 h-8 flex items-center rounded-full p-1 transition-colors ${
-                isAnnual ? "bg-blue-500" : "bg-gray-200"
-              }`}
-            >
-              <motion.div
-                className="w-6 h-6 bg-white rounded-full shadow-md"
-                animate={{ x: isAnnual ? 26 : 0 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              />
-            </button>
-            <div className="flex items-center gap-2">
-              <span
-                className={`text-sm ${isAnnual ? "font-semibold text-gray-900" : "text-gray-500"}`}
-              >
-                Yearly
-              </span>
-              <AnimatePresence>
-                {isAnnual && (
-                  <motion.span
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    exit={{ scale: 0 }}
-                    className="px-2 py-1 bg-blue-100 text-blue-600 rounded-md text-xs font-medium"
-                  >
-                    Save 20%
-                  </motion.span>
-                )}
-              </AnimatePresence>
-            </div>
-          </motion.div> */}
         </motion.div>
-
-        {/* [s ] Use framer-motion to show skeletons & then cards with animate presence. Also update ui of the card header & all */}
-        {/* <div className="grid md:grid-cols-3 gap-10 max-w-6xl mx-auto">
-          {plans.map((plan, index) => (
-            <PricingCard key={plan.name} plan={plan} index={index} onBuy={handleBuy} />
-          ))}
-        </div> */}
-        <div className="grid md:grid-cols-3 gap-10 ">
+        <div className="grid lg:grid-cols-3 md:grid-cols-2 gap-10 ">
           <AnimatePresence mode="wait">
             {loading
               ? Array.from({ length: 4 }).map((_, idx) => <SkeletonCard key={idx} />)

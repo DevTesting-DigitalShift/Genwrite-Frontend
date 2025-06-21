@@ -1,125 +1,159 @@
-import { createSlice } from "@reduxjs/toolkit";
-import { login, signup, Userlogout, loadUser } from "@api/authApi";
-import { getProfile } from "@api/userApi";
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit"
+import { login, signup, Userlogout, loadUser } from "@api/authApi"
+import { getProfile } from "@api/userApi"
 
+// Utils
+const saveToken = (token) => localStorage.setItem("token", token)
+const removeToken = () => localStorage.removeItem("token")
+const getToken = () => localStorage.getItem("token")
+
+// Initial state
 const initialState = {
   user: null,
-  token: localStorage.getItem("token") || null,
+  token: getToken(),
   loading: false,
   error: null,
-};
+}
 
+// 🔐 Login
+export const loginUser = createAsyncThunk(
+  "auth/loginUser",
+  async ({ email, password }, { rejectWithValue }) => {
+    try {
+      const data = await login(email, password)
+      if (data?.token) {
+        saveToken(data.token)
+        return { user: data.user, token: data.token }
+      }
+      return rejectWithValue("Invalid login response")
+    } catch (err) {
+      return rejectWithValue("Login failed")
+    }
+  }
+)
+
+// 📝 Signup
+export const signupUser = createAsyncThunk(
+  "auth/signupUser",
+  async ({ email, password, name }, { rejectWithValue }) => {
+    try {
+      const data = await signup(email, password, name)
+      if (data?.token) {
+        saveToken(data.token)
+        return { user: data.user, token: data.token }
+      }
+      return rejectWithValue("Invalid signup response")
+    } catch (err) {
+      return rejectWithValue("Signup failed")
+    }
+  }
+)
+
+// 🧠 Load User from token
+export const loadAuthenticatedUser = createAsyncThunk(
+  "auth/loadUser",
+  async (_, { rejectWithValue }) => {
+    const token = getToken()
+    if (!token) return rejectWithValue("No token found")
+
+    try {
+      const data = await loadUser() // Or getProfile()
+      if (data?.success && data?.user) {
+        return { user: data.user, token }
+      }
+      return rejectWithValue("Failed to load user")
+    } catch (err) {
+      return rejectWithValue("User loading failed")
+    }
+  }
+)
+
+// 📤 Logout
+export const logoutUser = createAsyncThunk("auth/logoutUser", async (_, { dispatch }) => {
+  try {
+    await Userlogout()
+    
+  } catch (err) {
+    console.warn("Logout failed (ignored)", err)
+  }
+  dispatch(logout())
+})
+
+// Slice
 const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-    setUser: (state, action) => {
-      state.user = action.payload.user;
-      state.token = action.payload.token;
-    },
     logout: (state) => {
-      state.user = null;
-      state.token = null;
-      localStorage.removeItem("token");
+      state.user = null
+      state.token = null
+      removeToken()
     },
-    setLoading: (state, action) => {
-      state.loading = action.payload;
-    },
-    setError: (state, action) => {
-      state.error = action.payload;
+    setUser: (state, action) => {
+      state.user = action.payload
     },
   },
-});
+  extraReducers: (builder) => {
+    // Login
+    builder.addCase(loginUser.pending, (state) => {
+      state.loading = true
+      state.error = null
+    })
+    builder.addCase(loginUser.fulfilled, (state, action) => {
+      state.loading = false
+      state.user = action.payload.user
+      state.token = action.payload.token
+    })
+    builder.addCase(loginUser.rejected, (state, action) => {
+      state.loading = false
+      state.error = action.payload
+    })
 
-export const { setUser, logout, setLoading, setError } = authSlice.actions;
-export default authSlice.reducer;
+    // Signup
+    builder.addCase(signupUser.pending, (state) => {
+      state.loading = true
+      state.error = null
+    })
+    builder.addCase(signupUser.fulfilled, (state, action) => {
+      state.loading = false
+      state.user = action.payload.user
+      state.token = action.payload.token
+    })
+    builder.addCase(signupUser.rejected, (state, action) => {
+      state.loading = false
+      state.error = action.payload
+    })
 
-// ───────────────────────────────────────────────────────────────
-// 🔐 Thunk: Login
-export const loginUser = ({ email, password }) => async (dispatch) => {
-  dispatch(setLoading(true));
-  try {
-    const data = await login(email, password);
-    if (data.token) {
-      localStorage.setItem("token", data.token);
-      dispatch(setUser({ user: data.user, token: data.token }));
-    }
-    return { success: true };
-  } catch (error) {
-    dispatch(setError("Login failed"));
-    console.error("Login error:", error);
-    return { success: false };
-  } finally {
-    dispatch(setLoading(false));
-  }
-};
+    // Load Authenticated User
+    builder.addCase(loadAuthenticatedUser.pending, (state) => {
+      state.loading = true
+      state.error = null
+    })
+    builder.addCase(loadAuthenticatedUser.fulfilled, (state, action) => {
+      state.loading = false
+      state.user = action.payload.user
+      state.token = action.payload.token
+    })
+    builder.addCase(loadAuthenticatedUser.rejected, (state, action) => {
+      state.loading = false
+      state.error = action.payload
+    })
 
-// 📝 Thunk: Signup
-export const signupUser = ({ email, password, name }) => async (dispatch) => {
-  dispatch(setLoading(true));
-  try {
-    const data = await signup(email, password, name);
-    if (data.token) {
-      localStorage.setItem("token", data.token);
-      dispatch(setUser({ user: data.user, token: data.token }));
-    }
-    return { success: true };
-  } catch (error) {
-    dispatch(setError("Signup failed"));
-    console.error("Signup error:", error);
-    return { success: false };
-  } finally {
-    dispatch(setLoading(false));
-  }
-};
+    // Logout (doesn't have async states)
+    builder.addCase(logoutUser.fulfilled, (state) => {
+      state.user = null
+      state.token = null
+      state.loading = false
+    })
+  },
+})
 
-// 🚪 Thunk: Logout
-export const logoutUser = (navigate) => async (dispatch) => {
-  try {
-    await Userlogout();
-  } catch (error) {
-    console.warn("Logout error (ignored)", error);
-  }
+export const { logout } = authSlice.actions
+export default authSlice.reducer
 
-  dispatch(logout());
-  navigate("/login");
-};
-
-// 🧠 Thunk: Load User (fix for Google login)
-export const loadAuthenticatedUser = () => async (dispatch) => {
-  const token = localStorage.getItem("token");
-  if (!token) return;
-
-  dispatch(setLoading(true));
-  try {
-    const data = await loadUser(); // or getProfile() if needed
-    if (data.success && data.user) {
-      dispatch(setUser({ user: data.user, token }));
-    }
-  } catch (error) {
-    dispatch(setError("Failed to load user"));
-    console.error("Auth reload error:", error);
-  } finally {
-    dispatch(setLoading(false));
-  }
-};
-
-// 🧠 Thunk: Get Profile (optional if loadUser doesn't exist)
-export const getUser = () => async (dispatch) => {
-  const token = localStorage.getItem("token");
-  if (!token) return;
-
-  try {
-    const { user } = await getProfile();
-    dispatch(setUser({ user, token }));
-  } catch (error) {
-    console.error("Get profile error:", error);
-    dispatch(setError("Failed to fetch profile"));
-  }
-};
-
-// 📦 Optional: Selectors
-export const selectAuth = (state) => state.auth;
-export const selectUser = (state) => state.auth.user;
-export const selectToken = (state) => state.auth.token;
-export const selectAuthLoading = (state) => state.auth.loading;
+// 📦 Selectors
+export const selectAuth = (state) => state.auth
+export const selectUser = (state) => state.auth.user
+export const selectToken = (state) => state.auth.token
+export const selectAuthLoading = (state) => state.auth.loading
+export const selectAuthError = (state) => state.auth.error

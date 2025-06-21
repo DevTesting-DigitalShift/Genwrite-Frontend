@@ -3,7 +3,8 @@ import { NavLink, useLocation, useNavigate } from "react-router-dom"
 import { useDispatch, useSelector } from "react-redux"
 import { RxAvatar } from "react-icons/rx"
 import { FiMenu } from "react-icons/fi"
-import { logoutUser } from "../store/slices/authSlice"
+import { Crown, Zap } from "lucide-react"
+import { loadAuthenticatedUser, logoutUser, selectUser } from "../store/slices/authSlice"
 import { Tooltip, Dropdown, Avatar } from "antd"
 import { RiCoinsFill } from "react-icons/ri"
 import NotificationDropdown from "@components/NotificationDropdown"
@@ -17,24 +18,24 @@ const LayoutWithSidebarAndHeader = () => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   // const { user } = useSelector((selector) => selector.auth)
-  const [user, setUser] = useState(null)
+  const user = useSelector(selectUser)
 
-  
   useEffect(() => {
     const fetchCurrentUser = async () => {
       try {
-        const user = await loadUser(navigate)
-        dispatch(setUser(user?.user))
+        const res = await dispatch(loadAuthenticatedUser()).unwrap()
+        // You now have the updated user data in Redux state
       } catch (err) {
         console.error("User load failed:", err)
+        navigate("/login") // optional: redirect on failure
       }
     }
-    
+
     fetchCurrentUser()
   }, [dispatch, navigate])
 
   // console.log({ user })
-  
+
   useEffect(() => {
     if (user?.name || user?.credits) {
       setIsUserLoaded(true)
@@ -56,6 +57,7 @@ const LayoutWithSidebarAndHeader = () => {
   const handleLogout = async () => {
     try {
       await dispatch(logoutUser(navigate))
+      navigate("/login")
     } catch (error) {
       console.error(error)
     }
@@ -120,6 +122,21 @@ const LayoutWithSidebarAndHeader = () => {
             />
           )}
         </div>
+
+        {/* Upgrade Button - Only show when sidebar is open */}
+        {sidebarOpen && (
+          <div className="mb-6 px-2">
+            <button
+              onClick={() => navigate("/upgrade")}
+              className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg flex items-center justify-center gap-2 group"
+            >
+              <Crown className="w-4 h-4 group-hover:rotate-12 transition-transform duration-300" />
+              <span>Upgrade Plan</span>
+              <Zap className="w-4 h-4 group-hover:scale-110 transition-transform duration-300" />
+            </button>
+          </div>
+        )}
+
         <ul className="space-y-3">
           {Menus.map((Menu, index) => {
             const isActive = location.pathname.startsWith(Menu.path)
@@ -170,9 +187,11 @@ const LayoutWithSidebarAndHeader = () => {
                 <Dropdown menu={userMenu} trigger={["click"]} placement="bottomRight">
                   <Avatar
                     className="bg-gradient-to-tr from-blue-400 to-purple-700 text-white font-bold cursor-pointer hover:ring-2 hover:ring-offset-2 hover:ring-purple-500 transition"
+                    style={{ marginLeft: "25px", marginRight: "20px" }}
                     size="large"
+                    src={user?.avatar ? user.avatar : undefined}
                   >
-                    {user.name.slice(0, 1).toUpperCase()}
+                    {!user?.avatar && user?.name?.[0]?.toUpperCase()}
                   </Avatar>
                 </Dropdown>
               </>

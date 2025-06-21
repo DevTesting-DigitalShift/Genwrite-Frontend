@@ -5,7 +5,7 @@ const PublicRoutesLayout = () => {
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-600 to-purple-700">
       {/* Header */}
-      <header className="h-fit text-white shadow-md">
+      {/* <header className="h-fit text-white shadow-md">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <div className="w-28 h-10 px-4 bg-white flex items-center justify-center rounded-2xl">
             <img
@@ -23,7 +23,7 @@ const PublicRoutesLayout = () => {
             </Link>
           </nav>
         </div>
-      </header>
+      </header> */}
 
       {/* Main Content */}
       <main className="flex-1">
@@ -31,7 +31,7 @@ const PublicRoutesLayout = () => {
       </main>
 
       {/* Footer */}
-      <footer className="bg-gray-800 text-gray-100 text-center py-4">
+      {/* <footer className="bg-gray-800 text-gray-100 text-center py-4">
         &copy; Genwrite 2025 —{" "}
         <Link to="/privacy" className="hover:underline">
           Privacy
@@ -40,7 +40,7 @@ const PublicRoutesLayout = () => {
         <Link to="/terms" className="hover:underline">
           Terms
         </Link>
-      </footer>
+      </footer> */}
     </div>
   );
 };

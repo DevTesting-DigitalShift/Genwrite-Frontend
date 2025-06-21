@@ -4,7 +4,7 @@ import SelectTemplateModal from "./mutipstepmodal/SelectTemplateModal"
 import FirstStepModal from "./mutipstepmodal/FirstStepModal"
 import SecondStepModal from "./mutipstepmodal/SecondStepModal"
 import ThirdStepModal from "./mutipstepmodal/ThirdStepModal"
-import { letsBegin, quickTools } from "./dashdata/dash"
+import { letsBegin, quickTools, stats } from "./dashdata/dash"
 import { DashboardBox, QuickBox, RecentProjects } from "../utils/DashboardBox"
 import QuestionButton from "../utils/QuestionButton"
 import { useDispatch, useSelector } from "react-redux"
@@ -23,6 +23,8 @@ import { toast, ToastContainer } from "react-toastify"
 import { loadUser } from "@api/authApi"
 import { SkeletonDashboardCard, SkeletonGridCard } from "./Projects/SkeletonLoader"
 import { AnimatePresence } from "framer-motion"
+import { loadAuthenticatedUser, selectUser } from "@store/slices/authSlice"
+import { Clock, Sparkles } from "lucide-react"
 
 /*
  [s ] instead of asking for upgrade, show animation of crown with toast & disable features on plan based like free & basic can't open bulk blogs & other features
@@ -45,10 +47,9 @@ const Dashboard = () => {
   const [allBlogs, setAllBlogs] = useState([])
   const [loading, setLoading] = useState(true)
 
-  // Hooks
   const dispatch = useDispatch()
   const navigate = useNavigate()
-  const { user } = useSelector((state) => state.auth)
+  const user = useSelector(selectUser) 
   const { handlePopup } = useConfirmPopup()
 
   useEffect(() => {
@@ -68,11 +69,12 @@ const Dashboard = () => {
       }
 
       try {
-        // Avoid duplicate call by combining
-        const userRes = await loadUser(navigate)
+        const result = await dispatch(loadAuthenticatedUser())
 
-        if (!userRes?._id || !userRes?.name) {
-          await load()(dispatch)
+        if (loadAuthenticatedUser.rejected.match(result)) {
+          // Handle failed case
+          console.warn("Failed to load user, redirecting...")
+          navigate("/login")
         }
       } catch (error) {
         console.error("User init failed:", error)
@@ -154,8 +156,6 @@ const Dashboard = () => {
     setModelData({})
   }
 
-  
-
   const handleNext = () => setCurrentStep(currentStep + 1)
   const handlePrev = () => setCurrentStep(currentStep - 1)
 
@@ -220,94 +220,147 @@ const Dashboard = () => {
         <PerformanceMonitoringModal closefnc={() => setPerformanceModal(false)} />
       )}
 
-      <div className="p-10">
-        <h3 className="text-[24px] font-[600] mb-8 font-montserrat">Let's Begin </h3>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/50 p-6">
+        <div className="max-w-7xl mx-auto space-y-8">
+          <div className="gap-6">
+            <div>
+              <h1 className="text-4xl font-bold text-gray-900 mb-2">
+                Let's Begin
+                <span className="ml-2 text-2xl">✨</span>
+              </h1>
+              <p className="text-gray-600 text-lg">
+                Welcome back <b>{user?.name}</b>! Ready to create something amazing today?
+              </p>
+            </div>
 
-        <div className="flex justify-between items-center gap-8 p-4 sm:flex-wrap md:flex-nowrap">
-          <AnimatePresence mode="wait">
-            {loading
-              ? Array.from({ length: 4 }).map((_, idx) => <SkeletonDashboardCard key={idx} />)
-              : letsBegin.map((item, index) => (
-                  <DashboardBox
-                    key={index}
-                    imageUrl={item.imageUrl}
-                    title={item.title}
-                    content={item.content}
-                    id={item.id}
-                    // icon={item.imageUrl}
-                    functions={{
-                      showModal,
-                      setModelData,
-                      showDaisy,
-                      showMultiStepModal,
-                      showQuickBlogModal,
-                      showCompetitiveAnalysis,
-                    }}
-                  />
-                ))}
-          </AnimatePresence>
-        </div>
+            {/* Quick Stats */}
+            {/* <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-5">
+              {stats.map((stat, index) => (
+                <div
+                  key={index}
+                  className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="text-blue-600">{stat.icon}</div>
+                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                      {stat.label}
+                    </span>
+                  </div>
+                  <div className="flex items-end gap-2">
+                    <span className="text-2xl font-bold text-gray-900">{stat.value}</span>
+                    <span className="text-xs text-green-600 font-medium">{stat.change}</span>
+                  </div>
+                </div>
+              ))}
+            </div> */}
+          </div>
 
-        <div className="mt-5 ">
-          <h3 className="text-[24px] font-[600] mb-8 font-montserrat">Quick Tools</h3>
-          <div className="grid m-2 gap-8 sm:grid-cols-4 p-4">
+          <div className="grid lg:grid-cols-3 gap-6">
             <AnimatePresence mode="wait">
               {loading
-                ? Array.from({ length: 4 }).map((_, idx) => <SkeletonGridCard key={idx} />)
-                : quickTools.map((item, index) => (
-                    <QuickBox
+                ? Array.from({ length: 3 }).map((_, idx) => <SkeletonDashboardCard key={idx} />)
+                : letsBegin.map((item, index) => (
+                    <DashboardBox
                       key={index}
-                      imageUrl={item.imageUrl}
+                      icon={item.icon}
                       title={item.title}
                       content={item.content}
                       id={item.id}
+                      gradient={item.hoverGradient}
                       functions={{
-                        ...(item.id === 3
-                          ? { showPerformanceMonitoring: () => setPerformanceModal(true) }
-                          : {}),
-                        ...(item.id === 4 ? { showCompetitiveAnalysis } : {}),
+                        showModal,
+                        setModelData,
+                        showDaisy,
+                        showMultiStepModal,
+                        showQuickBlogModal,
+                        showCompetitiveAnalysis,
                       }}
                     />
                   ))}
             </AnimatePresence>
           </div>
-        </div>
 
-        {recentBlogData.length > 0 && (
-          <div className="mt-5 ">
-            <div className="mt-8 mb-8 flex justify-between items-center">
-              <h3 className="text-[24px] font-[600] font-montserrat">Recent Projects</h3>
-              <span className="mr-5">
-                <select
-                  name=""
-                  id=""
-                  className="font-hind text-md p-1 border-1 border-black bg-blue-50 rounded-xl"
-                >
-                  <option className="font-hind" value="">
-                    Top Performing
-                  </option>
-                </select>
-              </span>
+          <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-white" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900">Quick Tools</h2>
             </div>
-            <div className="grid m-4 gap-10 sm:grid-cols-3">
-              <AnimatePresence mode="wait">
+            <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+              <AnimatePresence>
                 {loading
                   ? Array.from({ length: 4 }).map((_, idx) => <SkeletonGridCard key={idx} />)
-                  : recentBlogData.map((item, index) => {
-                      return (
-                        <RecentProjects
-                          key={index}
-                          title={item.title}
-                          content={item.content}
-                          tags={item.focusKeywords}
-                          item={item}
-                        />
-                      )
-                    })}
+                  : quickTools.map((item, index) => (
+                      <QuickBox
+                        key={index}
+                        imageUrl={item.imageUrl}
+                        title={item.title}
+                        content={item.content}
+                        id={item.id}
+                        color={item.color}
+                        icon={item.icon}
+                        bgColor={item.bgColor}
+                        hoverBg={item.hoverBg}
+                        functions={{
+                          ...(item.id === 3
+                            ? { showPerformanceMonitoring: () => setPerformanceModal(true) }
+                            : {}),
+                          ...(item.id === 4 ? { showCompetitiveAnalysis } : {}),
+                        }}
+                      />
+                    ))}
               </AnimatePresence>
             </div>
           </div>
-        )}
+
+          {recentBlogData.length > 0 && (
+            <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 mt-10">
+              <div className="mb-8 flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 flex items-center justify-center">
+                    <Clock className="w-5 h-5 text-white" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-gray-900">Recent Projects</h2>
+                </div>
+                <span className="mr-5">
+                  <select
+                    name=""
+                    id=""
+                    className="font-hind text-md p-1 border-1 border-black bg-blue-50 rounded-xl"
+                  >
+                    <option className="font-hind" value="">
+                      Top Performing
+                    </option>
+                  </select>
+                </span>
+              </div>
+              <div>
+                <AnimatePresence>
+                  {loading
+                    ? Array.from({ length: 3 }).map((_, idx) => <SkeletonGridCard key={idx} />)
+                    : recentBlogData.map((item, index) => {
+                        return (
+                          <RecentProjects
+                            key={index}
+                            title={item.title}
+                            content={item.content}
+                            tags={item.focusKeywords}
+                            item={item}
+                            time={item.updatedAt}
+                          />
+                        )
+                      })}
+                </AnimatePresence>
+                <div className="mt-6 text-center">
+                  <button className="px-6 py-3 text-blue-600 hover:text-blue-700 font-medium hover:bg-blue-50 rounded-lg transition-colors" onClick={() => navigate("/project")}>
+                    View All Projects
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </>
   )

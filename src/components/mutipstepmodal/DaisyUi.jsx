@@ -130,7 +130,7 @@ const MultiStepModal = ({ closefnc }) => {
         templates: [...prev.templates, selectedPackageName],
       }))
     } else {
-      alert("You can select a maximum of 3 templates.")
+      toast.error("You can select a maximum of 3 templates.")
     }
   }
 
