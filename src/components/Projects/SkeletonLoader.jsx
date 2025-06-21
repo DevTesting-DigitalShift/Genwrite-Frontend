@@ -38,7 +38,7 @@ export const SkeletonDashboardCard = ({ className = "" }) => {
   return (
     <div
       className={clsx(
-        "w-1/2 md:w-1/3 h-44 p-4 rounded-md bg-[#FAFAFA] border shadow-sm animate-pulse flex flex-col justify-between",
+        " h-44 p-4 rounded-md bg-[#FAFAFA] border shadow-sm animate-pulse flex flex-col justify-between",
         className
       )}
     >
@@ -78,7 +78,7 @@ export const SkeletonGridCard = ({ className = "" }) => {
   return (
     <div
       className={clsx(
-        "h-44 p-4 rounded-md bg-[#FAFAFA] border shadow-sm animate-pulse flex flex-col justify-between",
+        "h-44 p-4 mb-8 rounded-md bg-[#FAFAFA] border shadow-sm animate-pulse flex flex-col justify-between",
         className
       )}
     >

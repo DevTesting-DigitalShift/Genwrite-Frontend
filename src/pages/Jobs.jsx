@@ -466,7 +466,7 @@ const Jobs = () => {
                   </label>
                 </div>
 
-                <div className="flex flex-wrap gap-2 mt-2 min-h-[28px]">
+                <div className="flex flex-wrap gap-2 mt-2">
                   {newJob.blogs.topics
                     .slice()
                     .reverse()
@@ -508,6 +508,8 @@ const Jobs = () => {
                   )}
                 </div>
               </div>
+
+              
 
               {/* Tone (blogs) */}
               <div>

@@ -18,48 +18,7 @@ const ToolBox = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [keywords, setKeywords] = useState([])
   const [editorContent, setEditorContent] = useState("") // Initialize with empty string
-  const [proofreadingResults, setProofreadingResults] = useState([
-          {
-            original: "Blogging remains a powerful tool",
-            change: "Blogging is a powerful tool",
-          },
-          {
-            original: "Your content must resonate",
-            change: "Content must resonate",
-          },
-          {
-            original: "Think about what problems",
-            change: "Consider what problems",
-          },
-          {
-            original: "Naturally incorporate these keywords",
-            change: "Incorporate keywords naturally",
-          },
-          {
-            original: "Improving your SEO will improve",
-            change: "Improved SEO improves",
-          },
-          {
-            original: "Craft headlines that are concise,",
-            change: "Craft concise, intriguing headlines",
-          },
-          {
-            original: "A regular posting schedule keeps",
-            change: "Regular posts keep",
-          },
-          {
-            original: "Building relationships with your audience",
-            change: "Audience relationships are key",
-          },
-          {
-            original: "Ensure your blog is easy to navigate,",
-            change: "Ensure easy navigation,",
-          },
-          {
-            original: "A positive UX keeps readers engaged",
-            change: "Positive UX keeps readers engaged",
-          },
-        ])
+  const [proofreadingResults, setProofreadingResults] = useState([])
   const blogFromLocation = location.state?.blog
 
   useEffect(() => {
@@ -117,7 +76,7 @@ const ToolBox = () => {
     setEditorContent(updatedContent)
 
     setProofreadingResults((prev) => prev.filter((s) => s.original !== original))
-    toast.success("Suggestion applied successfully!")
+    // toast.success("Suggestion applied successfully!")
   }
 
   const handlePostToWordPress = async () => {

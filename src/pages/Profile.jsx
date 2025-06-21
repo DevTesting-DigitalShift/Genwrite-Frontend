@@ -11,8 +11,7 @@ import {
 import axiosInstance from "@api/index"
 import { toast, ToastContainer } from "react-toastify"
 import { useSelector, useDispatch } from "react-redux"
-// import { load } from "@store/slices/authSlice"
-import { loadUser } from "@api/authApi"
+import { loadAuthenticatedUser } from "@store/slices/authSlice"
 
 const DEMO_PROFILE = {
   profilePicture: "https://source.unsplash.com/random/800x800/?portrait",
@@ -56,57 +55,56 @@ const Profile = () => {
   const { user } = useSelector((state) => state.auth)
   const dispatch = useDispatch()
 
-  // Fetch user data from backend
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        await loadUser()(dispatch)
-        setProfileData((prev) => ({
-          profilePicture: user.avatar || prev.profilePicture,
-          personalDetails: {
-            name: user.name || "",
-            email: user.email || "",
-            phone: user.phone || "",
-            bio: user.bio || "",
-            jobTitle: user.jobTitle || "",
-            company: user.company || "",
-            website: user.website || "",
-            wordpress: user.wordpressLink || "",
-            dob: user.dob || "",
-          },
-          billingDetails: {
-            companyName: user.billingDetails?.companyName || "",
-            address: user.billingDetails?.address || "",
-            city: user.billingDetails?.city || "",
-            country: user.billingDetails?.country || "",
-            gstNumber: user.billingDetails?.gstNumber || "",
-            taxId: user.billingDetails?.taxId || "",
-            paymentMethod: user.billingDetails?.paymentMethod || "",
-            companyEmail: user.billingDetails?.companyEmail || "",
-          },
-          subscription: {
-            type: user?.plan || "Free", // always default to Free
-            startDate: user.subscription?.startDate || "",
-            renewalDate: user.subscription?.renewalDate || "",
-            credits: user.credits.base ?? 0,
-            planFeatures: user.subscription?.planFeatures || [],
-          },
-          invoices: user.invoices?.length ? user.invoices : [],
-        }))
-      } catch (err) {
-        // fallback to demo data if error
-        setProfileData(DEMO_PROFILE)
-      }
-    }
-    fetchUser()
-  }, [])
+    dispatch(loadAuthenticatedUser())
+  }, [dispatch])
+
+  console.log({ user })
+
+  useEffect(() => {
+    if (!user) return
+
+    setProfileData((prev) => ({
+      profilePicture: user.avatar || prev.profilePicture,
+      personalDetails: {
+        name: user.name || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        bio: user.bio || "",
+        jobTitle: user.jobTitle || "",
+        company: user.company || "",
+        website: user.website || "",
+        wordpress: user.wordpressLink || "",
+        dob: user.dob || "",
+      },
+      billingDetails: {
+        companyName: user.billingDetails?.companyName || "",
+        address: user.billingDetails?.address || "",
+        city: user.billingDetails?.city || "",
+        country: user.billingDetails?.country || "",
+        gstNumber: user.billingDetails?.gstNumber || "",
+        taxId: user.billingDetails?.taxId || "",
+        paymentMethod: user.billingDetails?.paymentMethod || "",
+        companyEmail: user.billingDetails?.companyEmail || "",
+      },
+      subscription: {
+        type: user?.plan || "Free",
+        startDate: user.subscription?.startDate || "",
+        renewalDate: user.subscription?.renewalDate || "",
+        credits: user.credits?.base ?? 0,
+        planFeatures: user.subscription?.planFeatures || [],
+      },
+      invoices: user.invoices?.length ? user.invoices : [],
+    }))
+  }, [user])
 
   useEffect(() => {
     const updateUser = async (data) => {
       try {
         const res = await axiosInstance.put("/user/profile", data)
+        console.log({ res })
         if (res?.data) {
-          await loadUser()(dispatch)
+          await dispatch(loadAuthenticatedUser())
         }
         toast.success("User updated successfully")
       } catch (err) {
@@ -395,7 +393,8 @@ const Profile = () => {
                     <div className="flex justify-between items-center p-3 rounded-lg bg-white/80">
                       <span className="font-medium">Start Date</span>
                       <span>
-                        {new Date(profileData.subscription.startDate).toLocaleDateString('en-IN',) || DEMO_PROFILE.subscription.startDate}
+                        {new Date(profileData.subscription.startDate).toLocaleDateString("en-IN") ||
+                          DEMO_PROFILE.subscription.startDate}
                       </span>
                     </div>
                     <div className="flex justify-between items-center p-3 rounded-lg bg-white/80">

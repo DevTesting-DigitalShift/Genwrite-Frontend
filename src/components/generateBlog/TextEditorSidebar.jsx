@@ -355,16 +355,19 @@ const TextEditorSidebar = ({
           ) : (
             <div className="mt-4">
               <h4 className="font-semibold text-gray-800 mb-2">Proofreading Results:</h4>
-              <Button
-                type="link"
-                onClick={handleApplyAllSuggestions}
-                className="mt-1"
-                disabled={proofreadingResults.length === 0}
-              >
-                Apply All Suggestions
-              </Button>
               {proofreadingResults && proofreadingResults.length > 0 ? (
                 <div className="bg-white rounded-lg shadow-md p-4">
+                  <div className="flex justify-end">
+                    <Button
+                      type="link"
+                      onClick={handleApplyAllSuggestions}
+                      className="underline"
+                      disabled={proofreadingResults.length === 0}
+                    >
+                      Apply All Suggestions
+                    </Button>
+                  </div>
+
                   <ul className="list-disc ml-5">
                     {proofreadingResults.map((suggestion, index) => (
                       <li key={index} className="mb-2">
@@ -374,13 +377,13 @@ const TextEditorSidebar = ({
                         <p className="text-sm text-gray-700">
                           <strong>Revised:</strong> {suggestion.change}
                         </p>
-                        <Button
+                        {/* <Button
                           type="link"
                           onClick={() => handleReplace(suggestion.original, suggestion.change)}
                           className="mt-1"
                         >
                           Apply Suggestion
-                        </Button>
+                        </Button> */}
                       </li>
                     ))}
                   </ul>
