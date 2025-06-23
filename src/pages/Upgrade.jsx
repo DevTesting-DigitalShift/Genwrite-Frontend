@@ -1,30 +1,40 @@
-import React, { useEffect, useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import axiosInstance from "@api/index"
-import { useNavigate } from "react-router-dom"
-import { loadStripe } from "@stripe/stripe-js"
-import { MailOutlined } from "@ant-design/icons"
-import { SkeletonCard } from "@components/Projects/SkeletonLoader"
-import { Check, Coins, Crown, Mail, Shield, Star, Zap } from "lucide-react"
-import { Helmet } from "react-helmet"
+import React, { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import axiosInstance from "@api/index";
+import { useNavigate } from "react-router-dom";
+import { loadStripe } from "@stripe/stripe-js";
+import { MailOutlined } from "@ant-design/icons";
+import { SkeletonCard } from "@components/Projects/SkeletonLoader";
+import { Check, Coins, Crown, Mail, Shield, Star, Zap } from "lucide-react";
+import { Helmet } from "react-helmet";
 
-const PricingCard = ({ plan, index, onBuy }) => {
-  const [customCredits, setCustomCredits] = useState(5)
+const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
+  const [customCredits, setCustomCredits] = useState(5);
 
   const handleCustomCreditsChange = (e) => {
-    const value = parseInt(e.target.value, 10) || 0
-    setCustomCredits(value)
-  }
+    const value = parseInt(e.target.value, 10) || 0;
+    setCustomCredits(value);
+  };
 
   const calculateCustomPrice = () => {
-    return ((customCredits * 5) / 100).toFixed(2)
-  }
+    return ((customCredits * 5) / 100).toFixed(2);
+  };
+
+  // Get the price based on the billing period
+  const displayPrice =
+    plan.type === "credit_purchase"
+      ? null
+      : billingPeriod === "annual"
+      ? plan.priceAnnual
+      : plan.priceMonthly;
 
   return (
     <div
-      className={`relative bg-white rounded-2xl transition-all duration-300 hover:scale-105 hover:shadow-2xl ${
+      className={`relative rounded-2xl transition-all duration-300 hover:scale-105 hover:shadow-2xl ${
         plan.featured
           ? "ring-2 ring-blue-500 shadow-xl scale-105"
+          : plan.type === "credit_purchase"
+          ? "bg-blue-200"
           : "shadow-lg hover:shadow-xl border border-gray-100"
       }`}
     >
@@ -61,23 +71,23 @@ const PricingCard = ({ plan, index, onBuy }) => {
                 min="5"
                 value={customCredits}
                 onChange={handleCustomCreditsChange}
-                className={`w-full px-4 py-2 text-center text-gray-800 bg-transparent border-b-2 focus:outline-none appearance-none mb-2 ${
+                className={`w-full px-4 py-2 text-center text-blue-600 bg-transparent border-b-2 focus:outline-none appearance-none mb-2 ${
                   customCredits < 5
                     ? "border-red-500 focus:border-red-500"
-                    : "border-gray-300 focus:border-blue-500"
+                    : "border-blue-500 focus:border-blue-500"
                 }`}
               />
-              <div className="text-gray-500 text-lg">
+              <div className="text-blue-600 text-lg">
                 ${calculateCustomPrice()} <p className="text-xs">(calculated)</p>
               </div>
             </div>
           ) : (
             <div className="flex items-baseline justify-center gap-1 mb-2">
               <span className="text-4xl font-bold text-gray-900">
-                {typeof plan.price === "string" ? plan.price : `$${plan.price}`}
+                {typeof displayPrice === "string" ? displayPrice : `$${displayPrice}`}
               </span>
-              {typeof plan.price !== "string" && (
-                <span className="text-gray-500 text-lg">/{plan.period}</span>
+              {typeof displayPrice !== "string" && (
+                <span className="text-gray-500 text-lg">/{billingPeriod}</span>
               )}
             </div>
           )}
@@ -103,20 +113,22 @@ const PricingCard = ({ plan, index, onBuy }) => {
         <button
           onClick={() => {
             if (plan.type === "credit_purchase") {
-              if (customCredits < 5) return
-              onBuy(plan, customCredits)
+              if (customCredits < 5) return;
+              onBuy(plan, customCredits, billingPeriod);
             } else if (plan.name.toLowerCase().includes("enterprise")) {
               window.open(
                 `https://mail.google.com/mail/?view=cm&fs=1&to=supportGenwrite@gmail.com&su=Genwrite Enterprise Subscription&body=.`,
                 "_blank"
-              )
+              );
             } else {
-              onBuy(plan)
+              onBuy(plan, plan.credits, billingPeriod);
             }
           }}
           className={`w-full py-4 px-6 rounded-xl font-semibold text-sm transition-all duration-300 hover:transform hover:scale-105 ${
             plan.featured
               ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:shadow-lg hover:shadow-blue-500/25"
+              : plan.type === "credit_purchase"
+              ? "bg-blue-500 text-white"
               : "bg-gray-900 text-white hover:bg-gray-800 hover:shadow-lg"
           } ${
             plan.type === "credit_purchase" && customCredits < 5
@@ -131,55 +143,56 @@ const PricingCard = ({ plan, index, onBuy }) => {
         </button>
       </div>
     </div>
-  )
-}
+  );
+};
 
 const Upgrade = () => {
-  // [s ] Remove annual plan config completely
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(true);
+  const [billingPeriod, setBillingPeriod] = useState("monthly"); // State for billing period
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setLoading(false)
-    }, 1200) // 1.2s delay for animation simulation
+      setLoading(false);
+    }, 1200); // 1.2s delay for animation simulation
 
-    return () => clearTimeout(timer)
-  }, [])
+    return () => clearTimeout(timer);
+  }, []);
 
   const plans = [
     {
       name: "Basic Plan",
-      price: 20,
+      priceMonthly: 20,
+      priceAnnual: 200, // 16.67/month (2 months free)
       credits: 450,
       description:
-        "Get started with 500 free credits per month. Ideal for individuals exploring GenWrite.",
-      features: ["450 credits", "Monthly renewal", "Community support", "Basic AI features"],
+        "Get started with 450 credits per month. Ideal for individuals exploring GenWrite.",
+      features: ["450 credits", "Community support", "Basic AI features"],
       cta: "Buy Now",
       type: "subscription",
       frequency: "month",
       icon: <Zap className="w-8 h-8" />,
       featured: false,
-      period: "month",
     },
     {
       name: "GenWrite Pro Plan",
-      price: 5000 / 100, // Convert cents to dollars
+      priceMonthly: 50, // 5000 cents
+      priceAnnual: 500, // 41.67/month (2 months free)
       credits: 1200,
-      description: "GenWrite Pro — 3000 credits/month, AI blogging, proofreading, images.",
-      features: ["1200 credits", "Monthly billing", "Priority support", "Advanced AI features"],
+      description: "GenWrite Pro — 1200 credits/month, AI blogging, proofreading, images.",
+      features: ["1200 credits", "Priority support", "Advanced AI features"],
       cta: "Subscribe Now",
       type: "subscription",
       frequency: "month",
       icon: <Shield className="w-8 h-8" />,
       featured: true,
-      period: "month",
     },
     {
       name: "GenWrite Enterprise Plan",
-      price: "Custom", // Convert cents to dollars
+      priceMonthly: "Custom",
+      priceAnnual: "Custom",
       credits: "",
       description: "GenWrite Enterprise — Custom limits & priority support. Contact us.",
-      features: ["Unlimited credits", "Monthly billing", "Priority support", "Custom AI features"],
+      features: ["Unlimited credits", "Priority support", "Custom AI features"],
       cta: "Contact Team",
       type: "subscription",
       icon: <Crown className="w-8 h-8" />,
@@ -187,18 +200,19 @@ const Upgrade = () => {
     },
     {
       name: "GenWrite Credit Pack",
-      price: null, // Price will be calculated dynamically
-      credits: null, // Credits will be entered by the user
+      priceMonthly: null,
+      priceAnnual: null,
+      credits: null,
       description: "One-time credit top-up",
       features: ["Custom credits", "One-time purchase", "Flexible payment", "User defined"],
       cta: "Buy Credits",
       icon: <Coins className="w-8 h-8" />,
       type: "credit_purchase",
     },
-  ]
+  ];
 
-  const handleBuy = async (plan, customCredits = 0) => {
-    const stripe = await loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
+  const handleBuy = async (plan, credits, billingPeriod) => {
+    const stripe = await loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
     try {
       const response = await axiosInstance.post("/stripe/checkout", {
@@ -207,28 +221,29 @@ const Upgrade = () => {
           : plan.name.toLowerCase().includes("basic")
           ? "basic"
           : "credits",
-        credits: plan.type === "credit_purchase" ? customCredits : plan.credits,
+        credits: plan.type === "credit_purchase" ? credits : plan.credits,
+        billingPeriod: billingPeriod, // Send billing period to backend
         success_url: `${window.location.origin}/payment/success`,
         cancel_url: `${window.location.origin}/payment/cancel`,
-      })
+      });
 
       // Redirect to Stripe checkout
       if (response?.data.sessionId) {
-        const result = await stripe.redirectToCheckout({ sessionId: response.data.sessionId })
+        const result = await stripe.redirectToCheckout({ sessionId: response.data.sessionId });
         if (result?.error) {
-          throw error
+          throw result.error;
         }
       } else {
-        throw new Error("Something went wrong")
+        throw new Error("Something went wrong");
       }
     } catch (error) {
-      console.error("Error creating checkout session:", error)
-      alert("Failed to initiate checkout. Please try again.")
+      console.error("Error creating checkout session:", error);
+      alert("Failed to initiate checkout. Please try again.");
     }
-  }
+  };
 
   return (
-    <div className=" bg-gray-50 py-20 px-4">
+    <div className="bg-gray-50 py-20 px-4">
       <Helmet>
         <title>Subscription | GenWrite</title>
       </Helmet>
@@ -252,19 +267,51 @@ const Upgrade = () => {
           <p className="text-gray-600 text-lg mb-8 max-w-2xl mx-auto">
             Choose the perfect plan for your team. Scale seamlessly as your needs grow.
           </p>
+
+          {/* Toggle Button */}
+          <div className="flex justify-center mb-8">
+            <div className="inline-flex rounded-full bg-gray-200 p-1">
+              <button
+                onClick={() => setBillingPeriod("monthly")}
+                className={`px-6 py-2 rounded-full text-sm font-semibold transition-all duration-200 ${
+                  billingPeriod === "monthly"
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                Monthly
+              </button>
+              <button
+                onClick={() => setBillingPeriod("annual")}
+                className={`px-6 py-2 rounded-full text-sm font-semibold transition-all duration-200 ${
+                  billingPeriod === "annual"
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                Annual <span className="text-xs text-green-600 ml-1">(Save ~17%)</span>
+              </button>
+            </div>
+          </div>
         </motion.div>
-        <div className="grid lg:grid-cols-4 md:grid-cols-2 gap-10 ">
+        <div className="grid lg:grid-cols-4 md:grid-cols-2 gap-10">
           <AnimatePresence>
             {loading
               ? Array.from({ length: 4 }).map((_, idx) => <SkeletonCard key={idx} />)
               : plans.map((plan, index) => (
-                  <PricingCard key={plan.name} plan={plan} index={index} onBuy={handleBuy} />
+                  <PricingCard
+                    key={plan.name}
+                    plan={plan}
+                    index={index}
+                    onBuy={handleBuy}
+                    billingPeriod={billingPeriod}
+                  />
                 ))}
           </AnimatePresence>
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Upgrade
+export default Upgrade;

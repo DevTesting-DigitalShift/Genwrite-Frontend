@@ -104,8 +104,10 @@ export const QuickBox = ({ icon, title, content, id, functions, bgColor, hoverBg
       functions.showCompetitiveAnalysis()
     } else if (id === 3 && functions?.showPerformanceMonitoring) {
       functions.showPerformanceMonitoring()
+    } else if(id === 2) {
+      return
     }
-  }
+   }
 
   return (
     <div
