@@ -9,6 +9,7 @@ import { RefreshCcw, Trash2 } from "lucide-react"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { QuestionCircleOutlined } from "@ant-design/icons"
 import { motion } from "framer-motion"
+import { Helmet } from "react-helmet"
 
 const TRUNCATE_LENGTH = 85
 
@@ -91,6 +92,9 @@ const Trashcan = () => {
 
   return (
     <div className="p-5">
+      <Helmet>
+        <title>Trashcan | GenWrite</title>
+      </Helmet>
       <div className="flex items-center justify-between gap-2">
         <motion.h1
           initial={{ opacity: 0 }}

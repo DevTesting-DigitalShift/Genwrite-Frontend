@@ -7,6 +7,7 @@ import { sendBrandVoice } from "../../store/slices/blogSlice"
 import axiosInstance from "@api/index"
 import { UploadOutlined } from "@ant-design/icons"
 import { Upload } from "lucide-react"
+import { Helmet } from "react-helmet"
 
 const BrandVoice = () => {
   const dispatch = useDispatch()
@@ -234,6 +235,9 @@ const BrandVoice = () => {
       animate={{ opacity: 1 }}
       className="flex gap-8 justify-around p-6"
     >
+      <Helmet>
+        <title>Brand Voice | GenWrite</title>
+      </Helmet>
       {/* Left Section */}
       <motion.div
         className="w-[60%] bg-white rounded-xl p-6 shadow-lg border border-gray-100"
@@ -287,7 +291,46 @@ const BrandVoice = () => {
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-2">Keywords <span className="text-red-500">*</span></label>
+            <label className="text-sm font-medium text-gray-700 block mb-2">
+              Keywords <span className="text-red-500">*</span>
+            </label>
+            <motion.div
+              className="flex items-center bg-white border border-gray-300 rounded-lg p-2 flex-wrap gap-2"
+              whileHover={{ boxShadow: "0 0 0 3px rgba(99, 102, 241, 0.2)" }}
+            >
+              {renderKeywords()}
+              <input
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="flex-grow p-2 bg-white border-none outline-none rounded-l-md"
+                placeholder="e.g., Fun"
+              />
+              <label htmlFor="file-upload" className="flex items-center cursor-pointer">
+                <motion.div
+                  className="bg-indigo-100 p-2 rounded-lg"
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Upload size={20} />
+                  {/* <img src="./Images/upload.png" alt="Upload" className="size-4" /> */}
+                </motion.div>
+              </label>
+              <input
+                id="file-upload"
+                type="file"
+                className="hidden"
+                onChange={handleFileChange}
+                accept=".csv"
+              />
+            </motion.div>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-gray-700 block mb-2">
+              Site Map <span className="text-red-500">*</span>
+            </label>
             <motion.div
               className="flex items-center bg-white border border-gray-300 rounded-lg p-2 flex-wrap gap-2"
               whileHover={{ boxShadow: "0 0 0 3px rgba(99, 102, 241, 0.2)" }}

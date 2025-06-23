@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { useLocation, useParams } from "react-router-dom"
+import { useParams } from "react-router-dom"
 import { useDispatch, useSelector } from "react-redux"
 import { motion, AnimatePresence } from "framer-motion"
 import axiosInstance from "../../api"
@@ -8,10 +8,10 @@ import { fetchBlogById } from "../../store/slices/blogSlice"
 import TextEditor from "../generateBlog/TextEditor"
 import TextEditorSidebar from "../generateBlog/TextEditorSidebar"
 import { Loader2 } from "lucide-react"
+import { Helmet } from "react-helmet"
 
 const ToolBox = () => {
   const { id } = useParams()
-  const location = useLocation()
   const dispatch = useDispatch()
   const blog = useSelector((state) => state.blog.selectedBlog)
   const [activeTab, setActiveTab] = useState("normal")
@@ -19,7 +19,6 @@ const ToolBox = () => {
   const [keywords, setKeywords] = useState([])
   const [editorContent, setEditorContent] = useState("") // Initialize with empty string
   const [proofreadingResults, setProofreadingResults] = useState([])
-  const blogFromLocation = location.state?.blog
 
   useEffect(() => {
     if (id) {
@@ -36,31 +35,16 @@ const ToolBox = () => {
   useEffect(() => {
     setIsLoading(true)
 
-    const handleLoadBlog = async () => {
-      try {
-        if (id && !blogFromLocation) {
-          const action = await dispatch(fetchBlogById(id))
-          if (action.payload) {
-            setEditorContent(action.payload.content ?? "")
-          }
-        } else if (blogFromLocation) {
-          setEditorContent(blogFromLocation.content ?? "")
-        } else {
-          setEditorContent("")
-        }
-      } catch (error) {
-        console.error("Failed to fetch blog:", error)
-        setEditorContent("")
-        toast.error("Failed to load blog content.")
-      } finally {
-        setIsLoading(false)
-      }
+    if (blog) {
+      setEditorContent(blog.content ?? "")
+      setIsLoading(false)
+    } else {
+      setEditorContent("")
+      setIsLoading(false)
     }
+  }, [blog])
 
-    handleLoadBlog()
-  }, [id, dispatch, blogFromLocation])
-
-  const blogToDisplay = blog || blogFromLocation
+  const blogToDisplay = blog
 
   const handleReplace = (original, change) => {
     if (typeof original !== "string" || typeof change !== "string") {
@@ -149,6 +133,9 @@ const ToolBox = () => {
 
   return (
     <>
+      <Helmet>
+        <title>Toolbox | GenWrite</title>
+      </Helmet>
       <ToastContainer />
       <div className="h-full">
         <div className="max-w-8xl mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
@@ -175,7 +162,7 @@ const ToolBox = () => {
             </div>
 
             <div className="flex flex-grow h-[80vh]">
-              <AnimatePresence mode="wait">
+              <AnimatePresence>
                 <motion.div
                   key={activeTab}
                   initial="hidden"

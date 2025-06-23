@@ -15,6 +15,7 @@ import { useNavigate } from "react-router-dom"
 import { CrownFilled, QuestionCircleOutlined } from "@ant-design/icons"
 import { Popconfirm } from "antd"
 import { Gem, Info, Upload, X } from "lucide-react"
+import { Helmet } from "react-helmet"
 
 // [ ] DONE in topic user can upload csv or text- read that file split on basic of arr store that in arr show 3-4 text after ... or count
 // [ s] DONE validation in job picker
@@ -509,8 +510,6 @@ const Jobs = () => {
                 </div>
               </div>
 
-              
-
               {/* Tone (blogs) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -898,6 +897,9 @@ const Jobs = () => {
 
   return (
     <>
+      <Helmet>
+        <title>Content Agent | GenWrite</title>
+      </Helmet>
       <div className="min-h-screen bg-gray-50 p-8">
         <div>
           <div className="mb-8">

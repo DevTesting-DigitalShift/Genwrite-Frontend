@@ -32,6 +32,7 @@ import {
   Image as ImageIcon,
   Undo2,
   Redo2,
+  Pencil,
 } from "lucide-react"
 import { useDispatch, useSelector } from "react-redux"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
@@ -43,6 +44,8 @@ import { fetchBlogById } from "@store/slices/blogSlice"
 import { toast } from "react-toastify"
 import { ProofreadingDecoration } from "@/extensions/ProofreadingDecoration"
 import { useProofreadingUI } from "@components/generateBlog/useProofreadingUI"
+import { sendRetryLines } from "@api/blogApi"
+import { Helmet } from "react-helmet"
 
 const FONT_OPTIONS = [
   { label: "Inter", value: "font-sans" },
@@ -73,14 +76,13 @@ const TextEditor = ({
   const [hoveredSuggestion, setHoveredSuggestion] = useState(null)
   const htmlEditorRef = useRef(null)
   const mdEditorRef = useRef(null)
-  const hasInitializedRef = useRef(false)
   const dropdownRef = useRef(null)
-  const [isChatOpen, setIsChatOpen] = useState(false)
-  const { handlePopup } = useConfirmPopup()
-  const userPlan = useSelector((state) => state.auth.user?.plan)
   const navigate = useNavigate()
   const dispatch = useDispatch()
-  
+  const hasInitializedRef = useRef(false)
+  const { handlePopup } = useConfirmPopup()
+  const userPlan = useSelector((state) => state.auth.user?.plan)
+
   const AI_MODELS = [
     { id: "gemini", name: "Gemini", icon: "" },
     { id: "openai", name: "OpenAI", icon: "" },
@@ -173,7 +175,7 @@ const TextEditor = ({
     },
     [activeTab, selectedFont]
   )
-  
+
   const { activeSpan, bubbleRef, applyChange, rejectChange } = useProofreadingUI(normalEditor)
   useEffect(() => {
     if (normalEditor) {
@@ -318,6 +320,49 @@ const TextEditor = ({
     }
   }
 
+  const handleRetry = async () => {
+    if (!blog?._id) {
+      toast.error("Blog ID is missing.")
+      return
+    }
+
+    if (!normalEditor) {
+      toast.error("Editor is not initialized.")
+      return
+    }
+
+    const { from, to } = normalEditor.state.selection
+
+    if (from === to) {
+      toast.error("Please select some text to retry.")
+      return
+    }
+
+    // Get the selected text
+    const selectedText = normalEditor.state.doc.textBetween(from, to, "\n")
+
+    const payload = {
+      contentPart: true,
+      content: selectedText.trim(),
+    }
+
+    try {
+      const res = await sendRetryLines(blog._id, payload)
+      console.log("Retry successful:", res)
+
+      if (res.data?.content) {
+        normalEditor.chain().focus().deleteRange({ from, to }).insertContent(res.data.content).run()
+
+        toast.success("Selected lines regenerated successfully!")
+      } else {
+        toast.success("Regenerating selected lines!")
+      }
+    } catch (error) {
+      console.error("Retry failed:", error)
+      toast.error(error.message || "Retry failed.")
+    }
+  }
+
   const FloatingToolbar = ({ editorRef, mode }) => {
     if (!selectionPosition || !editorRef.current) return null
 
@@ -408,12 +453,12 @@ const TextEditor = ({
   const ModelDropdown1 = () => (
     <div className="relative" ref={dropdownRef}>
       <button
-        onClick={() => setShowModelDropdown(!showModelDropdown)}
-        className="flex items-center gap-2 font-semibold mr-4 hover:bg-gray-100 p-2 rounded"
+        // onClick={() => setShowModelDropdown(!showModelDropdown)}
+        className="flex capitalize items-center gap-2 font-semibold mr-4 hover:bg-gray-100 p-2 rounded"
       >
-        Gemini
+        {blog?.aiModel}
       </button>
-      {showModelDropdown && (
+      {/* {showModelDropdown && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -435,7 +480,7 @@ const TextEditor = ({
             </button>
           ))}
         </motion.div>
-      )}
+      )} */}
     </div>
   )
 
@@ -832,10 +877,13 @@ const TextEditor = ({
                 >
                   <Heading2 className="w-5 h-5" />
                 </button>
+                <button onClick={() => handleRetry()}>
+                  <Pencil className="w-4 h-4" />
+                </button>
               </BubbleMenu>
             )}
             <EditorContent editor={normalEditor} />
-            {activeSpan && (
+            {activeSpan instanceof HTMLElement && (
               <div
                 className="proof-ui-bubble"
                 ref={bubbleRef}
@@ -902,6 +950,9 @@ const TextEditor = ({
 
   return (
     <div className="flex-grow p-4 relative -top-16">
+      <Helmet>
+        <title>Blog Editor | GenWrite</title>
+      </Helmet>
       <div className="flex justify-end pr-10 items-center mb-4">
         {(activeTab === "markdown" || activeTab === "html") && (
           <button

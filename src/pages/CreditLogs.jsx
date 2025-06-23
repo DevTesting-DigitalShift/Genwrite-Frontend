@@ -1,4 +1,4 @@
-import { Table, Tag, Tooltip, Input, DatePicker } from "antd"
+import { Table, Tag, Tooltip, Input, DatePicker, Select } from "antd"
 import { motion, AnimatePresence } from "framer-motion"
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
@@ -7,6 +7,7 @@ import { SearchOutlined } from "@ant-design/icons"
 import moment from "moment"
 import { toast } from "react-toastify"
 import { loadUser } from "@api/authApi"
+import { Helmet } from "react-helmet"
 
 // [s ] DONE filter in blogs to search functionality
 // [ s] DONE link if the status is completed else not
@@ -22,6 +23,12 @@ const CreditLogsTable = () => {
   const navigate = useNavigate()
   const { RangePicker } = DatePicker
   const dispatch = useDispatch()
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+  })
+
+  const pageSizeOptions = [10, 20, 50, 100]
 
   useEffect(() => {
     const fetchCurrentUser = async () => {
@@ -51,8 +58,6 @@ const CreditLogsTable = () => {
     fetchLogs()
   }, [user])
 
-  console.log({ user })
-
   // Handle search and date filter
   useEffect(() => {
     let filtered = logs
@@ -77,6 +82,10 @@ const CreditLogsTable = () => {
 
     setFilteredLogs(filtered)
   }, [searchText, dateRange, logs])
+
+  const handleBlogClick = (blog) => {
+    navigate(`/toolbox/${blog._id}`, { state: { blog } })
+  }
 
   const columns = [
     {
@@ -156,6 +165,9 @@ const CreditLogsTable = () => {
 
   return (
     <AnimatePresence>
+      <Helmet>
+        <title>Credit Logs | GenWrite</title>
+      </Helmet>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -178,6 +190,12 @@ const CreditLogsTable = () => {
               className="rounded-lg border-gray-200 hover:border-blue-300"
               format="YYYY-MM-DD"
             />
+            <Select
+              value={pagination.pageSize}
+              onChange={(value) => setPagination({ ...pagination, pageSize: value })}
+              options={pageSizeOptions.map((size) => ({ label: `${size} / page`, value: size }))}
+              style={{ width: 120 }}
+            />
           </div>
         </div>
         <Table
@@ -185,7 +203,14 @@ const CreditLogsTable = () => {
           columns={columns}
           loading={loading}
           rowKey={(row, idx) => `${row.createdAt}-${idx}`}
-          pagination={{ pageSize: 10, showSizeChanger: true }}
+          pagination={{
+            current: pagination.current,
+            pageSize: pagination.pageSize,
+            showSizeChanger: false,
+            onChange: (page, pageSize) => {
+              setPagination({ current: page, pageSize })
+            },
+          }}
           className="rounded-xl overflow-hidden"
           rowClassName="hover:bg-gray-50 transition-colors"
           bordered={false}

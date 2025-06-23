@@ -12,6 +12,9 @@ import axiosInstance from "@api/index"
 import { toast, ToastContainer } from "react-toastify"
 import { useSelector, useDispatch } from "react-redux"
 import { loadAuthenticatedUser } from "@store/slices/authSlice"
+import { DatePicker } from "antd"
+import moment from "moment"
+import { Helmet } from "react-helmet"
 
 const DEMO_PROFILE = {
   profilePicture: "https://source.unsplash.com/random/800x800/?portrait",
@@ -61,6 +64,8 @@ const Profile = () => {
 
   console.log({ user })
 
+  const totalCredits = (user?.credits?.base ?? 0) + (user?.credits?.extra ?? 0)
+
   useEffect(() => {
     if (!user) return
 
@@ -98,30 +103,67 @@ const Profile = () => {
     }))
   }, [user])
 
-  useEffect(() => {
-    const updateUser = async (data) => {
-      try {
-        const res = await axiosInstance.put("/user/profile", data)
-        console.log({ res })
-        if (res?.data) {
-          await dispatch(loadAuthenticatedUser())
-        }
-        toast.success("User updated successfully")
-      } catch (err) {
-        toast.error("User update error, try after some time")
+  // useEffect(() => {
+  //   const updateUser = async (data) => {
+  //     try {
+  //       const res = await axiosInstance.put("/user/profile", data)
+  //       console.log({ res })
+  //       if (res?.data) {
+  //         await dispatch(loadAuthenticatedUser())
+  //       }
+  //       toast.success("User updated successfully")
+  //     } catch (err) {
+  //       toast.error("User update error, try after some time")
+  //     }
+  //   }
+  //   const wordpress = profileData?.personalDetails?.wordpress?.trim()
+  //   if (!isEditing && wordpress && user.wordpressLink !== wordpress) {
+  //     updateUser({
+  //       wordpressLink: wordpress,
+  //     })
+  //   }
+  // }, [profileData.personalDetails.wordpress, isEditing])
+
+  const handleSave = async () => {
+    const payload = {
+      avatar: profileData.profilePicture,
+      name: profileData.personalDetails.name,
+      bio: profileData.personalDetails.bio,
+      email: profileData.personalDetails.email,
+      phone: profileData.personalDetails.phone,
+      jobTitle: profileData.personalDetails.jobTitle,
+      company: profileData.personalDetails.company,
+      website: profileData.personalDetails.website,
+      dob: profileData.personalDetails.dob,
+      wordpressLink: profileData.personalDetails.wordpress,
+      // billingDetails: {
+      //   companyName: profileData.billingDetails.companyName,
+      //   address: profileData.billingDetails.address,
+      //   city: profileData.billingDetails.city,
+      //   country: profileData.billingDetails.country,
+      //   gstNumber: profileData.billingDetails.gstNumber,
+      //   taxId: profileData.billingDetails.taxId,
+      //   paymentMethod: profileData.billingDetails.paymentMethod,
+      //   companyEmail: profileData.billingDetails.companyEmail,
+      // },
+    }
+
+    try {
+      const res = await axiosInstance.put("/user/profile", payload)
+      if (res?.data) {
+        await dispatch(loadAuthenticatedUser())
+        setIsEditing(false)
       }
+      toast.success("Profile updated successfully")
+      setIsEditing(false)
+    } catch (err) {
+      toast.error("Error updating profile, try again")
     }
-    const wordpress = profileData?.personalDetails?.wordpress?.trim()
-    if (!isEditing && wordpress && user.wordpressLink !== wordpress) {
-      updateUser({
-        wordpressLink: wordpress,
-      })
-    }
-  }, [profileData.personalDetails.wordpress, isEditing])
+  }
 
   // Handlers
   const handleEditToggle = () => setIsEditing(!isEditing)
-  const handleSave = () => setIsEditing(false)
+  // const handleSave = () => setIsEditing(false)
   const handleCancel = () => setIsEditing(false)
 
   const handleImageUpload = (e) => {
@@ -175,6 +217,9 @@ const Profile = () => {
         animate={{ opacity: 1 }}
         className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/50 p-8"
       >
+        <Helmet>
+          <title>Profile | GenWrite</title>
+        </Helmet>
         <motion.div
           variants={containerVariants}
           initial="hidden"
@@ -234,7 +279,7 @@ const Profile = () => {
                     whileHover={{ y: -2 }}
                   >
                     <BanknotesIcon className="w-5 h-5" />
-                    <span>{profileData.subscription.credits} Credits</span>
+                    <span>{totalCredits} Credits</span>
                   </motion.div>
                 </div>
               </motion.div>
@@ -245,7 +290,7 @@ const Profile = () => {
           <motion.div className="p-8 space-y-8">
             {/* Edit Controls */}
             <div className="flex justify-end gap-4">
-              <AnimatePresence mode="wait">
+              <AnimatePresence>
                 {isEditing ? (
                   <>
                     <motion.button
@@ -319,6 +364,14 @@ const Profile = () => {
                       placeholder={DEMO_PROFILE.personalDetails.email}
                     />
                     <ProfileField
+                      label="Bio"
+                      name="personalDetails.bio"
+                      value={profileData.personalDetails.bio}
+                      isEditing={isEditing}
+                      onChange={handleInputChange}
+                      placeholder="e.g : I'm a travel enthusiast who loves exploring new cultures."
+                    />
+                    <ProfileField
                       label="WordPress Link"
                       name="personalDetails.wordpress"
                       value={profileData.personalDetails.wordpress}
@@ -358,14 +411,46 @@ const Profile = () => {
                       onChange={handleInputChange}
                       placeholder={DEMO_PROFILE.personalDetails.website}
                     />
-                    <ProfileField
-                      label="Date of Birth"
-                      name="personalDetails.dob"
-                      value={profileData.personalDetails.dob}
-                      isEditing={isEditing}
-                      onChange={handleInputChange}
-                      placeholder={DEMO_PROFILE.personalDetails.dob}
-                    />
+                    <motion.div className="space-y-2" whileHover={{ scale: 1.02 }}>
+                      <label className="text-sm font-medium text-slate-600">Date of Birth</label>
+                      {isEditing ? (
+                        <DatePicker
+                          format="YYYY-MM-DD"
+                          value={
+                            profileData.personalDetails.dob
+                              ? moment(profileData.personalDetails.dob)
+                              : null
+                          }
+                          onChange={(date, dateString) =>
+                            handleInputChange({
+                              target: {
+                                name: "personalDetails.dob",
+                                value: dateString,
+                              },
+                            })
+                          }
+                          className="w-full"
+                          disabledDate={(current) => current && current > moment().endOf("day")}
+                        />
+                      ) : (
+                        <motion.div
+                          className="px-4 py-2 bg-white/80 rounded-lg border-2 border-slate-200"
+                          whileHover={{ x: 5 }}
+                        >
+                          {profileData.personalDetails.dob ? (
+                            new Date(profileData.personalDetails.dob).toLocaleDateString("en-IN", {
+                              day: "numeric",
+                              month: "long",
+                              year: "numeric",
+                            })
+                          ) : (
+                            <span className="text-gray-400">
+                              {DEMO_PROFILE.personalDetails.dob}
+                            </span>
+                          )}
+                        </motion.div>
+                      )}
+                    </motion.div>
                   </div>
                 </motion.div>
 
@@ -387,21 +472,38 @@ const Profile = () => {
                     <div className="flex justify-between items-center p-3 rounded-lg bg-white/80">
                       <span className="font-medium">Credits Available</span>
                       <span className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-4 py-1 rounded-full">
-                        {profileData.subscription.credits || DEMO_PROFILE.subscription.credits}
+                        {totalCredits || DEMO_PROFILE.subscription.credits}
                       </span>
                     </div>
                     <div className="flex justify-between items-center p-3 rounded-lg bg-white/80">
                       <span className="font-medium">Start Date</span>
                       <span>
-                        {new Date(profileData.subscription.startDate).toLocaleDateString("en-IN") ||
-                          DEMO_PROFILE.subscription.startDate}
+                        {profileData?.subscription?.startDate
+                          ? new Date(profileData.subscription.startDate).toLocaleDateString(
+                              "en-IN",
+                              {
+                                day: "numeric",
+                                month: "long",
+                                year: "numeric",
+                              }
+                            )
+                          : DEMO_PROFILE.subscription.startDate}
                       </span>
                     </div>
+
                     <div className="flex justify-between items-center p-3 rounded-lg bg-white/80">
                       <span className="font-medium">Renewal Date</span>
                       <span>
-                        {profileData.subscription.renewalDate ||
-                          DEMO_PROFILE.subscription.renewalDate}
+                        {profileData?.subscription?.renewalDate
+                          ? new Date(profileData.subscription.renewalDate).toLocaleDateString(
+                              "en-IN",
+                              {
+                                day: "numeric",
+                                month: "long",
+                                year: "numeric",
+                              }
+                            )
+                          : "Not renewed yet"}
                       </span>
                     </div>
                   </div>
