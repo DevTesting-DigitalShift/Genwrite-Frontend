@@ -16,6 +16,7 @@ import {
   CloseCircleOutlined,
   SortDescendingOutlined,
 } from "@ant-design/icons"
+import { Helmet } from "react-helmet"
 
 const TRUNCATE_LENGTH = 120
 
@@ -180,7 +181,7 @@ const MyProjects = () => {
   }, [])
 
   const handleBlogClick = (blog) => {
-    navigate(`/toolbox/${blog._id}`, { state: { blog } })
+    navigate(`/toolbox/${blog._id}`)
   }
 
   const handleRetry = async (id) => {
@@ -315,6 +316,9 @@ const MyProjects = () => {
 
   return (
     <div className="p-5">
+      <Helmet>
+        <title>Blogs | GenWrite</title>
+      </Helmet>
       <ToastContainer />
       <div className="flex justify-between align-middle items-center">
         <div>
@@ -335,19 +339,6 @@ const MyProjects = () => {
             All your content creation tools in one place. Streamline your workflow with our powerful
             suite of tools.
           </motion.p>
-          {/* Display current filters */}
-          {/* <div className="flex gap-2 items-center text-sm text-gray-500">
-            <span>Filter:</span>
-            <span className="font-medium capitalize">
-              {statusFilter === "all" ? "All Statuses" : statusFilter}
-            </span>
-            <span>| Sort:</span>
-            <span className="font-medium">
-              {sortType === "az"
-                ? `A-Z (${sortOrder})`
-                : `Date (${sortOrder === "desc" ? "Newest" : "Oldest"})`}
-            </span>
-          </div> */}
         </div>
         <div className="flex gap-3">
           <Popover
@@ -411,7 +402,6 @@ const MyProjects = () => {
             onOpenChange={(visible) => setMenuOpen(visible)}
             trigger="click"
             placement="bottomRight"
-            overlayInnerStyle={{ padding: 0 }}
             content={
               <div className="min-w-[200px] rounded-lg shadow-lg border bg-white backdrop-blur-md p-2 space-y-1">
                 {menuOptions.map(({ label, icon, onClick }) => (
@@ -445,7 +435,6 @@ const MyProjects = () => {
             onOpenChange={(visible) => setFunnelMenuOpen(visible)}
             trigger="click"
             placement="bottomRight"
-            overlayInnerStyle={{ padding: 0 }}
             content={
               <div className="min-w-[200px] rounded-lg shadow-lg border bg-white backdrop-blur-md p-2 space-y-1">
                 {funnelMenuOptions.map(({ label, icon, onClick }) => (
@@ -576,7 +565,7 @@ const MyProjects = () => {
                       <div
                         className="cursor-pointer"
                         onClick={() => {
-                          if (status === "complete") {
+                          if (status === "complete" || status === "pending") {
                             handleBlogClick(blog)
                           }
                         }}

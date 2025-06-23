@@ -25,6 +25,7 @@ import { SkeletonDashboardCard, SkeletonGridCard } from "./Projects/SkeletonLoad
 import { AnimatePresence } from "framer-motion"
 import { loadAuthenticatedUser, selectUser } from "@store/slices/authSlice"
 import { Clock, Sparkles } from "lucide-react"
+import { Helmet } from "react-helmet"
 
 /*
  [s ] instead of asking for upgrade, show animation of crown with toast & disable features on plan based like free & basic can't open bulk blogs & other features
@@ -49,7 +50,7 @@ const Dashboard = () => {
 
   const dispatch = useDispatch()
   const navigate = useNavigate()
-  const user = useSelector(selectUser) 
+  const user = useSelector(selectUser)
   const { handlePopup } = useConfirmPopup()
 
   useEffect(() => {
@@ -161,6 +162,9 @@ const Dashboard = () => {
 
   return (
     <>
+      <Helmet>
+        <title>Home | GenWrite</title>
+      </Helmet>
       <ToastContainer />
       <Modal
         title={`Step ${currentStep}/3`}
@@ -256,7 +260,7 @@ const Dashboard = () => {
           </div>
 
           <div className="grid lg:grid-cols-3 gap-6">
-            <AnimatePresence mode="wait">
+            <AnimatePresence>
               {loading
                 ? Array.from({ length: 3 }).map((_, idx) => <SkeletonDashboardCard key={idx} />)
                 : letsBegin.map((item, index) => (
@@ -323,17 +327,6 @@ const Dashboard = () => {
                   </div>
                   <h2 className="text-2xl font-bold text-gray-900">Recent Projects</h2>
                 </div>
-                <span className="mr-5">
-                  <select
-                    name=""
-                    id=""
-                    className="font-hind text-md p-1 border-1 border-black bg-blue-50 rounded-xl"
-                  >
-                    <option className="font-hind" value="">
-                      Top Performing
-                    </option>
-                  </select>
-                </span>
               </div>
               <div>
                 <AnimatePresence>
@@ -353,7 +346,10 @@ const Dashboard = () => {
                       })}
                 </AnimatePresence>
                 <div className="mt-6 text-center">
-                  <button className="px-6 py-3 text-blue-600 hover:text-blue-700 font-medium hover:bg-blue-50 rounded-lg transition-colors" onClick={() => navigate("/project")}>
+                  <button
+                    className="px-6 py-3 text-blue-600 hover:text-blue-700 font-medium hover:bg-blue-50 rounded-lg transition-colors"
+                    onClick={() => navigate("/project")}
+                  >
                     View All Projects
                   </button>
                 </div>

@@ -1,19 +1,17 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Hind:wght@400;500;600&display=swap');
-
+/* @import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Hind:wght@400;500;600&display=swap"); */
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-
 body {
-  font-family: "Hind", sans-serif;
+  font-family: "Lato", sans-serif;
   background-color: #fafafa;
   @apply min-h-screen;
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",monospace;
+  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
 }
 
 .blog-content {
@@ -22,7 +20,6 @@ code {
   padding: 1rem;
   color: #333;
 }
-
 
 .blog-content h1,
 .blog-content h2,
@@ -35,12 +32,24 @@ code {
   margin-bottom: 0.5em;
 }
 
-.blog-content h1 { font-size: 2em; }
-.blog-content h2 { font-size: 1.75em; }
-.blog-content h3 { font-size: 1.5em; }
-.blog-content h4 { font-size: 1.3em; }
-.blog-content h5 { font-size: 1.1em; }
-.blog-content h6 { font-size: 1em; }
+.blog-content h1 {
+  font-size: 2em;
+}
+.blog-content h2 {
+  font-size: 1.75em;
+}
+.blog-content h3 {
+  font-size: 1.5em;
+}
+.blog-content h4 {
+  font-size: 1.3em;
+}
+.blog-content h5 {
+  font-size: 1.1em;
+}
+.blog-content h6 {
+  font-size: 1em;
+}
 
 /* Paragraphs */
 .blog-content p {
@@ -94,7 +103,6 @@ code {
   margin: 2em 0;
 }
 
-
 .go-pro-button {
   @apply bg-gradient-to-r from-blue-500 to-purple-600 rounded-full;
   background-clip: padding-box;
@@ -102,8 +110,8 @@ code {
   overflow: hidden;
 }
 
-.go-pro-button:hover{
-   @apply !bg-gradient-to-r !from-blue-600 !to-purple-700 rounded-full;
+.go-pro-button:hover {
+  @apply !bg-gradient-to-r !from-blue-600 !to-purple-700 rounded-full;
 }
 
 /* Shimmer effect */
@@ -142,7 +150,6 @@ input[type="number"] {
   -moz-appearance: textfield;
 }
 
-
 @keyframes shimmer {
   0% {
     left: -75%;
@@ -152,28 +159,75 @@ input[type="number"] {
   }
 }
 
+/* Highlighted proof text */
 .proofreading-mark {
   position: relative;
-  background: #fff7dd;
-  border-bottom: 2px dotted orange;
+  background-color: #fff4e5;
+  border-bottom: 2px dashed #f5320bdf; /* Amber-500 */
+  color: #1f2937; /* Neutral-800 */
   cursor: pointer;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
+.proofreading-mark:hover {
+  background-color: #ffedd5; /* Amber-100 */
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2); /* subtle highlight */
+}
+
+/* Suggestion preview inline */
 .proofreading-mark::after {
   content: " → " attr(data-suggestion);
-  color: #888;
-  font-size: 0.95em;
+  color: #9ca3af; /* Gray-400 */
+  font-size: 0.85em;
   font-style: italic;
-  margin-left: 4px;
+  margin-left: 6px;
 }
 
+/* The Accept/Reject floating popup */
 .proof-ui-bubble {
   position: absolute;
-  background: white;
-  border: 1px solid #ddd;
-  padding: 6px 8px;
-  border-radius: 4px;
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb; /* Gray-200 */
+  padding: 10px 12px;
+  border-radius: 10px;
   font-size: 14px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  color: #1f2937; /* Gray-800 */
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
   z-index: 1000;
+  min-width: 180px;
+  animation: fadeInUp 0.2s ease-out;
+}
+
+/* Buttons inside bubble */
+.proof-ui-bubble span {
+  background-color: #f9fafb;
+  border: 1px solid #d1d5db;
+  padding: 6px 10px;
+  border-radius: 6px;
+  margin-right: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.proof-ui-bubble span:hover {
+  background-color: #e5e7eb;
+  border-color: #9ca3af;
+}
+
+.proof-ui-bubble span:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+/* Animation */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

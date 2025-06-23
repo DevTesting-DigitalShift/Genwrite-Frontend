@@ -6,6 +6,7 @@ import { loadStripe } from "@stripe/stripe-js"
 import { MailOutlined } from "@ant-design/icons"
 import { SkeletonCard } from "@components/Projects/SkeletonLoader"
 import { Check, Coins, Crown, Mail, Shield, Star, Zap } from "lucide-react"
+import { Helmet } from "react-helmet"
 
 const PricingCard = ({ plan, index, onBuy }) => {
   const [customCredits, setCustomCredits] = useState(5)
@@ -228,6 +229,9 @@ const Upgrade = () => {
 
   return (
     <div className=" bg-gray-50 py-20 px-4">
+      <Helmet>
+        <title>Subscription | GenWrite</title>
+      </Helmet>
       <div className="max-w-7xl mx-auto">
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center mb-16">
           <motion.div initial={{ y: -20 }} animate={{ y: 0 }} className="inline-block mb-4">
@@ -249,8 +253,8 @@ const Upgrade = () => {
             Choose the perfect plan for your team. Scale seamlessly as your needs grow.
           </p>
         </motion.div>
-        <div className="grid lg:grid-cols-3 md:grid-cols-2 gap-10 ">
-          <AnimatePresence mode="wait">
+        <div className="grid lg:grid-cols-4 md:grid-cols-2 gap-10 ">
+          <AnimatePresence>
             {loading
               ? Array.from({ length: 4 }).map((_, idx) => <SkeletonCard key={idx} />)
               : plans.map((plan, index) => (

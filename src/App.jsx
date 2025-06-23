@@ -8,6 +8,7 @@ import { useDispatch } from "react-redux"
 // import { load } from "@store/slices/authSlice"
 import { ConfirmPopupProvider } from "@/context/ConfirmPopupContext"
 import { loadAuthenticatedUser } from "@store/slices/authSlice"
+import { Helmet } from "react-helmet"
 
 const App = () => {
   const dispatch = useDispatch()
@@ -29,6 +30,9 @@ const App = () => {
 
   return (
     <Suspense fallback={<Loading />}>
+      <Helmet>
+        <title>GenWrite</title>
+      </Helmet>
       <ConfirmPopupProvider>
         <RouterProvider router={router} />
         <ToastContainer />

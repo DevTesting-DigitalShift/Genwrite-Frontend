@@ -3,7 +3,7 @@ import { NavLink, useLocation, useNavigate } from "react-router-dom"
 import { useDispatch, useSelector } from "react-redux"
 import { RxAvatar } from "react-icons/rx"
 import { FiMenu } from "react-icons/fi"
-import { Crown, Zap } from "lucide-react"
+import { Crown, UsersRound, Zap } from "lucide-react"
 import { loadAuthenticatedUser, logoutUser, selectUser } from "../store/slices/authSlice"
 import { Tooltip, Dropdown, Avatar } from "antd"
 import { RiCoinsFill } from "react-icons/ri"
@@ -32,6 +32,12 @@ const LayoutWithSidebarAndHeader = () => {
     }
 
     fetchCurrentUser()
+
+    const interval = setInterval(() => {
+      fetchCurrentUser()
+    }, 180000)
+
+    return () => clearInterval(interval)
   }, [dispatch, navigate])
 
   // console.log({ user })
@@ -104,12 +110,13 @@ const LayoutWithSidebarAndHeader = () => {
     <div className={`${path.includes("signup") || path.includes("login") ? "hidden" : "flex"}`}>
       {/* Sidebar */}
       <div
-        className={`fixed top-0 left-0 h-full z-40 transition-all duration-300 bg-gradient-to-br from-purple-800 to-blue-600 text-white overflow-hidden p-2 ${
+        className={`fixed top-0 left-0 h-full z-40 transition-all duration-300 bg-gradient-to-br from-purple-800 to-blue-600 text-white overflow-hidden p-2 flex flex-col ${
           sidebarOpen ? "w-56" : "w-16"
         }`}
         onMouseEnter={() => setSidebarOpen(true)}
         onMouseLeave={() => setSidebarOpen(false)}
       >
+        {/* Logo or menu icon */}
         <div className="flex justify-center items-center h-14 mb-4">
           {!sidebarOpen ? (
             <FiMenu size={24} className="text-white" />
@@ -123,7 +130,7 @@ const LayoutWithSidebarAndHeader = () => {
           )}
         </div>
 
-        {/* Upgrade Button - Only show when sidebar is open */}
+        {/* Upgrade Button */}
         {sidebarOpen && (
           <div className="mb-6 px-2">
             <button
@@ -137,6 +144,7 @@ const LayoutWithSidebarAndHeader = () => {
           </div>
         )}
 
+        {/* Navigation Menu */}
         <ul className="space-y-3">
           {Menus.map((Menu, index) => {
             const isActive = location.pathname.startsWith(Menu.path)
@@ -159,6 +167,23 @@ const LayoutWithSidebarAndHeader = () => {
             )
           })}
         </ul>
+
+        {/* Contact Us - Stick to bottom */}
+        <div className="mt-auto px-2 pt-4">
+          <NavLink
+            to="/contact"
+            className={`flex items-center ${
+              sidebarOpen ? "justify-start gap-3 px-3 py-2" : "justify-center py-3"
+            } rounded-md text-white hover:bg-white/10 transition-all duration-300`}
+          >
+            <UsersRound
+              className={`transition-all duration-300 ${
+                sidebarOpen ? "w-5 h-5 opacity-100" : "w-5 h-5 opacity-80"
+              }`}
+            />
+            <span className={`${sidebarOpen ? "block" : "hidden"}`}>Contact Us</span>
+          </NavLink>
+        </div>
       </div>
 
       {/* Main Content */}

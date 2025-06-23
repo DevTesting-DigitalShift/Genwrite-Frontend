@@ -4,6 +4,7 @@ import { motion } from "framer-motion"
 import { ReloadOutlined } from "@ant-design/icons"
 import axiosInstance from "@api/index"
 import { ToastContainer } from "react-toastify"
+import { Helmet } from "react-helmet"
 
 const Transactions = () => {
   const [transactions, setTransactions] = useState([])
@@ -108,6 +109,9 @@ const Transactions = () => {
 
   return (
     <>
+      <Helmet>
+        <title>Transactions | GenWrite</title>
+      </Helmet>
       <ToastContainer />
       <motion.div
         initial={{ opacity: 0, y: 20 }}

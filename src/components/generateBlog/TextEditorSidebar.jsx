@@ -262,7 +262,17 @@ const TextEditorSidebar = ({
         <h3 className="font-semibold mb-2 text-gray-700">Blog Score</h3>
         <div className="bg-white rounded-lg shadow-md p-4 flex items-center justify-center gap-4">
           <span className="text-2xl font-bold text-gray-800">
-            {competitiveAnalysisResults?.blogScore || "N/A"}
+            {competitiveAnalysisResults?.blogScore || "0"}
+          </span>
+          <span className="text-2xl font-bold text-gray-600">/ 100</span>
+        </div>
+      </div>
+
+      <div className="mb-3">
+        <h3 className="font-semibold mb-2 text-gray-700">SEO Score</h3>
+        <div className="bg-white rounded-lg shadow-md p-4 flex items-center justify-center gap-4">
+          <span className="text-2xl font-bold text-gray-800">
+            {competitiveAnalysisResults?.seoScore || "0"}
           </span>
           <span className="text-2xl font-bold text-gray-600">/ 100</span>
         </div>

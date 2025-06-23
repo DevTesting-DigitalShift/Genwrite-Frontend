@@ -102,3 +102,12 @@ export const sendBrand = async (formData) => {
     throw new Error(error.response?.data?.message || "Failed to create blog")
   }
 }
+
+export const sendRetryLines = async (id, payload) => {
+  try {
+    const response = await axiosInstance.post(`/blogs/${id}/retry`, payload)
+    return response
+  } catch (error) {
+    throw new Error(error || "Failed to retry")
+  }
+}
