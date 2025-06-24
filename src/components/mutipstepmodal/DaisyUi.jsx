@@ -11,10 +11,6 @@ import { createMultiBlog } from "@store/slices/blogSlice"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import axiosInstance from "@api/index"
 
-// [ ] check the height of all models
-// [s ] DONE in bulk jobs add file uploder same as jobs
-// [s ] DONE ai model default gemini
-
 const MultiStepModal = ({ closefnc }) => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
