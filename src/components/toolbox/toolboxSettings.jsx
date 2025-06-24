@@ -13,7 +13,7 @@ import {
   CloseOutlined,
 } from "@ant-design/icons"
 import { motion } from "framer-motion"
-import CompetitiveAnalysisModal from "../mutipstepmodal/CompetitiveAnalysisModal"
+import CompetitiveAnalysisModal from "../multipleStepModal/CompetitiveAnalysisModal"
 import axiosInstance from "@api" // adjust path if needed
 import { useSelector } from "react-redux"
 import { toast, ToastContainer } from "react-toastify"
@@ -396,7 +396,7 @@ export default function ToolboxPage() {
         </motion.div> */}
 
         {competitiveAnalysisModalOpen && (
-          <CompetitiveAnalysisModal closefnc={() => setCompetitiveAnalysisModalOpen(false)} />
+          <CompetitiveAnalysisModal closeFnc={() => setCompetitiveAnalysisModalOpen(false)} />
         )}
       </motion.div>
       <ToastContainer />

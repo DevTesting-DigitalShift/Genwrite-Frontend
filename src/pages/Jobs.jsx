@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react"
 import axiosInstance from "@api/index"
 import MultiDatePicker from "react-multi-date-picker"
 import { motion, AnimatePresence } from "framer-motion"
-import SelectTemplateModal from "@components/mutipstepmodal/SelectTemplateModal"
-import Carousel from "@components/mutipstepmodal/Carousel"
+import SelectTemplateModal from "@components/multipleStepModal/SelectTemplateModal"
+import Carousel from "@components/multipleStepModal/Carousel"
 import { packages } from "@constants/templates"
 import { FiPlus, FiSettings, FiCalendar, FiFileText, FiEdit } from "react-icons/fi"
 import { toast, ToastContainer } from "react-toastify"
@@ -27,6 +27,7 @@ const initialJob = {
   blogs: {
     numberOfBlogs: 1,
     topics: [],
+    keywords: [],
     templates: [],
     tone: "Professional",
     userDefinedLength: 1000,
@@ -38,7 +39,7 @@ const initialJob = {
     includeFaqs: false,
     useBrandVoice: false,
     includeCompetitorResearch: false,
-    includeInterlinks: false,
+    includeInterlinks: false, 
     performKeywordResearch: false,
   },
   status: "active", // default to stop (valid enum for backend)
@@ -61,6 +62,9 @@ const Jobs = () => {
   const [formData, setFormData] = useState({
     focusKeywords: [],
     focusKeywordInput: "",
+    keywords: [],
+    keywordInput: "",
+    performKeywordResearch: true,
   })
 
   const fetchJobs = async () => {
@@ -99,6 +103,7 @@ const Jobs = () => {
           includeCompetitorResearch: newJob.options.includeCompetitorResearch || false,
           includeInterlinks: newJob.options.includeInterlinks || false,
           performKeywordResearch: newJob.options.performKeywordResearch || false,
+          keywords : newJob.blogs.keywords || []
         },
       }
       await axiosInstance.post("/jobs", jobPayload)
@@ -342,6 +347,118 @@ const Jobs = () => {
     e.target.value = "" // Reset file input
   }
 
+  const handleKeywordToggleInputChange = (e) => {
+    setFormData((prev) => ({ ...prev, keywordInput: e.target.value }))
+  }
+
+  const handleCheckboxChange = async (e) => {
+    const { name, checked } = e.target
+    if (name === "wordpressPostStatus" && checked) {
+      try {
+        if (!user?.wordpressLink) {
+          toast.error(
+            "Please connect your WordPress account in your profile before enabling automatic posting."
+          )
+          navigate("/profile")
+          return
+        }
+      } catch {
+        toast.error("Failed to check profile. Please try again.")
+        return
+      }
+    }
+    setFormData({
+      ...formData,
+      [name]: checked,
+    })
+  }
+
+  const handleTopicKeyPress = (e) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault()
+      handleAddKeyword()
+      handleAddToggleKeyword()
+    }
+  }
+
+  const handleAddToggleKeyword = () => {
+    const inputValue = formData.keywordInput
+    if (inputValue.trim() !== "") {
+      const newKeywords = inputValue
+        .split(",")
+        .map((keyword) => keyword.trim())
+        .filter((keyword) => keyword !== "" && !formData.keywords.includes(keyword))
+
+      if (newKeywords.length > 0) {
+        setFormData((prev) => ({
+          ...prev,
+          keywords: [...prev.keywords, ...newKeywords],
+          keywordInput: "",
+        }))
+        return true
+      } else {
+        setFormData((prev) => ({ ...prev, keywordInput: "" }))
+        return false
+      }
+    }
+    return false
+  }
+
+  const handleRemoveToggleKeyword = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      keywords: prev.keywords.filter((_, i) => i !== index),
+    }))
+  }
+
+  const handleCSVKeywordUpload = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+
+    reader.onload = (event) => {
+      const text = event.target?.result
+      if (!text) return
+
+      const lines = text.trim().split(/\r?\n/).slice(1) // skip header
+      const keywords = lines
+        .map((line) => {
+          const parts = line.split(",")
+          return parts.length >= 2 ? parts[1].trim() : null
+        })
+        .filter(Boolean)
+
+      // Normalize for comparison (lowercase, trimmed)
+      const existingTopics = formData.keywords.map((t) => t.toLowerCase().trim())
+
+      const uniqueNewTopics = keywords.filter((kw) => {
+        const normalized = kw.toLowerCase().trim()
+        return !existingTopics.includes(normalized)
+      })
+
+      if (uniqueNewTopics.length === 0) {
+        toast.warning("No new topics found in the CSV.")
+        return
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        keywords: [...prev.keywords, ...uniqueNewTopics],
+      }))
+
+      if (uniqueNewTopics.length > 8) {
+        setRecentlyUploadedCount(uniqueNewTopics.length)
+        setTimeout(() => setRecentlyUploadedCount(null), 5000)
+      }
+    }
+
+    reader.readAsText(file)
+
+    // ✅ Reset file input to allow uploading the same file again
+    e.target.value = null
+  }
+
   const renderStep = () => {
     switch (currentStep) {
       case 1:
@@ -582,6 +699,96 @@ const Jobs = () => {
                 </select>
               </div>
             </div>
+
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-gray-700">
+                Perform Keyword Research?
+                <p className="text-xs text-gray-500">
+                  Allow AI to find relevant keywords for the topics.
+                </p>
+              </span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="performKeywordResearch"
+                  checked={formData.performKeywordResearch}
+                  onChange={handleCheckboxChange}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+
+            {!formData.performKeywordResearch && (
+              <div className="space-y-6">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                    Focus Keywords
+                    <div className="relative group cursor-pointer">
+                      <Info size={16} className="text-blue-500 mb-1" />
+                      <div className="absolute bottom-5 left-0 mt-1 w-max text-xs bg-white text-gray-700 border rounded shadow px-2 py-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                        Upload a .csv file in the format: `S.No., Keyword`
+                      </div>
+                    </div>
+                  </label>
+                  {/* <p className="text-xs text-gray-500 mb-2">
+                      Enter the main keywords for your blogs .
+                    </p> */}
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={formData.keywordInput}
+                      onChange={handleKeywordToggleInputChange}
+                      onKeyDown={handleTopicKeyPress}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="e.g., digital marketing trends, AI in business"
+                    />
+                    <button
+                      onClick={handleAddToggleKeyword}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700"
+                    >
+                      Add
+                    </button>
+                    <label className="px-4 py-2 bg-gray-100 text-gray-700 border rounded-md text-sm cursor-pointer flex items-center gap-1 hover:bg-gray-200">
+                      <Upload size={16} />
+                      <input type="file" accept=".csv" onChange={handleCSVKeywordUpload} hidden />
+                    </label>
+                  </div>
+                  <div className="flex flex-wrap gap-2 mt-2 min-h-[28px]">
+                    {formData.keywords
+                      .slice() // make a shallow copy
+                      .reverse() // newest first
+                      .slice(0, 18)
+                      .map((topic, index) => (
+                        <span
+                          key={`${topic}-${index}`}
+                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
+                        >
+                          {topic}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleRemoveToggleKeyword(formData.keywords.length - 1 - index)
+                            } // adjusted for reversed index
+                            className="ml-1.5 flex-shrink-0 text-indigo-400 hover:text-indigo-600 focus:outline-none"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))}
+
+                    {/* Combined +X more and +Y uploaded */}
+                    {(formData.keywords.length > 18 || recentlyUploadedCount) && (
+                      <span className="text-xs font-medium text-blue-600 self-center">
+                        {formData.keywords.length > 18 && `+${formData.keywords.length - 18} more `}
+                        {recentlyUploadedCount && `(+${recentlyUploadedCount} uploaded)`}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="flex justify-between mt-6">
               <button
                 onClick={() => setCurrentStep(1)}
@@ -1063,14 +1270,13 @@ const Jobs = () => {
           {/* Modal (keep your existing modal implementation) */}
           {showJobModal && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white rounded-lg shadow-lg w-3/4 max-w-3xl p-6 relative">
+              <div className="bg-white rounded-lg shadow-lg w-3/4 max-w-3xl p-6 relative max-h-[98vh] overflow-y-auto">
                 <button
                   onClick={() => setShowJobModal(false)}
                   className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
                 >
                   ✕
                 </button>
-                {/* Render the modal content based on the current step */}
                 {renderStep()}
               </div>
             </div>

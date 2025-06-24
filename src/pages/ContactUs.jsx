@@ -1,8 +1,7 @@
-import React, { useState } from "react"
+import { useState } from "react"
+import emailjs from "emailjs-com"
 import {
   Mail,
-  Phone,
-  MapPin,
   Clock,
   Send,
   CheckCircle,
@@ -13,10 +12,10 @@ import {
   User,
   MessageSquare,
   Building2,
-  Globe,
   ArrowRight,
   Sparkles,
 } from "lucide-react"
+import { toast, ToastContainer } from "react-toastify"
 
 const ContactUs = () => {
   const [formData, setFormData] = useState({
@@ -77,19 +76,28 @@ const ContactUs = () => {
 
     setIsSubmitting(true)
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false)
-      setIsSubmitted(true)
+    try {
+      const result = await emailjs.send(
+        import.meta.env.VITE_EMAILJS_SERVICE_ID,
+        import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+        formData,
+        import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+      )
+
+      console.log("SUCCESS!", result.text)
       setFormData({ name: "", email: "", subject: "", message: "" })
-
-      // Reset success message after 5 seconds
-      setTimeout(() => {
-        setIsSubmitted(false)
-      }, 5000)
-    }, 2000)
+    } catch (error) {
+      console.error("FAILED...", error)
+      toast.error("Failed to send message. Try again.")
+    } finally {
+      setIsSubmitting(false)
+    }
   }
-
+console.log({
+  service: import.meta.env.VITE_EMAILJS_SERVICE_ID,
+  template: import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+  public: import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+})
   const companyInfo = {
     name: "GenWrite Technologies",
     address: {
@@ -137,6 +145,7 @@ const ContactUs = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/50">
+      <ToastContainer />
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-20 px-4">
         <div className="max-w-7xl mx-auto text-center">
@@ -193,7 +202,7 @@ const ContactUs = () => {
                         htmlFor="name"
                         className="block text-sm font-semibold text-gray-700 mb-2"
                       >
-                        Full Name *
+                        Full Name <span className="text-red-500 ml-1">*</span>
                       </label>
                       <div className="relative">
                         <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -220,7 +229,7 @@ const ContactUs = () => {
                         htmlFor="email"
                         className="block text-sm font-semibold text-gray-700 mb-2"
                       >
-                        Email Address *
+                        Email Address <span className="text-red-500 ml-1">*</span>
                       </label>
                       <div className="relative">
                         <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -267,7 +276,7 @@ const ContactUs = () => {
                       htmlFor="message"
                       className="block text-sm font-semibold text-gray-700 mb-2"
                     >
-                      Message *
+                      Message <span className="text-red-500 ml-1">*</span>
                     </label>
                     <textarea
                       id="message"
@@ -328,7 +337,7 @@ const ContactUs = () => {
 
               <div className="space-y-6">
                 {/* Address */}
-                <div className="flex items-start gap-4">
+                {/* <div className="flex items-start gap-4">
                   <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
                     <MapPin className="w-6 h-6 text-blue-600" />
                   </div>
@@ -345,10 +354,10 @@ const ContactUs = () => {
                       <p>{companyInfo.address.country}</p>
                     </div>
                   </div>
-                </div>
+                </div> */}
 
                 {/* Phone */}
-                <div className="flex items-start gap-4">
+                {/* <div className="flex items-start gap-4">
                   <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center flex-shrink-0">
                     <Phone className="w-6 h-6 text-green-600" />
                   </div>
@@ -361,7 +370,7 @@ const ContactUs = () => {
                       {companyInfo.phone}
                     </a>
                   </div>
-                </div>
+                </div> */}
 
                 {/* Email */}
                 <div className="flex items-start gap-4">
@@ -426,7 +435,7 @@ const ContactUs = () => {
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden mt-10">
+        {/* <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden mt-10">
           <div className="p-6 border-b border-gray-100">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-pink-500 rounded-xl flex items-center justify-center">
@@ -447,46 +456,8 @@ const ContactUs = () => {
               className="rounded-b-2xl"
             />
           </div>
-        </div>
+        </div> */}
       </div>
-
-      {/* Map */}
-
-      {/* FAQ Section */}
-      {/* <div className="bg-gray-50 py-20 px-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Frequently Asked Questions</h2>
-            <p className="text-gray-600 text-lg">Quick answers to common questions</p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-8">
-            {[
-              {
-                q: "How quickly do you respond to inquiries?",
-                a: "We typically respond to all inquiries within 24 hours during business days. For urgent matters, please call us directly.",
-              },
-              {
-                q: "Do you offer enterprise solutions?",
-                a: "Yes! We provide custom enterprise solutions with dedicated support, advanced features, and flexible pricing. Contact us to learn more.",
-              },
-              {
-                q: "Can I schedule a demo?",
-                a: "Absolutely! We'd love to show you how GenWrite can transform your content creation process. Use the contact form to request a demo.",
-              },
-              {
-                q: "What support options are available?",
-                a: "We offer email support, live chat, phone support for enterprise customers, and a comprehensive knowledge base.",
-              },
-            ].map((faq, index) => (
-              <div key={index} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <h3 className="font-semibold text-gray-900 mb-3">{faq.q}</h3>
-                <p className="text-gray-600 text-sm leading-relaxed">{faq.a}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div> */}
     </div>
   )
 }

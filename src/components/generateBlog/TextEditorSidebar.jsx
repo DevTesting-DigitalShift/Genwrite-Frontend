@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { X, Plus, Gem } from "lucide-react"
+import { X, Plus, Gem, Pencil, RotateCcw } from "lucide-react"
 import { toast } from "react-toastify"
 import axiosInstance from "@api/index"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useNavigate } from "react-router-dom"
-import { useSelector } from "react-redux"
-import { Button } from "antd"
+import { useDispatch, useSelector } from "react-redux"
+import { Button, Tooltip } from "antd"
+import { fetchBlogById, updateBlogById } from "@store/slices/blogSlice"
 
 const TextEditorSidebar = ({
   blog,
@@ -18,6 +19,7 @@ const TextEditorSidebar = ({
   handleReplace,
   setProofreadingResults,
   proofreadingResults,
+  content,
 }) => {
   const [newKeyword, setNewKeyword] = useState("")
   const [isPosting, setIsPosting] = useState(false)
@@ -30,6 +32,7 @@ const TextEditorSidebar = ({
   const { handlePopup } = useConfirmPopup()
   const [postRes, setPostRes] = useState()
   const navigate = useNavigate()
+  const dispatch = useDispatch()
 
   const fetchCompetitiveAnalysis = async () => {
     if (!blog || !blog.title || !blog.content) {
@@ -84,7 +87,8 @@ const TextEditorSidebar = ({
       const keywordsToAdd = newKeyword
         .split(",")
         .map((k) => k.trim())
-        .filter((k) => k)
+        .filter((k) => k && !keywords.includes(k)) // prevent duplicates
+
       setKeywords([...keywords, ...keywordsToAdd])
       setNewKeyword("")
     }
@@ -205,6 +209,50 @@ const TextEditorSidebar = ({
     }
   }
 
+  const handleRegenerateKeywords = () => {}
+
+  const handleRetry = async () => {
+    if (!blog?._id) {
+      toast.error("Blog ID is missing.")
+      return
+    }
+
+    const payload = {
+      contentPart: true,
+      content: selectedText.trim(),
+    }
+
+    try {
+      const res = await sendRetryLines(blog._id, payload)
+    } catch (error) {
+      console.error("Retry failed:", error)
+      toast.error(error.message || "Retry failed.")
+    }
+  }
+
+  const handleSave = async () => {
+    if (userPlan === "free" || userPlan === "basic") {
+      showUpgradePopup()
+      return
+    }
+
+    try {
+      await dispatch(
+        updateBlogById(blog._id, {
+          title: blog?.title,
+          content: content,
+          published: blog?.published,
+          focusKeywords: blog?.focusKeywords,
+          keywords,
+        })
+      )
+      toast.success("Something")
+    } catch (error) {
+      console.error("Error updating the blog:", error)
+      toast.error("Failed to save blog.")
+    }
+  }
+
   return (
     <motion.div
       initial={{ x: "100%" }}
@@ -214,7 +262,24 @@ const TextEditorSidebar = ({
     >
       <h2 className="font-semibold text-lg mb-2 text-gray-800">Competitor Analysis</h2>
       <div className="mb-6">
-        <h3 className="font-semibold mb-1 text-gray-700">Keywords</h3>
+        <div className="flex justify-between items-center">
+          <h3 className="font-semibold mb-1 text-gray-700">Keywords</h3>
+          {keywords.length !== 0 && (
+            <Tooltip title="Rewrite">
+              <RotateCcw
+                className="w-4 h-4 text-gray-700"
+                onClick={() => {
+                  handlePopup({
+                    title: "Rewrite Keywords",
+                    description:
+                      "Do you want to rewrite the whole content with added keywords ? You can rewrite only 3 times.",
+                    onConfirm: handleSave,
+                  })
+                }}
+              />
+            </Tooltip>
+          )}
+        </div>
         <div className="flex flex-wrap mb-1">
           <AnimatePresence>
             {keywords.map((keyword) => (

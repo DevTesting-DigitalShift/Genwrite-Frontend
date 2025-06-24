@@ -5,16 +5,17 @@ import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import { sendBrandVoice } from "../../store/slices/blogSlice"
 import axiosInstance from "@api/index"
-import { UploadOutlined } from "@ant-design/icons"
+import * as XLSX from "xlsx"
 import { Upload } from "lucide-react"
 import { Helmet } from "react-helmet"
+import { toast } from "react-toastify"
 
 const BrandVoice = () => {
-  const dispatch = useDispatch()
-  const navigate = useNavigate()
   const user = useSelector((state) => state.auth.user)
-
-  // State to store form data
+  const [inputValue, setInputValue] = useState("")
+  const [isUploading, setIsUploading] = useState(false)
+  const [brands, setBrands] = useState([])
+  const [excelData, setExcelData] = useState(null)
   const [formData, setFormData] = useState({
     nameOfVoice: "",
     postLink: "",
@@ -23,10 +24,6 @@ const BrandVoice = () => {
     selectedVoice: null,
     uploadedFile: null,
   })
-
-  const [inputValue, setInputValue] = useState("")
-  const [isUploading, setIsUploading] = useState(false)
-  const [brands, setBrands] = useState([])
 
   const fetchBrands = async () => {
     try {
@@ -69,22 +66,18 @@ const BrandVoice = () => {
           : [],
         describeBrand: formData.describeBrand?.trim(),
         userId: user?._id, // send userId to backend
+        xslData: excelData,
       }
-      if (
-        !payload.nameOfVoice ||
-        !payload.postLink ||
-        !payload.describeBrand ||
-        payload.keywords.length === 0
-      ) {
+      if (!payload.nameOfVoice || !payload.postLink || !payload.describeBrand) {
         setIsUploading(false)
-        alert("All fields are required and at least one keyword must be provided.")
+        toast.error("All fields are required.")
         return
       }
       try {
         new URL(payload.postLink)
       } catch {
         setIsUploading(false)
-        alert("Please enter a valid URL for the post link.")
+        toast.error("Please enter a valid URL for the post link.")
         return
       }
       let res
@@ -108,9 +101,8 @@ const BrandVoice = () => {
       })
     } catch (err) {
       setIsUploading(false)
-      alert(
-        err?.response?.data?.message ||
-          err?.response?.data?.errors?.[0]?.msg ||
+      toast.error(
+        err?.response?.data?.details?.errors[0]?.msg ||
           "Failed to save brand voice. Please check your input."
       )
     }
@@ -125,7 +117,7 @@ const BrandVoice = () => {
         setFormData((prev) => ({ ...prev, selectedVoice: null }))
       }
     } catch (err) {
-      alert("Failed to delete brand voice.")
+      toast.error("Failed to delete brand voice.")
     }
   }
 
@@ -165,9 +157,40 @@ const BrandVoice = () => {
       reader.readAsText(file)
     } else {
       // Optionally show error: only CSV allowed
-      // toast.error("Please upload a CSV file");
+      toast.error("Please upload a CSV file")
     }
   }
+
+  const handleSiteFileChange = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+
+    reader.onload = (event) => {
+      const data = event.target?.result
+      const workbook = XLSX.read(data, { type: "binary" })
+
+      const firstSheetName = workbook.SheetNames[0]
+      const sheet = workbook.Sheets[firstSheetName]
+
+      // Convert sheet to JSON
+      const json = XLSX.utils.sheet_to_json(sheet)
+      console.log("Excel JSON:", json)
+
+      // Convert to string to send in payload
+      const jsonString = JSON.stringify(json)
+      setExcelData(jsonString) // Save for payload
+    }
+
+    reader.onerror = (error) => {
+      console.error("Error reading Excel file:", error)
+    }
+
+    reader.readAsBinaryString(file)
+  }
+
+  console.log({ excelData })
 
   const handleRemoveFile = (fileName) => {
     setFormData({
@@ -327,41 +350,34 @@ const BrandVoice = () => {
             </motion.div>
           </div>
 
-          <div>
+          <div className="w-full">
             <label className="text-sm font-medium text-gray-700 block mb-2">
-              Site Map <span className="text-red-500">*</span>
+              Upload Site Map (Excel) <span className="text-red-500">*</span>
             </label>
-            <motion.div
-              className="flex items-center bg-white border border-gray-300 rounded-lg p-2 flex-wrap gap-2"
-              whileHover={{ boxShadow: "0 0 0 3px rgba(99, 102, 241, 0.2)" }}
+            <motion.label
+              htmlFor="file-site-upload"
+              className="flex items-center cursor-pointer justify-between bg-white border border-gray-300 rounded-lg p-2 gap-2 hover:ring-2 hover:ring-indigo-300 transition-all"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
-              {renderKeywords()}
-              <input
-                type="text"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                className="flex-grow p-2 bg-white border-none outline-none rounded-l-md"
-                placeholder="e.g., Fun"
-              />
-              <label htmlFor="file-upload" className="flex items-center cursor-pointer">
-                <motion.div
-                  className="bg-indigo-100 p-2 rounded-lg"
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <Upload size={20} />
-                  {/* <img src="./Images/upload.png" alt="Upload" className="size-4" /> */}
-                </motion.div>
-              </label>
-              <input
-                id="file-upload"
-                type="file"
-                className="hidden"
-                onChange={handleFileChange}
-                accept=".csv"
-              />
-            </motion.div>
+              <div>
+                <span className="text-gray-700">Choose .xls or .xlsx file</span>
+                <input
+                  id="file-site-upload"
+                  type="file"
+                  accept=".xls,.xlsx"
+                  onChange={handleSiteFileChange}
+                  className="hidden"
+                />
+              </div>
+              <motion.div
+                className="bg-indigo-100 p-2 rounded-lg cursor-pointer"
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Upload size={20} />
+              </motion.div>
+            </motion.label>
           </div>
 
           <div>

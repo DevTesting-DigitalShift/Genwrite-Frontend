@@ -199,7 +199,7 @@ const LayoutWithSidebarAndHeader = () => {
               <>
                 <Tooltip title="User Credits">
                   <button
-                    onClick={() => navigate("/upgrade")}
+                    onClick={() => navigate("/credit-logs")}
                     className="flex gap-2 justify-center items-center rounded-full p-2 hover:bg-gray-100 transition"
                   >
                     <RiCoinsFill size={24} color="orange" />

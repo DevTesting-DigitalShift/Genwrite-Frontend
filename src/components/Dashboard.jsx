@@ -1,41 +1,31 @@
 import { useState, useEffect } from "react"
 import Modal from "../utils/Modal"
-import SelectTemplateModal from "./mutipstepmodal/SelectTemplateModal"
-import FirstStepModal from "./mutipstepmodal/FirstStepModal"
-import SecondStepModal from "./mutipstepmodal/SecondStepModal"
-import ThirdStepModal from "./mutipstepmodal/ThirdStepModal"
-import { letsBegin, quickTools, stats } from "./dashdata/dash"
+import SelectTemplateModal from "./multipleStepModal/SelectTemplateModal"
+import FirstStepModal from "./multipleStepModal/FirstStepModal"
+import SecondStepModal from "./multipleStepModal/SecondStepModal"
+import ThirdStepModal from "./multipleStepModal/ThirdStepModal"
+import { letsBegin, quickTools, stats } from "./dashData/dash"
 import { DashboardBox, QuickBox, RecentProjects } from "../utils/DashboardBox"
-import QuestionButton from "../utils/QuestionButton"
 import { useDispatch, useSelector } from "react-redux"
 import { createNewBlog } from "@store/slices/blogSlice"
 import { useNavigate } from "react-router-dom"
-import MultiStepModal from "./mutipstepmodal/DaisyUi"
+import MultiStepModal from "./multipleStepModal/DaisyUi"
 import DaisyUIModal from "./DaisyUIModal"
-import QuickBlogModal from "./mutipstepmodal/QuickBlogModal"
-import CompetitiveAnalysisModal from "./mutipstepmodal/CompetitiveAnalysisModal"
-import PerformanceMonitoringModal from "./mutipstepmodal/PerformanceMonitoringModal"
+import QuickBlogModal from "./multipleStepModal/QuickBlogModal"
+import CompetitiveAnalysisModal from "./multipleStepModal/CompetitiveAnalysisModal"
+import PerformanceMonitoringModal from "./multipleStepModal/PerformanceMonitoringModal"
 import axiosInstance from "@api/index"
-// import { load } from "@store/slices/authSlice"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { toast, ToastContainer } from "react-toastify"
-import { loadUser } from "@api/authApi"
 import { SkeletonDashboardCard, SkeletonGridCard } from "./Projects/SkeletonLoader"
 import { AnimatePresence } from "framer-motion"
 import { loadAuthenticatedUser, selectUser } from "@store/slices/authSlice"
 import { Clock, Sparkles } from "lucide-react"
 import { Helmet } from "react-helmet"
+import SeoAnalysisModal from "./multipleStepModal/SeoAnalysisModal"
 
-/*
- [s ] instead of asking for upgrade, show animation of crown with toast & disable features on plan based like free & basic can't open bulk blogs & other features
-  check the ui first for free version & then change it in a more good way
- */
-
-// [ s] remove search
-// [s ] skeleton loading
 const Dashboard = () => {
-  // State declarations
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [currentStep, setCurrentStep] = useState(0)
   const [daisyUIModal, setDaisyUIModal] = useState(false)
@@ -43,6 +33,7 @@ const Dashboard = () => {
   const [quickBlogModal, setQuickBlogModal] = useState(false)
   const [competitiveAnalysisModal, setCompetitiveAnalysisModal] = useState(false)
   const [performanceModal, setPerformanceModal] = useState(false)
+  const [seoAnalysisModal, setSeoAnalysisModal] = useState(false)
   const [modelData, setModelData] = useState({})
   const [recentBlogData, setRecentBlogData] = useState([])
   const [allBlogs, setAllBlogs] = useState([])
@@ -212,16 +203,20 @@ const Dashboard = () => {
         </div>
       </Modal>
 
-      {daisyUIModal && <DaisyUIModal closefnc={hideDaisy} />}
+      {daisyUIModal && <DaisyUIModal closeFnc={hideDaisy} />}
 
-      {multiStepModal && <MultiStepModal closefnc={hideMultiStepModal} />}
+      {multiStepModal && <MultiStepModal closeFnc={hideMultiStepModal} />}
 
-      {quickBlogModal && <QuickBlogModal closefnc={hideQuickBlogModal} />}
+      {quickBlogModal && <QuickBlogModal closeFnc={hideQuickBlogModal} />}
 
-      {competitiveAnalysisModal && <CompetitiveAnalysisModal closefnc={hideCompetitiveAnalysis} />}
+      {competitiveAnalysisModal && <CompetitiveAnalysisModal closeFnc={hideCompetitiveAnalysis} />}
 
       {performanceModal && (
-        <PerformanceMonitoringModal closefnc={() => setPerformanceModal(false)} />
+        <PerformanceMonitoringModal closeFnc={() => setPerformanceModal(false)} />
+      )}
+
+       {seoAnalysisModal && (
+        <SeoAnalysisModal closeFnc={() => setSeoAnalysisModal(false)} />
       )}
 
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/50 p-6">
@@ -309,6 +304,9 @@ const Dashboard = () => {
                         functions={{
                           ...(item.id === 3
                             ? { showPerformanceMonitoring: () => setPerformanceModal(true) }
+                            : {}),
+                          ...(item.id === 2
+                            ? { showPerformanceMonitoring: () => setSeoAnalysisModal(true) }
                             : {}),
                           ...(item.id === 4 ? { showCompetitiveAnalysis } : {}),
                         }}
