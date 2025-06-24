@@ -17,10 +17,6 @@ import { Popconfirm } from "antd"
 import { Gem, Info, Upload, X } from "lucide-react"
 import { Helmet } from "react-helmet"
 
-// [ ] DONE in topic user can upload csv or text- read that file split on basic of arr store that in arr show 3-4 text after ... or count
-// [ s] DONE validation in job picker
-// [ s] active jobs don't show if there is no job
-
 const initialJob = {
   name: "",
   schedule: { type: "daily", customDates: [], days: [] },
