@@ -15,6 +15,7 @@ import {
   ArrowRight,
   Sparkles,
 } from "lucide-react"
+import axiosInstance from "@api/index"
 import { toast, ToastContainer } from "react-toastify"
 
 const ContactUs = () => {

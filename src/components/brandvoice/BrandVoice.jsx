@@ -49,6 +49,7 @@ const BrandVoice = () => {
       keywords: Array.isArray(brand.keywords) ? brand.keywords : [],
       describeBrand: brand.describeBrand,
       selectedVoice: brand,
+      sitemap: brand.sitemap, // use textArea for this & key is sitemap
       uploadedFile: null,
       _id: brand._id,
     })
