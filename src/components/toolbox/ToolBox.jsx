@@ -199,6 +199,7 @@ const ToolBox = () => {
                 handleReplace={handleReplace}
                 proofreadingResults={proofreadingResults}
                 setProofreadingResults={setProofreadingResults}
+                  content={editorContent}
               />
             </div>
           </div>

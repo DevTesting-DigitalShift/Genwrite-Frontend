@@ -68,7 +68,7 @@ export const getBlogById = async (id) => {
 // Update a blog by ID
 export const updateBlog = async (id, updatedData) => {
   try {
-    const response = await axiosInstance.put(`/blogs/${id}`, updatedData)
+    const response = await axiosInstance.put(`/blogs/update/${id}`, updatedData)
     return response.data
   } catch (error) {
     throw new Error(error.response?.data?.message || "Failed to update blog")

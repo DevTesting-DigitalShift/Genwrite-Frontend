@@ -494,15 +494,16 @@ const Profile = () => {
                     <div className="flex justify-between items-center p-3 rounded-lg bg-white/80">
                       <span className="font-medium">Renewal Date</span>
                       <span>
-                        {profileData?.subscription?.renewalDate
-                          ? new Date(profileData.subscription.renewalDate).toLocaleDateString(
-                              "en-IN",
-                              {
-                                day: "numeric",
-                                month: "long",
-                                year: "numeric",
-                              }
-                            )
+                        {profileData?.subscription?.startDate
+                          ? new Date(
+                              new Date(profileData.subscription.startDate).setMonth(
+                                new Date(profileData.subscription.startDate).getMonth() + 1
+                              )
+                            ).toLocaleDateString("en-IN", {
+                              day: "numeric",
+                              month: "long",
+                              year: "numeric",
+                            })
                           : "Not renewed yet"}
                       </span>
                     </div>

@@ -33,6 +33,9 @@ import {
   Undo2,
   Redo2,
   Pencil,
+  RotateCcw,
+  Sparkle,
+  Bot,
 } from "lucide-react"
 import { useDispatch, useSelector } from "react-redux"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
@@ -40,12 +43,13 @@ import { useNavigate, useParams } from "react-router-dom"
 import { marked } from "marked"
 import TurndownService from "turndown"
 import SmallBottomBox from "@components/toolbox/SmallBottomBox"
-import { fetchBlogById } from "@store/slices/blogSlice"
+import { fetchBlogById, updateBlogById } from "@store/slices/blogSlice"
 import { toast } from "react-toastify"
 import { ProofreadingDecoration } from "@/extensions/ProofreadingDecoration"
 import { useProofreadingUI } from "@components/generateBlog/useProofreadingUI"
 import { sendRetryLines } from "@api/blogApi"
 import { Helmet } from "react-helmet"
+import { Tooltip } from "antd"
 
 const FONT_OPTIONS = [
   { label: "Inter", value: "font-sans" },
@@ -257,14 +261,16 @@ const TextEditor = ({
     setIsSaving(true)
 
     try {
-      const response = await axiosInstance.put(`/blogs/update/${blog._id}`, {
-        title: blog?.title,
-        content: safeContent,
-        published: blog?.published,
-        focusKeywords: blog?.focusKeywords,
-        keywords,
-      })
-
+      const response = await dispatch(
+        updateBlogById(blog._id, {
+          title: blog?.title,
+          content: safeContent,
+          published: blog?.published,
+          focusKeywords: blog?.focusKeywords,
+          keywords,
+        })
+      )
+      
       if (response.data?.content) {
         const updated = await dispatch(fetchBlogById(blog._id))
         const payload = updated?.payload
@@ -456,7 +462,17 @@ const TextEditor = ({
         // onClick={() => setShowModelDropdown(!showModelDropdown)}
         className="flex capitalize items-center gap-2 font-semibold mr-4 hover:bg-gray-100 p-2 rounded"
       >
-        {blog?.aiModel}
+        {blog?.aiModel?.toLowerCase() === "gemini" ? (
+          <span className="flex items-center gap-2">
+            Gemini
+            <img src="/public/Images/gemini.png" alt="gemini" className="w-5" />
+          </span>
+        ) : (
+          <span className="flex items-center gap-2">
+            ChatGPT
+            <img src="/public/Images/chatgpt.png" alt="chatgpt" className="w-5" />
+          </span>
+        )}
       </button>
       {/* {showModelDropdown && (
         <motion.div
@@ -854,32 +870,59 @@ const TextEditor = ({
                 tippyOptions={{ duration: 100 }}
                 className="flex gap-2 bg-white shadow-lg p-2 rounded border"
               >
-                <button
-                  onClick={() =>
-                    safeEditorAction(() => normalEditor.chain().focus().toggleBold().run())
-                  }
-                >
-                  <Bold className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() =>
-                    safeEditorAction(() => normalEditor.chain().focus().toggleItalic().run())
-                  }
-                >
-                  <Italic className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() =>
-                    safeEditorAction(() =>
-                      normalEditor.chain().focus().toggleHeading({ level: 2 }).run()
-                    )
-                  }
-                >
-                  <Heading2 className="w-5 h-5" />
-                </button>
-                <button onClick={() => handleRetry()}>
-                  <Pencil className="w-4 h-4" />
-                </button>
+                <Tooltip title="Bold" placement="top">
+                  <button
+                    onClick={() => {
+                      safeEditorAction(() => {
+                        normalEditor.chain().focus().toggleBold().run()
+                        normalEditor.commands.blur() // ✅ blur after run
+                      })
+                    }}
+                  >
+                    <Bold className="w-5 h-5" />
+                  </button>
+                </Tooltip>
+
+                <Tooltip title="Italic" placement="top">
+                  <button
+                    onClick={() => {
+                      safeEditorAction(() => {
+                        normalEditor.chain().focus().toggleItalic().run()
+                        normalEditor.commands.blur()
+                      })
+                    }}
+                  >
+                    <Italic className="w-5 h-5" />
+                  </button>
+                </Tooltip>
+
+                <Tooltip title="Heading" placement="top">
+                  <button
+                    onClick={() => {
+                      safeEditorAction(() => {
+                        normalEditor.chain().focus().toggleHeading({ level: 2 }).run()
+                        normalEditor.commands.blur()
+                      })
+                    }}
+                  >
+                    <Heading2 className="w-5 h-5" />
+                  </button>
+                </Tooltip>
+
+                <Tooltip title="Rewrite" placement="top">
+                  <button
+                    onClick={() => {
+                      normalEditor.commands.blur() // Blur immediately or after popup depending on UX
+                      handlePopup({
+                        title: "Rewrite Selected Lines",
+                        description: "Do you want to rewrite the selected lines?",
+                        onConfirm: handleRetry,
+                      })
+                    }}
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                  </button>
+                </Tooltip>
               </BubbleMenu>
             )}
             <EditorContent editor={normalEditor} />

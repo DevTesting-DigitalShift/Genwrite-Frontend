@@ -104,10 +104,10 @@ export const QuickBox = ({ icon, title, content, id, functions, bgColor, hoverBg
       functions.showCompetitiveAnalysis()
     } else if (id === 3 && functions?.showPerformanceMonitoring) {
       functions.showPerformanceMonitoring()
-    } else if(id === 2) {
-      return
+    } else if (id === 2 && functions?.showPerformanceMonitoring) {
+      functions.showPerformanceMonitoring()
     }
-   }
+  }
 
   return (
     <div
@@ -126,7 +126,7 @@ export const QuickBox = ({ icon, title, content, id, functions, bgColor, hoverBg
 
         {/* Pro badge if user is free/basic and accessing restricted tool */}
         {["free", "basic"].includes(userPlan?.toLowerCase?.()) && id === 4 && (
-           <span className="flex items-center gap-2 rounded-md text-white font-semibold border p-2 px-3 bg-gradient-to-tr from-blue-500 to-purple-500 shadow-md hover:shadow-xl hover:scale-105 transition-all duration-300 ease-in-out animate-pulse backdrop-blur-sm text-lg mb-5">
+          <span className="flex items-center gap-2 rounded-md text-white font-semibold border p-2 px-3 bg-gradient-to-tr from-blue-500 to-purple-500 shadow-md hover:shadow-xl hover:scale-105 transition-all duration-300 ease-in-out animate-pulse backdrop-blur-sm text-lg mb-5">
             <Gem className="w-4 h-4 animate-bounce" />
             Pro
           </span>

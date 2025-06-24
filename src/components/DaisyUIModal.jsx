@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 
-const DaisyUIModal = ({closefnc}) => {
+const DaisyUIModal = ({closeFnc}) => {
     const [step, setStep] = useState(1);
 
     const nextStep = () => setStep(step + 1);
@@ -43,7 +43,7 @@ const DaisyUIModal = ({closefnc}) => {
                 <h3 className="font-bold text-lg">Step 3</h3>
                 <p className="py-4">Content for step 3 goes here.</p>
                 <div className="modal-action">
-                  <button className="btn" onClick={closefnc}>
+                  <button className="btn" onClick={closeFnc}>
                     Previous
                   </button>
                   <label htmlFor="my-modal" className="btn">

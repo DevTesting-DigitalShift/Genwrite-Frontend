@@ -565,7 +565,7 @@ const MyProjects = () => {
                       <div
                         className="cursor-pointer"
                         onClick={() => {
-                          if (status === "complete" || status === "pending") {
+                          if (status === "complete") {
                             handleBlogClick(blog)
                           }
                         }}
