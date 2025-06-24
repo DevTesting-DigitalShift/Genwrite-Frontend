@@ -17,6 +17,7 @@ import {
   ArrowRight,
   Sparkles,
 } from "lucide-react"
+import axiosInstance from "@api/index"
 
 const ContactUs = () => {
   const [formData, setFormData] = useState({
@@ -76,18 +77,16 @@ const ContactUs = () => {
     }
 
     setIsSubmitting(true)
-
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false)
+    try {
+      const res = await axiosInstance.post("/user/contact", formData)
+      console.log(res.data)
       setIsSubmitted(true)
-      setFormData({ name: "", email: "", subject: "", message: "" })
-
-      // Reset success message after 5 seconds
-      setTimeout(() => {
-        setIsSubmitted(false)
-      }, 5000)
-    }, 2000)
+      // setFormData({ name: "", email: "", subject: "", message: "" })
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const companyInfo = {
