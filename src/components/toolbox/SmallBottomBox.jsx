@@ -10,6 +10,7 @@ import { toast } from "react-toastify"
 import axiosInstance from "@api/index"
 import { useNavigate } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import { useSelector } from "react-redux"
 
 const SmallBottomBox = (id) => {
   const [isMenuOpen, setMenuOpen] = useState(false)
@@ -17,6 +18,8 @@ const SmallBottomBox = (id) => {
   const [isChatOpen, setIsChatOpen] = useState(false)
   const { handlePopup } = useConfirmPopup()
   const navigate = useNavigate()
+    const user = useSelector((state) => state.auth.user)
+    const userPlan = user?.plan ?? user?.subscription?.plan
 
   const toggleMenu = () => setMenuOpen((prev) => !prev)
   const closeModal = () => setModalOpen(false)
@@ -41,6 +44,24 @@ const SmallBottomBox = (id) => {
     }
   }
 
+  const handleRegenerate = () => {
+    if (userPlan === "free" || userPlan === "basic") {
+      handlePopup({
+        title: "Upgrade Required",
+        description: "Rewrite is only available for Pro and Enterprise users.",
+        confirmText: "Buy Now",
+        cancelText: "Cancel",
+        onConfirm: () => navigate("/upgrade"),
+      })
+    } else {
+      handlePopup({
+        title: "Retry Blog Generation",
+        description: `Are you sure you want to retry generating this blog?\nIt will be of 10 credits`,
+        onConfirm: () => handleRetry(id),
+      })
+    }
+  }
+
   const menuOptions = [
     {
       label: "Copy",
@@ -54,11 +75,8 @@ const SmallBottomBox = (id) => {
       label: "Regenerate",
       icon: <ReloadOutlined />,
       onClick: () => {
-        handlePopup({
-          title: "Retry Blog Generation",
-          description: `Are you sure you want to retry generating this blog?\nIt will be of 10 credits`,
-          onConfirm: () => handleRetry(id),
-        })
+        setMenuOpen(false)
+        handleRegenerate()
       },
     },
     {

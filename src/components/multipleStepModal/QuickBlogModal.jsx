@@ -139,6 +139,51 @@ const QuickBlogModal = ({ closeFnc }) => {
     }
   }
 
+  // Utility function
+  const handleAddLink = () => {
+    const input = formData.videoLinkInput?.trim()
+    if (!input) {
+      toast.error("Please enter a link.")
+      return
+    }
+
+    let validatedUrl = input
+
+    // Add protocol if missing
+    if (!/^https?:\/\//i.test(input)) {
+      validatedUrl = `https://${input}`
+    }
+
+    try {
+      const url = new URL(validatedUrl) // Will throw error if invalid
+
+      if (inputs.length >= 3) {
+        toast.error("You can only add up to 3 links.")
+        return
+      }
+
+      if (inputs.includes(validatedUrl)) {
+        toast.error("This link has already been added.")
+        return
+      }
+
+      setInputs([...inputs, validatedUrl])
+      setFormData((prev) => ({
+        ...prev,
+        videoLinkInput: "",
+      }))
+    } catch (err) {
+      toast.error("Please enter a valid URL.")
+    }
+  }
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault()
+      handleAddLink()
+    }
+  }
+
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
       <div className="w-[800px] bg-white rounded-lg shadow-xl">
@@ -303,7 +348,7 @@ const QuickBlogModal = ({ closeFnc }) => {
                     {formData.keywords.map((keyword, index) => (
                       <span
                         key={index}
-                        className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-700"
+                        className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
                       >
                         {keyword}
                         <button
@@ -318,9 +363,7 @@ const QuickBlogModal = ({ closeFnc }) => {
                 </div>
 
                 <div>
-                  <h3 className="text-xl font-hind font-normal mb-2">
-                    Add video embedded links (max 3)
-                  </h3>
+                  <h3 className="text-sm font-hind font-normal mb-2">Add Links (max 3)</h3>
                   <div className="flex gap-2">
                     <input
                       type="text"
@@ -331,28 +374,12 @@ const QuickBlogModal = ({ closeFnc }) => {
                           videoLinkInput: e.target.value,
                         }))
                       }
+                      onKeyDown={handleKeyDown} // only here
                       className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
-                      placeholder="Enter YouTube video link"
+                      placeholder="Enter link"
                     />
                     <button
-                      onClick={() => {
-                        const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/
-                        if (!formData.videoLinkInput) {
-                          toast.error("Please enter a video link.")
-                        } else if (!youtubeRegex.test(formData.videoLinkInput)) {
-                          toast.error("Please enter a valid YouTube link.")
-                        } else if (inputs.length >= 3) {
-                          toast.error("You can only add up to 3 video links.")
-                        } else if (inputs.includes(formData.videoLinkInput)) {
-                          toast.error("This link has already been added.")
-                        } else {
-                          setInputs([...inputs, formData.videoLinkInput])
-                          setFormData((prevState) => ({
-                            ...prevState,
-                            videoLinkInput: "",
-                          }))
-                        }
-                      }}
+                      onClick={handleAddLink} // clean and correct
                       className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm"
                     >
                       Add
@@ -362,7 +389,7 @@ const QuickBlogModal = ({ closeFnc }) => {
                     {inputs.map((input, index) => (
                       <span
                         key={index}
-                        className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-700"
+                        className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
                       >
                         {input}
                         <button

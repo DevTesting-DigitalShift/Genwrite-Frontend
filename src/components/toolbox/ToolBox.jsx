@@ -4,11 +4,16 @@ import { useDispatch, useSelector } from "react-redux"
 import { motion, AnimatePresence } from "framer-motion"
 import axiosInstance from "../../api"
 import { toast, ToastContainer } from "react-toastify"
-import { fetchBlogById } from "../../store/slices/blogSlice"
+import { fetchBlogById, updateBlogById } from "../../store/slices/blogSlice"
 import TextEditor from "../generateBlog/TextEditor"
 import TextEditorSidebar from "../generateBlog/TextEditorSidebar"
 import { Loader2 } from "lucide-react"
 import { Helmet } from "react-helmet"
+import { sendRetryLines } from "@api/blogApi"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
+import rehypeRaw from "rehype-raw"
+import Loading from "@components/Loading"
 
 const ToolBox = () => {
   const { id } = useParams()
@@ -17,8 +22,11 @@ const ToolBox = () => {
   const [activeTab, setActiveTab] = useState("normal")
   const [isLoading, setIsLoading] = useState(true)
   const [keywords, setKeywords] = useState([])
-  const [editorContent, setEditorContent] = useState("") // Initialize with empty string
+  const [editorContent, setEditorContent] = useState("")
   const [proofreadingResults, setProofreadingResults] = useState([])
+  const [saveModalOpen, setSaveModalOpen] = useState(false)
+  const [saveContent, setSaveContent] = useState(null)
+  const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
     if (id) {
@@ -34,7 +42,6 @@ const ToolBox = () => {
 
   useEffect(() => {
     setIsLoading(true)
-
     if (blog) {
       setEditorContent(blog.content ?? "")
       setIsLoading(false)
@@ -59,7 +66,6 @@ const ToolBox = () => {
     setEditorContent(updatedContent)
 
     setProofreadingResults((prev) => prev.filter((s) => s.original !== original))
-    // toast.success("Suggestion applied successfully!")
   }
 
   const handlePostToWordPress = async () => {
@@ -85,6 +91,7 @@ const ToolBox = () => {
     const postData = {
       id: blogToDisplay._id,
       content: processedContent,
+      includeTableOfContents: true
     }
 
     const postingToastId = toast.info("Posting to WordPress...", { autoClose: false })
@@ -109,13 +116,11 @@ const ToolBox = () => {
       }
     } catch (error) {
       let errorMessage = "Failed to post to WordPress"
-
       if (error.response?.data?.error) {
         errorMessage = error.response.data.error
       } else if (error.message) {
         errorMessage = error.message
       }
-
       toast.update(postingToastId, {
         render: `WordPress posting failed: ${errorMessage}`,
         type: "error",
@@ -125,11 +130,53 @@ const ToolBox = () => {
     }
   }
 
+  const handleSave = async () => {
+    setIsSaving(true)
+    try {
+      await dispatch(
+        updateBlogById(blog._id, {
+          title: blog?.title,
+          content: editorContent,
+          published: blog?.published,
+          focusKeywords: blog?.focusKeywords,
+          keywords,
+        })
+      )
+      const res = await sendRetryLines(blog._id)
+      if (res.data) {
+        setSaveContent(res.data) // Store the response content
+        setSaveModalOpen(true) // Show the modal
+        toast.success("Review the suggested content.")
+      } else {
+        toast.error("No content received from retry.")
+      }
+    } catch (error) {
+      console.error("Error updating the blog:", error)
+      toast.error("Failed to save blog.")
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleAcceptSave = () => {
+    if (saveContent) {
+      setEditorContent(saveContent) // Replace entire editor content
+      toast.success("Content updated successfully!")
+    }
+    setSaveModalOpen(false)
+    setSaveContent(null)
+  }
+
+  const handleRejectSave = () => {
+    setSaveModalOpen(false)
+    setSaveContent(null)
+    toast.info("Changes discarded.")
+  }
+
   const tabVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 },
   }
-
   return (
     <>
       <Helmet>
@@ -138,6 +185,56 @@ const ToolBox = () => {
       <ToastContainer />
       <div className="h-full">
         <div className="max-w-8xl mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
+          {/* Save Response Modal */}
+          {saveModalOpen && (
+            <motion.div
+              className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+                <h3 className="text-lg font-semibold mb-4">Suggested Content</h3>
+                <div className="p-4 bg-gray-50 rounded-md mb-4">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    rehypePlugins={[rehypeRaw]}
+                    className="prose"
+                    components={{
+                      a: ({ href, children }) => (
+                        <a
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline"
+                        >
+                          {children}
+                        </a>
+                      ),
+                      strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+                    }}
+                  >
+                    {saveContent}
+                  </ReactMarkdown>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={handleRejectSave}
+                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+                  >
+                    Reject
+                  </button>
+                  <button
+                    onClick={handleAcceptSave}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                  >
+                    Accept
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
           <div className="flex flex-col h-full">
             <div className="flex items-center justify-between p-4 border-b text-center space-y-4">
               <h1 className="text-2xl font-bold text-gray-800">Blog Editor</h1>
@@ -185,6 +282,7 @@ const ToolBox = () => {
                       handleReplace={handleReplace}
                       content={editorContent}
                       setContent={setEditorContent}
+                      isSavingKeyword={isSaving}
                     />
                   )}
                 </motion.div>
@@ -198,7 +296,8 @@ const ToolBox = () => {
                 handleReplace={handleReplace}
                 proofreadingResults={proofreadingResults}
                 setProofreadingResults={setProofreadingResults}
-                  content={editorContent}
+                content={editorContent}
+                handleSave={handleSave}
               />
             </div>
           </div>

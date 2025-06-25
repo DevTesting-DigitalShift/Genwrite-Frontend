@@ -314,6 +314,14 @@ const MyProjects = () => {
     await fetchBlogs()
   }
 
+const stripMarkdown = (text) => {
+  return text
+    ?.replace(/<[^>]*>/g, "")            // Remove HTML tags like <h1>, <p>, etc.
+    ?.replace(/[\\*#=_~`>\-]+/g, "")     // Remove markdown special characters
+    ?.replace(/\s{2,}/g, " ")            // Collapse multiple spaces
+    ?.trim();                            // Trim leading/trailing whitespace
+};
+
   return (
     <div className="p-5">
       <Helmet>
@@ -565,7 +573,7 @@ const MyProjects = () => {
                       <div
                         className="cursor-pointer"
                         onClick={() => {
-                          if (status === "complete") {
+                          if (status === "complete" || status === "failed") {
                             handleBlogClick(blog)
                           }
                         }}
@@ -575,7 +583,7 @@ const MyProjects = () => {
                             {title}
                           </h3>
                           <p className="text-sm text-gray-600 mb-4 line-clamp-3 break-all">
-                            {content || ""}
+                            {stripMarkdown(content) || ""}
                           </p>
                         </div>
                       </div>

@@ -57,8 +57,9 @@ const MultiStepModal = ({ closeFnc }) => {
       }
     }
     if (currentStep === 1) {
-      if (formData.topicInput.trim() !== "") {
-        handleAddTopic()
+      if (formData.topics.length === 0 && formData.topicInput.trim() === "") {
+        toast.error("Please add at least one topic.")
+        return
       }
       if (!formData.tone) {
         toast.error("Please select a Tone of Voice.")
@@ -432,7 +433,7 @@ const MultiStepModal = ({ closeFnc }) => {
             <div className="space-y-6">
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
-                  Topics
+                  Topics <span className="text-red-500">*</span>
                   <Tooltip title="Upload a .csv file in the format: `S.No., Keyword`">
                     <div className="cursor-pointer">
                       <Info size={16} className="text-blue-500" />
@@ -513,16 +514,13 @@ const MultiStepModal = ({ closeFnc }) => {
                 <div className="space-y-6">
                   <div>
                     <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
-                      Focus Keywords
+                      Keywords
                       <Tooltip title="Upload a .csv file in the format: `S.No., Keyword`">
                         <div className="cursor-pointer">
                           <Info size={16} className="text-blue-500" />
                         </div>
                       </Tooltip>
                     </label>
-                    {/* <p className="text-xs text-gray-500 mb-2">
-                      Enter the main keywords for your blogs .
-                    </p> */}
                     <div className="flex gap-2">
                       <input
                         type="text"
@@ -594,9 +592,7 @@ const MultiStepModal = ({ closeFnc }) => {
                       !formData.tone ? "border-red-300 text-gray-500" : "border-gray-300"
                     }`}
                   >
-                    <option value="" disabled>
-                      -- Select a Tone --
-                    </option>
+                    <option disabled>-- Select a Tone --</option>
                     <option value="professional">Professional</option>
                     <option value="friendly">Friendly</option>
                     <option value="casual">Casual</option>

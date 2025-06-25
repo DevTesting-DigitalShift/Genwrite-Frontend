@@ -23,7 +23,7 @@ const LayoutWithSidebarAndHeader = () => {
   useEffect(() => {
     const fetchCurrentUser = async () => {
       try {
-        const res = await dispatch(loadAuthenticatedUser()).unwrap()
+        await dispatch(loadAuthenticatedUser()).unwrap()
         // You now have the updated user data in Redux state
       } catch (err) {
         console.error("User load failed:", err)
@@ -60,10 +60,10 @@ const LayoutWithSidebarAndHeader = () => {
 
   const handleLogout = async () => {
     try {
-      await dispatch(logoutUser(navigate))
-      navigate("/login")
+      await dispatch(logoutUser()).unwrap() // No need to pass navigate
+      navigate("/login") // Navigate after logout is complete
     } catch (error) {
-      console.error(error)
+      console.error("Logout error:", error)
     }
   }
 

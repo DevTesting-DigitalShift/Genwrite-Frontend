@@ -8,8 +8,6 @@ import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useNavigate } from "react-router-dom"
 import { useDispatch, useSelector } from "react-redux"
 import { Button, Tooltip } from "antd"
-import { fetchBlogById, updateBlogById } from "@store/slices/blogSlice"
-import { sendRetryLines } from "@api/blogApi"
 
 const TextEditorSidebar = ({
   blog,
@@ -20,7 +18,7 @@ const TextEditorSidebar = ({
   handleReplace,
   setProofreadingResults,
   proofreadingResults,
-  content,
+  handleSave,
 }) => {
   const [newKeyword, setNewKeyword] = useState("")
   const [isPosting, setIsPosting] = useState(false)
@@ -33,8 +31,7 @@ const TextEditorSidebar = ({
   const { handlePopup } = useConfirmPopup()
   const [postRes, setPostRes] = useState()
   const navigate = useNavigate()
-  const dispatch = useDispatch()
-
+  
   const fetchCompetitiveAnalysis = async () => {
     if (!blog || !blog.title || !blog.content) {
       toast.error("Blog data is incomplete for analysis.")
@@ -210,48 +207,22 @@ const TextEditorSidebar = ({
     }
   }
 
-  const handleRetry = async () => {
-    if (!blog?._id) {
-      toast.error("Blog ID is missing.")
-      return
-    }
-
-    const payload = {
-      contentPart: true,
-      content: selectedText.trim(),
-    }
-
-    try {
-      const res = await sendRetryLines(blog._id, payload)
-    } catch (error) {
-      console.error("Retry failed:", error)
-      toast.error(error.message || "Retry failed.")
-    }
-  }
-
-  const handleSave = async () => {
+  const handleKeywordRewrite = () => {
     if (userPlan === "free" || userPlan === "basic") {
-      showUpgradePopup()
-      return
-    }
-
-    try {
-      await dispatch(
-        updateBlogById(blog._id, {
-          title: blog?.title,
-          content: content,
-          published: blog?.published,
-          focusKeywords: blog?.focusKeywords,
-          keywords,
-        })
-      )
-      await sendRetryLines(blog._id, {
-        keywords,
+      handlePopup({
+        title: "Upgrade Required",
+        description: "Rewrite is only available for Pro and Enterprise users.",
+        confirmText: "Buy Now",
+        cancelText: "Cancel",
+        onConfirm: () => navigate("/upgrade"),
       })
-      toast.success("Something")
-    } catch (error) {
-      console.error("Error updating the blog:", error)
-      toast.error("Failed to save blog.")
+    } else {
+      handlePopup({
+        title: "Rewrite Keywords",
+        description:
+          "Do you want to rewrite the whole content with added keywords ? You can rewrite only 3 times.",
+        onConfirm: handleSave,
+      })
     }
   }
 
@@ -268,17 +239,7 @@ const TextEditorSidebar = ({
           <h3 className="font-semibold mb-1 text-gray-700">Keywords</h3>
           {keywords.length !== 0 && (
             <Tooltip title="Rewrite">
-              <RotateCcw
-                className="w-4 h-4 text-gray-700"
-                onClick={() => {
-                  handlePopup({
-                    title: "Rewrite Keywords",
-                    description:
-                      "Do you want to rewrite the whole content with added keywords ? You can rewrite only 3 times.",
-                    onConfirm: handleSave,
-                  })
-                }}
-              />
+              <RotateCcw className="w-4 h-4 text-gray-700" onClick={handleKeywordRewrite} />
             </Tooltip>
           )}
         </div>

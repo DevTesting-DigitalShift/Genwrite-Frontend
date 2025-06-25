@@ -225,7 +225,7 @@ const PerformanceMonitoringModal = ({ closeFnc }) => {
           )}
         </div>
         {/* Engagement Section */}
-        <div className="mb-6">
+        {/* <div className="mb-6">
           <div className="flex items-center gap-2 mb-4">
             <div className="p-1 bg-green-100 rounded text-green-500">
               <svg
@@ -309,7 +309,7 @@ const PerformanceMonitoringModal = ({ closeFnc }) => {
               </span>
             </div>
           </div>
-        </div>
+        </div> */}
         {/*  SEO Section         */}
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-4">

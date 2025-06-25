@@ -41,3 +41,13 @@ export const loadUser = async (navigate) => {
     throw error
   }
 }
+
+export const forgotPasswordAPI = async (email) => {
+  const response = await axiosInstance.post("/auth/forgot-password", { email })
+  return response.data
+}
+
+export const resetPasswordAPI = async (token, newPassword) => {
+  const response = await axiosInstance.post("/auth/reset-password", { token, newPassword })
+  return response.data
+}

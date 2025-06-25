@@ -105,7 +105,7 @@ export const sendBrand = async (formData) => {
 
 export const sendRetryLines = async (id, payload) => {
   try {
-    const response = await axiosInstance.post(`/blogs/${id}/retry`, payload)
+    const response = await axiosInstance.post(`/blogs/${id}/rewrite`, payload)
     return response
   } catch (error) {
     throw new Error(error || "Failed to retry")

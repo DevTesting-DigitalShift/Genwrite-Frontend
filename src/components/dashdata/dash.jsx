@@ -43,7 +43,7 @@ export const quickTools = [
   {
     id: 1,
     imageUrl: "./Images/keyword.png",
-    title: "Keyword Search",
+    title: "Keyword Research",
     content: "Fill bold reesizing vector create group inspect effect.",
     icon: <Search className="w-8 h-8" />,
     color: "text-blue-600",

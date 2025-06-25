@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useLayoutEffect } from "react"
 import { useEditor, EditorContent, BubbleMenu } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 import Link from "@tiptap/extension-link"
@@ -6,14 +6,12 @@ import Image from "@tiptap/extension-image"
 import Underline from "@tiptap/extension-underline"
 import TextAlign from "@tiptap/extension-text-align"
 import { motion } from "framer-motion"
-import axiosInstance from "../../api"
 import AnimatedContent from "./AnimatedContent"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeRaw from "rehype-raw"
 import Prism from "prismjs"
 import "prismjs/themes/prism-tomorrow.css"
-
 import {
   Eye,
   EyeOff,
@@ -32,14 +30,11 @@ import {
   Image as ImageIcon,
   Undo2,
   Redo2,
-  Pencil,
   RotateCcw,
-  Sparkle,
-  Bot,
 } from "lucide-react"
 import { useDispatch, useSelector } from "react-redux"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
-import { useNavigate, useParams } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 import { marked } from "marked"
 import TurndownService from "turndown"
 import SmallBottomBox from "@components/toolbox/SmallBottomBox"
@@ -50,6 +45,7 @@ import { useProofreadingUI } from "@components/generateBlog/useProofreadingUI"
 import { sendRetryLines } from "@api/blogApi"
 import { Helmet } from "react-helmet"
 import { Tooltip } from "antd"
+import Loading from "@components/Loading"
 
 const FONT_OPTIONS = [
   { label: "Inter", value: "font-sans" },
@@ -67,6 +63,7 @@ const TextEditor = ({
   handleReplace,
   content,
   setContent,
+  isSavingKeyword,
 }) => {
   const [showPreview, setShowPreview] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -76,7 +73,6 @@ const TextEditor = ({
   const [selectedFont, setSelectedFont] = useState(FONT_OPTIONS[0].value)
   const [selectionPosition, setSelectionPosition] = useState(null)
   const [showModelDropdown, setShowModelDropdown] = useState(false)
-  const [selectedModel, setSelectedModel] = useState("gemini")
   const [hoveredSuggestion, setHoveredSuggestion] = useState(null)
   const htmlEditorRef = useRef(null)
   const mdEditorRef = useRef(null)
@@ -84,52 +80,64 @@ const TextEditor = ({
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const hasInitializedRef = useRef(false)
+  const [isRetrying, setIsRetrying] = useState(false)
+  const [retryContent, setRetryContent] = useState(null)
+  const [retryModalOpen, setRetryModalOpen] = useState(false)
+  const [bubblePos, setBubblePos] = useState({ top: 0, left: 0 })
   const { handlePopup } = useConfirmPopup()
-  const userPlan = useSelector((state) => state.auth.user?.plan)
+  const user = useSelector((state) => state.auth.user)
+  const userPlan = user?.plan ?? user?.subscription?.plan
+  const hasShownToast = useRef(false)
 
   const AI_MODELS = [
     { id: "gemini", name: "Gemini", icon: "" },
     { id: "openai", name: "OpenAI", icon: "" },
   ]
 
-  // Ensure content is a string
   const safeContent = content ?? ""
+
+  useEffect(() => {
+    if (blog?.status === "failed" && !hasShownToast.current) {
+      toast.error("Your blog generation failed. You can write blog manually.")
+      hasShownToast.current = true
+    }
+  }, [blog?.status])
 
   useEffect(() => {
     const style = document.createElement("style")
     style.innerHTML = `
-    .font-comic { font-family: "Comic Sans MS", cursive; }
-    .prose { max-width: none !important; }
-        .suggestion-highlight { 
-          position: relative; 
-          text-decoration: none; 
-          background-image: linear-gradient(to right, red, red);
-          background-position: bottom;
-          background-size: 100% 2px;
-          background-repeat: repeat-x;
-          display: inline;
-        }
-        .suggestion-highlight:hover::after {
-          content: '';
-          position: absolute;
-          left: 0;
-          right: 0;
-          bottom: -2px;
-          height: 2px;
-          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 2' preserveAspectRatio='none'%3E%3Cpolyline points='0,0 5,2 10,0' style='fill:none;stroke:red;stroke-width:1'/%3E%3C/svg%3E");
-          background-repeat: repeat-x;
-        }
-        .suggestion-tooltip {
-          position: absolute;
-          background: #fff;
-          border: 1px solid #ddd;
-          border-radius: 4px;
-          padding: 8px;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-          z-index: 1000;
-          max-width: 300px;
-        }
-      `
+      .font-comic { font-family: "Comic Sans MS", cursive; }
+      .prose { max-width: none !important; }
+      .suggestion-highlight { 
+        position: relative; 
+        text-decoration: none; 
+        background-image: linear-gradient(to right, red, red);
+        background-position: bottom;
+        background-size: 100% 2px;
+        background-repeat: repeat-x;
+        display: inline;
+      }
+      .suggestion-highlight:hover::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: -2px;
+        height: 2px;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 2' preserveAspectRatio='none'%3E%3Cpolyline points='0,0 5,2 10,0' style='fill:none;stroke:red;stroke-width:1'/%3E%3C/svg%3E");
+        background-repeat: repeat-x;
+      }
+      .suggestion-tooltip {
+        position: absolute;
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        z-index: 1000;
+        max-width: 300px;
+      }
+    `
     document.head.appendChild(style)
     return () => document.head.removeChild(style)
   }, [])
@@ -149,6 +157,11 @@ const TextEditor = ({
       extensions: [
         StarterKit.configure({
           heading: { levels: [1, 2, 3] },
+          bold: {
+            HTMLAttributes: {
+              class: "font-bold",
+            },
+          },
         }),
         Link.configure({
           HTMLAttributes: { class: "text-blue-600 underline" },
@@ -165,9 +178,11 @@ const TextEditor = ({
           suggestions: proofreadingResults,
         }),
       ],
-      content: safeContent ? marked.parse(safeContent) : "<p></p>",
+      content: safeContent ? marked.parse(safeContent, { gfm: true }) : "<p></p>",
       onUpdate: ({ editor }) => {
-        const turndownService = new TurndownService()
+        const turndownService = new TurndownService({
+          strongDelimiter: "**",
+        })
         const markdown = turndownService.turndown(editor.getHTML())
         setContent(markdown)
       },
@@ -181,6 +196,19 @@ const TextEditor = ({
   )
 
   const { activeSpan, bubbleRef, applyChange, rejectChange } = useProofreadingUI(normalEditor)
+
+  useLayoutEffect(() => {
+    if (activeSpan instanceof HTMLElement && bubbleRef.current) {
+      const spanRect = activeSpan.getBoundingClientRect()
+      const bubbleHeight = bubbleRef.current.offsetHeight
+
+      const top = spanRect.top + window.scrollY - bubbleHeight - 8 // show above
+      const left = spanRect.left + window.scrollX
+
+      setBubblePos({ top, left })
+    }
+  }, [activeSpan])
+
   useEffect(() => {
     if (normalEditor) {
       const ext = normalEditor.extensionManager.extensions.find(
@@ -188,7 +216,7 @@ const TextEditor = ({
       )
       if (ext) {
         ext.options.suggestions = proofreadingResults
-        normalEditor.view.dispatch(normalEditor.view.state.tr) // Re-render
+        normalEditor.view.dispatch(normalEditor.view.state.tr)
       }
     }
   }, [proofreadingResults, normalEditor])
@@ -209,7 +237,8 @@ const TextEditor = ({
     setContent(initialContent)
 
     if (normalEditor && !normalEditor.isDestroyed && activeTab === "normal") {
-      normalEditor.commands.setContent(initialContent ? marked.parse(initialContent) : "<p></p>")
+      const htmlContent = initialContent ? marked.parse(initialContent, { gfm: true }) : "<p></p>"
+      normalEditor.commands.setContent(htmlContent)
     }
 
     setShowPreview(false)
@@ -270,7 +299,7 @@ const TextEditor = ({
           keywords,
         })
       )
-      
+
       if (response.data?.content) {
         const updated = await dispatch(fetchBlogById(blog._id))
         const payload = updated?.payload
@@ -344,28 +373,64 @@ const TextEditor = ({
       return
     }
 
-    // Get the selected text
     const selectedText = normalEditor.state.doc.textBetween(from, to, "\n")
 
     const payload = {
-      contentPart: true,
-      content: selectedText.trim(),
+      contentPart: selectedText.trim(),
+    }
+
+    if (normalEditor) {
+      normalEditor.commands.blur()
+      normalEditor.commands.setTextSelection(0)
     }
 
     try {
+      setIsRetrying(true)
       const res = await sendRetryLines(blog._id, payload)
 
-      if (res.data?.content) {
-        normalEditor.chain().focus().deleteRange({ from, to }).insertContent(res.data.content).run()
-
-        toast.success("Selected lines regenerated successfully!")
+      if (res.data) {
+        setRetryContent(res.data)
+        setRetryModalOpen(true)
       } else {
-        toast.success("Regenerating selected lines!")
+        toast.error("No content received from retry.")
       }
     } catch (error) {
       console.error("Retry failed:", error)
       toast.error(error.message || "Retry failed.")
+    } finally {
+      setIsRetrying(false)
     }
+  }
+
+  const handleAcceptRetry = () => {
+    if (retryContent && normalEditor && activeTab === "normal") {
+      const parsedContent = marked.parse(retryContent, { gfm: true })
+      normalEditor
+        .chain()
+        .focus()
+        .deleteRange({
+          from: normalEditor.state.selection.from,
+          to: normalEditor.state.selection.to,
+        })
+        .insertContent(parsedContent)
+        .run()
+      toast.success("Selected lines replaced successfully!")
+    } else if (retryContent) {
+      // For markdown/html modes, insert raw Markdown
+      setContent((prev) => {
+        const { from, to } = normalEditor?.state.selection || { from: 0, to: 0 }
+        return prev.substring(0, from) + retryContent + prev.substring(to)
+      })
+      toast.success("Selected lines replaced successfully!")
+    }
+    setRetryModalOpen(false)
+    setRetryContent(null)
+  }
+
+  const handleRejectRetry = () => {
+    setRetryModalOpen(false)
+    setRetryContent(null)
+    toast.info("Retry content discarded.")
   }
 
   const FloatingToolbar = ({ editorRef, mode }) => {
@@ -457,45 +522,19 @@ const TextEditor = ({
 
   const ModelDropdown1 = () => (
     <div className="relative" ref={dropdownRef}>
-      <button
-        // onClick={() => setShowModelDropdown(!showModelDropdown)}
-        className="flex capitalize items-center gap-2 font-semibold mr-4 hover:bg-gray-100 p-2 rounded"
-      >
+      <button className="flex capitalize items-center gap-2 font-semibold mr-4 hover:bg-gray-100 p-2 rounded">
         {blog?.aiModel?.toLowerCase() === "gemini" ? (
           <span className="flex items-center gap-2">
             Gemini
-            <img src="/public/Images/gemini.png" alt="gemini" className="w-5" />
+            <img src="/Images/gemini.png" alt="gemini" className="w-5" />
           </span>
         ) : (
           <span className="flex items-center gap-2">
             ChatGPT
-            <img src="/public/Images/chatgpt.png" alt="chatgpt" className="w-5" />
+            <img src="/Images/chatgpt.png" alt="chatgpt" className="w-5" />
           </span>
         )}
       </button>
-      {/* {showModelDropdown && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="absolute top-full left-0 mt-1 bg-white border rounded-md shadow-lg z-50 min-w-[200px]"
-        >
-          {AI_MODELS.map((model) => (
-            <button
-              key={model.id}
-              onClick={() => {
-                setSelectedModel(model.id)
-                setShowModelDropdown(false)
-              }}
-              className={`w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 ${
-                selectedModel === model.id ? "bg-gray-50" : ""
-              }`}
-            >
-              <span>{model.icon}</span>
-              <span>{model.name}</span>
-            </button>
-          ))}
-        </motion.div>
-      )} */}
     </div>
   )
 
@@ -746,7 +785,6 @@ const TextEditor = ({
                 <h3 className="text-xl lg:text-2xl font-bold mt-8 mb-3" {...props} />
               ),
               p: ({ node, children, ...props }) => {
-                // Convert children to a string to check for suggestions
                 const textContent = React.Children.toArray(children)
                   .map((child) => (typeof child === "string" ? child : ""))
                   .join("")
@@ -801,7 +839,6 @@ const TextEditor = ({
                             }
                           }
                           if (!matched) {
-                            // Find the next potential match
                             let minIndex = remainingText.length
                             let nextMatchLength = 0
                             for (const suggestion of proofreadingResults) {
@@ -840,8 +877,14 @@ const TextEditor = ({
               ul: ({ node, ...props }) => <ul className="list-disc pl-6 my-4" {...props} />,
               ol: ({ node, ...props }) => <ol className="list-decimal pl-6 my-4" {...props} />,
               li: ({ node, ...props }) => <li className="my-1" {...props} />,
-              a: ({ node, ...props }) => (
-                <a className="text-blue-600 hover:text-blue-800 hover:underline" {...props} />
+              a: ({ node, href, ...props }) => (
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:text-blue-800 hover:underline"
+                  {...props}
+                />
               ),
               strong: ({ node, ...props }) => <strong className="font-bold" {...props} />,
               img: ({ node, ...props }) => (
@@ -859,6 +902,24 @@ const TextEditor = ({
       )
     }
 
+    const handleRewrite = () => {
+      if (userPlan === "free" || userPlan === "basic") {
+        handlePopup({
+          title: "Upgrade Required",
+          description: "Rewrite is only available for Pro and Enterprise users.",
+          confirmText: "Buy Now",
+          cancelText: "Cancel",
+          onConfirm: () => navigate("/upgrade"),
+        })
+      } else {
+        handlePopup({
+          title: "Rewrite Selected Lines.",
+          description: "Do you want to rewrite the selected lines? You can rewrite only 3 times.",
+          onConfirm: handleRetry,
+        })
+      }
+    }
+
     switch (activeTab) {
       case "normal":
         return (
@@ -874,7 +935,7 @@ const TextEditor = ({
                     onClick={() => {
                       safeEditorAction(() => {
                         normalEditor.chain().focus().toggleBold().run()
-                        normalEditor.commands.blur() // ✅ blur after run
+                        normalEditor.commands.blur()
                       })
                     }}
                   >
@@ -909,16 +970,7 @@ const TextEditor = ({
                 </Tooltip>
 
                 <Tooltip title="Rewrite" placement="top">
-                  <button
-                    onClick={() => {
-                      normalEditor.commands.blur() // Blur immediately or after popup depending on UX
-                      handlePopup({
-                        title: "Rewrite Selected Lines",
-                        description: "Do you want to rewrite the selected lines?",
-                        onConfirm: handleRetry,
-                      })
-                    }}
-                  >
+                  <button onClick={handleRewrite}>
                     <RotateCcw className="w-4 h-4" />
                   </button>
                 </Tooltip>
@@ -931,8 +983,9 @@ const TextEditor = ({
                 ref={bubbleRef}
                 style={{
                   position: "absolute",
-                  top: activeSpan.getBoundingClientRect().bottom + window.scrollY + 5,
-                  left: activeSpan.getBoundingClientRect().left + window.scrollX,
+                  top: bubblePos.top,
+                  left: bubblePos.left,
+                  zIndex: 50,
                 }}
               >
                 <div style={{ marginBottom: 4 }}>
@@ -992,6 +1045,65 @@ const TextEditor = ({
 
   return (
     <div className="flex-grow p-4 relative -top-16">
+      {retryModalOpen && (
+        <motion.div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold mb-4">Generated Content</h3>
+            <div className="p-4 bg-gray-50 rounded-md mb-4">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeRaw]}
+                className="prose"
+                components={{
+                  a: ({ href, children }) => (
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
+                      {children}
+                    </a>
+                  ),
+                  strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+                }}
+              >
+                {retryContent}
+              </ReactMarkdown>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={handleRejectRetry}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+              >
+                Reject
+              </button>
+              <button
+                onClick={handleAcceptRetry}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                Accept
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {(isRetrying || isSavingKeyword) && (
+        <motion.div
+          className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          <Loading />
+        </motion.div>
+      )}
+
       <Helmet>
         <title>Blog Editor | GenWrite</title>
       </Helmet>

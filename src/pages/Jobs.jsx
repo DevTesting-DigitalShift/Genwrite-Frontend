@@ -37,6 +37,7 @@ const initialJob = {
     includeCompetitorResearch: false,
     includeInterlinks: false,
     performKeywordResearch: false,
+    includeTableOfContents: false,
   },
   status: "active", // default to stop (valid enum for backend)
 }
@@ -88,27 +89,57 @@ const Jobs = () => {
       return
     }
     try {
-      // Ensure only the required fields are sent, with new options fields
       const jobPayload = {
         ...newJob,
+        blogs: {
+          ...newJob.blogs,
+          keywords: formData.keywords, // Explicitly use formData.keywords to ensure sync
+        },
         options: {
           ...newJob.options,
-          // These fields should be set in the UI logic or defaulted here
           includeFaqs: newJob.options.includeFaqs || false,
           useBrandVoice: newJob.options.useBrandVoice || false,
           includeCompetitorResearch: newJob.options.includeCompetitorResearch || false,
           includeInterlinks: newJob.options.includeInterlinks || false,
           performKeywordResearch: newJob.options.performKeywordResearch || false,
-          keywords: newJob.blogs.keywords || [],
+          includeTableOfContents: newJob.options.includeTableOfContents || false,
         },
       }
       await axiosInstance.post("/jobs", jobPayload)
-      toast.success("Job created successfully!") // Show success toast
-      setShowJobModal(false) // Close the modal
-      fetchJobs() // Refresh the job list
+      toast.success("Job created successfully!")
+      setShowJobModal(false)
+      fetchJobs()
     } catch (error) {
       console.error("Error creating job:", error.response?.data?.message || error.message)
-      toast.error("Failed to create job. Please try again.") // Show error toast
+      toast.error("Failed to create job. Please try again.")
+    }
+  }
+
+  const handleUpdateJob = async (jobId) => {
+    try {
+      const jobPayload = {
+        ...newJob,
+        blogs: {
+          ...newJob.blogs,
+          keywords: formData.keywords, // Explicitly use formData.keywords to ensure sync
+        },
+        options: {
+          ...newJob.options,
+          includeFaqs: newJob.options.includeFaqs || false,
+          useBrandVoice: newJob.options.useBrandVoice || false,
+          includeCompetitorResearch: newJob.options.includeCompetitorResearch || false,
+          includeInterlinks: newJob.options.includeInterlinks || false,
+          performKeywordResearch: newJob.options.performKeywordResearch || false,
+          includeTableOfContents: newJob.options.includeTableOfContents || false,
+        },
+      }
+      await axiosInstance.put(`/jobs/${jobId}`, jobPayload)
+      toast.success("Job updated successfully!")
+      setShowJobModal(false)
+      fetchJobs()
+    } catch (error) {
+      console.error("Error updating job:", error.response?.data?.message || error.message)
+      toast.error("Failed to update job. Please try again.")
     }
   }
 
@@ -127,31 +158,6 @@ const Jobs = () => {
     } catch (error) {
       console.error("Error toggling job status:", error.response?.data?.message || error.message)
       toast.error("Failed to update job status. Please try again.")
-    }
-  }
-
-  const handleUpdateJob = async (jobId) => {
-    try {
-      // Ensure only the required fields are sent, with new options fields
-      const jobPayload = {
-        ...newJob,
-        options: {
-          ...newJob.options,
-          // These fields should be set in the UI logic or defaulted here
-          includeFaqs: newJob.options.includeFaqs || false,
-          useBrandVoice: newJob.options.useBrandVoice || false,
-          includeCompetitorResearch: newJob.options.includeCompetitorResearch || false,
-          includeInterlinks: newJob.options.includeInterlinks || false,
-          performKeywordResearch: newJob.options.performKeywordResearch || false,
-        },
-      }
-      await axiosInstance.put(`/jobs/${jobId}`, jobPayload)
-      toast.success("Job updated successfully!") // Show success toast
-      setShowJobModal(false) // Close the modal
-      fetchJobs() // Refresh the job list
-    } catch (error) {
-      console.error("Error updating job:", error.response?.data?.message || error.message)
-      toast.error("Failed to update job. Please try again.") // Show error toast
     }
   }
 
@@ -391,6 +397,14 @@ const Jobs = () => {
           keywords: [...prev.keywords, ...newKeywords],
           keywordInput: "",
         }))
+        // Sync with newJob.blogs.keywords
+        setNewJob((prev) => ({
+          ...prev,
+          blogs: {
+            ...prev.blogs,
+            keywords: [...prev.blogs.keywords, ...newKeywords],
+          },
+        }))
         return true
       } else {
         setFormData((prev) => ({ ...prev, keywordInput: "" }))
@@ -399,12 +413,22 @@ const Jobs = () => {
     }
     return false
   }
-
   const handleRemoveToggleKeyword = (index) => {
-    setFormData((prev) => ({
-      ...prev,
-      keywords: prev.keywords.filter((_, i) => i !== index),
-    }))
+    setFormData((prev) => {
+      const updatedKeywords = prev.keywords.filter((_, i) => i !== index)
+      // Sync with newJob.blogs.keywords
+      setNewJob((prevJob) => ({
+        ...prevJob,
+        blogs: {
+          ...prevJob.blogs,
+          keywords: updatedKeywords,
+        },
+      }))
+      return {
+        ...prev,
+        keywords: updatedKeywords,
+      }
+    })
   }
 
   const handleCSVKeywordUpload = (e) => {
@@ -442,6 +466,14 @@ const Jobs = () => {
         ...prev,
         keywords: [...prev.keywords, ...uniqueNewTopics],
       }))
+      // Sync with newJob.blogs.keywords
+      setNewJob((prev) => ({
+        ...prev,
+        blogs: {
+          ...prev.blogs,
+          keywords: [...prev.blogs.keywords, ...uniqueNewTopics],
+        },
+      }))
 
       if (uniqueNewTopics.length > 8) {
         setRecentlyUploadedCount(uniqueNewTopics.length)
@@ -450,9 +482,7 @@ const Jobs = () => {
     }
 
     reader.readAsText(file)
-
-    // ✅ Reset file input to allow uploading the same file again
-    e.target.value = null
+    e.target.value = null // Reset file input
   }
 
   const renderStep = () => {
@@ -545,7 +575,7 @@ const Jobs = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="text-sm font-medium text-gray-700 mb-2 flex gap-2 items-center">
                   Topics
                   <Tooltip title="Upload a .csv file in the format: `S.No., Keyword`">
                     <div className="cursor-pointer">
@@ -718,16 +748,13 @@ const Jobs = () => {
               <div className="space-y-6">
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
-                    Focus Keywords
+                    Keywords
                     <Tooltip title="Upload a .csv file in the format: `S.No., Keyword`">
                       <div className="cursor-pointer">
                         <Info size={16} className="text-blue-500" />
                       </div>
                     </Tooltip>
                   </label>
-                  {/* <p className="text-xs text-gray-500 mb-2">
-                      Enter the main keywords for your blogs .
-                    </p> */}
                   <div className="flex gap-2">
                     <input
                       type="text"
@@ -894,6 +921,25 @@ const Jobs = () => {
                   <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                 </label>
               </div>
+              {newJob.options.wordpressPosting && (
+                <div className="flex items-center justify-between py-2 border-b">
+                  <span className="text-sm font-medium text-gray-700">Table of Content</span>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={newJob.options.includeTableOfContents}
+                      onChange={(e) =>
+                        setNewJob({
+                          ...newJob,
+                          options: { ...newJob.options, includeTableOfContents: e.target.checked },
+                        })
+                      }
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  </label>
+                </div>
+              )}
             </div>
             <div className="flex justify-between mt-6">
               <button
@@ -1092,6 +1138,13 @@ const Jobs = () => {
       return
     }
     setNewJob(initialJob)
+    setFormData((prev) => ({
+      ...prev,
+      keywords: [],
+      keywordInput: "",
+      focusKeywords: [],
+      focusKeywordInput: "",
+    }))
     setShowJobModal(true)
     setCurrentStep(1)
   }

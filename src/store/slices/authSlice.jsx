@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit"
-import { login, signup, Userlogout, loadUser } from "@api/authApi"
+import { login, signup, Userlogout, loadUser, forgotPasswordAPI, resetPasswordAPI } from "@api/authApi"
 import { getProfile } from "@api/userApi"
 
 // Utils
@@ -13,6 +13,8 @@ const initialState = {
   token: getToken(),
   loading: false,
   error: null,
+  forgotMessage: null,
+  resetMessage: null,
 }
 
 // 🔐 Login
@@ -72,12 +74,39 @@ export const loadAuthenticatedUser = createAsyncThunk(
 export const logoutUser = createAsyncThunk("auth/logoutUser", async (_, { dispatch }) => {
   try {
     await Userlogout()
-    
   } catch (err) {
     console.warn("Logout failed (ignored)", err)
   }
   dispatch(logout())
 })
+
+// 🔁 Forgot Password
+export const forgotPassword = createAsyncThunk(
+  "auth/forgotPassword",
+  async (email, { rejectWithValue }) => {
+    try {
+      const data = await forgotPasswordAPI(email)
+      return data // or success flag
+    } catch (err) {
+      console.error("Forgot password error:", err)
+      return rejectWithValue(err.response?.data?.error || "Failed to send reset link")
+    }
+  }
+)
+
+// 🔁 Reset Password
+export const resetPassword = createAsyncThunk(
+  "auth/resetPassword",
+  async ({ token, newPassword }, { rejectWithValue }) => {
+    try {
+      const data = await resetPasswordAPI(token, newPassword)
+      return data.message // or success flag
+    } catch (err) {
+      console.error("Reset password error:", err)
+      return rejectWithValue(err.response?.data?.error || "Failed to reset password")
+    }
+  }
+)
 
 // Slice
 const authSlice = createSlice({
@@ -144,6 +173,35 @@ const authSlice = createSlice({
       state.user = null
       state.token = null
       state.loading = false
+    })
+    // Forgot Password
+    builder.addCase(forgotPassword.pending, (state) => {
+      state.loading = true
+      state.error = null
+      state.forgotMessage = null
+    })
+    builder.addCase(forgotPassword.fulfilled, (state, action) => {
+      state.loading = false
+      state.forgotMessage = action.payload
+    })
+    builder.addCase(forgotPassword.rejected, (state, action) => {
+      state.loading = false
+      state.error = action.payload
+    })
+
+    // Reset Password
+    builder.addCase(resetPassword.pending, (state) => {
+      state.loading = true
+      state.error = null
+      state.resetMessage = null
+    })
+    builder.addCase(resetPassword.fulfilled, (state, action) => {
+      state.loading = false
+      state.resetMessage = action.payload
+    })
+    builder.addCase(resetPassword.rejected, (state, action) => {
+      state.loading = false
+      state.error = action.payload
     })
   },
 })
