@@ -1,5 +1,0 @@
-<<<<<<<< HEAD:dist/assets/SearchOutlined-eIOiKvy_.js
-import{b as o}from"./chunk-tiptap-DryasWDK.js";import{S as s}from"./SearchOutlined-D4l4Fnsg.js";import{K as c}from"./index-CAPh2Lvr.js";function a(){return a=Object.assign?Object.assign.bind():function(t){for(var r=1;r<arguments.length;r++){var n=arguments[r];for(var e in n)Object.prototype.hasOwnProperty.call(n,e)&&(t[e]=n[e])}return t},a.apply(this,arguments)}const i=(t,r)=>o.createElement(c,a({},t,{ref:r,icon:s})),l=o.forwardRef(i);export{l as R};
-========
-import{b as o}from"./chunk-tiptap-CHS2hqlU.js";import{S as s}from"./SearchOutlined-Dxc7fvyl.js";import{K as c}from"./index-ONXMzj6x.js";function a(){return a=Object.assign?Object.assign.bind():function(t){for(var r=1;r<arguments.length;r++){var n=arguments[r];for(var e in n)Object.prototype.hasOwnProperty.call(n,e)&&(t[e]=n[e])}return t},a.apply(this,arguments)}const i=(t,r)=>o.createElement(c,a({},t,{ref:r,icon:s})),l=o.forwardRef(i);export{l as R};
->>>>>>>> 7496981f6fa6838b98fb4867cc3c24f19dab0e3d:dist/assets/SearchOutlined-CRYa4n_v.js

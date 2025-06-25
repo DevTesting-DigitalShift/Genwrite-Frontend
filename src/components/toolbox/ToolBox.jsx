@@ -54,7 +54,6 @@ const ToolBox = () => {
     }
 
     let updatedContent = editorContent
-    console.log(updatedContent)
     const regex = new RegExp(original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g")
     updatedContent = updatedContent.replace(regex, change)
     setEditorContent(updatedContent)

@@ -62,8 +62,6 @@ const Profile = () => {
     dispatch(loadAuthenticatedUser())
   }, [dispatch])
 
-  console.log({ user })
-
   const totalCredits = (user?.credits?.base ?? 0) + (user?.credits?.extra ?? 0)
 
   useEffect(() => {
@@ -103,27 +101,6 @@ const Profile = () => {
     }))
   }, [user])
 
-  // useEffect(() => {
-  //   const updateUser = async (data) => {
-  //     try {
-  //       const res = await axiosInstance.put("/user/profile", data)
-  //       console.log({ res })
-  //       if (res?.data) {
-  //         await dispatch(loadAuthenticatedUser())
-  //       }
-  //       toast.success("User updated successfully")
-  //     } catch (err) {
-  //       toast.error("User update error, try after some time")
-  //     }
-  //   }
-  //   const wordpress = profileData?.personalDetails?.wordpress?.trim()
-  //   if (!isEditing && wordpress && user.wordpressLink !== wordpress) {
-  //     updateUser({
-  //       wordpressLink: wordpress,
-  //     })
-  //   }
-  // }, [profileData.personalDetails.wordpress, isEditing])
-
   const handleSave = async () => {
     const payload = {
       avatar: profileData.profilePicture,
@@ -136,16 +113,6 @@ const Profile = () => {
       website: profileData.personalDetails.website,
       dob: profileData.personalDetails.dob,
       wordpressLink: profileData.personalDetails.wordpress,
-      // billingDetails: {
-      //   companyName: profileData.billingDetails.companyName,
-      //   address: profileData.billingDetails.address,
-      //   city: profileData.billingDetails.city,
-      //   country: profileData.billingDetails.country,
-      //   gstNumber: profileData.billingDetails.gstNumber,
-      //   taxId: profileData.billingDetails.taxId,
-      //   paymentMethod: profileData.billingDetails.paymentMethod,
-      //   companyEmail: profileData.billingDetails.companyEmail,
-      // },
     }
 
     try {

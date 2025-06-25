@@ -18,13 +18,12 @@ export const pluginsData = (setWordpressStatus) => [
         btn.disabled = true
 
         const res = await axiosInstance.get("/wordpress/check")
-        console.log("res", res)
         setWordpressStatus(res)
         if (res.data.success) {
           toast.success(res.data.message) 
         }
       } catch (err) {
-        console.log(err)
+        console.err(err)
         switch (err.status) {
           case 400:
             toast.error("No wordpress link found. Add wordpress link into your profile.")

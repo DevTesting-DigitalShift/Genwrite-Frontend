@@ -76,8 +76,6 @@ const Auth = ({ path }) => {
 
       const response = await dispatch(action).unwrap() // unwrap to catch errors
 
-      console.log({ response })
-
       // Success
       toast.success(isSignup ? "Signup successful!" : "Login successful!")
       navigate("/dash")

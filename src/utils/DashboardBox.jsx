@@ -148,8 +148,19 @@ export const RecentProjects = ({ title, content, tags, item, time }) => {
   const navigate = useNavigate()
 
   // Truncate content to 80 characters and add ellipses if it's too long
+  const cleanContent = content
+    ?.replace(/^#+\s*/gm, "") // Remove markdown headers like "# Heading"
+    ?.replace(/#[^\s#]+/g, "") // Remove hashtags like #tag
+    ?.replace(/[*_~`>\\=|-]+/g, "") // Remove markdown formatting
+    ?.replace(/\n+/g, " ") // Replace newlines with space
+    ?.replace(/\s+/g, " ") // Collapse multiple spaces
+    ?.trim()
+
   const truncatedContent =
-    content && content.length > 40 ? `${content.substring(0, 80)}...` : content || "" // Default to an empty string if content is null
+    cleanContent && cleanContent.length > 40
+      ? `${cleanContent.substring(0, 80)}...`
+      : cleanContent || ""
+  // Default to an empty string if content is null
 
   const handleBlogClick = () => {
     if (item && item._id) {

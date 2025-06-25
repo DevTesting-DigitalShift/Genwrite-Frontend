@@ -34,7 +34,7 @@ const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
         plan.featured
           ? "ring-2 ring-blue-500 shadow-xl scale-105"
           : plan.type === "credit_purchase"
-          ? "bg-blue-200"
+          ? "bg-blue-100"
           : "shadow-lg hover:shadow-xl border border-gray-100"
       }`}
     >
