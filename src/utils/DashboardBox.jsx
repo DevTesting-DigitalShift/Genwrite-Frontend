@@ -104,8 +104,10 @@ export const QuickBox = ({ icon, title, content, id, functions, bgColor, hoverBg
       functions.showCompetitiveAnalysis()
     } else if (id === 3 && functions?.showPerformanceMonitoring) {
       functions.showPerformanceMonitoring()
-    } else if (id === 2 && functions?.showPerformanceMonitoring) {
-      functions.showPerformanceMonitoring()
+    } else if (id === 2 && functions?.showSeoAnalysis) {
+      functions.showSeoAnalysis()
+    } else if (id === 1 && functions?.showKeywordResearch) {
+      functions.showKeywordResearch()
     }
   }
 

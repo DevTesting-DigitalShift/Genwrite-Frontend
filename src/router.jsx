@@ -19,6 +19,8 @@ const trashcan = lazy(() => import("@pages/Trashcan"))
 const upgrade = lazy(() => import("@pages/Upgrade"))
 const Profile = lazy(() => import("@pages/Profile"))
 const Login = lazy(() => import("@components/auth/Login"))
+const ForgotPassword = lazy(() => import("@components/auth/ForgotPassword"))
+const ResetPassword = lazy(() => import("@components/auth/ResetPassword"))
 const ErrorPage = lazy(() => import("@components/ErrorPage"))
 const SuccessPage = lazy(() => import("@pages/payment/SuccessPage"))
 const CancelPage = lazy(() => import("@pages/payment/CancelPage"))
@@ -84,6 +86,8 @@ const router = createBrowserRouter([
     children: [
       { path: "login", element: withSuspense(Login, { path: "login" }) },
       { path: "signup", element: withSuspense(Login, { path: "signup" }) },
+      { path: "forgot-password", element: withSuspense(ForgotPassword) },
+      { path: "reset-password", element: withSuspense(ResetPassword) },
       {
         path: "preview/:blogId",
         element: withSuspense(PreviewBlog),

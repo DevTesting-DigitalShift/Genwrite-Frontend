@@ -24,6 +24,7 @@ import { loadAuthenticatedUser, selectUser } from "@store/slices/authSlice"
 import { Clock, Sparkles } from "lucide-react"
 import { Helmet } from "react-helmet"
 import SeoAnalysisModal from "./multipleStepModal/SeoAnalysisModal"
+import KeywordResearchModel from "./multipleStepModal/KeywordResearchModel"
 
 const Dashboard = () => {
   const [isModalVisible, setIsModalVisible] = useState(false)
@@ -33,6 +34,7 @@ const Dashboard = () => {
   const [quickBlogModal, setQuickBlogModal] = useState(false)
   const [competitiveAnalysisModal, setCompetitiveAnalysisModal] = useState(false)
   const [performanceModal, setPerformanceModal] = useState(false)
+  const [keywordResearchModal, setKeywordResearchModal] = useState(false)
   const [seoAnalysisModal, setSeoAnalysisModal] = useState(false)
   const [modelData, setModelData] = useState({})
   const [recentBlogData, setRecentBlogData] = useState([])
@@ -214,9 +216,11 @@ const Dashboard = () => {
         <PerformanceMonitoringModal closeFnc={() => setPerformanceModal(false)} />
       )}
 
-       {seoAnalysisModal && (
-        <SeoAnalysisModal closeFnc={() => setSeoAnalysisModal(false)} />
+      {keywordResearchModal && (
+        <KeywordResearchModel closeFnc={() => setKeywordResearchModal(false)} />
       )}
+
+      {seoAnalysisModal && <SeoAnalysisModal closeFnc={() => setSeoAnalysisModal(false)} />}
 
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/50 p-6">
         <div className="max-w-7xl mx-auto space-y-8">
@@ -305,7 +309,10 @@ const Dashboard = () => {
                             ? { showPerformanceMonitoring: () => setPerformanceModal(true) }
                             : {}),
                           ...(item.id === 2
-                            ? { showPerformanceMonitoring: () => setSeoAnalysisModal(true) }
+                            ? { showSeoAnalysis: () => setSeoAnalysisModal(true) }
+                            : {}),
+                          ...(item.id === 1
+                            ? { showKeywordResearch: () => setKeywordResearchModal(true) }
                             : {}),
                           ...(item.id === 4 ? { showCompetitiveAnalysis } : {}),
                         }}

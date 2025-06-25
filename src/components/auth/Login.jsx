@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useState, useCallback } from "react"
 import { useDispatch } from "react-redux"
 import { Link, useNavigate } from "react-router-dom"
 import { loginUser, signupUser } from "../../store/slices/authSlice"
@@ -21,17 +21,61 @@ import { toast } from "react-toastify"
 import { Helmet } from "react-helmet"
 
 const Auth = ({ path }) => {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [name, setName] = useState("")
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+    name: "",
+  })
+  const [errors, setErrors] = useState({})
   const [showPassword, setShowPassword] = useState(false)
   const [isSignup, setIsSignup] = useState(path === "signup")
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
+  const [generalError, setGeneralError] = useState(null)
 
   const dispatch = useDispatch()
   const navigate = useNavigate()
 
+  // Validate form fields
+  const validateForm = useCallback(() => {
+    const newErrors = {}
+
+    // Name validation (signup only)
+    if (isSignup && !formData.name.trim()) {
+      newErrors.name = "Full name is required."
+    } else if (isSignup && formData.name.trim().length < 2) {
+      newErrors.name = "Name must be at least 2 characters."
+    }
+
+    // Email validation
+    if (!formData.email.trim()) {
+      newErrors.email = "Email is required."
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = "Please enter a valid email address."
+    }
+
+    // Password validation
+    if (!formData.password) {
+      newErrors.password = "Password is required."
+    } else if (formData.password.length < 8) {
+      newErrors.password = "Password must be at least 8 characters."
+    } else if (isSignup && !/[\W_]/.test(formData.password)) {
+      newErrors.password = "Password must include at least one special character."
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }, [formData, isSignup])
+
+  // Handle input changes with debounced validation
+  const handleInputChange = useCallback((e) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
+    // Clear specific error when user starts typing
+    setErrors((prev) => ({ ...prev, [name]: undefined }))
+    setGeneralError(null)
+  }, [])
+
+  // Handle Google login
   const handleGoogleLogin = useGoogleLogin({
     flow: "implicit",
     redirect_uri: "https://genwrite-frontend-eight.vercel.app/login",
@@ -52,43 +96,72 @@ const Auth = ({ path }) => {
             interests: response.data.user.interests || [],
           }
           dispatch(setUserBlogs(userData))
+          toast.success("Google login successful!")
           navigate("/dash")
         }
       } catch (error) {
-        setError("Google login failed. Please try again.")
+        setGeneralError("Google login failed. Please try again.")
+        toast.error("Google login failed.")
       } finally {
         setLoading(false)
       }
     },
-    onError: () => setError("Google login failed to initialize."),
+    onError: () => {
+      setGeneralError("Google login failed to initialize.")
+      toast.error("Google login initialization failed.")
+    },
   })
 
-  useEffect(() => setIsSignup(path === "signup"), [path])
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
+  const validatePassword = (password) => {
+    const errors = []
 
-    try {
-      const action = isSignup
-        ? signupUser({ email, password, name })
-        : loginUser({ email, password })
+    if (password.length < 8) errors.push("at least 8 characters")
+    if (!/[A-Z]/.test(password)) errors.push("one uppercase letter")
+    if (!/[a-z]/.test(password)) errors.push("one lowercase letter")
+    if (!/[0-9]/.test(password)) errors.push("one number")
+    if (!/[!@#$%^&*()_+[\]{};':\"\\|,.<>/?]/.test(password)) errors.push("one special character")
 
-      const response = await dispatch(action).unwrap() // unwrap to catch errors
-
-      // Success
-      toast.success(isSignup ? "Signup successful!" : "Login successful!")
-      navigate("/dash")
-    } catch (err) {
-      console.error(err)
-
-      const backendError = err?.message || err?.payload?.message || "Something went wrong."
-      setError(backendError)
-      toast.error(backendError)
-    } finally {
-      setLoading(false)
-    }
+    return errors
   }
+
+  // Handle form submission
+  const handleSubmit = useCallback(
+    async (e) => {
+      e.preventDefault()
+      if (!validateForm()) {
+        // toast.error("Please fix the errors in the form.");
+        return
+      }
+
+      setLoading(true)
+      setGeneralError(null)
+
+      try {
+        const action = isSignup
+          ? signupUser({ email: formData.email, password: formData.password, name: formData.name })
+          : loginUser({ email: formData.email, password: formData.password })
+
+        const response = await dispatch(action).unwrap()
+        toast.success(isSignup ? "Signup successful!" : "Login successful!")
+        navigate("/dash")
+      } catch (err) {
+        const backendError = err?.message || err?.payload?.message || "Something went wrong."
+        setGeneralError(backendError)
+        toast.error(backendError)
+      } finally {
+        setLoading(false)
+      }
+    },
+    [formData, isSignup, dispatch, navigate, validateForm]
+  )
+
+  // Update isSignup based on path
+  useEffect(() => {
+    setIsSignup(path === "signup")
+    setFormData({ email: "", password: "", name: "" })
+    setErrors({})
+    setGeneralError(null)
+  }, [path])
 
   const features = [
     { icon: <PenTool className="w-5 h-5" />, text: "AI-Powered Writing" },
@@ -99,32 +172,18 @@ const Auth = ({ path }) => {
   return (
     <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       <Helmet>
-        <title>{isSignup ? "SignUp" : "SignIn"} | GenWrite</title>
+        <title>{isSignup ? "Sign Up" : "Sign In"} | GenWrite</title>
       </Helmet>
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
         <motion.div
-          animate={{
-            rotate: [0, 360],
-            scale: [1, 1.1, 1],
-          }}
-          transition={{
-            duration: 20,
-            repeat: Infinity,
-            ease: "linear",
-          }}
+          animate={{ rotate: [0, 360], scale: [1, 1.1, 1] }}
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
           className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl"
         />
         <motion.div
-          animate={{
-            rotate: [360, 0],
-            scale: [1, 1.2, 1],
-          }}
-          transition={{
-            duration: 25,
-            repeat: Infinity,
-            ease: "linear",
-          }}
+          animate={{ rotate: [360, 0], scale: [1, 1.2, 1] }}
+          transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
           className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-indigo-400/20 to-cyan-400/20 rounded-full blur-3xl"
         />
       </div>
@@ -153,7 +212,6 @@ const Auth = ({ path }) => {
                 <Sparkles className="w-4 h-4" />
                 AI-Powered Writing Platform
               </div>
-
               <h1 className="text-5xl font-bold text-gray-900 leading-tight">
                 Transform Your
                 <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
@@ -163,13 +221,11 @@ const Auth = ({ path }) => {
                 <br />
                 with AI
               </h1>
-
               <p className="text-xl text-gray-600 leading-relaxed">
                 Join thousands of writers who use GenWrite to create compelling content, boost
                 productivity, and unlock their creative potential.
               </p>
             </div>
-
             <div className="space-y-4">
               {features.map((feature, index) => (
                 <motion.div
@@ -186,7 +242,6 @@ const Auth = ({ path }) => {
                 </motion.div>
               ))}
             </div>
-
             <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-12 h-12 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full flex items-center justify-center">
@@ -225,7 +280,6 @@ const Auth = ({ path }) => {
                 >
                   <FaRocket className="text-white text-2xl" />
                 </motion.div>
-
                 <h2 className="text-3xl font-bold text-gray-900 mb-2">
                   {isSignup ? "Join GenWrite" : "Welcome Back"}
                 </h2>
@@ -256,7 +310,7 @@ const Auth = ({ path }) => {
               </div>
 
               {/* Form */}
-              <form onSubmit={handleSubmit} className="space-y-5">
+              <form onSubmit={handleSubmit} className="space-y-5" noValidate>
                 <AnimatePresence>
                   {isSignup && (
                     <motion.div
@@ -266,65 +320,134 @@ const Auth = ({ path }) => {
                       transition={{ duration: 0.3 }}
                       className="relative"
                     >
-                      <div className="absolute top-4 left-4 text-gray-400 z-10">
+                      <div className="absolute top-4 left-4 text-gray-500 z-2">
                         <FaUser />
                       </div>
                       <input
                         type="text"
+                        name="name"
                         placeholder="Full Name"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        required
-                        className="w-full pl-12 pr-4 py-4 bg-gray-50/80 border-2 border-gray-200 rounded-2xl text-gray-800 placeholder-gray-500 focus:border-blue-500 focus:bg-white focus:shadow-lg outline-none transition-all duration-300"
+                        value={formData.name}
+                        onChange={handleInputChange}
+                        className={`w-full pl-12 pr-4 py-2 bg-gray-50/80 border-2 rounded-2xl text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 ${
+                          errors.name ? "border-red-500" : "border-gray-200"
+                        }`}
+                        aria-label="Full Name"
+                        aria-invalid={!!errors.name}
+                        aria-describedby={errors.name ? "name-error" : undefined}
                       />
+                      <AnimatePresence>
+                        {errors.name && (
+                          <motion.p
+                            initial={{ opacity: 0, y: -5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -5 }}
+                            className="text-red-600 text-xs mt-1"
+                            id="name-error"
+                          >
+                            {errors.name}
+                          </motion.p>
+                        )}
+                      </AnimatePresence>
                     </motion.div>
                   )}
                 </AnimatePresence>
 
                 <div className="relative">
-                  <div className="absolute top-4 left-4 text-gray-400 z-10">
+                  <div className="absolute top-4 left-4 text-gray-500 z-2">
                     <FaEnvelope />
                   </div>
                   <input
                     type="email"
+                    name="email"
                     placeholder="Email Address"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="w-full pl-12 pr-4 py-4 bg-gray-50/80 border-2 border-gray-200 rounded-2xl text-gray-800 placeholder-gray-500 focus:border-blue-500 focus:bg-white focus:shadow-lg outline-none transition-all duration-300"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    className={`w-full pl-12 pr-4 py-2 bg-gray-50/80 border-2 rounded-2xl text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 ${
+                      errors.email ? "border-red-500" : "border-gray-200"
+                    }`}
+                    aria-label="Email Address"
+                    aria-invalid={!!errors.email}
+                    aria-describedby={errors.email ? "email-error" : undefined}
                   />
+                  <AnimatePresence>
+                    {errors.email && (
+                      <motion.p
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -5 }}
+                        className="text-red-600 text-xs mt-1"
+                        id="email-error"
+                      >
+                        {errors.email}
+                      </motion.p>
+                    )}
+                  </AnimatePresence>
                 </div>
 
                 <div className="relative">
-                  <div className="absolute top-4 left-4 text-gray-400 z-10">
+                  <div className="absolute top-4 left-4 text-gray-500 z-2">
                     <FaLock />
                   </div>
                   <input
                     type={showPassword ? "text" : "password"}
+                    name="password"
                     placeholder="Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className="w-full pl-12 pr-12 py-4 bg-gray-50/80 border-2 border-gray-200 rounded-2xl text-gray-800 placeholder-gray-500 focus:border-blue-500 focus:bg-white focus:shadow-lg outline-none transition-all duration-300"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    className={`w-full pl-12 pr-12 py-2 bg-gray-50/80 border-2 rounded-2xl text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 ${
+                      errors.password ? "border-red-500" : "border-gray-200"
+                    }`}
+                    aria-label="Password"
+                    aria-invalid={!!errors.password}
+                    aria-describedby={errors.password ? "password-error" : undefined}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-4 text-gray-500 hover:text-gray-700 transition-colors z-10"
+                    className="absolute right-4 top-4 text-gray-500 hover:text-gray-700 transition-colors z-2"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
                   >
                     {showPassword ? <FaEyeSlash /> : <FaEye />}
                   </button>
+                  <AnimatePresence>
+                    {errors.password && (
+                      <motion.p
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -5 }}
+                        className="text-red-600 text-xs mt-1"
+                        id="password-error"
+                      >
+                        {errors.password}
+                      </motion.p>
+                    )}
+                  </AnimatePresence>
                 </div>
 
+                {/* Forgot Password Link (Login Only) */}
+                {!isSignup && (
+                  <div className="text-right">
+                    <button
+                      type="button"
+                      onClick={() => navigate("/forgot-password")}
+                      className="text-blue-600 text-sm font-medium hover:text-blue-800 hover:underline transition-all"
+                      aria-label="Forgot Password"
+                    >
+                      Forgot Password?
+                    </button>
+                  </div>
+                )}
+
                 <AnimatePresence>
-                  {error && (
+                  {generalError && (
                     <motion.div
                       initial={{ opacity: 0, y: -10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -10, scale: 0.95 }}
                       className="bg-red-50 border border-red-200 rounded-xl p-3"
                     >
-                      <p className="text-red-600 text-sm text-center font-medium">{error}</p>
+                      <p className="text-red-600 text-sm text-center font-medium">{generalError}</p>
                     </motion.div>
                   )}
                 </AnimatePresence>

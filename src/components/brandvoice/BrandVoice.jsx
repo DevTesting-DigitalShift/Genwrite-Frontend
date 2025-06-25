@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useCallback, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { FaEdit, FaTimes } from "react-icons/fa"
 import { useDispatch, useSelector } from "react-redux"
@@ -6,13 +6,15 @@ import { useNavigate } from "react-router-dom"
 import { sendBrandVoice } from "../../store/slices/blogSlice"
 import axiosInstance from "@api/index"
 import * as XLSX from "xlsx"
-import { Info, Upload } from "lucide-react"
+import { Info, Upload, Loader2 } from "lucide-react"
 import { Helmet } from "react-helmet"
 import { toast } from "react-toastify"
 import { Tooltip } from "antd"
 
 const BrandVoice = () => {
   const user = useSelector((state) => state.auth.user)
+  const navigate = useNavigate()
+  const dispatch = useDispatch()
   const [inputValue, setInputValue] = useState("")
   const [isUploading, setIsUploading] = useState(false)
   const [brands, setBrands] = useState([])
@@ -24,73 +26,170 @@ const BrandVoice = () => {
     describeBrand: "",
     selectedVoice: null,
     uploadedFile: null,
+    _id: undefined,
   })
+  const [errors, setErrors] = useState({})
 
-  const fetchBrands = async () => {
+  // Fetch brands with memoized callback
+  const fetchBrands = useCallback(async () => {
     try {
       const res = await axiosInstance.get("/brand")
-      let brandsArr = Array.isArray(res.data) ? res.data : res.data ? [res.data] : []
+      const brandsArr = Array.isArray(res.data) ? res.data : res.data ? [res.data] : []
       setBrands(brandsArr)
       if (brandsArr.length > 0 && !formData.selectedVoice) {
         setFormData((prev) => ({ ...prev, selectedVoice: brandsArr[0] }))
       }
     } catch (err) {
       setBrands([])
+      toast.error("Failed to fetch brand voices.")
     }
-  }
+  }, [formData.selectedVoice])
 
   useEffect(() => {
     fetchBrands()
+  }, [fetchBrands])
+
+  // Validate form fields
+  const validateForm = useCallback(() => {
+    const newErrors = {}
+    if (!formData.nameOfVoice.trim()) newErrors.nameOfVoice = "Name of Voice is required."
+    if (!formData.postLink.trim()) {
+      newErrors.postLink = "Post link is required."
+    } else {
+      try {
+        new URL(formData.postLink)
+      } catch {
+        newErrors.postLink = "Please enter a valid URL."
+      }
+    }
+    if (formData.keywords.length === 0) newErrors.keywords = "At least one keyword is required."
+    if (!formData.describeBrand.trim()) newErrors.describeBrand = "Brand description is required."
+    if (!excelData) newErrors.sitemap = "Excel file is required."
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }, [formData, excelData])
+
+  // Handle form input changes
+  const handleInputChange = useCallback((e) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
+    setErrors((prev) => ({ ...prev, [name]: undefined }))
   }, [])
 
-  const handleEdit = (brand) => {
-    setFormData({
-      nameOfVoice: brand.nameOfVoice,
-      postLink: brand.postLink,
-      keywords: Array.isArray(brand.keywords) ? brand.keywords : [],
-      describeBrand: brand.describeBrand,
-      selectedVoice: brand,
-      sitemap: brand.sitemap, // use textArea for this & key is sitemap
-      uploadedFile: null,
-      _id: brand._id,
-    })
-  }
+  // Handle keyword input
+  const handleKeyDown = useCallback(
+    (event) => {
+      if (event.key === "Enter" && inputValue.trim()) {
+        event.preventDefault()
+        setFormData((prev) => ({
+          ...prev,
+          keywords: [...new Set([...prev.keywords, inputValue.trim()])],
+        }))
+        setInputValue("")
+        setErrors((prev) => ({ ...prev, keywords: undefined }))
+      }
+    },
+    [inputValue]
+  )
 
-  // Save (update or create) brand voice
-  const handleSave = async () => {
-    try {
-      setIsUploading(true)
-      const payload = {
-        nameOfVoice: formData.nameOfVoice?.trim(),
-        postLink: formData.postLink?.trim(),
-        keywords: Array.isArray(formData.keywords)
-          ? formData.keywords.map((k) => String(k).trim()).filter(Boolean)
-          : [],
-        describeBrand: formData.describeBrand?.trim(),
-        userId: user?._id, // send userId to backend
-        xslData: excelData,
+  // Remove keyword
+  const removeKeyword = useCallback((keyword) => {
+    setFormData((prev) => ({
+      ...prev,
+      keywords: prev.keywords.filter((k) => k !== keyword),
+    }))
+  }, [])
+
+  // Handle CSV file upload
+  const handleFileChange = useCallback((event) => {
+    const file = event.target.files[0]
+    if (file && file.type === "text/csv") {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const text = e.target.result
+        const keywords = text
+          .split(/,|\n|;/)
+          .map((kw) => kw.trim())
+          .filter((kw) => kw.length > 0)
+        setFormData((prev) => ({
+          ...prev,
+          uploadedFile: file.name,
+          keywords: [...new Set([...prev.keywords, ...keywords])],
+        }))
+        setErrors((prev) => ({ ...prev, keywords: undefined }))
       }
-      if (!payload.nameOfVoice || !payload.postLink || !payload.describeBrand) {
-        setIsUploading(false)
-        toast.error("All fields are required.")
-        return
-      }
+      reader.onerror = () => toast.error("Error reading CSV file.")
+      reader.readAsText(file)
+    } else {
+      toast.error("Please upload a valid CSV file.")
+    }
+  }, [])
+
+  // Handle Excel sitemap upload
+  const handleSiteFileChange = useCallback((e) => {
+    const file = e.target.files[0]
+    if (!file) return
+
+    // Validate file type
+    if (
+      ![
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      ].includes(file.type)
+    ) {
+      toast.error("Please upload a valid Excel file (.xls or .xlsx).")
+      setErrors((prev) => ({ ...prev, sitemap: "Invalid file type. Only .xls or .xlsx allowed." }))
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
       try {
-        new URL(payload.postLink)
-      } catch {
-        setIsUploading(false)
-        toast.error("Please enter a valid URL for the post link.")
-        return
+        const data = event.target.result
+        const workbook = XLSX.read(data, { type: "binary" })
+        const firstSheetName = workbook.SheetNames[0]
+        const sheet = workbook.Sheets[firstSheetName]
+        const json = XLSX.utils.sheet_to_json(sheet)
+        const jsonString = JSON.stringify(json)
+        setExcelData(jsonString)
+        setFormData((prev) => ({ ...prev, uploadedFile: file.name }))
+        setErrors((prev) => ({ ...prev, sitemap: undefined }))
+      } catch (error) {
+        toast.error("Error processing Excel file.")
+        setErrors((prev) => ({ ...prev, sitemap: "Failed to process Excel file." }))
       }
+    }
+    reader.onerror = () => {
+      toast.error("Error reading Excel file.")
+      setErrors((prev) => ({ ...prev, sitemap: "Failed to read Excel file." }))
+    }
+    reader.readAsBinaryString(file)
+  }, [])
+
+  // Save or update brand voice
+  const handleSave = useCallback(async () => {
+    if (!validateForm()) return
+
+    setIsUploading(true)
+    const payload = {
+      nameOfVoice: formData.nameOfVoice.trim(),
+      postLink: formData.postLink.trim(),
+      keywords: formData.keywords.map((k) => k.trim()).filter(Boolean),
+      describeBrand: formData.describeBrand.trim(),
+      siteMap: excelData, // Send Excel content as siteMap
+      userId: user?._id,
+    }
+
+    try {
       let res
       if (formData._id) {
-        // Update existing brand
         res = await axiosInstance.put(`/brand/${formData._id}`, payload)
+        toast.success("Brand voice updated successfully.")
       } else {
-        // Create new brand
         res = await axiosInstance.post("/brand/addBrand", payload)
+        toast.success("Brand voice created successfully.")
       }
-      setIsUploading(false)
+      dispatch(sendBrandVoice(res.data))
       fetchBrands()
       setFormData({
         nameOfVoice: "",
@@ -101,122 +200,56 @@ const BrandVoice = () => {
         uploadedFile: null,
         _id: undefined,
       })
+      setExcelData(null)
+      setInputValue("")
+      setErrors({})
     } catch (err) {
+      toast.error(err?.response?.data?.details?.errors[0]?.msg || "Failed to save brand voice.")
+    } finally {
       setIsUploading(false)
-      toast.error(
-        err?.response?.data?.details?.errors[0]?.msg ||
-          "Failed to save brand voice. Please check your input."
-      )
     }
-  }
+  }, [formData, excelData, user, dispatch, fetchBrands, validateForm])
+
+  // Edit brand voice
+  const handleEdit = useCallback((brand) => {
+    setFormData({
+      nameOfVoice: brand.nameOfVoice || "",
+      postLink: brand.postLink || "",
+      keywords: Array.isArray(brand.keywords) ? brand.keywords : [],
+      describeBrand: brand.describeBrand || "",
+      selectedVoice: brand,
+      uploadedFile: null,
+      _id: brand._id,
+    })
+    setExcelData(brand.siteMap || null) // Load existing siteMap if available
+    setErrors({})
+  }, [])
 
   // Delete brand voice
-  const handleDelete = async (brand) => {
-    try {
-      await axiosInstance.delete(`/brand/${brand._id}`)
-      fetchBrands()
-      if (formData.selectedVoice && formData.selectedVoice._id === brand._id) {
-        setFormData((prev) => ({ ...prev, selectedVoice: null }))
+  const handleDelete = useCallback(
+    async (brand) => {
+      if (!window.confirm("Are you sure you want to delete this brand voice?")) return
+      try {
+        await axiosInstance.delete(`/brand/${brand._id}`)
+        toast.success("Brand voice deleted successfully.")
+        fetchBrands()
+        if (formData.selectedVoice?._id === brand._id) {
+          setFormData((prev) => ({ ...prev, selectedVoice: null }))
+        }
+      } catch (err) {
+        toast.error("Failed to delete brand voice.")
       }
-    } catch (err) {
-      toast.error("Failed to delete brand voice.")
-    }
-  }
+    },
+    [fetchBrands, formData.selectedVoice]
+  )
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target
-    setFormData({
-      ...formData,
-      [name]: value,
-    })
-  }
+  // Select brand voice
+  const handleSelect = useCallback((voice) => {
+    setFormData((prev) => ({ ...prev, selectedVoice: voice }))
+  }, [])
 
-  const handleSelect = (voice) => {
-    setFormData((prev) => ({
-      ...prev,
-      selectedVoice: voice,
-    }))
-  }
-
-  // CSV upload for keywords (only .csv, works on mobile/desktop)
-  const handleFileChange = (event) => {
-    const file = event.target.files[0]
-    if (file && file.type === "text/csv") {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        // Parse CSV: split by comma, newline, or semicolon
-        const text = e.target.result
-        let keywords = text
-          .split(/,|\n|;/)
-          .map((kw) => kw.trim())
-          .filter((kw) => kw.length > 0)
-        setFormData((prev) => ({
-          ...prev,
-          uploadedFile: file.name,
-          keywords: Array.from(new Set([...prev.keywords, ...keywords])),
-        }))
-      }
-      reader.readAsText(file)
-    } else {
-      // Optionally show error: only CSV allowed
-      toast.error("Please upload a CSV file")
-    }
-  }
-
-  const handleSiteFileChange = (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    const reader = new FileReader()
-
-    reader.onload = (event) => {
-      const data = event.target?.result
-      const workbook = XLSX.read(data, { type: "binary" })
-
-      const firstSheetName = workbook.SheetNames[0]
-      const sheet = workbook.Sheets[firstSheetName]
-
-      // Convert sheet to JSON
-      const json = XLSX.utils.sheet_to_json(sheet)
-
-      // Convert to string to send in payload
-      const jsonString = JSON.stringify(json)
-      setExcelData(jsonString) // Save for payload
-    }
-
-    reader.onerror = (error) => {
-      console.error("Error reading Excel file:", error)
-    }
-
-    reader.readAsBinaryString(file)
-  }
-
-  const handleRemoveFile = (fileName) => {
-    setFormData({
-      ...formData,
-      uploadedFile: null,
-      keywords: formData.keywords.filter((keyword) => keyword !== fileName),
-    })
-  }
-
-  const handleKeyDown = (event) => {
-    if (event.key === "Enter" && inputValue.trim()) {
-      setFormData({
-        ...formData,
-        keywords: [...formData.keywords, inputValue.trim()],
-      })
-      setInputValue("")
-    }
-  }
-
-  const handleRemoveKeyword = (keyword) => {
-    setFormData({
-      ...formData,
-      keywords: formData.keywords.filter((k) => k !== keyword),
-    })
-  }
-
-  const renderKeywords = () => {
+  // Memoized keywords rendering
+  const renderKeywords = useMemo(() => {
     const latestKeywords = formData.keywords.slice(-3)
     const remainingCount = formData.keywords.length - latestKeywords.length
 
@@ -227,82 +260,114 @@ const BrandVoice = () => {
             className="flex items-center bg-indigo-100 text-indigo-700 rounded-md px-2 py-1 mr-2"
             initial={{ scale: 0.8 }}
             animate={{ scale: 1 }}
+            title={`+${remainingCount} more keywords`}
           >
             <span className="text-sm">{`+${remainingCount}`}</span>
           </motion.div>
         )}
-        {latestKeywords.map((keyword, index) => (
+        {latestKeywords.map((keyword) => (
           <motion.div
-            key={index}
+            key={keyword}
             className="flex items-center bg-indigo-100 text-indigo-700 rounded-md px-2 py-1 mr-2"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8 }}
             whileHover={{ scale: 1.05 }}
           >
-            <span className="text-sm">{keyword}</span>
+            <span className="text-sm truncate max-w-[100px]">{keyword}</span>
             <FaTimes
               className="ml-1 cursor-pointer text-indigo-500 hover:text-indigo-700 transition-colors"
-              onClick={() => handleRemoveKeyword(keyword)}
+              onClick={(e) => {
+                e.stopPropagation()
+                removeKeyword(keyword)
+              }}
+              aria-label={`Remove ${keyword}`}
             />
           </motion.div>
         ))}
       </>
     )
-  }
+  }, [formData.keywords, removeKeyword])
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="flex gap-8 justify-around p-6"
+      className="flex flex-col lg:flex-row gap-6 p-4 lg:p-6 max-w-7xl mx-auto"
     >
       <Helmet>
         <title>Brand Voice | GenWrite</title>
       </Helmet>
-      {/* Left Section */}
+
+      {/* Left Section: Form */}
       <motion.div
-        className="w-[60%] bg-white rounded-xl p-6 shadow-lg border border-gray-100"
+        className="w-full lg:w-[60%] bg-white rounded-xl p-6 shadow-lg border border-gray-100"
         initial={{ x: -20 }}
         animate={{ x: 0 }}
       >
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-          Let’s create your Brand Voice
+        <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+          Create Your Brand Voice
         </h1>
-        <p className="text-gray-500 mb-6">
-          Prototype group pixel duplicate ellipse hand draft style rotate. Layout follower scale
-          comment flows draft select.
+        <p className="text-gray-600 text-sm mb-6">
+          Define your brand's unique tone and style to ensure consistent content creation.
         </p>
 
-        <div className="space-y-6">
+        <div className="space-y-4">
+          {/* Name of Voice */}
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-2">Name of Voice</label>
+            <label
+              htmlFor="nameOfVoice"
+              className="text-sm font-medium text-gray-700 flex gap-2 mb-1"
+            >
+              Name of Voice <span className="text-red-500">*</span>
+            </label>
             <motion.input
+              id="nameOfVoice"
               type="text"
               name="nameOfVoice"
               value={formData.nameOfVoice}
               onChange={handleInputChange}
-              placeholder="e.g., How to get?"
-              className="w-full p-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="e.g., Friendly Tech"
+              className={`w-full p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
+                errors.nameOfVoice ? "border-red-500" : "border-gray-300"
+              }`}
               whileFocus={{ scale: 1.01 }}
+              aria-invalid={!!errors.nameOfVoice}
+              aria-describedby={errors.nameOfVoice ? "nameOfVoice-error" : undefined}
             />
+            {errors.nameOfVoice && (
+              <p id="nameOfVoice-error" className="text-red-500 text-xs mt-1">
+                {errors.nameOfVoice}
+              </p>
+            )}
           </div>
 
+          {/* Post Link */}
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-2">
-              Paste link of your post or blog <span className="text-red-500">*</span>
+            <label htmlFor="postLink" className="text-sm font-medium text-gray-700 flex gap-2 mb-1">
+              Post or Blog Link <span className="text-red-500">*</span>
             </label>
             <motion.input
-              type="text"
+              id="postLink"
+              type="url"
               name="postLink"
               value={formData.postLink}
               onChange={handleInputChange}
-              placeholder="e.g., How to get?"
-              className="w-full p-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="e.g., https://example.com/blog"
+              className={`w-full p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
+                errors.postLink ? "border-red-500" : "border-gray-300"
+              }`}
               whileFocus={{ scale: 1.01 }}
+              aria-invalid={!!errors.postLink}
+              aria-describedby={errors.postLink ? "postLink-error" : undefined}
             />
+            {errors.postLink && (
+              <p id="postLink-error" className="text-red-500 text-xs mt-1">
+                {errors.postLink}
+              </p>
+            )}
           </div>
-
+{/* 
           <div className="text-center my-4 relative">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-300"></div>
@@ -310,38 +375,43 @@ const BrandVoice = () => {
             <div className="relative flex justify-center">
               <span className="bg-white px-4 text-gray-500">OR</span>
             </div>
-          </div>
+          </div> */}
 
+          {/* Keywords */}
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-2 flex gap-2 ">
+            <label htmlFor="keywords" className="text-sm font-medium text-gray-700 flex gap-2 mb-1">
               Keywords <span className="text-red-500">*</span>
-              <Tooltip title="Upload a .csv file in the format: `S.No., Keyword`">
-                <div className="cursor-pointer">
+              <Tooltip title="Enter keywords or upload a .csv file with format: S.No., Keyword">
+                <span className="cursor-pointer">
                   <Info size={16} className="text-blue-500" />
-                </div>
+                </span>
               </Tooltip>
             </label>
             <motion.div
-              className="flex items-center bg-white border border-gray-300 rounded-lg p-2 flex-wrap gap-2"
+              className={`flex items-center bg-white border rounded-lg p-2 flex-wrap gap-2 ${
+                errors.keywords ? "border-red-500" : "border-gray-300"
+              }`}
               whileHover={{ boxShadow: "0 0 0 3px rgba(99, 102, 241, 0.2)" }}
             >
-              {renderKeywords()}
+              {renderKeywords}
               <input
+                id="keywords"
                 type="text"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className="flex-grow p-2 bg-white border-none outline-none rounded-l-md"
-                placeholder="e.g., Fun"
+                className="flex-grow p-2 bg-transparent border-none outline-none text-sm"
+                placeholder="Type a keyword and press Enter"
+                aria-describedby={errors.keywords ? "keywords-error" : undefined}
               />
               <label htmlFor="file-upload" className="flex items-center cursor-pointer">
                 <motion.div
                   className="bg-indigo-100 p-2 rounded-lg"
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
+                  aria-label="Upload CSV file"
                 >
-                  <Upload size={20} />
-                  {/* <img src="./Images/upload.png" alt="Upload" className="size-4" /> */}
+                  <Upload size={20} className="text-indigo-600" />
                 </motion.div>
               </label>
               <input
@@ -352,77 +422,122 @@ const BrandVoice = () => {
                 accept=".csv"
               />
             </motion.div>
+            {errors.keywords && (
+              <p id="keywords-error" className="text-red-500 text-xs mt-1">
+                {errors.keywords}
+              </p>
+            )}
           </div>
 
-          <div className="w-full">
-            <label className="text-sm font-medium text-gray-700 block mb-2">
-              Upload Site Map (Excel) <span className="text-red-500">*</span>
+          {/* Sitemap (Excel Upload Only) */}
+          <div>
+            <label
+              htmlFor="file-site-upload"
+              className="text-sm font-medium text-gray-700 flex gap-2 mb-1"
+            >
+              Sitemap (Excel File) <span className="text-red-500">*</span>
+              <Tooltip title="Upload an Excel file (.xls or .xlsx) with sitemap data">
+                <span className="cursor-pointer">
+                  <Info size={16} className="text-blue-500" />
+                </span>
+              </Tooltip>
             </label>
             <motion.label
               htmlFor="file-site-upload"
-              className="flex items-center cursor-pointer justify-between bg-white border border-gray-300 rounded-lg p-2 gap-2 hover:ring-2 hover:ring-indigo-300 transition-all"
+              className={`flex items-center justify-between bg-white border rounded-lg p-2 gap-2 hover:ring-2 hover:ring-indigo-300 transition-all ${
+                errors.sitemap ? "border-red-500" : "border-gray-300"
+              }`}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
-              <div>
-                <span className="text-gray-700">Choose .xls or .xlsx file</span>
-                <input
-                  id="file-site-upload"
-                  type="file"
-                  accept=".xls,.xlsx"
-                  onChange={handleSiteFileChange}
-                  className="hidden"
-                />
-              </div>
+              <span className="text-gray-700 text-sm truncate">
+                {formData.uploadedFile ? formData.uploadedFile : "Choose .xls or .xlsx file"}
+              </span>
               <motion.div
                 className="bg-indigo-100 p-2 rounded-lg cursor-pointer"
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
+                aria-label="Upload Excel file"
               >
-                <Upload size={20} />
+                <Upload size={20} className="text-indigo-600" />
               </motion.div>
+              <input
+                id="file-site-upload"
+                type="file"
+                accept=".xls,.xlsx"
+                onChange={handleSiteFileChange}
+                className="hidden"
+              />
             </motion.label>
+            {errors.sitemap && (
+              <p id="sitemap-error" className="text-red-500 text-xs mt-1">
+                {errors.sitemap}
+              </p>
+            )}
           </div>
 
+          {/* Brand Description */}
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-2">
-              Describe your Brand
+            <label
+              htmlFor="describeBrand"
+              className="text-sm font-medium text-gray-700 flex gap-2 mb-1"
+            >
+              Describe Your Brand <span className="text-red-500">*</span>
             </label>
             <motion.textarea
+              id="describeBrand"
               name="describeBrand"
               value={formData.describeBrand}
               onChange={handleInputChange}
-              placeholder="Write a blog on how to cook pasta"
-              className="w-full p-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="Describe your brand's tone and personality"
+              className={`w-full p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
+                errors.describeBrand ? "border-red-500" : "border-gray-300"
+              }`}
               rows="4"
               whileFocus={{ scale: 1.01 }}
+              aria-invalid={!!errors.describeBrand}
+              aria-describedby={errors.describeBrand ? "describeBrand-error" : undefined}
             />
+            {errors.describeBrand && (
+              <p id="describeBrand-error" className="text-red-500 text-xs mt-1">
+                {errors.describeBrand}
+              </p>
+            )}
           </div>
 
+          {/* Save Button */}
           <div className="text-right">
             <motion.button
-              className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-8 py-3 rounded-lg font-medium shadow-md hover:shadow-lg transition-all"
+              className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-2 rounded-lg font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={handleSave}
               whileHover={{ scale: 1.03, y: -2 }}
               whileTap={{ scale: 0.98 }}
+              disabled={isUploading}
+              aria-label={formData._id ? "Update Brand Voice" : "Save Brand Voice"}
             >
-              Save Brand Voice
+              {isUploading ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="animate-spin w-4 h-4" />
+                  Saving...
+                </span>
+              ) : formData._id ? (
+                "Update Brand Voice"
+              ) : (
+                "Save Brand Voice"
+              )}
             </motion.button>
           </div>
         </div>
       </motion.div>
 
-      {/* Divider */}
-      <div className="h-auto w-px bg-gray-200 mx-2"></div>
-
-      {/* Right Section */}
+      {/* Right Section: Brand Voices List */}
       <motion.div
-        className="flex-1 bg-white rounded-xl p-6 shadow-lg border border-gray-100"
+        className="w-full lg:w-[40%] bg-white rounded-xl p-6 shadow-lg border border-gray-100"
         initial={{ x: 20 }}
         animate={{ x: 0 }}
       >
-        <h1 className="text-xl font-bold text-gray-800 mb-4">Your Brand Voices</h1>
-        <div className="mb-8 space-y-4 overflow-y-auto p-2">
+        <h2 className="text-xl font-bold text-gray-800 mb-4">Your Brand Voices</h2>
+        <div className="space-y-3 overflow-y-auto max-h-[calc(100vh-200px)]">
           {brands.length > 0 ? (
             brands.map((item) => (
               <YourVoicesComponent
@@ -432,13 +547,19 @@ const BrandVoice = () => {
                 brandVoice={item.describeBrand}
                 onSelect={() => handleSelect(item)}
                 isSelected={formData.selectedVoice?._id === item._id}
-                onEdit={() => handleEdit(item)}
-                onDelete={() => handleDelete(item)}
+                onEdit={(e) => {
+                  e.stopPropagation()
+                  handleEdit(item)
+                }}
+                onDelete={(e) => {
+                  e.stopPropagation()
+                  handleDelete(item)
+                }}
               />
             ))
           ) : (
-            <div className="p-6 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300 text-center text-gray-500">
-              No brand voices created yet.
+            <div className="p-6 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300 text-center text-gray-500 text-sm">
+              No brand voices created yet. Start by adding one on the left.
             </div>
           )}
         </div>
@@ -447,7 +568,7 @@ const BrandVoice = () => {
   )
 }
 
-// Update YourVoicesComponent to accept onEdit and onDelete
+// Updated YourVoicesComponent
 const YourVoicesComponent = ({
   id,
   brandName,
@@ -459,47 +580,62 @@ const YourVoicesComponent = ({
 }) => {
   return (
     <motion.div
-      className={`p-4 rounded-xl cursor-pointer transition-all ${
+      className={`p-4 mt-2 rounded-xl cursor-pointer transition-all ${
         isSelected
           ? "bg-gradient-to-r from-indigo-100 to-purple-100 border-2 border-indigo-300 shadow-md"
-          : "bg-white border border-gray-200 hover:border-indigo-300"
+          : "bg-white border border-gray-200 hover:bg-gray-50"
       }`}
       onClick={onSelect}
       whileHover={{
-        y: -3,
-        boxShadow: "0 4px 12px rgba(99, 102, 241, 0.1)",
+        y: -2,
+        boxShadow: "0 4px 15px rgba(99, 64, 241, 0.1)",
       }}
       whileTap={{ scale: 0.98 }}
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault()
+          onSelect()
+        }
+      }}
+      aria-label={`Select ${brandName} brand voice`}
     >
       <div className="flex justify-between items-center">
-        <h1 className={`font-medium ${isSelected ? "text-indigo-700" : "text-gray-700"}`}>
+        <h3
+          className={`font-medium text-sm ca ${
+            isSelected ? "text-indigo-700" : "text-gray-700"
+          } truncate max-w-[70%]`}
+        >
           {brandName}
-        </h1>
+        </h3>
         <div className="flex space-x-2">
           <motion.button
-            className="text-indigo-500 hover:text-indigo-700"
+            className="text-indigo-500 hover:text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-300 rounded"
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={onEdit}
+            aria-label={`Edit ${brandName}`}
+            title="Edit"
           >
-            <FaEdit />
+            <FaEdit className="w-4 h-4" />
           </motion.button>
           <motion.button
-            className="text-gray-500 hover:text-red-500"
+            className="text-gray-500 hover:text-red-400 focus:outline-none focus:ring-2 focus:ring-red-300 rounded"
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={onDelete}
+            aria-label={`Delete ${brandName}`}
+            title="Delete"
           >
             <img src="/Images/trash.png" alt="Delete" className="w-4 h-4" />
           </motion.button>
         </div>
       </div>
-      <p className="text-sm text-gray-600 mt-2">
-        {brandVoice.length > 100 ? `${brandVoice.substring(0, 100)}...` : brandVoice}
-      </p>
+      <p className="text-xs text-gray-600 mt-1 line-clamp-3">{brandVoice}</p>
     </motion.div>
   )
 }
