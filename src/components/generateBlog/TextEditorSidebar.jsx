@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom"
 import { useDispatch, useSelector } from "react-redux"
 import { Button, Tooltip } from "antd"
 import { fetchBlogById, updateBlogById } from "@store/slices/blogSlice"
+import { sendRetryLines } from "@api/blogApi"
 
 const TextEditorSidebar = ({
   blog,
@@ -209,8 +210,6 @@ const TextEditorSidebar = ({
     }
   }
 
-  const handleRegenerateKeywords = () => {}
-
   const handleRetry = async () => {
     if (!blog?._id) {
       toast.error("Blog ID is missing.")
@@ -246,6 +245,9 @@ const TextEditorSidebar = ({
           keywords,
         })
       )
+      await sendRetryLines(blog._id, {
+        keywords,
+      })
       toast.success("Something")
     } catch (error) {
       console.error("Error updating the blog:", error)

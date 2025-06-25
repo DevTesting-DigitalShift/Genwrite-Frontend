@@ -16,7 +16,7 @@ export const letsBegin = [
   {
     id: 1,
     imageUrl: "./Images/createnew.png",
-    title: "Create New BLog",
+    title: "Create New Blog",
     icon: <PenTool className="w-6 h-6" />,
     content: "Generate blogs, email, product, description, etc.",
     hoverGradient: "from-blue-600 to-blue-700",
@@ -32,7 +32,7 @@ export const letsBegin = [
   {
     id: "B",
     imageUrl: "./Images/createmultipleblog.png",
-    title: "Create Multiple Blog's",
+    title: "Create Multiple Blogs",
     icon: <Grid3X3 className="w-6 h-6" />,
     content: "Ellipse draft overflow arrange pen",
     hoverGradient: "from-emerald-600 to-emerald-700",

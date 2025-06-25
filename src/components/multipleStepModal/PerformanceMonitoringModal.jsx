@@ -33,28 +33,21 @@ const PerformanceMonitoringModal = ({ closeFnc }) => {
     fetchBlogs()
   }, [])
 
-  const handleBlogSelect = (blog) => {
+  const handleBlogSelect = async (blog) => {
     setFormData({
       selectedBlog: blog,
       title: blog.title,
       content: blog.content,
     })
     setStats(null)
-  }
-
-  const handleAnalyse = async () => {
-    if (!formData.selectedBlog) {
-      toast.error("Please select a blog")
-      return
-    }
-    // no need for credit
     setIsAnalyzing(true)
+
     try {
-      const response = await axiosInstance.get(`/blogs/${formData.selectedBlog._id}/stats`)
+      const response = await axiosInstance.get(`/blogs/${blog._id}/stats`)
       setStats(response.data)
-      toast.success("Performance analysis completed!")
+      // toast.success("Performance analysis completed!")
     } catch (error) {
-      toast.error("Failed to load blog details or deduct credits")
+      toast.error("Failed to load blog performance stats.")
     } finally {
       setIsAnalyzing(false)
     }
@@ -178,7 +171,7 @@ const PerformanceMonitoringModal = ({ closeFnc }) => {
           <h3 className="text-xl font-bold text-gray-800">Blog Performance Overview</h3>
         </div>
         {/* Metadata Section */}
-        <div className="mb-6">
+        <div className="mb-6 capitalize">
           <div className="flex items-center gap-2 mb-4">
             <div className="p-1 bg-purple-100 rounded text-purple-500">
               <svg
@@ -223,7 +216,7 @@ const PerformanceMonitoringModal = ({ closeFnc }) => {
           </div>
 
           {metadata?.generatedAt && (
-            <div className="mt-4 bg-gray-50 p-3 rounded-lg border border-gray-100">
+            <div className="mt-4 bg-gray-50 p-3 rounded-lg border normal-case border-gray-100">
               <p className="text-xs text-gray-500">Generated At</p>
               <p className="text-sm font-medium text-gray-800">
                 {new Date(metadata.generatedAt).toLocaleString("en-IN")}
@@ -488,7 +481,7 @@ const PerformanceMonitoringModal = ({ closeFnc }) => {
                     },
                   },
                 }}
-                className="rounded-md overflow-hidden"
+                className="rounded-md overflow-hidden capitalize"
               />
             </motion.div>
           </div>
@@ -673,10 +666,7 @@ const PerformanceMonitoringModal = ({ closeFnc }) => {
             <h2 className="text-xl font-bold text-gray-800">Performance Dashboard</h2>
           </motion.div>
 
-          <button
-            onClick={closeFnc}
-            className="p-2 rounded-full hover:bg-gray-100 transition-all"
-          >
+          <button onClick={closeFnc} className="p-2 rounded-full hover:bg-gray-100 transition-all">
             <X className="h-6 w-6 text-gray-500 hover:text-gray-700" />
           </button>
         </div>
@@ -738,91 +728,14 @@ const PerformanceMonitoringModal = ({ closeFnc }) => {
                   <h3 className="text-lg font-semibold text-gray-800 mb-2 truncate">
                     {formData.title}
                   </h3>
-                  <p className="text-gray-600 text-sm line-clamp-3">{formData.content}</p>
+                  <p className="text-gray-600 text-sm line-clamp-3">
+                    {(formData.content || "")
+                      .replace(/[#>*=_`~-]+/g, "") // Remove markdown symbols like #, *, >, etc.
+                      .replace(/\n+/g, " ") // Replace newlines with space
+                      .replace(/\s+/g, " ") // Collapse multiple spaces
+                      .trim()}
+                  </p>
                 </div>
-              </motion.div>
-            )}
-
-            <motion.div
-              className="flex justify-end pt-2"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-            >
-              <motion.button
-                onClick={handleAnalyse}
-                className={`px-5 py-2.5 rounded-lg font-medium flex items-center gap-2 ${
-                  isAnalyzing
-                    ? "bg-blue-400 cursor-not-allowed"
-                    : "bg-blue-600 hover:bg-blue-700 text-white"
-                } transition-all duration-300 shadow`}
-                disabled={isAnalyzing || !formData.selectedBlog}
-                whileHover={{
-                  scale: !isAnalyzing && formData.selectedBlog ? 1.03 : 1,
-                }}
-                whileTap={{ scale: 0.97 }}
-              >
-                {isAnalyzing ? (
-                  <>
-                    <svg
-                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    Analyzing...
-                  </>
-                ) : (
-                  <>
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M3 3v18h18" />
-                      <path d="m19 9-5 5-4-4-3 3" />
-                    </svg>
-                    Analyze Performance
-                  </>
-                )}
-              </motion.button>
-            </motion.div>
-
-            {isAnalyzing && !stats && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4"
-              >
-                {[...Array(6)].map((_, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: i * 0.1 }}
-                    className="h-32 bg-gray-100 rounded-xl animate-pulse"
-                  />
-                ))}
               </motion.div>
             )}
 
@@ -837,7 +750,7 @@ const PerformanceMonitoringModal = ({ closeFnc }) => {
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
           >
-            Close Dashboard
+            Close
           </motion.button>
         </div>
       </motion.div>

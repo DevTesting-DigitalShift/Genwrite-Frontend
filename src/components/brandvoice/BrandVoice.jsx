@@ -6,9 +6,10 @@ import { useNavigate } from "react-router-dom"
 import { sendBrandVoice } from "../../store/slices/blogSlice"
 import axiosInstance from "@api/index"
 import * as XLSX from "xlsx"
-import { Upload } from "lucide-react"
+import { Info, Upload } from "lucide-react"
 import { Helmet } from "react-helmet"
 import { toast } from "react-toastify"
+import { Tooltip } from "antd"
 
 const BrandVoice = () => {
   const user = useSelector((state) => state.auth.user)
@@ -177,7 +178,6 @@ const BrandVoice = () => {
 
       // Convert sheet to JSON
       const json = XLSX.utils.sheet_to_json(sheet)
-      console.log("Excel JSON:", json)
 
       // Convert to string to send in payload
       const jsonString = JSON.stringify(json)
@@ -190,8 +190,6 @@ const BrandVoice = () => {
 
     reader.readAsBinaryString(file)
   }
-
-  console.log({ excelData })
 
   const handleRemoveFile = (fileName) => {
     setFormData({
@@ -315,8 +313,13 @@ const BrandVoice = () => {
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-2">
+            <label className="text-sm font-medium text-gray-700 mb-2 flex gap-2 ">
               Keywords <span className="text-red-500">*</span>
+              <Tooltip title="Upload a .csv file in the format: `S.No., Keyword`">
+                <div className="cursor-pointer">
+                  <Info size={16} className="text-blue-500" />
+                </div>
+              </Tooltip>
             </label>
             <motion.div
               className="flex items-center bg-white border border-gray-300 rounded-lg p-2 flex-wrap gap-2"

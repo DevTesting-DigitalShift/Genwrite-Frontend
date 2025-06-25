@@ -354,7 +354,6 @@ const TextEditor = ({
 
     try {
       const res = await sendRetryLines(blog._id, payload)
-      console.log("Retry successful:", res)
 
       if (res.data?.content) {
         normalEditor.chain().focus().deleteRange({ from, to }).insertContent(res.data.content).run()

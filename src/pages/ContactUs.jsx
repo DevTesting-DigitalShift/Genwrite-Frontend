@@ -84,8 +84,6 @@ const ContactUs = () => {
         formData,
         import.meta.env.VITE_EMAILJS_PUBLIC_KEY
       )
-
-      console.log("SUCCESS!", result.text)
       setFormData({ name: "", email: "", subject: "", message: "" })
     } catch (error) {
       console.error("FAILED...", error)
@@ -94,11 +92,7 @@ const ContactUs = () => {
       setIsSubmitting(false)
     }
   }
-console.log({
-  service: import.meta.env.VITE_EMAILJS_SERVICE_ID,
-  template: import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
-  public: import.meta.env.VITE_EMAILJS_PUBLIC_KEY
-})
+  
   const companyInfo = {
     name: "GenWrite Technologies",
     address: {

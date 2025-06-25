@@ -40,8 +40,6 @@ const LayoutWithSidebarAndHeader = () => {
     return () => clearInterval(interval)
   }, [dispatch, navigate])
 
-  // console.log({ user })
-
   useEffect(() => {
     if (user?.name || user?.credits) {
       setIsUserLoaded(true)

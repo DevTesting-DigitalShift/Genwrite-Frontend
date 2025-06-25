@@ -33,5 +33,3 @@ export function getEstimatedCost(type, aiModel = "gemini") {
   }
   return cost
 }
-
-console.log(getEstimatedCost("blog.proofread"))

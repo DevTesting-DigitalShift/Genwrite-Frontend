@@ -13,7 +13,7 @@ import { useSelector } from "react-redux"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useNavigate } from "react-router-dom"
 import { CrownFilled, QuestionCircleOutlined } from "@ant-design/icons"
-import { Popconfirm } from "antd"
+import { Popconfirm, Tooltip } from "antd"
 import { Gem, Info, Upload, X } from "lucide-react"
 import { Helmet } from "react-helmet"
 
@@ -35,7 +35,7 @@ const initialJob = {
     includeFaqs: false,
     useBrandVoice: false,
     includeCompetitorResearch: false,
-    includeInterlinks: false, 
+    includeInterlinks: false,
     performKeywordResearch: false,
   },
   status: "active", // default to stop (valid enum for backend)
@@ -99,7 +99,7 @@ const Jobs = () => {
           includeCompetitorResearch: newJob.options.includeCompetitorResearch || false,
           includeInterlinks: newJob.options.includeInterlinks || false,
           performKeywordResearch: newJob.options.performKeywordResearch || false,
-          keywords : newJob.blogs.keywords || []
+          keywords: newJob.blogs.keywords || [],
         },
       }
       await axiosInstance.post("/jobs", jobPayload)
@@ -547,12 +547,11 @@ const Jobs = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Topics
-                  <div className="relative group cursor-pointer inline-flex ml-1">
-                    <Info size={16} className="text-blue-500 top-1 relative " />
-                    <div className="absolute bottom-5 left-0 mt-1 w-max text-xs bg-white text-gray-700 border rounded shadow px-2 py-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                      Upload a .csv file in the format: `S.No., Keyword`
+                  <Tooltip title="Upload a .csv file in the format: `S.No., Keyword`">
+                    <div className="cursor-pointer">
+                      <Info size={16} className="text-blue-500" />
                     </div>
-                  </div>
+                  </Tooltip>
                 </label>
 
                 <div className="flex gap-2 mb-2">
@@ -720,12 +719,11 @@ const Jobs = () => {
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
                     Focus Keywords
-                    <div className="relative group cursor-pointer">
-                      <Info size={16} className="text-blue-500 mb-1" />
-                      <div className="absolute bottom-5 left-0 mt-1 w-max text-xs bg-white text-gray-700 border rounded shadow px-2 py-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                        Upload a .csv file in the format: `S.No., Keyword`
+                    <Tooltip title="Upload a .csv file in the format: `S.No., Keyword`">
+                      <div className="cursor-pointer">
+                        <Info size={16} className="text-blue-500" />
                       </div>
-                    </div>
+                    </Tooltip>
                   </label>
                   {/* <p className="text-xs text-gray-500 mb-2">
                       Enter the main keywords for your blogs .

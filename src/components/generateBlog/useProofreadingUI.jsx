@@ -7,23 +7,14 @@ export function useProofreadingUI(editor) {
 
   useEffect(() => {
     if (!editor) {
-      console.log("Editor is not initialized in useProofreadingUI");
       return;
     }
 
     const handler = (e) => {
       const target = e.target.closest(".proofreading-mark");
-      console.log("Clicked target:", target);
       if (target && target.dataset.suggestion) {
-        console.log("Setting activeSpan with data:", {
-          from: target.dataset.from,
-          to: target.dataset.to,
-          suggestion: target.dataset.suggestion,
-          original: target.dataset.original,
-        });
         setActiveSpan(target);
       } else {
-        console.log("No proofreading-mark found, clearing activeSpan");
         setActiveSpan(null);
       }
     };
@@ -34,7 +25,6 @@ export function useProofreadingUI(editor) {
   }, [editor]);
 
   const applyChange = () => {
-    console.log("applyChange called with activeSpan:", activeSpan);
     if (!activeSpan || !editor) {
       console.error("Cannot apply change: activeSpan or editor is null");
       return;
@@ -64,8 +54,6 @@ export function useProofreadingUI(editor) {
         .find((ext) => ext.name === "proofreadingDecoration")
         ?.options?.suggestions?.filter((s) => s.original !== original) || [];
 
-      console.log("Updated suggestions:", newSuggestions);
-
       // Reconfigure the ProofreadingDecoration extension
       const proofExt = editor.extensionManager.extensions.find(
         (ext) => ext.name === "proofreadingDecoration"
@@ -82,7 +70,6 @@ export function useProofreadingUI(editor) {
   };
 
   const rejectChange = () => {
-    console.log("rejectChange called with activeSpan:", activeSpan);
     if (!activeSpan || !editor) {
       console.error("Cannot reject change: activeSpan or editor is null");
       return;
@@ -99,8 +86,6 @@ export function useProofreadingUI(editor) {
       const newSuggestions = editor.extensionManager.extensions
         .find((ext) => ext.name === "proofreadingDecoration")
         ?.options?.suggestions?.filter((s) => s.original !== original) || [];
-
-      console.log("Rejected suggestion, new suggestions:", newSuggestions);
 
       // Reconfigure the ProofreadingDecoration extension
       const proofExt = editor.extensionManager.extensions.find(

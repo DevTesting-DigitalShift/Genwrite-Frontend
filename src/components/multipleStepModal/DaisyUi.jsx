@@ -10,6 +10,7 @@ import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { createMultiBlog } from "@store/slices/blogSlice"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import axiosInstance from "@api/index"
+import { Tooltip } from "antd"
 
 // [ ] check the height of all models
 // [s ] DONE in bulk jobs add file uploder same as jobs
@@ -432,12 +433,11 @@ const MultiStepModal = ({ closeFnc }) => {
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
                   Topics
-                  <div className="relative group cursor-pointer">
-                    <Info size={16} className="text-blue-500 mb-1" />
-                    <div className="absolute bottom-5 left-0 mt-1 w-max text-xs bg-white text-gray-700 border rounded shadow px-2 py-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                      Upload a .csv file in the format: `S.No., Keyword`
+                  <Tooltip title="Upload a .csv file in the format: `S.No., Keyword`">
+                    <div className="cursor-pointer">
+                      <Info size={16} className="text-blue-500" />
                     </div>
-                  </div>
+                  </Tooltip>
                 </label>
                 <p className="text-xs text-gray-500 mb-2">Enter the main topics for your blogs .</p>
                 <div className="flex gap-2">
@@ -514,12 +514,11 @@ const MultiStepModal = ({ closeFnc }) => {
                   <div>
                     <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
                       Focus Keywords
-                      <div className="relative group cursor-pointer">
-                        <Info size={16} className="text-blue-500 mb-1" />
-                        <div className="absolute bottom-5 left-0 mt-1 w-max text-xs bg-white text-gray-700 border rounded shadow px-2 py-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                          Upload a .csv file in the format: `S.No., Keyword`
+                      <Tooltip title="Upload a .csv file in the format: `S.No., Keyword`">
+                        <div className="cursor-pointer">
+                          <Info size={16} className="text-blue-500" />
                         </div>
-                      </div>
+                      </Tooltip>
                     </label>
                     {/* <p className="text-xs text-gray-500 mb-2">
                       Enter the main keywords for your blogs .
