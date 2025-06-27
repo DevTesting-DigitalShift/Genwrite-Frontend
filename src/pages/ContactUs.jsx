@@ -15,7 +15,6 @@ import {
   ArrowRight,
   Sparkles,
 } from "lucide-react"
-import axiosInstance from "@api/index"
 import { toast, ToastContainer } from "react-toastify"
 
 const ContactUs = () => {
@@ -92,6 +91,39 @@ const ContactUs = () => {
       setIsSubmitting(false)
     }
   }
+
+  // using node mailer
+  //   const handleSubmit = async (e) => {
+  //   e.preventDefault()
+  //   const newErrors = validateForm()
+  //   if (Object.keys(newErrors).length > 0) {
+  //     setErrors(newErrors)
+  //     return
+  //   }
+
+  //   setIsSubmitting(true)
+
+  //   try {
+  //     const response = await fetch("http://localhost:5000/api/send-email", {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify(formData),
+  //     })
+
+  //     const data = await response.json()
+  //     if (data.success) {
+  //       setFormData({ name: "", email: "", subject: "", message: "" })
+  //       toast.success("Message sent successfully!")
+  //     } else {
+  //       throw new Error(data.message)
+  //     }
+  //   } catch (error) {
+  //     console.error("FAILED...", error)
+  //     toast.error("Failed to send message. Try again.")
+  //   } finally {
+  //     setIsSubmitting(false)
+  //   }
+  // }
 
   const companyInfo = {
     name: "GenWrite Technologies",

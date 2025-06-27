@@ -7,8 +7,8 @@ import {
   FileTextOutlined,
   ReloadOutlined,
 } from "@ant-design/icons"
-import axiosInstance from "@api/index"
 import { useDispatch } from "react-redux"
+import { markAllNotificationsAsRead } from "@store/slices/userSlice"
 // import { load } from "@store/slices/authSlice"
 
 const { Text } = Typography
@@ -52,49 +52,12 @@ const NotificationDropdown = ({ notifications }) => {
     if (notifications || notifications?.length) setLocalNotifications(notifications)
   }, [notifications])
 
-  // Function to fetch notifications
-  // const fetchNotifications = async () => {
-  //   try {
-  //     const res = await axiosInstance.get("/user/notifications")
-  //     setLocalNotifications(res.data.notifications)
-  //   } catch (error) {
-  //     console.error("Error fetching notifications:", error)
-  //   }
-  // }
-
-  // const loadUser = async () => {
-  //   await load()(dispatch)
-  // }
-
-  //[s ] send to layout and use debouncing gap of 60s
-
-  // useEffect(() => {
-  //   // Initial fetch
-  //   // fetchNotifications()
-
-  //   // Set up interval to fetch notifications every 30 seconds
-  //   const intervalId = setInterval(loadUser, 30000) // 30000ms = 30s
-
-  //   // Clean up interval on component unmount
-  //   return () => clearInterval(intervalId)
-  // }, [])
-
   const unreadCount = localNotifications.filter((n) => !n.read).length
 
-  const handleOpenChange = async (flag) => {
+  const handleOpenChange = (flag) => {
     setOpen(flag)
     if (!flag && unreadCount > 0) {
-      try {
-        await axiosInstance.patch("/user/notifications/read")
-        // Update local state to mark all as read
-        const updatedNotifications = localNotifications.map((n) => ({
-          ...n,
-          read: true,
-        }))
-        setLocalNotifications(updatedNotifications)
-      } catch (error) {
-        console.error("Failed to mark notifications as read:", error)
-      }
+      dispatch(markAllNotificationsAsRead())
     }
   }
 

@@ -84,7 +84,7 @@ const Sidebar = () => {
             <NavItem
               icon={<img src="./Images/myprojecticon.svg" alt="projects" />}
               text="My Projects"
-              to="/project"
+              to="/blogs"
             />
             <NavItem
               icon={<img src="./Images/toolboxicon.png" alt="toolbox" />}

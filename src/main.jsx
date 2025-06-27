@@ -10,13 +10,11 @@ import reportWebVitals from "@components/reportWebVitals";
 const root = ReactDOM.createRoot(document.getElementById("root"));
 
 root.render(
-  <React.StrictMode>
-    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
-      <Provider store={store}>
-        <App />
-      </Provider>
-    </GoogleOAuthProvider>
-  </React.StrictMode>
+  <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+    <Provider store={store}>
+      <App />
+    </Provider>
+  </GoogleOAuthProvider>
 );
 
 reportWebVitals();

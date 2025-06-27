@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import axiosInstance from "@api/index";
-import { useNavigate } from "react-router-dom";
 import { loadStripe } from "@stripe/stripe-js";
-import { MailOutlined } from "@ant-design/icons";
-import { SkeletonCard } from "@components/Projects/SkeletonLoader";
 import { Check, Coins, Crown, Mail, Shield, Star, Zap } from "lucide-react";
 import { Helmet } from "react-helmet";
+import { SkeletonCard } from "@components/Projects/SkeletonLoader";
 
 const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
   const [customCredits, setCustomCredits] = useState(5);

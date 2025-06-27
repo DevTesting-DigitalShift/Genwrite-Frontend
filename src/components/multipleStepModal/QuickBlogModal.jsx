@@ -57,7 +57,7 @@ const QuickBlogModal = ({ closeFnc }) => {
           </>
         ),
         onConfirm: () => {
-          dispatch(createNewQuickBlog(finalData, navigate))
+          dispatch(createNewQuickBlog({ blogData: finalData, navigate }))
           handleClose()
         },
       })

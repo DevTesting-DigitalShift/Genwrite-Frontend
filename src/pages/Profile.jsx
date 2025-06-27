@@ -8,13 +8,13 @@ import {
   CheckIcon,
   XMarkIcon,
 } from "@heroicons/react/24/solid"
-import axiosInstance from "@api/index"
 import { toast, ToastContainer } from "react-toastify"
 import { useSelector, useDispatch } from "react-redux"
 import { loadAuthenticatedUser } from "@store/slices/authSlice"
 import { DatePicker } from "antd"
 import moment from "moment"
 import { Helmet } from "react-helmet"
+import { updateProfile } from "@store/slices/userSlice"
 
 const DEMO_PROFILE = {
   profilePicture: "https://source.unsplash.com/random/800x800/?portrait",
@@ -116,13 +116,11 @@ const Profile = () => {
     }
 
     try {
-      const res = await axiosInstance.put("/user/profile", payload)
-      if (res?.data) {
-        await dispatch(loadAuthenticatedUser())
-        setIsEditing(false)
-      }
-      toast.success("Profile updated successfully")
-      setIsEditing(false)
+      dispatch(updateProfile(payload))
+        .unwrap()
+        .then(() => {
+          setIsEditing(false)
+        })
     } catch (err) {
       toast.error("Error updating profile, try again")
     }

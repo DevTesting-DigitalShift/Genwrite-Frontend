@@ -48,12 +48,12 @@ const router = createBrowserRouter([
     element: withSuspense(PrivateRoutesLayout),
     errorElement: withSuspense(ErrorBoundary),
     children: [
-      { index: true, element: <Navigate to="/dash" replace /> },
-      { path: "dash", element: withSuspense(Dashboard) },
+      { index: true, element: <Navigate to="/dashboard" replace /> },
+      { path: "dashboard", element: withSuspense(Dashboard) },
       { path: "toolbox", element: withSuspense(ToolboxSettings) },
       { path: "editor", element: withSuspense(ToolBox) },
       { path: "toolbox/:id", element: withSuspense(ToolBox) },
-      { path: "project", element: withSuspense(MyProjects) },
+      { path: "blogs", element: withSuspense(MyProjects) },
       { path: "integrations", element: withSuspense(PluginsMain) },
       { path: "jobs", element: withSuspense(jobs) },
       { path: "trashcan", element: withSuspense(trashcan) },
@@ -76,7 +76,6 @@ const router = createBrowserRouter([
           },
         ],
       },
-      { path: "*", element: withSuspense(ErrorPage) },
     ],
   },
   {
@@ -88,6 +87,7 @@ const router = createBrowserRouter([
       { path: "signup", element: withSuspense(Login, { path: "signup" }) },
       { path: "forgot-password", element: withSuspense(ForgotPassword) },
       { path: "reset-password", element: withSuspense(ResetPassword) },
+      { path: "*", element: withSuspense(ErrorPage) },
       {
         path: "preview/:blogId",
         element: withSuspense(PreviewBlog),

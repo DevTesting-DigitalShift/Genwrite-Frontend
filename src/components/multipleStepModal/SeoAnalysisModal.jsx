@@ -5,6 +5,8 @@ import { toast } from "react-toastify"
 import axiosInstance from "@api"
 import { Table, Tooltip } from "antd"
 import { InfoCircleOutlined } from "@ant-design/icons"
+import { fetchAllBlogs } from "@store/slices/blogSlice"
+import { useDispatch, useSelector } from "react-redux"
 
 const SeoAnalysisModal = ({ closeFnc }) => {
   const [formData, setFormData] = useState({
@@ -12,24 +14,20 @@ const SeoAnalysisModal = ({ closeFnc }) => {
     title: "",
     content: "",
   })
-  const [allBlogs, setAllBlogs] = useState([])
-  const [isLoading, setIsLoading] = useState(true)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [stats, setStats] = useState(null)
 
+  const dispatch = useDispatch()
+
+  const { blogs: allBlogs, error } = useSelector((state) => state.blog)
+
   useEffect(() => {
-    const fetchBlogs = async () => {
-      try {
-        const response = await axiosInstance.get("/blogs")
-        setAllBlogs(response.data)
-        setIsLoading(false)
-      } catch (error) {
-        toast.error("Failed to load blogs")
-        setIsLoading(false)
-      }
-    }
-    fetchBlogs()
-  }, [])
+    dispatch(fetchAllBlogs())
+  }, [dispatch])
+
+  useEffect(() => {
+    if (error) toast.error(error)
+  }, [error])
 
   const handleBlogSelect = (blog) => {
     setFormData({

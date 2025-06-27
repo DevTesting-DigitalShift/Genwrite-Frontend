@@ -2,30 +2,18 @@ import { useEffect, useState } from "react"
 import { Table, Tag, Tooltip, message } from "antd"
 import { motion } from "framer-motion"
 import { ReloadOutlined } from "@ant-design/icons"
-import axiosInstance from "@api/index"
 import { ToastContainer } from "react-toastify"
 import { Helmet } from "react-helmet"
+import { useDispatch, useSelector } from "react-redux"
+import { fetchTransactions } from "@store/slices/userSlice"
 
 const Transactions = () => {
-  const [transactions, setTransactions] = useState([])
-  const [loading, setLoading] = useState(false)
-
-  const fetchTransactions = async () => {
-    setLoading(true)
-    try {
-      const res = await axiosInstance.get("/user/transactions")
-      setTransactions(res.data || [])
-    } catch (err) {
-      console.error("Failed to fetch transactions:", err)
-      toast.error("Failed to fetch transactions")
-    } finally {
-      setLoading(false)
-    }
-  }
+  const dispatch = useDispatch()
+  const { transactions, loading } = useSelector((state) => state.user)
 
   useEffect(() => {
-    fetchTransactions()
-  }, [])
+    dispatch(fetchTransactions())
+  }, [dispatch])
 
   const columns = [
     {

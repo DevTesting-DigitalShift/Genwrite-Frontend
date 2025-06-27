@@ -2,11 +2,10 @@ import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { X } from "lucide-react"
 import { toast } from "react-toastify"
-import axiosInstance from "@api"
-import { useSelector } from "react-redux"
-import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import { useDispatch, useSelector } from "react-redux"
 import { Table, Tooltip } from "antd"
 import { InfoCircleOutlined } from "@ant-design/icons"
+import { fetchAllBlogs, fetchBlogStats } from "@store/slices/blogSlice"
 
 const PerformanceMonitoringModal = ({ closeFnc }) => {
   const [formData, setFormData] = useState({
@@ -14,24 +13,13 @@ const PerformanceMonitoringModal = ({ closeFnc }) => {
     title: "",
     content: "",
   })
-  const [allBlogs, setAllBlogs] = useState([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [stats, setStats] = useState(null)
+  const dispatch = useDispatch()
+  const { blogs: allBlogs, loading } = useSelector((state) => state.blog)
 
   useEffect(() => {
-    const fetchBlogs = async () => {
-      try {
-        const response = await axiosInstance.get("/blogs")
-        setAllBlogs(response.data)
-        setIsLoading(false)
-      } catch (error) {
-        toast.error("Failed to load blogs")
-        setIsLoading(false)
-      }
-    }
-    fetchBlogs()
-  }, [])
+    dispatch(fetchAllBlogs())
+  }, [dispatch])
 
   const handleBlogSelect = async (blog) => {
     setFormData({
@@ -40,16 +28,13 @@ const PerformanceMonitoringModal = ({ closeFnc }) => {
       content: blog.content,
     })
     setStats(null)
-    setIsAnalyzing(true)
 
     try {
-      const response = await axiosInstance.get(`/blogs/${blog._id}/stats`)
-      setStats(response.data)
-      // toast.success("Performance analysis completed!")
+      dispatch(fetchBlogStats(blog._id))
+        .unwrap()
+        .then(({ stats }) => setStats(stats))
     } catch (error) {
       toast.error("Failed to load blog performance stats.")
-    } finally {
-      setIsAnalyzing(false)
     }
   }
 

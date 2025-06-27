@@ -9,16 +9,14 @@ import { Tooltip, Dropdown, Avatar } from "antd"
 import { RiCoinsFill } from "react-icons/ri"
 import NotificationDropdown from "@components/NotificationDropdown"
 import GoProButton from "@components/GoProButton"
-import { loadUser } from "../api/authApi"
 
 const LayoutWithSidebarAndHeader = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [isUserLoaded, setIsUserLoaded] = useState(false)
+  const user = useSelector(selectUser)
   const location = useLocation()
   const dispatch = useDispatch()
   const navigate = useNavigate()
-  // const { user } = useSelector((selector) => selector.auth)
-  const user = useSelector(selectUser)
 
   useEffect(() => {
     const fetchCurrentUser = async () => {
@@ -47,8 +45,8 @@ const LayoutWithSidebarAndHeader = () => {
   }, [user])
 
   const Menus = [
-    { title: "Dashboard", src: "dashicon.svg", path: "/dash" },
-    { title: "My Projects", src: "myprojecticon.svg", path: "/project" },
+    { title: "Dashboard", src: "dashicon.svg", path: "/dashboard" },
+    { title: "My Projects", src: "myprojecticon.svg", path: "/blogs" },
     { title: "Content Agent", src: "jobsicon.svg", path: "/jobs" },
     { title: "Toolbox", src: "toolboxicon.png", path: "/toolbox" },
     { title: "Integrations", src: "pluginicon.svg", path: "/integrations" },

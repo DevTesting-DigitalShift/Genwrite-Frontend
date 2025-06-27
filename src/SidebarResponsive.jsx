@@ -6,8 +6,8 @@ const SidebarResponsive = () => {
   const location = useLocation();
 
   const Menus = [
-    { title: "Dashboard", src: "dashicon.svg", path: "/dash" },
-    { title: "My Projects", src: "myprojecticon.svg", path: "/project" },
+    { title: "Dashboard", src: "dashicon.svg", path: "/dashboard" },
+    { title: "My Projects", src: "myprojecticon.svg", path: "/blogs" },
     { title: "Toolbox", src: "toolboxicon.png", path: "/toolbox" },
     { title: "Plugins", src: "pluginicon.svg", path: "/plugins" },
     { title: "Brand Voice", src: "brandvoiceicon.svg", path: "/brandvoice" },

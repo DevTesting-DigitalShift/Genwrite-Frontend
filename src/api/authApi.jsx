@@ -51,3 +51,14 @@ export const resetPasswordAPI = async (token, newPassword) => {
   const response = await axiosInstance.post("/auth/reset-password", { token, newPassword })
   return response.data
 }
+
+export const loginWithGoogle = async (access_token) => {
+  try {
+    const response = await axiosInstance.post("/auth/google-signin", {
+      access_token,
+    })
+    return response.data
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Google login failed")
+  }
+}

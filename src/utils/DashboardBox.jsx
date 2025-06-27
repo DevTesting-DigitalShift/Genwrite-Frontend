@@ -146,7 +146,7 @@ export const QuickBox = ({ icon, title, content, id, functions, bgColor, hoverBg
   )
 }
 
-export const RecentProjects = ({ title, content, tags, item, time }) => {
+export const Blogs = ({ title, content, tags, item, time }) => {
   const navigate = useNavigate()
 
   // Truncate content to 80 characters and add ellipses if it's too long

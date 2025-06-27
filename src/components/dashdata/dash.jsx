@@ -82,7 +82,7 @@ export const quickTools = [
   },
 ]
 
-export const recentProjects = [
+export const blogs = [
   {
     id: 1,
     title: "How to cook pasta in 15 minutes",

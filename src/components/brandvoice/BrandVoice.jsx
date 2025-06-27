@@ -1,23 +1,23 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import { FaEdit, FaTimes } from "react-icons/fa"
 import { useDispatch, useSelector } from "react-redux"
-import { useNavigate } from "react-router-dom"
-import { sendBrandVoice } from "../../store/slices/blogSlice"
-import axiosInstance from "@api/index"
-import * as XLSX from "xlsx"
 import { Info, Upload, Loader2 } from "lucide-react"
 import { Helmet } from "react-helmet"
 import { toast } from "react-toastify"
-import { Tooltip } from "antd"
+import { Modal, Tooltip } from "antd"
+import {
+  createBrandVoiceThunk,
+  deleteBrandVoiceThunk,
+  fetchBrands,
+  updateBrandVoiceThunk,
+} from "@store/slices/brandSlice"
 
 const BrandVoice = () => {
   const user = useSelector((state) => state.auth.user)
-  const navigate = useNavigate()
   const dispatch = useDispatch()
   const [inputValue, setInputValue] = useState("")
   const [isUploading, setIsUploading] = useState(false)
-  const [brands, setBrands] = useState([])
   const [excelData, setExcelData] = useState(null)
   const [formData, setFormData] = useState({
     nameOfVoice: "",
@@ -29,25 +29,17 @@ const BrandVoice = () => {
     _id: undefined,
   })
   const [errors, setErrors] = useState({})
-
-  // Fetch brands with memoized callback
-  const fetchBrands = useCallback(async () => {
-    try {
-      const res = await axiosInstance.get("/brand")
-      const brandsArr = Array.isArray(res.data) ? res.data : res.data ? [res.data] : []
-      setBrands(brandsArr)
-      if (brandsArr.length > 0 && !formData.selectedVoice) {
-        setFormData((prev) => ({ ...prev, selectedVoice: brandsArr[0] }))
-      }
-    } catch (err) {
-      setBrands([])
-      toast.error("Failed to fetch brand voices.")
-    }
-  }, [formData.selectedVoice])
+  const { brands, selectedVoice } = useSelector((state) => state.brand)
 
   useEffect(() => {
-    fetchBrands()
-  }, [fetchBrands])
+    dispatch(fetchBrands())
+  }, [dispatch])
+
+  useEffect(() => {
+    if (brands.length > 0 && !formData.selectedVoice) {
+      setFormData((prev) => ({ ...prev, selectedVoice: brands[0] }))
+    }
+  }, [brands])
 
   // Validate form fields
   const validateForm = useCallback(() => {
@@ -131,39 +123,32 @@ const BrandVoice = () => {
     if (!file) return
 
     // Validate file type
-    if (
-      ![
-        "application/vnd.ms-excel",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      ].includes(file.type)
-    ) {
-      toast.error("Please upload a valid Excel file (.xls or .xlsx).")
-      setErrors((prev) => ({ ...prev, sitemap: "Invalid file type. Only .xls or .xlsx allowed." }))
+    if (file.type !== "text/xml" && !file.name.endsWith(".xml")) {
+      toast.error("Please upload a valid XML file.")
+      setErrors((prev) => ({ ...prev, sitemap: "Invalid file type, only .xml allowed." }))
       return
     }
 
     const reader = new FileReader()
     reader.onload = (event) => {
       try {
-        const data = event.target.result
-        const workbook = XLSX.read(data, { type: "binary" })
-        const firstSheetName = workbook.SheetNames[0]
-        const sheet = workbook.Sheets[firstSheetName]
-        const json = XLSX.utils.sheet_to_json(sheet)
-        const jsonString = JSON.stringify(json)
-        setExcelData(jsonString)
+        const xmlContent = event.target.result
+        // You can further parse the XML if needed here
+        setExcelData(xmlContent) // You may want to rename setExcelData to setXmlData
         setFormData((prev) => ({ ...prev, uploadedFile: file.name }))
         setErrors((prev) => ({ ...prev, sitemap: undefined }))
       } catch (error) {
-        toast.error("Error processing Excel file.")
-        setErrors((prev) => ({ ...prev, sitemap: "Failed to process Excel file." }))
+        toast.error("Error processing XML file.")
+        setErrors((prev) => ({ ...prev, sitemap: "Failed to process XML file." }))
       }
     }
+
     reader.onerror = () => {
-      toast.error("Error reading Excel file.")
-      setErrors((prev) => ({ ...prev, sitemap: "Failed to read Excel file." }))
+      toast.error("Error reading XML file.")
+      setErrors((prev) => ({ ...prev, sitemap: "Failed to read XML file." }))
     }
-    reader.readAsBinaryString(file)
+
+    reader.readAsText(file)
   }, [])
 
   // Save or update brand voice
@@ -176,21 +161,11 @@ const BrandVoice = () => {
       postLink: formData.postLink.trim(),
       keywords: formData.keywords.map((k) => k.trim()).filter(Boolean),
       describeBrand: formData.describeBrand.trim(),
-      siteMap: excelData, // Send Excel content as siteMap
+      siteMap: excelData,
       userId: user?._id,
     }
 
-    try {
-      let res
-      if (formData._id) {
-        res = await axiosInstance.put(`/brand/${formData._id}`, payload)
-        toast.success("Brand voice updated successfully.")
-      } else {
-        res = await axiosInstance.post("/brand/addBrand", payload)
-        toast.success("Brand voice created successfully.")
-      }
-      dispatch(sendBrandVoice(res.data))
-      fetchBrands()
+    const resetForm = () => {
       setFormData({
         nameOfVoice: "",
         postLink: "",
@@ -203,12 +178,21 @@ const BrandVoice = () => {
       setExcelData(null)
       setInputValue("")
       setErrors({})
-    } catch (err) {
-      toast.error(err?.response?.data?.details?.errors[0]?.msg || "Failed to save brand voice.")
-    } finally {
-      setIsUploading(false)
     }
-  }, [formData, excelData, user, dispatch, fetchBrands, validateForm])
+
+    const onSuccess = () => {
+      dispatch(fetchBrands())
+      resetForm()
+    }
+
+    if (formData._id) {
+      dispatch(updateBrandVoiceThunk({ id: formData._id, payload, onSuccess }))
+    } else {
+      dispatch(createBrandVoiceThunk({ payload, onSuccess }))
+    }
+
+    setIsUploading(false)
+  }, [formData, excelData, user, dispatch, validateForm])
 
   // Edit brand voice
   const handleEdit = useCallback((brand) => {
@@ -227,20 +211,19 @@ const BrandVoice = () => {
 
   // Delete brand voice
   const handleDelete = useCallback(
-    async (brand) => {
-      if (!window.confirm("Are you sure you want to delete this brand voice?")) return
-      try {
-        await axiosInstance.delete(`/brand/${brand._id}`)
-        toast.success("Brand voice deleted successfully.")
-        fetchBrands()
-        if (formData.selectedVoice?._id === brand._id) {
-          setFormData((prev) => ({ ...prev, selectedVoice: null }))
-        }
-      } catch (err) {
-        toast.error("Failed to delete brand voice.")
-      }
+    (brand) => {
+      Modal.confirm({
+        title: "Delete Brand Voice?",
+        content: "Are you sure you want to delete this brand voice? This action cannot be undone.",
+        okText: "Delete",
+        cancelText: "Cancel",
+        okButtonProps: { danger: true },
+        onOk: () => {
+          dispatch(deleteBrandVoiceThunk({ id: brand._id }))
+        },
+      })
     },
-    [fetchBrands, formData.selectedVoice]
+    [dispatch]
   )
 
   // Select brand voice
@@ -367,7 +350,7 @@ const BrandVoice = () => {
               </p>
             )}
           </div>
-{/* 
+          {/* 
           <div className="text-center my-4 relative">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-300"></div>
@@ -435,8 +418,8 @@ const BrandVoice = () => {
               htmlFor="file-site-upload"
               className="text-sm font-medium text-gray-700 flex gap-2 mb-1"
             >
-              Sitemap (Excel File) <span className="text-red-500">*</span>
-              <Tooltip title="Upload an Excel file (.xls or .xlsx) with sitemap data">
+              Sitemap (XML File) <span className="text-red-500">*</span>
+              <Tooltip title="Upload an XML file (.xml) with sitemap data">
                 <span className="cursor-pointer">
                   <Info size={16} className="text-blue-500" />
                 </span>
@@ -451,7 +434,7 @@ const BrandVoice = () => {
               whileTap={{ scale: 0.98 }}
             >
               <span className="text-gray-700 text-sm truncate">
-                {formData.uploadedFile ? formData.uploadedFile : "Choose .xls or .xlsx file"}
+                {formData.uploadedFile ? formData.uploadedFile : "Choose .xml file"}
               </span>
               <motion.div
                 className="bg-indigo-100 p-2 rounded-lg cursor-pointer"
@@ -464,7 +447,7 @@ const BrandVoice = () => {
               <input
                 id="file-site-upload"
                 type="file"
-                accept=".xls,.xlsx"
+                accept=".xml"
                 onChange={handleSiteFileChange}
                 className="hidden"
               />

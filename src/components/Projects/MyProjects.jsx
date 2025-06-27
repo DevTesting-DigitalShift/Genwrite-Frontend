@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import axiosInstance from "@api/index"
 import SkeletonLoader from "./SkeletonLoader"
 import { toast, ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import { Badge, Button, Input, Popconfirm, Tooltip, Select, Modal, Popover } from "antd"
 import { ArrowDownUp, Funnel, Menu, RefreshCcw, RotateCcw, Search, Trash2 } from "lucide-react"
-import { AnimatePresence, motion } from "framer-motion"
+import { motion } from "framer-motion"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import {
   CalendarOutlined,
@@ -17,17 +16,9 @@ import {
   SortDescendingOutlined,
 } from "@ant-design/icons"
 import { Helmet } from "react-helmet"
-
-const TRUNCATE_LENGTH = 120
-
-// [ s] DONE fix ui of sorting and filtering like leet code and install button to clear filter
-// [ s] DONE in editor send the keywords to backend
-// [ s] DONE in editor regenerate show the credit deduct it will minus 10 credit.
-// [ s] DONE remove filter status line
-// [ s] DONE in progress border yellow & change color of tooltip in pending
-// [ s] DONE proofreading will be work only in normal editor
-// [ s] DONE remove message in proofreading payload
-// [ s] DONE get blog by id call in editor store the changes in redux
+import { useDispatch } from "react-redux"
+import { archiveBlog, retryBlog } from "@store/slices/blogSlice"
+import { getAllBlogs } from "@api/blogApi"
 
 const MyProjects = () => {
   const [blogsData, setBlogsData] = useState([])
@@ -47,6 +38,8 @@ const MyProjects = () => {
   const [searchType, setSearchType] = useState("title")
   const [isSearchModalOpen, setSearchModalOpen] = useState(false)
   const { handlePopup } = useConfirmPopup()
+  const dispatch = useDispatch()
+  const TRUNCATE_LENGTH = 120
 
   const toggleSearch = () => setSearchModalOpen(true)
   const toggleMenu = () => {
@@ -87,9 +80,11 @@ const MyProjects = () => {
   const fetchBlogs = async () => {
     try {
       setLoading(true)
-      const response = await axiosInstance.get("/blogs/")
-      const filteredBlogs = response.data.filter((blog) => !blog.isArchived)
+      const allBlogs = await getAllBlogs()
+
+      const filteredBlogs = allBlogs.filter((blog) => !blog.isArchived)
       setBlogsData(filteredBlogs)
+
       applySortAndFilter(
         filteredBlogs,
         sortType,
@@ -99,10 +94,7 @@ const MyProjects = () => {
         statusFilter
       )
     } catch (error) {
-      console.error(
-        "Error fetching blogs:",
-        error.response?.data?.message || "Failed to fetch blogs"
-      )
+      console.error("Error fetching blogs:", error.message || "Failed to fetch blogs")
     } finally {
       setLoading(false)
     }
@@ -185,24 +177,7 @@ const MyProjects = () => {
   }
 
   const handleRetry = async (id) => {
-    const payload = {
-      createNew: false,
-    }
-    try {
-      const response = await axiosInstance.post(`blogs/${id}/retry`, payload)
-      if (response.status === 200) {
-        toast.success(response?.data?.message || "Blog regenerated successfully!")
-        fetchBlogs()
-      } else {
-        toast.error("Failed to regenerate blog.")
-      }
-    } catch (error) {
-      toast.error("Failed to regenerate blog.")
-      console.error(
-        "Error regenerating blog:",
-        error.response?.data?.message || "Failed to restore blog"
-      )
-    }
+    dispatch(retryBlog(id))
   }
 
   const truncateContent = (content, length = TRUNCATE_LENGTH) => {
@@ -219,21 +194,8 @@ const MyProjects = () => {
   }
 
   const handleArchive = async (id) => {
-    try {
-      const response = await axiosInstance.patch(`/blogs/archive/${id}`)
-      if (response.status === 200) {
-        setBlogsData((prev) => prev.filter((blog) => blog._id !== id))
-        toast.success("Blog archived successfully!")
-      } else {
-        toast.error("Failed to archive blog.")
-      }
-    } catch (error) {
-      toast.error("Failed to archive blog.")
-      console.error(
-        "Error archiving blog:",
-        error.response?.data?.message || "Failed to archive blog"
-      )
-    }
+    await dispatch(archiveBlog(id))
+    setBlogsData((prev) => prev.filter((blog) => blog._id !== id))
   }
 
   const menuOptions = [
@@ -314,13 +276,13 @@ const MyProjects = () => {
     await fetchBlogs()
   }
 
-const stripMarkdown = (text) => {
-  return text
-    ?.replace(/<[^>]*>/g, "")            // Remove HTML tags like <h1>, <p>, etc.
-    ?.replace(/[\\*#=_~`>\-]+/g, "")     // Remove markdown special characters
-    ?.replace(/\s{2,}/g, " ")            // Collapse multiple spaces
-    ?.trim();                            // Trim leading/trailing whitespace
-};
+  const stripMarkdown = (text) => {
+    return text
+      ?.replace(/<[^>]*>/g, "") // Remove HTML tags like <h1>, <p>, etc.
+      ?.replace(/[\\*#=_~`>\-]+/g, "") // Remove markdown special characters
+      ?.replace(/\s{2,}/g, " ") // Collapse multiple spaces
+      ?.trim() // Trim leading/trailing whitespace
+  }
 
   return (
     <div className="p-5">
