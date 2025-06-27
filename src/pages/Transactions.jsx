@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react"
-import { Table, Tag, Tooltip, message } from "antd"
+import { Table, Tag, Tooltip } from "antd"
 import { motion } from "framer-motion"
 import { ReloadOutlined } from "@ant-design/icons"
-import { ToastContainer } from "react-toastify"
 import { Helmet } from "react-helmet"
 import { useDispatch, useSelector } from "react-redux"
 import { fetchTransactions } from "@store/slices/userSlice"
@@ -100,7 +99,6 @@ const Transactions = () => {
       <Helmet>
         <title>Transactions | GenWrite</title>
       </Helmet>
-      <ToastContainer />
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

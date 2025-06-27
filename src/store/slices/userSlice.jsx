@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit"
 import { getProfile, getTransactions, markNotificationsAsRead, updateUserProfile } from "@api/userApi"
-import { toast } from "react-toastify"
+import { message } from "antd"
 
 // Thunk to fetch user profile
 export const fetchUserProfile = createAsyncThunk(
@@ -10,7 +10,7 @@ export const fetchUserProfile = createAsyncThunk(
       const data = await getProfile()
       return data
     } catch (error) {
-      toast.error("Failed to fetch user profile")
+      message.error("Failed to fetch user profile")
       return rejectWithValue(error.response?.data?.message || error.message)
     }
   }
@@ -24,7 +24,7 @@ export const markAllNotificationsAsRead = createAsyncThunk(
       const response = await markNotificationsAsRead()
       return response.updatedNotifications || []
     } catch (error) {
-      toast.error("Failed to mark notifications as read.")
+      message.error("Failed to mark notifications as read.")
       return rejectWithValue(error.response?.data?.message || error.message)
     }
   }
@@ -37,7 +37,7 @@ export const fetchTransactions = createAsyncThunk(
       const data = await getTransactions()
       return data || []
     } catch (error) {
-      toast.error("Failed to fetch transactions")
+      message.error("Failed to fetch transactions")
       console.error("Error fetching transactions:", error)
       return rejectWithValue(error.response?.data?.message || error.message)
     }
@@ -49,11 +49,11 @@ export const updateProfile = createAsyncThunk(
   async (payload, { rejectWithValue, dispatch }) => {
     try {
       const data = await updateUserProfile(payload)
-      toast.success("Profile updated successfully")
+      message.success("Profile updated successfully")
       dispatch(fetchUserProfile()) // refetch profile after update
       return data
     } catch (error) {
-      toast.error("Error updating profile, try again")
+      message.error("Error updating profile, try again")
       return rejectWithValue(error.response?.data?.message || error.message)
     }
   }

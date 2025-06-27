@@ -5,6 +5,7 @@ import userReducer from "./slices/userSlice"
 import jobsReducer from "./slices/jobSlice"
 import brandReducer from "./slices/brandSlice"
 import analysisReducer from "./slices/analysisSlice"
+import otherReducer from "./slices/otherSlice"
 
 export const store = configureStore({
   reducer: {
@@ -14,5 +15,6 @@ export const store = configureStore({
     jobs: jobsReducer,
     brand: brandReducer,
     analysis: analysisReducer,
+    other: otherReducer, 
   },
 })

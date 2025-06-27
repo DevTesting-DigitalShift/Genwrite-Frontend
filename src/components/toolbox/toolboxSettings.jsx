@@ -12,7 +12,6 @@ import {
 import { motion } from "framer-motion"
 import CompetitiveAnalysisModal from "../multipleStepModal/CompetitiveAnalysisModal"
 import { useDispatch, useSelector } from "react-redux"
-import { toast, ToastContainer } from "react-toastify"
 import { analyzeKeywordsThunk } from "@store/slices/analysisSlice"
 export default function ToolboxPage() {
   const navigate = useNavigate()
@@ -358,7 +357,6 @@ export default function ToolboxPage() {
           <CompetitiveAnalysisModal closeFnc={() => setCompetitiveAnalysisModalOpen(false)} />
         )}
       </motion.div>
-      <ToastContainer />
     </>
   )
 }

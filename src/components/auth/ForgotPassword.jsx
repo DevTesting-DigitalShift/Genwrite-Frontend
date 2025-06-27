@@ -13,7 +13,7 @@ import {
 } from "lucide-react"
 import { useDispatch } from "react-redux"
 import { forgotPassword } from "@store/slices/authSlice"
-import { toast } from "react-toastify"
+import { message } from "antd"
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("")
@@ -44,10 +44,9 @@ const ForgotPassword = () => {
       const res = await dispatch(forgotPassword(email)).unwrap()
       setSuccess(true)
       setTimer(900) // 15 minutes = 900 seconds
-      toast.success(res) // e.g., "Password reset link sent to your email"
+      message.success(res) // e.g., "Password reset link sent to your email"
     } catch (err) {
       setError(err)
-      // toast.error(err)
     } finally {
       setLoading(false)
     }

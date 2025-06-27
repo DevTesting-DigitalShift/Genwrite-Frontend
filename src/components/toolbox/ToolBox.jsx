@@ -3,7 +3,6 @@ import { useParams } from "react-router-dom"
 import { useDispatch, useSelector } from "react-redux"
 import { motion, AnimatePresence } from "framer-motion"
 import axiosInstance from "../../api"
-import { toast, ToastContainer } from "react-toastify"
 import { fetchBlogById, updateBlogById } from "../../store/slices/blogSlice"
 import TextEditor from "../generateBlog/TextEditor"
 import TextEditorSidebar from "../generateBlog/TextEditorSidebar"
@@ -13,7 +12,7 @@ import { sendRetryLines } from "@api/blogApi"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeRaw from "rehype-raw"
-import Loading from "@components/Loading"
+import { message } from "antd"
 
 const ToolBox = () => {
   const { id } = useParams()
@@ -56,7 +55,7 @@ const ToolBox = () => {
   const handleReplace = (original, change) => {
     if (typeof original !== "string" || typeof change !== "string") {
       console.error("Invalid types passed to handleReplace:", { original, change })
-      toast.error("Something went wrong while applying suggestion.")
+      message.error("Something went wrong while applying suggestion.")
       return
     }
 
@@ -70,7 +69,7 @@ const ToolBox = () => {
 
   const handlePostToWordPress = async () => {
     if (!blogToDisplay?.title) {
-      toast.error("Blog title is missing.")
+      message.error("Blog title is missing.")
       return
     }
 
@@ -78,7 +77,7 @@ const ToolBox = () => {
     const content = previewContainer?.innerHTML || editorContent
 
     if (!content || content.trim() === "" || content === "<p></p>" || content === "<p><br></p>") {
-      toast.error("Editor content is empty. Please add some content before posting.")
+      message.error("Editor content is empty. Please add some content before posting.")
       return
     }
 
@@ -93,20 +92,20 @@ const ToolBox = () => {
       includeTableOfContents: true,
     }
 
-    const postingToastId = toast.info("Posting to WordPress...", { autoClose: false })
+    const postingToastId = message.info("Posting to WordPress...", { autoClose: false })
 
     try {
       const response = await axiosInstance.post("/wordpress/post", postData)
 
       if (response.status === 200) {
-        toast.update(postingToastId, {
+        message.update(postingToastId, {
           render: "Post submitted successfully! (Check WordPress)",
           type: "success",
           isLoading: false,
           autoClose: 5000,
         })
       } else {
-        toast.update(postingToastId, {
+        message.update(postingToastId, {
           render: response.data?.message || "Successfully posted to WordPress!",
           type: "success",
           isLoading: false,
@@ -120,7 +119,7 @@ const ToolBox = () => {
       } else if (error.message) {
         errorMessage = error.message
       }
-      toast.update(postingToastId, {
+      message.update(postingToastId, {
         render: `WordPress posting failed: ${errorMessage}`,
         type: "error",
         isLoading: false,
@@ -146,13 +145,13 @@ const ToolBox = () => {
       if (res.data) {
         setSaveContent(res.data) // Store the response content
         setSaveModalOpen(true) // Show the modal
-        toast.success("Review the suggested content.")
+        message.success("Review the suggested content.")
       } else {
-        toast.error("No content received from retry.")
+        message.error("No content received from retry.")
       }
     } catch (error) {
       console.error("Error updating the blog:", error)
-      toast.error("Failed to save blog.")
+      message.error("Failed to save blog.")
     } finally {
       setIsSaving(false)
     }
@@ -161,7 +160,7 @@ const ToolBox = () => {
   const handleAcceptSave = () => {
     if (saveContent) {
       setEditorContent(saveContent) // Replace entire editor content
-      toast.success("Content updated successfully!")
+      message.success("Content updated successfully!")
     }
     setSaveModalOpen(false)
     setSaveContent(null)
@@ -170,7 +169,7 @@ const ToolBox = () => {
   const handleRejectSave = () => {
     setSaveModalOpen(false)
     setSaveContent(null)
-    toast.info("Changes discarded.")
+    message.info("Changes discarded.")
   }
 
   const tabVariants = {
@@ -182,7 +181,6 @@ const ToolBox = () => {
       <Helmet>
         <title>Toolbox | GenWrite</title>
       </Helmet>
-      <ToastContainer />
       <div className="h-full">
         <div className="max-w-8xl mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
           {/* Save Response Modal */}

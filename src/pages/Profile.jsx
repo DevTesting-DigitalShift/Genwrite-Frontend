@@ -1,17 +1,15 @@
 import React, { useState, useRef, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
-  DocumentArrowDownIcon,
   CreditCardIcon,
   BanknotesIcon,
   PencilIcon,
   CheckIcon,
   XMarkIcon,
 } from "@heroicons/react/24/solid"
-import { toast, ToastContainer } from "react-toastify"
 import { useSelector, useDispatch } from "react-redux"
 import { loadAuthenticatedUser } from "@store/slices/authSlice"
-import { DatePicker } from "antd"
+import { DatePicker, message } from "antd"
 import moment from "moment"
 import { Helmet } from "react-helmet"
 import { updateProfile } from "@store/slices/userSlice"
@@ -122,7 +120,7 @@ const Profile = () => {
           setIsEditing(false)
         })
     } catch (err) {
-      toast.error("Error updating profile, try again")
+      message.error("Error updating profile, try again")
     }
   }
 
@@ -556,7 +554,6 @@ const Profile = () => {
           </motion.div>
         </motion.div>
       </motion.div>
-      <ToastContainer />
     </>
   )
 }

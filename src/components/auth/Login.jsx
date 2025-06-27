@@ -15,8 +15,8 @@ import {
 } from "react-icons/fa"
 import { FcGoogle } from "react-icons/fc"
 import { Sparkles, Zap, PenTool, CheckCircle } from "lucide-react"
-import { toast } from "react-toastify"
 import { Helmet } from "react-helmet"
+import { message } from "antd"
 
 const Auth = ({ path }) => {
   const [formData, setFormData] = useState({
@@ -81,19 +81,18 @@ const Auth = ({ path }) => {
       dispatch(googleLogin(tokenResponse.access_token))
         .unwrap()
         .then((user) => {
-          console.log("Logged in user:", user)
-          toast.success("Google login successful!")
+          message.success("Google login successful!")
           navigate("/dashboard", { replace: true })
         })
         .catch((err) => {
           console.error("Google login error:", err)
           setGeneralError("Google login failed.")
-          // toast.error("Google login failed.")
+          // message.error("Google login failed.")
         })
     },
     onError: () => {
       setGeneralError("Google login failed to initialize.")
-      toast.error("Google login initialization failed.")
+      message.error("Google login initialization failed.")
     },
   })
 
@@ -114,7 +113,7 @@ const Auth = ({ path }) => {
     async (e) => {
       e.preventDefault()
       if (!validateForm()) {
-        // toast.error("Please fix the errors in the form.");
+        // message.error("Please fix the errors in the form.");
         return
       }
 
@@ -127,14 +126,14 @@ const Auth = ({ path }) => {
           : loginUser({ email: formData.email, password: formData.password })
 
         await dispatch(action).unwrap()
-        toast.success(isSignup ? "Signup successful!" : "Login successful!")
+        message.success(isSignup ? "Signup successful!" : "Login successful!")
         setTimeout(() => {
           navigate("/dashboard", { replace: true })
         }, 100) // delay navigation slightly
       } catch (err) {
         const backendError = err?.message || err?.payload?.message || "Something went wrong."
         setGeneralError(backendError)
-        toast.error(backendError)
+        message.error(backendError)
         console.error("Auth error:", err)
       } finally {
         setLoading(false)

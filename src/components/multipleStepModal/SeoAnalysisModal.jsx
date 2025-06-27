@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { X } from "lucide-react"
-import { toast } from "react-toastify"
-import axiosInstance from "@api"
-import { Table, Tooltip } from "antd"
+import { Table, Tooltip, message } from "antd"
 import { InfoCircleOutlined } from "@ant-design/icons"
-import { fetchAllBlogs } from "@store/slices/blogSlice"
+import { fetchAllBlogs, fetchBlogStats } from "@store/slices/blogSlice"
 import { useDispatch, useSelector } from "react-redux"
 
 const SeoAnalysisModal = ({ closeFnc }) => {
@@ -26,7 +24,7 @@ const SeoAnalysisModal = ({ closeFnc }) => {
   }, [dispatch])
 
   useEffect(() => {
-    if (error) toast.error(error)
+    if (error) message.error(error)
   }, [error])
 
   const handleBlogSelect = (blog) => {
@@ -38,19 +36,26 @@ const SeoAnalysisModal = ({ closeFnc }) => {
     setStats(null)
   }
 
-  const handleAnalyse = async () => {
+  const handleAnalysis = async () => {
     if (!formData.selectedBlog) {
-      toast.error("Please select a blog")
+      message.error("Please select a blog")
       return
     }
-    // no need for credit
+
     setIsAnalyzing(true)
+
     try {
-      const response = await axiosInstance.get(`/blogs/${formData.selectedBlog._id}/stats`)
-      setStats(response.data)
-      toast.success("Performance analysis completed!")
+      const resultAction = await dispatch(fetchBlogStats(formData.selectedBlog._id))
+
+      if (fetchBlogStats.fulfilled.match(resultAction)) {
+        const { stats } = resultAction.payload
+        setStats(stats)
+        message.success("Performance analysis completed!")
+      } else {
+        message.error("Something went wrong during stats fetching.")
+      }
     } catch (error) {
-      toast.error("Failed to load blog details or deduct credits")
+      message.error("Unexpected error occurred.")
     } finally {
       setIsAnalyzing(false)
     }
@@ -743,7 +748,7 @@ const SeoAnalysisModal = ({ closeFnc }) => {
               transition={{ delay: 0.3 }}
             >
               <motion.button
-                onClick={handleAnalyse}
+                onClick={handleAnalysis}
                 className={`px-5 py-2.5 rounded-lg font-medium flex items-center gap-2 ${
                   isAnalyzing
                     ? "bg-blue-400 cursor-not-allowed"

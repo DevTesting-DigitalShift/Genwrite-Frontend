@@ -38,12 +38,11 @@ import { marked } from "marked"
 import TurndownService from "turndown"
 import SmallBottomBox from "@components/toolbox/SmallBottomBox"
 import { fetchBlogById, updateBlogById } from "@store/slices/blogSlice"
-import { toast } from "react-toastify"
 import { ProofreadingDecoration } from "@/extensions/ProofreadingDecoration"
 import { useProofreadingUI } from "@components/generateBlog/useProofreadingUI"
 import { sendRetryLines } from "@api/blogApi"
 import { Helmet } from "react-helmet"
-import { Tooltip } from "antd"
+import { Tooltip, message } from "antd"
 import Loading from "@components/Loading"
 
 const FONT_OPTIONS = [
@@ -92,10 +91,10 @@ const TextEditor = ({
 
   const safeContent = content ?? ""
 
-  // Show toast for failed blog status
+  // Show message for failed blog status
   useEffect(() => {
     if (blog?.status === "failed" && !hasShownToast.current) {
-      toast.error("Your blog generation failed. You can write blog manually.")
+      message.error("Your blog generation failed. You can write blog manually.")
       hasShownToast.current = true
     }
   }, [blog?.status])
@@ -305,12 +304,12 @@ const TextEditor = ({
           setContent(payload.content ?? "")
           setKeywords(payload.keywords ?? [])
         }
-        toast.success("Blog updated successfully")
+        message.success("Blog updated successfully")
         navigate("/blogs")
       }
     } catch (error) {
       console.error("Error updating the blog:", error)
-      toast.error("Failed to save blog.")
+      message.error("Failed to save blog.")
     } finally {
       setIsSaving(false)
     }
@@ -350,19 +349,19 @@ const TextEditor = ({
 
   const handleRetry = async () => {
     if (!blog?._id) {
-      toast.error("Blog ID is missing.")
+      message.error("Blog ID is missing.")
       return
     }
 
     if (!normalEditor) {
-      toast.error("Editor is not initialized.")
+      message.error("Editor is not initialized.")
       return
     }
 
     const { from, to } = normalEditor.state.selection
 
     if (from === to) {
-      toast.error("Please select some text to retry.")
+      message.error("Please select some text to retry.")
       return
     }
 
@@ -385,11 +384,11 @@ const TextEditor = ({
         setRetryContent(res.data)
         setRetryModalOpen(true)
       } else {
-        toast.error("No content received from retry.")
+        message.error("No content received from retry.")
       }
     } catch (error) {
       console.error("Retry failed:", error)
-      toast.error(error.message || "Retry failed.")
+      message.error(error.message || "Retry failed.")
     } finally {
       setIsRetrying(false)
     }
@@ -407,13 +406,13 @@ const TextEditor = ({
         })
         .insertContent(parsedContent)
         .run()
-      toast.success("Selected lines replaced successfully!")
+      message.success("Selected lines replaced successfully!")
     } else if (retryContent) {
       setContent((prev) => {
         const { from, to } = normalEditor?.state.selection || { from: 0, to: 0 }
         return prev.substring(0, from) + retryContent + prev.substring(to)
       })
-      toast.success("Selected lines replaced successfully!")
+      message.success("Selected lines replaced successfully!")
     }
     setRetryModalOpen(false)
     setRetryContent(null)
@@ -422,7 +421,7 @@ const TextEditor = ({
   const handleRejectRetry = () => {
     setRetryModalOpen(false)
     setRetryContent(null)
-    toast.info("Retry content discarded.")
+    message.info("Retry content discarded.")
   }
 
   const FloatingToolbar = ({ editorRef, mode }) => {

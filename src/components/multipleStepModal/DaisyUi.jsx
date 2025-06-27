@@ -3,13 +3,12 @@ import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import Carousel from "./Carousel"
 import { Info, Upload, X } from "lucide-react"
-import { toast } from "react-toastify"
 import { packages } from "@constants/templates"
 import "react-datepicker/dist/react-datepicker.css"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { createMultiBlog } from "@store/slices/blogSlice"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
-import { Tooltip } from "antd"
+import { Tooltip, message } from "antd"
 
 const MultiStepModal = ({ closeFnc }) => {
   const dispatch = useDispatch()
@@ -46,17 +45,17 @@ const MultiStepModal = ({ closeFnc }) => {
   const handleNext = () => {
     if (currentStep === 0) {
       if (formData.templates.length === 0) {
-        toast.error("Please add at least one topic.")
+        message.error("Please add at least one topic.")
         return
       }
     }
     if (currentStep === 1) {
       if (formData.topics.length === 0 && formData.topicInput.trim() === "") {
-        toast.error("Please add at least one topic.")
+        message.error("Please add at least one topic.")
         return
       }
       if (!formData.tone) {
-        toast.error("Please select a Tone of Voice.")
+        message.error("Please select a Tone of Voice.")
         return
       }
     }
@@ -73,19 +72,19 @@ const MultiStepModal = ({ closeFnc }) => {
 
   const handleSubmit = () => {
     if (formData.topics.length === 0 && formData.topicInput.trim() === "") {
-      toast.error("Please add at least one topic.")
+      message.error("Please add at least one topic.")
       return
     }
     if (!formData.tone) {
-      toast.error("Please select a Tone of Voice.")
+      message.error("Please select a Tone of Voice.")
       return
     }
     if (formData.numberOfBlogs < 1) {
-      toast.error("Number of blogs must be at least 1.")
+      message.error("Number of blogs must be at least 1.")
       return
     }
     if (formData.numberOfBlogs > 10) {
-      toast.error("Number of blogs must be at most 10.")
+      message.error("Number of blogs must be at most 10.")
       return
     }
 
@@ -128,7 +127,7 @@ const MultiStepModal = ({ closeFnc }) => {
         templates: [...prev.templates, selectedPackageName],
       }))
     } else {
-      toast.error("You can select a maximum of 3 templates.")
+      message.error("You can select a maximum of 3 templates.")
     }
   }
 
@@ -146,14 +145,14 @@ const MultiStepModal = ({ closeFnc }) => {
     if (name === "wordpressPostStatus" && checked) {
       try {
         if (!user?.wordpressLink) {
-          toast.error(
+          message.error(
             "Please connect your WordPress account in your profile before enabling automatic posting."
           )
           navigate("/profile")
           return
         }
       } catch {
-        toast.error("Failed to check profile. Please try again.")
+        message.error("Failed to check profile. Please try again.")
         return
       }
     }
@@ -270,7 +269,7 @@ const MultiStepModal = ({ closeFnc }) => {
       })
 
       if (uniqueNewTopics.length === 0) {
-        toast.warning("No new topics found in the CSV.")
+        message.warning("No new topics found in the CSV.")
         return
       }
 
@@ -318,7 +317,7 @@ const MultiStepModal = ({ closeFnc }) => {
       })
 
       if (uniqueNewTopics.length === 0) {
-        toast.warning("No new topics found in the CSV.")
+        message.warning("No new topics found in the CSV.")
         return
       }
 

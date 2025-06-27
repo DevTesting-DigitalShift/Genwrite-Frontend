@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react"
-import { toast } from "react-toastify"
 import { fetchBrands } from "@store/slices/brandSlice"
-import { useDispatch } from "react-redux"
+import { useDispatch, useSelector } from "react-redux"
+import { message } from "antd"
 
 const SecondStepModal = ({ handleNext, handlePrevious, handleClose, data, setData }) => {
   const dispatch = useDispatch()
+  const { selectedKeywords } = useSelector((state) => state.analysis) // Get selected keywords from Redux
   const [formData, setFormData] = useState({
-    focusKeywords: data.focusKeywords || [],
-    keywords: data.keywords || [],
+    focusKeywords: data.focusKeywords || (selectedKeywords ? selectedKeywords.slice(0, 3) : []),
+    keywords: data.keywords || (selectedKeywords ? selectedKeywords.slice(3) : []),
     focusKeywordInput: "",
     keywordInput: "",
     isCheckedQuick: data.isCheckedQuick || false,
@@ -39,7 +40,7 @@ const SecondStepModal = ({ handleNext, handlePrevious, handleClose, data, setDat
         .map((keyword) => keyword.trim())
         .filter((keyword) => keyword !== "")
       if (type === "focusKeywords" && formData[type].length + newKeywords.length > 3) {
-        toast.error("You can only add up to 3 focus keywords.")
+        message.error("You can only add up to 3 focus keywords.")
         return
       }
       if (type === "focusKeywords") {
@@ -87,6 +88,19 @@ const SecondStepModal = ({ handleNext, handlePrevious, handleClose, data, setDat
     }
   }, [formData.isCheckedBrand, dispatch])
 
+  // Update formData.keywords when selectedKeywords changes
+  useEffect(() => {
+    if (selectedKeywords && selectedKeywords.length > 0) {
+      setFormData((prev) => ({
+        ...prev,
+        focusKeywords: [...new Set([...prev.focusKeywords, ...selectedKeywords.slice(0, 3)])].slice(
+          0,
+          3
+        ), // First 3 keywords, no duplicates, max 3
+        keywords: [...new Set([...prev.keywords, ...selectedKeywords.slice(3)])], // Remaining keywords, no duplicates
+      }))
+    }
+  }, [selectedKeywords])
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/50">
@@ -97,7 +111,6 @@ const SecondStepModal = ({ handleNext, handlePrevious, handleClose, data, setDat
             ×
           </button>
         </div>
-
         <div className="p-6">
           <div className="mb-6">
             <div className="flex items-center justify-between mb-2">
@@ -107,9 +120,7 @@ const SecondStepModal = ({ handleNext, handlePrevious, handleClose, data, setDat
               <div className="h-full w-2/3 bg-[#1B6FC9] rounded-full" />
             </div>
           </div>
-
           <div className="space-y-6">
-            {/* --- Brand Voice Section removed from Step 2, now in Step 3 --- */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Select AI Model
@@ -128,7 +139,6 @@ const SecondStepModal = ({ handleNext, handlePrevious, handleClose, data, setDat
                 <option value="chatgpt">Chatgpt</option>
               </select>
             </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Focus Keywords</label>
               <div className="flex gap-2">
@@ -164,7 +174,6 @@ const SecondStepModal = ({ handleNext, handlePrevious, handleClose, data, setDat
                 ))}
               </div>
             </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Keywords</label>
               <div className="flex gap-2">
@@ -200,7 +209,6 @@ const SecondStepModal = ({ handleNext, handlePrevious, handleClose, data, setDat
                 ))}
               </div>
             </div>
-
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Add a Quick Summary</span>
               <label className="relative inline-flex items-center cursor-pointer">
@@ -219,7 +227,6 @@ const SecondStepModal = ({ handleNext, handlePrevious, handleClose, data, setDat
               </label>
             </div>
           </div>
-
           <div className="flex justify-end gap-3 mt-8">
             <button
               onClick={handlePrevious}

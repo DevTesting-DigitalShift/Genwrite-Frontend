@@ -1,23 +1,23 @@
 import React, { useState, useEffect } from "react"
 import MultiDatePicker from "react-multi-date-picker"
 import { motion, AnimatePresence } from "framer-motion"
-import SelectTemplateModal from "@components/multipleStepModal/SelectTemplateModal"
 import Carousel from "@components/multipleStepModal/Carousel"
 import { packages } from "@constants/templates"
 import { FiPlus, FiSettings, FiCalendar, FiFileText, FiEdit } from "react-icons/fi"
-import { toast, ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import { useDispatch, useSelector } from "react-redux"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useNavigate } from "react-router-dom"
-import { CrownFilled, QuestionCircleOutlined } from "@ant-design/icons"
-import { Popconfirm, Tooltip } from "antd"
+import { QuestionCircleOutlined } from "@ant-design/icons"
+import { message, Popconfirm, Tooltip } from "antd"
 import { Gem, Info, Upload, X } from "lucide-react"
 import { Helmet } from "react-helmet"
 import {
+  closeJobModal,
   createJobThunk,
   deleteJobThunk,
   fetchJobs,
+  openJobModal,
   toggleJobStatusThunk,
   updateJobThunk,
 } from "@store/slices/jobSlice"
@@ -30,6 +30,7 @@ const initialJob = {
     numberOfBlogs: 1,
     topics: [],
     keywords: [],
+    focusKeywords: [], // Added focusKeywords
     templates: [],
     tone: "Professional",
     userDefinedLength: 1000,
@@ -45,39 +46,57 @@ const initialJob = {
     performKeywordResearch: false,
     includeTableOfContents: false,
   },
-  status: "active", // default to stop (valid enum for backend)
+  status: "active",
 }
 
 const Jobs = () => {
   const tones = ["Professional", "Casual", "Friendly", "Formal", "Technical"]
   const wordLengths = [500, 1000, 1500, 2000, 3000]
-  const [showJobModal, setShowJobModal] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
   const [newJob, setNewJob] = useState(initialJob)
   const [topicInput, setTopicInput] = useState("")
   const { handlePopup } = useConfirmPopup()
   const [errors, setErrors] = useState({})
-  const userPlan = useSelector((state) => state.auth.user?.plan)
+  const user = useSelector((state) => state.auth.user)
   const navigate = useNavigate()
   const [recentlyUploadedCount, setRecentlyUploadedCount] = useState(null)
   const dispatch = useDispatch()
-  const { jobs, loading: isLoading } = useSelector((state) => state.jobs)
+  const { jobs, loading: isLoading, showJobModal } = useSelector((state) => state.jobs)
+  const { selectedKeywords } = useSelector((state) => state.analysis)
 
   const [formData, setFormData] = useState({
     focusKeywords: [],
     focusKeywordInput: "",
     keywords: [],
     keywordInput: "",
-    performKeywordResearch: true,
+    performKeywordResearch: false,
   })
 
   useEffect(() => {
     dispatch(fetchJobs())
   }, [dispatch])
 
-  // Create a new job
+  // Sync formData with selectedKeywords when it changes
+  useEffect(() => {
+    if (selectedKeywords && selectedKeywords.length > 0) {
+      const uniqueKeywords = [...new Set(selectedKeywords)] // Remove duplicates
+      setFormData((prev) => ({
+        ...prev,
+        keywords: uniqueKeywords, // Remaining keywords
+      }))
+      // Sync with newJob.blogs
+      setNewJob((prev) => ({
+        ...prev,
+        blogs: {
+          ...prev.blogs,
+          keywords: uniqueKeywords,
+        },
+      }))
+    }
+  }, [selectedKeywords])
+
   const handleCreateJob = () => {
-    if (userPlan === "free" || userPlan === "basic") {
+    if (user?.plan === "free" || user?.plan === "basic") {
       handlePopup({
         title: "Upgrade Required",
         description: "Job creation is only available for Pro and Enterprise users.",
@@ -92,6 +111,7 @@ const Jobs = () => {
       ...newJob,
       blogs: {
         ...newJob.blogs,
+        focusKeywords: formData.focusKeywords,
         keywords: formData.keywords,
       },
       options: {
@@ -100,7 +120,7 @@ const Jobs = () => {
         useBrandVoice: newJob.options.useBrandVoice || false,
         includeCompetitorResearch: newJob.options.includeCompetitorResearch || false,
         includeInterlinks: newJob.options.includeInterlinks || false,
-        performKeywordResearch: newJob.options.performKeywordResearch || false,
+        performKeywordResearch: formData.performKeywordResearch || false,
         includeTableOfContents: newJob.options.includeTableOfContents || false,
       },
     }
@@ -109,7 +129,7 @@ const Jobs = () => {
       createJobThunk({
         jobPayload,
         onSuccess: () => {
-          setShowJobModal(false)
+          dispatch(closeJobModal()) // Dispatch action to close modal
           dispatch(fetchJobs())
         },
       })
@@ -121,6 +141,7 @@ const Jobs = () => {
       ...newJob,
       blogs: {
         ...newJob.blogs,
+        focusKeywords: formData.focusKeywords,
         keywords: formData.keywords,
       },
       options: {
@@ -129,7 +150,7 @@ const Jobs = () => {
         useBrandVoice: newJob.options.useBrandVoice || false,
         includeCompetitorResearch: newJob.options.includeCompetitorResearch || false,
         includeInterlinks: newJob.options.includeInterlinks || false,
-        performKeywordResearch: newJob.options.performKeywordResearch || false,
+        performKeywordResearch: formData.performKeywordResearch || false,
         includeTableOfContents: newJob.options.includeTableOfContents || false,
       },
     }
@@ -139,14 +160,13 @@ const Jobs = () => {
         jobId,
         jobPayload,
         onSuccess: () => {
-          setShowJobModal(false)
-          dispatch(fetchJobsThunk())
+          dispatch(closeJobModal())
+          dispatch(fetchJobs())
         },
       })
     )
   }
 
-  // Start a job
   const handleStartJob = (jobId) => {
     const job = jobs.find((job) => job._id === jobId)
     dispatch(toggleJobStatusThunk({ jobId, currentStatus: job.status }))
@@ -162,20 +182,15 @@ const Jobs = () => {
     if (step === 1) {
       if (newJob.blogs.templates.length === 0) {
         errors.template = true
-        toast.error("Please select a template before proceeding ")
+        message.error("Please select a template before proceeding ")
       }
     }
 
     if (step === 2) {
       if (!newJob.name) {
         errors.name = true
-        toast.error("Please fill all the required fields")
-        return
+        message.error("Please fill all the required fields")
       }
-      // if (!newJob.blogs.tone) errors.tone = true
-      // if (!newJob.blogs.userDefinedLength) errors.length = true
-      // if (!newJob.blogs.imageSource) errors.image = true
-      // if (newJob.blogs.topics.length === 0) errors.topic = true
     }
 
     setErrors(errors)
@@ -183,7 +198,6 @@ const Jobs = () => {
   }
 
   const handleAddKeyword = (type) => {
-    // const inputValue = formData[`${type}Input`]
     if (topicInput.trim() !== "") {
       setNewJob((prev) => ({
         ...prev,
@@ -197,44 +211,41 @@ const Jobs = () => {
   }
 
   const handleKeyPress = (e, type) => {
-    if (e.key === "Enter") {
-      e.preventDefault()
-      handleAddKeyword(type)
-    } else if (e.key === ",") {
+    if (e.key === "Enter" || e.key === ",") {
       e.preventDefault()
       handleAddKeyword(type)
     }
   }
 
-  // Edit a job
   const handleEditJob = (job) => {
-    if (job.status == "active") {
-      toast.error("Stop the job before editing")
+    if (job.status === "active") {
+      message.error("Stop the job before editing")
       return
     }
-    setNewJob(job)
-    setShowJobModal(true)
+    setNewJob({
+      ...job,
+      blogs: {
+        ...job.blogs,
+        focusKeywords: job.blogs.focusKeywords || [],
+        keywords: job.blogs.keywords || [],
+      },
+    })
+    setFormData({
+      focusKeywords: job.blogs.focusKeywords || [],
+      focusKeywordInput: "",
+      keywords: job.blogs.keywords || [],
+      keywordInput: "",
+      performKeywordResearch: job.options.performKeywordResearch || false,
+    })
+    dispatch(openJobModal())
     setCurrentStep(1)
   }
 
-  useEffect(() => {
-    fetchJobs()
-  }, [])
-
   const handleKeywordInputChange = (e, type) => {
-    if (type === "keywords") {
-      setFormData((prevState) => ({
-        ...prevState,
-        [`${type}Input`]: e.target.value,
-        keywordInput: e.target.value,
-      }))
-    } else {
-      setFormData((prevState) => ({
-        ...prevState,
-        [`${type}Input`]: e.target.value,
-        focusKeywordInput: e.target.value,
-      }))
-    }
+    setFormData((prevState) => ({
+      ...prevState,
+      [`${type}Input`]: e.target.value,
+    }))
   }
 
   const handleAddFocusKeyword = (type) => {
@@ -245,32 +256,26 @@ const Jobs = () => {
         .map((keyword) => keyword.trim())
         .filter((keyword) => keyword !== "")
       if (type === "focusKeywords" && formData[type].length + newKeywords.length > 3) {
-        toast.error("You can only add up to 3 focus keywords.")
+        message.error("You can only add up to 3 focus keywords.")
         return
       }
-      if (type === "focusKeywords") {
-        setFormData({
-          ...formData,
-          [type]: [...formData[type], ...newKeywords],
-          [`${type}Input`]: "",
-          focusKeywordInput: "",
-        })
-      } else {
-        setFormData({
-          ...formData,
-          [type]: [...formData[type], ...newKeywords],
-          [`${type}Input`]: "",
-          keywordInput: "",
-        })
-      }
+      setFormData((prev) => ({
+        ...prev,
+        [type]: [...prev[type], ...newKeywords],
+        [`${type}Input`]: "",
+      }))
+      setNewJob((prev) => ({
+        ...prev,
+        blogs: {
+          ...prev.blogs,
+          [type]: [...prev.blogs[type], ...newKeywords],
+        },
+      }))
     }
   }
 
   const handleKeyFocusPress = (e, type) => {
-    if (e.key === "Enter") {
-      e.preventDefault()
-      handleAddFocusKeyword(type)
-    } else if (e.key === ",") {
+    if (e.key === "Enter" || e.key === ",") {
       e.preventDefault()
       handleAddFocusKeyword(type)
     }
@@ -280,6 +285,13 @@ const Jobs = () => {
     const updatedKeywords = [...formData[type]]
     updatedKeywords.splice(index, 1)
     setFormData({ ...formData, [type]: updatedKeywords })
+    setNewJob((prev) => ({
+      ...prev,
+      blogs: {
+        ...prev.blogs,
+        [type]: updatedKeywords,
+      },
+    }))
   }
 
   const handleCSVUpload = (e) => {
@@ -293,24 +305,20 @@ const Jobs = () => {
       if (!text) return
 
       const lines = text.trim().split(/\r?\n/).slice(1)
-
       const keywords = lines
         .map((line) => {
           const parts = line.split(",")
-          if (parts.length < 2) return null
-          return parts[1]?.trim() || null
+          return parts.length >= 2 ? parts[1].trim() : null
         })
-        .filter((kw) => Boolean(kw))
+        .filter(Boolean)
 
       const existingTopics = newJob.blogs.topics.map((t) => t.toLowerCase().trim())
-
-      const uniqueNewTopics = keywords.filter((kw) => {
-        const normalized = kw.toLowerCase().trim()
-        return !existingTopics.includes(normalized)
-      })
+      const uniqueNewTopics = keywords.filter(
+        (kw) => !existingTopics.includes(kw.toLowerCase().trim())
+      )
 
       if (uniqueNewTopics.length === 0) {
-        toast.warning("No new topics found in the CSV.")
+        message.warning("No new topics found in the CSV.")
         return
       }
 
@@ -329,26 +337,21 @@ const Jobs = () => {
     }
 
     reader.readAsText(file)
-    e.target.value = "" // Reset file input
+    e.target.value = null
   }
 
   const handleKeywordToggleInputChange = (e) => {
     setFormData((prev) => ({ ...prev, keywordInput: e.target.value }))
   }
 
-  const handleCheckboxChange = async (e) => {
+  const handleCheckboxChange = (e) => {
     const { name, checked } = e.target
-    if (name === "wordpressPostStatus" && checked) {
-      try {
-        if (!user?.wordpressLink) {
-          toast.error(
-            "Please connect your WordPress account in your profile before enabling automatic posting."
-          )
-          navigate("/profile")
-          return
-        }
-      } catch {
-        toast.error("Failed to check profile. Please try again.")
+    if (name === "wordpressPosting" && checked) {
+      if (!user?.wordpressLink) {
+        message.error(
+          "Please connect your WordPress account in your profile before enabling automatic posting."
+        )
+        navigate("/profile")
         return
       }
     }
@@ -356,6 +359,13 @@ const Jobs = () => {
       ...formData,
       [name]: checked,
     })
+    setNewJob((prev) => ({
+      ...prev,
+      options: {
+        ...prev.options,
+        [name]: checked,
+      },
+    }))
   }
 
   const handleTopicKeyPress = (e) => {
@@ -380,7 +390,6 @@ const Jobs = () => {
           keywords: [...prev.keywords, ...newKeywords],
           keywordInput: "",
         }))
-        // Sync with newJob.blogs.keywords
         setNewJob((prev) => ({
           ...prev,
           blogs: {
@@ -396,10 +405,10 @@ const Jobs = () => {
     }
     return false
   }
+
   const handleRemoveToggleKeyword = (index) => {
     setFormData((prev) => {
       const updatedKeywords = prev.keywords.filter((_, i) => i !== index)
-      // Sync with newJob.blogs.keywords
       setNewJob((prevJob) => ({
         ...prevJob,
         blogs: {
@@ -424,7 +433,7 @@ const Jobs = () => {
       const text = event.target?.result
       if (!text) return
 
-      const lines = text.trim().split(/\r?\n/).slice(1) // skip header
+      const lines = text.trim().split(/\r?\n/).slice(1)
       const keywords = lines
         .map((line) => {
           const parts = line.split(",")
@@ -432,40 +441,44 @@ const Jobs = () => {
         })
         .filter(Boolean)
 
-      // Normalize for comparison (lowercase, trimmed)
-      const existingTopics = formData.keywords.map((t) => t.toLowerCase().trim())
+      const existingKeywords = formData.keywords.map((t) => t.toLowerCase().trim())
+      const existingFocusKeywords = formData.focusKeywords.map((t) => t.toLowerCase().trim())
+      const uniqueNewKeywords = keywords.filter(
+        (kw) =>
+          !existingKeywords.includes(kw.toLowerCase().trim()) &&
+          !existingFocusKeywords.includes(kw.toLowerCase().trim())
+      )
 
-      const uniqueNewTopics = keywords.filter((kw) => {
-        const normalized = kw.toLowerCase().trim()
-        return !existingTopics.includes(normalized)
-      })
-
-      if (uniqueNewTopics.length === 0) {
-        toast.warning("No new topics found in the CSV.")
+      if (uniqueNewKeywords.length === 0) {
+        message.warning("No new keywords found in the CSV.")
         return
       }
 
+      const newFocusKeywords = uniqueNewKeywords.slice(0, 3 - formData.focusKeywords.length)
+      const newRegularKeywords = uniqueNewKeywords.slice(3 - formData.focusKeywords.length)
+
       setFormData((prev) => ({
         ...prev,
-        keywords: [...prev.keywords, ...uniqueNewTopics],
+        focusKeywords: [...prev.focusKeywords, ...newFocusKeywords].slice(0, 3),
+        keywords: [...prev.keywords, ...newRegularKeywords],
       }))
-      // Sync with newJob.blogs.keywords
       setNewJob((prev) => ({
         ...prev,
         blogs: {
           ...prev.blogs,
-          keywords: [...prev.blogs.keywords, ...uniqueNewTopics],
+          focusKeywords: [...prev.blogs.focusKeywords, ...newFocusKeywords].slice(0, 3),
+          keywords: [...prev.blogs.keywords, ...newRegularKeywords],
         },
       }))
 
-      if (uniqueNewTopics.length > 8) {
-        setRecentlyUploadedCount(uniqueNewTopics.length)
+      if (uniqueNewKeywords.length > 8) {
+        setRecentlyUploadedCount(uniqueNewKeywords.length)
         setTimeout(() => setRecentlyUploadedCount(null), 5000)
       }
     }
 
     reader.readAsText(file)
-    e.target.value = null // Reset file input
+    e.target.value = null
   }
 
   const renderStep = () => {
@@ -543,7 +556,6 @@ const Jobs = () => {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
             <h3 className="text-xl font-semibold text-gray-800 mb-4">Step 2: Job Details</h3>
             <div className="space-y-4">
-              {/* Job Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Job Name</label>
                 <input
@@ -566,7 +578,6 @@ const Jobs = () => {
                     </div>
                   </Tooltip>
                 </label>
-
                 <div className="flex gap-2 mb-2">
                   <input
                     type="text"
@@ -591,7 +602,6 @@ const Jobs = () => {
                     <input type="file" accept=".csv" onChange={handleCSVUpload} hidden />
                   </label>
                 </div>
-
                 <div className="flex flex-wrap gap-2 mt-2">
                   {newJob.blogs.topics
                     .slice()
@@ -623,8 +633,6 @@ const Jobs = () => {
                         </span>
                       )
                     })}
-
-                  {/* 👇 Combined "+X more" and "+Y uploaded" */}
                   {(newJob.blogs.topics.length > 18 || recentlyUploadedCount) && (
                     <span className="text-xs font-medium text-blue-600 self-center">
                       {newJob.blogs.topics.length > 18 &&
@@ -635,7 +643,43 @@ const Jobs = () => {
                 </div>
               </div>
 
-              {/* Tone (blogs) */}
+              {/* <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Focus Keywords</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={formData.focusKeywordInput}
+                    onChange={(e) => handleKeywordInputChange(e, "focusKeywords")}
+                    onKeyDown={(e) => handleKeyFocusPress(e, "focusKeywords")}
+                    className="flex-1 px-3 py-2 border border-gray-200 rounded-md text-sm"
+                    placeholder="Enter focus keywords"
+                  />
+                  <button
+                    onClick={() => handleAddFocusKeyword("focusKeywords")}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700"
+                  >
+                    Add
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {formData.focusKeywords.map((keyword, index) => (
+                    <span
+                      key={`${keyword}-${index}`}
+                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                    >
+                      {keyword}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveKeyword(index, "focusKeywords")}
+                        className="ml-1.5 flex-shrink-0 text-blue-400 hover:text-blue-600 focus:outline-none"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div> */}
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Tone of Voice
@@ -656,7 +700,7 @@ const Jobs = () => {
                   ))}
                 </select>
               </div>
-              {/* Length (blogs) */}
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Length</label>
                 <select
@@ -676,7 +720,7 @@ const Jobs = () => {
                   ))}
                 </select>
               </div>
-              {/* Image Source (blogs) */}
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Image Source</label>
                 <select
@@ -693,6 +737,7 @@ const Jobs = () => {
                   <option value="unsplash">Unsplash Images</option>
                 </select>
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">AI Model</label>
                 <select
@@ -702,93 +747,82 @@ const Jobs = () => {
                   }
                   className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="gemini">Gemini</option> {/* Updated */}
-                  <option value="openai">Open AI</option> {/* Updated */}
+                  <option value="gemini">Gemini</option>
+                  <option value="openai">Open AI</option>
                 </select>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-700">
+                  Perform Keyword Research?
+                  <p className="text-xs text-gray-500">
+                    Allow AI to find relevant keywords for the topics.
+                  </p>
+                </span>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="performKeywordResearch"
+                    checked={formData.performKeywordResearch}
+                    onChange={handleCheckboxChange}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700">
-                Perform Keyword Research?
-                <p className="text-xs text-gray-500">
-                  Allow AI to find relevant keywords for the topics.
-                </p>
-              </span>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  name="performKeywordResearch"
-                  checked={formData.performKeywordResearch}
-                  onChange={handleCheckboxChange}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              </label>
-            </div>
-
             {!formData.performKeywordResearch && (
-              <div className="space-y-6">
-                <div>
-                  <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
-                    Keywords
-                    <Tooltip title="Upload a .csv file in the format: `S.No., Keyword`">
-                      <div className="cursor-pointer">
-                        <Info size={16} className="text-blue-500" />
-                      </div>
-                    </Tooltip>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Keywords</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={formData.keywordInput}
+                    onChange={handleKeywordToggleInputChange}
+                    onKeyDown={handleTopicKeyPress}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="e.g., digital marketing trends, AI in business"
+                  />
+                  <button
+                    onClick={handleAddToggleKeyword}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700"
+                  >
+                    Add
+                  </button>
+                  <label className="px-4 py-2 bg-gray-100 text-gray-700 border rounded-md text-sm cursor-pointer flex items-center gap-1 hover:bg-gray-200">
+                    <Upload size={16} />
+                    <input type="file" accept=".csv" onChange={handleCSVKeywordUpload} hidden />
                   </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={formData.keywordInput}
-                      onChange={handleKeywordToggleInputChange}
-                      onKeyDown={handleTopicKeyPress}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="e.g., digital marketing trends, AI in business"
-                    />
-                    <button
-                      onClick={handleAddToggleKeyword}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700"
-                    >
-                      Add
-                    </button>
-                    <label className="px-4 py-2 bg-gray-100 text-gray-700 border rounded-md text-sm cursor-pointer flex items-center gap-1 hover:bg-gray-200">
-                      <Upload size={16} />
-                      <input type="file" accept=".csv" onChange={handleCSVKeywordUpload} hidden />
-                    </label>
-                  </div>
-                  <div className="flex flex-wrap gap-2 mt-2 min-h-[28px]">
-                    {formData.keywords
-                      .slice() // make a shallow copy
-                      .reverse() // newest first
-                      .slice(0, 18)
-                      .map((topic, index) => (
-                        <span
-                          key={`${topic}-${index}`}
-                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2 min-h-[28px]">
+                  {formData.keywords
+                    .slice()
+                    .reverse()
+                    .slice(0, 18)
+                    .map((keyword, index) => (
+                      <span
+                        key={`${keyword}-${index}`}
+                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
+                      >
+                        {keyword}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleRemoveToggleKeyword(formData.keywords.length - 1 - index)
+                          }
+                          className="ml-1.5 flex-shrink-0 text-indigo-400 hover:text-indigo-600 focus:outline-none"
                         >
-                          {topic}
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleRemoveToggleKeyword(formData.keywords.length - 1 - index)
-                            } // adjusted for reversed index
-                            className="ml-1.5 flex-shrink-0 text-indigo-400 hover:text-indigo-600 focus:outline-none"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </span>
-                      ))}
-
-                    {/* Combined +X more and +Y uploaded */}
-                    {(formData.keywords.length > 18 || recentlyUploadedCount) && (
-                      <span className="text-xs font-medium text-blue-600 self-center">
-                        {formData.keywords.length > 18 && `+${formData.keywords.length - 18} more `}
-                        {recentlyUploadedCount && `(+${recentlyUploadedCount} uploaded)`}
+                          <X className="w-3 h-3" />
+                        </button>
                       </span>
-                    )}
-                  </div>
+                    ))}
+                  {(formData.keywords.length > 18 || recentlyUploadedCount) && (
+                    <span className="text-xs font-medium text-blue-600 self-center">
+                      {formData.keywords.length > 18 && `+${formData.keywords.length - 18} more `}
+                      {recentlyUploadedCount && `(+${recentlyUploadedCount} uploaded)`}
+                    </span>
+                  )}
                 </div>
               </div>
             )}
@@ -816,7 +850,6 @@ const Jobs = () => {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
             <h3 className="text-xl font-semibold text-gray-800 mb-4">Step 3: Blog Options</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* DaisyUI-style toggles for each option */}
               <div className="flex items-center justify-between py-2 border-b">
                 <span className="text-sm font-medium text-gray-700">Add FAQ</span>
                 <label className="relative inline-flex items-center cursor-pointer">
@@ -828,23 +861,6 @@ const Jobs = () => {
                       setNewJob({
                         ...newJob,
                         options: { ...newJob.options, includeFaqs: e.target.checked },
-                      })
-                    }
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                </label>
-              </div>
-              <div className="flex items-center justify-between py-2 border-b">
-                <span className="text-sm font-medium text-gray-700">Perform Keyword Research</span>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="sr-only peer"
-                    checked={newJob.options.performKeywordResearch}
-                    onChange={(e) =>
-                      setNewJob({
-                        ...newJob,
-                        options: { ...newJob.options, performKeywordResearch: e.target.checked },
                       })
                     }
                   />
@@ -945,7 +961,6 @@ const Jobs = () => {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
             <h3 className="text-xl font-semibold text-gray-800 mb-4">Step 4: Schedule Settings</h3>
             <div className="space-y-4">
-              {/* Schedule Type */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Schedule Type
@@ -977,7 +992,6 @@ const Jobs = () => {
                   <option value="custom">Custom</option>
                 </select>
               </div>
-              {/* Weekly: Select days of week */}
               {newJob.schedule.type === "weekly" && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1008,7 +1022,6 @@ const Jobs = () => {
                   </div>
                 </div>
               )}
-              {/* Monthly: Select dates 1-31 */}
               {newJob.schedule.type === "monthly" && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1039,7 +1052,6 @@ const Jobs = () => {
                   </div>
                 </div>
               )}
-              {/* Custom: MultiDatePicker */}
               {newJob.schedule.type === "custom" && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1064,7 +1076,6 @@ const Jobs = () => {
                   />
                 </div>
               )}
-              {/* Number of Blogs (keep existing) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Number of Blogs
@@ -1107,9 +1118,8 @@ const Jobs = () => {
     }
   }
 
-  // Also restrict opening the job modal for free/basic users
   const handleOpenJobModal = () => {
-    if (userPlan === "free" || userPlan === "basic") {
+    if (user?.plan === "free" || user?.plan === "basic") {
       handlePopup({
         title: "Upgrade Required",
         description: "Job creation is only available for Pro and Enterprise users.",
@@ -1121,14 +1131,14 @@ const Jobs = () => {
       return
     }
     setNewJob(initialJob)
-    setFormData((prev) => ({
-      ...prev,
-      keywords: [],
-      keywordInput: "",
-      focusKeywords: [],
+    setFormData({
+      focusKeywords: selectedKeywords ? selectedKeywords.slice(0, 3) : [],
       focusKeywordInput: "",
-    }))
-    setShowJobModal(true)
+      keywords: selectedKeywords ? selectedKeywords.slice(3) : [],
+      keywordInput: "",
+      performKeywordResearch: true,
+    })
+    dispatch(openJobModal())
     setCurrentStep(1)
   }
 
@@ -1159,7 +1169,7 @@ const Jobs = () => {
               <span className="bg-blue-100 rounded-lg p-3">
                 <FiPlus className="w-6 h-6 text-blue-600" />
               </span>
-              {["free", "basic"].includes(userPlan?.toLowerCase?.()) && (
+              {["free", "basic"].includes(user?.plan?.toLowerCase?.()) && (
                 <span className="flex items-center gap-2 rounded-md text-white font-semibold border p-1 px-2 bg-gradient-to-tr from-blue-500 to-purple-500 shadow-md hover:shadow-xl hover:scale-105 transition-all duration-300 ease-in-out animate-pulse backdrop-blur-sm text-lg">
                   <Gem className="w-4 h-4 animate-bounce" />
                   Pro
@@ -1177,11 +1187,9 @@ const Jobs = () => {
             <h2 className="text-xl font-semibold text-gray-800 mb-6">Active Jobs</h2>
           )}
 
-          {/* Loading State */}
           {isLoading ? (
             <SkeletonLoader count={3} />
           ) : (
-            /* Job List */
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <AnimatePresence>
                 {jobs.map((job) => (
@@ -1222,7 +1230,7 @@ const Jobs = () => {
                       </div>
                       <div className="flex items-center gap-2 capitalize">
                         <FiFileText className="w-4 h-4 text-purple-500" />
-                        <span>Daily Blogs : {job.blogs.numberOfBlogs}</span>
+                        <span>Daily Blogs: {job.blogs.numberOfBlogs}</span>
                       </div>
                       <div className="flex items-center gap-2 capitalize">
                         <FiSettings className="w-4 h-4 text-green-500" />
@@ -1236,13 +1244,45 @@ const Jobs = () => {
                         <div className="flex items-start gap-2 capitalize">
                           <FiFileText className="w-4 h-4 text-purple-500 mt-0.5" />
                           <div className="flex flex-wrap gap-2">
-                            Topics :
+                            Topics:
                             {job.blogs.topics.map((topic, index) => (
                               <span
                                 key={index}
                                 className="px-2 py-1 bg-gray-100 text-gray-600 rounded-md text-xs"
                               >
                                 {topic}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {job.blogs.focusKeywords?.length > 0 && (
+                        <div className="flex items-start gap-2 capitalize">
+                          <FiFileText className="w-4 h-4 text-blue-500 mt-0.5" />
+                          <div className="flex flex-wrap gap-2">
+                            Focus Keywords:
+                            {job.blogs.focusKeywords.map((keyword, index) => (
+                              <span
+                                key={index}
+                                className="px-2 py-1 bg-blue-100 text-blue-600 rounded-md text-xs"
+                              >
+                                {keyword}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {job.blogs.keywords?.length > 0 && (
+                        <div className="flex items-start gap-2 capitalize">
+                          <FiFileText className="w-4 h-4 text-indigo-500 mt-0.5" />
+                          <div className="flex flex-wrap gap-2">
+                            Keywords:
+                            {job.blogs.keywords.map((keyword, index) => (
+                              <span
+                                key={index}
+                                className="px-2 py-1 bg-indigo-100 text-indigo-600 rounded-md text-xs"
+                              >
+                                {keyword}
                               </span>
                             ))}
                           </div>
@@ -1276,7 +1316,7 @@ const Jobs = () => {
                       </motion.button>
                       <Popconfirm
                         title="Job Deletion"
-                        description="Are you sure to delete the job ?"
+                        description="Are you sure to delete the job?"
                         icon={<QuestionCircleOutlined style={{ color: "red" }} />}
                         okText="Yes"
                         cancelText="No"
@@ -1297,13 +1337,12 @@ const Jobs = () => {
             </div>
           )}
 
-          {/* Modal (keep your existing modal implementation) */}
           {showJobModal && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
               <div className="bg-white rounded-lg shadow-lg w-3/4 max-w-3xl p-6 relative max-h-[98vh] overflow-y-auto">
                 <button
-                  onClick={() => setShowJobModal(false)}
-                  className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+                  onClick={() => dispatch(closeJobModal())}
+                  className="absolute top-2 p-4 right-2 text-xl font-bold text-gray-400 hover:text-gray-600"
                 >
                   ✕
                 </button>
@@ -1311,9 +1350,6 @@ const Jobs = () => {
               </div>
             </div>
           )}
-
-          {/* Add ToastContainer */}
-          <ToastContainer />
         </div>
       </div>
     </>

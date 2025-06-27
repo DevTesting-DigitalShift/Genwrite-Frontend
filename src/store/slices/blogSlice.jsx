@@ -14,7 +14,7 @@ import {
   proofreadBlogContent,
   getBlogStatsById,
 } from "@api/blogApi"
-import { toast } from "react-toastify"
+import { message } from "antd"
 
 // ----------------------- Async Thunks -----------------------
 
@@ -55,19 +55,18 @@ export const fetchBlogDetails = createAsyncThunk(
 export const createNewBlog = createAsyncThunk(
   "blogs/createNewBlog",
   async ({ blogData, navigate }, { rejectWithValue }) => {
-    console.log("Creating new blog with data:", blogData)
     if (!blogData) {
-      toast.error("Blog data is required to create a blog.")
+      message.error("Blog data is required to create a blog.")
       return rejectWithValue("Blog data is required to create a blog.")
     }
 
     try {
       const blog = await createBlog(blogData)
-      toast.success("Blog created successfully")
+      message.success("Blog created successfully")
       navigate("/blogs")
       return blog
     } catch (error) {
-      toast.error(error.message)
+      message.error(error.message)
       console.error("Blog creation error:", error)
       return rejectWithValue(error.message)
     }
@@ -79,11 +78,11 @@ export const createNewQuickBlog = createAsyncThunk(
   async ({ blogData, navigate }, { rejectWithValue }) => {
     try {
       const blog = await createQuickBlog(blogData)
-      toast.success("QuickBlog created successfully")
+      message.success("QuickBlog created successfully")
       navigate(`/toolbox/${blog._id}`)
       return blog
     } catch (error) {
-      toast.error(error.message)
+      message.error(error.message)
       return rejectWithValue(error.message)
     }
   }
@@ -94,7 +93,7 @@ export const createMultiBlog = createAsyncThunk(
   async ({ blogData, navigate }, { rejectWithValue }) => {
     try {
       await createBlogMultiple(blogData)
-      toast.success("Bulk blogs will be generated shortly")
+      message.success("Bulk blogs will be generated shortly")
       navigate("/blogs")
     } catch (error) {
       return rejectWithValue(error.message)
@@ -107,7 +106,7 @@ export const updateBlogDetails = createAsyncThunk(
   async ({ id, updatedData }, { rejectWithValue }) => {
     try {
       const updated = await updateBlog(id, updatedData)
-      toast.success("Blog updated successfully")
+      message.success("Blog updated successfully")
       return updated
     } catch (error) {
       return rejectWithValue(error.message)
@@ -120,10 +119,10 @@ export const restoreTrashedBlog = createAsyncThunk(
   async (id, { rejectWithValue }) => {
     try {
       const result = await restoreBlogById(id)
-      toast.success("Blog restored successfully")
+      message.success("Blog restored successfully")
       return result
     } catch (error) {
-      toast.error(error.message)
+      message.error(error.message)
       return rejectWithValue(error.message)
     }
   }
@@ -134,10 +133,10 @@ export const deleteAllUserBlogs = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const result = await deleteAllBlogs()
-      toast.success(`${result.deletedCount} blogs deleted`)
+      message.success(`${result.deletedCount} blogs deleted`)
       return result
     } catch (error) {
-      toast.error(error.message)
+      message.error(error.message)
       return rejectWithValue(error.message)
     }
   }
@@ -148,10 +147,10 @@ export const archiveBlog = createAsyncThunk(
   async (id, { rejectWithValue }) => {
     try {
       const result = await archiveBlogById(id)
-      toast.success("Blog archived successfully")
+      message.success("Blog deleted successfully")
       return result
     } catch (error) {
-      toast.error(error.message)
+      message.error(error.message)
       return rejectWithValue(error.message)
     }
   }
@@ -162,10 +161,10 @@ export const retryBlog = createAsyncThunk(
   async ({ id, payload }, { rejectWithValue }) => {
     try {
       const result = await retryBlogById(id, payload)
-      toast.success(result?.message || "Blog regenerated successfully")
+      message.success(result?.message || "Blog regenerated successfully")
       return result
     } catch (error) {
-      toast.error(error.message)
+      message.error(error.message)
       return rejectWithValue(error.message)
     }
   }
@@ -186,7 +185,6 @@ export const fetchBlogById = createAsyncThunk(
 export const updateBlogById = createAsyncThunk(
   "blogs/updateBlogById",
   async ({ id, updatedData }, { rejectWithValue }) => {
-    console.log("{id", id)
     try {
       const updated = await updateBlog(id, updatedData)
       const allBlogs = await getAllBlogs()
@@ -202,10 +200,10 @@ export const fetchProofreadingSuggestions = createAsyncThunk(
   async ({ content, message }, { rejectWithValue }) => {
     try {
       const data = await proofreadBlogContent({ content, message })
-      toast.success("Proofreading suggestions received!")
+      message.success("Proofreading suggestions received!")
       return data.suggestions || []
     } catch (error) {
-      toast.error(error.message)
+      message.error(error.message)
       return rejectWithValue(error.message)
     }
   }
@@ -218,7 +216,7 @@ export const fetchBlogStats = createAsyncThunk(
       const stats = await getBlogStatsById(id)
       return { id, stats }
     } catch (error) {
-      toast.error("Failed to load blog performance stats.")
+      message.error("Failed to load blog performance stats.")
       return rejectWithValue(error.response?.data?.message || error.message)
     }
   }

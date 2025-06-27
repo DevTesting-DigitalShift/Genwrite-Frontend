@@ -1,14 +1,14 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit"
 import { createBrandVoice, updateBrandVoice, getBrands } from "@api/brandApi"
-import { toast } from "react-toastify"
 import { deleteBrandVoice } from "@api/brandApi"
+import { message } from "antd"
 
 export const fetchBrands = createAsyncThunk("brand/fetchBrands", async (_, { rejectWithValue }) => {
   try {
     const brands = await getBrands()
     return brands
   } catch (error) {
-    toast.error("Failed to fetch brand voices.")
+    message.error("Failed to fetch brand voices.")
     return rejectWithValue(error.response?.data?.message || error.message)
   }
 })
@@ -18,11 +18,11 @@ export const createBrandVoiceThunk = createAsyncThunk(
   async ({ payload, onSuccess }, { rejectWithValue }) => {
     try {
       const data = await createBrandVoice(payload)
-      toast.success("Brand voice created successfully.")
+      message.success("Brand voice created successfully.")
       if (onSuccess) onSuccess(data)
       return data
     } catch (error) {
-      toast.error(error?.response?.data?.details?.errors?.[0]?.msg || "Failed to save brand voice.")
+      message.error(error?.response?.data?.details?.errors?.[0]?.msg || "Failed to save brand voice.")
       return rejectWithValue(error.response?.data?.message || error.message)
     }
   }
@@ -33,11 +33,11 @@ export const updateBrandVoiceThunk = createAsyncThunk(
   async ({ id, payload, onSuccess }, { rejectWithValue }) => {
     try {
       const data = await updateBrandVoice(id, payload)
-      toast.success("Brand voice updated successfully.")
+      message.success("Brand voice updated successfully.")
       if (onSuccess) onSuccess(data)
       return data
     } catch (error) {
-      toast.error(
+      message.error(
         error?.response?.data?.details?.errors?.[0]?.msg || "Failed to update brand voice."
       )
       return rejectWithValue(error.response?.data?.message || error.message)
@@ -50,10 +50,10 @@ export const deleteBrandVoiceThunk = createAsyncThunk(
   async ({ id }, { rejectWithValue }) => {
     try {
       await deleteBrandVoice(id)
-      toast.success("Brand voice deleted successfully.")
+      message.success("Brand voice deleted successfully.")
       return id
     } catch (error) {
-      toast.error("Failed to delete brand voice.")
+      message.error("Failed to delete brand voice.")
       return rejectWithValue(error.response?.data?.message || error.message)
     }
   }
