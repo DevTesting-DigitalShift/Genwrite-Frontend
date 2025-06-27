@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { X } from "lucide-react"
-import { toast } from "react-toastify"
 import { useDispatch, useSelector } from "react-redux"
-import { Table, Tooltip } from "antd"
+import { Table, Tooltip, message } from "antd"
 import { InfoCircleOutlined } from "@ant-design/icons"
 import { fetchAllBlogs, fetchBlogStats } from "@store/slices/blogSlice"
 
@@ -34,7 +33,7 @@ const PerformanceMonitoringModal = ({ closeFnc }) => {
         .unwrap()
         .then(({ stats }) => setStats(stats))
     } catch (error) {
-      toast.error("Failed to load blog performance stats.")
+      message.error("Failed to load blog performance stats.")
     }
   }
 

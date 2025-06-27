@@ -5,7 +5,6 @@ import { CiGlobe } from "react-icons/ci"
 import { ImGithub } from "react-icons/im"
 import { RiCloseLine } from "react-icons/ri"
 import { pluginsData } from "@constants/pluginsData"
-import { ToastContainer } from "react-toastify"
 import { motion } from "framer-motion"
 import { Helmet } from "react-helmet"
 
@@ -29,7 +28,6 @@ const PluginsMain = () => {
       <Helmet>
         <title>Plugins | GenWrite</title>
       </Helmet>
-      <ToastContainer />
       <motion.h1
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}

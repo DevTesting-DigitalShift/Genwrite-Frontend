@@ -1,6 +1,6 @@
-import React, { memo, useState, useEffect } from "react";
+import React, { memo, useState } from "react";
 import Carousel from "./Carousel";
-import { toast } from "react-toastify";
+import { message } from "antd";
 
 const SelectTemplateModal = ({ handleNext, handleClose, data, setData }) => {
   const [selectedPackage, setSelectedPackage] = useState(null);
@@ -88,7 +88,7 @@ const SelectTemplateModal = ({ handleNext, handleClose, data, setData }) => {
       setData(updatedData);
       handleNext();
     } else {
-      toast.error("Please select a template before proceeding.");
+      message.error("Please select a template before proceeding.");
     }
   };
 

@@ -1,11 +1,9 @@
-import { Table, Tag, Tooltip, Input, DatePicker, Select } from "antd"
+import { Table, Tag, Tooltip, Input, DatePicker, Select, message } from "antd"
 import { motion, AnimatePresence } from "framer-motion"
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useDispatch, useSelector } from "react-redux"
 import { SearchOutlined } from "@ant-design/icons"
-import moment from "moment"
-import { toast } from "react-toastify"
 import { loadUser } from "@api/authApi"
 import { Helmet } from "react-helmet"
 
@@ -49,7 +47,7 @@ const CreditLogsTable = () => {
         setLogs(user?.creditLogs)
         setFilteredLogs(user?.creditLogs)
       } catch (err) {
-        toast.error("Failed to load credit logs")
+        message.error("Failed to load credit logs")
         console.error("Failed to load credit logs", err)
       } finally {
         setLoading(false)

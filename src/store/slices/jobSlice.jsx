@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit"
 import { createJob, deleteJob, getJobs, stopJob, updateJob } from "@api/jobApi"
-import { toast } from "react-toastify"
+import { message } from "antd"
 
 // Fetch Jobs
 export const fetchJobs = createAsyncThunk("jobs/fetchJobs", async (_, { rejectWithValue }) => {
@@ -9,7 +9,7 @@ export const fetchJobs = createAsyncThunk("jobs/fetchJobs", async (_, { rejectWi
     return jobs || []
   } catch (error) {
     const errorMessage = error.response?.data?.message || error.message || "Something went wrong"
-    toast.error("Failed to fetch jobs")
+    message.error("Failed to fetch jobs")
     return rejectWithValue(errorMessage)
   }
 })
@@ -20,11 +20,11 @@ export const createJobThunk = createAsyncThunk(
   async ({ jobPayload, onSuccess }, { rejectWithValue }) => {
     try {
       const data = await createJob(jobPayload)
-      toast.success("Job created successfully!")
+      message.success("Job created successfully!")
       if (onSuccess) onSuccess()
       return data
     } catch (error) {
-      toast.error("Failed to create job. Please try again.")
+      message.error("Failed to create job. Please try again.")
       return rejectWithValue(error.response?.data?.message || error.message)
     }
   }
@@ -35,11 +35,12 @@ export const updateJobThunk = createAsyncThunk(
   async ({ jobId, jobPayload, onSuccess }, { rejectWithValue }) => {
     try {
       const response = await updateJob(jobId, jobPayload)
-      toast.success("Job updated successfully!")
+      message.success("Job updated successfully!")
       if (onSuccess) onSuccess()
       return response
     } catch (error) {
-      toast.error("Failed to update job. Please try again.")
+      console.error("Job update", error)
+      message.error("Failed to update job. Please try again.")
       return rejectWithValue(error.response?.data?.message || error.message)
     }
   }
@@ -51,12 +52,12 @@ export const toggleJobStatusThunk = createAsyncThunk(
     try {
       currentStatus === "active" ? await stopJob(jobId) : await startJob(jobId)
 
-      toast.success(
+      message.success(
         currentStatus === "active" ? "Job paused successfully!" : "Job started successfully!"
       )
       return { jobId, status: currentStatus === "active" ? "paused" : "active" }
     } catch (error) {
-      toast.error("Failed to update job status.")
+      message.error("Failed to update job status.")
       return rejectWithValue(error.response?.data?.message || error.message)
     }
   }
@@ -67,10 +68,10 @@ export const deleteJobThunk = createAsyncThunk(
   async (jobId, { rejectWithValue }) => {
     try {
       await deleteJob(jobId)
-      toast.success("Job deleted successfully!")
+      message.success("Job deleted successfully!")
       return jobId
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to delete job")
+      message.error(error.response?.data?.message || "Failed to delete job")
       return rejectWithValue(error.response?.data?.message || error.message)
     }
   }
@@ -82,8 +83,16 @@ const jobSlice = createSlice({
     jobs: [],
     loading: false,
     error: null,
+    showJobModal: false,
   },
-  reducers: {},
+  reducers: {
+    openJobModal: (state) => {
+      state.showJobModal = true
+    },
+    closeJobModal: (state) => {
+      state.showJobModal = false
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchJobs.pending, (state) => {
@@ -150,4 +159,5 @@ const jobSlice = createSlice({
   },
 })
 
+export const { openJobModal, closeJobModal } = jobSlice.actions
 export default jobSlice.reducer

@@ -4,8 +4,7 @@ import { FaEdit, FaTimes } from "react-icons/fa"
 import { useDispatch, useSelector } from "react-redux"
 import { Info, Upload, Loader2 } from "lucide-react"
 import { Helmet } from "react-helmet"
-import { toast } from "react-toastify"
-import { Modal, Tooltip } from "antd"
+import { Modal, Tooltip, message } from "antd"
 import {
   createBrandVoiceThunk,
   deleteBrandVoiceThunk,
@@ -110,10 +109,10 @@ const BrandVoice = () => {
         }))
         setErrors((prev) => ({ ...prev, keywords: undefined }))
       }
-      reader.onerror = () => toast.error("Error reading CSV file.")
+      reader.onerror = () => message.error("Error reading CSV file.")
       reader.readAsText(file)
     } else {
-      toast.error("Please upload a valid CSV file.")
+      message.error("Please upload a valid CSV file.")
     }
   }, [])
 
@@ -124,7 +123,7 @@ const BrandVoice = () => {
 
     // Validate file type
     if (file.type !== "text/xml" && !file.name.endsWith(".xml")) {
-      toast.error("Please upload a valid XML file.")
+      message.error("Please upload a valid XML file.")
       setErrors((prev) => ({ ...prev, sitemap: "Invalid file type, only .xml allowed." }))
       return
     }
@@ -138,13 +137,13 @@ const BrandVoice = () => {
         setFormData((prev) => ({ ...prev, uploadedFile: file.name }))
         setErrors((prev) => ({ ...prev, sitemap: undefined }))
       } catch (error) {
-        toast.error("Error processing XML file.")
+        message.error("Error processing XML file.")
         setErrors((prev) => ({ ...prev, sitemap: "Failed to process XML file." }))
       }
     }
 
     reader.onerror = () => {
-      toast.error("Error reading XML file.")
+      message.error("Error reading XML file.")
       setErrors((prev) => ({ ...prev, sitemap: "Failed to read XML file." }))
     }
 
@@ -161,7 +160,7 @@ const BrandVoice = () => {
       postLink: formData.postLink.trim(),
       keywords: formData.keywords.map((k) => k.trim()).filter(Boolean),
       describeBrand: formData.describeBrand.trim(),
-      siteMap: excelData,
+      sitemap: excelData,
       userId: user?._id,
     }
 

@@ -1,12 +1,11 @@
 import React, { useState } from "react"
-import { Button, Space, Tooltip } from "antd"
-import { CopyOutlined, ReloadOutlined, PictureOutlined, CloseOutlined } from "@ant-design/icons"
+import { Button, Tooltip, message } from "antd"
+import { CopyOutlined, ReloadOutlined, CloseOutlined } from "@ant-design/icons"
 import { motion, AnimatePresence } from "framer-motion"
 
 import ImageGenerationModal from "./ImageGenerationModal"
 import ChatBox from "../generateBlog/ChatBox"
 import { Menu } from "lucide-react"
-import { toast } from "react-toastify"
 import { useNavigate } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useDispatch, useSelector } from "react-redux"
@@ -31,14 +30,14 @@ const SmallBottomBox = (id) => {
       const resultAction = await dispatch(retryBlog({ id, payload: { createNew: true } }))
 
       if (retryBlog.fulfilled.match(resultAction)) {
-        toast.success(resultAction.payload?.message || "Blog regenerated successfully!")
+        message.success(resultAction.payload?.message || "Blog regenerated successfully!")
         setMenuOpen(false)
         navigate("/blogs")
       } else {
-        toast.error(resultAction.payload || "Failed to regenerate blog.")
+        message.error(resultAction.payload || "Failed to regenerate blog.")
       }
     } catch (error) {
-      toast.error(error.message || "Failed to regenerate blog.")
+      message.error(error.message || "Failed to regenerate blog.")
       console.error("Error regenerating blog:", error)
     }
   }
@@ -78,14 +77,14 @@ const SmallBottomBox = (id) => {
         handleRegenerate()
       },
     },
-    {
-      label: "Generate Images",
-      icon: <PictureOutlined />,
-      onClick: () => {
-        setModalOpen(true)
-        setMenuOpen(false)
-      },
-    },
+    // {
+    //   label: "Generate Images",
+    //   icon: <PictureOutlined />,
+    //   onClick: () => {
+    //     setModalOpen(true)
+    //     setMenuOpen(false)
+    //   },
+    // },
   ]
 
   return (

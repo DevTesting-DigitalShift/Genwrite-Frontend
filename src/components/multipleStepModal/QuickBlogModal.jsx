@@ -6,7 +6,7 @@ import Carousel from "./Carousel"
 import { packages } from "@constants/templates"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
-import { toast, useToast } from "react-toastify"
+import { message } from "antd"
 
 const QuickBlogModal = ({ closeFnc }) => {
   const [currentStep, setCurrentStep] = useState(0)
@@ -39,7 +39,7 @@ const QuickBlogModal = ({ closeFnc }) => {
 
   const handleSubmit = () => {
     if (!(formData.focusKeywords.length && formData.keywords.length && inputs.length)) {
-      toast.error("Please fill all the fields")
+      message.error("Please fill all the fields")
     } else {
       const finalData = {
         ...formData,
@@ -143,7 +143,7 @@ const QuickBlogModal = ({ closeFnc }) => {
   const handleAddLink = () => {
     const input = formData.videoLinkInput?.trim()
     if (!input) {
-      toast.error("Please enter a link.")
+      message.error("Please enter a link.")
       return
     }
 
@@ -158,12 +158,12 @@ const QuickBlogModal = ({ closeFnc }) => {
       const url = new URL(validatedUrl) // Will throw error if invalid
 
       if (inputs.length >= 3) {
-        toast.error("You can only add up to 3 links.")
+        message.error("You can only add up to 3 links.")
         return
       }
 
       if (inputs.includes(validatedUrl)) {
-        toast.error("This link has already been added.")
+        message.error("This link has already been added.")
         return
       }
 
@@ -173,7 +173,7 @@ const QuickBlogModal = ({ closeFnc }) => {
         videoLinkInput: "",
       }))
     } catch (err) {
-      toast.error("Please enter a valid URL.")
+      message.error("Please enter a valid URL.")
     }
   }
 

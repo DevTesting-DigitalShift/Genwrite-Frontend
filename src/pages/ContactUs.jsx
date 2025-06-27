@@ -15,7 +15,7 @@ import {
   ArrowRight,
   Sparkles,
 } from "lucide-react"
-import { toast, ToastContainer } from "react-toastify"
+import { message } from "antd"
 
 const ContactUs = () => {
   const [formData, setFormData] = useState({
@@ -86,7 +86,7 @@ const ContactUs = () => {
       setFormData({ name: "", email: "", subject: "", message: "" })
     } catch (error) {
       console.error("FAILED...", error)
-      toast.error("Failed to send message. Try again.")
+      message.error("Failed to send message. Try again.")
     } finally {
       setIsSubmitting(false)
     }
@@ -113,13 +113,13 @@ const ContactUs = () => {
   //     const data = await response.json()
   //     if (data.success) {
   //       setFormData({ name: "", email: "", subject: "", message: "" })
-  //       toast.success("Message sent successfully!")
+  //       message.success("Message sent successfully!")
   //     } else {
   //       throw new Error(data.message)
   //     }
   //   } catch (error) {
   //     console.error("FAILED...", error)
-  //     toast.error("Failed to send message. Try again.")
+  //     message.error("Failed to send message. Try again.")
   //   } finally {
   //     setIsSubmitting(false)
   //   }
@@ -172,7 +172,6 @@ const ContactUs = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/50">
-      <ToastContainer />
       {/* Hero Section */}
       <div className="py-10 px-4">
         <div className="max-w-7xl mx-auto text-center">

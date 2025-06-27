@@ -14,7 +14,6 @@ const useAuth = () => {
       }
       return response.data;
     } catch (error) {
-      // Handle error (e.g., show toast)
       console.error("Login error:", error);
       throw error;
     }
@@ -33,7 +32,6 @@ const useAuth = () => {
       }
       return response.data.user;
     } catch (error) {
-      // Handle error (e.g., show toast)
       console.error("Signup error:", error);
       throw error;
     }

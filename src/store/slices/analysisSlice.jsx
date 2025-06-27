@@ -1,17 +1,17 @@
 // src/store/slices/analysisSlice.ts
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit"
 import { analyzeKeywords, analyzeKeywordsAPI, runCompetitiveAnalysis } from "@api/analysisApi"
-import { toast } from "react-toastify"
+import { message } from "antd"
 
 export const fetchCompetitiveAnalysisThunk = createAsyncThunk(
   "analysis/fetchCompetitive",
   async ({ blogId, title, content, keywords }, { rejectWithValue }) => {
     try {
       const data = await runCompetitiveAnalysis({ blogId, title, content, keywords })
-      toast.success("Competitive analysis completed successfully!")
+      message.success("Competitive analysis completed successfully!")
       return data
     } catch (error) {
-      toast.error("Failed to fetch competitive analysis.")
+      message.error("Failed to fetch competitive analysis.")
       return rejectWithValue(error.response?.data?.message || error.message)
     }
   }
@@ -24,7 +24,7 @@ export const analyzeKeywordsThunk = createAsyncThunk(
       const result = await analyzeKeywords(keywords)
       return result
     } catch (err) {
-      toast.error(err?.response?.data?.message || "Failed to analyze keywords.")
+      message.error(err?.response?.data?.message || "Failed to analyze keywords.")
       return rejectWithValue(err?.response?.data?.message || err.message)
     }
   }
@@ -38,7 +38,7 @@ export const fetchKeywordAnalysis = createAsyncThunk(
       return data
     } catch (error) {
       const message = error?.response?.data?.message || error.message
-      toast.error(message || "Failed to analyze keywords.")
+      message.error(message || "Failed to analyze keywords.")
       return rejectWithValue(message)
     }
   }
@@ -52,12 +52,16 @@ const analysisSlice = createSlice({
     analyzing: false,
     result: null,
     error: null,
+    selectedKeywords: [],
   },
   reducers: {
     clearAnalysis: (state) => {
       state.result = null
       state.error = null
     },
+    setSelectedKeywords: (state, action) => {
+      state.selectedKeywords = action.payload;
+    }, 
   },
   extraReducers: (builder) => {
     builder
@@ -103,5 +107,5 @@ const analysisSlice = createSlice({
   },
 })
 
-export const { clearAnalysis, clearKeywordAnalysis } = analysisSlice.actions
+export const { clearAnalysis, clearKeywordAnalysis, setSelectedKeywords } = analysisSlice.actions
 export default analysisSlice.reducer

@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react"
 import { X } from "lucide-react"
-import { toast } from "react-toastify"
 import axiosInstance from "../../api"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
-import { Collapse, Card, Progress } from "antd"
+import { Collapse, Card, Progress, message } from "antd"
 import { motion } from "framer-motion"
 import { fetchAllBlogs } from "@store/slices/blogSlice"
 import { useDispatch, useSelector } from "react-redux"
@@ -107,9 +106,9 @@ const CompetitiveAnalysisModal = ({ closeFnc }) => {
   }
 
   const handleSubmit = () => {
-    if (!formData.title.trim()) return toast.error("Please enter a blog title")
-    if (!formData.content.trim()) return toast.error("Please enter blog content")
-    if (formData.keywords.length === 0) return toast.error("Please add at least one keyword")
+    if (!formData.title.trim()) return message.error("Please enter a blog title")
+    if (!formData.content.trim()) return message.error("Please enter blog content")
+    if (formData.keywords.length === 0) return message.error("Please add at least one keyword")
 
     handlePopup({
       title: "Analyse the competitors",

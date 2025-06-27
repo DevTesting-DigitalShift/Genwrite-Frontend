@@ -1,5 +1,5 @@
 import axiosInstance from "@api/index"
-import { toast } from "react-toastify"
+import { message } from "antd"
 
 export const pluginsData = (setWordpressStatus) => [
   {
@@ -20,19 +20,19 @@ export const pluginsData = (setWordpressStatus) => [
         const res = await axiosInstance.get("/wordpress/check")
         setWordpressStatus(res)
         if (res.data.success) {
-          toast.success(res.data.message) 
+          message.success(res.data.message) 
         }
       } catch (err) {
         console.err(err)
         switch (err.status) {
           case 400:
-            toast.error("No wordpress link found. Add wordpress link into your profile.")
+            message.error("No wordpress link found. Add wordpress link into your profile.")
             break
           case 502:
-            toast.error("Wordpress connection failed, check plugin is installed & active")
+            message.error("Wordpress connection failed, check plugin is installed & active")
             break
           default:
-            toast.error("Wordpress Connection Error")
+            message.error("Wordpress Connection Error")
         }
         // navigate("/profile")
       } finally {

@@ -3,7 +3,21 @@ import { NavLink, useLocation, useNavigate } from "react-router-dom"
 import { useDispatch, useSelector } from "react-redux"
 import { RxAvatar } from "react-icons/rx"
 import { FiMenu } from "react-icons/fi"
-import { Crown, UsersRound, Zap } from "lucide-react"
+import {
+  Box,
+  Briefcase,
+  Crown,
+  FileText,
+  LayoutDashboard,
+  Megaphone,
+  Plug,
+  Puzzle,
+  SearchCheck,
+  Trash2,
+  TrendingUp,
+  UsersRound,
+  Zap,
+} from "lucide-react"
 import { loadAuthenticatedUser, logoutUser, selectUser } from "../store/slices/authSlice"
 import { Tooltip, Dropdown, Avatar } from "antd"
 import { RiCoinsFill } from "react-icons/ri"
@@ -45,13 +59,14 @@ const LayoutWithSidebarAndHeader = () => {
   }, [user])
 
   const Menus = [
-    { title: "Dashboard", src: "dashicon.svg", path: "/dashboard" },
-    { title: "My Projects", src: "myprojecticon.svg", path: "/blogs" },
-    { title: "Content Agent", src: "jobsicon.svg", path: "/jobs" },
-    { title: "Toolbox", src: "toolboxicon.png", path: "/toolbox" },
-    { title: "Integrations", src: "pluginicon.svg", path: "/integrations" },
-    { title: "Brand Voice", src: "brandvoiceicon.svg", path: "/brandvoice" },
-    { title: "TrashCan", src: "trashcan.png", path: "/trashcan" },
+    { title: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
+    { title: "My Projects", icon: FileText, path: "/blogs" },
+    { title: "Search Console", icon: TrendingUp, path: "/search-console" },
+    { title: "Content Agent", icon: Briefcase, path: "/jobs" },
+    { title: "Toolbox", icon: Box, path: "/toolbox" },
+    { title: "Integrations", icon: Plug, path: "/integrations" },
+    { title: "Brand Voice", icon: Megaphone, path: "/brandvoice" },
+    { title: "TrashCan", icon: Trash2, path: "/trashcan" },
   ]
 
   const path = location.pathname
@@ -106,7 +121,7 @@ const LayoutWithSidebarAndHeader = () => {
     <div className={`${path.includes("signup") || path.includes("login") ? "hidden" : "flex"}`}>
       {/* Sidebar */}
       <div
-        className={`fixed top-0 left-0 h-full z-40 transition-all duration-300 bg-gradient-to-br from-purple-800 to-blue-600 text-white overflow-hidden p-2 flex flex-col ${
+        className={`fixed top-0 left-0 h-full z-40 transition-all duration-300 bg-[#3F51B5] from-purple-800 to-blue-600 text-white overflow-hidden p-2 flex flex-col ${
           sidebarOpen ? "w-56" : "w-16"
         }`}
         onMouseEnter={() => setSidebarOpen(true)}
@@ -144,6 +159,8 @@ const LayoutWithSidebarAndHeader = () => {
         <ul className="space-y-3">
           {Menus.map((Menu, index) => {
             const isActive = location.pathname.startsWith(Menu.path)
+            const Icon = Menu.icon
+
             return (
               <li key={index}>
                 <NavLink
@@ -152,11 +169,11 @@ const LayoutWithSidebarAndHeader = () => {
                     isActive ? "bg-white/20 font-semibold" : ""
                   }`}
                 >
-                  <img
-                    src={`/Images/${Menu.src}`}
-                    alt={Menu.title}
-                    className={`w-5 h-5 ${isActive ? "opacity-100" : "opacity-60"}`}
+                  <Icon
+                    className="w-5 h-5 transition-all duration-200"
+                    strokeWidth={isActive ? 2 : 1.5}
                   />
+
                   <span className={`${!sidebarOpen ? "hidden" : "block"}`}>{Menu.title}</span>
                 </NavLink>
               </li>

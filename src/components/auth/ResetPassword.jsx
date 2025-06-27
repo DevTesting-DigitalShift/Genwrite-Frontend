@@ -14,7 +14,7 @@ import {
 } from "lucide-react"
 import { resetPassword } from "@store/slices/authSlice"
 import { useDispatch } from "react-redux"
-import { toast } from "react-toastify"
+import { message } from "antd"
 
 const ResetPassword = () => {
   const [searchParams] = useSearchParams()
@@ -85,9 +85,8 @@ const ResetPassword = () => {
 
     try {
       const res = await dispatch(resetPassword({ token, newPassword: password })).unwrap()
-      console.log("Password reset successful:", res)
       if (res) {
-        toast.success(res)
+        message.success(res)
         setSuccess(true)
         navigate("/login", { replace: true })
       }

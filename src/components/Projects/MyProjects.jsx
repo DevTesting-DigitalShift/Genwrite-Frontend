@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import SkeletonLoader from "./SkeletonLoader"
-import { toast, ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import { Badge, Button, Input, Popconfirm, Tooltip, Select, Modal, Popover } from "antd"
 import { ArrowDownUp, Funnel, Menu, RefreshCcw, RotateCcw, Search, Trash2 } from "lucide-react"
@@ -289,7 +288,6 @@ const MyProjects = () => {
       <Helmet>
         <title>Blogs | GenWrite</title>
       </Helmet>
-      <ToastContainer />
       <div className="flex justify-between align-middle items-center">
         <div>
           <motion.h1

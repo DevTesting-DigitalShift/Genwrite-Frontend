@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { X, Plus, Gem, RotateCcw } from "lucide-react"
-import { toast } from "react-toastify"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useNavigate } from "react-router-dom"
 import { useDispatch, useSelector } from "react-redux"
-import { Button, Tooltip } from "antd"
+import { Button, Tooltip, message } from "antd"
 import { fetchProofreadingSuggestions } from "@store/slices/blogSlice"
 import { fetchCompetitiveAnalysisThunk } from "@store/slices/analysisSlice"
 
@@ -36,7 +35,7 @@ const TextEditorSidebar = ({
 
   const fetchCompetitiveAnalysis = async () => {
     if (!blog || !blog.title || !blog.content) {
-      toast.error("Blog data is incomplete for analysis.")
+      message.error("Blog data is incomplete for analysis.")
       return
     }
 
@@ -59,8 +58,6 @@ const TextEditorSidebar = ({
       setShouldRunCompetitive(false)
     }
   }, [shouldRunCompetitive])
-
-  console.log({blog})
 
   useEffect(() => {
     if (blog?.seoScore || blog?.generatedMetadata?.competitorsAnalysis) {
@@ -96,12 +93,12 @@ const TextEditorSidebar = ({
 
   const handleProofreadingClick = async () => {
     if (!blog || !blog.content) {
-      toast.error("Blog content is required for proofreading.")
+      message.error("Blog content is required for proofreading.")
       return
     }
 
     if (isAnalyzingCompetitive) {
-      toast.error("Please wait for Competitive Analysis to complete before starting Proofreading.")
+      message.error("Please wait for Competitive Analysis to complete before starting Proofreading.")
       return
     }
 
@@ -119,10 +116,10 @@ const TextEditorSidebar = ({
       if (Array.isArray(result)) {
         setProofreadingResults(result)
       } else {
-        toast.error("Invalid proofreading suggestions format.")
+        message.error("Invalid proofreading suggestions format.")
       }
     } catch (error) {
-      toast.error(error || "Failed to fetch proofreading suggestions.")
+      message.error(error || "Failed to fetch proofreading suggestions.")
     } finally {
       setIsAnalyzingProofreading(false)
     }
@@ -130,7 +127,7 @@ const TextEditorSidebar = ({
 
   const handleApplyAllSuggestions = () => {
     if (proofreadingResults.length === 0) {
-      toast.info("No suggestions available to apply.")
+      message.info("No suggestions available to apply.")
       return
     }
 
@@ -138,7 +135,7 @@ const TextEditorSidebar = ({
       handleReplace(suggestion.original, suggestion.change)
     })
     setProofreadingResults([]) // Clear all suggestions after applying
-    toast.success("All proofreading suggestions applied successfully!")
+    message.success("All proofreading suggestions applied successfully!")
   }
 
   const handleAnalyzing = () => {
