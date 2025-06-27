@@ -13,6 +13,10 @@ export const createQuickBlog = async (blogData) => {
 }
 
 export const createBlog = async (blogData) => {
+  if (!blogData) {
+    throw new Error("Missing blog data in createBlog")
+  }
+
   try {
     const sanitizedData = {
       ...blogData,
@@ -20,15 +24,7 @@ export const createBlog = async (blogData) => {
     }
 
     const response = await axiosInstance.post("/blogs", sanitizedData)
-
-    // Wait for the blog to be fully generated with content
-    let blog = response.data.blog
-    // while (!blog.content) {
-    //   await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
-    //   const checkResponse = await axiosInstance.get(`/blogs/${blog._id}`);
-    //   blog = checkResponse.data;
-    // }
-    return blog
+    return response.data.blog
   } catch (error) {
     console.error("Blog creation API error:", error)
     throw new Error(error.response?.data?.message || "Failed to create blog")
@@ -110,4 +106,57 @@ export const sendRetryLines = async (id, payload) => {
   } catch (error) {
     throw new Error(error || "Failed to retry")
   }
+}
+
+export const deleteAllBlogs = async () => {
+  try {
+    const response = await axiosInstance.delete("/blogs")
+    return response.data
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to delete blogs")
+  }
+}
+
+export const restoreBlogById = async (id) => {
+  try {
+    const response = await axiosInstance.patch(`/blogs/restore/${id}`)
+    return response.data
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to restore blog")
+  }
+}
+
+export const archiveBlogById = async (id) => {
+  try {
+    const response = await axiosInstance.patch(`/blogs/archive/${id}`)
+    return response.data
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to archive blog")
+  }
+}
+
+export const retryBlogById = async (id, payload = { createNew: false }) => {
+  try {
+    const response = await axiosInstance.post(`/blogs/${id}/retry`, payload)
+    return response.data
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to retry blog")
+  }
+}
+
+export const proofreadBlogContent = async ({ content, message }) => {
+  try {
+    const response = await axiosInstance.post("/blogs/proofread", {
+      content,
+      message,
+    })
+    return response.data
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to get proofreading suggestions")
+  }
+}
+
+export const getBlogStatsById = async (id) => {
+  const response = await axiosInstance.get(`/blogs/${id}/stats`)
+  return response.data
 }

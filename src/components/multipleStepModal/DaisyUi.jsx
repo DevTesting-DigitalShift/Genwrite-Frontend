@@ -9,18 +9,12 @@ import "react-datepicker/dist/react-datepicker.css"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { createMultiBlog } from "@store/slices/blogSlice"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
-import axiosInstance from "@api/index"
 import { Tooltip } from "antd"
-
-// [ ] check the height of all models
-// [s ] DONE in bulk jobs add file uploder same as jobs
-// [s ] DONE ai model default gemini
 
 const MultiStepModal = ({ closeFnc }) => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
-  const userPlan = useSelector((state) => state.auth.user?.plan) // <-- use userPlan
   const user = useSelector((state) => state.auth.user) // <-- Add this line
 
   const [currentStep, setCurrentStep] = useState(0)
@@ -113,7 +107,7 @@ const MultiStepModal = ({ closeFnc }) => {
         </>
       ),
       onConfirm: () => {
-        dispatch(createMultiBlog(formData, navigate))
+        dispatch(createMultiBlog({blogData: formData, navigate}))
       },
     })
   }

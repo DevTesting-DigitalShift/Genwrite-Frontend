@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useLayoutEffect } from "react"
+import React, { useState, useEffect, useRef, useLayoutEffect } from "react"
 import { useEditor, EditorContent, BubbleMenu } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 import Link from "@tiptap/extension-link"
@@ -6,7 +6,6 @@ import Image from "@tiptap/extension-image"
 import Underline from "@tiptap/extension-underline"
 import TextAlign from "@tiptap/extension-text-align"
 import { motion } from "framer-motion"
-import AnimatedContent from "./AnimatedContent"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeRaw from "rehype-raw"
@@ -67,23 +66,20 @@ const TextEditor = ({
 }) => {
   const [showPreview, setShowPreview] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-  const [isAnimating, setIsAnimating] = useState(false)
-  const [hasAnimated, setHasAnimated] = useState(false)
   const [editorReady, setEditorReady] = useState(false)
   const [selectedFont, setSelectedFont] = useState(FONT_OPTIONS[0].value)
   const [selectionPosition, setSelectionPosition] = useState(null)
   const [showModelDropdown, setShowModelDropdown] = useState(false)
   const [hoveredSuggestion, setHoveredSuggestion] = useState(null)
+  const [isRetrying, setIsRetrying] = useState(false)
+  const [retryContent, setRetryContent] = useState(null)
+  const [retryModalOpen, setRetryModalOpen] = useState(false)
+  const [bubblePos, setBubblePos] = useState({ top: 0, left: 0 })
   const htmlEditorRef = useRef(null)
   const mdEditorRef = useRef(null)
   const dropdownRef = useRef(null)
   const navigate = useNavigate()
   const dispatch = useDispatch()
-  const hasInitializedRef = useRef(false)
-  const [isRetrying, setIsRetrying] = useState(false)
-  const [retryContent, setRetryContent] = useState(null)
-  const [retryModalOpen, setRetryModalOpen] = useState(false)
-  const [bubblePos, setBubblePos] = useState({ top: 0, left: 0 })
   const { handlePopup } = useConfirmPopup()
   const user = useSelector((state) => state.auth.user)
   const userPlan = user?.plan ?? user?.subscription?.plan
@@ -96,6 +92,7 @@ const TextEditor = ({
 
   const safeContent = content ?? ""
 
+  // Show toast for failed blog status
   useEffect(() => {
     if (blog?.status === "failed" && !hasShownToast.current) {
       toast.error("Your blog generation failed. You can write blog manually.")
@@ -103,6 +100,7 @@ const TextEditor = ({
     }
   }, [blog?.status])
 
+  // Add custom styles for suggestions and fonts
   useEffect(() => {
     const style = document.createElement("style")
     style.innerHTML = `
@@ -142,6 +140,7 @@ const TextEditor = ({
     return () => document.head.removeChild(style)
   }, [])
 
+  // Handle click outside for model dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -152,6 +151,7 @@ const TextEditor = ({
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
+  // Initialize Tiptap editor
   const normalEditor = useEditor(
     {
       extensions: [
@@ -197,6 +197,7 @@ const TextEditor = ({
 
   const { activeSpan, bubbleRef, applyChange, rejectChange } = useProofreadingUI(normalEditor)
 
+  // Update bubble menu position for proofreading
   useLayoutEffect(() => {
     if (activeSpan instanceof HTMLElement && bubbleRef.current) {
       const spanRect = activeSpan.getBoundingClientRect()
@@ -209,6 +210,7 @@ const TextEditor = ({
     }
   }, [activeSpan])
 
+  // Update proofreading suggestions
   useEffect(() => {
     if (normalEditor) {
       const ext = normalEditor.extensionManager.extensions.find(
@@ -221,6 +223,7 @@ const TextEditor = ({
     }
   }, [proofreadingResults, normalEditor])
 
+  // Set editor ready and cleanup
   useEffect(() => {
     if (normalEditor) {
       setEditorReady(true)
@@ -232,6 +235,7 @@ const TextEditor = ({
     }
   }, [normalEditor])
 
+  // Load blog content
   useEffect(() => {
     const initialContent = blog?.content ?? ""
     setContent(initialContent)
@@ -242,15 +246,9 @@ const TextEditor = ({
     }
 
     setShowPreview(false)
-
-    if (initialContent && !hasAnimated && !hasInitializedRef.current) {
-      setIsAnimating(true)
-      hasInitializedRef.current = true
-    } else {
-      setIsAnimating(false)
-    }
   }, [blog, normalEditor, activeTab, setContent])
 
+  // Highlight code in HTML mode
   useEffect(() => {
     if (activeTab === "html" && !showPreview) {
       Prism.highlightAll()
@@ -291,7 +289,8 @@ const TextEditor = ({
 
     try {
       const response = await dispatch(
-        updateBlogById(blog._id, {
+        updateBlogById({
+          id: blog._id,
           title: blog?.title,
           content: safeContent,
           published: blog?.published,
@@ -299,8 +298,7 @@ const TextEditor = ({
           keywords,
         })
       )
-
-      if (response.data?.content) {
+      if (response?.meta?.arg?.content) {
         const updated = await dispatch(fetchBlogById(blog._id))
         const payload = updated?.payload
         if (payload) {
@@ -308,6 +306,7 @@ const TextEditor = ({
           setKeywords(payload.keywords ?? [])
         }
         toast.success("Blog updated successfully")
+        navigate("/blogs")
       }
     } catch (error) {
       console.error("Error updating the blog:", error)
@@ -315,12 +314,6 @@ const TextEditor = ({
     } finally {
       setIsSaving(false)
     }
-  }
-
-  const handleAnimationComplete = () => {
-    setIsAnimating(false)
-    setHasAnimated(true)
-    if (blog?.content) setContent(blog.content)
   }
 
   const insertText = (before, after, editorRef) => {
@@ -416,7 +409,6 @@ const TextEditor = ({
         .run()
       toast.success("Selected lines replaced successfully!")
     } else if (retryContent) {
-      // For markdown/html modes, insert raw Markdown
       setContent((prev) => {
         const { from, to } = normalEditor?.state.selection || { from: 0, to: 0 }
         return prev.substring(0, from) + retryContent + prev.substring(to)
@@ -756,12 +748,18 @@ const TextEditor = ({
   )
 
   const renderContentArea = () => {
-    if (!editorReady) return <div className="h-[calc(100vh-200px)] p-4">Loading editor...</div>
-
-    if (isAnimating && blog?.content) {
+    if (!editorReady) {
       return (
-        <div className="h-[calc(100vh-200px)] p-4 overflow-y-auto bg-white">
-          <AnimatedContent content={blog.content} onComplete={handleAnimationComplete} />
+        <div className="h-[calc(100vh-200px)] p-4 flex items-center justify-center">
+          <Loading />
+        </div>
+      )
+    }
+
+    if (blog?.status === "pending") {
+      return (
+        <div className="h-[calc(100vh-200px)] p-4 flex items-center justify-center">
+          <Loading />
         </div>
       )
     }
@@ -942,7 +940,6 @@ const TextEditor = ({
                     <Bold className="w-5 h-5" />
                   </button>
                 </Tooltip>
-
                 <Tooltip title="Italic" placement="top">
                   <button
                     onClick={() => {
@@ -955,7 +952,6 @@ const TextEditor = ({
                     <Italic className="w-5 h-5" />
                   </button>
                 </Tooltip>
-
                 <Tooltip title="Heading" placement="top">
                   <button
                     onClick={() => {
@@ -968,7 +964,6 @@ const TextEditor = ({
                     <Heading2 className="w-5 h-5" />
                   </button>
                 </Tooltip>
-
                 <Tooltip title="Rewrite" placement="top">
                   <button onClick={handleRewrite}>
                     <RotateCcw className="w-4 h-4" />
@@ -1130,7 +1125,7 @@ const TextEditor = ({
           className="px-4 py-2 bg-blue-600 text-white rounded-md shadow-md"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          disabled={isSaving || isAnimating}
+          disabled={isSaving}
         >
           {isSaving ? (
             <motion.span

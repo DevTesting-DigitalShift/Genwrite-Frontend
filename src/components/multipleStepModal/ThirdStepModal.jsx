@@ -1,8 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import axiosInstance from "@/api/index"
 import BrandVoiceSection from "./BrandVoiceSection"
+import { useDispatch, useSelector } from "react-redux"
+import { fetchBrands } from "@store/slices/brandSlice"
 
 const ThirdStepModal = ({ handleSubmit, handlePrevious, handleClose, data, setData }) => {
   const [formData, setFormData] = useState({
@@ -15,26 +16,19 @@ const ThirdStepModal = ({ handleSubmit, handlePrevious, handleClose, data, setDa
     referenceLinks: [],
     newLink: "",
   })
-  const [brandVoices, setBrandVoices] = useState([])
-  const [loadingBrands, setLoadingBrands] = useState(false)
-  const [brandError, setBrandError] = useState(null)
+  const dispatch = useDispatch()
+
+  const {
+    items: brandVoices,
+    loading: loadingBrands,
+    error: brandError,
+  } = useSelector((state) => state.brand)
 
   useEffect(() => {
     if (formData.isCheckedBrand) {
-      setLoadingBrands(true)
-      axiosInstance
-        .get("/brand")
-        .then((res) => {
-          let brandsArr = Array.isArray(res.data) ? res.data : res.data ? [res.data] : []
-          setBrandVoices(brandsArr)
-          setLoadingBrands(false)
-        })
-        .catch((err) => {
-          setBrandError("Failed to fetch brand voices")
-          setLoadingBrands(false)
-        })
+      dispatch(fetchBrands())
     }
-  }, [formData.isCheckedBrand])
+  }, [formData.isCheckedBrand, dispatch])
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0]

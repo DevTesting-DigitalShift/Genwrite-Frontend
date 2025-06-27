@@ -2,21 +2,18 @@ import React, { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Card, Tabs, Input, Button } from "antd"
 import {
-  SettingOutlined,
   EditOutlined,
   SearchOutlined,
   ThunderboltOutlined,
   GlobalOutlined,
   FileTextOutlined,
-  ShareAltOutlined,
-  BookOutlined,
   CloseOutlined,
 } from "@ant-design/icons"
 import { motion } from "framer-motion"
 import CompetitiveAnalysisModal from "../multipleStepModal/CompetitiveAnalysisModal"
-import axiosInstance from "@api" // adjust path if needed
-import { useSelector } from "react-redux"
+import { useDispatch, useSelector } from "react-redux"
 import { toast, ToastContainer } from "react-toastify"
+import { analyzeKeywordsThunk } from "@store/slices/analysisSlice"
 export default function ToolboxPage() {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState("content")
@@ -24,10 +21,13 @@ export default function ToolboxPage() {
   const [newKeyword, setNewKeyword] = useState("")
   const [competitiveAnalysisModalOpen, setCompetitiveAnalysisModalOpen] = useState(false)
 
-  // --- Add these states for keyword analysis ---
-  const [keywordAnalysisResult, setKeywordAnalysisResult] = useState(null)
-  const [analyzing, setAnalyzing] = useState(false)
-  const [analysisError, setAnalysisError] = useState(null)
+
+  const dispatch = useDispatch()
+  const {
+    keywordResult: keywordAnalysisResult,
+    loading: analyzing,
+    error: analysisError,
+  } = useSelector((state) => state.analysis)
 
   const addKeyword = () => {
     if (newKeyword.trim() && !keywords.includes(newKeyword.trim())) {
@@ -87,51 +87,10 @@ export default function ToolboxPage() {
       actionText: "Start Analysis",
       color: "from-rose-500 to-pink-600",
     },
-    // {
-    //   key: "wordpress-integration",
-    //   title: "WordPress Integration",
-    //   icon: <ShareAltOutlined className="text-indigo-500" />,
-    //   description: "Connect your WordPress site",
-    //   action: checkWordpress,
-    //   actionText: "Connect WordPress",
-    //   color: "from-sky-500 to-cyan-500",
-    // },
-    // {
-    //   key: "content-platforms",
-    //   title: "Content Platforms",
-    //   icon: <BookOutlined className="text-teal-500" />,
-    //   description: "Manage your content distribution",
-    //   action: () => navigate("/platforms"),
-    //   actionText: "Manage Platforms",
-    //   color: "from-lime-500 to-green-500",
-    // },
-    // {
-    //   key: "quick-settings",
-    //   title: "Quick Settings",
-    //   icon: <SettingOutlined className="text-gray-500" />,
-    //   description: "Configure your toolbox preferences and personalize your experience",
-    //   action: () => navigate("/settings"),
-    //   actionText: "Open Settings",
-    //   color: "from-gray-500 to-gray-700",
-    //   fullWidth: true,
-    // },
   ]
 
   const analyzeKeywords = async () => {
-    setAnalyzing(true)
-    setAnalysisError(null)
-    setKeywordAnalysisResult(null)
-    try {
-      // Use the first keyword as title, or join all keywords if you want
-      const response = await axiosInstance.get("/analysis/keywords", {
-        params: { title: keywords.join(",") },
-      })
-      setKeywordAnalysisResult(response.data)
-    } catch (err) {
-      setAnalysisError(err?.response?.data?.message || "Failed to analyze keywords.")
-    } finally {
-      setAnalyzing(false)
-    }
+    dispatch(analyzeKeywordsThunk(keywords))
   }
 
   return (
@@ -175,7 +134,7 @@ export default function ToolboxPage() {
               type="primary"
               className="shadow-lg hover:shadow-xl transition-all"
               icon={<EditOutlined />}
-              onClick={() => navigate("/dash")}
+              onClick={() => navigate("/dashboard")}
               size="large"
             >
               New Blog Post

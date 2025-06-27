@@ -89,9 +89,8 @@ const ToolBox = () => {
     })
 
     const postData = {
-      id: blogToDisplay._id,
-      content: processedContent,
-      includeTableOfContents: true
+      blogId: blogToDisplay._id,
+      includeTableOfContents: true,
     }
 
     const postingToastId = toast.info("Posting to WordPress...", { autoClose: false })
@@ -134,7 +133,8 @@ const ToolBox = () => {
     setIsSaving(true)
     try {
       await dispatch(
-        updateBlogById(blog._id, {
+        updateBlogById({
+          id: blog._id,
           title: blog?.title,
           content: editorContent,
           published: blog?.published,

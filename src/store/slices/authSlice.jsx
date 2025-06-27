@@ -1,6 +1,13 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit"
-import { login, signup, Userlogout, loadUser, forgotPasswordAPI, resetPasswordAPI } from "@api/authApi"
-import { getProfile } from "@api/userApi"
+import {
+  login,
+  signup,
+  Userlogout,
+  loadUser,
+  forgotPasswordAPI,
+  resetPasswordAPI,
+  loginWithGoogle,
+} from "@api/authApi"
 
 // Utils
 const saveToken = (token) => localStorage.setItem("token", token)
@@ -108,6 +115,26 @@ export const resetPassword = createAsyncThunk(
   }
 )
 
+export const googleLogin = createAsyncThunk(
+  "auth/googleLogin",
+  async (access_token, { rejectWithValue }) => {
+    try {
+      const response = await loginWithGoogle(access_token)
+
+      if (!response.success || !response.token || !response.user) {
+        return rejectWithValue("Invalid Google login response")
+      }
+
+      // ✅ Save token
+      localStorage.setItem("token", response.token)
+
+      return response.user // or return whole response if needed
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || error.message)
+    }
+  }
+)
+
 // Slice
 const authSlice = createSlice({
   name: "auth",
@@ -195,14 +222,31 @@ const authSlice = createSlice({
       state.error = null
       state.resetMessage = null
     })
-    builder.addCase(resetPassword.fulfilled, (state, action) => {
-      state.loading = false
-      state.resetMessage = action.payload
-    })
-    builder.addCase(resetPassword.rejected, (state, action) => {
-      state.loading = false
-      state.error = action.payload
-    })
+    builder
+      .addCase(resetPassword.fulfilled, (state, action) => {
+        state.loading = false
+        state.resetMessage = action.payload
+      })
+      .addCase(resetPassword.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload
+      })
+
+    //Google Login
+    builder
+      .addCase(googleLogin.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(googleLogin.fulfilled, (state, action) => {
+        state.user = action.payload
+        state.isAuthenticated = true
+      })
+      .addCase(googleLogin.rejected, (state, action) => {
+        state.user = null
+        state.isAuthenticated = false
+        state.error = action.payload
+      })
   },
 })
 

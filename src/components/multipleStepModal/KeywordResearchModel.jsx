@@ -1,16 +1,20 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { motion } from "framer-motion"
 import { X } from "lucide-react"
-import axiosInstance from "@api"
 import { Button, Card, Input } from "antd"
 import { CloseOutlined, SearchOutlined } from "@ant-design/icons"
+import { useDispatch, useSelector } from "react-redux"
+import { fetchKeywordAnalysis } from "@store/slices/analysisSlice"
 
 const KeywordResearchModel = ({ closeFnc }) => {
   const [newKeyword, setNewKeyword] = useState("")
   const [keywords, setKeywords] = useState([])
-  const [analyzing, setAnalyzing] = useState(false)
-  const [analysisError, setAnalysisError] = useState(null)
-  const [keywordAnalysisResult, setKeywordAnalysisResult] = useState(null)
+  const dispatch = useDispatch()
+  const {
+    analyzing,
+    keywordResult: keywordAnalysisResult,
+    error: analysisError,
+  } = useSelector((state) => state.analysis)
 
   const addKeyword = () => {
     if (newKeyword.trim() && !keywords.includes(newKeyword.trim())) {
@@ -33,20 +37,7 @@ const KeywordResearchModel = ({ closeFnc }) => {
   }
 
   const analyzeKeywords = async () => {
-    setAnalyzing(true)
-    setAnalysisError(null)
-    setKeywordAnalysisResult(null)
-    try {
-      // Use the first keyword as title, or join all keywords if you want
-      const response = await axiosInstance.get("/analysis/keywords", {
-        params: { title: keywords.join(",") },
-      })
-      setKeywordAnalysisResult(response.data)
-    } catch (err) {
-      setAnalysisError(err?.response?.data?.message || "Failed to analyze keywords.")
-    } finally {
-      setAnalyzing(false)
-    }
+    dispatch(fetchKeywordAnalysis(keywords))
   }
 
   return (

@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { X, Plus, Gem, Pencil, RotateCcw } from "lucide-react"
+import { X, Plus, Gem, RotateCcw } from "lucide-react"
 import { toast } from "react-toastify"
-import axiosInstance from "@api/index"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useNavigate } from "react-router-dom"
 import { useDispatch, useSelector } from "react-redux"
 import { Button, Tooltip } from "antd"
+import { fetchProofreadingSuggestions } from "@store/slices/blogSlice"
+import { fetchCompetitiveAnalysisThunk } from "@store/slices/analysisSlice"
 
 const TextEditorSidebar = ({
   blog,
@@ -22,7 +23,6 @@ const TextEditorSidebar = ({
 }) => {
   const [newKeyword, setNewKeyword] = useState("")
   const [isPosting, setIsPosting] = useState(false)
-  const [isAnalyzingCompetitive, setIsAnalyzingCompetitive] = useState(false)
   const [isAnalyzingProofreading, setIsAnalyzingProofreading] = useState(false)
   const [competitiveAnalysisResults, setCompetitiveAnalysisResults] = useState(null)
   const [shouldRunCompetitive, setShouldRunCompetitive] = useState(false)
@@ -31,7 +31,9 @@ const TextEditorSidebar = ({
   const { handlePopup } = useConfirmPopup()
   const [postRes, setPostRes] = useState()
   const navigate = useNavigate()
-  
+  const dispatch = useDispatch()
+  const { loading: isAnalyzingCompetitive, result, error } = useSelector((state) => state.analysis)
+
   const fetchCompetitiveAnalysis = async () => {
     if (!blog || !blog.title || !blog.content) {
       toast.error("Blog data is incomplete for analysis.")
@@ -41,23 +43,14 @@ const TextEditorSidebar = ({
     const validKeywords =
       keywords && keywords.length > 0 ? keywords : blog?.focusKeywords || blog.keywords
 
-    setIsAnalyzingCompetitive(true)
-    try {
-      const response = await axiosInstance.post("/analysis/run", {
+    dispatch(
+      fetchCompetitiveAnalysisThunk({
         blogId: blog._id,
         title: blog.title,
         content: blog.content,
         keywords: validKeywords,
-        contentType: "markdown",
       })
-      setCompetitiveAnalysisResults(response.data)
-      toast.success("Competitive analysis completed successfully!")
-    } catch (error) {
-      console.error("Error fetching competitive analysis:", error)
-      toast.error("Failed to fetch competitive analysis.")
-    } finally {
-      setIsAnalyzingCompetitive(false)
-    }
+    )
   }
 
   useEffect(() => {
@@ -66,6 +59,8 @@ const TextEditorSidebar = ({
       setShouldRunCompetitive(false)
     }
   }, [shouldRunCompetitive])
+
+  console.log({blog})
 
   useEffect(() => {
     if (blog?.seoScore || blog?.generatedMetadata?.competitorsAnalysis) {
@@ -99,29 +94,6 @@ const TextEditorSidebar = ({
     }
   }
 
-  const handlePostClick = async () => {
-    setIsPosting(true)
-    try {
-      const response = await axiosInstance.post("/wordpress/post", {
-        wpLink: "http://localhost/wordpress",
-        blogId: blog._id,
-      })
-
-      setPostRes(response?.status)
-
-      if (response.status === 200) {
-        toast.success("Blog posted to WordPress successfully!")
-      } else {
-        toast.error(response.data.message || "Failed to post blog to WordPress.")
-      }
-    } catch (error) {
-      console.error("Error posting blog to WordPress:", error)
-      toast.error(error.response?.data?.message || "Failed to post blog to WordPress.")
-    } finally {
-      setIsPosting(false)
-    }
-  }
-
   const handleProofreadingClick = async () => {
     if (!blog || !blog.content) {
       toast.error("Blog content is required for proofreading.")
@@ -134,23 +106,23 @@ const TextEditorSidebar = ({
     }
 
     setIsAnalyzingProofreading(true)
-    setProofreadingResults([]) // Clear previous suggestions in parent state
+    setProofreadingResults([])
 
     try {
-      const result = await axiosInstance.post("/blogs/proofread", {
-        content: blog.content,
-        message: "working fine",
-      })
+      const result = await dispatch(
+        fetchProofreadingSuggestions({
+          content: blog.content,
+          // message: "working fine", // optional input field
+        })
+      ).unwrap()
 
-      if (result.data && Array.isArray(result.data.suggestions)) {
-        setProofreadingResults(result.data.suggestions) // Update parent state
-        toast.success("Proofreading suggestions received!")
+      if (Array.isArray(result)) {
+        setProofreadingResults(result)
       } else {
         toast.error("Invalid proofreading suggestions format.")
       }
     } catch (error) {
-      console.error("Error getting proofreading suggestions:", error)
-      toast.error("Failed to fetch proofreading suggestions.")
+      toast.error(error || "Failed to fetch proofreading suggestions.")
     } finally {
       setIsAnalyzingProofreading(false)
     }
@@ -415,13 +387,6 @@ const TextEditorSidebar = ({
                         <p className="text-sm text-gray-700">
                           <strong>Revised:</strong> {suggestion.change}
                         </p>
-                        {/* <Button
-                          type="link"
-                          onClick={() => handleReplace(suggestion.original, suggestion.change)}
-                          className="mt-1"
-                        >
-                          Apply Suggestion
-                        </Button> */}
                       </li>
                     ))}
                   </ul>

@@ -1,4 +1,4 @@
-import { memo, useState } from "react"
+import { memo, useEffect, useState } from "react"
 
 const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData }) => {
   const [topic, setTopic] = useState(data?.topic || "")
@@ -42,16 +42,15 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
     }))
   }
 
-  // Set default image source if not selected
-  useState(() => {
-    if (!data?.isCheckedGeneratedImages) {
+  useEffect(() => {
+    if (data && !data.isCheckedGeneratedImages) {
       setData((prev) => ({
         ...prev,
         isCheckedGeneratedImages: true,
-        isUnsplashActive: true, // Default to Unsplash
+        isUnsplashActive: true,
       }))
     }
-  }, [])
+  }, [data])
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/50">

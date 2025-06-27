@@ -7,10 +7,10 @@ import ImageGenerationModal from "./ImageGenerationModal"
 import ChatBox from "../generateBlog/ChatBox"
 import { Menu } from "lucide-react"
 import { toast } from "react-toastify"
-import axiosInstance from "@api/index"
 import { useNavigate } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
-import { useSelector } from "react-redux"
+import { useDispatch, useSelector } from "react-redux"
+import { retryBlog } from "@store/slices/blogSlice"
 
 const SmallBottomBox = (id) => {
   const [isMenuOpen, setMenuOpen] = useState(false)
@@ -18,28 +18,27 @@ const SmallBottomBox = (id) => {
   const [isChatOpen, setIsChatOpen] = useState(false)
   const { handlePopup } = useConfirmPopup()
   const navigate = useNavigate()
-    const user = useSelector((state) => state.auth.user)
-    const userPlan = user?.plan ?? user?.subscription?.plan
+  const dispatch = useDispatch()
+  const user = useSelector((state) => state.auth.user)
+  const userPlan = user?.plan ?? user?.subscription?.plan
 
   const toggleMenu = () => setMenuOpen((prev) => !prev)
   const closeModal = () => setModalOpen(false)
   const closeChat = () => setIsChatOpen(false)
 
   const handleRetry = async ({ id }) => {
-    const payload = {
-      createNew: true,
-    }
     try {
-      const response = await axiosInstance.post(`blogs/${id}/retry`, payload)
-      if (response.status === 200) {
-        toast.success(response?.data?.message || "Blog regenerated successfully!")
+      const resultAction = await dispatch(retryBlog({ id, payload: { createNew: true } }))
+
+      if (retryBlog.fulfilled.match(resultAction)) {
+        toast.success(resultAction.payload?.message || "Blog regenerated successfully!")
         setMenuOpen(false)
-        navigate("/project")
+        navigate("/blogs")
       } else {
-        toast.error("Failed to regenerated blog.")
+        toast.error(resultAction.payload || "Failed to regenerate blog.")
       }
     } catch (error) {
-      toast.error(error.response.data.message || "Failed to regenerated blog.")
+      toast.error(error.message || "Failed to regenerate blog.")
       console.error("Error regenerating blog:", error)
     }
   }

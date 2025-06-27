@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react"
-import axiosInstance from "@/api/index"
 import { toast } from "react-toastify"
+import { fetchBrands } from "@store/slices/brandSlice"
+import { useDispatch } from "react-redux"
 
 const SecondStepModal = ({ handleNext, handlePrevious, handleClose, data, setData }) => {
+  const dispatch = useDispatch()
   const [formData, setFormData] = useState({
     focusKeywords: data.focusKeywords || [],
     keywords: data.keywords || [],
@@ -12,10 +14,6 @@ const SecondStepModal = ({ handleNext, handlePrevious, handleClose, data, setDat
     isCheckedBrand: data.isCheckedBrand || false,
     aiModel: data.aiModel || "gemini",
   })
-
-  const [brandVoices, setBrandVoices] = useState([])
-  const [loadingBrands, setLoadingBrands] = useState(false)
-  const [brandError, setBrandError] = useState(null)
 
   const handleKeywordInputChange = (e, type) => {
     if (type === "keywords") {
@@ -85,27 +83,17 @@ const SecondStepModal = ({ handleNext, handlePrevious, handleClose, data, setDat
 
   useEffect(() => {
     if (formData.isCheckedBrand) {
-      setLoadingBrands(true)
-      axiosInstance
-        .get("/brand")
-        .then((res) => {
-          let brandsArr = Array.isArray(res.data) ? res.data : res.data ? [res.data] : []
-          setBrandVoices(brandsArr)
-          setLoadingBrands(false)
-        })
-        .catch((err) => {
-          setBrandError("Failed to fetch brand voices")
-          setLoadingBrands(false)
-        })
+      dispatch(fetchBrands())
     }
-  }, [formData.isCheckedBrand])
+  }, [formData.isCheckedBrand, dispatch])
+
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/50">
       <div className="w-[800px] bg-white rounded-lg shadow-xl">
         <div className="flex items-center justify-between p-4 border-b">
           <h2 className="text-lg font-medium">Step 2: Let's make it Compelling</h2>
-            <button onClick={handleClose} className="ml-4 text-4xl text-gray-400 hover:text-gray-600">
+          <button onClick={handleClose} className="ml-4 text-4xl text-gray-400 hover:text-gray-600">
             ×
           </button>
         </div>
@@ -230,28 +218,6 @@ const SecondStepModal = ({ handleNext, handlePrevious, handleClose, data, setDat
                 <div className="w-14 h-8 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 peer-checked:bg-[#1B6FC9] after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all" />
               </label>
             </div>
-
-            {/* <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">
-                Write with Brand Voice
-              </span>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.isCheckedBrand}
-                  onChange={() =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      isCheckedBrand: !prev.isCheckedBrand,
-                    }))
-                  }
-                  className="sr-only peer"
-                />
-                <div className="w-14 h-8 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 peer-checked:bg-[#1B6FC9] after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all" />
-              </label>
-            </div> */}
-            {/* Show all brand voices if Write with Brand Voice is checked */}
-            {/* (Brand voice section moved to Step 3) */}
           </div>
 
           <div className="flex justify-end gap-3 mt-8">

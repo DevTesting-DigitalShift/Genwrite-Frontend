@@ -6,6 +6,10 @@ import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { Collapse, Card, Progress } from "antd"
 import { motion } from "framer-motion"
+import { fetchAllBlogs } from "@store/slices/blogSlice"
+import { useDispatch, useSelector } from "react-redux"
+import { fetchCompetitiveAnalysisThunk } from "@store/slices/analysisSlice"
+import Loading from "@components/Loading"
 
 // Ensure axiosInstance always sends the auth token
 if (typeof window !== "undefined" && axiosInstance && !axiosInstance._authInterceptorSet) {
@@ -34,30 +38,15 @@ const CompetitiveAnalysisModal = ({ closeFnc }) => {
     contentType: "text", // or "markdown"
     selectedProject: null,
   })
-
-  const [recentProjects, setRecentProjects] = useState([])
-  const [isLoading, setIsLoading] = useState(true)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [analysisResults, setAnalysisResults] = useState(null)
-
   const { handlePopup } = useConfirmPopup()
-  useEffect(() => {
-    const fetchRecentProjects = async () => {
-      try {
-        const response = await axiosInstance.get("/blogs")
-        const allBlogs = response.data
-        const recentBlogs = allBlogs.slice(-10).reverse()
-        setRecentProjects(recentBlogs)
-        setIsLoading(false)
-      } catch (error) {
-        console.error("Error fetching recent projects:", error)
-        toast.error("Failed to load recent projects")
-        setIsLoading(false)
-      }
-    }
+  const dispatch = useDispatch()
+  const { blogs, loading } = useSelector((state) => state.blog)
 
-    fetchRecentProjects()
-  }, [])
+  useEffect(() => {
+    dispatch(fetchAllBlogs())
+  }, [dispatch])
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -111,25 +100,16 @@ const CompetitiveAnalysisModal = ({ closeFnc }) => {
     if (e.key === "Enter") {
       e.preventDefault()
       handleAddKeyword()
-    }  else if (e.key === ",") {
+    } else if (e.key === ",") {
       e.preventDefault()
-      handleAddKeyword(type)
+      handleAddKeyword()
     }
   }
 
-  const handleSubmit = async () => {
-    if (!formData.title.trim()) {
-      toast.error("Please enter a blog title")
-      return
-    }
-    if (!formData.content.trim()) {
-      toast.error("Please enter blog content")
-      return
-    }
-    if (formData.keywords.length === 0) {
-      toast.error("Please add at least one keyword")
-      return
-    }
+  const handleSubmit = () => {
+    if (!formData.title.trim()) return toast.error("Please enter a blog title")
+    if (!formData.content.trim()) return toast.error("Please enter blog content")
+    if (formData.keywords.length === 0) return toast.error("Please add at least one keyword")
 
     handlePopup({
       title: "Analyse the competitors",
@@ -140,29 +120,22 @@ const CompetitiveAnalysisModal = ({ closeFnc }) => {
           Do you wish to proceed ?
         </p>
       ),
-      onConfirm: async () => {
-        setIsAnalyzing(true)
-        try {
-          const response = await axiosInstance.post("/analysis/run", {
+      onConfirm: () => {
+        dispatch(
+          fetchCompetitiveAnalysisThunk({
             title: formData.title,
             content: formData.content,
             keywords: formData.keywords,
             contentType: formData.contentType,
             blogId: formData?.selectedProject?._id,
           })
-
-          if (response.data) {
-            setAnalysisResults(response.data)
-            toast.success("Analysis completed successfully!")
-          }
-        } catch (error) {
-          console.error("Error performing competitive analysis:", error)
-          toast.error("Failed to perform competitive analysis")
-        } finally {
-          setIsAnalyzing(false)
-        }
+        )
       },
     })
+  }
+
+  if (loading) {
+    ;<Loading />
   }
 
   return (
@@ -186,13 +159,13 @@ const CompetitiveAnalysisModal = ({ closeFnc }) => {
                   <select
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 max-h-[200px] overflow-y-auto"
                     onChange={(e) => {
-                      const project = recentProjects.find((p) => p._id === e.target.value)
+                      const project = blogs.find((p) => p._id === e.target.value)
                       if (project) handleProjectSelect(project)
                     }}
                     value={formData.selectedProject?._id || ""}
                   >
                     <option value="">Select a project</option>
-                    {recentProjects.map((project) => (
+                    {blogs.map((project) => (
                       <option key={project._id} value={project._id}>
                         {project.title}
                       </option>

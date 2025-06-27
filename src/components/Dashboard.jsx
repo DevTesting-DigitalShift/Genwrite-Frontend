@@ -5,7 +5,7 @@ import FirstStepModal from "./multipleStepModal/FirstStepModal"
 import SecondStepModal from "./multipleStepModal/SecondStepModal"
 import ThirdStepModal from "./multipleStepModal/ThirdStepModal"
 import { letsBegin, quickTools, stats } from "./dashData/dash"
-import { DashboardBox, QuickBox, RecentProjects } from "../utils/DashboardBox"
+import { DashboardBox, QuickBox, Blogs } from "../utils/DashboardBox"
 import { useDispatch, useSelector } from "react-redux"
 import { createNewBlog } from "@store/slices/blogSlice"
 import { useNavigate } from "react-router-dom"
@@ -14,17 +14,17 @@ import DaisyUIModal from "./DaisyUIModal"
 import QuickBlogModal from "./multipleStepModal/QuickBlogModal"
 import CompetitiveAnalysisModal from "./multipleStepModal/CompetitiveAnalysisModal"
 import PerformanceMonitoringModal from "./multipleStepModal/PerformanceMonitoringModal"
-import axiosInstance from "@api/index"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { toast, ToastContainer } from "react-toastify"
-import { SkeletonDashboardCard, SkeletonGridCard } from "./Projects/SkeletonLoader"
 import { AnimatePresence } from "framer-motion"
 import { loadAuthenticatedUser, selectUser } from "@store/slices/authSlice"
 import { Clock, Sparkles } from "lucide-react"
 import { Helmet } from "react-helmet"
 import SeoAnalysisModal from "./multipleStepModal/SeoAnalysisModal"
 import KeywordResearchModel from "./multipleStepModal/KeywordResearchModel"
+import { getAllBlogs } from "@api/blogApi"
+import { SkeletonDashboardCard, SkeletonGridCard } from "./Projects/SkeletonLoader"
 
 const Dashboard = () => {
   const [isModalVisible, setIsModalVisible] = useState(false)
@@ -81,8 +81,7 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchBlogs = async () => {
       try {
-        const response = await axiosInstance.get("/blogs/")
-        const blogs = response.data
+        const blogs = await getAllBlogs()
 
         // For recent complete blogs
         const recent = blogs.filter((b) => b.status === "complete").slice(-3)
@@ -91,7 +90,7 @@ const Dashboard = () => {
         // Set all blogs for dropdown
         setAllBlogs(blogs)
       } catch (error) {
-        console.error("Error fetching blogs:", error.response?.data?.message || error.message)
+        console.error("Error fetching blogs:", error.message)
       }
     }
 
@@ -110,6 +109,7 @@ const Dashboard = () => {
   const hideCompetitiveAnalysis = () => setCompetitiveAnalysisModal(false)
 
   const handleSubmit = async (updatedData) => {
+    console.log("Submitting form with data:", updatedData)
     try {
       const totalCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
       const estimatedCost =
@@ -132,7 +132,9 @@ const Dashboard = () => {
             handlePopup(false) // Close the modal
             return
           } else {
-            dispatch(createNewBlog(updatedData, navigate))
+            console.log("Proceeding with blog creation")
+            dispatch(createNewBlog({ blogData: updatedData, navigate }))
+
             setIsModalVisible(false)
             setCurrentStep(0)
           }
@@ -338,7 +340,7 @@ const Dashboard = () => {
                     ? Array.from({ length: 3 }).map((_, idx) => <SkeletonGridCard key={idx} />)
                     : recentBlogData.map((item, index) => {
                         return (
-                          <RecentProjects
+                          <Blogs
                             key={index}
                             title={item.title}
                             content={item.content}
@@ -352,7 +354,7 @@ const Dashboard = () => {
                 <div className="mt-6 text-center">
                   <button
                     className="px-6 py-3 text-blue-600 hover:text-blue-700 font-medium hover:bg-blue-50 rounded-lg transition-colors"
-                    onClick={() => navigate("/project")}
+                    onClick={() => navigate("/blogs")}
                   >
                     View All Projects
                   </button>

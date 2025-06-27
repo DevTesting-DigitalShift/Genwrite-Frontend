@@ -1,9 +1,8 @@
 import React, { useEffect, useState, useCallback } from "react"
 import { useDispatch } from "react-redux"
 import { Link, useNavigate } from "react-router-dom"
-import { loginUser, signupUser } from "../../store/slices/authSlice"
+import { googleLogin, loginUser, signupUser } from "../../store/slices/authSlice"
 import { useGoogleLogin } from "@react-oauth/google"
-import axiosInstance from "@api/index"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   FaEnvelope,
@@ -15,7 +14,6 @@ import {
   FaRocket,
 } from "react-icons/fa"
 import { FcGoogle } from "react-icons/fc"
-import { setUserBlogs } from "@store/slices/blogSlice"
 import { Sparkles, Zap, PenTool, CheckCircle } from "lucide-react"
 import { toast } from "react-toastify"
 import { Helmet } from "react-helmet"
@@ -80,31 +78,18 @@ const Auth = ({ path }) => {
     flow: "implicit",
     redirect_uri: "https://genwrite-frontend-eight.vercel.app/login",
     onSuccess: async (tokenResponse) => {
-      try {
-        setLoading(true)
-        const response = await axiosInstance.post("/auth/google-signin", {
-          access_token: tokenResponse.access_token,
-        })
-
-        if (response.data.success && response.data.token) {
-          localStorage.setItem("token", response.data.token)
-          const userData = {
-            _id: response.data.user._id,
-            name: response.data.user.name,
-            email: response.data.user.email,
-            avatar: response.data.user.avatar,
-            interests: response.data.user.interests || [],
-          }
-          dispatch(setUserBlogs(userData))
+      dispatch(googleLogin(tokenResponse.access_token))
+        .unwrap()
+        .then((user) => {
+          console.log("Logged in user:", user)
           toast.success("Google login successful!")
-          navigate("/dash")
-        }
-      } catch (error) {
-        setGeneralError("Google login failed. Please try again.")
-        toast.error("Google login failed.")
-      } finally {
-        setLoading(false)
-      }
+          navigate("/dashboard", { replace: true })
+        })
+        .catch((err) => {
+          console.error("Google login error:", err)
+          setGeneralError("Google login failed.")
+          // toast.error("Google login failed.")
+        })
     },
     onError: () => {
       setGeneralError("Google login failed to initialize.")
@@ -141,13 +126,16 @@ const Auth = ({ path }) => {
           ? signupUser({ email: formData.email, password: formData.password, name: formData.name })
           : loginUser({ email: formData.email, password: formData.password })
 
-        const response = await dispatch(action).unwrap()
+        await dispatch(action).unwrap()
         toast.success(isSignup ? "Signup successful!" : "Login successful!")
-        navigate("/dash")
+        setTimeout(() => {
+          navigate("/dashboard", { replace: true })
+        }, 100) // delay navigation slightly
       } catch (err) {
         const backendError = err?.message || err?.payload?.message || "Something went wrong."
         setGeneralError(backendError)
         toast.error(backendError)
+        console.error("Auth error:", err)
       } finally {
         setLoading(false)
       }

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react"
-import axiosInstance from "@api/index"
 import MultiDatePicker from "react-multi-date-picker"
 import { motion, AnimatePresence } from "framer-motion"
 import SelectTemplateModal from "@components/multipleStepModal/SelectTemplateModal"
@@ -8,14 +7,21 @@ import { packages } from "@constants/templates"
 import { FiPlus, FiSettings, FiCalendar, FiFileText, FiEdit } from "react-icons/fi"
 import { toast, ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
-import SkeletonLoader from "@components/Projects/SkeletonLoader"
-import { useSelector } from "react-redux"
+import { useDispatch, useSelector } from "react-redux"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useNavigate } from "react-router-dom"
 import { CrownFilled, QuestionCircleOutlined } from "@ant-design/icons"
 import { Popconfirm, Tooltip } from "antd"
 import { Gem, Info, Upload, X } from "lucide-react"
 import { Helmet } from "react-helmet"
+import {
+  createJobThunk,
+  deleteJobThunk,
+  fetchJobs,
+  toggleJobStatusThunk,
+  updateJobThunk,
+} from "@store/slices/jobSlice"
+import SkeletonLoader from "@components/Projects/SkeletonLoader"
 
 const initialJob = {
   name: "",
@@ -45,8 +51,6 @@ const initialJob = {
 const Jobs = () => {
   const tones = ["Professional", "Casual", "Friendly", "Formal", "Technical"]
   const wordLengths = [500, 1000, 1500, 2000, 3000]
-  const [jobs, setJobs] = useState([])
-  const [isLoading, setIsLoading] = useState(true)
   const [showJobModal, setShowJobModal] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
   const [newJob, setNewJob] = useState(initialJob)
@@ -56,6 +60,9 @@ const Jobs = () => {
   const userPlan = useSelector((state) => state.auth.user?.plan)
   const navigate = useNavigate()
   const [recentlyUploadedCount, setRecentlyUploadedCount] = useState(null)
+  const dispatch = useDispatch()
+  const { jobs, loading: isLoading } = useSelector((state) => state.jobs)
+
   const [formData, setFormData] = useState({
     focusKeywords: [],
     focusKeywordInput: "",
@@ -64,20 +71,12 @@ const Jobs = () => {
     performKeywordResearch: true,
   })
 
-  const fetchJobs = async () => {
-    setIsLoading(true)
-    try {
-      const response = await axiosInstance.get("/jobs")
-      setJobs(response.data)
-    } catch (error) {
-      console.error("Error fetching jobs:", error.response?.data?.message || error.message)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  useEffect(() => {
+    dispatch(fetchJobs())
+  }, [dispatch])
 
   // Create a new job
-  const handleCreateJob = async () => {
+  const handleCreateJob = () => {
     if (userPlan === "free" || userPlan === "basic") {
       handlePopup({
         title: "Upgrade Required",
@@ -88,89 +87,73 @@ const Jobs = () => {
       })
       return
     }
-    try {
-      const jobPayload = {
-        ...newJob,
-        blogs: {
-          ...newJob.blogs,
-          keywords: formData.keywords, // Explicitly use formData.keywords to ensure sync
-        },
-        options: {
-          ...newJob.options,
-          includeFaqs: newJob.options.includeFaqs || false,
-          useBrandVoice: newJob.options.useBrandVoice || false,
-          includeCompetitorResearch: newJob.options.includeCompetitorResearch || false,
-          includeInterlinks: newJob.options.includeInterlinks || false,
-          performKeywordResearch: newJob.options.performKeywordResearch || false,
-          includeTableOfContents: newJob.options.includeTableOfContents || false,
-        },
-      }
-      await axiosInstance.post("/jobs", jobPayload)
-      toast.success("Job created successfully!")
-      setShowJobModal(false)
-      fetchJobs()
-    } catch (error) {
-      console.error("Error creating job:", error.response?.data?.message || error.message)
-      toast.error("Failed to create job. Please try again.")
+
+    const jobPayload = {
+      ...newJob,
+      blogs: {
+        ...newJob.blogs,
+        keywords: formData.keywords,
+      },
+      options: {
+        ...newJob.options,
+        includeFaqs: newJob.options.includeFaqs || false,
+        useBrandVoice: newJob.options.useBrandVoice || false,
+        includeCompetitorResearch: newJob.options.includeCompetitorResearch || false,
+        includeInterlinks: newJob.options.includeInterlinks || false,
+        performKeywordResearch: newJob.options.performKeywordResearch || false,
+        includeTableOfContents: newJob.options.includeTableOfContents || false,
+      },
     }
+
+    dispatch(
+      createJobThunk({
+        jobPayload,
+        onSuccess: () => {
+          setShowJobModal(false)
+          dispatch(fetchJobs())
+        },
+      })
+    )
   }
 
   const handleUpdateJob = async (jobId) => {
-    try {
-      const jobPayload = {
-        ...newJob,
-        blogs: {
-          ...newJob.blogs,
-          keywords: formData.keywords, // Explicitly use formData.keywords to ensure sync
-        },
-        options: {
-          ...newJob.options,
-          includeFaqs: newJob.options.includeFaqs || false,
-          useBrandVoice: newJob.options.useBrandVoice || false,
-          includeCompetitorResearch: newJob.options.includeCompetitorResearch || false,
-          includeInterlinks: newJob.options.includeInterlinks || false,
-          performKeywordResearch: newJob.options.performKeywordResearch || false,
-          includeTableOfContents: newJob.options.includeTableOfContents || false,
-        },
-      }
-      await axiosInstance.put(`/jobs/${jobId}`, jobPayload)
-      toast.success("Job updated successfully!")
-      setShowJobModal(false)
-      fetchJobs()
-    } catch (error) {
-      console.error("Error updating job:", error.response?.data?.message || error.message)
-      toast.error("Failed to update job. Please try again.")
+    const jobPayload = {
+      ...newJob,
+      blogs: {
+        ...newJob.blogs,
+        keywords: formData.keywords,
+      },
+      options: {
+        ...newJob.options,
+        includeFaqs: newJob.options.includeFaqs || false,
+        useBrandVoice: newJob.options.useBrandVoice || false,
+        includeCompetitorResearch: newJob.options.includeCompetitorResearch || false,
+        includeInterlinks: newJob.options.includeInterlinks || false,
+        performKeywordResearch: newJob.options.performKeywordResearch || false,
+        includeTableOfContents: newJob.options.includeTableOfContents || false,
+      },
     }
+
+    dispatch(
+      updateJobThunk({
+        jobId,
+        jobPayload,
+        onSuccess: () => {
+          setShowJobModal(false)
+          dispatch(fetchJobsThunk())
+        },
+      })
+    )
   }
 
   // Start a job
-  const handleStartJob = async (jobId) => {
-    try {
-      const job = jobs.find((job) => job._id === jobId)
-      if (job.status === "active") {
-        await axiosInstance.patch(`/jobs/${jobId}/stop`)
-        toast.info("Job paused successfully!")
-      } else {
-        await axiosInstance.patch(`/jobs/${jobId}/start`)
-        toast.success("Job started successfully!")
-      }
-      fetchJobs()
-    } catch (error) {
-      console.error("Error toggling job status:", error.response?.data?.message || error.message)
-      toast.error("Failed to update job status. Please try again.")
-    }
+  const handleStartJob = (jobId) => {
+    const job = jobs.find((job) => job._id === jobId)
+    dispatch(toggleJobStatusThunk({ jobId, currentStatus: job.status }))
   }
 
-  const handleDeleteJob = async (jobId) => {
-    try {
-      await axiosInstance.delete(`/jobs/${jobId}`)
-      fetchJobs()
-      toast.success("Job deleted successfully")
-    } catch (error) {
-      const errorMessage = error.response?.data?.message || error.message
-      console.error("Error deleting job:", errorMessage)
-      toast.error(errorMessage || "Failed to delete job")
-    }
+  const handleDeleteJob = (jobId) => {
+    dispatch(deleteJobThunk(jobId))
   }
 
   const validateSteps = (step) => {

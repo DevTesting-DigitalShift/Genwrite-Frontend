@@ -5,37 +5,19 @@ import Loading from "@components/Loading"
 import { ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 import { useDispatch } from "react-redux"
-// import { load } from "@store/slices/authSlice"
 import { ConfirmPopupProvider } from "@/context/ConfirmPopupContext"
 import { loadAuthenticatedUser } from "@store/slices/authSlice"
 import { Helmet } from "react-helmet"
 
 const App = () => {
-  const dispatch = useDispatch()
-
-  const loadCurrentUser = async () => {
-    try {
-      const token = localStorage.getItem("token")
-      if (token) {
-        await loadAuthenticatedUser()
-      }
-    } catch (error) {
-      console.error("App:", error)
-    }
-  }
-
-  useEffect(() => {
-    loadCurrentUser()
-  }, [])
-
   return (
     <Suspense fallback={<Loading />}>
       <Helmet>
         <title>GenWrite</title>
       </Helmet>
       <ConfirmPopupProvider>
+        <ToastContainer autoClose={4000} />
         <RouterProvider router={router} />
-        <ToastContainer />
       </ConfirmPopupProvider>
     </Suspense>
   )

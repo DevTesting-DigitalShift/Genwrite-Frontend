@@ -12,6 +12,9 @@ import {
   Sparkles,
   ArrowRight,
 } from "lucide-react"
+import { resetPassword } from "@store/slices/authSlice"
+import { useDispatch } from "react-redux"
+import { toast } from "react-toastify"
 
 const ResetPassword = () => {
   const [searchParams] = useSearchParams()
@@ -25,6 +28,7 @@ const ResetPassword = () => {
   const [errors, setErrors] = useState({})
   const [token, setToken] = useState("")
   const location = useLocation()
+  const dispatch = useDispatch()
 
   useEffect(() => {
     const resetToken = searchParams.get("token")
@@ -50,13 +54,13 @@ const ResetPassword = () => {
 
     const newErrors = {}
 
-    // ✅ Password validation
+    // Password validation
     const passwordErrors = validatePassword(password)
     if (passwordErrors.length > 0) {
       newErrors.password = `Password must contain: ${passwordErrors.join(", ")}`
     }
 
-    // ✅ Confirm password validation
+    // Confirm password validation
     if (!confirmPassword) {
       newErrors.confirmPassword = "Please confirm your password"
     } else if (password !== confirmPassword) {
@@ -69,7 +73,7 @@ const ResetPassword = () => {
 
     setLoading(true)
 
-    // 🧠 Get token from query params
+    // Get token from query params
     const query = new URLSearchParams(location.search)
     const token = query.get("token")
 
@@ -81,9 +85,14 @@ const ResetPassword = () => {
 
     try {
       const res = await dispatch(resetPassword({ token, newPassword: password })).unwrap()
-      toast.success(res) // e.g., "Password has been reset successfully"
-      setSuccess(true)
+      console.log("Password reset successful:", res)
+      if (res) {
+        toast.success(res)
+        setSuccess(true)
+        navigate("/login", { replace: true })
+      }
     } catch (err) {
+      console.error("Reset password error:", err)
       setErrors({ server: err }) // e.g., "Invalid or expired token"
     } finally {
       setLoading(false)

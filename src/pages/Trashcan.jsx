@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from "react"
-import axiosInstance from "@api/index"
-import SkeletonLoader from "../components/Projects/SkeletonLoader"
 import { Button, Tooltip, Popconfirm, Badge } from "antd"
 import { ToastContainer, toast } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
@@ -10,6 +8,10 @@ import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { QuestionCircleOutlined } from "@ant-design/icons"
 import { motion } from "framer-motion"
 import { Helmet } from "react-helmet"
+import { getAllBlogs } from "@api/blogApi"
+import { deleteAllUserBlogs, restoreTrashedBlog } from "@store/slices/blogSlice"
+import { useDispatch } from "react-redux"
+import SkeletonLoader from "@components/Projects/SkeletonLoader"
 
 const TRUNCATE_LENGTH = 85
 
@@ -20,18 +22,16 @@ const Trashcan = () => {
   const [trashedBlogs, setTrashedBlogs] = useState([])
   const [loading, setLoading] = useState(true)
   const { handlePopup } = useConfirmPopup()
+  const dispatch = useDispatch()
 
   const fetchTrashedBlogs = async () => {
     try {
       setLoading(true)
-      const response = await axiosInstance.get("/blogs/")
-      const filteredBlogs = response.data.filter((blog) => blog.isArchived) // Filter isArchived=true
+      const blogs = await getAllBlogs()
+      const filteredBlogs = blogs.filter((blog) => blog.isArchived)
       setTrashedBlogs(filteredBlogs)
     } catch (error) {
-      console.error(
-        "Error fetching trashed blogs:",
-        error.response?.data?.message || "Failed to fetch trashed blogs"
-      )
+      console.error("Error fetching trashed blogs:", error.message)
     } finally {
       setLoading(false)
     }
@@ -47,43 +47,13 @@ const Trashcan = () => {
   }
 
   const handleRestore = async (id) => {
-    try {
-      const response = await axiosInstance.patch(`/blogs/restore/${id}`)
-      if (response.status === 200) {
-        setTrashedBlogs([])
-        toast.success("Blog restored successfully!")
-      } else {
-        toast.error("Failed to restore blog.")
-      }
-    } catch (error) {
-      toast.error("Failed to restore blog.")
-      console.error(
-        "Error restoring blog:",
-        (error.response && error.response.data && error.response.data.message) ||
-          "Failed to restore blog"
-      )
-    }
+    await dispatch(restoreTrashedBlog(id)) // Restores from backend
+    setTrashedBlogs((prev) => prev.filter((blog) => blog._id !== id)) // Remove from UI instantly
   }
 
   const handleBulkDelete = async () => {
-    try {
-      const response = await axiosInstance.delete("/blogs")
-      const deletedCount = response?.data?.deletedCount || 0
-      if (response.status === 200) {
-        toast.success(
-          `${deletedCount || 0} ${deletedCount === 1 ? "blog" : "blogs"} deleted successfully`
-        )
-        fetchTrashedBlogs()
-      } else {
-        toast.error("Cant delete")
-      }
-    } catch (error) {
-      console.error(
-        "Error restoring blog:"
-        // (error.response && error.response.data && error.response.data.message) ||
-        // "Failed to restore blog"
-      )
-    }
+    await dispatch(deleteAllUserBlogs())
+    setTrashedBlogs([]) 
   }
 
   const handleRefresh = async () => {
