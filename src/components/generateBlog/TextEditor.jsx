@@ -11,6 +11,9 @@ import remarkGfm from "remark-gfm"
 import rehypeRaw from "rehype-raw"
 import Prism from "prismjs"
 import "prismjs/themes/prism-tomorrow.css"
+import BulletList from "@tiptap/extension-bullet-list"
+import OrderedList from "@tiptap/extension-ordered-list"
+import ListItem from "@tiptap/extension-list-item"
 import {
   Eye,
   EyeOff,
@@ -72,6 +75,7 @@ const TextEditor = ({
   const [hoveredSuggestion, setHoveredSuggestion] = useState(null)
   const [isRetrying, setIsRetrying] = useState(false)
   const [retryContent, setRetryContent] = useState(null)
+  const [selectedText, setSelectedText] = useState(null) // New state for selected text
   const [retryModalOpen, setRetryModalOpen] = useState(false)
   const [bubblePos, setBubblePos] = useState({ top: 0, left: 0 })
   const htmlEditorRef = useRef(null)
@@ -162,6 +166,9 @@ const TextEditor = ({
             },
           },
         }),
+        BulletList,
+        OrderedList,
+        ListItem,
         Link.configure({
           HTMLAttributes: { class: "text-blue-600 underline" },
         }),
@@ -361,11 +368,12 @@ const TextEditor = ({
     const { from, to } = normalEditor.state.selection
 
     if (from === to) {
-      message.error("Please select some text to retry.")
+      message.error("Please select some text to rewrite.")
       return
     }
 
     const selectedText = normalEditor.state.doc.textBetween(from, to, "\n")
+    setSelectedText(selectedText) // Store selected text for modal
 
     const payload = {
       contentPart: selectedText.trim(),
@@ -384,11 +392,11 @@ const TextEditor = ({
         setRetryContent(res.data)
         setRetryModalOpen(true)
       } else {
-        message.error("No content received from retry.")
+        message.error("No content received from rewrite.")
       }
     } catch (error) {
-      console.error("Retry failed:", error)
-      message.error(error.message || "Retry failed.")
+      console.error("Rewrite failed:", error)
+      message.error(error.message || "Rewrite failed.")
     } finally {
       setIsRetrying(false)
     }
@@ -416,12 +424,14 @@ const TextEditor = ({
     }
     setRetryModalOpen(false)
     setRetryContent(null)
+    setSelectedText(null)
   }
 
   const handleRejectRetry = () => {
     setRetryModalOpen(false)
     setRetryContent(null)
-    message.info("Retry content discarded.")
+    setSelectedText(null)
+    message.info("Rewrite content discarded.")
   }
 
   const FloatingToolbar = ({ editorRef, mode }) => {
@@ -688,17 +698,17 @@ const TextEditor = ({
       >
         <ListOrdered className="w-5 h-5" />
       </button>
-      <button
+      {/* <button
         onClick={() =>
           safeEditorAction(() => {
-            const url = prompt("Enter URL")
+            const url = prompt("Enter URL");
             if (url) {
               if (activeTab === "normal") {
-                normalEditor.chain().focus().setLink({ href: url }).run()
+                normalEditor.chain().focus().setLink({ href: url }).run();
               } else if (activeTab === "html") {
-                insertText(`<a href="${url}">`, "</a>", htmlEditorRef)
+                insertText(`<a href="${url}">`, "</a>", htmlEditorRef);
               } else {
-                insertText("[", `](${url})`, mdEditorRef)
+                insertText("[", `](${url})`, mdEditorRef);
               }
             }
           })
@@ -706,22 +716,22 @@ const TextEditor = ({
         className="p-2 rounded hover:bg-gray-100"
       >
         <LinkIcon className="w-5 h-5" />
-      </button>
-      <button
+      </button> */}
+      {/* <button
         onClick={() =>
           safeEditorAction(() => {
-            const url = prompt("Enter Image URL")
+            const url = prompt("Enter Image URL");
             if (url) {
               if (activeTab === "normal") {
-                normalEditor.chain().focus().setImage({ src: url }).run()
+                normalEditor.chain().focus().setImage({ src: url }).run();
               } else if (activeTab === "html") {
                 insertText(
                   `<img src="${url}" alt="description" class="max-w-full my-4 rounded-lg mx-auto" />`,
                   "",
                   htmlEditorRef
-                )
+                );
               } else {
-                insertText(`![Image](${url})`, "", mdEditorRef)
+                insertText(`![Image](${url})`, "", mdEditorRef);
               }
             }
           })
@@ -729,7 +739,7 @@ const TextEditor = ({
         className="p-2 rounded hover:bg-gray-100"
       >
         <ImageIcon className="w-5 h-5" />
-      </button>
+      </button> */}
       <button
         onClick={() => safeEditorAction(() => normalEditor?.chain().focus().undo().run())}
         className="p-2 rounded hover:bg-gray-100"
@@ -910,7 +920,7 @@ const TextEditor = ({
         })
       } else {
         handlePopup({
-          title: "Rewrite Selected Lines.",
+          title: "Rewrite Selected Lines",
           description: "Do you want to rewrite the selected lines? You can rewrite only 3 times.",
           onConfirm: handleRetry,
         })
@@ -1047,28 +1057,56 @@ const TextEditor = ({
           exit={{ opacity: 0 }}
         >
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-            <h3 className="text-lg font-semibold mb-4">Generated Content</h3>
-            <div className="p-4 bg-gray-50 rounded-md mb-4">
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                rehypePlugins={[rehypeRaw]}
-                className="prose"
-                components={{
-                  a: ({ href, children }) => (
-                    <a
-                      href={href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline"
-                    >
-                      {children}
-                    </a>
-                  ),
-                  strong: ({ children }) => <strong className="font-bold">{children}</strong>,
-                }}
-              >
-                {retryContent}
-              </ReactMarkdown>
+            <h3 className="text-lg font-semibold mb-4">Rewrite Comparison</h3>
+            <div className="mb-4">
+              <h4 className="text-sm font-medium text-gray-700 mb-2">Original Content</h4>
+              <div className="p-4 bg-gray-50 rounded-md border border-gray-200">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeRaw]}
+                  className="prose"
+                  components={{
+                    a: ({ href, children }) => (
+                      <a
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline"
+                      >
+                        {children}
+                      </a>
+                    ),
+                    strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+                  }}
+                >
+                  {selectedText || "No text selected"}
+                </ReactMarkdown>
+              </div>
+            </div>
+            <div className="mb-4">
+              <h4 className="text-sm font-medium text-gray-700 mb-2">Generated Content</h4>
+              <div className="p-4 bg-gray-50 rounded-md border border-gray-200">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeRaw]}
+                  className="prose"
+                  components={{
+                    a: ({ href, children }) => (
+                      <a
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline"
+                      >
+                        {children}
+                      </a>
+                    ),
+                    strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+                  }}
+                >
+                  {retryContent || "No content generated"}
+                </ReactMarkdown>
+              </div>
             </div>
             <div className="flex justify-end gap-2">
               <button

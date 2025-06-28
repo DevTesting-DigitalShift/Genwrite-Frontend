@@ -25,20 +25,21 @@ export const Userlogout = async () => {
 export const loadUser = async (navigate) => {
   try {
     const response = await axiosInstance.get(`/auth/me`)
-
-    if (response?.status === 401 || response?.status === 403) {
-      localStorage.removeItem("token")
-      navigate("/login")
-    }
-
     return response.data
   } catch (error) {
     const status = error?.response?.status
+    const isNetworkError = error?.code === "ERR_NETWORK"
+
     if (status === 401 || status === 403) {
       localStorage.removeItem("token")
       navigate("/login")
+    } else if (isNetworkError) {
+      console.error("Network error: Backend server not reachable")
+      throw new Error("Network error: Backend is down. Please try again later.")
+    } else {
+      console.error("Auth Error:", error.response?.data || error.message)
+      throw new Error("User loading failed")
     }
-    throw error
   }
 }
 
