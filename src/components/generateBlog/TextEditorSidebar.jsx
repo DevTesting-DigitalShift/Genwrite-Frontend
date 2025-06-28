@@ -19,19 +19,19 @@ const TextEditorSidebar = ({
   setProofreadingResults,
   proofreadingResults,
   handleSave,
+  posted,
+  isPosting,
 }) => {
   const [newKeyword, setNewKeyword] = useState("")
-  const [isPosting, setIsPosting] = useState(false)
   const [isAnalyzingProofreading, setIsAnalyzingProofreading] = useState(false)
   const [competitiveAnalysisResults, setCompetitiveAnalysisResults] = useState(null)
   const [shouldRunCompetitive, setShouldRunCompetitive] = useState(false)
   const user = useSelector((state) => state.auth.user)
   const userPlan = user?.plan ?? user?.subscription?.plan
-  const { handlePopup } = useConfirmPopup()
-  const [postRes, setPostRes] = useState()
   const navigate = useNavigate()
   const dispatch = useDispatch()
-  const { loading: isAnalyzingCompetitive, result, error } = useSelector((state) => state.analysis)
+  const { handlePopup } = useConfirmPopup()
+  const { loading: isAnalyzingCompetitive } = useSelector((state) => state.analysis)
 
   const fetchCompetitiveAnalysis = async () => {
     if (!blog || !blog.title || !blog.content) {
@@ -42,14 +42,25 @@ const TextEditorSidebar = ({
     const validKeywords =
       keywords && keywords.length > 0 ? keywords : blog?.focusKeywords || blog.keywords
 
-    dispatch(
-      fetchCompetitiveAnalysisThunk({
-        blogId: blog._id,
-        title: blog.title,
-        content: blog.content,
-        keywords: validKeywords,
-      })
-    )
+    try {
+      const resultAction = await dispatch(
+        fetchCompetitiveAnalysisThunk({
+          blogId: blog._id,
+          title: blog.title,
+          content: blog.content,
+          keywords: validKeywords,
+        })
+      )
+
+      // Extract the payload from the thunk result
+      const data = fetchCompetitiveAnalysisThunk.fulfilled.match(resultAction)
+        ? resultAction.payload
+        : null
+
+      setCompetitiveAnalysisResults(data)
+    } catch (err) {
+      console.error("Failed to fetch competitive analysis:", err)
+    }
   }
 
   useEffect(() => {
@@ -98,28 +109,25 @@ const TextEditorSidebar = ({
     }
 
     if (isAnalyzingCompetitive) {
-      message.error("Please wait for Competitive Analysis to complete before starting Proofreading.")
+      message.error(
+        "Please wait for Competitive Analysis to complete before starting Proofreading."
+      )
       return
     }
 
     setIsAnalyzingProofreading(true)
-    setProofreadingResults([])
-
+    
     try {
       const result = await dispatch(
         fetchProofreadingSuggestions({
           content: blog.content,
-          // message: "working fine", // optional input field
         })
       ).unwrap()
-
-      if (Array.isArray(result)) {
-        setProofreadingResults(result)
-      } else {
-        message.error("Invalid proofreading suggestions format.")
-      }
+      
+      setProofreadingResults(result)
     } catch (error) {
-      message.error(error || "Failed to fetch proofreading suggestions.")
+      console.error("Error fetching proofreading suggestions:", error)
+      message.error("Failed to fetch proofreading suggestions.")
     } finally {
       setIsAnalyzingProofreading(false)
     }
@@ -134,7 +142,7 @@ const TextEditorSidebar = ({
     proofreadingResults.forEach((suggestion) => {
       handleReplace(suggestion.original, suggestion.change)
     })
-    setProofreadingResults([]) // Clear all suggestions after applying
+    setProofreadingResults([])
     message.success("All proofreading suggestions applied successfully!")
   }
 
@@ -150,7 +158,7 @@ const TextEditorSidebar = ({
     } else {
       handlePopup({
         title: "Competitive Analysis",
-        description: `Do you really want to run competitive analysis?\nIt will be of 10 credits.`,
+        description: `Do you really want to run competitive analysis?\nIt will cost 10 credits.`,
         onConfirm: () => setShouldRunCompetitive(true),
       })
     }
@@ -168,7 +176,7 @@ const TextEditorSidebar = ({
     } else {
       handlePopup({
         title: "AI Proofreading",
-        description: `Do you really want to proofread the blog? \nIt will be ${getEstimatedCost(
+        description: `Do you really want to proofread the blog? \nIt will cost ${getEstimatedCost(
           "blog.proofread"
         )} credits.`,
         onConfirm: handleProofreadingClick,
@@ -189,7 +197,7 @@ const TextEditorSidebar = ({
       handlePopup({
         title: "Rewrite Keywords",
         description:
-          "Do you want to rewrite the whole content with added keywords ? You can rewrite only 3 times.",
+          "Do you want to rewrite the entire content with added keywords? You can rewrite only 3 times.",
         onConfirm: handleSave,
       })
     }
@@ -199,20 +207,30 @@ const TextEditorSidebar = ({
     <motion.div
       initial={{ x: "100%" }}
       animate={{ x: 0 }}
-      transition={{ type: "spring", stiffness: 300, damping: 30, visualDuration: 1 }}
-      className="w-80 p-4 border-l bg-gray-50 overflow-y-auto relative"
+      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+      className="w-80 h-full bg-gradient-to-b from-gray-50 to-gray-100 border-l border-gray-200 shadow-lg p-6 overflow-y-auto"
     >
-      <h2 className="font-semibold text-lg mb-2 text-gray-800">Competitor Analysis</h2>
+      {/* Section: Competitor Analysis */}
+      <h2 className="text-xl font-bold text-gray-900 mb-4">Competitor Analysis</h2>
+
+      {/* Keywords Section */}
       <div className="mb-6">
-        <div className="flex justify-between items-center">
-          <h3 className="font-semibold mb-1 text-gray-700">Keywords</h3>
-          {keywords.length !== 0 && (
-            <Tooltip title="Rewrite">
-              <RotateCcw className="w-4 h-4 text-gray-700" onClick={handleKeywordRewrite} />
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="text-base font-semibold text-gray-800">Keywords</h3>
+          {keywords.length > 0 && (
+            <Tooltip title="Rewrite Keywords">
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={handleKeywordRewrite}
+                className="text-gray-600 hover:text-blue-600"
+              >
+                <RotateCcw className="w-5 h-5" />
+              </motion.button>
             </Tooltip>
           )}
         </div>
-        <div className="flex flex-wrap mb-1">
+        <div className="flex flex-wrap gap-2 mb-3">
           <AnimatePresence>
             {keywords.map((keyword) => (
               <motion.span
@@ -220,14 +238,14 @@ const TextEditorSidebar = ({
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
-                className="flex items-center bg-blue-600 text-white px-2 py-1 rounded-md mr-2 mb-1"
+                className="flex items-center bg-blue-600 text-white text-sm px-3 py-1 rounded-full"
               >
                 {keyword}
                 <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
+                  whileHover={{ scale: 1.2 }}
+                  whileTap={{ scale: 0.8 }}
                   onClick={() => removeKeyword(keyword)}
-                  className="ml-1"
+                  className="ml-2 text-white hover:text-red-200"
                 >
                   <X className="w-4 h-4" />
                 </motion.button>
@@ -235,93 +253,51 @@ const TextEditorSidebar = ({
             ))}
           </AnimatePresence>
         </div>
-        <div className="flex mb-4">
+        <div className="flex gap-2">
           <input
             type="text"
             value={newKeyword}
             onChange={(e) => setNewKeyword(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Add Keywords"
-            className="flex-grow px-2 py-1 border rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Add Keywords (comma-separated)"
+            className="flex-grow px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
           />
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={addKeywords}
-            className="bg-blue-600 text-white px-2 py-1 rounded-r-md"
+            className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 transition-colors"
           >
             <Plus className="w-5 h-5" />
           </motion.button>
         </div>
       </div>
 
-      <div className="mb-3">
-        <h3 className="font-semibold mb-2 text-gray-700">Blog Score</h3>
-        <div className="bg-white rounded-lg shadow-md p-4 flex items-center justify-center gap-4">
-          <span className="text-2xl font-bold text-gray-800">
-            {competitiveAnalysisResults?.blogScore || "0"}
-          </span>
-          <span className="text-2xl font-bold text-gray-600">/ 100</span>
+      {/* Blog Score */}
+      <div className="mb-6">
+        <h3 className="text-base font-semibold text-gray-800 mb-2">Blog Score</h3>
+        <div className="bg-white rounded-lg shadow-md p-4 flex items-center justify-center gap-3">
+          <span className="text-2xl font-bold text-gray-900">{blog?.blogScore || "0"}</span>
+          <span className="text-lg text-gray-500">/ 100</span>
         </div>
       </div>
 
-      <div className="mb-3">
-        <h3 className="font-semibold mb-2 text-gray-700">SEO Score</h3>
-        <div className="bg-white rounded-lg shadow-md p-4 flex items-center justify-center gap-4">
-          <span className="text-2xl font-bold text-gray-800">
-            {competitiveAnalysisResults?.seoScore || "0"}
-          </span>
-          <span className="text-2xl font-bold text-gray-600">/ 100</span>
+      {/* SEO Score */}
+      <div className="mb-6">
+        <h3 className="text-base font-semibold text-gray-800 mb-2">SEO Score</h3>
+        <div className="bg-white rounded-lg shadow-md p-4 flex items-center justify-center gap-3">
+          <span className="text-2xl font-bold text-gray-900">{blog?.seoScore || "0"}</span>
+          <span className="text-lg text-gray-500">/ 100</span>
         </div>
       </div>
 
-      <div className="mb-3 mt-3">
-        <h3 className="font-semibold mb-2 text-gray-700">Analysis Results</h3>
-        {isAnalyzingCompetitive ? (
-          <p className="text-sm text-gray-500">Analyzing Competitive Analysis...</p>
-        ) : competitiveAnalysisResults ? (
-          <div className="bg-white rounded-lg shadow-md p-4">
-            <div className="mt-2 space-y-3">
-              {competitiveAnalysisResults.analysis && (
-                <div className="text-sm text-gray-600">
-                  <strong>Analysis:</strong>
-                  <ul className="list-disc ml-5 mt-1">
-                    {Object.entries(competitiveAnalysisResults.analysis).map(([key, value]) => (
-                      <li key={key} className="mb-1">
-                        <strong>{key.replace(/([A-Z])/g, " $1")}: </strong>
-                        {typeof value === "object" ? (
-                          <ul className="list-disc ml-5">
-                            {Object.entries(value).map(([subKey, subValue]) => (
-                              <li key={subKey}>
-                                <strong>{subKey.replace(/([A-Z])/g, " $1")}: </strong>
-                                {subValue}
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          value
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          </div>
-        ) : (
-          <p className="text-sm text-gray-500">No analysis available yet.</p>
-        )}
-      </div>
-
-      <motion.div
-        whileHover={{ scale: 1.02 }}
-        className="bg-white rounded-lg shadow-md p-4 mb-1 relative mt-3"
-      >
-        <div className="flex justify-between mb-5">
-          <span className="text-2xl font-bold text-gray-400 mb-1 block">CA</span>
+      {/* Competitive Analysis Button */}
+      <motion.div whileHover={{ scale: 1.02 }} className="bg-white rounded-lg shadow-md p-4 mb-4">
+        <div className="flex justify-between items-center mb-4">
+          <span className="text-lg font-bold text-gray-700">CA</span>
           {["free", "basic"].includes(userPlan?.toLowerCase?.()) && (
-            <span className="flex items-center gap-2 rounded-md text-white font-semibold border p-1 px-2 bg-gradient-to-tr from-blue-500 to-purple-500 shadow-md hover:shadow-xl hover:scale-105 transition-all duration-300 ease-in-out animate-pulse backdrop-blur-sm text-lg">
-              <Gem className="w-4 h-4 animate-bounce" />
+            <span className="flex items-center gap-1 text-xs font-semibold text-white bg-gradient-to-r from-blue-500 to-purple-500 px-2 py-1 rounded-full">
+              <Gem className="w-4 h-4" />
               Pro
             </span>
           )}
@@ -330,83 +306,132 @@ const TextEditorSidebar = ({
           type="primary"
           loading={isAnalyzingCompetitive}
           onClick={handleAnalyzing}
-          className="w-full pb-1"
+          className="w-full h-10 text-sm font-semibold rounded-lg bg-blue-600 hover:bg-blue-700"
         >
           {isAnalyzingCompetitive ? "Analyzing..." : "Run Competitive Analysis"}
         </Button>
       </motion.div>
+
+      {/* Analysis Results */}
+      <div className="mb-6">
+        {competitiveAnalysisResults && (
+          <div className="bg-white rounded-lg shadow-md p-4">
+            <h3 className="text-base font-semibold text-gray-800 mb-2">Analysis Results</h3>
+            <div className="space-y-3 text-sm text-gray-700">
+              <ul className="list-disc ml-5 mt-1">
+                {Object.entries(competitiveAnalysisResults.analysis).map(([key, value]) => (
+                  <li key={key} className="mb-1">
+                    <strong>{key.replace(/([A-Z])/g, " $1")}: </strong>
+                    {typeof value === "object" ? (
+                      <ul className="list-disc ml-5">
+                        {Object.entries(value).map(([subKey, subValue]) => (
+                          <li key={subKey}>
+                            <strong>{subKey.replace(/([A-Z])/g, " $1")}: </strong>
+                            {subValue}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      value
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Proofreading Section */}
       {activeTab === "normal" && (
-        <div className="my-3">
-          <h3 className="font-semibold mb-2 text-gray-700">More Tools</h3>
+        <div className="mb-6">
+          <h3 className="text-base font-semibold text-gray-800 mb-2">More Tools</h3>
           <motion.div
             whileHover={{ scale: 1.02 }}
-            className="bg-white rounded-lg shadow-md p-4 mb-1 relative"
+            className="bg-white rounded-lg shadow-md p-4 mb-4"
           >
-            <div className="flex justify-between mb-5">
-              <span className="text-2xl font-bold text-gray-400 mb-1 block">AA</span>
+            <div className="flex justify-between items-center mb-4">
+              <span className="text-lg font-bold text-gray-700">AA</span>
               {["free", "basic"].includes(userPlan?.toLowerCase?.()) && (
-                <span className="flex items-center gap-2 rounded-md text-white font-semibold border p-1 px-2 bg-gradient-to-tr from-blue-500 to-purple-500 shadow-md hover:shadow-xl hover:scale-105 transition-all duration-300 ease-in-out animate-pulse backdrop-blur-sm text-lg">
-                  <Gem className="w-4 h-4 animate-bounce" />
+                <span className="flex items-center gap-1 text-xs font-semibold text-white bg-gradient-to-r from-blue-500 to-purple-500 px-2 py-1 rounded-full">
+                  <Gem className="w-4 h-4" />
                   Pro
                 </span>
               )}
             </div>
-            <Button type="primary" onClick={() => handleProofreadingBlog()} className="w-full pb-1">
-              Proofreading my blog
+            <Button
+              type="primary"
+              onClick={() => handleProofreadingBlog()}
+              className="w-full h-10 text-sm font-semibold rounded-lg bg-blue-600 hover:bg-blue-700"
+            >
+              Proofread My Blog
             </Button>
           </motion.div>
           {isAnalyzingProofreading ? (
-            <div className="mt-4">
-              <p className="text-sm text-gray-500">Loading Proofreading Results...</p>
-            </div>
+            <p className="text-sm text-gray-500">Loading Proofreading Results...</p>
           ) : (
-            <div className="mt-4">
-              <h4 className="font-semibold text-gray-800 mb-2">Proofreading Results:</h4>
-              {proofreadingResults && proofreadingResults.length > 0 ? (
-                <div className="bg-white rounded-lg shadow-md p-4">
-                  <div className="flex justify-end">
-                    <Button
-                      type="link"
-                      onClick={handleApplyAllSuggestions}
-                      className="underline"
-                      disabled={proofreadingResults.length === 0}
-                    >
-                      Apply All Suggestions
-                    </Button>
+            proofreadingResults.length > 0 && (
+              <div>
+                <h4 className="text-base font-semibold text-gray-800 mb-2">Proofreading Results</h4>
+                {proofreadingResults && proofreadingResults.length > 0 ? (
+                  <div className="bg-white rounded-lg shadow-md p-4">
+                    <div className="flex justify-end mb-2">
+                      <Button
+                        type="link"
+                        onClick={handleApplyAllSuggestions}
+                        className="text-blue-600 text-sm hover:underline"
+                        disabled={proofreadingResults.length === 0}
+                      >
+                        Apply All Suggestions
+                      </Button>
+                    </div>
+                    <ul className="space-y-3 text-sm text-gray-700">
+                      {proofreadingResults.map((suggestion, index) => (
+                        <li key={index} className="border-b border-gray-200 pb-2">
+                          <p>
+                            <strong>Original:</strong> {suggestion.original}
+                          </p>
+                          <p>
+                            <strong>Revised:</strong> {suggestion.change}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-
-                  <ul className="list-disc ml-5">
-                    {proofreadingResults.map((suggestion, index) => (
-                      <li key={index} className="mb-2">
-                        <p className="text-sm text-gray-700">
-                          <strong>Original:</strong> {suggestion.original}
-                        </p>
-                        <p className="text-sm text-gray-700">
-                          <strong>Revised:</strong> {suggestion.change}
-                        </p>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : (
-                <p className="text-sm text-gray-500">No suggestions available.</p>
-              )}
-            </div>
+                ) : (
+                  <p className="text-sm text-gray-500">No suggestions available.</p>
+                )}
+              </div>
+            )
           )}
         </div>
       )}
-      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="w-full">
+
+      {/* Post Button */}
+      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
         <Button
           type="primary"
           htmlType="button"
           onClick={onPost}
           loading={isPosting}
           disabled={isPosting}
-          className="w-full mt-4 rounded-md shadow-md py-1"
+          className="w-full h-12 text-base font-semibold rounded-lg bg-green-600 hover:bg-green-700"
         >
-          {isPosting ? "Posting..." : postRes === 200 ? "Re-Post" : "Post"}
+          {isPosting ? "Posting..." : posted?.success ? "Re-Post" : "Post"}
         </Button>
       </motion.div>
+      {posted?.success && posted?.link && (
+        <div className="mt-3 text-center">
+          <a
+            href={posted.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 text-sm hover:underline"
+          >
+            View Post
+          </a>
+        </div>
+      )}
     </motion.div>
   )
 }

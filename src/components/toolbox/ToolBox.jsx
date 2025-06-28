@@ -26,6 +26,8 @@ const ToolBox = () => {
   const [saveModalOpen, setSaveModalOpen] = useState(false)
   const [saveContent, setSaveContent] = useState(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [isPosted, setIsPosted] = useState(null)
+  const [isPosting, setIsPosting] = useState(false)
 
   useEffect(() => {
     if (id) {
@@ -68,6 +70,7 @@ const ToolBox = () => {
   }
 
   const handlePostToWordPress = async () => {
+    setIsPosting(true)
     if (!blogToDisplay?.title) {
       message.error("Blog title is missing.")
       return
@@ -81,37 +84,33 @@ const ToolBox = () => {
       return
     }
 
-    const processedContent = content.replace(/<img[^>]*src="([^"]*)"[^>]*>/g, (match, src) => {
-      return `<div style="max-width: 600px; margin: 2rem auto; text-align: center;">
-          <img src="${src}" alt="Blog image" style="max-width: 100%; height: auto; display: block; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />
-        </div>`
-    })
-
     const postData = {
       blogId: blogToDisplay._id,
       includeTableOfContents: true,
     }
 
-    const postingToastId = message.info("Posting to WordPress...", { autoClose: false })
+    const key = "wordpress-posting"
+
+    message.loading({
+      content: "Posting to WordPress...",
+      key,
+      duration: 0, // Don't auto-close
+    })
 
     try {
       const response = await axiosInstance.post("/wordpress/post", postData)
 
-      if (response.status === 200) {
-        message.update(postingToastId, {
-          render: "Post submitted successfully! (Check WordPress)",
-          type: "success",
-          isLoading: false,
-          autoClose: 5000,
-        })
-      } else {
-        message.update(postingToastId, {
-          render: response.data?.message || "Successfully posted to WordPress!",
-          type: "success",
-          isLoading: false,
-          autoClose: 5000,
-        })
+      setIsPosted(response?.data)
+
+      if (response?.data) {
+        setIsPosting(false)
       }
+
+      message.success({
+        content: "Blog posted successfully!",
+        key,
+        duration: 3,
+      })
     } catch (error) {
       let errorMessage = "Failed to post to WordPress"
       if (error.response?.data?.error) {
@@ -119,12 +118,14 @@ const ToolBox = () => {
       } else if (error.message) {
         errorMessage = error.message
       }
-      message.update(postingToastId, {
-        render: `WordPress posting failed: ${errorMessage}`,
-        type: "error",
-        isLoading: false,
-        autoClose: 5000,
+
+      message.error({
+        content: `WordPress posting failed: ${errorMessage}`,
+        key,
+        duration: 5,
       })
+    } finally {
+      setIsPosting(false)
     }
   }
 
@@ -296,6 +297,8 @@ const ToolBox = () => {
                 setProofreadingResults={setProofreadingResults}
                 content={editorContent}
                 handleSave={handleSave}
+                posted={isPosted}
+                isPosting={isPosting}
               />
             </div>
           </div>
