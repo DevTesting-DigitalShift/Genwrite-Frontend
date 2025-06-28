@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from "react"
 import { Button, Tooltip, Popconfirm, Badge } from "antd"
-import "react-toastify/dist/ReactToastify.css"
-import { FaTrash } from "react-icons/fa"
 import { RefreshCcw, Trash2 } from "lucide-react"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { QuestionCircleOutlined } from "@ant-design/icons"

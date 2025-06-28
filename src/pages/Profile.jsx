@@ -23,7 +23,7 @@ const DEMO_PROFILE = {
     bio: "eg : Lead Product Designer",
     jobTitle: "eg : Senior UX Engineer",
     company: "eg : Tech Innovators Inc",
-    website: "eg : www.sivadheeraj.design",
+    // website: "eg : www.sivadheeraj.design",
     dob: "eg : 1990-05-15",
   },
   billingDetails: {
@@ -74,7 +74,7 @@ const Profile = () => {
         bio: user.bio || "",
         jobTitle: user.jobTitle || "",
         company: user.company || "",
-        website: user.website || "",
+        // website: user.website || "",
         wordpress: user.wordpressLink || "",
         dob: user.dob || "",
       },
@@ -108,7 +108,7 @@ const Profile = () => {
       phone: profileData.personalDetails.phone,
       jobTitle: profileData.personalDetails.jobTitle,
       company: profileData.personalDetails.company,
-      website: profileData.personalDetails.website,
+      // website: profileData.personalDetails.website,
       dob: profileData.personalDetails.dob,
       wordpressLink: profileData.personalDetails.wordpress,
     }
@@ -366,14 +366,14 @@ const Profile = () => {
                       onChange={handleInputChange}
                       placeholder={DEMO_PROFILE.personalDetails.company}
                     />
-                    <ProfileField
+                    {/* <ProfileField
                       label="Website"
                       name="personalDetails.website"
                       value={profileData.personalDetails.website}
                       isEditing={isEditing}
                       onChange={handleInputChange}
                       placeholder={DEMO_PROFILE.personalDetails.website}
-                    />
+                    /> */}
                     <motion.div className="space-y-2" whileHover={{ scale: 1.02 }}>
                       <label className="text-sm font-medium text-slate-600">Date of Birth</label>
                       {isEditing ? (

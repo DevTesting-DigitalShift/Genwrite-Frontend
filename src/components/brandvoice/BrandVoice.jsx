@@ -1,168 +1,146 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react"
-import { motion } from "framer-motion"
-import { FaEdit, FaTimes } from "react-icons/fa"
-import { useDispatch, useSelector } from "react-redux"
-import { Info, Upload, Loader2 } from "lucide-react"
-import { Helmet } from "react-helmet"
-import { Modal, Tooltip, message } from "antd"
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { motion } from "framer-motion";
+import { FaEdit, FaTimes } from "react-icons/fa";
+import { useDispatch, useSelector } from "react-redux";
+import { Info, Upload } from "lucide-react";
+import { Helmet } from "react-helmet";
+import { Modal, Tooltip, message } from "antd";
 import {
   createBrandVoiceThunk,
   deleteBrandVoiceThunk,
   fetchBrands,
   updateBrandVoiceThunk,
-} from "@store/slices/brandSlice"
+} from "@store/slices/brandSlice";
 
 const BrandVoice = () => {
-  const user = useSelector((state) => state.auth.user)
-  const dispatch = useDispatch()
-  const [inputValue, setInputValue] = useState("")
-  const [isUploading, setIsUploading] = useState(false)
-  const [excelData, setExcelData] = useState(null)
+  const user = useSelector((state) => state.auth.user);
+  const dispatch = useDispatch();
+  const [inputValue, setInputValue] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
   const [formData, setFormData] = useState({
     nameOfVoice: "",
     postLink: "",
     keywords: [],
     describeBrand: "",
+    sitemapUrl: "", // Added sitemapUrl to formData
     selectedVoice: null,
-    uploadedFile: null,
     _id: undefined,
-  })
-  const [errors, setErrors] = useState({})
-  const { brands, selectedVoice } = useSelector((state) => state.brand)
+  });
+  const [errors, setErrors] = useState({});
+  const { brands, selectedVoice } = useSelector((state) => state.brand);
 
   useEffect(() => {
-    dispatch(fetchBrands())
-  }, [dispatch])
+    dispatch(fetchBrands());
+  }, [dispatch]);
 
   useEffect(() => {
     if (brands.length > 0 && !formData.selectedVoice) {
-      setFormData((prev) => ({ ...prev, selectedVoice: brands[0] }))
+      setFormData((prev) => ({ ...prev, selectedVoice: brands[0] }));
     }
-  }, [brands])
+  }, [brands]);
 
   // Validate form fields
   const validateForm = useCallback(() => {
-    const newErrors = {}
-    if (!formData.nameOfVoice.trim()) newErrors.nameOfVoice = "Name of Voice is required."
+    const newErrors = {};
+    if (!formData.nameOfVoice.trim()) {
+      newErrors.nameOfVoice = "Name of Voice is required.";
+    }
     if (!formData.postLink.trim()) {
-      newErrors.postLink = "Post link is required."
+      newErrors.postLink = "Post link is required.";
     } else {
       try {
-        new URL(formData.postLink)
+        new URL(formData.postLink);
       } catch {
-        newErrors.postLink = "Please enter a valid URL."
+        newErrors.postLink = "Please enter a valid URL (e.g., https://example.com).";
       }
     }
-    if (formData.keywords.length === 0) newErrors.keywords = "At least one keyword is required."
-    if (!formData.describeBrand.trim()) newErrors.describeBrand = "Brand description is required."
-    if (!excelData) newErrors.sitemap = "Excel file is required."
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }, [formData, excelData])
+    if (formData.keywords.length === 0) {
+      newErrors.keywords = "At least one keyword is required.";
+    }
+    if (!formData.describeBrand.trim()) {
+      newErrors.describeBrand = "Brand description is required.";
+    }
+    if (!formData.sitemapUrl.trim()) {
+      newErrors.sitemapUrl = "Sitemap URL is required.";
+    } else {
+      try {
+        new URL(formData.sitemapUrl);
+      } catch {
+        newErrors.sitemapUrl = "Please enter a valid URL (e.g., https://example.com/sitemap.xml).";
+      }
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  }, [formData]);
 
   // Handle form input changes
   const handleInputChange = useCallback((e) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-    setErrors((prev) => ({ ...prev, [name]: undefined }))
-  }, [])
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: undefined }));
+  }, []);
 
   // Handle keyword input
   const handleKeyDown = useCallback(
     (event) => {
       if (event.key === "Enter" && inputValue.trim()) {
-        event.preventDefault()
+        event.preventDefault();
         setFormData((prev) => ({
           ...prev,
           keywords: [...new Set([...prev.keywords, inputValue.trim()])],
-        }))
-        setInputValue("")
-        setErrors((prev) => ({ ...prev, keywords: undefined }))
+        }));
+        setInputValue("");
+        setErrors((prev) => ({ ...prev, keywords: undefined }));
       }
     },
     [inputValue]
-  )
+  );
 
   // Remove keyword
   const removeKeyword = useCallback((keyword) => {
     setFormData((prev) => ({
       ...prev,
       keywords: prev.keywords.filter((k) => k !== keyword),
-    }))
-  }, [])
+    }));
+  }, []);
 
-  // Handle CSV file upload
+  // Handle CSV file upload for keywords
   const handleFileChange = useCallback((event) => {
-    const file = event.target.files[0]
+    const file = event.target.files[0];
     if (file && file.type === "text/csv") {
-      const reader = new FileReader()
+      const reader = new FileReader();
       reader.onload = (e) => {
-        const text = e.target.result
+        const text = e.target.result;
         const keywords = text
           .split(/,|\n|;/)
           .map((kw) => kw.trim())
-          .filter((kw) => kw.length > 0)
+          .filter((kw) => kw.length > 0);
         setFormData((prev) => ({
           ...prev,
-          uploadedFile: file.name,
           keywords: [...new Set([...prev.keywords, ...keywords])],
-        }))
-        setErrors((prev) => ({ ...prev, keywords: undefined }))
-      }
-      reader.onerror = () => message.error("Error reading CSV file.")
-      reader.readAsText(file)
+        }));
+        setErrors((prev) => ({ ...prev, keywords: undefined }));
+      };
+      reader.onerror = () => message.error("Error reading CSV file.");
+      reader.readAsText(file);
     } else {
-      message.error("Please upload a valid CSV file.")
+      message.error("Please upload a valid CSV file.");
     }
-  }, [])
-
-  // Handle Excel sitemap upload
-  const handleSiteFileChange = useCallback((e) => {
-    const file = e.target.files[0]
-    if (!file) return
-
-    // Validate file type
-    if (file.type !== "text/xml" && !file.name.endsWith(".xml")) {
-      message.error("Please upload a valid XML file.")
-      setErrors((prev) => ({ ...prev, sitemap: "Invalid file type, only .xml allowed." }))
-      return
-    }
-
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      try {
-        const xmlContent = event.target.result
-        // You can further parse the XML if needed here
-        setExcelData(xmlContent) // You may want to rename setExcelData to setXmlData
-        setFormData((prev) => ({ ...prev, uploadedFile: file.name }))
-        setErrors((prev) => ({ ...prev, sitemap: undefined }))
-      } catch (error) {
-        message.error("Error processing XML file.")
-        setErrors((prev) => ({ ...prev, sitemap: "Failed to process XML file." }))
-      }
-    }
-
-    reader.onerror = () => {
-      message.error("Error reading XML file.")
-      setErrors((prev) => ({ ...prev, sitemap: "Failed to read XML file." }))
-    }
-
-    reader.readAsText(file)
-  }, [])
+  }, []);
 
   // Save or update brand voice
   const handleSave = useCallback(async () => {
-    if (!validateForm()) return
+    if (!validateForm()) return;
 
-    setIsUploading(true)
+    setIsUploading(true);
     const payload = {
       nameOfVoice: formData.nameOfVoice.trim(),
       postLink: formData.postLink.trim(),
       keywords: formData.keywords.map((k) => k.trim()).filter(Boolean),
       describeBrand: formData.describeBrand.trim(),
-      sitemap: excelData,
+      sitemap: formData.sitemapUrl.trim(), 
       userId: user?._id,
-    }
+    };
 
     const resetForm = () => {
       setFormData({
@@ -170,28 +148,27 @@ const BrandVoice = () => {
         postLink: "",
         keywords: [],
         describeBrand: "",
+        sitemapUrl: "", // Reset sitemapUrl
         selectedVoice: null,
-        uploadedFile: null,
         _id: undefined,
-      })
-      setExcelData(null)
-      setInputValue("")
-      setErrors({})
-    }
+      });
+      setInputValue("");
+      setErrors({});
+    };
 
     const onSuccess = () => {
-      dispatch(fetchBrands())
-      resetForm()
-    }
+      dispatch(fetchBrands());
+      resetForm();
+    };
 
     if (formData._id) {
-      dispatch(updateBrandVoiceThunk({ id: formData._id, payload, onSuccess }))
+      dispatch(updateBrandVoiceThunk({ id: formData._id, payload, onSuccess }));
     } else {
-      dispatch(createBrandVoiceThunk({ payload, onSuccess }))
+      dispatch(createBrandVoiceThunk({ payload, onSuccess }));
     }
 
-    setIsUploading(false)
-  }, [formData, excelData, user, dispatch, validateForm])
+    setIsUploading(false);
+  }, [formData, user, dispatch, validateForm]);
 
   // Edit brand voice
   const handleEdit = useCallback((brand) => {
@@ -200,13 +177,12 @@ const BrandVoice = () => {
       postLink: brand.postLink || "",
       keywords: Array.isArray(brand.keywords) ? brand.keywords : [],
       describeBrand: brand.describeBrand || "",
+      sitemapUrl: brand.sitemapUrl || "", // Load sitemapUrl
       selectedVoice: brand,
-      uploadedFile: null,
       _id: brand._id,
-    })
-    setExcelData(brand.siteMap || null) // Load existing siteMap if available
-    setErrors({})
-  }, [])
+    });
+    setErrors({});
+  }, []);
 
   // Delete brand voice
   const handleDelete = useCallback(
@@ -218,22 +194,22 @@ const BrandVoice = () => {
         cancelText: "Cancel",
         okButtonProps: { danger: true },
         onOk: () => {
-          dispatch(deleteBrandVoiceThunk({ id: brand._id }))
+          dispatch(deleteBrandVoiceThunk({ id: brand._id }));
         },
-      })
+      });
     },
     [dispatch]
-  )
+  );
 
   // Select brand voice
   const handleSelect = useCallback((voice) => {
-    setFormData((prev) => ({ ...prev, selectedVoice: voice }))
-  }, [])
+    setFormData((prev) => ({ ...prev, selectedVoice: voice }));
+  }, []);
 
   // Memoized keywords rendering
   const renderKeywords = useMemo(() => {
-    const latestKeywords = formData.keywords.slice(-3)
-    const remainingCount = formData.keywords.length - latestKeywords.length
+    const latestKeywords = formData.keywords.slice(-3);
+    const remainingCount = formData.keywords.length - latestKeywords.length;
 
     return (
       <>
@@ -260,16 +236,16 @@ const BrandVoice = () => {
             <FaTimes
               className="ml-1 cursor-pointer text-indigo-500 hover:text-indigo-700 transition-colors"
               onClick={(e) => {
-                e.stopPropagation()
-                removeKeyword(keyword)
+                e.stopPropagation();
+                removeKeyword(keyword);
               }}
               aria-label={`Remove ${keyword}`}
             />
           </motion.div>
         ))}
       </>
-    )
-  }, [formData.keywords, removeKeyword])
+    );
+  }, [formData.keywords, removeKeyword]);
 
   return (
     <motion.div
@@ -349,15 +325,6 @@ const BrandVoice = () => {
               </p>
             )}
           </div>
-          {/* 
-          <div className="text-center my-4 relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300"></div>
-            </div>
-            <div className="relative flex justify-center">
-              <span className="bg-white px-4 text-gray-500">OR</span>
-            </div>
-          </div> */}
 
           {/* Keywords */}
           <div>
@@ -411,49 +378,36 @@ const BrandVoice = () => {
             )}
           </div>
 
-          {/* Sitemap (Excel Upload Only) */}
+          {/* Sitemap URL */}
           <div>
             <label
-              htmlFor="file-site-upload"
+              htmlFor="sitemapUrl"
               className="text-sm font-medium text-gray-700 flex gap-2 mb-1"
             >
-              Sitemap (XML File) <span className="text-red-500">*</span>
-              <Tooltip title="Upload an XML file (.xml) with sitemap data">
+              Sitemap URL <span className="text-red-500">*</span>
+              <Tooltip title="Paste the URL of your XML sitemap (e.g., https://example.com/sitemap.xml)">
                 <span className="cursor-pointer">
                   <Info size={16} className="text-blue-500" />
                 </span>
               </Tooltip>
             </label>
-            <motion.label
-              htmlFor="file-site-upload"
-              className={`flex items-center justify-between bg-white border rounded-lg p-2 gap-2 hover:ring-2 hover:ring-indigo-300 transition-all ${
-                errors.sitemap ? "border-red-500" : "border-gray-300"
+            <motion.input
+              id="sitemapUrl"
+              type="url"
+              name="sitemapUrl"
+              value={formData.sitemapUrl}
+              onChange={handleInputChange}
+              placeholder="e.g., https://example.com/sitemap.xml"
+              className={`w-full p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
+                errors.sitemapUrl ? "border-red-500" : "border-gray-300"
               }`}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <span className="text-gray-700 text-sm truncate">
-                {formData.uploadedFile ? formData.uploadedFile : "Choose .xml file"}
-              </span>
-              <motion.div
-                className="bg-indigo-100 p-2 rounded-lg cursor-pointer"
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-                aria-label="Upload Excel file"
-              >
-                <Upload size={20} className="text-indigo-600" />
-              </motion.div>
-              <input
-                id="file-site-upload"
-                type="file"
-                accept=".xml"
-                onChange={handleSiteFileChange}
-                className="hidden"
-              />
-            </motion.label>
-            {errors.sitemap && (
-              <p id="sitemap-error" className="text-red-500 text-xs mt-1">
-                {errors.sitemap}
+              whileFocus={{ scale: 1.01 }}
+              aria-invalid={!!errors.sitemapUrl}
+              aria-describedby={errors.sitemapUrl ? "sitemapUrl-error" : undefined}
+            />
+            {errors.sitemapUrl && (
+              <p id="sitemapUrl-error" className="text-red-500 text-xs mt-1">
+                {errors.sitemapUrl}
               </p>
             )}
           </div>
@@ -530,12 +484,12 @@ const BrandVoice = () => {
                 onSelect={() => handleSelect(item)}
                 isSelected={formData.selectedVoice?._id === item._id}
                 onEdit={(e) => {
-                  e.stopPropagation()
-                  handleEdit(item)
+                  e.stopPropagation();
+                  handleEdit(item);
                 }}
                 onDelete={(e) => {
-                  e.stopPropagation()
-                  handleDelete(item)
+                  e.stopPropagation();
+                  handleDelete(item);
                 }}
               />
             ))
@@ -547,8 +501,8 @@ const BrandVoice = () => {
         </div>
       </motion.div>
     </motion.div>
-  )
-}
+  );
+};
 
 // Updated YourVoicesComponent
 const YourVoicesComponent = ({
@@ -580,15 +534,15 @@ const YourVoicesComponent = ({
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault()
-          onSelect()
+          e.preventDefault();
+          onSelect();
         }
       }}
       aria-label={`Select ${brandName} brand voice`}
     >
       <div className="flex justify-between items-center">
         <h3
-          className={`font-medium text-sm ca ${
+          className={`font-medium text-sm ${
             isSelected ? "text-indigo-700" : "text-gray-700"
           } truncate max-w-[70%]`}
         >
@@ -619,7 +573,7 @@ const YourVoicesComponent = ({
       </div>
       <p className="text-xs text-gray-600 mt-1 line-clamp-3">{brandVoice}</p>
     </motion.div>
-  )
-}
+  );
+};
 
-export default BrandVoice
+export default BrandVoice;
