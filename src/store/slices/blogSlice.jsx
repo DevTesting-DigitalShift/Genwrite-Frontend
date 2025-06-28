@@ -231,7 +231,6 @@ const initialState = {
   loading: false,
   error: null,
   blogs: [],
-  selectedBlog: null,
   blogStats: {},
 }
 

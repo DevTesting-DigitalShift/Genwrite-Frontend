@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import SkeletonLoader from "./SkeletonLoader"
-import "react-toastify/dist/ReactToastify.css"
 import { Badge, Button, Input, Popconfirm, Tooltip, Select, Modal, Popover } from "antd"
 import { ArrowDownUp, Funnel, Menu, RefreshCcw, RotateCcw, Search, Trash2 } from "lucide-react"
 import { motion } from "framer-motion"
@@ -13,6 +12,8 @@ import {
   HourglassOutlined,
   CloseCircleOutlined,
   SortDescendingOutlined,
+  FieldTimeOutlined,
+  ClockCircleOutlined,
 } from "@ant-design/icons"
 import { Helmet } from "react-helmet"
 import { useDispatch } from "react-redux"
@@ -218,7 +219,7 @@ const MyProjects = () => {
     },
     {
       label: "Created Date (Newest)",
-      icon: <CalendarOutlined />,
+      icon: <FieldTimeOutlined />,
       onClick: () => {
         setSortType("createdAt")
         setSortOrder("desc")
@@ -227,7 +228,7 @@ const MyProjects = () => {
     },
     {
       label: "Created Date (Oldest)",
-      icon: <CalendarOutlined />,
+      icon: <ClockCircleOutlined />,
       onClick: () => {
         setSortType("createdAt")
         setSortOrder("asc")
@@ -237,14 +238,6 @@ const MyProjects = () => {
   ]
 
   const funnelMenuOptions = [
-    // {
-    //   label: "Status: All",
-    //   icon: <CheckCircleOutlined />,
-    //   onClick: () => {
-    //     setStatusFilter("all")
-    //     setFunnelMenuOpen(false)
-    //   },
-    // },
     {
       label: "Status: Completed",
       icon: <CheckCircleOutlined />,
@@ -371,7 +364,7 @@ const MyProjects = () => {
             trigger="click"
             placement="bottomRight"
             content={
-              <div className="min-w-[200px] rounded-lg shadow-lg border bg-white backdrop-blur-md p-2 space-y-1">
+              <div className="min-w-[200px] rounded-lg space-y-1">
                 {menuOptions.map(({ label, icon, onClick }) => (
                   <Tooltip title={label} placement="left" key={label}>
                     <button
@@ -404,7 +397,7 @@ const MyProjects = () => {
             trigger="click"
             placement="bottomRight"
             content={
-              <div className="min-w-[200px] rounded-lg shadow-lg border bg-white backdrop-blur-md p-2 space-y-1">
+              <div className="min-w-[200px] rounded-lg space-y-1">
                 {funnelMenuOptions.map(({ label, icon, onClick }) => (
                   <Tooltip title={label} placement="left" key={label}>
                     <button

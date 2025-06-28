@@ -1,6 +1,6 @@
-import React, { useState } from "react"
-import { useNavigate } from "react-router-dom"
-import { Card, Tabs, Input, Button } from "antd"
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Card, Tabs, Input, Button } from "antd";
 import {
   EditOutlined,
   SearchOutlined,
@@ -8,47 +8,48 @@ import {
   GlobalOutlined,
   FileTextOutlined,
   CloseOutlined,
-} from "@ant-design/icons"
-import { motion } from "framer-motion"
-import CompetitiveAnalysisModal from "../multipleStepModal/CompetitiveAnalysisModal"
-import { useDispatch, useSelector } from "react-redux"
-import { analyzeKeywordsThunk } from "@store/slices/analysisSlice"
+} from "@ant-design/icons";
+import { motion } from "framer-motion";
+import CompetitiveAnalysisModal from "../multipleStepModal/CompetitiveAnalysisModal";
+import { useDispatch, useSelector } from "react-redux";
+import { analyzeKeywordsThunk } from "@store/slices/analysisSlice";
+import { Helmet } from "react-helmet";
+
 export default function ToolboxPage() {
-  const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState("content")
-  const [keywords, setKeywords] = useState([])
-  const [newKeyword, setNewKeyword] = useState("")
-  const [competitiveAnalysisModalOpen, setCompetitiveAnalysisModalOpen] = useState(false)
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("content");
+  const [keywords, setKeywords] = useState([]);
+  const [newKeyword, setNewKeyword] = useState("");
+  const [competitiveAnalysisModalOpen, setCompetitiveAnalysisModalOpen] = useState(false);
 
-
-  const dispatch = useDispatch()
-  const {
-    keywordResult: keywordAnalysisResult,
-    loading: analyzing,
-    error: analysisError,
-  } = useSelector((state) => state.analysis)
+  const dispatch = useDispatch();
+  const { keywordResult: keywordAnalysisResult, loading: analyzing, error: analysisError } =
+    useSelector((state) => state.analysis);
 
   const addKeyword = () => {
     if (newKeyword.trim() && !keywords.includes(newKeyword.trim())) {
-      setKeywords([...keywords, newKeyword.trim()])
-      setNewKeyword("")
+      setKeywords([...keywords, newKeyword.trim()]);
+      setNewKeyword("");
     }
-  }
+  };
 
   const removeKeyword = (index) => {
-    setKeywords(keywords.filter((_, i) => i !== index))
-  }
+    setKeywords(keywords.filter((_, i) => i !== index));
+  };
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter") {
-      addKeyword()
+      addKeyword();
     } else if (e.key === ",") {
-      e.preventDefault()
-      handleAddKeyword(type)
+      e.preventDefault();
+      addKeyword(); // Fixed typo: handleAddKeyword(type) -> addKeyword()
     }
-  }
+  };
 
-  // Patch the cardItems so competitor-analysis opens modal
+  const analyzeKeywords = async () => {
+    dispatch(analyzeKeywordsThunk(keywords));
+  };
+
   const cardItems = [
     {
       key: "ai-writer",
@@ -60,24 +61,6 @@ export default function ToolboxPage() {
       color: "from-blue-500 to-indigo-600",
     },
     {
-      key: "content-research",
-      title: "Content Research",
-      icon: <SearchOutlined className="text-purple-500" />,
-      description: "Research topics and trending content",
-      action: () => navigate("/research"),
-      actionText: "Research Topics",
-      color: "from-emerald-500 to-teal-600",
-    },
-    {
-      key: "draft-manager",
-      title: "Draft Manager",
-      icon: <FileTextOutlined className="text-blue-500" />,
-      description: "Manage and organize your blog drafts",
-      action: () => navigate("/drafts"),
-      actionText: "View Drafts",
-      color: "from-amber-500 to-orange-500",
-    },
-    {
       key: "competitor-analysis",
       title: "Competitor Analysis",
       icon: <GlobalOutlined className="text-red-500" />,
@@ -86,11 +69,28 @@ export default function ToolboxPage() {
       actionText: "Start Analysis",
       color: "from-rose-500 to-pink-600",
     },
-  ]
-
-  const analyzeKeywords = async () => {
-    dispatch(analyzeKeywordsThunk(keywords))
-  }
+    // Commented-out items kept for reference, can be re-enabled later
+    // {
+    //   key: "content-research",
+    //   title: "Content Research",
+    //   icon: <SearchOutlined className="text-purple-500" />,
+    //   description: "Research topics and trending content",
+    //   span: "Coming Soon",
+    //   actionText: "Research Topics",
+    //   color: "from-emerald-500 to-teal-600",
+    //   disabled: true,
+    // },
+    // {
+    //   key: "draft-manager",
+    //   title: "Draft Manager",
+    //   icon: <FileTextOutlined className="text-blue-500" />,
+    //   description: "Manage and organize your blog drafts",
+    //   span: "Coming Soon",
+    //   actionText: "View Drafts",
+    //   color: "from-amber-500 to-orange-500",
+    //   disabled: true,
+    // },
+  ];
 
   return (
     <>
@@ -100,6 +100,9 @@ export default function ToolboxPage() {
         transition={{ duration: 0.5 }}
         className="p-10 sm:p-6"
       >
+        <Helmet>
+          <title>Toolbox | GenWrite</title>
+        </Helmet>
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -116,7 +119,6 @@ export default function ToolboxPage() {
             >
               Toolbox
             </motion.h1>
-
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -127,7 +129,6 @@ export default function ToolboxPage() {
               powerful suite of tools.
             </motion.p>
           </div>
-
           <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}>
             <Button
               type="primary"
@@ -166,7 +167,7 @@ export default function ToolboxPage() {
               ),
               children: (
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-                  {cardItems.slice(0, 3).map((item) => (
+                  {cardItems.filter((item) => item.key === "ai-writer").map((item) => (
                     <AnimatedCard key={item.key} item={item} />
                   ))}
                 </div>
@@ -195,8 +196,6 @@ export default function ToolboxPage() {
                     }}
                     className="relative"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl blur-md opacity-20"></div>
-
                     <Card
                       title={
                         <div className="flex justify-between items-center">
@@ -218,7 +217,6 @@ export default function ToolboxPage() {
                       className="rounded-xl shadow-lg border-0 relative overflow-hidden transition-all duration-300 hover:shadow-xl"
                     >
                       <p className="mb-4 text-gray-600">Find and analyze keywords for your blog</p>
-
                       <div className="flex gap-2 mb-4">
                         <Input
                           placeholder="Enter a keyword"
@@ -233,8 +231,6 @@ export default function ToolboxPage() {
                           </Button>
                         </motion.div>
                       </div>
-
-                      {/* Keywords Tags */}
                       <div className="flex flex-wrap gap-2 mb-6">
                         {keywords.map((keyword, index) => (
                           <motion.div
@@ -256,7 +252,6 @@ export default function ToolboxPage() {
                           </motion.div>
                         ))}
                       </div>
-
                       <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                         <Button
                           block
@@ -268,8 +263,9 @@ export default function ToolboxPage() {
                           Analyze Keywords
                         </Button>
                       </motion.div>
-
-                      {analysisError && <div className="text-red-500 mt-2">{analysisError}</div>}
+                      {analysisError && (
+                        <div className="text-red-500 mt-2">{analysisError}</div>
+                      )}
                       {keywordAnalysisResult && Array.isArray(keywordAnalysisResult) && (
                         <div className="mt-4 p-3 bg-blue-50 rounded">
                           <div className="font-semibold text-blue-700 mb-2">
@@ -288,7 +284,6 @@ export default function ToolboxPage() {
                           </ul>
                         </div>
                       )}
-
                       <motion.div
                         className="absolute inset-0 rounded-xl pointer-events-none"
                         initial={{
@@ -315,53 +310,25 @@ export default function ToolboxPage() {
                       ></motion.div>
                     </Card>
                   </motion.div>
-
                   {/* Competitor Analysis Card */}
-                  <AnimatedCard item={cardItems[3]} />
+                  {cardItems
+                    .filter((item) => item.key === "competitor-analysis")
+                    .map((item) => (
+                      <AnimatedCard key={item.key} item={item} />
+                    ))}
                 </div>
               ),
             },
-            // {
-            //   key: "integrations",
-            //   label: (
-            //     <motion.div
-            //       className="flex items-center gap-2 font-medium"
-            //       whileHover={{ scale: 1.05 }}
-            //     >
-            //       <ShareAltOutlined className="text-green-500" />
-            //       <span>Integrations</span>
-            //     </motion.div>
-            //   ),
-            //   children: (
-            //     <div className="grid md:grid-cols-2 gap-6 mt-6">
-            //       {cardItems.slice(4, 6).map((item) => (
-            //         <AnimatedCard key={item.key} item={item} />
-            //       ))}
-            //     </div>
-            //   ),
-            // },
           ]}
         />
-
-        {/* Quick Settings Card
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4, duration: 0.4 }}
-          className="mt-8"
-        >
-          <AnimatedCard item={cardItems[6]} />
-        </motion.div> */}
-
         {competitiveAnalysisModalOpen && (
           <CompetitiveAnalysisModal closeFnc={() => setCompetitiveAnalysisModalOpen(false)} />
         )}
       </motion.div>
     </>
-  )
+  );
 }
 
-// Animated Card Component
 function AnimatedCard({ item }) {
   return (
     <motion.div
@@ -371,13 +338,7 @@ function AnimatedCard({ item }) {
         y: -10,
         transition: { duration: 0.3 },
       }}
-      className={`relative ${item.fullWidth ? "" : ""}`}
     >
-      {/* Gradient background */}
-      <div
-        className={`absolute inset-0 bg-gradient-to-br ${item.color} rounded-xl blur-md opacity-20`}
-      ></div>
-
       <Card
         title={
           <div className="flex justify-between items-center">
@@ -398,22 +359,24 @@ function AnimatedCard({ item }) {
         }
         className={`rounded-xl shadow-lg border-0 relative overflow-hidden transition-all duration-300 ${
           item.disabled ? "opacity-70" : "hover:shadow-xl"
-        } ${item.fullWidth ? "w-full" : ""}`}
+        }`}
       >
         <p className="mb-4 text-gray-600 min-h-[60px]">{item.description}</p>
-        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-          <Button
-            block
-            type={item.disabled ? "default" : "primary"}
-            onClick={item.action}
-            disabled={item.disabled}
-            className="transition-all"
-          >
-            {item.actionText}
-          </Button>
-        </motion.div>
-
-        {/* Animated border */}
+        {item.span ? (
+          <span className="text-gray-500 font-medium">{item.span}</span>
+        ) : (
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+            <Button
+              block
+              type={item.disabled ? "default" : "primary"}
+              onClick={item.action}
+              disabled={item.disabled}
+              className="transition-all"
+            >
+              {item.actionText}
+            </Button>
+          </motion.div>
+        )}
         <motion.div
           className="absolute inset-0 rounded-xl pointer-events-none"
           initial={{
@@ -443,10 +406,9 @@ function AnimatedCard({ item }) {
         ></motion.div>
       </Card>
     </motion.div>
-  )
+  );
 }
 
-// Helper function to extract colors from gradient string
 function getColorFromGradient(gradient, index) {
   const colors = {
     "from-blue-500 to-indigo-600": ["#3b82f6", "#4f46e5"],
@@ -457,7 +419,6 @@ function getColorFromGradient(gradient, index) {
     "from-sky-500 to-cyan-500": ["#0ea5e9", "#06b6d4"],
     "from-lime-500 to-green-500": ["#84cc16", "#22c55e"],
     "from-gray-500 to-gray-700": ["#6b7280", "#374151"],
-  }
-
-  return colors[gradient]?.[index] || "#3b82f6"
+  };
+  return colors[gradient]?.[index] || "#3b82f6";
 }

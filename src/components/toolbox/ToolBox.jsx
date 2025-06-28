@@ -179,7 +179,7 @@ const ToolBox = () => {
   return (
     <>
       <Helmet>
-        <title>Toolbox | GenWrite</title>
+        <title>Blog Editor | GenWrite</title>
       </Helmet>
       <div className="h-full">
         <div className="max-w-8xl mx-auto bg-white rounded-lg shadow-lg overflow-hidden">

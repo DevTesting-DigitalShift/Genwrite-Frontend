@@ -1,126 +1,129 @@
-import { useState, useEffect } from "react";
-import Modal from "../utils/Modal";
-import SelectTemplateModal from "./multipleStepModal/SelectTemplateModal";
-import FirstStepModal from "./multipleStepModal/FirstStepModal";
-import SecondStepModal from "./multipleStepModal/SecondStepModal";
-import ThirdStepModal from "./multipleStepModal/ThirdStepModal";
-import { letsBegin, quickTools, stats } from "./dashData/dash";
-import { DashboardBox, QuickBox, Blogs } from "../utils/DashboardBox";
-import { useDispatch, useSelector } from "react-redux";
-import { createNewBlog } from "@store/slices/blogSlice";
-import { useNavigate } from "react-router-dom";
-import MultiStepModal from "./multipleStepModal/DaisyUi";
-import DaisyUIModal from "./DaisyUIModal";
-import QuickBlogModal from "./multipleStepModal/QuickBlogModal";
-import CompetitiveAnalysisModal from "./multipleStepModal/CompetitiveAnalysisModal";
-import PerformanceMonitoringModal from "./multipleStepModal/PerformanceMonitoringModal";
-import { useConfirmPopup } from "@/context/ConfirmPopupContext";
-import { getEstimatedCost } from "@utils/getEstimatedCost";
-import { AnimatePresence } from "framer-motion";
-import { loadAuthenticatedUser, selectUser } from "@store/slices/authSlice";
-import { Clock, Sparkles } from "lucide-react";
-import { Helmet } from "react-helmet";
-import SeoAnalysisModal from "./multipleStepModal/SeoAnalysisModal";
-import KeywordResearchModel from "./multipleStepModal/KeywordResearchModel";
-import { getAllBlogs } from "@api/blogApi";
-import { SkeletonDashboardCard, SkeletonGridCard } from "./Projects/SkeletonLoader";
-import { openJobModal } from "@store/slices/jobSlice";
-import { message } from "antd";
+import { useState, useEffect } from "react"
+import Modal from "../utils/Modal"
+import SelectTemplateModal from "./multipleStepModal/SelectTemplateModal"
+import FirstStepModal from "./multipleStepModal/FirstStepModal"
+import SecondStepModal from "./multipleStepModal/SecondStepModal"
+import ThirdStepModal from "./multipleStepModal/ThirdStepModal"
+import { letsBegin, quickTools, stats } from "./dashData/dash"
+import { DashboardBox, QuickBox, Blogs } from "../utils/DashboardBox"
+import { useDispatch, useSelector } from "react-redux"
+import { createNewBlog } from "@store/slices/blogSlice"
+import { useNavigate } from "react-router-dom"
+import MultiStepModal from "./multipleStepModal/DaisyUi"
+import DaisyUIModal from "./DaisyUIModal"
+import QuickBlogModal from "./multipleStepModal/QuickBlogModal"
+import CompetitiveAnalysisModal from "./multipleStepModal/CompetitiveAnalysisModal"
+import PerformanceMonitoringModal from "./multipleStepModal/PerformanceMonitoringModal"
+import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import { getEstimatedCost } from "@utils/getEstimatedCost"
+import { AnimatePresence } from "framer-motion"
+import { loadAuthenticatedUser, selectUser } from "@store/slices/authSlice"
+import { Clock, Sparkles } from "lucide-react"
+import { Helmet } from "react-helmet"
+import SeoAnalysisModal from "./multipleStepModal/SeoAnalysisModal"
+import KeywordResearchModel from "./multipleStepModal/KeywordResearchModel"
+import { getAllBlogs } from "@api/blogApi"
+import { SkeletonDashboardCard, SkeletonGridCard } from "./Projects/SkeletonLoader"
+import { openJobModal } from "@store/slices/jobSlice"
+import { message } from "antd"
+import {motion} from "framer-motion"
 
 const Dashboard = () => {
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [currentStep, setCurrentStep] = useState(0);
-  const [daisyUIModal, setDaisyUIModal] = useState(false);
-  const [multiStepModal, setMultiStepModal] = useState(false);
-  const [quickBlogModal, setQuickBlogModal] = useState(false);
-  const [competitiveAnalysisModal, setCompetitiveAnalysisModal] = useState(false);
-  const [performanceModal, setPerformanceModal] = useState(false);
-  const [keywordResearchModal, setKeywordResearchModal] = useState(false);
-  const [seoAnalysisModal, setSeoAnalysisModal] = useState(false);
-  const [modelData, setModelData] = useState({});
-  const [recentBlogData, setRecentBlogData] = useState([]);
-  const [allBlogs, setAllBlogs] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [isModalVisible, setIsModalVisible] = useState(false)
+  const [currentStep, setCurrentStep] = useState(0)
+  const [daisyUIModal, setDaisyUIModal] = useState(false)
+  const [multiStepModal, setMultiStepModal] = useState(false)
+  const [quickBlogModal, setQuickBlogModal] = useState(false)
+  const [competitiveAnalysisModal, setCompetitiveAnalysisModal] = useState(false)
+  const [performanceModal, setPerformanceModal] = useState(false)
+  const [keywordResearchModal, setKeywordResearchModal] = useState(false)
+  const [seoAnalysisModal, setSeoAnalysisModal] = useState(false)
+  const [modelData, setModelData] = useState({})
+  const [recentBlogData, setRecentBlogData] = useState([])
+  const [allBlogs, setAllBlogs] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
-  const user = useSelector(selectUser);
-  const { handlePopup } = useConfirmPopup();
+  const dispatch = useDispatch()
+  const navigate = useNavigate()
+  const user = useSelector(selectUser)
+  const { handlePopup } = useConfirmPopup()
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setLoading(false);
-    }, 1200);
+      setLoading(false)
+    }, 1200)
 
-    return () => clearTimeout(timer);
-  }, []);
+    return () => clearTimeout(timer)
+  }, [])
 
   useEffect(() => {
     const initUser = async () => {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("token")
       if (!token) {
-        navigate("/login");
-        return;
+        navigate("/login")
+        return
       }
 
       try {
-        const result = await dispatch(loadAuthenticatedUser());
+        const result = await dispatch(loadAuthenticatedUser())
         if (loadAuthenticatedUser.rejected.match(result)) {
-          console.warn("Failed to load user, redirecting...");
-          navigate("/login");
+          console.warn("Failed to load user, redirecting...")
+          navigate("/login")
         }
       } catch (error) {
-        console.error("User init failed:", error);
+        console.error("User init failed:", error)
       }
-    };
+    }
 
-    initUser();
-  }, [dispatch, navigate]);
+    initUser()
+  }, [dispatch, navigate])
 
   useEffect(() => {
     const fetchBlogs = async () => {
       try {
-        const blogs = await getAllBlogs();
-        const recent = blogs.filter((b) => b.status === "complete" && b.isArchived === false).slice(-3);
-        setRecentBlogData(recent);
-        setAllBlogs(blogs);
+        const blogs = await getAllBlogs()
+        const recent = blogs
+          .filter((b) => b.status === "complete" && b.isArchived === false)
+          .slice(-3)
+        setRecentBlogData(recent)
+        setAllBlogs(blogs)
       } catch (error) {
-        console.error("Error fetching blogs:", error.message);
+        console.error("Error fetching blogs:", error.message)
       }
-    };
+    }
 
-    fetchBlogs();
-  }, []);
+    fetchBlogs()
+  }, [])
 
   // Event handlers
-  const showModal = () => setIsModalVisible(true);
-  const showDaisy = () => setDaisyUIModal(true);
-  const hideDaisy = () => setDaisyUIModal(false);
-  const showMultiStepModal = () => setMultiStepModal(true);
-  const hideMultiStepModal = () => setMultiStepModal(false);
-  const showQuickBlogModal = () => setQuickBlogModal(true);
-  const hideQuickBlogModal = () => setQuickBlogModal(false);
-  const showCompetitiveAnalysis = () => setCompetitiveAnalysisModal(true);
-  const hideCompetitiveAnalysis = () => setCompetitiveAnalysisModal(false);
+  const showModal = () => setIsModalVisible(true)
+  const showDaisy = () => setDaisyUIModal(true)
+  const hideDaisy = () => setDaisyUIModal(false)
+  const showMultiStepModal = () => setMultiStepModal(true)
+  const hideMultiStepModal = () => setMultiStepModal(false)
+  const showQuickBlogModal = () => setQuickBlogModal(true)
+  const hideQuickBlogModal = () => setQuickBlogModal(false)
+  const showCompetitiveAnalysis = () => setCompetitiveAnalysisModal(true)
+  const hideCompetitiveAnalysis = () => setCompetitiveAnalysisModal(false)
 
   const openSecondStepModal = () => {
-    setKeywordResearchModal(false);
-    setIsModalVisible(true);
-    setCurrentStep(0);
-  };
+    setKeywordResearchModal(false)
+    setIsModalVisible(true)
+    setCurrentStep(0)
+  }
 
   const openSecondStepJobModal = () => {
-    setKeywordResearchModal(false);
-    dispatch(openJobModal());
-    navigate("/jobs");
-  };
+    setKeywordResearchModal(false)
+    dispatch(openJobModal())
+    navigate("/jobs")
+  }
 
   const handleSubmit = async (updatedData) => {
     try {
-      const totalCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0);
+      const totalCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
       const estimatedCost =
         getEstimatedCost("blog.single", modelData.aiModel) +
-        (modelData.isUnsplashActive ? 0 : getEstimatedCost("aiImages"));
+        (modelData.isUnsplashActive ? 0 : getEstimatedCost("aiImages"))
       handlePopup({
         title: "Confirm Blog Creation",
         description: (
@@ -134,29 +137,29 @@ const Dashboard = () => {
         ),
         onConfirm: () => {
           if (estimatedCost > totalCredits) {
-            message.error("You do not have enough credits to generate this blog.");
-            handlePopup(false);
-            return;
+            message.error("You do not have enough credits to generate this blog.")
+            handlePopup(false)
+            return
           } else {
-            dispatch(createNewBlog({ blogData: updatedData, navigate }));
-            setIsModalVisible(false);
-            setCurrentStep(0);
+            dispatch(createNewBlog({ blogData: updatedData, navigate }))
+            setIsModalVisible(false)
+            setCurrentStep(0)
           }
         },
-      });
+      })
     } catch (error) {
-      console.error("Error submitting form:", error);
+      console.error("Error submitting form:", error)
     }
-  };
+  }
 
   const handleCancel = () => {
-    setIsModalVisible(false);
-    setCurrentStep(0);
-    setModelData({});
-  };
+    setIsModalVisible(false)
+    setCurrentStep(0)
+    setModelData({})
+  }
 
-  const handleNext = () => setCurrentStep(currentStep + 1);
-  const handlePrev = () => setCurrentStep(currentStep - 1);
+  const handleNext = () => setCurrentStep(currentStep + 1)
+  const handlePrev = () => setCurrentStep(currentStep - 1)
 
   return (
     <>
@@ -226,14 +229,19 @@ const Dashboard = () => {
       {seoAnalysisModal && <SeoAnalysisModal closeFnc={() => setSeoAnalysisModal(false)} />}
 
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/50 p-6">
-        <div className="max-w-7xl mx-auto space-y-8">
+        <div className="space-y-8">
           <div className="gap-6">
             <div>
-              <h1 className="text-4xl font-bold text-gray-900 mb-2">
+              <motion.h1
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
+              >
                 Let's Begin
-                <span className="ml-2 text-2xl">✨</span>
-              </h1>
-              <p className="text-gray-600 text-lg">
+              <span className="ml-2 text-2xl text-yellow-400">✨</span>
+              </motion.h1>
+              <p className="text-gray-600 text-lg mt-2">
                 Welcome back <b>{user?.name}</b>! Ready to create something amazing today?
               </p>
             </div>
@@ -343,7 +351,7 @@ const Dashboard = () => {
         </div>
       </div>
     </>
-  );
-};
+  )
+}
 
-export default Dashboard;
+export default Dashboard
