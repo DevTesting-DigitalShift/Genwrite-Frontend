@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit"
-import { createJob, deleteJob, getJobs, stopJob, updateJob } from "@api/jobApi"
+import { createJob, deleteJob, getJobs, startJob, stopJob, updateJob } from "@api/jobApi"
 import { message } from "antd"
 
 // Fetch Jobs
@@ -55,8 +55,9 @@ export const toggleJobStatusThunk = createAsyncThunk(
       message.success(
         currentStatus === "active" ? "Job paused successfully!" : "Job started successfully!"
       )
-      return { jobId, status: currentStatus === "active" ? "paused" : "active" }
+      return { jobId, status: currentStatus === "active" ? "stop" : "active" }
     } catch (error) {
+      console.error("Job status update error", error)
       message.error("Failed to update job status.")
       return rejectWithValue(error.response?.data?.message || error.message)
     }

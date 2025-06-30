@@ -15,7 +15,7 @@ import { Helmet } from "react-helmet"
 import { updateProfile } from "@store/slices/userSlice"
 
 const DEMO_PROFILE = {
-  profilePicture: "https://source.unsplash.com/random/800x800/?portrait",
+  profilePicture: "",
   personalDetails: {
     name: "eg : Siva Dheeraj",
     email: "eg : sivadheeraj@example.com",
@@ -143,13 +143,32 @@ const Profile = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
-    const [section, field] = name.split(".")
-    setProfileData((prev) => ({
-      ...prev,
-      [section]: { ...prev[section], [field]: value },
-    }))
-  }
 
+    // For phone number field, allow only digits and enforce max length of 15
+    if (name === "personalDetails.phone") {
+      const numericValue = value.replace(/[^0-9]/g, "") // Remove non-numeric characters
+      if (numericValue.length > 15) {
+        message.error("Phone number cannot exceed 15 digits.")
+        return
+      }
+      setProfileData((prev) => ({
+        ...prev,
+        personalDetails: {
+          ...prev.personalDetails,
+          phone: numericValue,
+        },
+      }))
+    } else {
+      // Handle other fields
+      setProfileData((prev) => ({
+        ...prev,
+        personalDetails: {
+          ...prev.personalDetails,
+          [name.split(".")[1]]: value,
+        },
+      }))
+    }
+  }
   // Animation configurations
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -199,13 +218,13 @@ const Profile = () => {
                   hover: { scale: 1.03 },
                 }}
               >
-                {profileData?.profilePicture && (
+                {profileData?.profilePicture ? (
                   <>
                     <img
                       src={profileData.profilePicture}
                       alt="Profile"
                       className="w-40 h-40 rounded-full border-4 border-white/80 object-cover shadow-2xl relative z-10"
-                      onClick={() => isEditing && fileInputRef.current.click()}
+                      // onClick={() => isEditing && fileInputRef.current.click()}
                       style={{ cursor: isEditing ? "pointer" : "default" }}
                     />
                     <input
@@ -217,6 +236,24 @@ const Profile = () => {
                       disabled={!isEditing}
                     />
                   </>
+                ) : (
+                  <div
+                    className="w-40 h-40 rounded-full border-4 border-white/80 bg-gradient-to-tr from-blue-400 to-purple-700 text-white flex items-center justify-center text-7xl font-bold shadow-2xl relative z-10"
+                    onClick={() => isEditing && fileInputRef.current.click()}
+                    style={{ cursor: isEditing ? "pointer" : "default" }}
+                  >
+                    {profileData?.personalDetails?.name
+                      ? `${profileData?.personalDetails.name[0]?.toUpperCase()}`
+                      : "NA"}
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleImageUpload}
+                      className="hidden"
+                      accept="image/*"
+                      disabled={!isEditing}
+                    />
+                  </div>
                 )}
               </motion.div>
 
@@ -349,6 +386,7 @@ const Profile = () => {
                       isEditing={isEditing}
                       onChange={handleInputChange}
                       placeholder={DEMO_PROFILE.personalDetails.phone}
+                      maxLength={15}
                     />
                     <ProfileField
                       label="Job Title"
@@ -558,17 +596,20 @@ const Profile = () => {
   )
 }
 
-const ProfileField = ({ label, name, value, isEditing, onChange, placeholder }) => (
+const ProfileField = ({ label, name, value, isEditing, onChange, placeholder, maxLength }) => (
   <motion.div className="space-y-2" whileHover={{ scale: 1.02 }}>
     <label className="text-sm font-medium text-slate-600">{label}</label>
     {isEditing ? (
       <motion.input
+        type="tel" // Set input type to 'tel' for phone numbers
         name={name}
-        value={value}
+        value={value || ""} // Ensure controlled input with fallback
         onChange={onChange}
         placeholder={placeholder}
         className="w-full px-4 py-2 border-2 border-blue-500 rounded-lg focus:ring-2 focus:ring-blue-200 bg-white/80"
         whileFocus={{ scale: 1.02 }}
+        maxLength={maxLength} // Use maxLength instead of max
+        pattern="[0-9]*" // Restrict to numeric input (optional, for browsers)
       />
     ) : (
       <motion.div

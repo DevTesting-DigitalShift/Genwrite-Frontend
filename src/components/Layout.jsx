@@ -146,11 +146,14 @@ const LayoutWithSidebarAndHeader = () => {
           <div className="mb-6 px-2">
             <button
               onClick={() => navigate("/upgrade")}
-              className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg flex items-center justify-center gap-2 group"
+              className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg flex items-center justify-center gap-2 group capitalize"
             >
-              <Crown className="w-4 h-4 group-hover:rotate-12 transition-transform duration-300" />
-              <span>Upgrade Plan</span>
-              <Zap className="w-4 h-4 group-hover:scale-110 transition-transform duration-300" />
+              {user?.plan === "pro" ? (
+                <Crown className="w-4 h-4 group-hover:rotate-12 transition-transform duration-300" />
+              ) : (
+                <Zap className="w-4 h-4 group-hover:scale-110 transition-transform duration-300" />
+              )}
+              <span>{user?.plan || user?.subscription?.plan} Plan</span>
             </button>
           </div>
         )}

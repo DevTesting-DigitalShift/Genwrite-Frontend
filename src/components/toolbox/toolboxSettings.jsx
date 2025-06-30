@@ -263,9 +263,9 @@ export default function ToolboxPage() {
                           Analyze Keywords
                         </Button>
                       </motion.div>
-                      {analysisError && (
+                      {/* {analysisError && (
                         <div className="text-red-500 mt-2">{analysisError}</div>
-                      )}
+                      )} */}
                       {keywordAnalysisResult && Array.isArray(keywordAnalysisResult) && (
                         <div className="mt-4 p-3 bg-blue-50 rounded">
                           <div className="font-semibold text-blue-700 mb-2">
@@ -278,7 +278,7 @@ export default function ToolboxPage() {
                                 className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 shadow-sm border border-blue-100"
                               >
                                 <span className="inline-block w-2 h-2 rounded-full bg-blue-400"></span>
-                                <span className="text-gray-800 text-sm">{kw}</span>
+                                <span className="text-gray-800 text-sm capitalize">{kw}</span>
                               </li>
                             ))}
                           </ul>

@@ -39,7 +39,7 @@ const Loading = ({ message = "Loading...", size = "default" }) => {
         animate="animate"
         transition={{ duration: 0.5 }}
       >
-        <Loader2 className={`animate-spin text-blue-600 ${getLoaderSize()}`} />
+        {/* <Loader2 className={`animate-spin text-blue-600 ${getLoaderSize()}`} /> */}
         {message && <div className={`text-gray-600 font-medium ${getTextSize()}`}>{message}</div>}
         <div className="w-full max-w-md h-2 bg-gray-200 rounded-full overflow-hidden">
           <motion.div

@@ -5,9 +5,10 @@ import { loadStripe } from "@stripe/stripe-js";
 import { Check, Coins, Crown, Mail, Shield, Star, Zap } from "lucide-react";
 import { Helmet } from "react-helmet";
 import { SkeletonCard } from "@components/Projects/SkeletonLoader";
+import { message } from "antd";
 
 const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
-  const [customCredits, setCustomCredits] = useState(5);
+  const [customCredits, setCustomCredits] = useState(10);
 
   const handleCustomCreditsChange = (e) => {
     const value = parseInt(e.target.value, 10) || 0;
@@ -70,7 +71,7 @@ const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
                 value={customCredits}
                 onChange={handleCustomCreditsChange}
                 className={`w-full px-4 py-2 text-center text-blue-600 bg-transparent border-b-2 focus:outline-none appearance-none mb-2 ${
-                  customCredits < 5
+                  customCredits < 10
                     ? "border-red-500 focus:border-red-500"
                     : "border-blue-500 focus:border-blue-500"
                 }`}
@@ -236,7 +237,7 @@ const Upgrade = () => {
       }
     } catch (error) {
       console.error("Error creating checkout session:", error);
-      alert("Failed to initiate checkout. Please try again.");
+      message.error("Failed to initiate checkout. Please try again.");
     }
   };
 

@@ -112,15 +112,14 @@ const ToolBox = () => {
         duration: 3,
       })
     } catch (error) {
+      console.error(error.response.data.message)
       let errorMessage = "Failed to post to WordPress"
-      if (error.response?.data?.error) {
-        errorMessage = error.response.data.error
-      } else if (error.message) {
-        errorMessage = error.message
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message
       }
 
       message.error({
-        content: `WordPress posting failed: ${errorMessage}`,
+        content: `${errorMessage}`,
         key,
         duration: 5,
       })
