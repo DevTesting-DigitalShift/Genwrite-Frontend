@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import SkeletonLoader from "./SkeletonLoader"
-import { Badge, Button, Input, Popconfirm, Tooltip, Select, Modal, Popover } from "antd"
+import { Badge, Button, Input, Popconfirm, Tooltip, Select, Modal, Popover, Pagination } from "antd"
 import { ArrowDownUp, Funnel, Menu, RefreshCcw, RotateCcw, Search, Trash2 } from "lucide-react"
 import { motion } from "framer-motion"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
@@ -40,6 +40,11 @@ const MyProjects = () => {
   const { handlePopup } = useConfirmPopup()
   const dispatch = useDispatch()
   const TRUNCATE_LENGTH = 120
+  const PAGE_SIZE = 15
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }, [currentPage])
 
   const toggleSearch = () => setSearchModalOpen(true)
   const toggleMenu = () => {
@@ -185,7 +190,7 @@ const MyProjects = () => {
     return content.length > length ? content.substring(0, length) + "..." : content
   }
 
-  const totalPages = Math.ceil(filteredBlogs.length / itemsPerPage)
+  const totalPages = filteredBlogs.length
   const startIndex = (currentPage - 1) * itemsPerPage
   const currentItems = filteredBlogs.slice(startIndex, startIndex + itemsPerPage)
 
@@ -598,14 +603,14 @@ const MyProjects = () => {
                     <div className="mt-3 -mb-2 flex justify-end text-xs text-right text-gray-500 font-medium">
                       {wordpress?.postedOn && (
                         <span className="">
-                          Posted on :  
+                          Posted on: {""}  
                           {new Date(wordpress.postedOn).toLocaleDateString("en-US", {
                             dateStyle: "medium",
                           })}
                         </span>
                       )}
                       <span className="ml-auto">
-                        Last updated :  
+                        Last updated: {""}  
                         {new Date(updatedAt).toLocaleDateString("en-US", {
                           dateStyle: "medium",
                         })}
@@ -616,7 +621,7 @@ const MyProjects = () => {
               )
             })}
           </div>
-          {totalPages > 1 && (
+          {/* {totalPages > 1 && (
             <div className="flex justify-center mt-8 self-end">
               <nav className="inline-flex rounded-md shadow">
                 <ul className="flex">
@@ -638,6 +643,18 @@ const MyProjects = () => {
                   ))}
                 </ul>
               </nav>
+            </div>
+          )} */}
+          {totalPages > PAGE_SIZE && (
+            <div className="flex justify-center mt-6">
+              <Pagination
+                current={currentPage}
+                pageSize={PAGE_SIZE}
+                total={totalPages}
+                onChange={(page) => setCurrentPage(page)}
+                showSizeChanger={false}
+                responsive={true}
+              />
             </div>
           )}
         </>

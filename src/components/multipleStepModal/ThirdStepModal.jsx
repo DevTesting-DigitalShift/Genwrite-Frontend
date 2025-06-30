@@ -145,7 +145,7 @@ const ThirdStepModal = ({ handleSubmit, handlePrevious, handleClose, data, setDa
                   <div className="text-gray-500 text-sm">Loading brand voices...</div>
                 ) : brandError ? (
                   <div className="text-red-500 text-sm">{brandError}</div>
-                ) : brandVoices.length > 0 ? (
+                ) : brandVoices?.length > 0 ? (
                   <div className="space-y-2">
                     {brandVoices.map((voice) => (
                       <label

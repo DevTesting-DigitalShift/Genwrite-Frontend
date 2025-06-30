@@ -69,7 +69,7 @@ const SearchConsole = () => {
 
   // Google Search Console authentication
  const connectGSC = useGoogleLogin({
-  scope: "https://www.googleapis.com/auth/webmasters.readonly https://www.googleapis.com/auth/digitalshiftdevtesting@gmail.com",
+  // scope: "https://www.googleapis.com/auth/digitalshiftdevtesting@gmail.com",
   flow: "auth-code",
   redirect_uri: "https://genwrite-frontend-eight.vercel.app/search-console",
   onSuccess: async (tokenResponse) => {
@@ -78,9 +78,9 @@ const SearchConsole = () => {
     try {
       await dispatch(connectGscAccount(tokenResponse.code)).unwrap()
       await dispatch(fetchVerifiedSites()) // optionally refetch sites
-      message.success("✅ GSC Connected Successfully")
+      message.success("GSC Connected Successfully")
     } catch (err) {
-      console.error("❌ GSC Connection Error:", err)
+      console.error("GSC Connection Error:", err)
       setError("Failed to connect Google Search Console. Please try again.")
     } finally {
       setIsConnecting(false)

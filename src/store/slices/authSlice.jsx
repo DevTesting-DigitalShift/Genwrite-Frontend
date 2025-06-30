@@ -2,7 +2,7 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit"
 import {
   login,
   signup,
-  Userlogout,
+  UserLogout,
   loadUser,
   forgotPasswordAPI,
   resetPasswordAPI,
@@ -80,7 +80,7 @@ export const loadAuthenticatedUser = createAsyncThunk(
 // 📤 Logout
 export const logoutUser = createAsyncThunk("auth/logoutUser", async (_, { dispatch }) => {
   try {
-    await Userlogout()
+    await UserLogout()
   } catch (err) {
     console.warn("Logout failed (ignored)", err)
   }

@@ -1,22 +1,22 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { motion } from "framer-motion";
-import { FaEdit, FaTimes } from "react-icons/fa";
-import { useDispatch, useSelector } from "react-redux";
-import { Info, Upload } from "lucide-react";
-import { Helmet } from "react-helmet";
-import { Modal, Tooltip, message } from "antd";
+import React, { useState, useEffect, useCallback, useMemo } from "react"
+import { motion } from "framer-motion"
+import { FaEdit, FaTimes } from "react-icons/fa"
+import { useDispatch, useSelector } from "react-redux"
+import { Info, Upload } from "lucide-react"
+import { Helmet } from "react-helmet"
+import { Modal, Tooltip, message } from "antd"
 import {
   createBrandVoiceThunk,
   deleteBrandVoiceThunk,
   fetchBrands,
   updateBrandVoiceThunk,
-} from "@store/slices/brandSlice";
+} from "@store/slices/brandSlice"
 
 const BrandVoice = () => {
-  const user = useSelector((state) => state.auth.user);
-  const dispatch = useDispatch();
-  const [inputValue, setInputValue] = useState("");
-  const [isUploading, setIsUploading] = useState(false);
+  const user = useSelector((state) => state.auth.user)
+  const dispatch = useDispatch()
+  const [inputValue, setInputValue] = useState("")
+  const [isUploading, setIsUploading] = useState(false)
   const [formData, setFormData] = useState({
     nameOfVoice: "",
     postLink: "",
@@ -25,122 +25,143 @@ const BrandVoice = () => {
     sitemapUrl: "", // Added sitemapUrl to formData
     selectedVoice: null,
     _id: undefined,
-  });
-  const [errors, setErrors] = useState({});
-  const { brands, selectedVoice } = useSelector((state) => state.brand);
+  })
+  const [errors, setErrors] = useState({})
+  const { brands, selectedVoice } = useSelector((state) => state.brand)
 
   useEffect(() => {
-    dispatch(fetchBrands());
-  }, [dispatch]);
+    dispatch(fetchBrands())
+  }, [dispatch])
 
   useEffect(() => {
     if (brands.length > 0 && !formData.selectedVoice) {
-      setFormData((prev) => ({ ...prev, selectedVoice: brands[0] }));
+      setFormData((prev) => ({ ...prev, selectedVoice: brands[0] }))
     }
-  }, [brands]);
+  }, [brands])
 
   // Validate form fields
   const validateForm = useCallback(() => {
-    const newErrors = {};
+    const newErrors = {}
     if (!formData.nameOfVoice.trim()) {
-      newErrors.nameOfVoice = "Name of Voice is required.";
+      newErrors.nameOfVoice = "Name of Voice is required."
     }
     if (!formData.postLink.trim()) {
-      newErrors.postLink = "Post link is required.";
+      newErrors.postLink = "Post link is required."
     } else {
       try {
-        new URL(formData.postLink);
+        new URL(formData.postLink)
       } catch {
-        newErrors.postLink = "Please enter a valid URL (e.g., https://example.com).";
+        newErrors.postLink = "Please enter a valid URL (e.g., https://example.com)."
       }
     }
     if (formData.keywords.length === 0) {
-      newErrors.keywords = "At least one keyword is required.";
+      newErrors.keywords = "At least one keyword is required."
     }
     if (!formData.describeBrand.trim()) {
-      newErrors.describeBrand = "Brand description is required.";
+      newErrors.describeBrand = "Brand description is required."
     }
     if (!formData.sitemapUrl.trim()) {
-      newErrors.sitemapUrl = "Sitemap URL is required.";
+      newErrors.sitemapUrl = "Sitemap URL is required."
     } else {
       try {
-        new URL(formData.sitemapUrl);
+        new URL(formData.sitemapUrl)
       } catch {
-        newErrors.sitemapUrl = "Please enter a valid URL (e.g., https://example.com/sitemap.xml).";
+        newErrors.sitemapUrl = "Please enter a valid URL (e.g., https://example.com/sitemap.xml)."
       }
     }
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  }, [formData]);
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }, [formData])
 
   // Handle form input changes
   const handleInputChange = useCallback((e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    setErrors((prev) => ({ ...prev, [name]: undefined }));
-  }, []);
+    const { name, value } = e.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
+    setErrors((prev) => ({ ...prev, [name]: undefined }))
+  }, [])
 
   // Handle keyword input
   const handleKeyDown = useCallback(
     (event) => {
       if (event.key === "Enter" && inputValue.trim()) {
-        event.preventDefault();
+        event.preventDefault()
         setFormData((prev) => ({
           ...prev,
           keywords: [...new Set([...prev.keywords, inputValue.trim()])],
-        }));
-        setInputValue("");
-        setErrors((prev) => ({ ...prev, keywords: undefined }));
+        }))
+        setInputValue("")
+        setErrors((prev) => ({ ...prev, keywords: undefined }))
       }
     },
     [inputValue]
-  );
+  )
 
   // Remove keyword
   const removeKeyword = useCallback((keyword) => {
     setFormData((prev) => ({
       ...prev,
       keywords: prev.keywords.filter((k) => k !== keyword),
-    }));
-  }, []);
+    }))
+  }, [])
 
   // Handle CSV file upload for keywords
   const handleFileChange = useCallback((event) => {
-    const file = event.target.files[0];
-    if (file && file.type === "text/csv") {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const text = e.target.result;
-        const keywords = text
-          .split(/,|\n|;/)
-          .map((kw) => kw.trim())
-          .filter((kw) => kw.length > 0);
-        setFormData((prev) => ({
-          ...prev,
-          keywords: [...new Set([...prev.keywords, ...keywords])],
-        }));
-        setErrors((prev) => ({ ...prev, keywords: undefined }));
-      };
-      reader.onerror = () => message.error("Error reading CSV file.");
-      reader.readAsText(file);
-    } else {
-      message.error("Please upload a valid CSV file.");
+    const file = event.target.files[0]
+    if (!file) return
+
+    // Check file extension
+    if (!file.name.toLowerCase().endsWith(".csv")) {
+      message.error("Invalid file type. Please upload a .csv file.")
+      event.target.value = null // Reset input
+      return
     }
-  }, []);
+
+    // Check file size (20KB = 20 * 1024 bytes)
+    const maxSizeInBytes = 20 * 1024 // 20KB
+    if (file.size > maxSizeInBytes) {
+      message.error("File size exceeds 20KB limit. Please upload a smaller file.")
+      event.target.value = null // Reset input
+      return
+    }
+
+    // Check file type
+    if (file.type !== "text/csv") {
+      message.error("Please upload a valid CSV file.")
+      event.target.value = null // Reset input
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const text = e.target.result
+      const keywords = text
+        .split(/,|\n|;/)
+        .map((kw) => kw.trim())
+        .filter((kw) => kw.length > 0)
+      setFormData((prev) => ({
+        ...prev,
+        keywords: [...new Set([...prev.keywords, ...keywords])],
+      }))
+      setErrors((prev) => ({ ...prev, keywords: undefined }))
+    }
+    reader.onerror = () => message.error("Error reading CSV file.")
+    reader.readAsText(file)
+    event.target.value = null // Reset input
+  }, [])
 
   // Save or update brand voice
   const handleSave = useCallback(async () => {
-    if (!validateForm()) return;
+    if (!validateForm()) return
 
-    setIsUploading(true);
+    setIsUploading(true)
     const payload = {
       nameOfVoice: formData.nameOfVoice.trim(),
       postLink: formData.postLink.trim(),
       keywords: formData.keywords.map((k) => k.trim()).filter(Boolean),
       describeBrand: formData.describeBrand.trim(),
-      sitemap: formData.sitemapUrl.trim(), 
+      sitemap: formData.sitemapUrl.trim(),
       userId: user?._id,
-    };
+    }
 
     const resetForm = () => {
       setFormData({
@@ -151,24 +172,24 @@ const BrandVoice = () => {
         sitemapUrl: "", // Reset sitemapUrl
         selectedVoice: null,
         _id: undefined,
-      });
-      setInputValue("");
-      setErrors({});
-    };
-
-    const onSuccess = () => {
-      dispatch(fetchBrands());
-      resetForm();
-    };
-
-    if (formData._id) {
-      dispatch(updateBrandVoiceThunk({ id: formData._id, payload, onSuccess }));
-    } else {
-      dispatch(createBrandVoiceThunk({ payload, onSuccess }));
+      })
+      setInputValue("")
+      setErrors({})
     }
 
-    setIsUploading(false);
-  }, [formData, user, dispatch, validateForm]);
+    const onSuccess = () => {
+      dispatch(fetchBrands())
+      resetForm()
+    }
+
+    if (formData._id) {
+      dispatch(updateBrandVoiceThunk({ id: formData._id, payload, onSuccess }))
+    } else {
+      dispatch(createBrandVoiceThunk({ payload, onSuccess }))
+    }
+
+    setIsUploading(false)
+  }, [formData, user, dispatch, validateForm])
 
   // Edit brand voice
   const handleEdit = useCallback((brand) => {
@@ -180,9 +201,9 @@ const BrandVoice = () => {
       sitemapUrl: brand.sitemapUrl || "", // Load sitemapUrl
       selectedVoice: brand,
       _id: brand._id,
-    });
-    setErrors({});
-  }, []);
+    })
+    setErrors({})
+  }, [])
 
   // Delete brand voice
   const handleDelete = useCallback(
@@ -194,22 +215,22 @@ const BrandVoice = () => {
         cancelText: "Cancel",
         okButtonProps: { danger: true },
         onOk: () => {
-          dispatch(deleteBrandVoiceThunk({ id: brand._id }));
+          dispatch(deleteBrandVoiceThunk({ id: brand._id }))
         },
-      });
+      })
     },
     [dispatch]
-  );
+  )
 
   // Select brand voice
   const handleSelect = useCallback((voice) => {
-    setFormData((prev) => ({ ...prev, selectedVoice: voice }));
-  }, []);
+    setFormData((prev) => ({ ...prev, selectedVoice: voice }))
+  }, [])
 
   // Memoized keywords rendering
   const renderKeywords = useMemo(() => {
-    const latestKeywords = formData.keywords.slice(-3);
-    const remainingCount = formData.keywords.length - latestKeywords.length;
+    const latestKeywords = formData.keywords.slice(-3)
+    const remainingCount = formData.keywords.length - latestKeywords.length
 
     return (
       <>
@@ -236,16 +257,16 @@ const BrandVoice = () => {
             <FaTimes
               className="ml-1 cursor-pointer text-indigo-500 hover:text-indigo-700 transition-colors"
               onClick={(e) => {
-                e.stopPropagation();
-                removeKeyword(keyword);
+                e.stopPropagation()
+                removeKeyword(keyword)
               }}
               aria-label={`Remove ${keyword}`}
             />
           </motion.div>
         ))}
       </>
-    );
-  }, [formData.keywords, removeKeyword]);
+    )
+  }, [formData.keywords, removeKeyword])
 
   return (
     <motion.div
@@ -484,12 +505,12 @@ const BrandVoice = () => {
                 onSelect={() => handleSelect(item)}
                 isSelected={formData.selectedVoice?._id === item._id}
                 onEdit={(e) => {
-                  e.stopPropagation();
-                  handleEdit(item);
+                  e.stopPropagation()
+                  handleEdit(item)
                 }}
                 onDelete={(e) => {
-                  e.stopPropagation();
-                  handleDelete(item);
+                  e.stopPropagation()
+                  handleDelete(item)
                 }}
               />
             ))
@@ -501,8 +522,8 @@ const BrandVoice = () => {
         </div>
       </motion.div>
     </motion.div>
-  );
-};
+  )
+}
 
 // Updated YourVoicesComponent
 const YourVoicesComponent = ({
@@ -534,8 +555,8 @@ const YourVoicesComponent = ({
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onSelect();
+          e.preventDefault()
+          onSelect()
         }
       }}
       aria-label={`Select ${brandName} brand voice`}
@@ -573,7 +594,7 @@ const YourVoicesComponent = ({
       </div>
       <p className="text-xs text-gray-600 mt-1 line-clamp-3">{brandVoice}</p>
     </motion.div>
-  );
-};
+  )
+}
 
-export default BrandVoice;
+export default BrandVoice

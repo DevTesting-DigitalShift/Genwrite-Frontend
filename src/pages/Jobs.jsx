@@ -8,7 +8,7 @@ import { useDispatch, useSelector } from "react-redux"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useNavigate } from "react-router-dom"
 import { QuestionCircleOutlined } from "@ant-design/icons"
-import { message, Popconfirm, Tooltip } from "antd"
+import { message, Pagination, Popconfirm, Tooltip } from "antd"
 import { Gem, Info, Upload, X } from "lucide-react"
 import { Helmet } from "react-helmet"
 import {
@@ -29,7 +29,7 @@ const initialJob = {
     numberOfBlogs: 1,
     topics: [],
     keywords: [],
-    focusKeywords: [], // Added focusKeywords
+    focusKeywords: [],
     templates: [],
     tone: "Professional",
     userDefinedLength: 1000,
@@ -48,6 +48,8 @@ const initialJob = {
   status: "active",
 }
 
+const PAGE_SIZE = 15
+
 const Jobs = () => {
   const tones = ["Professional", "Casual", "Friendly", "Formal", "Technical"]
   const wordLengths = [500, 1000, 1500, 2000, 3000]
@@ -61,8 +63,9 @@ const Jobs = () => {
   const [recentlyUploadedCount, setRecentlyUploadedCount] = useState(null)
   const dispatch = useDispatch()
   const { jobs, loading: isLoading, showJobModal } = useSelector((state) => state.jobs)
+  const [currentPage, setCurrentPage] = useState(1)
   const { selectedKeywords } = useSelector((state) => state.analysis)
-
+  const totalPages = jobs.length
   const [formData, setFormData] = useState({
     focusKeywords: [],
     focusKeywordInput: "",
@@ -71,6 +74,14 @@ const Jobs = () => {
     performKeywordResearch: false,
   })
 
+  // Calculate paginated jobs
+  const startIndex = (currentPage - 1) * PAGE_SIZE
+  const paginatedJobs = jobs.slice(startIndex, startIndex + PAGE_SIZE)
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }, [currentPage])
+
   useEffect(() => {
     dispatch(fetchJobs())
   }, [dispatch])
@@ -78,12 +89,11 @@ const Jobs = () => {
   // Sync formData with selectedKeywords when it changes
   useEffect(() => {
     if (selectedKeywords && selectedKeywords.length > 0) {
-      const uniqueKeywords = [...new Set(selectedKeywords)] // Remove duplicates
+      const uniqueKeywords = [...new Set(selectedKeywords)]
       setFormData((prev) => ({
         ...prev,
-        keywords: uniqueKeywords, // Remaining keywords
+        keywords: uniqueKeywords,
       }))
-      // Sync with newJob.blogs
       setNewJob((prev) => ({
         ...prev,
         blogs: {
@@ -128,8 +138,9 @@ const Jobs = () => {
       createJobThunk({
         jobPayload,
         onSuccess: () => {
-          dispatch(closeJobModal()) // Dispatch action to close modal
+          dispatch(closeJobModal())
           dispatch(fetchJobs())
+          setCurrentPage(1) // Reset to first page after creating a job
         },
       })
     )
@@ -161,9 +172,20 @@ const Jobs = () => {
         onSuccess: () => {
           dispatch(closeJobModal())
           dispatch(fetchJobs())
+          setCurrentPage(1) // Reset to first page after updating a job
         },
       })
     )
+  }
+
+  const handlenumberOfBlogsChange = (e) => {
+    const value = parseInt(e.target.value, 10)
+    if (!isNaN(value) && value >= 0) {
+      setNewJob({
+        ...newJob,
+        blogs: { ...newJob.blogs, numberOfBlogs: value },
+      })
+    }
   }
 
   const handleStartJob = (jobId) => {
@@ -173,6 +195,10 @@ const Jobs = () => {
 
   const handleDeleteJob = (jobId) => {
     dispatch(deleteJobThunk(jobId))
+    // If the current page becomes empty, go to the previous page
+    if (paginatedJobs.length === 1 && currentPage > 1) {
+      setCurrentPage((prev) => prev - 1)
+    }
   }
 
   const validateSteps = (step) => {
@@ -296,6 +322,19 @@ const Jobs = () => {
   const handleCSVUpload = (e) => {
     const file = e.target.files?.[0]
     if (!file) return
+
+    if (!file.name.toLowerCase().endsWith(".csv")) {
+      message.error("Invalid file type. Please upload a .csv file.")
+      e.target.value = null
+      return
+    }
+
+    const maxSizeInBytes = 20 * 1024
+    if (file.size > maxSizeInBytes) {
+      message.error("File size exceeds 20KB limit. Please upload a smaller file.")
+      e.target.value = null
+      return
+    }
 
     const reader = new FileReader()
 
@@ -425,6 +464,19 @@ const Jobs = () => {
   const handleCSVKeywordUpload = (e) => {
     const file = e.target.files?.[0]
     if (!file) return
+
+    if (!file.name.toLowerCase().endsWith(".csv")) {
+      message.error("Invalid file type. Please upload a .csv file.")
+      e.target.value = null
+      return
+    }
+
+    const maxSizeInBytes = 20 * 1024
+    if (file.size > maxSizeInBytes) {
+      message.error("File size exceeds 20KB limit. Please upload a smaller file.")
+      e.target.value = null
+      return
+    }
 
     const reader = new FileReader()
 
@@ -641,43 +693,6 @@ const Jobs = () => {
                   )}
                 </div>
               </div>
-
-              {/* <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Focus Keywords</label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={formData.focusKeywordInput}
-                    onChange={(e) => handleKeywordInputChange(e, "focusKeywords")}
-                    onKeyDown={(e) => handleKeyFocusPress(e, "focusKeywords")}
-                    className="flex-1 px-3 py-2 border border-gray-200 rounded-md text-sm"
-                    placeholder="Enter focus keywords"
-                  />
-                  <button
-                    onClick={() => handleAddFocusKeyword("focusKeywords")}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700"
-                  >
-                    Add
-                  </button>
-                </div>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {formData.focusKeywords.map((keyword, index) => (
-                    <span
-                      key={`${keyword}-${index}`}
-                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-                    >
-                      {keyword}
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveKeyword(index, "focusKeywords")}
-                        className="ml-1.5 flex-shrink-0 text-blue-400 hover:text-blue-600 focus:outline-none"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              </div> */}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -909,12 +924,8 @@ const Jobs = () => {
                     type="checkbox"
                     className="sr-only peer"
                     checked={newJob.options.wordpressPosting}
-                    onChange={(e) =>
-                      setNewJob({
-                        ...newJob,
-                        options: { ...newJob.options, wordpressPosting: e.target.checked },
-                      })
-                    }
+                    onChange={handleCheckboxChange}
+                    name="wordpressPosting"
                   />
                   <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                 </label>
@@ -1082,15 +1093,7 @@ const Jobs = () => {
                 <input
                   type="number"
                   value={newJob.blogs.numberOfBlogs}
-                  onChange={(e) => {
-                    const value = parseInt(e.target.value, 10)
-                    if (!isNaN(value) && value >= 0) {
-                      setNewJob({
-                        ...newJob,
-                        blogs: { ...newJob.blogs, numberOfBlogs: value },
-                      })
-                    }
-                  }}
+                  onChange={handlenumberOfBlogsChange}
                   className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Enter the number of blogs"
                 />
@@ -1182,175 +1185,194 @@ const Jobs = () => {
               </p>
             </div>
           </motion.div>
-          {jobs.length > 0 && (
+          {totalPages > 0 && (
             <h2 className="text-xl font-semibold text-gray-800 mb-6">Active Jobs</h2>
           )}
 
           {isLoading ? (
-            <SkeletonLoader count={3} />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(PAGE_SIZE)].map((_, index) => (
+                <SkeletonLoader key={index} />
+              ))}
+            </div>
+          ) : totalPages === 0 ? (
+            <div
+              className="flex flex-col justify-center items-center"
+              style={{ minHeight: "calc(100vh - 250px)" }}
+            >
+              <p className="text-xl text-gray-600">No jobs available.</p>
+            </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <AnimatePresence>
-                {jobs.map((job) => (
-                  <motion.div
-                    key={job._id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    whileHover={{ y: -5 }}
-                    className="bg-white rounded-xl shadow-lg hover:shadow-xl p-6 transition-all duration-200"
-                  >
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-800 capitalize">
-                          {job.name}
-                        </h3>
-                        <p className="text-sm text-gray-500 mt-1">
-                          ID: {job._id.toString().slice(-6)}
-                        </p>
-                      </div>
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => handleStartJob(job._id)}
-                        className={`px-3 py-1 rounded-full text-sm font-medium ${
-                          job.status === "active"
-                            ? "bg-red-100 text-red-600 hover:bg-red-200"
-                            : "bg-green-100 text-green-600 hover:bg-green-200"
-                        }`}
-                      >
-                        {job.status === "active" ? "Stop" : "Start"}
-                      </motion.button>
+              {paginatedJobs.map((job) => (
+                <motion.div
+                  key={job._id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 20 }}
+                  whileHover={{ y: -5 }}
+                  className="bg-white rounded-xl shadow-lg hover:shadow-xl p-6 transition-all duration-200"
+                >
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-800 capitalize">{job.name}</h3>
+                      <p className="text-sm text-gray-500 mt-1">
+                        ID: {job._id.toString().slice(-6)}
+                      </p>
                     </div>
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => handleStartJob(job._id)}
+                      className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        job.status === "active"
+                          ? "bg-red-100 text-red-600 hover:bg-red-200"
+                          : "bg-green-100 text-green-600 hover:bg-green-200"
+                      }`}
+                    >
+                      {job.status === "active" ? "Stop" : "Start"}
+                    </motion.button>
+                  </div>
 
-                    <div className="space-y-3 text-sm text-gray-600">
-                      <div className="flex items-center gap-2 capitalize">
-                        <FiCalendar className="w-4 h-4 text-blue-500" />
-                        <span>Scheduling: {job.schedule.type}</span>
-                      </div>
-                      <div className="flex items-center gap-2 capitalize">
-                        <FiFileText className="w-4 h-4 text-purple-500" />
-                        <span>Daily Blogs: {job.blogs.numberOfBlogs}</span>
-                      </div>
-                      <div className="flex items-center gap-2 capitalize">
-                        <FiSettings className="w-4 h-4 text-green-500" />
-                        <span>Model: {job.blogs.aiModel}</span>
-                      </div>
-                      <div className="flex items-center gap-2 capitalize">
-                        <FiCalendar className="w-4 h-4 text-red-500" />
-                        <span>Status: {job.status}</span>
-                      </div>
-                      {job.blogs.topics.length > 0 && (
-                        <div className="flex items-start gap-2 capitalize">
-                          <FiFileText className="w-4 h-4 text-purple-500 mt-0.5" />
-                          <div className="flex flex-wrap gap-2">
-                            Topics:
-                            {job.blogs.topics.map((topic, index) => (
-                              <span
-                                key={index}
-                                className="px-2 py-1 bg-gray-100 text-gray-600 rounded-md text-xs"
-                              >
-                                {topic}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      {job.blogs.focusKeywords?.length > 0 && (
-                        <div className="flex items-start gap-2 capitalize">
-                          <FiFileText className="w-4 h-4 text-blue-500 mt-0.5" />
-                          <div className="flex flex-wrap gap-2">
-                            Focus Keywords:
-                            {job.blogs.focusKeywords.map((keyword, index) => (
-                              <span
-                                key={index}
-                                className="px-2 py-1 bg-blue-100 text-blue-600 rounded-md text-xs"
-                              >
-                                {keyword}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      {job.blogs.keywords?.length > 0 && (
-                        <div className="flex items-start gap-2 capitalize">
-                          <FiFileText className="w-4 h-4 text-indigo-500 mt-0.5" />
-                          <div className="flex flex-wrap gap-2">
-                            Keywords:
-                            {job.blogs.keywords.map((keyword, index) => (
-                              <span
-                                key={index}
-                                className="px-2 py-1 bg-indigo-100 text-indigo-600 rounded-md text-xs"
-                              >
-                                {keyword}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2">
-                        <FiCalendar className="w-4 h-4 text-yellow-500" />
-                        <span>
-                          Created:{" "}
-                          {new Date(job.createdAt).toLocaleString("en-IN", {
-                            dateStyle: "medium",
-                            timeStyle: "short",
-                          }) || "N/A"}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <FiFileText className="w-4 h-4 text-purple-500" />
-                        <span>Generated Blogs: {job?.createdBlogs?.length}</span>
-                      </div>
+                  <div className="space-y-3 text-sm text-gray-600">
+                    <div className="flex items-center gap-2 capitalize">
+                      <FiCalendar className="w-4 h-4 text-blue-500" />
+                      <span>Scheduling: {job.schedule.type}</span>
                     </div>
+                    <div className="flex items-center gap-2 capitalize">
+                      <FiFileText className="w-4 h-4 text-purple-500" />
+                      <span>Daily Blogs: {job.blogs.numberOfBlogs}</span>
+                    </div>
+                    <div className="flex items-center gap-2 capitalize">
+                      <FiSettings className="w-4 h-4 text-green-500" />
+                      <span>Model: {job.blogs.aiModel}</span>
+                    </div>
+                    <div className="flex items-center gap-2 capitalize">
+                      <FiCalendar className="w-4 h-4 text-red-500" />
+                      <span>Status: {job.status}</span>
+                    </div>
+                    {job.blogs.topics.length > 0 && (
+                      <div className="flex items-start gap-2 capitalize">
+                        <FiFileText className="w-4 h-4 text-purple-500 mt-0.5" />
+                        <div className="flex flex-wrap gap-2">
+                          Topics:
+                          {job.blogs.topics.map((topic, index) => (
+                            <span
+                              key={index}
+                              className="px-2 py-1 bg-gray-100 text-gray-600 rounded-md text-xs"
+                            >
+                              {topic}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {job.blogs.focusKeywords?.length > 0 && (
+                      <div className="flex items-start gap-2 capitalize">
+                        <FiFileText className="w-4 h-4 text-blue-500 mt-0.5" />
+                        <div className="flex flex-wrap gap-2">
+                          Focus Keywords:
+                          {job.blogs.focusKeywords.map((keyword, index) => (
+                            <span
+                              key={index}
+                              className="px-2 py-1 bg-blue-100 text-blue-600 rounded-md text-xs"
+                            >
+                              {keyword}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {job.blogs.keywords?.length > 0 && (
+                      <div className="flex items-start gap-2 capitalize">
+                        <FiFileText className="w-4 h-4 text-indigo-500 mt-0.5" />
+                        <div className="flex flex-wrap gap-2">
+                          Keywords:
+                          {job.blogs.keywords.map((keyword, index) => (
+                            <span
+                              key={index}
+                              className="px-2 py-1 bg-indigo-100 text-indigo-600 rounded-md text-xs"
+                            >
+                              {keyword}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <FiCalendar className="w-4 h-4 text-yellow-500" />
+                      <span>
+                        Created:{" "}
+                        {new Date(job.createdAt).toLocaleString("en-IN", {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        }) || "N/A"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <FiFileText className="w-4 h-4 text-purple-500" />
+                      <span>Generated Blogs: {job?.createdBlogs?.length}</span>
+                    </div>
+                  </div>
 
-                    <div className="flex gap-2 mt-6">
+                  <div className="flex gap-2 mt-6">
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => handleEditJob(job)}
+                      className="px-4 py-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 flex items-center gap-2"
+                    >
+                      <FiEdit />
+                      Edit
+                    </motion.button>
+                    <Popconfirm
+                      title="Job Deletion"
+                      description="Are you sure to delete the job?"
+                      icon={<QuestionCircleOutlined style={{ color: "red" }} />}
+                      okText="Yes"
+                      cancelText="No"
+                      onConfirm={() => handleDeleteJob(job._id)}
+                    >
                       <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        onClick={() => handleEditJob(job)}
-                        className="px-4 py-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 flex items-center gap-2"
+                        className="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
                       >
-                        <FiEdit />
-                        Edit
+                        Delete
                       </motion.button>
-                      <Popconfirm
-                        title="Job Deletion"
-                        description="Are you sure to delete the job?"
-                        icon={<QuestionCircleOutlined style={{ color: "red" }} />}
-                        okText="Yes"
-                        cancelText="No"
-                        onConfirm={() => handleDeleteJob(job._id)}
-                      >
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          className="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
-                        >
-                          Delete
-                        </motion.button>
-                      </Popconfirm>
-                    </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
+                    </Popconfirm>
+                  </div>
+                </motion.div>
+              ))}
             </div>
           )}
-
-          {showJobModal && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white rounded-lg shadow-lg w-3/4 max-w-3xl p-6 relative max-h-[98vh] overflow-y-auto">
-                <button
-                  onClick={() => dispatch(closeJobModal())}
-                  className="absolute top-2 p-4 right-2 text-xl font-bold text-gray-400 hover:text-gray-600"
-                >
-                  ✕
-                </button>
-                {renderStep()}
-              </div>
+          {totalPages > PAGE_SIZE && (
+            <div className="flex justify-center mt-6">
+              <Pagination
+                current={currentPage}
+                pageSize={PAGE_SIZE}
+                total={totalPages}
+                onChange={(page) => setCurrentPage(page)}
+                showSizeChanger={false}
+                responsive={true}
+              />
             </div>
           )}
         </div>
       </div>
+      {showJobModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg w-3/4 max-w-3xl p-6 relative max-h-[98vh] overflow-y-auto">
+            <button
+              onClick={() => dispatch(closeJobModal())}
+              className="absolute top-2 p-4 right-2 text-xl font-bold text-gray-400 hover:text-gray-600"
+            >
+              ✕
+            </button>
+            {renderStep()}
+          </div>
+        </div>
+      )}
     </>
   )
 }

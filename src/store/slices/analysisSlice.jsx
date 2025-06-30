@@ -11,7 +11,8 @@ export const fetchCompetitiveAnalysisThunk = createAsyncThunk(
       message.success("Competitive analysis completed successfully!")
       return data
     } catch (error) {
-      message.error("Failed to fetch competitive analysis.")
+      console.error("Competitive analysis error", error)
+      message.error(error.response?.data?.message || "Failed to fetch competitive analysis.")
       return rejectWithValue(error.response?.data?.message || error.message)
     }
   }
