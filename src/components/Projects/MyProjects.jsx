@@ -337,31 +337,35 @@ const MyProjects = () => {
             open={isSearchModalOpen}
             onOpenChange={(visible) => setSearchModalOpen(visible)}
           >
-            <Tooltip title="Search">
-              {isSearchOpen ? (
-                <Input
-                  autoFocus
-                  size="small"
-                  placeholder={`Search by ${
-                    searchType === "title" ? "title" : "focus keywords"
-                  }...`}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onPressEnter={handleSearch}
-                  onBlur={() => setSearchOpen(false)}
-                  className="w-48"
-                />
-              ) : (
-                <Button type="text" icon={<Search />} onClick={toggleSearch} />
-              )}
-            </Tooltip>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Tooltip title="Search">
+                {isSearchOpen ? (
+                  <Input
+                    autoFocus
+                    size="small"
+                    placeholder={`Search by ${
+                      searchType === "title" ? "title" : "focus keywords"
+                    }...`}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onPressEnter={handleSearch}
+                    onBlur={() => setSearchOpen(false)}
+                    className="w-48"
+                  />
+                ) : (
+                  <Button type="text" icon={<Search />} onClick={toggleSearch} />
+                )}
+              </Tooltip>
+            </motion.div>
           </Popover>
 
-          <Tooltip title="Refresh">
-            <Button type="button" className="p-0" onClick={handleRefresh}>
-              <RefreshCcw />
-            </Button>
-          </Tooltip>
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Tooltip title="Refresh">
+              <Button type="button" className="p-0" onClick={handleRefresh}>
+                <RefreshCcw />
+              </Button>
+            </Tooltip>
+          </motion.div>
 
           <Popover
             open={isMenuOpen}

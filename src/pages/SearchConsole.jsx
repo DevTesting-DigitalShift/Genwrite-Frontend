@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react"
 import {
   Search,
   TrendingUp,
@@ -16,91 +16,92 @@ import {
   ChevronRight,
   LogIn,
   Link,
-} from "lucide-react";
-import { Helmet } from "react-helmet";
-import { motion } from "framer-motion";
-import { useDispatch, useSelector } from "react-redux";
-import { fetchVerifiedSites, connectGscAccount } from "@store/slices/gscSlice";
-import axios from "axios";
-import { useGoogleLogin } from "@react-oauth/google";
+  Download,
+} from "lucide-react"
+import { Helmet } from "react-helmet"
+import { motion } from "framer-motion"
+import { useDispatch, useSelector } from "react-redux"
+import { fetchVerifiedSites, connectGscAccount } from "@store/slices/gscSlice"
+import axios from "axios"
+import { useGoogleLogin } from "@react-oauth/google"
 
 const SearchConsole = () => {
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState("")
   const [sortConfig, setSortConfig] = useState({
     key: null,
     direction: "asc",
-  });
-  const [filterCategory, setFilterCategory] = useState("all");
-  const [filterStatus, setFilterStatus] = useState("all");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [dateRange, setDateRange] = useState("30d");
-  const [blogData, setBlogData] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const dispatch = useDispatch();
-  const { verifiedSites, loading: sitesLoading } = useSelector((state) => state.gsc);
+  })
+  const [filterCategory, setFilterCategory] = useState("all")
+  const [filterStatus, setFilterStatus] = useState("all")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
+  const [dateRange, setDateRange] = useState("30d")
+  const [blogData, setBlogData] = useState([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState(null)
+  const [isConnecting, setIsConnecting] = useState(false)
+  const dispatch = useDispatch()
+  const { verifiedSites, loading: sitesLoading } = useSelector((state) => state.gsc)
 
   // Calculate date range for API request
   const getDateRangeParams = () => {
-    const to = new Date();
-    const from = new Date();
+    const to = new Date()
+    const from = new Date()
     switch (dateRange) {
       case "7d":
-        from.setDate(to.getDate() - 7);
-        break;
+        from.setDate(to.getDate() - 7)
+        break
       case "90d":
-        from.setDate(to.getDate() - 90);
-        break;
+        from.setDate(to.getDate() - 90)
+        break
       case "1y":
-        from.setFullYear(to.getFullYear() - 1);
-        break;
+        from.setFullYear(to.getFullYear() - 1)
+        break
       case "30d":
       default:
-        from.setDate(to.getDate() - 30);
-        break;
+        from.setDate(to.getDate() - 30)
+        break
     }
     return {
       from: from.toISOString().split("T")[0],
       to: to.toISOString().split("T")[0],
-    };
-  };
+    }
+  }
 
   // Google Search Console authentication
- const connectGSC = useGoogleLogin({
-  // scope: "https://www.googleapis.com/auth/digitalshiftdevtesting@gmail.com",
-  flow: "auth-code",
-  redirect_uri: "https://genwrite-frontend-eight.vercel.app/search-console",
-  onSuccess: async (tokenResponse) => {
-    setIsConnecting(true)
-    setError(null)
-    try {
-      await dispatch(connectGscAccount(tokenResponse.code)).unwrap()
-      await dispatch(fetchVerifiedSites()) // optionally refetch sites
-      message.success("GSC Connected Successfully")
-    } catch (err) {
-      console.error("GSC Connection Error:", err)
-      setError("Failed to connect Google Search Console. Please try again.")
-    } finally {
+  const connectGSC = useGoogleLogin({
+    // scope: "https://www.googleapis.com/auth/digitalshiftdevtesting@gmail.com",
+    flow: "auth-code",
+    redirect_uri: "https://genwrite-frontend-eight.vercel.app/search-console",
+    onSuccess: async (tokenResponse) => {
+      setIsConnecting(true)
+      setError(null)
+      try {
+        await dispatch(connectGscAccount(tokenResponse.code)).unwrap()
+        await dispatch(fetchVerifiedSites()) // optionally refetch sites
+        message.success("GSC Connected Successfully")
+      } catch (err) {
+        console.error("GSC Connection Error:", err)
+        setError("Failed to connect Google Search Console. Please try again.")
+      } finally {
+        setIsConnecting(false)
+      }
+    },
+    onError: (error) => {
+      console.error("❌ GSC Auth Failed:", error)
+      setError("Google authentication failed. Please try again.")
       setIsConnecting(false)
-    }
-  },
-  onError: (error) => {
-    console.error("❌ GSC Auth Failed:", error)
-    setError("Google authentication failed. Please try again.")
-    setIsConnecting(false)
-  },
-})
+    },
+  })
 
   // Fetch analytics data for all verified sites
   const fetchAnalyticsData = async () => {
-    setIsLoading(true);
-    setError(null);
+    setIsLoading(true)
+    setError(null)
     try {
-      const { from, to } = getDateRangeParams();
+      const { from, to } = getDateRangeParams()
       const blogDataPromises = verifiedSites.map(async (site) => {
-        const siteUrl = site.siteUrl;
+        const siteUrl = site.siteUrl
         const response = await axios.get("/api/gsc/sites-data", {
           params: {
             siteUrl,
@@ -108,9 +109,9 @@ const SearchConsole = () => {
             to,
             dimensions: ["page", "query"],
           },
-        });
+        })
 
-        const analyticsRows = response.data.data.rows || [];
+        const analyticsRows = response.data.data.rows || []
         return analyticsRows.map((row, index) => ({
           id: `${siteUrl}-${index}`,
           blogName: row.keys[0].split("/").pop() || "Untitled Page",
@@ -123,68 +124,68 @@ const SearchConsole = () => {
           publishDate: new Date().toISOString().split("T")[0], // Placeholder
           category: "Uncategorized", // Placeholder
           status: "published", // Placeholder
-        }));
-      });
+        }))
+      })
 
-      const allBlogData = (await Promise.all(blogDataPromises)).flat();
-      setBlogData(allBlogData);
+      const allBlogData = (await Promise.all(blogDataPromises)).flat()
+      setBlogData(allBlogData)
     } catch (err) {
-      console.error("Error fetching analytics data:", err);
-      setError("Failed to load analytics data. Please try again.");
+      console.error("Error fetching analytics data:", err)
+      setError("Failed to load analytics data. Please try again.")
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   // Fetch verified sites and analytics data on mount and date range change
   useEffect(() => {
-    dispatch(fetchVerifiedSites());
-  }, [dispatch]);
+    dispatch(fetchVerifiedSites())
+  }, [dispatch])
 
   useEffect(() => {
     if (verifiedSites.length > 0) {
-      fetchAnalyticsData();
+      fetchAnalyticsData()
     }
-  }, [verifiedSites, dateRange]);
+  }, [verifiedSites, dateRange])
 
   // Filtering and sorting logic
   const filteredAndSortedData = useMemo(() => {
     let filtered = blogData.filter((blog) => {
       const matchesSearch =
         blog.blogName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        blog.keywords.some((keyword) => keyword.toLowerCase().includes(searchTerm.toLowerCase()));
-      const matchesCategory = filterCategory === "all" || blog.category === filterCategory;
-      const matchesStatus = filterStatus === "all" || blog.status === filterStatus;
+        blog.keywords.some((keyword) => keyword.toLowerCase().includes(searchTerm.toLowerCase()))
+      const matchesCategory = filterCategory === "all" || blog.category === filterCategory
+      const matchesStatus = filterStatus === "all" || blog.status === filterStatus
 
-      return matchesSearch && matchesCategory && matchesStatus;
-    });
+      return matchesSearch && matchesCategory && matchesStatus
+    })
 
     if (sortConfig.key) {
       filtered.sort((a, b) => {
-        const aValue = a[sortConfig.key];
-        const bValue = b[sortConfig.key];
+        const aValue = a[sortConfig.key]
+        const bValue = b[sortConfig.key]
 
         if (typeof aValue === "string" && typeof bValue === "string") {
           return sortConfig.direction === "asc"
             ? aValue.localeCompare(bValue)
-            : bValue.localeCompare(aValue);
+            : bValue.localeCompare(aValue)
         }
 
         if (typeof aValue === "number" && typeof bValue === "number") {
-          return sortConfig.direction === "asc" ? aValue - bValue : bValue - aValue;
+          return sortConfig.direction === "asc" ? aValue - bValue : bValue - aValue
         }
 
-        return 0;
-      });
+        return 0
+      })
     }
 
-    return filtered;
-  }, [blogData, searchTerm, sortConfig, filterCategory, filterStatus]);
+    return filtered
+  }, [blogData, searchTerm, sortConfig, filterCategory, filterStatus])
 
   // Pagination
-  const totalPages = Math.ceil(filteredAndSortedData.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedData = filteredAndSortedData.slice(startIndex, startIndex + itemsPerPage);
+  const totalPages = Math.ceil(filteredAndSortedData.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const paginatedData = filteredAndSortedData.slice(startIndex, startIndex + itemsPerPage)
 
   // Calculate totals
   const totals = useMemo(() => {
@@ -204,48 +205,52 @@ const SearchConsole = () => {
             : 0,
       }),
       { clicks: 0, impressions: 0, avgCtr: 0, avgPosition: 0 }
-    );
-  }, [filteredAndSortedData]);
+    )
+  }, [filteredAndSortedData])
 
   const handleSort = (key) => {
     setSortConfig((prev) => ({
       key,
       direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
-    }));
-  };
+    }))
+  }
 
   const getSortIcon = (key) => {
-    if (sortConfig.key !== key) return <ArrowUpDown className="w-4 h-4 text-gray-400" />;
+    if (sortConfig.key !== key) return <ArrowUpDown className="w-4 h-4 text-gray-400" />
     return sortConfig.direction === "asc" ? (
       <ArrowUp className="w-4 h-4 text-blue-600" />
     ) : (
-      <ArrowDown className="w-4 h-4 text-blue-600" />);
-  };
+      <ArrowDown className="w-4 h-4 text-blue-600" />
+    )
+  }
 
   const formatNumber = (num) => {
-    return new Intl.NumberFormat().format(num);
-  };
+    return new Intl.NumberFormat().format(num)
+  }
 
   const getStatusColor = (status) => {
     switch (status) {
       case "published":
-        return "bg-green-100 text-green-800";
+        return "bg-green-100 text-green-800"
       case "draft":
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-yellow-100 text-yellow-800"
       case "archived":
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 text-gray-800"
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 text-gray-800"
     }
-  };
+  }
 
-  const categories = ["all", ...Array.from(new Set(blogData.map((blog) => blog.category)))];
-  const statuses = ["all", "published", "draft", "archived"];
+  const categories = ["all", ...Array.from(new Set(blogData.map((blog) => blog.category)))]
+  const statuses = ["all", "published", "draft", "archived"]
 
   // GSC Connection UI
   if (!verifiedSites.length) {
     return (
-      <div className="p-6 flex items-center justify-center"  style={{ minHeight: "calc(100vh - 250px)" }}>
+      <div
+        className="p-6 flex items-center justify-center"
+        style={{ minHeight: "calc(100vh - 250px)" }}
+      >
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -259,7 +264,8 @@ const SearchConsole = () => {
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Connect Google Search Console</h2>
           <p className="text-gray-600 text-sm mb-6">
-            Connect your Google Search Console account to monitor your blog performance, track search analytics, and optimize your content for better visibility.
+            Connect your Google Search Console account to monitor your blog performance, track
+            search analytics, and optimize your content for better visibility.
           </p>
           {error && (
             <div className="bg-red-100 text-red-800 p-3 rounded-lg text-sm mb-4">{error}</div>
@@ -283,7 +289,7 @@ const SearchConsole = () => {
           </button>
         </motion.div>
       </div>
-    );
+    )
   }
 
   return (
@@ -317,6 +323,15 @@ const SearchConsole = () => {
               <option value="90d">Last muiden90 days</option>
               <option value="1y">Last year</option>
             </select>
+
+            <button
+              // onClick={handleExport} // your export function
+              // disabled={isExporting}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Download className={`w-4 h-4 ${isExporting ? "animate-pulse" : ""}`} />
+              Export
+            </button>
 
             <button
               onClick={fetchAnalyticsData}
@@ -361,7 +376,9 @@ const SearchConsole = () => {
                 </div>
                 <TrendingUp className="w-5 h-5 text-green-500" />
               </div>
-              <h3 className="text-2xl font-bold text-gray-900">{formatNumber(totals.impressions)}</h3>
+              <h3 className="text-2xl font-bold text-gray-900">
+                {formatNumber(totals.impressions)}
+              </h3>
               <p className="text-gray-600 text-sm">Total Impressions</p>
               <div className="mt-2 text-xs text-green-600 font-medium">+8.3% vs last period</div>
             </div>
@@ -427,7 +444,9 @@ const SearchConsole = () => {
                 >
                   {statuses.map((status) => (
                     <option key={status} value={status}>
-                      {status === "all" ? "All Status" : status.charAt(0).toUpperCase() + status.slice(1)}
+                      {status === "all"
+                        ? "All Status"
+                        : status.charAt(0).toUpperCase() + status.slice(1)}
                     </option>
                   ))}
                 </select>
@@ -522,10 +541,14 @@ const SearchConsole = () => {
                         </div>
                       </td>
                       <td className="p-4 text-center">
-                        <div className="font-semibold text-gray-900">{formatNumber(blog.clicks)}</div>
+                        <div className="font-semibold text-gray-900">
+                          {formatNumber(blog.clicks)}
+                        </div>
                       </td>
                       <td className="p-4 text-center">
-                        <div className="font-semibold text-gray-900">{formatNumber(blog.impressions)}</div>
+                        <div className="font-semibold text-gray-900">
+                          {formatNumber(blog.impressions)}
+                        </div>
                       </td>
                       <td className="p-4 text-center">
                         <div
@@ -613,8 +636,8 @@ const SearchConsole = () => {
                 <select
                   value={itemsPerPage}
                   onChange={(e) => {
-                    setItemsPerPage(Number(e.target.value));
-                    setCurrentPage(1);
+                    setItemsPerPage(Number(e.target.value))
+                    setCurrentPage(1)
                   }}
                   className="px-3 py-1 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
@@ -637,7 +660,7 @@ const SearchConsole = () => {
 
                 <div className="flex items-center gap-1">
                   {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    const pageNum = i + 1;
+                    const pageNum = i + 1
                     return (
                       <button
                         key={pageNum}
@@ -650,7 +673,7 @@ const SearchConsole = () => {
                       >
                         {pageNum}
                       </button>
-                    );
+                    )
                   })}
                   {totalPages > 5 && (
                     <>
@@ -682,7 +705,7 @@ const SearchConsole = () => {
         )}
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default SearchConsole;
+export default SearchConsole

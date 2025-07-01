@@ -33,7 +33,7 @@ const initialJob = {
     templates: [],
     tone: "Professional",
     userDefinedLength: 1000,
-    imageSource: "unsplash",
+    imageSource: "stock images",
     aiModel: "gemini",
   },
   options: {
@@ -748,7 +748,7 @@ const Jobs = () => {
                   className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="ai-generated">AI-Generated Images</option>
-                  <option value="unsplash">Unsplash Images</option>
+                  <option value="unsplash">Stock Images</option>
                 </select>
               </div>
 

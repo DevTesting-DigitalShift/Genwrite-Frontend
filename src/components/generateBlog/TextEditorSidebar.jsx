@@ -26,6 +26,7 @@ const TextEditorSidebar = ({
   const [isAnalyzingProofreading, setIsAnalyzingProofreading] = useState(false)
   const [competitiveAnalysisResults, setCompetitiveAnalysisResults] = useState(null)
   const [shouldRunCompetitive, setShouldRunCompetitive] = useState(false)
+  const [seoScore, setSeoScore] = useState()
   const user = useSelector((state) => state.auth.user)
   const userPlan = user?.plan ?? user?.subscription?.plan
   const navigate = useNavigate()
@@ -56,6 +57,9 @@ const TextEditorSidebar = ({
       const data = fetchCompetitiveAnalysisThunk.fulfilled.match(resultAction)
         ? resultAction.payload
         : null
+
+      console.log({ data })
+      setSeoScore(data?.blogScore)
 
       setCompetitiveAnalysisResults(data)
     } catch (err) {
@@ -116,14 +120,14 @@ const TextEditorSidebar = ({
     }
 
     setIsAnalyzingProofreading(true)
-    
+
     try {
       const result = await dispatch(
         fetchProofreadingSuggestions({
           content: blog.content,
         })
       ).unwrap()
-      
+
       setProofreadingResults(result)
     } catch (error) {
       console.error("Error fetching proofreading suggestions:", error)
@@ -286,8 +290,14 @@ const TextEditorSidebar = ({
       <div className="mb-6">
         <h3 className="text-base font-semibold text-gray-800 mb-2">SEO Score</h3>
         <div className="bg-white rounded-lg shadow-md p-4 flex items-center justify-center gap-3">
-          <span className="text-2xl font-bold text-gray-900">{blog?.seoScore || "0"}</span>
-          <span className="text-lg text-gray-500">/ 100</span>
+          {seoScore ? (
+            <>
+              <span className="text-2xl font-bold text-gray-900">{seoScore || blog?.seoScore}</span>{" "}
+              <span className="text-lg text-gray-500">/ 100</span>
+            </>
+          ) : (
+            <span className="text-sm text-gray-500">Run CA to get SEO score</span>
+          )}
         </div>
       </div>
 

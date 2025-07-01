@@ -127,7 +127,7 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
                       className="h-4 w-4 text-[#1B6FC9] focus:ring-[#1B6FC9] border-gray-300"
                     />
                     <label htmlFor="unsplash" className="text-sm text-gray-700 whitespace-nowrap">
-                      Unsplash Images
+                      Stock Images
                     </label>
                   </div>
 

@@ -29,6 +29,7 @@ const Auth = ({ path }) => {
   const [isSignup, setIsSignup] = useState(path === "signup")
   const [loading, setLoading] = useState(false)
   const [generalError, setGeneralError] = useState(null)
+  const [termsAccepted, setTermsAccepted] = useState(false) // New state for terms checkbox
 
   const dispatch = useDispatch()
   const navigate = useNavigate()
@@ -60,9 +61,14 @@ const Auth = ({ path }) => {
       newErrors.password = "Password must include at least one special character."
     }
 
+    // Terms validation (signup only)
+    if (isSignup && !termsAccepted) {
+      newErrors.terms = "You must accept the Terms and Conditions."
+    }
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
-  }, [formData, isSignup])
+  }, [formData, isSignup, termsAccepted])
 
   // Handle input changes with debounced validation
   const handleInputChange = useCallback((e) => {
@@ -73,7 +79,13 @@ const Auth = ({ path }) => {
     setGeneralError(null)
   }, [])
 
-  // Handle Google login
+  // Handle terms checkbox
+  const handleTermsChange = useCallback(() => {
+    setTermsAccepted((prev) => !prev)
+    setErrors((prev) => ({ ...prev, terms: undefined }))
+  }, [])
+
+  // Handle Google 
   const handleGoogleLogin = useGoogleLogin({
     flow: "implicit",
     redirect_uri: "https://genwrite-frontend-eight.vercel.app/login",
@@ -87,7 +99,6 @@ const Auth = ({ path }) => {
         .catch((err) => {
           console.error("Google login error:", err)
           setGeneralError("Google login failed.")
-          // message.error("Google login failed.")
         })
     },
     onError: () => {
@@ -113,7 +124,6 @@ const Auth = ({ path }) => {
     async (e) => {
       e.preventDefault()
       if (!validateForm()) {
-        // message.error("Please fix the errors in the form.");
         return
       }
 
@@ -129,7 +139,7 @@ const Auth = ({ path }) => {
         message.success(isSignup ? "Signup successful!" : "Login successful!")
         setTimeout(() => {
           navigate("/dashboard", { replace: true })
-        }, 100) // delay navigation slightly
+        }, 100)
       } catch (err) {
         const backendError = err?.message || err?.payload?.message || "Something went wrong."
         setGeneralError(backendError)
@@ -148,6 +158,7 @@ const Auth = ({ path }) => {
     setFormData({ email: "", password: "", name: "" })
     setErrors({})
     setGeneralError(null)
+    setTermsAccepted(false)
   }, [path])
 
   const features = [
@@ -412,6 +423,55 @@ const Auth = ({ path }) => {
                   </AnimatePresence>
                 </div>
 
+                {/* Terms and Conditions Checkbox (Signup Only) */}
+                {isSignup && (
+                  <div className="relative">
+                    <label className="flex items-center gap-2 text-gray-600 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={termsAccepted}
+                        onChange={handleTermsChange}
+                        className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                        aria-label="Accept Terms and Conditions"
+                        aria-describedby={errors.terms ? "terms-error" : undefined}
+                      />
+                      <span>
+                        I accept the{" "}
+                        <a
+                          href="/terms-and-conditions"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline"
+                        >
+                          Terms and Conditions
+                        </a>{" "}
+                        and{" "}
+                        <a
+                          href="/privacy-policy"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline"
+                        >
+                          Privacy Policy
+                        </a>
+                      </span>
+                    </label>
+                    <AnimatePresence>
+                      {errors.terms && (
+                        <motion.p
+                          initial={{ opacity: 0, y: -5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -5 }}
+                          className="text-red-600 text-xs mt-1"
+                          id="terms-error"
+                        >
+                          {errors.terms}
+                        </motion.p>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
+
                 {/* Forgot Password Link (Login Only) */}
                 {!isSignup && (
                   <div className="text-right">
@@ -443,9 +503,9 @@ const Auth = ({ path }) => {
                   whileHover={{ y: -2, scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || (isSignup && !termsAccepted)}
                   className={`w-full py-4 px-6 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-2xl transition-all duration-300 shadow-lg hover:shadow-xl ${
-                    loading
+                    loading || (isSignup && !termsAccepted)
                       ? "opacity-70 cursor-not-allowed"
                       : "hover:from-blue-700 hover:to-purple-700"
                   }`}

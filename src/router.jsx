@@ -26,6 +26,8 @@ const SuccessPage = lazy(() => import("@pages/payment/SuccessPage"))
 const CancelPage = lazy(() => import("@pages/payment/CancelPage"))
 const ContactUs = lazy(() => import("@pages/ContactUs"))
 const SearchConsole = lazy(() => import("@pages/SearchConsole"))
+const TermsAndConditions = lazy(() => import("@pages/TermsAndConditions"))
+const PrivacyPolicy = lazy(() => import("@pages/Privacy"))
 
 /**
  * Wraps a component in React.Suspense with fallback support.
@@ -89,6 +91,8 @@ const router = createBrowserRouter([
       { path: "signup", element: withSuspense(Login, { path: "signup" }) },
       { path: "forgot-password", element: withSuspense(ForgotPassword) },
       { path: "reset-password", element: withSuspense(ResetPassword) },
+      { path: "privacy-policy", element: withSuspense(PrivacyPolicy) },
+      { path: "terms-and-conditions", element: withSuspense(TermsAndConditions) },
       { path: "*", element: withSuspense(ErrorPage) },
       {
         path: "preview/:blogId",
