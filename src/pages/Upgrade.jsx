@@ -1,23 +1,23 @@
-import React, { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import axiosInstance from "@api/index";
-import { loadStripe } from "@stripe/stripe-js";
-import { Check, Coins, Crown, Mail, Shield, Star, Zap } from "lucide-react";
-import { Helmet } from "react-helmet";
-import { SkeletonCard } from "@components/Projects/SkeletonLoader";
-import { message } from "antd";
+import React, { useEffect, useState } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import axiosInstance from "@api/index"
+import { loadStripe } from "@stripe/stripe-js"
+import { Check, Coins, Crown, Mail, Shield, Star, Zap } from "lucide-react"
+import { Helmet } from "react-helmet"
+import { SkeletonCard } from "@components/Projects/SkeletonLoader"
+import { message } from "antd"
 
 const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
-  const [customCredits, setCustomCredits] = useState(10);
+  const [customCredits, setCustomCredits] = useState(135)
 
   const handleCustomCreditsChange = (e) => {
-    const value = parseInt(e.target.value, 10) || 0;
-    setCustomCredits(value);
-  };
+    const value = parseInt(e.target.value, 10)
+    setCustomCredits(value)
+  }
 
   const calculateCustomPrice = () => {
-    return ((customCredits * 5) / 100).toFixed(2);
-  };
+    return (customCredits * 0.42).toFixed(2) 
+  }
 
   // Get the price based on the billing period
   const displayPrice =
@@ -25,7 +25,7 @@ const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
       ? null
       : billingPeriod === "annual"
       ? plan.priceAnnual
-      : plan.priceMonthly;
+      : plan.priceMonthly
 
   return (
     <div
@@ -64,20 +64,27 @@ const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
         {/* Pricing */}
         <div className="text-center mb-8">
           {plan.type === "credit_purchase" ? (
-            <div className="flex gap-4">
-              <input
-                type="number"
-                min="5"
-                value={customCredits}
-                onChange={handleCustomCreditsChange}
-                className={`w-full px-4 py-2 text-center text-blue-600 bg-transparent border-b-2 focus:outline-none appearance-none mb-2 ${
-                  customCredits < 10
-                    ? "border-red-500 focus:border-red-500"
-                    : "border-blue-500 focus:border-blue-500"
-                }`}
-              />
-              <div className="text-blue-600 text-lg">
-                ${calculateCustomPrice()} <p className="text-xs">(calculated)</p>
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-4">
+                <input
+                  type="number"
+                  min="55"
+                  value={customCredits}
+                  onChange={handleCustomCreditsChange}
+                  className={`w-full px-4 py-2 text-center text-blue-600 bg-transparent border-b-2 focus:outline-none appearance-none ${
+                    customCredits < 55
+                      ? "border-red-500 focus:border-red-500"
+                      : "border-blue-500 focus:border-blue-500"
+                  }`}
+                />
+                {customCredits >= 55 ? (
+                  <div className="text-blue-600 text-lg">
+                    ${calculateCustomPrice()}
+                    <p className="text-xs text-gray-500">(calculated)</p>
+                  </div>
+                ) : (
+                  <div className="text-red-500 text-sm flex items-center">Min 55 credits</div>
+                )}
               </div>
             </div>
           ) : (
@@ -112,15 +119,15 @@ const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
         <button
           onClick={() => {
             if (plan.type === "credit_purchase") {
-              if (customCredits < 5) return;
-              onBuy(plan, customCredits, billingPeriod);
+              if (customCredits < 5) return
+              onBuy(plan, customCredits, billingPeriod)
             } else if (plan.name.toLowerCase().includes("enterprise")) {
               window.open(
                 `https://mail.google.com/mail/?view=cm&fs=1&to=supportGenwrite@gmail.com&su=Genwrite Enterprise Subscription&body=.`,
                 "_blank"
-              );
+              )
             } else {
-              onBuy(plan, plan.credits, billingPeriod);
+              onBuy(plan, plan.credits, billingPeriod)
             }
           }}
           className={`w-full py-4 px-6 rounded-xl font-semibold text-sm transition-all duration-300 hover:transform hover:scale-105 ${
@@ -142,20 +149,20 @@ const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
         </button>
       </div>
     </div>
-  );
-};
+  )
+}
 
 const Upgrade = () => {
-  const [loading, setLoading] = useState(true);
-  const [billingPeriod, setBillingPeriod] = useState("monthly"); // State for billing period
+  const [loading, setLoading] = useState(true)
+  const [billingPeriod, setBillingPeriod] = useState("monthly") // State for billing period
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setLoading(false);
-    }, 1200); // 1.2s delay for animation simulation
+      setLoading(false)
+    }, 1200) // 1.2s delay for animation simulation
 
-    return () => clearTimeout(timer);
-  }, []);
+    return () => clearTimeout(timer)
+  }, [])
 
   const plans = [
     {
@@ -208,10 +215,10 @@ const Upgrade = () => {
       icon: <Coins className="w-8 h-8" />,
       type: "credit_purchase",
     },
-  ];
+  ]
 
   const handleBuy = async (plan, credits, billingPeriod) => {
-    const stripe = await loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+    const stripe = await loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
 
     try {
       const response = await axiosInstance.post("/stripe/checkout", {
@@ -224,22 +231,22 @@ const Upgrade = () => {
         billingPeriod: billingPeriod, // Send billing period to backend
         success_url: `${window.location.origin}/payment/success`,
         cancel_url: `${window.location.origin}/payment/cancel`,
-      });
+      })
 
       // Redirect to Stripe checkout
       if (response?.data.sessionId) {
-        const result = await stripe.redirectToCheckout({ sessionId: response.data.sessionId });
+        const result = await stripe.redirectToCheckout({ sessionId: response.data.sessionId })
         if (result?.error) {
-          throw result.error;
+          throw result.error
         }
       } else {
-        throw new Error("Something went wrong");
+        throw new Error("Something went wrong")
       }
     } catch (error) {
-      console.error("Error creating checkout session:", error);
-      message.error("Failed to initiate checkout. Please try again.");
+      console.error("Error creating checkout session:", error)
+      message.error("Failed to initiate checkout. Please try again.")
     }
-  };
+  }
 
   return (
     <div className="bg-gray-50 py-20 px-4">
@@ -310,7 +317,7 @@ const Upgrade = () => {
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default Upgrade;
+export default Upgrade

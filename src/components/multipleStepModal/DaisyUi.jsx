@@ -677,7 +677,7 @@ const MultiStepModal = ({ closeFnc }) => {
                         htmlFor="image-source-unsplash"
                         className="block text-sm font-medium leading-6 text-gray-900"
                       >
-                        Unsplash Stock Images
+                      Stock Images
                       </label>
                     </div>
                   </div>
