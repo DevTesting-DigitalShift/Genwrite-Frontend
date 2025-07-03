@@ -65,7 +65,7 @@ const SmallBottomBox = (id) => {
       label: "Copy",
       icon: <CopyOutlined />,
       onClick: () => {
-        navigator.clipboard.writeText("Copied content") // Replace with actual content
+        navigator.clipboard.writeText(JSON.stringify(id.content, null, 2));
         setMenuOpen(false)
       },
     },

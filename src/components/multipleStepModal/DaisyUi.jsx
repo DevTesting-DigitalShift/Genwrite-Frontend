@@ -382,7 +382,7 @@ const MultiStepModal = ({ closeFnc }) => {
                   <div
                     key={pkg.name}
                     className={`cursor-pointer transition-all duration-200 ${
-                      formData.templates.includes(pkg.name) ? "border-blue-500 border-2" : ""
+                      formData.templates.includes(pkg.name) ? "border-gray-300 border-2 rounded-lg" : ""
                     }`}
                     onClick={() => handlePackageSelect(index)}
                   >
@@ -395,19 +395,7 @@ const MultiStepModal = ({ closeFnc }) => {
                         />
                       </div>
                       <div
-                        className={`${
-                          index === 2
-                            ? "mt-3"
-                            : index === 3
-                            ? "mt-1"
-                            : index === 4
-                            ? "mt-2"
-                            : index === 6
-                            ? "mt-5"
-                            : index === 7
-                            ? "mt-3"
-                            : ""
-                        } p-2`}
+                        className="p-2 mt-3"
                       >
                         <h3 className="font-medium text-gray-900 mb-1">{pkg.name}</h3>
                         <p className="text-sm text-gray-500 line-clamp-2">{pkg.description}</p>

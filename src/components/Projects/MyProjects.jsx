@@ -182,7 +182,7 @@ const MyProjects = () => {
   }
 
   const handleRetry = async (id) => {
-    dispatch(retryBlog(id))
+    dispatch(retryBlog({ id }))
   }
 
   const truncateContent = (content, length = TRUNCATE_LENGTH) => {
