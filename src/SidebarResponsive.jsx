@@ -10,7 +10,7 @@ const SidebarResponsive = () => {
     { title: "My Projects", src: "myprojecticon.svg", path: "/blogs" },
     { title: "Toolbox", src: "toolboxicon.png", path: "/toolbox" },
     { title: "Plugins", src: "pluginicon.svg", path: "/plugins" },
-    { title: "Brand Voice", src: "brandvoiceicon.svg", path: "/brandvoice" },
+    { title: "Brand Voice", src: "brandvoiceicon.svg", path: "/brand-voice" },
     { title: "TrashCan", src: "trashcan.png", path: "/trashcan" },
   ];
 

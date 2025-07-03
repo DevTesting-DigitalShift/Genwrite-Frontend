@@ -189,22 +189,12 @@ const TextEditorSidebar = ({
   }
 
   const handleKeywordRewrite = () => {
-    if (userPlan === "free" || userPlan === "basic") {
-      handlePopup({
-        title: "Upgrade Required",
-        description: "Rewrite is only available for Pro and Enterprise users.",
-        confirmText: "Buy Now",
-        cancelText: "Cancel",
-        onConfirm: () => navigate("/upgrade"),
-      })
-    } else {
-      handlePopup({
-        title: "Rewrite Keywords",
-        description:
-          "Do you want to rewrite the entire content with added keywords? You can rewrite only 3 times.",
-        onConfirm: handleSave,
-      })
-    }
+    handlePopup({
+      title: "Rewrite Keywords",
+      description:
+        "Do you want to rewrite the entire content with added keywords? You can rewrite only 3 times.",
+      onConfirm: handleSave,
+    })
   }
 
   return (

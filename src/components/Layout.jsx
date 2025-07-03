@@ -11,8 +11,6 @@ import {
   LayoutDashboard,
   Megaphone,
   Plug,
-  Puzzle,
-  SearchCheck,
   Trash2,
   TrendingUp,
   UsersRound,
@@ -23,6 +21,7 @@ import { Tooltip, Dropdown, Avatar } from "antd"
 import { RiCoinsFill } from "react-icons/ri"
 import NotificationDropdown from "@components/NotificationDropdown"
 import GoProButton from "@components/GoProButton"
+import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 
 const LayoutWithSidebarAndHeader = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -31,15 +30,15 @@ const LayoutWithSidebarAndHeader = () => {
   const location = useLocation()
   const dispatch = useDispatch()
   const navigate = useNavigate()
+  const { handlePopup } = useConfirmPopup()
 
   useEffect(() => {
     const fetchCurrentUser = async () => {
       try {
         await dispatch(loadAuthenticatedUser()).unwrap()
-        // You now have the updated user data in Redux state
       } catch (err) {
         console.error("User load failed:", err)
-        navigate("/login") // optional: redirect on failure
+        navigate("/login")
       }
     }
 
@@ -65,7 +64,7 @@ const LayoutWithSidebarAndHeader = () => {
     { title: "Content Agent", icon: Briefcase, path: "/jobs" },
     { title: "Toolbox", icon: Box, path: "/toolbox" },
     { title: "Integrations", icon: Plug, path: "/integrations" },
-    { title: "Brand Voice", icon: Megaphone, path: "/brandvoice" },
+    { title: "Brand Voice", icon: Megaphone, path: "/brand-voice" },
     { title: "TrashCan", icon: Trash2, path: "/trashcan" },
   ]
 
@@ -73,8 +72,8 @@ const LayoutWithSidebarAndHeader = () => {
 
   const handleLogout = async () => {
     try {
-      await dispatch(logoutUser()).unwrap() // No need to pass navigate
-      navigate("/login") // Navigate after logout is complete
+      await dispatch(logoutUser()).unwrap()
+      navigate("/login")
     } catch (error) {
       console.error("Logout error:", error)
     }
@@ -115,6 +114,37 @@ const LayoutWithSidebarAndHeader = () => {
     },
     rootClassName: "!px-4 !py-2 rounded-lg shadow-md w-[20ch] text-lg !bg-gray-50 gap-4",
     items: [{ key: "login", danger: true, label: "Login", className: "!py-1.5 hover:bg-gray-100" }],
+  }
+
+  const handleUpgradePopup = (fromContentAgent = false) => {
+    handlePopup({
+      title: "Upgrade Required",
+      description: (
+        <>
+          <span>Content Agent is only available for Pro and Enterprise users.</span>
+          <br />
+          <span>Upgrade your plan to unlock this feature.</span>
+        </>
+      ),
+      confirmText: "Buy Now",
+      cancelText: "Cancel",
+      onConfirm: () => navigate("/upgrade"),
+      onCancel: () => {
+        if (fromContentAgent) {
+          navigate(-1) // Navigate back to the previous page
+        }
+      },
+    })
+  }
+
+  const handleContentAgentClick = (e, path) => {
+    const isPro = user?.plan === "pro" || user?.subscription?.plan === "pro"
+    if (!isPro) {
+      e.preventDefault() // Prevent navigation to /jobs
+      handleUpgradePopup(true) // Show popup with back navigation on cancel
+    } else {
+      navigate(path) // Navigate to /jobs for Pro users
+    }
   }
 
   return (
@@ -163,12 +193,19 @@ const LayoutWithSidebarAndHeader = () => {
           {Menus.map((Menu, index) => {
             const isActive = location.pathname.startsWith(Menu.path)
             const Icon = Menu.icon
+            const isContentAgent = Menu.title === "Content Agent"
+            const isPro = user?.plan === "pro" || user?.subscription?.plan === "pro"
 
             return (
-              <li key={index}>
+              <li key={index} className="flex items-center gap-2">
                 <NavLink
                   to={Menu.path}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors duration-200 text-white hover:bg-white/10 ${
+                  onClick={(e) => {
+                    if (isContentAgent) {
+                      handleContentAgentClick(e, Menu.path)
+                    }
+                  }}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors duration-200 text-white hover:bg-white/10 flex-1 ${
                     isActive ? "bg-white/20 font-semibold" : ""
                   }`}
                 >
@@ -176,9 +213,18 @@ const LayoutWithSidebarAndHeader = () => {
                     className="w-5 h-5 transition-all duration-200"
                     strokeWidth={isActive ? 2 : 1.5}
                   />
-
                   <span className={`${!sidebarOpen ? "hidden" : "block"}`}>{Menu.title}</span>
                 </NavLink>
+                {isContentAgent && !isPro && sidebarOpen && (
+                  <Tooltip title="Upgrade to Pro to access Content Agent">
+                    <button
+                      onClick={() => handleUpgradePopup(false)}
+                      className="p-1 bg-yellow-400 hover:bg-yellow-500 text-white rounded-md transition-all duration-200 hover:scale-105"
+                    >
+                      <Crown className="w-4 h-4" />
+                    </button>
+                  </Tooltip>
+                )}
               </li>
             )
           })}
@@ -210,7 +256,6 @@ const LayoutWithSidebarAndHeader = () => {
           </div>
           <div className="flex items-center space-x-4">
             <GoProButton onClick={() => navigate("/upgrade")} />
-
             {isUserLoaded ? (
               <>
                 <Tooltip title="User Credits">

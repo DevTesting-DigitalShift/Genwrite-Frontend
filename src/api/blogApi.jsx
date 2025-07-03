@@ -1,4 +1,4 @@
-import axiosInstance from "." // Import the Axios instance
+import axiosInstance from "."
 
 // Create a new blog
 export const createQuickBlog = async (blogData) => {
@@ -104,6 +104,7 @@ export const sendRetryLines = async (id, payload) => {
     const response = await axiosInstance.post(`/blogs/${id}/rewrite`, payload)
     return response
   } catch (error) {
+    console.error(error)
     throw new Error(error || "Failed to retry")
   }
 }

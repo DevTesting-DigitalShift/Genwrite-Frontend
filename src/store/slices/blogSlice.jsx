@@ -184,16 +184,17 @@ export const fetchBlogById = createAsyncThunk(
 
 export const updateBlogById = createAsyncThunk(
   "blogs/updateBlogById",
-  async ({ id, updatedData }, { rejectWithValue }) => {
+  async (payload, { rejectWithValue }) => {
     try {
-      const updated = await updateBlog(id, updatedData)
-      const allBlogs = await getAllBlogs()
-      return { updated, allBlogs }
+      const { id, ...updatedData } = payload;
+      const updated = await updateBlog(id, updatedData);
+      const allBlogs = await getAllBlogs();
+      return { updated, allBlogs };
     } catch (error) {
-      return rejectWithValue(error.message || "Failed to update blog")
+      return rejectWithValue(error.message || "Failed to update blog");
     }
   }
-)
+);
 
 export const fetchProofreadingSuggestions = createAsyncThunk(
   "blogs/fetchProofreadingSuggestions",

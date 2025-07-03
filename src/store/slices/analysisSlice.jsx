@@ -61,8 +61,11 @@ const analysisSlice = createSlice({
       state.error = null
     },
     setSelectedKeywords: (state, action) => {
-      state.selectedKeywords = action.payload;
-    }, 
+      state.selectedKeywords = action.payload
+    },
+    clearKeywordAnalysis: (state) => {
+      state.keywordResult = null
+    },
   },
   extraReducers: (builder) => {
     builder
