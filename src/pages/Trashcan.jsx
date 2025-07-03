@@ -73,6 +73,10 @@ const Trashcan = () => {
   const startIndex = (currentPage - 1) * PAGE_SIZE
   const paginatedBlogs = trashedBlogs.slice(startIndex, startIndex + PAGE_SIZE)
 
+  const cleanText = (text) => {
+    return text.replace(/[#=~`*_\-]+/g, "").trim()
+  }
+
   return (
     <div className="p-5">
       <Helmet>
@@ -224,7 +228,7 @@ const Trashcan = () => {
                             {title}
                           </h3>
                           <p className="text-sm text-gray-600 mb-4 line-clamp-3 break-all">
-                            {truncateContent(content)}
+                            {truncateContent(cleanText(content))}
                           </p>
                         </div>
                       </div>

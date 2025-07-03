@@ -27,7 +27,7 @@ const BrandVoice = () => {
     _id: undefined,
   })
   const [errors, setErrors] = useState({})
-  const { brands, selectedVoice } = useSelector((state) => state.brand)
+  const { brands } = useSelector((state) => state.brand)
 
   useEffect(() => {
     dispatch(fetchBrands())

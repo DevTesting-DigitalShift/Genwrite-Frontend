@@ -22,13 +22,13 @@ const SelectTemplateModal = ({ handleNext, handleClose, data, setData }) => {
 
   const packages = [
     {
-      imgSrc: "./Images/classicBlog.png",
+      imgSrc: "./Images/Classic.png",
       name: "Classic",
       description: "Timeless elegance for your classic blog journey",
       author: "Author 1",
     },
     {
-      imgSrc: "./Images/classicBlog.png",
+      imgSrc: "./Images/Listicle.png",
       name: "Listicle",
       description: "Tips for actionable success in list format.",
       author: "Author 2",
@@ -40,28 +40,28 @@ const SelectTemplateModal = ({ handleNext, handleClose, data, setData }) => {
       author: "Author 3",
     },
     {
-      imgSrc: "./Images/BlogImage.png",
+      imgSrc: "./Images/HowTo.png",
       name: "How to....",
       description: "Step-by-step guides for practical how-to solutions.",
       author: "Author 4",
     },
     {
-      imgSrc: "./Images/classicBlog.png",
+      imgSrc: "./Images/NewsArticle.png",
       name: "News Article",
       description: "Latest updates and breaking news coverage.",
     },
     {
-      imgSrc: "./Images/TipsBlog.png",
+      imgSrc: "./Images/OpinionPiece.png",
       name: "Opinion Piece",
       description: "Expert insights and analytical perspectives.",
     },
     {
-      imgSrc: "./Images/ProductReview.png",
+      imgSrc: "./Images/CaseStudy.png",
       name: "Case Study",
       description: "In-depth analysis and real-world examples.",
     },
     {
-      imgSrc: "./Images/BlogImage.png",
+      imgSrc: "./Images/Interview.png",
       name: "Interview",
       description: "Engaging conversations with industry experts.",
     },
@@ -113,13 +113,13 @@ const SelectTemplateModal = ({ handleNext, handleClose, data, setData }) => {
                 key={index}
                 className={`cursor-pointer transition-all duration-200 ${
                   formData.template.includes(pkg.name)
-                    ? "border-blue-500 border-2"
+                    ? "border-gray-300 border-2 rounded-lg"
                     : ""
                 }`}
                 onClick={() => handlePackageSelect(index)}
               >
                 <div className="bg-white rounded-lg overflow-hidden">
-                  <div className=" relative">
+                  <div className="relative">
                     <img
                       src={pkg.imgSrc || "/placeholder.svg"}
                       alt={pkg.name}
@@ -127,19 +127,7 @@ const SelectTemplateModal = ({ handleNext, handleClose, data, setData }) => {
                     />
                   </div>
                   <div
-                    className={`${
-                      index === 2
-                        ? "mt-3"
-                        : index === 3
-                        ? "mt-1"
-                        : index === 4
-                        ? "mt-2"
-                        : index === 6
-                        ? "mt-5"
-                        : index === 7
-                        ? "mt-3"
-                        : ""
-                    } p-2`}
+                    className="p-2 mt-2"
                   >
                     <h3 className="font-medium text-gray-900 mb-1">
                       {pkg.name}

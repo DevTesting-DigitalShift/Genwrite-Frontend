@@ -164,8 +164,8 @@ export const retryBlog = createAsyncThunk(
       message.success(result?.message || "Blog regenerated successfully")
       return result
     } catch (error) {
-      message.error(error.message)
-      return rejectWithValue(error.message)
+      message.error(error.message || "Something went wrong")
+      return rejectWithValue(error.message || "Failed to retry blog")
     }
   }
 )
