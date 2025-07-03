@@ -1,6 +1,6 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Card, Tabs, Input, Button } from "antd";
+import React, { useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { Card, Tabs, Input, Button } from "antd"
 import {
   EditOutlined,
   SearchOutlined,
@@ -8,47 +8,52 @@ import {
   GlobalOutlined,
   FileTextOutlined,
   CloseOutlined,
-} from "@ant-design/icons";
-import { motion } from "framer-motion";
-import CompetitiveAnalysisModal from "../multipleStepModal/CompetitiveAnalysisModal";
-import { useDispatch, useSelector } from "react-redux";
-import { analyzeKeywordsThunk } from "@store/slices/analysisSlice";
-import { Helmet } from "react-helmet";
+} from "@ant-design/icons"
+import { motion } from "framer-motion"
+import CompetitiveAnalysisModal from "../multipleStepModal/CompetitiveAnalysisModal"
+import { useDispatch, useSelector } from "react-redux"
+import { analyzeKeywordsThunk } from "@store/slices/analysisSlice"
+import { Helmet } from "react-helmet"
+import { ImMagicWand } from "react-icons/im"
+import { Keyboard, WholeWord } from "lucide-react"
 
 export default function ToolboxPage() {
-  const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("content");
-  const [keywords, setKeywords] = useState([]);
-  const [newKeyword, setNewKeyword] = useState("");
-  const [competitiveAnalysisModalOpen, setCompetitiveAnalysisModalOpen] = useState(false);
+  const navigate = useNavigate()
+  const [activeTab, setActiveTab] = useState("content")
+  const [keywords, setKeywords] = useState([])
+  const [newKeyword, setNewKeyword] = useState("")
+  const [competitiveAnalysisModalOpen, setCompetitiveAnalysisModalOpen] = useState(false)
 
-  const dispatch = useDispatch();
-  const { keywordResult: keywordAnalysisResult, loading: analyzing, error: analysisError } =
-    useSelector((state) => state.analysis);
+  const dispatch = useDispatch()
+  const {
+    keywordResult: keywordAnalysisResult,
+    loading: analyzing,
+    error,
+  } = useSelector((state) => state.analysis)
 
   const addKeyword = () => {
     if (newKeyword.trim() && !keywords.includes(newKeyword.trim())) {
-      setKeywords([...keywords, newKeyword.trim()]);
-      setNewKeyword("");
+      setKeywords([...keywords, newKeyword.trim()])
+      setNewKeyword("")
     }
-  };
+  }
 
   const removeKeyword = (index) => {
-    setKeywords(keywords.filter((_, i) => i !== index));
-  };
+    setKeywords(keywords.filter((_, i) => i !== index))
+  }
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter") {
-      addKeyword();
+      addKeyword()
     } else if (e.key === ",") {
-      e.preventDefault();
-      addKeyword(); // Fixed typo: handleAddKeyword(type) -> addKeyword()
+      e.preventDefault()
+      addKeyword() // Fixed typo: handleAddKeyword(type) -> addKeyword()
     }
-  };
+  }
 
   const analyzeKeywords = async () => {
-    dispatch(analyzeKeywordsThunk(keywords));
-  };
+    dispatch(analyzeKeywordsThunk(keywords))
+  }
 
   const cardItems = [
     {
@@ -61,15 +66,24 @@ export default function ToolboxPage() {
       color: "from-blue-500 to-indigo-600",
     },
     {
+      key: "humanize-content",
+      title: "Content Processor",
+      icon: <ImMagicWand className="text-blue-500" />,
+      description:
+        "Transform AI-generated text into natural, human-sounding content while preserving intent and clarity.",
+      action: () => navigate("/humanize-content"),
+      actionText: "Let's Convert",
+      color: "from-blue-500 to-indigo-600",
+    },
+    {
       key: "competitor-analysis",
       title: "Competitor Analysis",
-      icon: <GlobalOutlined className="text-red-500" />,
+      icon: <GlobalOutlined className="text-purple-500" />,
       description: "Analyze top performing content in your niche",
       action: () => setCompetitiveAnalysisModalOpen(true),
       actionText: "Start Analysis",
       color: "from-rose-500 to-pink-600",
     },
-    // Commented-out items kept for reference, can be re-enabled later
     // {
     //   key: "content-research",
     //   title: "Content Research",
@@ -90,7 +104,7 @@ export default function ToolboxPage() {
     //   color: "from-amber-500 to-orange-500",
     //   disabled: true,
     // },
-  ];
+  ]
 
   return (
     <>
@@ -166,10 +180,12 @@ export default function ToolboxPage() {
                 </motion.div>
               ),
               children: (
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-                  {cardItems.filter((item) => item.key === "ai-writer").map((item) => (
-                    <AnimatedCard key={item.key} item={item} />
-                  ))}
+                <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-6 mt-6">
+                  {cardItems
+                    .filter((item) => ["ai-writer", "humanize-content"].includes(item.key))
+                    .map((item) => (
+                      <AnimatedCard key={item.key} item={item} />
+                    ))}
                 </div>
               ),
             },
@@ -182,6 +198,28 @@ export default function ToolboxPage() {
                 >
                   <SearchOutlined className="text-purple-500" />
                   <span>SEO Tools</span>
+                </motion.div>
+              ),
+              children: (
+                <div className="space-y-6 mt-6">
+                  {/* Competitor Analysis Card */}
+                  {cardItems
+                    .filter((item) => item.key === "competitor-analysis")
+                    .map((item) => (
+                      <AnimatedCard key={item.key} item={item} />
+                    ))}
+                </div>
+              ),
+            },
+            {
+              key: "keyword",
+              label: (
+                <motion.div
+                  className="flex items-center gap-2 font-medium"
+                  whileHover={{ scale: 1.05 }}
+                >
+                  <Keyboard className="text-green-500" size={16} />
+                  <span>Keyword Tools</span>
                 </motion.div>
               ),
               children: (
@@ -200,18 +238,7 @@ export default function ToolboxPage() {
                       title={
                         <div className="flex justify-between items-center">
                           <span className="font-medium text-gray-700">Keyword Research</span>
-                          <motion.div
-                            animate={{
-                              y: [0, -5, 0],
-                              transition: {
-                                repeat: Infinity,
-                                duration: 2,
-                                ease: "easeInOut",
-                              },
-                            }}
-                          >
-                            <SearchOutlined className="text-green-500" />
-                          </motion.div>
+                          <WholeWord className="text-green-500" />
                         </div>
                       }
                       className="rounded-xl shadow-lg border-0 relative overflow-hidden transition-all duration-300 hover:shadow-xl"
@@ -310,12 +337,6 @@ export default function ToolboxPage() {
                       ></motion.div>
                     </Card>
                   </motion.div>
-                  {/* Competitor Analysis Card */}
-                  {cardItems
-                    .filter((item) => item.key === "competitor-analysis")
-                    .map((item) => (
-                      <AnimatedCard key={item.key} item={item} />
-                    ))}
                 </div>
               ),
             },
@@ -326,7 +347,7 @@ export default function ToolboxPage() {
         )}
       </motion.div>
     </>
-  );
+  )
 }
 
 function AnimatedCard({ item }) {
@@ -343,18 +364,7 @@ function AnimatedCard({ item }) {
         title={
           <div className="flex justify-between items-center">
             <span className="font-medium text-gray-700">{item.title}</span>
-            <motion.div
-              animate={{
-                y: [0, -5, 0],
-                transition: {
-                  repeat: Infinity,
-                  duration: 2,
-                  ease: "easeInOut",
-                },
-              }}
-            >
-              {item.icon}
-            </motion.div>
+            <div>{item.icon}</div>
           </div>
         }
         className={`rounded-xl shadow-lg border-0 relative overflow-hidden transition-all duration-300 ${
@@ -377,48 +387,7 @@ function AnimatedCard({ item }) {
             </Button>
           </motion.div>
         )}
-        <motion.div
-          className="absolute inset-0 rounded-xl pointer-events-none"
-          initial={{
-            background: "linear-gradient(45deg, transparent, transparent)",
-            opacity: 0,
-          }}
-          animate={{
-            background: [
-              "linear-gradient(45deg, transparent, transparent)",
-              `linear-gradient(45deg, ${getColorFromGradient(
-                item.color,
-                0
-              )}, ${getColorFromGradient(item.color, 1)})`,
-              "linear-gradient(45deg, transparent, transparent)",
-            ],
-            opacity: [0, 0.5, 0],
-          }}
-          transition={{
-            duration: 3,
-            repeat: Infinity,
-          }}
-          style={{
-            zIndex: -1,
-            margin: "-1px",
-            border: "1px solid transparent",
-          }}
-        ></motion.div>
       </Card>
     </motion.div>
-  );
-}
-
-function getColorFromGradient(gradient, index) {
-  const colors = {
-    "from-blue-500 to-indigo-600": ["#3b82f6", "#4f46e5"],
-    "from-emerald-500 to-teal-600": ["#10b981", "#0d9488"],
-    "from-amber-500 to-orange-500": ["#f59e0b", "#f97316"],
-    "from-violet-500 to-purple-600": ["#8b5cf6", "#7c3aed"],
-    "from-rose-500 to-pink-600": ["#f43f5e", "#db2777"],
-    "from-sky-500 to-cyan-500": ["#0ea5e9", "#06b6d4"],
-    "from-lime-500 to-green-500": ["#84cc16", "#22c55e"],
-    "from-gray-500 to-gray-700": ["#6b7280", "#374151"],
-  };
-  return colors[gradient]?.[index] || "#3b82f6";
+  )
 }

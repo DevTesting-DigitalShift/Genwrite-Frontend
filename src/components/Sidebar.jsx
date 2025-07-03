@@ -99,7 +99,7 @@ const Sidebar = () => {
             <NavItem
               icon={<img src="./Images/brandvoiceicon.svg" alt="brand-voice" />}
               text="Brand Voice"
-              to="/brandvoice"
+              to="/brand-voice"
             />
             <NavItem
               icon={<img src="./Images/trashcan.png" alt="trash" />}

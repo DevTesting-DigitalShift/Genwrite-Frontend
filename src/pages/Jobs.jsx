@@ -21,6 +21,7 @@ import {
   updateJobThunk,
 } from "@store/slices/jobSlice"
 import SkeletonLoader from "@components/Projects/SkeletonLoader"
+import { selectUser } from "@store/slices/authSlice"
 
 const initialJob = {
   name: "",
@@ -58,7 +59,9 @@ const Jobs = () => {
   const [topicInput, setTopicInput] = useState("")
   const { handlePopup } = useConfirmPopup()
   const [errors, setErrors] = useState({})
-  const user = useSelector((state) => state.auth.user)
+  const user = useSelector(selectUser)
+  // Fallback to "free" if user plan is undefined
+  const userPlan = (user?.plan || user?.subscription?.plan || "free").toLowerCase()
   const navigate = useNavigate()
   const [recentlyUploadedCount, setRecentlyUploadedCount] = useState(null)
   const dispatch = useDispatch()
@@ -73,6 +76,8 @@ const Jobs = () => {
     keywordInput: "",
     performKeywordResearch: false,
   })
+  // Add loading state for user data
+  const [isUserLoaded, setIsUserLoaded] = useState(false)
 
   // Calculate paginated jobs
   const startIndex = (currentPage - 1) * PAGE_SIZE
@@ -85,6 +90,15 @@ const Jobs = () => {
   useEffect(() => {
     dispatch(fetchJobs())
   }, [dispatch])
+
+  // Check if user is loaded
+  useEffect(() => {
+    if (user?.name || user?.credits) {
+      setIsUserLoaded(true)
+    } else {
+      setIsUserLoaded(false)
+    }
+  }, [user])
 
   // Sync formData with selectedKeywords when it changes
   useEffect(() => {
@@ -105,7 +119,11 @@ const Jobs = () => {
   }, [selectedKeywords])
 
   const handleCreateJob = () => {
-    if (user?.plan === "free" || user?.plan === "basic") {
+    if (!isUserLoaded) {
+      message.error("User data is still loading. Please try again.")
+      return
+    }
+    if (["free", "basic"].includes(userPlan)) {
       handlePopup({
         title: "Upgrade Required",
         description: "Job creation is only available for Pro and Enterprise users.",
@@ -140,13 +158,28 @@ const Jobs = () => {
         onSuccess: () => {
           dispatch(closeJobModal())
           dispatch(fetchJobs())
-          setCurrentPage(1) // Reset to first page after creating a job
+          setCurrentPage(1)
         },
       })
     )
   }
 
   const handleUpdateJob = async (jobId) => {
+    if (!isUserLoaded) {
+      message.error("User data is still loading. Please try again.")
+      return
+    }
+    if (["free", "basic"].includes(userPlan)) {
+      handlePopup({
+        title: "Upgrade Required",
+        description: "Job editing is only available for Pro and Enterprise users.",
+        confirmText: "Buy Now",
+        cancelText: "Cancel",
+        onConfirm: () => navigate("/upgrade"),
+      })
+      return
+    }
+
     const jobPayload = {
       ...newJob,
       blogs: {
@@ -172,7 +205,7 @@ const Jobs = () => {
         onSuccess: () => {
           dispatch(closeJobModal())
           dispatch(fetchJobs())
-          setCurrentPage(1) // Reset to first page after updating a job
+          setCurrentPage(1)
         },
       })
     )
@@ -195,7 +228,6 @@ const Jobs = () => {
 
   const handleDeleteJob = (jobId) => {
     dispatch(deleteJobThunk(jobId))
-    // If the current page becomes empty, go to the previous page
     if (paginatedJobs.length === 1 && currentPage > 1) {
       setCurrentPage((prev) => prev - 1)
     }
@@ -207,14 +239,14 @@ const Jobs = () => {
     if (step === 1) {
       if (newJob.blogs.templates.length === 0) {
         errors.template = true
-        message.error("Please select a template before proceeding ")
+        message.error("Please select at least one template before proceeding.")
       }
     }
 
     if (step === 2) {
       if (!newJob.name) {
         errors.name = true
-        message.error("Please fill all the required fields")
+        message.error("Please fill all the required fields.")
       }
     }
 
@@ -547,7 +579,7 @@ const Jobs = () => {
                   key={pkg.name}
                   className={`cursor-pointer transition-all duration-200 ${
                     newJob.blogs.templates.includes(pkg.name)
-                      ? "border-blue-500 border-2"
+                      ? "border-gray-300 border-2 rounded-lg"
                       : errors.templates
                       ? "border-red-500 border-2"
                       : ""
@@ -571,6 +603,8 @@ const Jobs = () => {
                           templates: [...prev.blogs.templates, pkg.name],
                         },
                       }))
+                    } else {
+                      message.error("You can only select up to 3 templates.")
                     }
                   }}
                 >
@@ -946,26 +980,26 @@ const Jobs = () => {
                       }
                     />
                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
-              )}
-            </div>
-            <div className="flex justify-between mt-6">
-              <button
-                onClick={() => setCurrentStep(2)}
-                className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
-              >
-                Previous
-              </button>
-              <button
-                onClick={() => setCurrentStep(4)}
-                className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-              >
-                Next
-              </button>
-            </div>
-          </motion.div>
-        )
+                </label>
+              </div>
+            )}
+          </div>
+          <div className="flex justify-between mt-6">
+            <button
+              onClick={() => setCurrentStep(2)}
+              className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+            >
+              Previous
+            </button>
+            <button
+              onClick={() => setCurrentStep(4)}
+              className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+            >
+              Next
+            </button>
+          </div>
+        </motion.div>
+      )
       case 4:
         return (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
@@ -1121,7 +1155,11 @@ const Jobs = () => {
   }
 
   const handleOpenJobModal = () => {
-    if (user?.plan === "free" || user?.plan === "basic") {
+    if (!isUserLoaded) {
+      message.error("User data is still loading. Please try again.")
+      return
+    }
+    if (["free", "basic"].includes(userPlan)) {
       handlePopup({
         title: "Upgrade Required",
         description: "Job creation is only available for Pro and Enterprise users.",
@@ -1171,7 +1209,7 @@ const Jobs = () => {
               <span className="bg-blue-100 rounded-lg p-3">
                 <FiPlus className="w-6 h-6 text-blue-600" />
               </span>
-              {["free", "basic"].includes(user?.plan?.toLowerCase?.()) && (
+              {["free", "basic"].includes(userPlan) && (
                 <span className="flex items-center gap-2 rounded-md text-white font-semibold border p-1 px-2 bg-gradient-to-tr from-blue-500 to-purple-500 shadow-md hover:shadow-xl hover:scale-105 transition-all duration-300 ease-in-out animate-pulse backdrop-blur-sm text-lg">
                   <Gem className="w-4 h-4 animate-bounce" />
                   Pro

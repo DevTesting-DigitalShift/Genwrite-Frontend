@@ -28,6 +28,7 @@ const ContactUs = lazy(() => import("@pages/ContactUs"))
 const SearchConsole = lazy(() => import("@pages/SearchConsole"))
 const TermsAndConditions = lazy(() => import("@pages/TermsAndConditions"))
 const PrivacyPolicy = lazy(() => import("@pages/Privacy"))
+const HumanizeContent = lazy(() => import("@pages/HumanizeContent"))
 
 /**
  * Wraps a component in React.Suspense with fallback support.
@@ -62,11 +63,12 @@ const router = createBrowserRouter([
       { path: "trashcan", element: withSuspense(trashcan) },
       { path: "upgrade", element: withSuspense(upgrade) },
       { path: "profile", element: withSuspense(Profile) },
-      { path: "brandVoice", element: withSuspense(BrandVoice) },
+      { path: "brand-voice", element: withSuspense(BrandVoice) },
       { path: "transactions", element: withSuspense(Transactions) },
       { path: "credit-logs", element: withSuspense(CreditLogsTable) },
       { path: "contact", element: withSuspense(ContactUs) },
       { path: "search-console", element: withSuspense(SearchConsole) },
+      { path: "humanize-content", element: withSuspense(HumanizeContent) },
       {
         path: "payment",
         children: [

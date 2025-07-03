@@ -26,7 +26,8 @@ import { getAllBlogs } from "@api/blogApi"
 import { SkeletonDashboardCard, SkeletonGridCard } from "./Projects/SkeletonLoader"
 import { openJobModal } from "@store/slices/jobSlice"
 import { message } from "antd"
-import {motion} from "framer-motion"
+import { motion } from "framer-motion"
+import { clearKeywordAnalysis } from "@store/slices/analysisSlice"
 
 const Dashboard = () => {
   const [isModalVisible, setIsModalVisible] = useState(false)
@@ -221,7 +222,10 @@ const Dashboard = () => {
       )}
       {keywordResearchModal && (
         <KeywordResearchModel
-          closeFnc={() => setKeywordResearchModal(false)}
+          closeFnc={() => {
+            setKeywordResearchModal(false)
+            dispatch(clearKeywordAnalysis())
+          }}
           openSecondStepModal={openSecondStepModal}
           openJobModal={openSecondStepJobModal} // Pass the job modal opener
         />
@@ -239,7 +243,7 @@ const Dashboard = () => {
                 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
               >
                 Let's Begin
-              <span className="ml-2 text-2xl text-yellow-400">✨</span>
+                <span className="ml-2 text-2xl text-yellow-400">✨</span>
               </motion.h1>
               <p className="text-gray-600 text-lg mt-2">
                 Welcome back <b>{user?.name}</b>! Ready to create something amazing today?

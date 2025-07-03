@@ -5,15 +5,12 @@ import Link from "@tiptap/extension-link"
 import Image from "@tiptap/extension-image"
 import Underline from "@tiptap/extension-underline"
 import TextAlign from "@tiptap/extension-text-align"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeRaw from "rehype-raw"
 import Prism from "prismjs"
 import "prismjs/themes/prism-tomorrow.css"
-import BulletList from "@tiptap/extension-bullet-list"
-import OrderedList from "@tiptap/extension-ordered-list"
-import ListItem from "@tiptap/extension-list-item"
 import {
   Eye,
   EyeOff,
@@ -40,14 +37,13 @@ import { useNavigate } from "react-router-dom"
 import { marked } from "marked"
 import TurndownService from "turndown"
 import SmallBottomBox from "@components/toolbox/SmallBottomBox"
-import { fetchBlogById, updateBlogById } from "@store/slices/blogSlice"
+import { updateBlogById } from "@store/slices/blogSlice"
 import { ProofreadingDecoration } from "@/extensions/ProofreadingDecoration"
 import { useProofreadingUI } from "@components/generateBlog/useProofreadingUI"
 import { sendRetryLines } from "@api/blogApi"
 import { Helmet } from "react-helmet"
 import { Tooltip, message } from "antd"
 import Loading from "@components/Loading"
-import { ImMagicWand } from "react-icons/im"
 
 const FONT_OPTIONS = [
   { label: "Inter", value: "font-sans" },
@@ -76,12 +72,10 @@ const TextEditor = ({
   const [hoveredSuggestion, setHoveredSuggestion] = useState(null)
   const [isRetrying, setIsRetrying] = useState(false)
   const [retryContent, setRetryContent] = useState(null)
-  const [selectedText, setSelectedText] = useState(null)
+  const [originalContent, setOriginalContent] = useState(null)
+  const [selectionRange, setSelectionRange] = useState({ from: 0, to: 0 }) // New state for selection positions
   const [retryModalOpen, setRetryModalOpen] = useState(false)
   const [bubblePos, setBubblePos] = useState({ top: 0, left: 0 })
-  const [showMagicWandModal, setShowMagicWandModal] = useState(false)
-  const leftPaneRef = useRef(null)
-  const rightPaneRef = useRef(null)
   const htmlEditorRef = useRef(null)
   const mdEditorRef = useRef(null)
   const dropdownRef = useRef(null)
@@ -142,44 +136,10 @@ const TextEditor = ({
         z-index: 1000;
         max-width: 300px;
       }
-      .sync-scroll {
-        overflow-y: auto;
-        scrollbar-width: none;
-        -ms-overflow-style: none;
-      }
-      .sync-scroll::-webkit-scrollbar {
-        display: none;
-      }
     `
     document.head.appendChild(style)
     return () => document.head.removeChild(style)
   }, [])
-
-  // Handle synchronized scrolling
-  useEffect(() => {
-    const leftPane = leftPaneRef.current
-    const rightPane = rightPaneRef.current
-
-    const syncScroll = (source, target) => {
-      if (!source || !target) return
-      target.scrollTop = source.scrollTop
-    }
-
-    const handleLeftScroll = () => syncScroll(leftPane, rightPane)
-    const handleRightScroll = () => syncScroll(rightPane, leftPane)
-
-    if (leftPane && rightPane) {
-      leftPane.addEventListener("scroll", handleLeftScroll)
-      rightPane.addEventListener("scroll", handleRightScroll)
-    }
-
-    return () => {
-      if (leftPane && rightPane) {
-        leftPane.removeEventListener("scroll", handleLeftScroll)
-        rightPane.removeEventListener("scroll", handleRightScroll)
-      }
-    }
-  }, [showMagicWandModal])
 
   // Handle click outside for model dropdown
   useEffect(() => {
@@ -204,9 +164,6 @@ const TextEditor = ({
             },
           },
         }),
-        BulletList,
-        OrderedList,
-        ListItem,
         Link.configure({
           HTMLAttributes: { class: "text-blue-600 underline" },
         }),
@@ -246,9 +203,8 @@ const TextEditor = ({
     if (activeSpan instanceof HTMLElement && bubbleRef.current) {
       const spanRect = activeSpan.getBoundingClientRect()
       const bubbleHeight = bubbleRef.current.offsetHeight
-
       const top = spanRect.top + window.scrollY - bubbleHeight - 8
-      const left = spanRect.left
+      const left = spanRect.left + window.scrollX
       setBubblePos({ top, left })
     }
   }, [activeSpan])
@@ -282,12 +238,10 @@ const TextEditor = ({
   useEffect(() => {
     const initialContent = blog?.content ?? ""
     setContent(initialContent)
-
     if (normalEditor && !normalEditor.isDestroyed && activeTab === "normal") {
       const htmlContent = initialContent ? marked.parse(initialContent, { gfm: true }) : "<p></p>"
       normalEditor.commands.setContent(htmlContent)
     }
-
     setShowPreview(false)
   }, [blog, normalEditor, activeTab, setContent])
 
@@ -327,9 +281,7 @@ const TextEditor = ({
       showUpgradePopup()
       return
     }
-
     setIsSaving(true)
-
     try {
       const response = await dispatch(
         updateBlogById({
@@ -341,16 +293,13 @@ const TextEditor = ({
           keywords,
         })
       )
-      if (response?.meta?.arg?.content) {
-        const updated = await dispatch(fetchBlogById(blog._id))
-        const payload = updated?.payload
-        if (payload) {
-          setContent(payload.content ?? "")
-          setKeywords(payload.keywords ?? [])
-        }
+
+      if (response) {
         message.success("Blog updated successfully")
-        navigate("/blogs")
+        setTimeout(() => navigate("/blogs"), 1000)
       }
+
+      return response
     } catch (error) {
       console.error("Error updating the blog:", error)
       message.error("Failed to save blog.")
@@ -362,15 +311,12 @@ const TextEditor = ({
   const insertText = (before, after, editorRef) => {
     const textarea = editorRef.current
     if (!textarea) return
-
     const start = textarea.selectionStart
     const end = textarea.selectionEnd
     const selectedText = textarea.value.substring(start, end)
     const newText = `${before}${selectedText}${after}`
-
     const newValue = textarea.value.substring(0, start) + newText + textarea.value.substring(end)
     setContent(newValue)
-
     setTimeout(() => {
       textarea.selectionStart = textarea.selectionEnd = start + before.length + selectedText.length
       textarea.focus()
@@ -391,123 +337,114 @@ const TextEditor = ({
     }
   }
 
-  const handleMagicWandClick = () => {
-    if (userPlan === "free" || userPlan === "basic") {
-      showUpgradePopup()
-      return
-    }
-
-    handlePopup({
-      title: "Confirm Humanize Action",
-      description: "This action will deduct 10 credits. Do you want to proceed?",
-      confirmText: "Yes, Proceed",
-      cancelText: "Cancel",
-      onConfirm: handleHumanize,
-    })
-  }
-
-  const handleHumanize = async () => {
+  const handleRetry = async () => {
     if (!blog?._id) {
       message.error("Blog ID is missing.")
       return
     }
-
-    const payload = {
-      // contentPart: safeContent.trim(),
-      humanizeContent: true,
+    if (!normalEditor && activeTab === "normal") {
+      message.error("Editor is not initialized.")
+      return
     }
-
-    setIsRetrying(true)
-
-    try {
-      const res = await sendRetryLines(blog._id, payload)
-
-      if (res.data) {
-        setRetryContent(res.data)
-        setSelectedText(safeContent)
-        setShowMagicWandModal(true)
-      } else {
-        message.error("No content received from humanize action.")
+    let selectedText
+    let from, to
+    if (activeTab === "normal") {
+      const selection = normalEditor.state.selection
+      from = selection.from
+      to = selection.to
+      if (from === to) {
+        message.error("Please select some text to retry.")
+        return
       }
-    } catch (error) {
-      console.error("Humanize failed:", error)
-      message.error(error.message || "Humanize failed.")
-    } finally {
-      setIsRetrying(false)
-    }
-  }
-
-  const handleAcceptHumanize = () => {
-    if (retryContent) {
-      setContent(retryContent)
-      if (normalEditor && activeTab === "normal") {
-        const parsedContent = marked.parse(retryContent, { gfm: true })
-        normalEditor.commands.setContent(parsedContent)
+      selectedText = normalEditor.state.doc.textBetween(from, to, "\n")
+    } else {
+      const editorRef = activeTab === "markdown" ? mdEditorRef : htmlEditorRef
+      const textarea = editorRef.current
+      if (!textarea) {
+        message.error("Editor is not initialized.")
+        return
       }
-      message.success("Content humanized successfully!")
+      from = textarea.selectionStart
+      to = textarea.selectionEnd
+      if (from === to) {
+        message.error("Please select some text to retry.")
+        return
+      }
+      selectedText = textarea.value.substring(from, to)
     }
-    setShowMagicWandModal(false)
-    setRetryContent(null)
-    setSelectedText(null)
-  }
-
-  const handleRetry = async () => {
-    if (!blog?._id) {
-      toast.error("Blog ID is missing.")
-      return
-    }
-
-    if (!normalEditor) {
-      toast.error("Editor is not initialized.")
-      return
-    }
-
-    const { from, to } = normalEditor.state.selection
-
-    if (from === to) {
-      toast.error("Please select some text to retry.")
-      return
-    }
-
-    const selectedText = normalEditor.state.doc.textBetween(from, to, "\n")
-
+    setOriginalContent(selectedText)
+    setSelectionRange({ from, to }) // Store selection positions
     const payload = {
       contentPart: selectedText.trim(),
     }
-
+    // Removed normalEditor.commands.setTextSelection(0) to preserve selection
     if (normalEditor) {
       normalEditor.commands.blur()
-      normalEditor.commands.setTextSelection(0)
     }
-
     try {
       setIsRetrying(true)
       const res = await sendRetryLines(blog._id, payload)
-
       if (res.data) {
         setRetryContent(res.data)
         setRetryModalOpen(true)
       } else {
-        toast.error("No content received from retry.")
+        message.error("No content received from retry.")
       }
     } catch (error) {
       console.error("Retry failed:", error)
-      toast.error(error.message || "Retry failed.")
+      message.error(error.message || "Retry failed.")
     } finally {
       setIsRetrying(false)
     }
   }
 
-  const handleRejectHumanize = () => {
-    setShowMagicWandModal(false)
+  const handleAcceptRetry = () => {
+    if (!retryContent) return
+    if (activeTab === "normal" && normalEditor) {
+      const parsedContent = marked.parse(retryContent, { gfm: true })
+      normalEditor
+        .chain()
+        .focus()
+        .deleteRange({ from: selectionRange.from, to: selectionRange.to }) // Use stored positions
+        .insertContentAt(selectionRange.from, parsedContent)
+        .setTextSelection({
+          from: selectionRange.from,
+          to: selectionRange.from + parsedContent.length,
+        })
+        .run()
+    } else {
+      const editorRef = activeTab === "markdown" ? mdEditorRef : htmlEditorRef
+      const textarea = editorRef.current
+      setContent((prev) => {
+        const newContent =
+          prev.substring(0, selectionRange.from) + retryContent + prev.substring(selectionRange.to)
+        if (textarea) {
+          setTimeout(() => {
+            textarea.selectionStart = selectionRange.from
+            textarea.selectionEnd = selectionRange.from + retryContent.length
+            textarea.focus()
+          }, 0)
+        }
+        return newContent
+      })
+    }
+    message.success("Selected lines replaced successfully!")
+    setRetryModalOpen(false)
     setRetryContent(null)
-    setSelectedText(null)
-    message.info("Humanized content discarded.")
+    setOriginalContent(null)
+    setSelectionRange({ from: 0, to: 0 })
+  }
+
+  const handleRejectRetry = () => {
+    setRetryModalOpen(false)
+    setRetryContent(null)
+    setOriginalContent(null)
+    setSelectionRange({ from: 0, to: 0 })
+    message.info("Retry content discarded.")
   }
 
   const FloatingToolbar = ({ editorRef, mode }) => {
     if (!selectionPosition || !editorRef.current) return null
-
     const formatActions = {
       markdown: [
         {
@@ -547,7 +484,6 @@ const TextEditor = ({
         },
       ],
     }
-
     return (
       <motion.div
         className="absolute flex gap-2 bg-white shadow-lg p-2 rounded border z-50"
@@ -769,10 +705,61 @@ const TextEditor = ({
       >
         <ListOrdered className="w-5 h-5" />
       </button>
-      <button onClick={handleMagicWandClick} className="p-2 rounded hover:bg-gray-100">
-        <ImMagicWand className="w-5 h-5" />
+      <button
+        onClick={() =>
+          safeEditorAction(() => {
+            const url = prompt("Enter URL")
+            if (url) {
+              if (activeTab === "normal") {
+                normalEditor.chain().focus().setLink({ href: url }).run()
+              } else if (activeTab === "html") {
+                insertText(`<a href="${url}">`, "</a>", htmlEditorRef)
+              } else {
+                insertText("[", `](${url})`, mdEditorRef)
+              }
+            }
+          })
+        }
+        className="p-2 rounded hover:bg-gray-100"
+      >
+        <LinkIcon className="w-5 h-5" />
       </button>
-      <SmallBottomBox id={blog?._id} content={content} />
+      <button
+        onClick={() =>
+          safeEditorAction(() => {
+            const url = prompt("Enter Image URL")
+            if (url) {
+              if (activeTab === "normal") {
+                normalEditor.chain().focus().setImage({ src: url }).run()
+              } else if (activeTab === "html") {
+                insertText(
+                  `<img src="${url}" alt="description" class="max-w-full my-4 rounded-lg mx-auto" />`,
+                  "",
+                  htmlEditorRef
+                )
+              } else {
+                insertText(`![Image](${url})`, "", mdEditorRef)
+              }
+            }
+          })
+        }
+        className="p-2 rounded hover:bg-gray-100"
+      >
+        <ImageIcon className="w-5 h-5" />
+      </button>
+      <button
+        onClick={() => safeEditorAction(() => normalEditor?.chain().focus().undo().run())}
+        className="p-2 rounded hover:bg-gray-100"
+      >
+        <Undo2 className="w-5 h-5" />
+      </button>
+      <button
+        onClick={() => safeEditorAction(() => normalEditor?.chain().focus().redo().run())}
+        className="p-2 rounded hover:bg-gray-100"
+      >
+        <Redo2 className="w-5 h-5" />
+      </button>
+      <SmallBottomBox id={blog?._id} />
     </div>
   )
 
@@ -784,7 +771,6 @@ const TextEditor = ({
         </div>
       )
     }
-
     if (blog?.status === "pending") {
       return (
         <div className="h-[calc(100vh-200px)] p-4 flex items-center justify-center">
@@ -792,7 +778,6 @@ const TextEditor = ({
         </div>
       )
     }
-
     if (showPreview && (activeTab === "markdown" || activeTab === "html")) {
       return (
         <div
@@ -822,7 +807,6 @@ const TextEditor = ({
                         let remainingText = child
                         let elements = []
                         let keyIndex = 0
-
                         while (remainingText.length > 0) {
                           let matched = false
                           for (const suggestion of proofreadingResults) {
@@ -1023,7 +1007,6 @@ const TextEditor = ({
             )}
           </div>
         )
-
       case "markdown":
         return (
           <div className="h-[calc(100vh-300px)] overflow-y-auto bg-white border rounded-lg relative">
@@ -1039,7 +1022,6 @@ const TextEditor = ({
             <FloatingToolbar editorRef={mdEditorRef} mode="markdown" />
           </div>
         )
-
       case "html":
         return (
           <div className="h-[calc(100vh-300px)] overflow-y-auto bg-white border rounded-lg relative">
@@ -1061,7 +1043,6 @@ const TextEditor = ({
             <FloatingToolbar editorRef={htmlEditorRef} mode="html" />
           </div>
         )
-
       default:
         return null
     }
@@ -1069,94 +1050,84 @@ const TextEditor = ({
 
   return (
     <div className="flex-grow p-4 relative -top-16">
-      <AnimatePresence>
-        {showMagicWandModal && (
-          <motion.div
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <div className="bg-white rounded-lg p-6 pb-4 max-w-4xl w-full">
-              <div className="flex max-h-[80vh]">
-                <div className="w-1/2 pr-2 flex flex-col">
-                  <h4 className="font-medium text-gray-700 mb-2">Original Content</h4>
-                  <div
-                    ref={leftPaneRef}
-                    className="p-4 bg-gray-50 rounded-md border border-gray-200 flex-1 sync-scroll"
+      {retryModalOpen && (
+        <motion.div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold mb-4">Generated Content</h3>
+            <div className="space-y-4">
+              <div>
+                <h4 className="text-sm font-medium text-gray-700">Original Text</h4>
+                <div className="p-4 bg-gray-100 rounded-md">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    rehypePlugins={[rehypeRaw]}
+                    className="prose"
+                    components={{
+                      a: ({ href, children }) => (
+                        <a
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline"
+                        >
+                          {children}
+                        </a>
+                      ),
+                      strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+                    }}
                   >
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      rehypePlugins={[rehypeRaw]}
-                      className="prose"
-                      components={{
-                        a: ({ href, children }) => (
-                          <a
-                            href={href}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline"
-                          >
-                            {children}
-                          </a>
-                        ),
-                        strong: ({ children }) => <strong className="font-bold">{children}</strong>,
-                      }}
-                    >
-                      {selectedText || "No content available"}
-                    </ReactMarkdown>
-                  </div>
-                </div>
-
-                <div className="w-1/2 pl-2 flex flex-col">
-                  <h4 className="font-medium text-gray-700 mb-2">Humanized Content</h4>
-                  <div
-                    ref={rightPaneRef}
-                    className="p-4 bg-gray-50 rounded-md border border-gray-200 flex-1 sync-scroll"
-                  >
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      rehypePlugins={[rehypeRaw]}
-                      className="prose"
-                      components={{
-                        a: ({ href, children }) => (
-                          <a
-                            href={href}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline"
-                          >
-                            {children}
-                          </a>
-                        ),
-                        strong: ({ children }) => <strong className="font-bold">{children}</strong>,
-                      }}
-                    >
-                      {retryContent || "No content generated"}
-                    </ReactMarkdown>
-                  </div>
+                    {originalContent || "No text selected"}
+                  </ReactMarkdown>
                 </div>
               </div>
-
-              <div className="flex justify-end mt-4 gap-4">
-                <button
-                  onClick={handleRejectHumanize}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
-                >
-                  Reject
-                </button>
-                <button
-                  onClick={handleAcceptHumanize}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                >
-                  Accept
-                </button>
+              <div>
+                <h4 className="text-sm font-medium text-gray-700">Improved Text</h4>
+                <div className="p-4 bg-gray-50 rounded-md">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    rehypePlugins={[rehypeRaw]}
+                    className="prose"
+                    components={{
+                      a: ({ href, children }) => (
+                        <a
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline"
+                        >
+                          {children}
+                        </a>
+                      ),
+                      strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+                    }}
+                  >
+                    {retryContent}
+                  </ReactMarkdown>
+                </div>
               </div>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                onClick={handleRejectRetry}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+              >
+                Reject
+              </button>
+              <button
+                onClick={handleAcceptRetry}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                Accept
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      )}
       {(isRetrying || isSavingKeyword) && (
         <motion.div
           className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50"
@@ -1166,7 +1137,6 @@ const TextEditor = ({
           <Loading />
         </motion.div>
       )}
-
       <Helmet>
         <title>Blog Editor | GenWrite</title>
       </Helmet>
@@ -1201,7 +1171,7 @@ const TextEditor = ({
               animate={{ rotate: 360 }}
               transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
             >
-              ⟳
+              Saving...
             </motion.span>
           ) : (
             "Save"
