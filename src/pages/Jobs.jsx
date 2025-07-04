@@ -980,26 +980,26 @@ const Jobs = () => {
                       }
                     />
                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                </label>
-              </div>
-            )}
-          </div>
-          <div className="flex justify-between mt-6">
-            <button
-              onClick={() => setCurrentStep(2)}
-              className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
-            >
-              Previous
-            </button>
-            <button
-              onClick={() => setCurrentStep(4)}
-              className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-            >
-              Next
-            </button>
-          </div>
-        </motion.div>
-      )
+                  </label>
+                </div>
+              )}
+            </div>
+            <div className="flex justify-between mt-6">
+              <button
+                onClick={() => setCurrentStep(2)}
+                className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setCurrentStep(4)}
+                className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+              >
+                Next
+              </button>
+            </div>
+          </motion.div>
+        )
       case 4:
         return (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
@@ -1351,6 +1351,18 @@ const Jobs = () => {
                       <FiFileText className="w-4 h-4 text-purple-500" />
                       <span>Generated Blogs: {job?.createdBlogs?.length}</span>
                     </div>
+                    {job?.lastRun && (
+                      <div className="flex items-center gap-2">
+                        <FiCalendar className="w-4 h-4 text-yellow-500" />
+                        <span>
+                          Last Run:{" "}
+                          {new Date(job.lastRun).toLocaleString("en-IN", {
+                            dateStyle: "medium",
+                            timeStyle: "short",
+                          })}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex gap-2 mt-6">

@@ -8,7 +8,8 @@ import { SkeletonCard } from "@components/Projects/SkeletonLoader"
 import { message } from "antd"
 
 const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
-  const [customCredits, setCustomCredits] = useState(135)
+  const [customCredits, setCustomCredits] = useState(500)
+  const currentCredits = billingPeriod === "annual" ? plan.annualCredits : plan.credits
 
   const handleCustomCreditsChange = (e) => {
     const value = parseInt(e.target.value, 10)
@@ -16,7 +17,7 @@ const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
   }
 
   const calculateCustomPrice = () => {
-    return (customCredits * 0.42).toFixed(2)
+    return (customCredits * 0.01).toFixed(2)
   }
 
   const displayPrice =
@@ -104,23 +105,23 @@ const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
               <div className="flex items-center gap-4">
                 <input
                   type="number"
-                  min="55"
+                  min="500"
                   value={customCredits}
                   onChange={handleCustomCreditsChange}
                   className={`flex-1 py-3 text-center text-xl font-bold bg-gray-50 border-2 rounded-lg focus:outline-none w-1/2 transition-all ${
-                    customCredits < 55
+                    customCredits < 500
                       ? "border-red-300 focus:border-red-500 text-red-600"
                       : `border-emerald-300 focus:border-emerald-500 ${styles.accent}`
                   }`}
                   placeholder="Credits"
                 />
                 <div className="text-right">
-                  {customCredits >= 55 ? (
+                  {customCredits >= 500 ? (
                     <div className={`${styles.price} text-2xl font-bold`}>
                       ${calculateCustomPrice()}
                     </div>
                   ) : (
-                    <div className="text-red-500 text-sm font-medium">Min 55</div>
+                    <div className="text-red-500 text-sm font-medium">Min 500 credits</div>
                   )}
                 </div>
               </div>
@@ -158,7 +159,7 @@ const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
         <button
           onClick={() => {
             if (plan.type === "credit_purchase") {
-              if (customCredits < 55) return
+              if (customCredits < 500) return
               onBuy(plan, customCredits, billingPeriod)
             } else if (plan.name.toLowerCase().includes("enterprise")) {
               window.open(
@@ -172,11 +173,11 @@ const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
           className={`w-full py-4 px-6 rounded-lg font-semibold transition-all duration-300 hover:transform hover:scale-105 hover:shadow-lg ${
             styles.button
           } ${
-            plan.type === "credit_purchase" && customCredits < 55
+            plan.type === "credit_purchase" && customCredits < 500
               ? "opacity-50 cursor-not-allowed"
               : ""
           } flex items-center justify-center gap-2`}
-          disabled={plan.type === "credit_purchase" && customCredits < 55}
+          disabled={plan.type === "credit_purchase" && customCredits < 500}
         >
           {plan.name.toLowerCase().includes("enterprise") && <Mail className="w-4 h-4" />}
           {plan.cta}
@@ -187,8 +188,32 @@ const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
 }
 
 const ComparisonTable = ({ plans, billingPeriod }) => {
-  // Collect all unique features
-  const allFeatures = Array.from(new Set(plans.flatMap((plan) => plan.features))).sort()
+  // Collect all features across plans
+  const rawFeatures = plans.flatMap((plan) => plan.features);
+  const featureCounts = rawFeatures.reduce((acc, feature) => {
+    acc[feature] = (acc[feature] || 0) + 1;
+    return acc;
+  }, {});
+
+  // Identify common features (present in all plans)
+  const commonFeatures = Object.entries(featureCounts)
+    .filter(([_, count]) => count === plans.length)
+    .map(([feature]) => feature);
+
+  // Identify features unique to higher-tier plans (not in Basic Plan)
+  const basicPlan = plans.find((plan) => plan.tier === "basic");
+  const uniqueFeatures = plans
+    .filter((plan) => plan.tier !== "basic")
+    .flatMap((plan) => plan.features)
+    .filter((feature) => !basicPlan.features.includes(feature))
+    .filter((value, index, self) => self.indexOf(value) === index) // Remove duplicates
+    .sort();
+
+  // Select 3-4 unique features (or all if fewer than 3)
+  const selectedUniqueFeatures = uniqueFeatures.slice(0, Math.min(4, uniqueFeatures.length));
+
+  // Combine common features with selected unique features
+  const allFeatures = [...commonFeatures, ...selectedUniqueFeatures].sort();
 
   // Map features to their availability in each plan
   const featureAvailability = allFeatures.map((feature) => ({
@@ -198,7 +223,7 @@ const ComparisonTable = ({ plans, billingPeriod }) => {
       tier: plan.tier,
       hasFeature: plan.features.includes(feature),
     })),
-  }))
+  }));
 
   return (
     <div className="mt-32 bg-white rounded-2xl shadow-lg overflow-hidden">
@@ -263,7 +288,17 @@ const ComparisonTable = ({ plans, billingPeriod }) => {
                         }`}
                       />
                     ) : (
-                      <span className="text-gray-400">—</span>
+                      <X
+                        className={`w-5 h-5 mx-auto ${
+                          plan.tier === "basic"
+                            ? "text-gray-600"
+                            : plan.tier === "pro"
+                            ? "text-blue-600"
+                            : plan.tier === "enterprise"
+                            ? "text-purple-600"
+                            : "text-emerald-600"
+                        }`}
+                      />
                     )}
                   </td>
                 ))}
@@ -273,129 +308,143 @@ const ComparisonTable = ({ plans, billingPeriod }) => {
         </table>
       </div>
     </div>
-  )
-}
+  );
+};
 
 const Upgrade = () => {
   const [loading, setLoading] = useState(true)
   const [billingPeriod, setBillingPeriod] = useState("monthly")
   const [showComparisonTable, setShowComparisonTable] = useState(true)
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false)
-    }, 1200)
+  const getPlans = (billingPeriod) => {
+    return [
+      {
+        name: "Basic Plan",
+        priceMonthly: 30,
+        priceAnnual: 300,
+        credits: 1250,
+        annualCredits: 5400,
+        description: "Perfect for individuals getting started with AI content creation.",
+        features: [
+          billingPeriod === "annual" ? "5400 annual credits" : "1200 monthly credits",
+          "Blog generation: single, quick, multiple",
+          "Keyword research",
+          "Performance monitoring",
+          "Humanize pasted content",
+          "No data export",
+          "No blog rewrite",
+          "No regenerate & retry",
+          "No proofreading",
+          "Email support",
+          "Standard templates",
+          "Automatic WordPress Posting",
+        ],
+        cta: "Get Started",
+        type: "subscription",
+        icon: <Zap className="w-8 h-8" />,
+        tier: "basic",
+        featured: false,
+      },
+      {
+        name: "GenWrite Pro",
+        priceMonthly: 60,
+        priceAnnual: 540,
+        credits: 5400,
+        annualCredits: 14400,
+        description: "Advanced AI features with priority support for growing teams.",
+        features: [
+          "Everything in Basic, plus:",
+          billingPeriod === "annual" ? "14,400 annual credits" : "5,400 monthly credits",
+          "Competitor analysis",
+          "Retry blog",
+          "Regenerate content",
+          "Rewrite blog",
+          "Proofreading",
+          "Jobs scheduling",
+          "Priority support",
+          "Advanced export options",
+        ],
+        cta: "Upgrade to Pro",
+        type: "subscription",
+        icon: <Shield className="w-8 h-8" />,
+        tier: "pro",
+        featured: true,
+      },
+      {
+        name: "Enterprise",
+        priceMonthly: "Custom",
+        priceAnnual: "Custom",
+        credits: "Unlimited",
+        annualCredits: "Unlimited",
+        description: "Tailored solutions with unlimited access and dedicated support.",
+        features: [
+          "Unlimited credits",
+          "All Pro features included",
+          "Custom AI models & workflows",
+          "Dedicated support manager",
+          "Custom integrations",
+          "SSO & advanced security",
+          "Training & onboarding",
+          "SLA guarantee",
+          "Early access to beta tools",
+          "Automatic WordPress Posting",
+        ],
+        cta: "Contact Sales",
+        type: "subscription",
+        icon: <Crown className="w-8 h-8" />,
+        tier: "enterprise",
+        featured: false,
+      },
+      {
+        name: "Credit Pack",
+        priceMonthly: null,
+        priceAnnual: null,
+        credits: null,
+        annualCredits: null,
+        description: "Flexible one-time credit purchase for occasional users.",
+        features: [
+          "Custom credit amount",
+          "No subscription required",
+          "Credits never expire",
+          "All features unlocked based on usage",
+          "Automatic WordPress Posting",
+        ],
+        cta: "Buy Credits",
+        type: "credit_purchase",
+        icon: <Coins className="w-8 h-8" />,
+        tier: "credits",
+        featured: false,
+      },
+    ]
+  }
 
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 1200)
     return () => clearTimeout(timer)
   }, [])
 
-  const plans = [
-    {
-      name: "Basic Plan",
-      priceMonthly: 20,
-      priceAnnual: 200,
-      credits: 450,
-      description: "Perfect for individuals getting started with AI content creation.",
-      features: [
-        "450 monthly credits",
-        "Basic AI writing tools",
-        "Email support",
-        "Standard templates",
-        "Export to common formats",
-      ],
-      cta: "Get Started",
-      type: "subscription",
-      icon: <Zap className="w-8 h-8" />,
-      tier: "basic",
-      featured: false,
-    },
-    {
-      name: "GenWrite Pro",
-      priceMonthly: 50,
-      priceAnnual: 500,
-      credits: 1200,
-      description: "Advanced AI features with priority support for growing teams.",
-      features: [
-        "1,200 monthly credits",
-        "Advanced AI models",
-        "Priority support",
-        "Custom templates",
-        "Team collaboration",
-        "Advanced export options",
-        "Analytics dashboard",
-      ],
-      cta: "Upgrade to Pro",
-      type: "subscription",
-      icon: <Shield className="w-8 h-8" />,
-      tier: "pro",
-      featured: true,
-    },
-    {
-      name: "Enterprise",
-      priceMonthly: "Custom",
-      priceAnnual: "Custom",
-      credits: "Unlimited",
-      description: "Tailored solutions with unlimited access and dedicated support.",
-      features: [
-        "Unlimited credits",
-        "Custom AI models",
-        "Dedicated support manager",
-        "Custom integrations",
-        "SSO & advanced security",
-        "Training & onboarding",
-        "SLA guarantee",
-      ],
-      cta: "Contact Sales",
-      type: "subscription",
-      icon: <Crown className="w-8 h-8" />,
-      tier: "enterprise",
-    },
-    {
-      name: "Credit Pack",
-      priceMonthly: null,
-      priceAnnual: null,
-      credits: null,
-      description: "Flexible one-time credit purchase for occasional users.",
-      features: [
-        "Custom credit amount",
-        "One-time purchase",
-        "No subscription required",
-        "Credits never expire",
-        "Full feature access",
-      ],
-      cta: "Buy Credits",
-      icon: <Coins className="w-8 h-8" />,
-      type: "credit_purchase",
-      tier: "credits",
-    },
-  ]
+  const plans = getPlans(billingPeriod)
 
   const handleBuy = async (plan, credits, billingPeriod) => {
     const stripe = await loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
 
     try {
-      const response = await axiosInstance.post("/stripe/checkout", {
+      const { data } = await axiosInstance.post("/stripe/checkout", {
         planName: plan.name.toLowerCase().includes("pro")
           ? "pro"
           : plan.name.toLowerCase().includes("basic")
           ? "basic"
           : "credits",
         credits: plan.type === "credit_purchase" ? credits : plan.credits,
-        billingPeriod: billingPeriod,
+        billingPeriod,
         success_url: `${window.location.origin}/payment/success`,
         cancel_url: `${window.location.origin}/payment/cancel`,
       })
 
-      if (response?.data.sessionId) {
-        const result = await stripe.redirectToCheckout({ sessionId: response.data.sessionId })
-        if (result?.error) {
-          throw result.error
-        }
-      } else {
-        throw new Error("Something went wrong")
-      }
+      const result = await stripe.redirectToCheckout({ sessionId: data.sessionId })
+      if (result?.error) throw result.error
     } catch (error) {
-      console.error("Error creating checkout session:", error)
+      console.error("Checkout error:", error)
       message.error("Failed to initiate checkout. Please try again.")
     }
   }
@@ -405,12 +454,12 @@ const Upgrade = () => {
       <Helmet>
         <title>Subscription | GenWrite</title>
       </Helmet>
-      <div className="max-w-7xl mx-auto">
+      <div className="mx-auto">
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center mb-16">
           <motion.div initial={{ y: -20 }} animate={{ y: 0 }} className="inline-block mb-4">
             <motion.h1
               whileHover={{ scale: 1.02 }}
-              className="text-4xl font-bold text-gray-900 mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
+              className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
             >
               Flexible Pricing Plans
             </motion.h1>
@@ -422,50 +471,36 @@ const Upgrade = () => {
             />
           </motion.div>
 
-          <p className="text-gray-600 text-lg mb-8 max-w-2xl mx-auto">
+          <p className="text-gray-600 text-lg max-w-2xl mx-auto">
             Choose the perfect plan for your team. Scale seamlessly as your needs grow.
           </p>
 
-          <div className="flex justify-center">
-            <div className="inline-flex items-center bg-white rounded-full p-1 border border-gray-200 shadow-sm my-5">
-              <button
-                onClick={() => setBillingPeriod("monthly")}
-                className={`px-6 py-3 rounded-full text-sm font-semibold transition-all duration-300 ${
-                  billingPeriod === "monthly"
-                    ? "bg-blue-600 text-white shadow-sm"
-                    : "text-gray-600 hover:text-gray-900"
-                }`}
-              >
-                Monthly
-              </button>
-              <button
-                onClick={() => setBillingPeriod("annual")}
-                className={`px-6 py-3 rounded-full text-sm font-semibold transition-all duration-300 ${
-                  billingPeriod === "annual"
-                    ? "bg-blue-600 text-white shadow-sm"
-                    : "text-gray-600 hover:text-gray-900"
-                }`}
-              >
-                Annual
-                <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
-                  Save 17%
-                </span>
-              </button>
+          <div className="flex justify-center mt-8">
+            <div className="inline-flex items-center bg-white rounded-full p-1 border border-gray-200 shadow-sm">
+              {["monthly", "annual"].map((period) => (
+                <button
+                  key={period}
+                  onClick={() => setBillingPeriod(period)}
+                  className={`px-6 py-3 rounded-full text-sm font-semibold transition-all duration-300 ${
+                    billingPeriod === period
+                      ? "bg-blue-600 text-white shadow-sm"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  {period === "annual" ? (
+                    <>
+                      Annual
+                      <span className="ml-2 px-2 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
+                        Save 17%
+                      </span>
+                    </>
+                  ) : (
+                    "Monthly"
+                  )}
+                </button>
+              ))}
             </div>
           </div>
-
-          {/* <button
-            onClick={() => setShowComparisonTable(!showComparisonTable)}
-            className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all duration-300 flex items-center gap-2 mx-auto"
-          >
-            {showComparisonTable ? "Hide Comparison" : "Show Comparison"}
-            <motion.div
-              animate={{ rotate: showComparisonTable ? 45 : 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <X className="w-5 h-5" />
-            </motion.div>
-          </button> */}
         </motion.div>
 
         <div className="grid lg:grid-cols-4 md:grid-cols-2 gap-10">
