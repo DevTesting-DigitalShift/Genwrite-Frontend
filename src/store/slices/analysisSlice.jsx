@@ -1,6 +1,6 @@
 // src/store/slices/analysisSlice.ts
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit"
-import { analyzeKeywords, analyzeKeywordsAPI, runCompetitiveAnalysis } from "@api/analysisApi"
+import { analyzeKeywords, runCompetitiveAnalysis } from "@api/analysisApi"
 import { message } from "antd"
 
 export const fetchCompetitiveAnalysisThunk = createAsyncThunk(
@@ -27,20 +27,6 @@ export const analyzeKeywordsThunk = createAsyncThunk(
     } catch (err) {
       message.error(err?.response?.data?.message || "Failed to analyze keywords.")
       return rejectWithValue(err?.response?.data?.message || err.message)
-    }
-  }
-)
-
-export const fetchKeywordAnalysis = createAsyncThunk(
-  "analysis/fetchKeywordAnalysis",
-  async (keywords, { rejectWithValue }) => {
-    try {
-      const data = await analyzeKeywordsAPI(keywords)
-      return data
-    } catch (error) {
-      const message = error?.response?.data?.message || error.message
-      message.error(message || "Failed to analyze keywords.")
-      return rejectWithValue(message)
     }
   }
 )
@@ -92,20 +78,6 @@ const analysisSlice = createSlice({
       })
       .addCase(analyzeKeywordsThunk.rejected, (state, action) => {
         state.loading = false
-        state.error = action.payload
-      })
-
-      .addCase(fetchKeywordAnalysis.pending, (state) => {
-        state.analyzing = true
-        state.error = null
-        state.keywordAnalysis = null
-      })
-      .addCase(fetchKeywordAnalysis.fulfilled, (state, action) => {
-        state.analyzing = false
-        state.keywordAnalysis = action.payload
-      })
-      .addCase(fetchKeywordAnalysis.rejected, (state, action) => {
-        state.analyzing = false
         state.error = action.payload
       })
   },

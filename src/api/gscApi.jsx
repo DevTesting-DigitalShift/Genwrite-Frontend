@@ -16,3 +16,8 @@ export const connectGsc = async (code) => {
   })
   return response.data
 }
+
+export const getGscAuthUrl = async () => {
+  const response = await axiosInstance.get("/gsc/auth")
+  return response.data.url
+}

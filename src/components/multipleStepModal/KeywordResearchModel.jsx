@@ -1,56 +1,113 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { Plus, X } from "lucide-react";
-import { Button, Card, Input } from "antd";
-import { CloseOutlined, SearchOutlined } from "@ant-design/icons";
-import { useDispatch, useSelector } from "react-redux";
-import { fetchKeywordAnalysis, setSelectedKeywords } from "@store/slices/analysisSlice";
+import { useState } from "react"
+import { motion } from "framer-motion"
+import { X } from "lucide-react"
+import { Button, Card, Input, Table, Tag } from "antd"
+import { CloseOutlined } from "@ant-design/icons"
+import { useDispatch, useSelector } from "react-redux"
+import { analyzeKeywordsThunk, setSelectedKeywords } from "@store/slices/analysisSlice"
 
 const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal }) => {
-  const [newKeyword, setNewKeyword] = useState("");
-  const [keywords, setKeywords] = useState([]);
-  const dispatch = useDispatch();
+  const [newKeyword, setNewKeyword] = useState("")
+  const [keywords, setKeywords] = useState([])
+  const [currentPage, setCurrentPage] = useState(1)
+  const dispatch = useDispatch()
   const {
-    analyzing,
-    keywordResult: keywordAnalysisResult,
+    keywordAnalysis: keywordAnalysisResult,
+    loading: analyzing,
     error: analysisError,
-  } = useSelector((state) => state.analysis);
+  } = useSelector((state) => state.analysis)
 
   const addKeyword = () => {
     if (newKeyword.trim() && !keywords.includes(newKeyword.trim())) {
-      setKeywords([...keywords, newKeyword.trim()]);
-      setNewKeyword("");
+      setKeywords([...keywords, newKeyword.trim()])
+      setNewKeyword("")
     }
-  };
+  }
 
   const removeKeyword = (index) => {
-    setKeywords(keywords.filter((_, i) => i !== index));
-  };
+    setKeywords(keywords.filter((_, i) => i !== index))
+  }
 
   const handleKeyPress = (e) => {
-    if (e.key === "Enter") {
-      addKeyword();
-    } else if (e.key === ",") {
-      e.preventDefault();
-      addKeyword();
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault()
+      addKeyword()
     }
-  };
+  }
 
   const analyzeKeywords = async () => {
-    dispatch(fetchKeywordAnalysis(keywords));
-  };
+    dispatch(analyzeKeywordsThunk(keywords))
+    setCurrentPage(1) // Reset to first page on new analysis
+  }
 
   const handleCreateBlog = () => {
-    dispatch(setSelectedKeywords(keywords));
-    openSecondStepModal();
-    closeFnc();
-  };
+    dispatch(setSelectedKeywords(keywords))
+    openSecondStepModal()
+    closeFnc()
+  }
 
   const handleCreateJob = () => {
-    dispatch(setSelectedKeywords(keywords));
-    openJobModal(); // Use the prop to open job modal
-    closeFnc();
-  };
+    dispatch(setSelectedKeywords(keywords))
+    openJobModal()
+    closeFnc()
+  }
+
+  // Table columns for keyword analysis results
+  const columns = [
+    {
+      title: "Keyword",
+      dataIndex: "keyword",
+      key: "keyword",
+      sorter: (a, b) => a.keyword.localeCompare(b.keyword),
+      render: (text) => <span className="font-medium capitalize">{text}</span>,
+    },
+    {
+      title: "Monthly Searches",
+      dataIndex: "avgMonthlySearches",
+      key: "avgMonthlySearches",
+      sorter: (a, b) => a.avgMonthlySearches - b.avgMonthlySearches,
+      render: (value) => new Intl.NumberFormat().format(value),
+    },
+    {
+      title: "Avg CPC ($)",
+      dataIndex: "avgCpc",
+      key: "avgCpc",
+      sorter: (a, b) => a.avgCpc - b.avgCpc,
+      render: (value) => (value ? value.toFixed(2) : "-"),
+    },
+    {
+      title: "Low Bid ($)",
+      dataIndex: "lowBid",
+      key: "lowBid",
+      sorter: (a, b) => a.lowBid - b.lowBid,
+      render: (value) => (value ? value.toFixed(2) : "N/-"),
+    },
+    {
+      title: "High Bid ($)",
+      dataIndex: "highBid",
+      key: "highBid",
+      sorter: (a, b) => a.highBid - b.highBid,
+      render: (value) => (value ? value.toFixed(2) : "N/-"),
+    },
+  ]
+
+  // Prepare table data from keywordAnalysisResult
+  const tableData =
+    keywordAnalysisResult?.map((kw, idx) => ({
+      key: idx,
+      keyword: kw.keyword,
+      avgMonthlySearches: kw.avgMonthlySearches,
+      competition: kw.competition,
+      competition_index: kw.competition_index,
+      avgCpc: kw.avgCpc,
+      lowBid: kw.lowBid,
+      highBid: kw.highBid,
+    })) || []
+
+  // Handle page change
+  const handlePageChange = (page) => {
+    setCurrentPage(page)
+  }
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
@@ -127,19 +184,21 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal }) =
 
           {analysisError && <div className="text-red-500 mt-2">{analysisError}</div>}
           {keywordAnalysisResult && Array.isArray(keywordAnalysisResult) && (
-            <div className="mt-4 p-3 bg-blue-50 rounded">
-              <div className="font-semibold text-blue-700 mb-2">Keyword Suggestions:</div>
-              <ul className="space-y-2">
-                {keywordAnalysisResult.map((kw, idx) => (
-                  <li
-                    key={idx}
-                    className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 shadow-sm border border-blue-100 capitalize"
-                  >
-                    <span className="inline-block w-2 h-2 rounded-full bg-blue-400"></span>
-                    <span className="text-gray-800 text-sm">{kw}</span>
-                  </li>
-                ))}
-              </ul>
+            <div className="mt-6">
+              <Table
+                columns={columns}
+                dataSource={tableData}
+                pagination={{
+                  current: currentPage,
+                  pageSize: 4, // Limit to 4 rows per page
+                  showSizeChanger: false, // Disable page size changer
+                  onChange: handlePageChange,
+                  total: tableData.length,
+                }}
+                rowKey="key"
+                className="keyword-analysis-table"
+                scroll={{ x: true }} // Enable horizontal scroll for small screens
+              />
             </div>
           )}
           <div className="flex justify-end gap-3 mt-5 border-t border-gray-100">
@@ -171,7 +230,7 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal }) =
         </Card>
       </motion.div>
     </div>
-  );
-};
+  )
+}
 
-export default KeywordResearchModel;
+export default KeywordResearchModel
