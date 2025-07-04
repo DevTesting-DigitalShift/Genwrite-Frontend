@@ -12,8 +12,8 @@ export const runCompetitiveAnalysis = async ({ blogId, title, content, keywords 
 }
 
 export const analyzeKeywords = async (keywords) => {
-  const response = await axiosInstance.get("/analysis/keywords", {
-    params: { title: keywords.join(",") },
+  const response = await axiosInstance.post("/analysis/keywords", {
+    keywords,
   })
   return response.data
 }

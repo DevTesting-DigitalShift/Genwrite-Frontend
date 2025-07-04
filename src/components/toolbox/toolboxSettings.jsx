@@ -2,11 +2,9 @@ import React, { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Card, Tabs, Input, Button } from "antd"
 import {
-  EditOutlined,
   SearchOutlined,
   ThunderboltOutlined,
   GlobalOutlined,
-  FileTextOutlined,
   CloseOutlined,
 } from "@ant-design/icons"
 import { motion } from "framer-motion"
@@ -26,10 +24,12 @@ export default function ToolboxPage() {
 
   const dispatch = useDispatch()
   const {
-    keywordResult: keywordAnalysisResult,
+    keywordAnalysis: keywordAnalysisResult,
     loading: analyzing,
     error,
   } = useSelector((state) => state.analysis)
+
+  console.log({ keywordAnalysis: keywordAnalysisResult })
 
   const addKeyword = () => {
     if (newKeyword.trim() && !keywords.includes(newKeyword.trim())) {
@@ -143,17 +143,6 @@ export default function ToolboxPage() {
               powerful suite of tools.
             </motion.p>
           </div>
-          <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}>
-            <Button
-              type="primary"
-              className="shadow-lg hover:shadow-xl transition-all"
-              icon={<EditOutlined />}
-              onClick={() => navigate("/dashboard")}
-              size="large"
-            >
-              New Blog Post
-            </Button>
-          </motion.div>
         </motion.div>
 
         {/* Tabs */}
@@ -293,24 +282,39 @@ export default function ToolboxPage() {
                       {/* {analysisError && (
                         <div className="text-red-500 mt-2">{analysisError}</div>
                       )} */}
-                      {keywordAnalysisResult && Array.isArray(keywordAnalysisResult) && (
-                        <div className="mt-4 p-3 bg-blue-50 rounded">
-                          <div className="font-semibold text-blue-700 mb-2">
-                            Keyword Suggestions:
+                      {keywordAnalysisResult &&
+                        Array.isArray(keywordAnalysisResult) &&
+                        keywordAnalysisResult.length > 0 && (
+                          <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                            <div className="font-semibold text-blue-700 mb-2">
+                              Keyword Suggestions:
+                            </div>
+                            <ul className="space-y-2">
+                              {keywordAnalysisResult.map((kw, idx) => (
+                                <li
+                                  key={idx}
+                                  className="bg-white border border-blue-200 rounded-md px-4 py-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
+                                >
+                                  <span className="text-blue-700 font-medium capitalize">
+                                    {kw.keyword}
+                                  </span>
+                                  <div className="text-gray-500 text-sm flex gap-4">
+                                    <span>
+                                      Searches: <strong>{kw.avgMonthlySearches}</strong>
+                                    </span>
+                                    <span>
+                                      Competition: <strong>{kw.competition}</strong>
+                                    </span>
+                                    <span>
+                                      Avg CPC: <strong>${kw.avgCpc?.toFixed(2)}</strong>
+                                    </span>
+                                  </div>
+                                </li>
+                              ))}
+                            </ul>
                           </div>
-                          <ul className="space-y-2">
-                            {keywordAnalysisResult.map((kw, idx) => (
-                              <li
-                                key={idx}
-                                className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 shadow-sm border border-blue-100"
-                              >
-                                <span className="inline-block w-2 h-2 rounded-full bg-blue-400"></span>
-                                <span className="text-gray-800 text-sm capitalize">{kw}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
+                        )}
+
                       <motion.div
                         className="absolute inset-0 rounded-xl pointer-events-none"
                         initial={{
