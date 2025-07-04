@@ -23,7 +23,6 @@ import { motion } from "framer-motion"
 import { useDispatch, useSelector } from "react-redux"
 import { fetchVerifiedSites, connectGscAccount, fetchGscAuthUrl } from "@store/slices/gscSlice"
 import axios from "axios"
-import { useGoogleLogin } from "@react-oauth/google"
 import { message, Button } from "antd"
 import { useNavigate, useSearchParams } from "react-router-dom"
 
@@ -45,9 +44,10 @@ const SearchConsole = () => {
     loading: sitesLoading,
     error: reduxError,
   } = useSelector((state) => state.gsc)
-  const { user } = useSelector((state) => state.auth)
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
+
+  console.log({verifiedSites})
 
   // Calculate date range for API request
   const getDateRangeParams = () => {

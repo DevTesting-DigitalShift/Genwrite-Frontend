@@ -144,20 +144,17 @@ const CreditLogsTable = () => {
       ),
     },
     {
-      title: "Blog",
+      title: "Blog Topic",
       dataIndex: ["meta", "blogTitle"],
       key: "blogTitle",
-      render: (_, row) =>
-        !row.meta?.error ? (
-          <span
-            onClick={() => navigate(`/toolbox/${row.meta.blogId}`)}
-            className="text-blue-500 cursor-pointer hover:underline"
-          >
-            {row.meta?.blogTitle}
-          </span>
-        ) : (
-          "-"
-        ),
+      render: (_, row) => (
+        <span
+          // onClick={() => navigate(`/toolbox/${row.meta.blogId}`)}
+          // className="text-blue-500 cursor-pointer hover:underline"
+        >
+          {row.meta?.blogTitle}
+        </span>
+      ),
     },
   ]
 
