@@ -17,10 +17,3 @@ export const analyzeKeywords = async (keywords) => {
   })
   return response.data
 }
-
-export const analyzeKeywordsAPI = async (keywords) => {
-  const response = await axiosInstance.get("/analysis/keywords", {
-    params: { title: keywords.join(",") },
-  })
-  return response.data
-}

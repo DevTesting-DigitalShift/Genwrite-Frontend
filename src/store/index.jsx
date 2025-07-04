@@ -7,6 +7,7 @@ import brandReducer from "./slices/brandSlice"
 import analysisReducer from "./slices/analysisSlice"
 import otherReducer from "./slices/otherSlice"
 import gscReducer from "./slices/gscSlice"
+import humanizeReducer from "./slices/humanizeSlice"
 
 export const store = configureStore({
   reducer: {
@@ -18,5 +19,6 @@ export const store = configureStore({
     analysis: analysisReducer,
     other: otherReducer,
     gsc: gscReducer,
+    humanize: humanizeReducer
   },
 })

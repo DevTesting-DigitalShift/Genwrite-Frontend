@@ -1,42 +1,50 @@
-// src/store/slices/gscSlice.ts
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit"
-import { getVerifiedSites, getGscAnalytics, connectGsc } from "@/api/gscApi"
+import { getVerifiedSites, getGscAnalytics, connectGsc, getGscAuthUrl } from "@/api/gscApi"
 
 export const fetchVerifiedSites = createAsyncThunk(
   "gsc/fetchVerifiedSites",
-  async (_, thunkAPI) => {
+  async (_, { rejectWithValue }) => {
     try {
       const sites = await getVerifiedSites()
-      return sites
+      return sites // Expecting { sites: [{ siteUrl, permissionLevel }, ...] } from backend
     } catch (error) {
-      return thunkAPI.rejectWithValue("Failed to fetch verified sites")
+      return rejectWithValue(error.response?.data?.error || "Failed to fetch verified sites")
     }
   }
 )
 
 export const fetchGscAnalytics = createAsyncThunk(
   "gsc/fetchGscAnalytics",
-  async (params, thunkAPI) => {
+  async (params, { rejectWithValue }) => {
     try {
       const data = await getGscAnalytics(params)
-      return data
+      return data // Expecting { data: { rows: [{ keys, clicks, impressions, ctr, position }, ...] } }
     } catch (error) {
-      return thunkAPI.rejectWithValue("Failed to fetch analytics data")
+      return rejectWithValue(error.response?.data?.error || "Failed to fetch analytics data")
     }
   }
 )
 
 export const connectGscAccount = createAsyncThunk(
   "gsc/connectGscAccount",
-  async (code, { rejectWithValue }) => {
+  async ({ code, state }, { rejectWithValue }) => {
     try {
-      const data = await connectGsc(code)
-      return data
-    } catch (err) {
-      console.error("GSC connection error:", err)
-      return rejectWithValue(
-        err.response?.data?.error || "Failed to connect GSC"
-      )
+      const data = await connectGsc({ code, state })
+      return data // Expecting success message or data from backend
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.error || "Failed to connect GSC")
+    }
+  }
+)
+
+export const fetchGscAuthUrl = createAsyncThunk(
+  "gsc/fetchGscAuthUrl",
+  async (_, { rejectWithValue }) => {
+    try {
+      const url = await getGscAuthUrl()
+      return url // Just the string URL
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.error || "Failed to get auth URL")
     }
   }
 )
@@ -46,6 +54,7 @@ const gscSlice = createSlice({
   initialState: {
     verifiedSites: [],
     analyticsData: [],
+    gscAuthUrl: null,
     loading: false,
     error: null,
   },
@@ -62,24 +71,26 @@ const gscSlice = createSlice({
       })
       .addCase(fetchVerifiedSites.fulfilled, (state, action) => {
         state.loading = false
-        state.verifiedSites = action.payload
+        state.verifiedSites = action.payload || []
       })
       .addCase(fetchVerifiedSites.rejected, (state, action) => {
         state.loading = false
         state.error = action.payload
       })
+      
       .addCase(fetchGscAnalytics.pending, (state) => {
         state.loading = true
         state.error = null
       })
       .addCase(fetchGscAnalytics.fulfilled, (state, action) => {
         state.loading = false
-        state.analyticsData = action.payload
+        state.analyticsData = action.payload || []
       })
       .addCase(fetchGscAnalytics.rejected, (state, action) => {
         state.loading = false
         state.error = action.payload
       })
+
       .addCase(connectGscAccount.pending, (state) => {
         state.loading = true
         state.error = null
@@ -88,6 +99,19 @@ const gscSlice = createSlice({
         state.loading = false
       })
       .addCase(connectGscAccount.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload
+      })
+
+      .addCase(fetchGscAuthUrl.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(fetchGscAuthUrl.fulfilled, (state, action) => {
+        state.loading = false
+        state.gscAuthUrl = action.payload
+      })
+      .addCase(fetchGscAuthUrl.rejected, (state, action) => {
         state.loading = false
         state.error = action.payload
       })

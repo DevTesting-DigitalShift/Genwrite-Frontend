@@ -283,7 +283,7 @@ const Dashboard = () => {
               </div>
               <h2 className="text-2xl font-bold text-gray-900">Quick Tools</h2>
             </div>
-            <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
               <AnimatePresence>
                 {loading
                   ? Array.from({ length: 4 }).map((_, idx) => <SkeletonGridCard key={idx} />)

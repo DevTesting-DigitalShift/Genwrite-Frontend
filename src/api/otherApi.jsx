@@ -15,3 +15,9 @@ export const createStripeSession = async (payload) => {
   const response = await axiosInstance.post("/stripe/create-checkout-session", payload)
   return response.data
 }
+
+
+export const humanizeContentGenerator = async (payload) => {
+  const response = await axiosInstance.post("/generate/humanised-content", payload)
+  return response.data
+}
