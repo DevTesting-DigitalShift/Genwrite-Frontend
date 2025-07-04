@@ -19,7 +19,7 @@ export const fetchCompetitiveAnalysisThunk = createAsyncThunk(
 )
 
 export const analyzeKeywordsThunk = createAsyncThunk(
-  "analysis/keywords",
+  "analysis/analyzeKeywords",
   async (keywords, { rejectWithValue }) => {
     try {
       const result = await analyzeKeywords(keywords)
@@ -48,7 +48,7 @@ export const fetchKeywordAnalysis = createAsyncThunk(
 const analysisSlice = createSlice({
   name: "analysis",
   initialState: {
-    keywordResult: null,
+    keywordAnalysis: [],
     loading: false,
     analyzing: false,
     result: null,
@@ -64,7 +64,7 @@ const analysisSlice = createSlice({
       state.selectedKeywords = action.payload
     },
     clearKeywordAnalysis: (state) => {
-      state.keywordResult = null
+      state.keywordAnalysis = null
     },
   },
   extraReducers: (builder) => {
@@ -88,7 +88,7 @@ const analysisSlice = createSlice({
       })
       .addCase(analyzeKeywordsThunk.fulfilled, (state, action) => {
         state.loading = false
-        state.keywordResult = action.payload
+        state.keywordAnalysis = action.payload
       })
       .addCase(analyzeKeywordsThunk.rejected, (state, action) => {
         state.loading = false
@@ -98,11 +98,11 @@ const analysisSlice = createSlice({
       .addCase(fetchKeywordAnalysis.pending, (state) => {
         state.analyzing = true
         state.error = null
-        state.keywordResult = null
+        state.keywordAnalysis = null
       })
       .addCase(fetchKeywordAnalysis.fulfilled, (state, action) => {
         state.analyzing = false
-        state.keywordResult = action.payload
+        state.keywordAnalysis = action.payload
       })
       .addCase(fetchKeywordAnalysis.rejected, (state, action) => {
         state.analyzing = false

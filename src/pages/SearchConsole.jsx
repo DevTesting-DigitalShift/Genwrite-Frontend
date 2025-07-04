@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect } from "react";
 import {
   Search,
   TrendingUp,
@@ -17,101 +17,105 @@ import {
   LogIn,
   Link,
   Download,
-} from "lucide-react"
-import { Helmet } from "react-helmet"
-import { motion } from "framer-motion"
-import { useDispatch, useSelector } from "react-redux"
-import { fetchVerifiedSites, connectGscAccount } from "@store/slices/gscSlice"
-import axios from "axios"
-import { useGoogleLogin } from "@react-oauth/google"
+} from "lucide-react";
+import { Helmet } from "react-helmet";
+import { motion } from "framer-motion";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchVerifiedSites, connectGscAccount } from "@store/slices/gscSlice";
+import axios from "axios";
+import { useGoogleLogin } from "@react-oauth/google";
+import { message } from "antd"; // Added Ant Design message import
 
 const SearchConsole = () => {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [sortConfig, setSortConfig] = useState({
-    key: null,
-    direction: "asc",
-  })
-  const [filterCategory, setFilterCategory] = useState("all")
-  const [filterStatus, setFilterStatus] = useState("all")
-  const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(10)
-  const [dateRange, setDateRange] = useState("30d")
-  const [blogData, setBlogData] = useState([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState(null)
-  const [isConnecting, setIsConnecting] = useState(false)
-  const dispatch = useDispatch()
-  const { verifiedSites, loading: sitesLoading } = useSelector((state) => state.gsc)
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
+  const [filterCategory, setFilterCategory] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [dateRange, setDateRange] = useState("30d");
+  const [blogData, setBlogData] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const dispatch = useDispatch();
+  const { verifiedSites, loading: sitesLoading } = useSelector((state) => state.gsc);
 
   // Calculate date range for API request
   const getDateRangeParams = () => {
-    const to = new Date()
-    const from = new Date()
+    const to = new Date();
+    const from = new Date();
     switch (dateRange) {
       case "7d":
-        from.setDate(to.getDate() - 7)
-        break
+        from.setDate(to.getDate() - 7);
+        break;
       case "90d":
-        from.setDate(to.getDate() - 90)
-        break
+        from.setDate(to.getDate() - 90);
+        break;
       case "1y":
-        from.setFullYear(to.getFullYear() - 1)
-        break
+        from.setFullYear(to.getFullYear() - 1);
+        break;
       case "30d":
       default:
-        from.setDate(to.getDate() - 30)
-        break
+        from.setDate(to.getDate() - 30);
+        break;
     }
     return {
       from: from.toISOString().split("T")[0],
       to: to.toISOString().split("T")[0],
-    }
-  }
+    };
+  };
 
   // Google Search Console authentication
   const connectGSC = useGoogleLogin({
-    // scope: "https://www.googleapis.com/auth/digitalshiftdevtesting@gmail.com",
+    scope: "https://www.googleapis.com/auth/webmasters.readonly", // Correct scope from backend
     flow: "auth-code",
-    redirect_uri: "https://genwrite-frontend-eight.vercel.app/search-console",
+    // Use the same redirect URI as backend (should match ENV.GSC_REDIRECT_URI)
+    redirect_uri: process.env.REACT_APP_GSC_REDIRECT_URI || "https://genwrite-frontend-eight.vercel.app/search-console",
     onSuccess: async (tokenResponse) => {
-      setIsConnecting(true)
-      setError(null)
+      setIsConnecting(true);
+      setError(null);
       try {
-        await dispatch(connectGscAccount(tokenResponse.code)).unwrap()
-        await dispatch(fetchVerifiedSites()) // optionally refetch sites
-        message.success("GSC Connected Successfully")
+        // Encode state with userId (assuming userId is available in Redux or context)
+        const state = Buffer.from(JSON.stringify({ userId: "user-id-placeholder" })).toString("base64");
+        // Send code and state to backend callback endpoint
+        await dispatch(connectGscAccount({ code: tokenResponse.code, state })).unwrap();
+        await dispatch(fetchVerifiedSites()); // Refetch sites after connection
+        message.success("GSC Connected Successfully");
       } catch (err) {
-        console.error("GSC Connection Error:", err)
-        setError("Failed to connect Google Search Console. Please try again.")
+        console.error("GSC Connection Error:", err);
+        setError(err.message || "Failed to connect Google Search Console. Please try again.");
       } finally {
-        setIsConnecting(false)
+        setIsConnecting(false);
       }
     },
     onError: (error) => {
-      console.error("❌ GSC Auth Failed:", error)
-      setError("Google authentication failed. Please try again.")
-      setIsConnecting(false)
+      console.error("❌ GSC Auth Failed:", error);
+      setError("Google authentication failed. Please try again.");
+      setIsConnecting(false);
     },
-  })
+  });
 
   // Fetch analytics data for all verified sites
   const fetchAnalyticsData = async () => {
-    setIsLoading(true)
-    setError(null)
+    setIsLoading(true);
+    setError(null);
     try {
-      const { from, to } = getDateRangeParams()
+      const { from, to } = getDateRangeParams();
       const blogDataPromises = verifiedSites.map(async (site) => {
-        const siteUrl = site.siteUrl
+        const siteUrl = site.siteUrl;
         const response = await axios.get("/api/gsc/sites-data", {
           params: {
             siteUrl,
             from,
             to,
             dimensions: ["page", "query"],
+            // Add blogUrl if needed for specific filtering
+            // blogUrl: "https://example.com/blog/specific-post", // Example
           },
-        })
+        });
 
-        const analyticsRows = response.data.data.rows || []
+        const analyticsRows = response.data.data.rows || [];
         return analyticsRows.map((row, index) => ({
           id: `${siteUrl}-${index}`,
           blogName: row.keys[0].split("/").pop() || "Untitled Page",
@@ -121,71 +125,83 @@ const SearchConsole = () => {
           ctr: row.ctr ? (row.ctr * 100).toFixed(2) : 0,
           position: row.position ? row.position.toFixed(1) : 0,
           keywords: row.keys[1] ? [row.keys[1]] : [],
-          publishDate: new Date().toISOString().split("T")[0], // Placeholder
-          category: "Uncategorized", // Placeholder
-          status: "published", // Placeholder
-        }))
-      })
+          publishDate: new Date().toISOString().split("T")[0], // TODO: Fetch from CMS or backend
+          category: "Uncategorized", // TODO: Fetch from CMS or backend
+          status: "published", // TODO: Fetch from CMS or backend
+        }));
+      });
 
-      const allBlogData = (await Promise.all(blogDataPromises)).flat()
-      setBlogData(allBlogData)
+      const allBlogData = (await Promise.all(blogDataPromises)).flat();
+      setBlogData(allBlogData);
     } catch (err) {
-      console.error("Error fetching analytics data:", err)
-      setError("Failed to load analytics data. Please try again.")
+      console.error("Error fetching analytics data:", err.response?.data || err);
+      const errorMessage =
+        err.response?.status === 403
+          ? "You do not have access to one or more sites."
+          : err.response?.status === 400
+          ? "Invalid query parameters. Please check your input."
+          : "Failed to load analytics data. Please try again.";
+      setError(errorMessage);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
+
+  // Placeholder export function (implement as needed)
+  const handleExport = async () => {
+    // TODO: Implement export functionality (e.g., CSV download)
+    message.info("Export functionality not implemented yet.");
+  };
 
   // Fetch verified sites and analytics data on mount and date range change
   useEffect(() => {
-    dispatch(fetchVerifiedSites())
-  }, [dispatch])
+    dispatch(fetchVerifiedSites());
+  }, [dispatch]);
 
   useEffect(() => {
     if (verifiedSites.length > 0) {
-      fetchAnalyticsData()
+      fetchAnalyticsData();
     }
-  }, [verifiedSites, dateRange])
+  }, [verifiedSites, dateRange]);
 
   // Filtering and sorting logic
   const filteredAndSortedData = useMemo(() => {
     let filtered = blogData.filter((blog) => {
       const matchesSearch =
         blog.blogName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        blog.keywords.some((keyword) => keyword.toLowerCase().includes(searchTerm.toLowerCase()))
-      const matchesCategory = filterCategory === "all" || blog.category === filterCategory
-      const matchesStatus = filterStatus === "all" || blog.status === filterStatus
+        blog.keywords.some((keyword) => keyword.toLowerCase().includes(searchTerm.toLowerCase()));
+      const matchesCategory = filterCategory === "all" || blog.category === filterCategory;
+      const matchesStatus = filterStatus === "all" || blog.status === filterStatus;
 
-      return matchesSearch && matchesCategory && matchesStatus
-    })
+      return matchesSearch && matchesCategory && matchesStatus;
+    });
 
     if (sortConfig.key) {
       filtered.sort((a, b) => {
-        const aValue = a[sortConfig.key]
-        const bValue = b[sortConfig.key]
+        const aValue = a[sortConfig.key];
+        const bValue = b[sortConfig.key];
 
         if (typeof aValue === "string" && typeof bValue === "string") {
           return sortConfig.direction === "asc"
             ? aValue.localeCompare(bValue)
-            : bValue.localeCompare(aValue)
+            : bValue.localeCompare(aValue);
         }
 
         if (typeof aValue === "number" && typeof bValue === "number") {
-          return sortConfig.direction === "asc" ? aValue - bValue : bValue - aValue
+          return sortConfig.direction === "asc" ? aValue - bValue : bValue - aValue;
         }
 
-        return 0
-      })
+        return 0;
+      });
     }
 
-    return filtered
-  }, [blogData, searchTerm, sortConfig, filterCategory, filterStatus])
+    return filtered;
+  }, [blogData, searchTerm, sortConfig, filterCategory, filterStatus]);
 
   // Pagination
-  const totalPages = Math.ceil(filteredAndSortedData.length / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const paginatedData = filteredAndSortedData.slice(startIndex, startIndex + itemsPerPage)
+  const totalPages = Math.ceil(filteredAndSortedData.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedData = filteredAndSortedData.slice(startIndex, startIndex + itemsPerPage);
 
   // Calculate totals
   const totals = useMemo(() => {
@@ -205,52 +221,49 @@ const SearchConsole = () => {
             : 0,
       }),
       { clicks: 0, impressions: 0, avgCtr: 0, avgPosition: 0 }
-    )
-  }, [filteredAndSortedData])
+    );
+  }, [filteredAndSortedData]);
 
   const handleSort = (key) => {
     setSortConfig((prev) => ({
       key,
       direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
-    }))
-  }
+    }));
+  };
 
   const getSortIcon = (key) => {
-    if (sortConfig.key !== key) return <ArrowUpDown className="w-4 h-4 text-gray-400" />
+    if (sortConfig.key !== key) return <ArrowUpDown className="w-4 h-4 text-gray-400" />;
     return sortConfig.direction === "asc" ? (
       <ArrowUp className="w-4 h-4 text-blue-600" />
     ) : (
       <ArrowDown className="w-4 h-4 text-blue-600" />
-    )
-  }
+    );
+  };
 
   const formatNumber = (num) => {
-    return new Intl.NumberFormat().format(num)
-  }
+    return new Intl.NumberFormat().format(num);
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
       case "published":
-        return "bg-green-100 text-green-800"
+        return "bg-green-100 text-green-800";
       case "draft":
-        return "bg-yellow-100 text-yellow-800"
+        return "bg-yellow-100 text-yellow-800";
       case "archived":
-        return "bg-gray-100 text-gray-800"
+        return "bg-gray-100 text-gray-800";
       default:
-        return "bg-gray-100 text-gray-800"
+        return "bg-gray-100 text-gray-800";
     }
-  }
+  };
 
-  const categories = ["all", ...Array.from(new Set(blogData.map((blog) => blog.category)))]
-  const statuses = ["all", "published", "draft", "archived"]
+  const categories = ["all", ...Array.from(new Set(blogData.map((blog) => blog.category)))];
+  const statuses = ["all", "published", "draft", "archived"];
 
   // GSC Connection UI
   if (!verifiedSites.length) {
     return (
-      <div
-        className="p-6 flex items-center justify-center"
-        style={{ minHeight: "calc(100vh - 250px)" }}
-      >
+      <div className="p-6 flex items-center justify-center" style={{ minHeight: "calc(100vh - 250px)" }}>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -289,7 +302,7 @@ const SearchConsole = () => {
           </button>
         </motion.div>
       </div>
-    )
+    );
   }
 
   return (
@@ -320,16 +333,15 @@ const SearchConsole = () => {
             >
               <option value="7d">Last 7 days</option>
               <option value="30d">Last 30 days</option>
-              <option value="90d">Last muiden90 days</option>
+              <option value="90d">Last 90 days</option>
               <option value="1y">Last year</option>
             </select>
 
             <button
-              // onClick={handleExport} // your export function
-              // disabled={isExporting}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleExport}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
             >
-              <Download className={`w-4 h-4 ${isExporting ? "animate-pulse" : ""}`} />
+              <Download className="w-4 h-4" />
               Export
             </button>
 
@@ -369,7 +381,7 @@ const SearchConsole = () => {
               <div className="mt-2 text-xs text-green-600 font-medium">+12.5% vs last period</div>
             </div>
 
-            <div className="bg-white rounded-xl p-6 shadow-sm border border攝灰-100">
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
               <div className="flex items-center justify-between mb-4">
                 <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
                   <Eye className="w-6 h-6 text-purple-600" />
@@ -444,9 +456,7 @@ const SearchConsole = () => {
                 >
                   {statuses.map((status) => (
                     <option key={status} value={status}>
-                      {status === "all"
-                        ? "All Status"
-                        : status.charAt(0).toUpperCase() + status.slice(1)}
+                      {status === "all" ? "All Status" : status.charAt(0).toUpperCase() + status.slice(1)}
                     </option>
                   ))}
                 </select>
@@ -612,6 +622,7 @@ const SearchConsole = () => {
                           <button
                             className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                             title="View Blog"
+                            onClick={() => window.open(blog.url, "_blank")} // Open blog URL
                           >
                             <ExternalLink className="w-4 h-4" />
                           </button>
@@ -636,8 +647,8 @@ const SearchConsole = () => {
                 <select
                   value={itemsPerPage}
                   onChange={(e) => {
-                    setItemsPerPage(Number(e.target.value))
-                    setCurrentPage(1)
+                    setItemsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
                   }}
                   className="px-3 py-1 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
@@ -660,7 +671,7 @@ const SearchConsole = () => {
 
                 <div className="flex items-center gap-1">
                   {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    const pageNum = i + 1
+                    const pageNum = i + 1;
                     return (
                       <button
                         key={pageNum}
@@ -673,7 +684,7 @@ const SearchConsole = () => {
                       >
                         {pageNum}
                       </button>
-                    )
+                    );
                   })}
                   {totalPages > 5 && (
                     <>
@@ -705,7 +716,7 @@ const SearchConsole = () => {
         )}
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default SearchConsole
+export default SearchConsole;
