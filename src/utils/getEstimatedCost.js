@@ -1,9 +1,9 @@
 // | Model        | Cost per 1K tokens (input+output) | Approx Cost Ratio (ChatGPT / Gemini) |
 // | ------------ | --------------------------------- | ------------------------------------ |
 // | Gemini Flash | ~ $ 0.0125 (estimated)            | 1x (baseline)                        |
-// | GPT-4 Turbo  | ~ $ 0.045  (estimated)            | ~3.6x Gemini                        |
+// | GPT-4 Turbo  | ~ $ 0.025  (estimated)            | ~1.5x Gemini                        |
 
-const CHATGPT_MULTIPLIER = 3.5
+const CHATGPT_MULTIPLIER = 1.5
 
 export const creditCostswithGemini = Object.freeze({
   analysis: {

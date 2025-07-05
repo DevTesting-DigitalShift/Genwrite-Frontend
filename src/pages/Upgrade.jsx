@@ -189,31 +189,31 @@ const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
 
 const ComparisonTable = ({ plans, billingPeriod }) => {
   // Collect all features across plans
-  const rawFeatures = plans.flatMap((plan) => plan.features);
+  const rawFeatures = plans.flatMap((plan) => plan.features)
   const featureCounts = rawFeatures.reduce((acc, feature) => {
-    acc[feature] = (acc[feature] || 0) + 1;
-    return acc;
-  }, {});
+    acc[feature] = (acc[feature] || 0) + 1
+    return acc
+  }, {})
 
   // Identify common features (present in all plans)
   const commonFeatures = Object.entries(featureCounts)
     .filter(([_, count]) => count === plans.length)
-    .map(([feature]) => feature);
+    .map(([feature]) => feature)
 
   // Identify features unique to higher-tier plans (not in Basic Plan)
-  const basicPlan = plans.find((plan) => plan.tier === "basic");
+  const basicPlan = plans.find((plan) => plan.tier === "basic")
   const uniqueFeatures = plans
     .filter((plan) => plan.tier !== "basic")
     .flatMap((plan) => plan.features)
     .filter((feature) => !basicPlan.features.includes(feature))
     .filter((value, index, self) => self.indexOf(value) === index) // Remove duplicates
-    .sort();
+    .sort()
 
   // Select 3-4 unique features (or all if fewer than 3)
-  const selectedUniqueFeatures = uniqueFeatures.slice(0, Math.min(4, uniqueFeatures.length));
+  const selectedUniqueFeatures = uniqueFeatures.slice(0, Math.min(4, uniqueFeatures.length))
 
   // Combine common features with selected unique features
-  const allFeatures = [...commonFeatures, ...selectedUniqueFeatures].sort();
+  const allFeatures = [...commonFeatures, ...selectedUniqueFeatures].sort()
 
   // Map features to their availability in each plan
   const featureAvailability = allFeatures.map((feature) => ({
@@ -223,7 +223,7 @@ const ComparisonTable = ({ plans, billingPeriod }) => {
       tier: plan.tier,
       hasFeature: plan.features.includes(feature),
     })),
-  }));
+  }))
 
   return (
     <div className="mt-32 bg-white rounded-2xl shadow-lg overflow-hidden">
@@ -308,8 +308,8 @@ const ComparisonTable = ({ plans, billingPeriod }) => {
         </table>
       </div>
     </div>
-  );
-};
+  )
+}
 
 const Upgrade = () => {
   const [loading, setLoading] = useState(true)
@@ -320,13 +320,13 @@ const Upgrade = () => {
     return [
       {
         name: "Basic Plan",
-        priceMonthly: 30,
-        priceAnnual: 300,
-        credits: 1250,
-        annualCredits: 5400,
+        priceMonthly: 20,
+        priceAnnual: 199,
+        credits: 1500,
+        annualCredits: 18000,
         description: "Perfect for individuals getting started with AI content creation.",
         features: [
-          billingPeriod === "annual" ? "5400 annual credits" : "1200 monthly credits",
+          billingPeriod === "annual" ? "18,000 annual credits" : "1,500 monthly credits",
           "Blog generation: single, quick, multiple",
           "Keyword research",
           "Performance monitoring",
@@ -347,14 +347,14 @@ const Upgrade = () => {
       },
       {
         name: "GenWrite Pro",
-        priceMonthly: 60,
-        priceAnnual: 540,
-        credits: 5400,
-        annualCredits: 14400,
+        priceMonthly: 50,
+        priceAnnual: 499,
+        credits: 5000,
+        annualCredits: 60000,
         description: "Advanced AI features with priority support for growing teams.",
         features: [
           "Everything in Basic, plus:",
-          billingPeriod === "annual" ? "14,400 annual credits" : "5,400 monthly credits",
+          billingPeriod === "annual" ? "60,000 annual credits" : "5,000 monthly credits",
           "Competitor analysis",
           "Retry blog",
           "Regenerate content",
@@ -491,7 +491,7 @@ const Upgrade = () => {
                     <>
                       Annual
                       <span className="ml-2 px-2 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
-                        Save 17%
+                        Save 20%
                       </span>
                     </>
                   ) : (
