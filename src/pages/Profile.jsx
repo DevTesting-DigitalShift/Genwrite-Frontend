@@ -40,7 +40,7 @@ const DEMO_PROFILE = {
     type: "Free",
     startDate: "2024-01-01",
     renewalDate: "1/1/2025",
-    credits: 1500,
+    credits: 0,
     planFeatures: ["Unlimited Projects", "Priority Support", "Advanced Analytics"],
     paymentHistory: [
       { id: 1, date: "2024-03-01", amount: "$1500", status: "paid" },

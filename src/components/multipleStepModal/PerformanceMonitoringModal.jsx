@@ -42,7 +42,7 @@ const PerformanceMonitoringModal = ({ closeFnc }) => {
       "📘 Flesch Reading Ease (0–100): Higher is easier to read. Aim for 60+ for general audiences.",
     smog: "📗 SMOG Index: Estimates education level needed to understand. Lower is better (ideal < 10).",
     ari: "📙 ARI (Automated Readability Index): Based on sentence and word length. Lower = easier.",
-    seo: "📈 SEO Score: Evaluates keyword use, metadata, and structure. Aim for 80+ for strong SEO.",
+    seo: "📈 Blog Score: Evaluates keyword use, metadata, and structure. Aim for 80+ for strong SEO.",
   }
   const InfoTooltip = ({ type = "seo" }) => (
     <Tooltip title={scoreInfo[type]} trigger={["hover", "click"]} placement="top">
@@ -317,13 +317,15 @@ const PerformanceMonitoringModal = ({ closeFnc }) => {
           </div>
 
           <div className="grid grid-cols-1 gap-4">
-            <ScoreBox
-              score={seo?.score || 0}
-              max={100}
-              label="SEO Score"
-              level={`${seo?.score || 0}/100`}
-              color="bg-blue-500"
-            />
+            {Boolean(seo?.score) && (
+              <ScoreBox
+                score={seo?.score || 0}
+                max={100}
+                label="Blog Score"
+                level={`${seo?.score || 0}/100`}
+                color="bg-blue-500"
+              />
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <StatCard
@@ -606,12 +608,12 @@ const PerformanceMonitoringModal = ({ closeFnc }) => {
               </p>
             </div>
 
-            <div className="bg-white p-4 rounded-xl border border-gray-200">
+            {/* <div className="bg-white p-4 rounded-xl border border-gray-200">
               <p className="text-sm font-medium text-gray-600">Paragraphs</p>
               <p className="text-xl font-bold text-gray-800 mt-1">
                 {readabililty?.paragraphCount || 0}
               </p>
-            </div>
+            </div> */}
           </div>
         </div>
       </motion.div>
@@ -675,11 +677,13 @@ const PerformanceMonitoringModal = ({ closeFnc }) => {
                   <option value="" className="bg-gray-50">
                     Select a blog
                   </option>
-                  {allBlogs.map((blog) => (
-                    <option key={blog._id} value={blog._id} className="bg-gray-50">
-                      {blog.title}
-                    </option>
-                  ))}
+                  {allBlogs
+                    ?.filter((b) => b.status === "complete" && b.isArchived === false)
+                    .map((blog) => (
+                      <option key={blog._id} value={blog._id} className="bg-gray-50">
+                        {blog.title}
+                      </option>
+                    ))}
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
                   <svg
