@@ -173,10 +173,12 @@ const MultiStepModal = ({ closeFnc }) => {
   const handleAddTopic = () => {
     const inputValue = formData.topicInput
     if (inputValue.trim() !== "") {
+      const existing = formData.topics.map((t) => t.toLowerCase().trim())
+
       const newTopics = inputValue
         .split(",")
-        .map((topic) => topic.trim())
-        .filter((topic) => topic !== "" && !formData.topics.includes(topic))
+        .map((t) => t.trim())
+        .filter((t) => t !== "" && !existing.includes(t.toLowerCase()))
 
       if (newTopics.length > 0) {
         setFormData((prev) => ({
@@ -193,13 +195,22 @@ const MultiStepModal = ({ closeFnc }) => {
     return false
   }
 
+  const handleRemoveTopic = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      topics: prev.topics.filter((_, i) => i !== index),
+    }))
+  }
+
   const handleAddKeyword = () => {
     const inputValue = formData.keywordInput
     if (inputValue.trim() !== "") {
+      const existing = formData.keywords.map((k) => k.toLowerCase().trim())
+
       const newKeywords = inputValue
         .split(",")
-        .map((keyword) => keyword.trim())
-        .filter((keyword) => keyword !== "" && !formData.keywords.includes(keyword))
+        .map((k) => k.trim())
+        .filter((k) => k !== "" && !existing.includes(k.toLowerCase()))
 
       if (newKeywords.length > 0) {
         setFormData((prev) => ({
@@ -216,8 +227,15 @@ const MultiStepModal = ({ closeFnc }) => {
     return false
   }
 
+  const handleRemoveKeyword = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      keywords: prev.keywords.filter((_, i) => i !== index),
+    }))
+  }
+
   const handleTopicKeyPress = (e) => {
-    if (e.key === "Enter" || e.key === ",") {
+    if (e.key === "Enter") {
       e.preventDefault()
       handleAddTopic()
       handleAddKeyword()
@@ -227,67 +245,67 @@ const MultiStepModal = ({ closeFnc }) => {
   const handleImageSourceChange = (source) => {
     setFormData((prev) => ({ ...prev, imageSource: source }))
   }
-  
- const handleCSVUpload = (e) => {
-  const file = e.target.files?.[0];
-  if (!file) return;
 
-  // Check file extension
-  if (!file.name.toLowerCase().endsWith('.csv')) {
-    message.error("Invalid file type. Please upload a .csv file.");
-    e.target.value = null; // Reset input
-    return;
-  }
+  const handleCSVUpload = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
 
-  // Check file size (20KB = 20 * 1024 bytes)
-  const maxSizeInBytes = 20 * 1024; // 20KB
-  if (file.size > maxSizeInBytes) {
-    message.error("File size exceeds 20KB limit. Please upload a smaller file.");
-    e.target.value = null; // Reset input
-    return;
-  }
+    // Check file extension
+    if (!file.name.toLowerCase().endsWith(".csv")) {
+      message.error("Invalid file type. Please upload a .csv file.")
+      e.target.value = null // Reset input
+      return
+    }
 
-  const reader = new FileReader();
+    // Check file size (20KB = 20 * 1024 bytes)
+    const maxSizeInBytes = 20 * 1024 // 20KB
+    if (file.size > maxSizeInBytes) {
+      message.error("File size exceeds 20KB limit. Please upload a smaller file.")
+      e.target.value = null // Reset input
+      return
+    }
 
-  reader.onload = (event) => {
-    const text = event.target?.result;
-    if (!text) return;
+    const reader = new FileReader()
 
-    const lines = text.trim().split(/\r?\n/).slice(1); // Skip header
-    const keywords = lines
-      .map((line) => {
-        const parts = line.split(",");
-        return parts.length >= 2 ? parts[1].trim() : null;
+    reader.onload = (event) => {
+      const text = event.target?.result
+      if (!text) return
+
+      const lines = text.trim().split(/\r?\n/).slice(1) // Skip header
+      const keywords = lines
+        .map((line) => {
+          const parts = line.split(",")
+          return parts.length >= 2 ? parts[1].trim() : null
+        })
+        .filter(Boolean)
+
+      // Normalize for comparison (lowercase, trimmed)
+      const existingTopics = formData.topics.map((t) => t.toLowerCase().trim())
+
+      const uniqueNewTopics = keywords.filter((kw) => {
+        const normalized = kw.toLowerCase().trim()
+        return !existingTopics.includes(normalized)
       })
-      .filter(Boolean);
 
-    // Normalize for comparison (lowercase, trimmed)
-    const existingTopics = formData.topics.map((t) => t.toLowerCase().trim());
+      if (uniqueNewTopics.length === 0) {
+        message.warning("No new topics found in the CSV.")
+        return
+      }
 
-    const uniqueNewTopics = keywords.filter((kw) => {
-      const normalized = kw.toLowerCase().trim();
-      return !existingTopics.includes(normalized);
-    });
+      setFormData((prev) => ({
+        ...prev,
+        topics: [...prev.topics, ...uniqueNewTopics],
+      }))
 
-    if (uniqueNewTopics.length === 0) {
-      message.warning("No new topics found in the CSV.");
-      return;
+      if (uniqueNewTopics.length > 8) {
+        setRecentlyUploadedCount(uniqueNewTopics.length)
+        setTimeout(() => setRecentlyUploadedCount(null), 5000)
+      }
     }
 
-    setFormData((prev) => ({
-      ...prev,
-      topics: [...prev.topics, ...uniqueNewTopics],
-    }));
-
-    if (uniqueNewTopics.length > 8) {
-      setRecentlyUploadedCount(uniqueNewTopics.length);
-      setTimeout(() => setRecentlyUploadedCount(null), 5000);
-    }
-  };
-
-  reader.readAsText(file);
-  e.target.value = null;
-};
+    reader.readAsText(file)
+    e.target.value = null
+  }
 
   const handleCSVKeywordUpload = (e) => {
     const file = e.target.files?.[0]
@@ -382,7 +400,9 @@ const MultiStepModal = ({ closeFnc }) => {
                   <div
                     key={pkg.name}
                     className={`cursor-pointer transition-all duration-200 ${
-                      formData.templates.includes(pkg.name) ? "border-gray-300 border-2 rounded-lg" : ""
+                      formData.templates.includes(pkg.name)
+                        ? "border-gray-300 border-2 rounded-lg"
+                        : ""
                     }`}
                     onClick={() => handlePackageSelect(index)}
                   >
@@ -394,9 +414,7 @@ const MultiStepModal = ({ closeFnc }) => {
                           className="w-full h-full object-cover"
                         />
                       </div>
-                      <div
-                        className="p-2 mt-3"
-                      >
+                      <div className="p-2 mt-3">
                         <h3 className="font-medium text-gray-900 mb-1">{pkg.name}</h3>
                         <p className="text-sm text-gray-500 line-clamp-2">{pkg.description}</p>
                       </div>
@@ -665,7 +683,7 @@ const MultiStepModal = ({ closeFnc }) => {
                         htmlFor="image-source-unsplash"
                         className="block text-sm font-medium leading-6 text-gray-900"
                       >
-                      Stock Images
+                        Stock Images
                       </label>
                     </div>
                   </div>

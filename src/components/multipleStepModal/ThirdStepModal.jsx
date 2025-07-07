@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { fetchBrands } from "@store/slices/brandSlice"
+import { message } from "antd"
 
 const ThirdStepModal = ({ handleSubmit, handlePrevious, handleClose, data, setData }) => {
   const { brands } = useSelector((state) => state.brand)
@@ -57,31 +58,40 @@ const ThirdStepModal = ({ handleSubmit, handlePrevious, handleClose, data, setDa
     }
   }
 
-  const removeImage = (index) => {
-    setLocalFormData((prev) => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index),
-    }))
-  }
-
-  const navigateImages = (direction) => {
-    setLocalFormData((prev) => ({
-      ...prev,
-      currentImageIndex:
-        direction === "next"
-          ? Math.min(prev.currentImageIndex + 1, prev.images.length - 1)
-          : Math.max(prev.currentImageIndex - 1, 0),
-    }))
-  }
-
   const handleAddLink = () => {
-    if (localFormData.newLink.trim()) {
-      setLocalFormData((prev) => ({
-        ...prev,
-        referenceLinks: [...prev.referenceLinks, prev.newLink.trim()],
-        newLink: "",
-      }))
+    const input = localFormData.newLink.trim()
+    if (!input) return
+
+    const existing = localFormData.referenceLinks.map((link) => link.toLowerCase().trim())
+
+    const isValidURL = (url) => {
+      try {
+        new URL(url)
+        return true
+      } catch {
+        return false
+      }
     }
+
+    const seen = new Set()
+    const newLinks = input
+      .split(",")
+      .map((link) => link.trim())
+      .filter((link) => {
+        const lower = link.toLowerCase()
+        return !seen.has(lower) && isValidURL(link) && !existing.includes(lower) && seen.add(lower)
+      })
+
+    if (newLinks.length === 0) {
+      message.error("Please enter valid, non-duplicate URLs separated by commas.")
+      return
+    }
+
+    setLocalFormData((prev) => ({
+      ...prev,
+      referenceLinks: [...prev.referenceLinks, ...newLinks],
+      newLink: "",
+    }))
   }
 
   const handleRemoveLink = (index) => {
@@ -247,7 +257,13 @@ const ThirdStepModal = ({ handleSubmit, handlePrevious, handleClose, data, setDa
                 <input
                   type="text"
                   className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B6FC9]"
-                  placeholder="Add link +"
+                  placeholder="https://thedigitalshift.co/blog-standard/"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault()
+                      handleAddLink()
+                    }
+                  }}
                   value={localFormData.newLink}
                   onChange={(e) =>
                     setLocalFormData((prev) => ({

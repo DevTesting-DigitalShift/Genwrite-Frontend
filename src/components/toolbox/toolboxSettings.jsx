@@ -1,56 +1,75 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Card, Tabs, Input, Button, Table, Tag } from "antd";
+import React, { useEffect, useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { Card, Tabs, Input, Button, Table, Tag } from "antd"
 import {
   SearchOutlined,
   ThunderboltOutlined,
   GlobalOutlined,
   CloseOutlined,
-} from "@ant-design/icons";
-import { motion } from "framer-motion";
-import CompetitiveAnalysisModal from "../multipleStepModal/CompetitiveAnalysisModal";
-import { useDispatch, useSelector } from "react-redux";
-import { analyzeKeywordsThunk } from "@store/slices/analysisSlice";
-import { Helmet } from "react-helmet";
-import { ImMagicWand } from "react-icons/im";
-import { Keyboard, WholeWord } from "lucide-react";
+} from "@ant-design/icons"
+import { motion } from "framer-motion"
+import CompetitiveAnalysisModal from "../multipleStepModal/CompetitiveAnalysisModal"
+import { useDispatch, useSelector } from "react-redux"
+import { analyzeKeywordsThunk, clearKeywordAnalysis } from "@store/slices/analysisSlice"
+import { Helmet } from "react-helmet"
+import { ImMagicWand } from "react-icons/im"
+import { Keyboard, WholeWord } from "lucide-react"
 
 export default function ToolboxPage() {
-  const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("keyword");
-  const [keywords, setKeywords] = useState([]);
-  const [newKeyword, setNewKeyword] = useState("");
-  const [competitiveAnalysisModalOpen, setCompetitiveAnalysisModalOpen] = useState(false);
-  const [pageSize, setPageSize] = useState(10); // State for page size
-  const [currentPage, setCurrentPage] = useState(1); // State for current page
+  const navigate = useNavigate()
+  const [activeTab, setActiveTab] = useState("keyword")
+  const [keywords, setKeywords] = useState([])
+  const [newKeyword, setNewKeyword] = useState("")
+  const [competitiveAnalysisModalOpen, setCompetitiveAnalysisModalOpen] = useState(false)
+  const [pageSize, setPageSize] = useState(10) // State for page size
+  const [currentPage, setCurrentPage] = useState(1) // State for current page
 
-  const dispatch = useDispatch();
-  const { keywordAnalysis: keywordAnalysisResult, loading: analyzing, error } = useSelector(
-    (state) => state.analysis
-  );
+  const dispatch = useDispatch()
+  const {
+    keywordAnalysis: keywordAnalysisResult,
+    loading: analyzing,
+    error,
+  } = useSelector((state) => state.analysis)
 
   const addKeyword = () => {
-    if (newKeyword.trim() && !keywords.includes(newKeyword.trim())) {
-      setKeywords([...keywords, newKeyword.trim()]);
-      setNewKeyword("");
+    const input = newKeyword.trim()
+    if (!input) return
+
+    const existing = keywords.map((k) => k.toLowerCase())
+    const seen = new Set()
+
+    const newKeywords = input
+      .split(",")
+      .map((k) => k.trim())
+      .filter(
+        (k) =>
+          k &&
+          !existing.includes(k.toLowerCase()) &&
+          !seen.has(k.toLowerCase()) &&
+          seen.add(k.toLowerCase())
+      )
+
+    if (newKeywords.length > 0) {
+      setKeywords([...keywords, ...newKeywords])
+      setNewKeyword("") // clear input
     }
-  };
+  }
 
   const removeKeyword = (index) => {
-    setKeywords(keywords.filter((_, i) => i !== index));
-  };
+    setKeywords(keywords.filter((_, i) => i !== index))
+  }
 
   const handleKeyPress = (e) => {
-    if (e.key === "Enter" || e.key === ",") {
-      e.preventDefault();
-      addKeyword();
+    if (e.key === "Enter") {
+      e.preventDefault()
+      addKeyword()
     }
-  };
+  }
 
   const analyzeKeywords = async () => {
-    dispatch(analyzeKeywordsThunk(keywords));
-    setCurrentPage(1); // Reset to first page on new analysis
-  };
+    dispatch(analyzeKeywordsThunk(keywords))
+    setCurrentPage(1) // Reset to first page on new analysis
+  }
 
   // Table columns for keyword analysis results
   const columns = [
@@ -76,7 +95,13 @@ export default function ToolboxPage() {
       render: (text) => (
         <Tag
           color={
-            text === "LOW" ? "green" : text === "MEDIUM" ? "orange" : text === "HIGH" ? "red" : "gray"
+            text === "LOW"
+              ? "green"
+              : text === "MEDIUM"
+              ? "orange"
+              : text === "HIGH"
+              ? "red"
+              : "gray"
           }
         >
           {text}
@@ -104,30 +129,31 @@ export default function ToolboxPage() {
       sorter: (a, b) => a.highBid - b.highBid,
       render: (value) => (value ? value.toFixed(2) : "N/A"),
     },
-  ];
+  ]
 
   // Prepare table data from keywordAnalysisResult
-  const tableData = keywordAnalysisResult?.map((kw, idx) => ({
-    key: idx,
-    keyword: kw.keyword,
-    avgMonthlySearches: kw.avgMonthlySearches,
-    competition: kw.competition,
-    competition_index: kw.competition_index,
-    avgCpc: kw.avgCpc,
-    lowBid: kw.lowBid,
-    highBid: kw.highBid,
-  })) || [];
+  const tableData =
+    keywordAnalysisResult?.map((kw, idx) => ({
+      key: idx,
+      keyword: kw.keyword,
+      avgMonthlySearches: kw.avgMonthlySearches,
+      competition: kw.competition,
+      competition_index: kw.competition_index,
+      avgCpc: kw.avgCpc,
+      lowBid: kw.lowBid,
+      highBid: kw.highBid,
+    })) || []
 
   // Handle pagination size change
   const handlePageSizeChange = (current, size) => {
-    setPageSize(size);
-    setCurrentPage(1); // Reset to first page when page size changes
-  };
+    setPageSize(size)
+    setCurrentPage(1) // Reset to first page when page size changes
+  }
 
   // Handle page change
   const handlePageChange = (page) => {
-    setCurrentPage(page);
-  };
+    setCurrentPage(page)
+  }
 
   const cardItems = [
     {
@@ -158,7 +184,13 @@ export default function ToolboxPage() {
       actionText: "Start Analysis",
       color: "from-rose-500 to-pink-600",
     },
-  ];
+  ]
+
+  useEffect(() => {
+    return () => {
+      dispatch(clearKeywordAnalysis())
+    }
+  }, [])
 
   return (
     <>
@@ -214,7 +246,10 @@ export default function ToolboxPage() {
             {
               key: "content",
               label: (
-                <motion.div className="flex items-center gap-2 font-medium" whileHover={{ scale: 1.05 }}>
+                <motion.div
+                  className="flex items-center gap-2 font-medium"
+                  whileHover={{ scale: 1.05 }}
+                >
                   <ThunderboltOutlined className="text-blue-500" />
                   <span>Content Tools</span>
                 </motion.div>
@@ -232,7 +267,10 @@ export default function ToolboxPage() {
             {
               key: "seo",
               label: (
-                <motion.div className="flex items-center gap-2 font-medium" whileHover={{ scale: 1.05 }}>
+                <motion.div
+                  className="flex items-center gap-2 font-medium"
+                  whileHover={{ scale: 1.05 }}
+                >
                   <SearchOutlined className="text-purple-500" />
                   <span>SEO Tools</span>
                 </motion.div>
@@ -250,7 +288,10 @@ export default function ToolboxPage() {
             {
               key: "keyword",
               label: (
-                <motion.div className="flex items-center gap-2 font-medium" whileHover={{ scale: 1.05 }}>
+                <motion.div
+                  className="flex items-center gap-2 font-medium"
+                  whileHover={{ scale: 1.05 }}
+                >
                   <Keyboard className="text-green-500" size={16} />
                   <span>Keyword Tools</span>
                 </motion.div>
@@ -320,9 +361,7 @@ export default function ToolboxPage() {
                           Analyze Keywords
                         </Button>
                       </motion.div>
-                      {error && (
-                        <div className="text-red-500 mt-2">{error}</div>
-                      )}
+                      {error && <div className="text-red-500 mt-2">{error}</div>}
                       {keywordAnalysisResult &&
                         Array.isArray(keywordAnalysisResult) &&
                         keywordAnalysisResult.length > 0 && (
@@ -381,7 +420,7 @@ export default function ToolboxPage() {
         )}
       </motion.div>
     </>
-  );
+  )
 }
 
 function AnimatedCard({ item }) {
@@ -423,5 +462,5 @@ function AnimatedCard({ item }) {
         )}
       </Card>
     </motion.div>
-  );
+  )
 }

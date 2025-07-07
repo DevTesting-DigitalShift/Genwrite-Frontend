@@ -72,12 +72,6 @@ const QuickBlogModal = ({ closeFnc }) => {
     })
   }
 
-  const handleInputChange = (index, value) => {
-    const newInputs = [...inputs]
-    newInputs[index] = value
-    setInputs(newInputs)
-  }
-
   const handleKeywordInputChange = (e, type) => {
     if (type === "keywords") {
       setFormData((prevState) => ({
@@ -96,29 +90,34 @@ const QuickBlogModal = ({ closeFnc }) => {
 
   const handleAddKeyword = (type) => {
     const inputValue = formData[`${type}Input`]
+
     if (inputValue.trim() !== "") {
+      // Normalize existing keywords to a Set (for fast lookup)
+      const existingSet = new Set(formData[type].map((k) => k.trim().toLowerCase()))
+
+      // Process new keywords
       const newKeywords = inputValue
         .split(",")
-        .map((keyword) => keyword.trim())
-        .filter((keyword) => keyword !== "")
+        .map((k) => k.trim())
+        .filter((k) => k !== "" && !existingSet.has(k.toLowerCase()))
+
       if (type === "focusKeywords" && formData[type].length + newKeywords.length > 3) {
-        alert("You can only add up to 3 focus keywords.")
+        message.error("You can only add up to 3 focus keywords.")
         return
       }
-      if (type === "focusKeywords") {
-        setFormData({
-          ...formData,
-          [type]: [...formData[type], ...newKeywords],
+
+      if (newKeywords.length > 0) {
+        setFormData((prev) => ({
+          ...prev,
+          [type]: [...prev[type], ...newKeywords],
           [`${type}Input`]: "",
-          focusKeywordInput: "",
-        })
+        }))
       } else {
-        setFormData({
-          ...formData,
-          [type]: [...formData[type], ...newKeywords],
+        // Clear input if nothing was added (could be all duplicates)
+        setFormData((prev) => ({
+          ...prev,
           [`${type}Input`]: "",
-          keywordInput: "",
-        })
+        }))
       }
     }
   }
@@ -133,9 +132,6 @@ const QuickBlogModal = ({ closeFnc }) => {
     if (e.key === "Enter") {
       e.preventDefault()
       handleAddKeyword(type)
-    } else if (e.key === ",") {
-      e.preventDefault()
-      handleAddKeyword(type)
     }
   }
 
@@ -143,42 +139,54 @@ const QuickBlogModal = ({ closeFnc }) => {
   const handleAddLink = () => {
     const input = formData.videoLinkInput?.trim()
     if (!input) {
-      message.error("Please enter a link.")
+      message.error("Please enter at least one link.")
       return
     }
 
-    let validatedUrl = input
+    const newLinks = input
+      .split(",")
+      .map((link) => link.trim())
+      .filter((link) => link !== "")
 
-    // Add protocol if missing
-    if (!/^https?:\/\//i.test(input)) {
-      validatedUrl = `https://${input}`
-    }
+    const validNewLinks = []
 
-    try {
-      const url = new URL(validatedUrl) // Will throw error if invalid
-
-      if (inputs.length >= 3) {
-        message.error("You can only add up to 3 links.")
-        return
+    for (let rawLink of newLinks) {
+      // Add https if missing
+      let validatedUrl = rawLink
+      if (!/^https?:\/\//i.test(validatedUrl)) {
+        validatedUrl = `https://${validatedUrl}`
       }
 
-      if (inputs.includes(validatedUrl)) {
-        message.error("This link has already been added.")
-        return
+      try {
+        const urlObj = new URL(validatedUrl)
+        if (!inputs.includes(validatedUrl) && !validNewLinks.includes(validatedUrl)) {
+          validNewLinks.push(validatedUrl)
+        }
+      } catch {
+        // Invalid URL, skip it
       }
-
-      setInputs([...inputs, validatedUrl])
-      setFormData((prev) => ({
-        ...prev,
-        videoLinkInput: "",
-      }))
-    } catch (err) {
-      message.error("Please enter a valid URL.")
     }
+
+    if (validNewLinks.length === 0) {
+      message.error("No valid, unique URLs found.")
+      return
+    }
+
+    const totalLinks = inputs.length + validNewLinks.length
+    if (totalLinks > 3) {
+      message.error("You can only add up to 3 links in total.")
+      return
+    }
+
+    setInputs([...inputs, ...validNewLinks])
+    setFormData((prev) => ({
+      ...prev,
+      videoLinkInput: "",
+    }))
   }
 
   const handleKeyDown = (e) => {
-    if (e.key === "Enter" || e.key === ",") {
+    if (e.key === "Enter") {
       e.preventDefault()
       handleAddLink()
     }

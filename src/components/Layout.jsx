@@ -60,7 +60,7 @@ const LayoutWithSidebarAndHeader = () => {
   const Menus = [
     { title: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
     { title: "My Projects", icon: FileText, path: "/blogs" },
-    // { title: "Search Console", icon: TrendingUp, path: "/search-console" },
+    { title: "Search Console", icon: TrendingUp, path: "/search-console" },
     { title: "Content Agent", icon: Briefcase, path: "/jobs" },
     { title: "Toolbox", icon: Box, path: "/toolbox" },
     { title: "Integrations", icon: Plug, path: "/integrations" },

@@ -1,8 +1,19 @@
 import React, { useState, useEffect } from "react"
-import { useNavigate } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import SkeletonLoader from "./SkeletonLoader"
 import { Badge, Button, Input, Popconfirm, Tooltip, Select, Modal, Popover, Pagination } from "antd"
-import { ArrowDownUp, Funnel, Menu, RefreshCcw, RotateCcw, Search, Trash2 } from "lucide-react"
+import {
+  ArrowDownUp,
+  Filter,
+  Funnel,
+  Menu,
+  PenTool,
+  Plus,
+  RefreshCcw,
+  RotateCcw,
+  Search,
+  Trash2,
+} from "lucide-react"
 import { motion } from "framer-motion"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import {
@@ -286,30 +297,48 @@ const MyProjects = () => {
       <Helmet>
         <title>Blogs | GenWrite</title>
       </Helmet>
-      <div className="flex justify-between align-middle items-center">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        {/* Title and Description */}
+        <div className="flex-1">
           <motion.h1
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
           >
             Blogs Generated
           </motion.h1>
           <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="text-gray-600 max-w-xl mt-2 mb-5"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+            className="text-gray-500 text-sm mt-2 max-w-md"
           >
             All your content creation tools in one place. Streamline your workflow with our powerful
             suite of tools.
           </motion.p>
         </div>
-        <div className="flex gap-3">
+
+        {currentItems.length !== 0 && (
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Link
+              to="/blog-editor"
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
+            >
+              <Plus className="w-4 h-4" />
+              New Blog
+            </Link>
+          </motion.div>
+        )}
+      </div>
+
+      {/* Actions: Search, Filters, and New Blog */}
+      {currentItems.length !== 0 && (
+        <div className="flex items-center gap-3 justify-end mb-5">
+          {/* Search Popover */}
           <Popover
             content={
-              <div className="flex flex-col gap-4 w-64">
+              <div className="flex flex-col gap-3 w-72 p-3">
                 <Select
                   defaultValue="title"
                   onChange={(value) => setSearchType(value)}
@@ -317,6 +346,7 @@ const MyProjects = () => {
                     { value: "title", label: "Search by Title" },
                     { value: "keywords", label: "Search by Focus Keywords" },
                   ]}
+                  className="w-full"
                 />
                 <Input
                   placeholder={`Search by ${
@@ -325,8 +355,13 @@ const MyProjects = () => {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   onPressEnter={handleSearchModalOk}
+                  className="w-full"
                 />
-                <Button type="primary" onClick={handleSearchModalOk}>
+                <Button
+                  type="primary"
+                  onClick={handleSearchModalOk}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
                   Search
                 </Button>
               </div>
@@ -338,42 +373,51 @@ const MyProjects = () => {
             onOpenChange={(visible) => setSearchModalOpen(visible)}
           >
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Tooltip title="Search">
+              <Tooltip title="Search Blogs">
                 {isSearchOpen ? (
                   <Input
                     autoFocus
-                    size="small"
                     placeholder={`Search by ${
                       searchType === "title" ? "title" : "focus keywords"
                     }...`}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    onPressEnter={handleSearch}
+                    onPressEnter={handleSearchModalOk}
                     onBlur={() => setSearchOpen(false)}
-                    className="w-48"
+                    className="w-48 rounded-lg border-gray-300 shadow-sm"
                   />
                 ) : (
-                  <Button type="text" icon={<Search />} onClick={toggleSearch} />
+                  <Button
+                    type="default"
+                    icon={<Search className="w-4 h-4" />}
+                    onClick={toggleSearch}
+                    className="p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100"
+                  />
                 )}
               </Tooltip>
             </motion.div>
           </Popover>
 
+          {/* Refresh Button */}
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <Tooltip title="Refresh">
-              <Button type="button" className="p-0" onClick={handleRefresh}>
-                <RefreshCcw />
-              </Button>
+              <Button
+                type="default"
+                icon={<RefreshCcw className="w-4 h-4" />}
+                onClick={handleRefresh}
+                className="p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100"
+              />
             </Tooltip>
           </motion.div>
 
+          {/* Sort Popover */}
           <Popover
             open={isMenuOpen}
             onOpenChange={(visible) => setMenuOpen(visible)}
             trigger="click"
             placement="bottomRight"
             content={
-              <div className="min-w-[200px] rounded-lg space-y-1">
+              <div className="min-w-[200px] rounded-lg space-y-1 p-2 bg-white shadow-lg border border-gray-200">
                 {menuOptions.map(({ label, icon, onClick }) => (
                   <Tooltip title={label} placement="left" key={label}>
                     <button
@@ -389,24 +433,25 @@ const MyProjects = () => {
             }
           >
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Tooltip title="Sort">
+              <Tooltip title="Sort Blogs">
                 <Button
-                  type="button"
-                  icon={<ArrowDownUp />}
+                  type="default"
+                  icon={<ArrowDownUp className="w-4 h-4" />}
                   onClick={toggleMenu}
-                  className="pt-1"
+                  className="p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100"
                 />
               </Tooltip>
             </motion.div>
           </Popover>
 
+          {/* Filter Popover */}
           <Popover
             open={funnelMenuOpen}
             onOpenChange={(visible) => setFunnelMenuOpen(visible)}
             trigger="click"
             placement="bottomRight"
             content={
-              <div className="min-w-[200px] rounded-lg space-y-1">
+              <div className="min-w-[200px] rounded-lg space-y-1 p-2 bg-white shadow-lg border border-gray-200">
                 {funnelMenuOptions.map(({ label, icon, onClick }) => (
                   <Tooltip title={label} placement="left" key={label}>
                     <button
@@ -422,24 +467,30 @@ const MyProjects = () => {
             }
           >
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Tooltip title="Filter">
+              <Tooltip title="Filter Blogs">
                 <Button
-                  type="button"
-                  icon={<Funnel />}
+                  type="default"
+                  icon={<Filter className="w-4 h-4" />}
                   onClick={toggleFunnelMenu}
-                  className="pt-1"
+                  className="p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100"
                 />
               </Tooltip>
             </motion.div>
           </Popover>
 
+          {/* Reset Filters Button */}
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <Tooltip title="Reset Filters">
-              <Button type="button" icon={<RotateCcw />} onClick={resetFilters} className="pt-1" />
+              <Button
+                type="default"
+                icon={<RotateCcw className="w-4 h-4" />}
+                onClick={resetFilters}
+                className="p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100"
+              />
             </Tooltip>
           </motion.div>
         </div>
-      </div>
+      )}
 
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -450,12 +501,19 @@ const MyProjects = () => {
           ))}
         </div>
       ) : currentItems.length === 0 ? (
-        <div
-          className="flex flex-col justify-center items-center"
-          style={{ minHeight: "calc(100vh - 270px)" }}
-        >
-          <img src="Images/no-blog.png" alt="Trash" style={{ width: "8rem" }} />
-          <p className="text-xl mt-5">No blogs available.</p>
+        <div className="text-center py-12">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <PenTool className="w-8 h-8 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">No blogs yet</h3>
+          <p className="text-gray-600 mb-6">Create your first blog to get started</p>
+          <Link
+            to="/blog-editor"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          >
+            <Plus className="w-4 h-4" />
+            Create Your First Blog
+          </Link>
         </div>
       ) : (
         <>
@@ -625,30 +683,6 @@ const MyProjects = () => {
               )
             })}
           </div>
-          {/* {totalPages > 1 && (
-            <div className="flex justify-center mt-8 self-end">
-              <nav className="inline-flex rounded-md shadow">
-                <ul className="flex">
-                  {Array.from({ length: totalPages }, (_, index) => (
-                    <li key={index}>
-                      <button
-                        onClick={() => handlePageChange(index + 1)}
-                        className={`px-4 py-2 border-r border-gray-200 text-sm font-medium ${
-                          currentPage === index + 1
-                            ? "bg-blue-600 text-white"
-                            : "bg-white text-gray-700 hover:bg-gray-50"
-                        } ${index === 0 ? "rounded-l-md" : ""} ${
-                          index === totalPages - 1 ? "rounded-r-md border-r-0" : ""
-                        }`}
-                      >
-                        {index + 1}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </nav>
-            </div>
-          )} */}
           {totalPages > PAGE_SIZE && (
             <div className="flex justify-center mt-6">
               <Pagination
