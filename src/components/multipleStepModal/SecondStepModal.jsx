@@ -7,8 +7,13 @@ const SecondStepModal = ({ handleNext, handlePrevious, handleClose, data, setDat
   const dispatch = useDispatch()
   const { selectedKeywords } = useSelector((state) => state.analysis) // Get selected keywords from Redux
   const [formData, setFormData] = useState({
-    focusKeywords: data.focusKeywords || (selectedKeywords ? selectedKeywords.slice(0, 3) : []),
-    keywords: data.keywords || (selectedKeywords ? selectedKeywords.slice(3) : []),
+    focusKeywords: data.focusKeywords || selectedKeywords?.focusKeywords || [],
+    keywords:
+      data.keywords ||
+      selectedKeywords?.allKeywords?.filter(
+        (kw) => !(selectedKeywords?.focusKeywords || []).includes(kw)
+      ) ||
+      [],
     focusKeywordInput: "",
     keywordInput: "",
     isCheckedQuick: data.isCheckedQuick || false,
@@ -33,32 +38,39 @@ const SecondStepModal = ({ handleNext, handlePrevious, handleClose, data, setDat
   }
 
   const handleAddKeyword = (type) => {
-    const inputValue = formData[`${type}Input`]
-    if (inputValue.trim() !== "") {
-      const newKeywords = inputValue
-        .split(",")
-        .map((keyword) => keyword.trim())
-        .filter((keyword) => keyword !== "")
-      if (type === "focusKeywords" && formData[type].length + newKeywords.length > 3) {
+    const inputValue = formData[`${type}Input`].trim()
+    if (!inputValue) return
+
+    // Normalize existing keywords for duplicate check
+    const existing = formData[type].map((k) => k.toLowerCase().trim())
+
+    // Get new keywords, remove duplicates (within themselves & existing)
+    const seen = new Set()
+    const newKeywords = inputValue
+      .split(",")
+      .map((k) => k.trim())
+      .filter((k) => {
+        const lower = k.toLowerCase()
+        if (!k || seen.has(lower) || existing.includes(lower)) return false
+        seen.add(lower)
+        return true
+      })
+
+    // If focusKeywords, limit to 3
+    if (type === "focusKeywords") {
+      const total = formData[type].length + newKeywords.length
+      if (total > 3) {
         message.error("You can only add up to 3 focus keywords.")
         return
       }
-      if (type === "focusKeywords") {
-        setFormData({
-          ...formData,
-          [type]: [...formData[type], ...newKeywords],
-          [`${type}Input`]: "",
-          focusKeywordInput: "",
-        })
-      } else {
-        setFormData({
-          ...formData,
-          [type]: [...formData[type], ...newKeywords],
-          [`${type}Input`]: "",
-          keywordInput: "",
-        })
-      }
     }
+
+    // Update state
+    setFormData((prev) => ({
+      ...prev,
+      [type]: [...prev[type], ...newKeywords],
+      [`${type}Input`]: "",
+    }))
   }
 
   const handleRemoveKeyword = (index, type) => {
@@ -69,9 +81,6 @@ const SecondStepModal = ({ handleNext, handlePrevious, handleClose, data, setDat
 
   const handleKeyPress = (e, type) => {
     if (e.key === "Enter") {
-      e.preventDefault()
-      handleAddKeyword(type)
-    } else if (e.key === ",") {
       e.preventDefault()
       handleAddKeyword(type)
     }
@@ -90,16 +99,17 @@ const SecondStepModal = ({ handleNext, handlePrevious, handleClose, data, setDat
 
   // Update formData.keywords when selectedKeywords changes
   useEffect(() => {
-    if (selectedKeywords && selectedKeywords.length > 0) {
-      setFormData((prev) => ({
+    setFormData((prev) => {
+      const newFocus = selectedKeywords?.focusKeywords || []
+      const newAll = selectedKeywords?.allKeywords || []
+      const newKeywords = newAll.filter((kw) => !newFocus.includes(kw))
+
+      return {
         ...prev,
-        focusKeywords: [...new Set([...prev.focusKeywords, ...selectedKeywords.slice(0, 3)])].slice(
-          0,
-          3
-        ), // First 3 keywords, no duplicates, max 3
-        keywords: [...new Set([...prev.keywords, ...selectedKeywords.slice(3)])], // Remaining keywords, no duplicates
-      }))
-    }
+        focusKeywords: [...new Set([...prev.focusKeywords, ...newFocus])].slice(0, 3),
+        keywords: [...new Set([...prev.keywords, ...newKeywords])],
+      }
+    })
   }, [selectedKeywords])
 
   return (
@@ -196,12 +206,12 @@ const SecondStepModal = ({ handleNext, handlePrevious, handleClose, data, setDat
                 {formData.keywords.map((keyword, index) => (
                   <span
                     key={index}
-                    className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-700"
+                    className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
                   >
                     {keyword}
                     <button
                       onClick={() => handleRemoveKeyword(index, "keywords")}
-                      className="ml-1 text-gray-400 hover:text-gray-600"
+                      className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
                     >
                       ×
                     </button>

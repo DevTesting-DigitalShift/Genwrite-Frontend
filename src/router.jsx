@@ -29,6 +29,7 @@ const SearchConsole = lazy(() => import("@pages/SearchConsole"))
 const TermsAndConditions = lazy(() => import("@pages/TermsAndConditions"))
 const PrivacyPolicy = lazy(() => import("@pages/Privacy"))
 const HumanizeContent = lazy(() => import("@pages/HumanizeContent"))
+const ManualBlog = lazy(() => import("@components/generateBlog/ManualBlog"))
 
 /**
  * Wraps a component in React.Suspense with fallback support.
@@ -69,6 +70,7 @@ const router = createBrowserRouter([
       { path: "contact", element: withSuspense(ContactUs) },
       { path: "search-console", element: withSuspense(SearchConsole) },
       { path: "humanize-content", element: withSuspense(HumanizeContent) },
+      { path: "blog-editor", element: withSuspense(ManualBlog) },
       {
         path: "payment",
         children: [

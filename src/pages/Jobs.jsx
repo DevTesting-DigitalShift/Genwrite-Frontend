@@ -211,7 +211,7 @@ const Jobs = () => {
     )
   }
 
-  const handlenumberOfBlogsChange = (e) => {
+  const handleNumberOfBlogsChange = (e) => {
     const value = parseInt(e.target.value, 10)
     if (!isNaN(value) && value >= 0) {
       setNewJob({
@@ -255,20 +255,37 @@ const Jobs = () => {
   }
 
   const handleAddKeyword = (type) => {
-    if (topicInput.trim() !== "") {
-      setNewJob((prev) => ({
-        ...prev,
-        blogs: {
-          ...prev.blogs,
-          topics: [...prev.blogs.topics, topicInput.trim()],
-        },
-      }))
-      setTopicInput("")
-    }
+    const input = topicInput.trim()
+    if (!input) return
+
+    const existing = newJob.blogs.topics.map((t) => t.toLowerCase().trim())
+    const seen = new Set()
+
+    const newTopics = input
+      .split(",")
+      .map((t) => t.trim())
+      .filter((t) => {
+        const lower = t.toLowerCase()
+        if (!t || existing.includes(lower) || seen.has(lower)) return false
+        seen.add(lower)
+        return true
+      })
+
+    if (newTopics.length === 0) return
+
+    setNewJob((prev) => ({
+      ...prev,
+      blogs: {
+        ...prev.blogs,
+        topics: [...prev.blogs.topics, ...newTopics],
+      },
+    }))
+
+    setTopicInput("")
   }
 
   const handleKeyPress = (e, type) => {
-    if (e.key === "Enter" || e.key === ",") {
+    if (e.key === "Enter") {
       e.preventDefault()
       handleAddKeyword(type)
     }
@@ -439,7 +456,7 @@ const Jobs = () => {
   }
 
   const handleTopicKeyPress = (e) => {
-    if (e.key === "Enter" || e.key === ",") {
+    if (e.key === "Enter") {
       e.preventDefault()
       handleAddKeyword()
       handleAddToggleKeyword()
@@ -447,33 +464,50 @@ const Jobs = () => {
   }
 
   const handleAddToggleKeyword = () => {
-    const inputValue = formData.keywordInput
-    if (inputValue.trim() !== "") {
-      const newKeywords = inputValue
-        .split(",")
-        .map((keyword) => keyword.trim())
-        .filter((keyword) => keyword !== "" && !formData.keywords.includes(keyword))
+    const inputValue = formData.keywordInput.trim()
+    if (!inputValue) return false
 
-      if (newKeywords.length > 0) {
-        setFormData((prev) => ({
-          ...prev,
-          keywords: [...prev.keywords, ...newKeywords],
-          keywordInput: "",
-        }))
-        setNewJob((prev) => ({
-          ...prev,
-          blogs: {
-            ...prev.blogs,
-            keywords: [...prev.blogs.keywords, ...newKeywords],
-          },
-        }))
+    const existingKeywords = formData.keywords.map((k) => k.toLowerCase())
+    const jobKeywords = newJob.blogs.keywords.map((k) => k.toLowerCase())
+
+    const seen = new Set()
+
+    const newKeywords = inputValue
+      .split(",")
+      .map((k) => k.trim())
+      .filter((k) => {
+        const lower = k.toLowerCase()
+        if (
+          !k ||
+          seen.has(lower) ||
+          existingKeywords.includes(lower) ||
+          jobKeywords.includes(lower)
+        )
+          return false
+        seen.add(lower)
         return true
-      } else {
-        setFormData((prev) => ({ ...prev, keywordInput: "" }))
-        return false
-      }
+      })
+
+    if (newKeywords.length === 0) {
+      setFormData((prev) => ({ ...prev, keywordInput: "" }))
+      return false
     }
-    return false
+
+    setFormData((prev) => ({
+      ...prev,
+      keywords: [...prev.keywords, ...newKeywords],
+      keywordInput: "",
+    }))
+
+    setNewJob((prev) => ({
+      ...prev,
+      blogs: {
+        ...prev.blogs,
+        keywords: [...prev.blogs.keywords, ...newKeywords],
+      },
+    }))
+
+    return true
   }
 
   const handleRemoveToggleKeyword = (index) => {
@@ -1127,7 +1161,7 @@ const Jobs = () => {
                 <input
                   type="number"
                   value={newJob.blogs.numberOfBlogs}
-                  onChange={handlenumberOfBlogsChange}
+                  onChange={handleNumberOfBlogsChange}
                   className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Enter the number of blogs"
                 />
@@ -1172,12 +1206,13 @@ const Jobs = () => {
     }
     setNewJob(initialJob)
     setFormData({
-      focusKeywords: selectedKeywords ? selectedKeywords.slice(0, 3) : [],
+      focusKeywords: selectedKeywords?.focusKeywords?.slice(0, 3) || [],
+      keywords: selectedKeywords?.keywords || [],
       focusKeywordInput: "",
-      keywords: selectedKeywords ? selectedKeywords.slice(3) : [],
       keywordInput: "",
       performKeywordResearch: true,
     })
+
     dispatch(openJobModal())
     setCurrentStep(1)
   }

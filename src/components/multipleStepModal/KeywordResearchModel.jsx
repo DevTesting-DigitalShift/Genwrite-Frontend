@@ -1,26 +1,50 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { X } from "lucide-react"
-import { Button, Card, Input, Table, Tag } from "antd"
+import { Button, Card, Input, Table, Tag, Modal } from "antd"
 import { CloseOutlined } from "@ant-design/icons"
 import { useDispatch, useSelector } from "react-redux"
-import { analyzeKeywordsThunk, setSelectedKeywords } from "@store/slices/analysisSlice"
+import {
+  analyzeKeywordsThunk,
+  clearKeywordAnalysis,
+  setSelectedKeywords,
+} from "@store/slices/analysisSlice"
 
 const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal }) => {
   const [newKeyword, setNewKeyword] = useState("")
   const [keywords, setKeywords] = useState([])
   const [currentPage, setCurrentPage] = useState(1)
+  const [autoSelectedKeywords, setAutoSelectedKeywords] = useState([])
+
   const dispatch = useDispatch()
   const {
     keywordAnalysis: keywordAnalysisResult,
     loading: analyzing,
     error: analysisError,
+    selectedKeywords,
   } = useSelector((state) => state.analysis)
 
   const addKeyword = () => {
-    if (newKeyword.trim() && !keywords.includes(newKeyword.trim())) {
-      setKeywords([...keywords, newKeyword.trim()])
-      setNewKeyword("")
+    const input = newKeyword.trim()
+    if (!input) return
+
+    const existing = keywords.map((k) => k.toLowerCase())
+    const seen = new Set()
+
+    const newKeywords = input
+      .split(",")
+      .map((k) => k.trim())
+      .filter(
+        (k) =>
+          k &&
+          !existing.includes(k.toLowerCase()) &&
+          !seen.has(k.toLowerCase()) &&
+          seen.add(k.toLowerCase())
+      )
+
+    if (newKeywords.length > 0) {
+      setKeywords([...keywords, ...newKeywords])
+      setNewKeyword("") // clear input
     }
   }
 
@@ -29,30 +53,118 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal }) =
   }
 
   const handleKeyPress = (e) => {
-    if (e.key === "Enter" || e.key === ",") {
+    if (e.key === "Enter") {
       e.preventDefault()
       addKeyword()
     }
   }
 
-  const analyzeKeywords = async () => {
+  const analyzeKeywords = () => {
     dispatch(analyzeKeywordsThunk(keywords))
-    setCurrentPage(1) // Reset to first page on new analysis
+    setCurrentPage(1)
+  }
+
+  // Generate auto-selected keywords based on competition index
+  const getAutoSelectedKeywords = () => {
+    const byCompetition = { LOW: [], MEDIUM: [], HIGH: [] }
+    keywordAnalysisResult?.forEach((kw) => {
+      if (byCompetition[kw.competition]) {
+        byCompetition[kw.competition].push({
+          keyword: kw.keyword,
+          competition_index: kw.competition_index,
+        })
+      }
+    })
+
+    // Sort by competition_index and select top 2 for each category
+    const sortedLow = byCompetition.LOW.sort(
+      (a, b) => a.competition_index - b.competition_index
+    ).slice(0, 2)
+    const sortedMedium = byCompetition.MEDIUM.sort(
+      (a, b) => a.competition_index - b.competition_index
+    ).slice(0, 2)
+    const sortedHigh = byCompetition.HIGH.sort(
+      (a, b) => a.competition_index - b.competition_index
+    ).slice(0, 2)
+
+    return [
+      ...sortedLow.map((item) => item.keyword),
+      ...sortedMedium.map((item) => item.keyword),
+      ...sortedHigh.map((item) => item.keyword),
+    ]
+  }
+
+  const confirmAutoKeywords = (type) => {
+    const autoKeywords = getAutoSelectedKeywords()
+    setAutoSelectedKeywords(autoKeywords)
+
+    Modal.confirm({
+      title: "Auto-Selected Keywords",
+      content: (
+        <div>
+          <p>We selected these keywords automatically based on competition index:</p>
+          <ul className="list-disc ml-5 mt-2">
+            {autoKeywords.map((kw) => (
+              <li key={kw} className="capitalize">
+                {kw}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-3">Do you want to proceed with these?</p>
+        </div>
+      ),
+      okText: "Accept",
+      cancelText: "Decline",
+      onOk() {
+        // Combine user-selected and auto-generated keywords
+        const finalKeywords = [
+          ...(selectedKeywords?.focusKeywords || []),
+          ...autoKeywords.filter((kw) => !selectedKeywords?.focusKeywords?.includes(kw)),
+        ].slice(0, 6) // Limit to 6 keywords to avoid too many
+        proceedWithSelectedKeywords(finalKeywords, type)
+      },
+      onCancel() {
+        // Use only user-selected keywords
+        const finalKeywords = selectedKeywords?.focusKeywords || []
+        proceedWithSelectedKeywords(finalKeywords, type)
+      },
+    })
   }
 
   const handleCreateBlog = () => {
-    dispatch(setSelectedKeywords(keywords))
-    openSecondStepModal()
-    closeFnc()
+    if (selectedKeywords?.focusKeywords?.length > 0) {
+      proceedWithSelectedKeywords(selectedKeywords.focusKeywords, "blog")
+    } else {
+      confirmAutoKeywords("blog")
+    }
   }
 
   const handleCreateJob = () => {
-    dispatch(setSelectedKeywords(keywords))
-    openJobModal()
+    if (selectedKeywords?.focusKeywords?.length > 0) {
+      proceedWithSelectedKeywords(selectedKeywords.focusKeywords, "job")
+    } else {
+      confirmAutoKeywords("job")
+    }
+  }
+
+  const proceedWithSelectedKeywords = (finalSelectedKeywords, type) => {
+    // Only send the final selected keywords, not all keywords
+    dispatch(
+      setSelectedKeywords({
+        focusKeywords: finalSelectedKeywords,
+        allKeywords: finalSelectedKeywords, // Only send selected keywords
+      })
+    )
+
+    if (type === "blog") {
+      openSecondStepModal()
+    } else {
+      openJobModal()
+    }
+
     closeFnc()
   }
 
-  // Table columns for keyword analysis results
   const columns = [
     {
       title: "Keyword",
@@ -69,29 +181,35 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal }) =
       render: (value) => new Intl.NumberFormat().format(value),
     },
     {
-      title: "Avg CPC ($)",
-      dataIndex: "avgCpc",
-      key: "avgCpc",
-      sorter: (a, b) => a.avgCpc - b.avgCpc,
-      render: (value) => (value ? value.toFixed(2) : "-"),
+      title: "Competition",
+      dataIndex: "competition",
+      key: "competition",
+      sorter: (a, b) => a.competition_index - b.competition_index,
+      render: (text) => (
+        <Tag
+          color={
+            text === "LOW"
+              ? "green"
+              : text === "MEDIUM"
+              ? "orange"
+              : text === "HIGH"
+              ? "red"
+              : "gray"
+          }
+        >
+          {text}
+        </Tag>
+      ),
     },
     {
-      title: "Low Bid ($)",
-      dataIndex: "lowBid",
-      key: "lowBid",
-      sorter: (a, b) => a.lowBid - b.lowBid,
-      render: (value) => (value ? value.toFixed(2) : "N/-"),
-    },
-    {
-      title: "High Bid ($)",
-      dataIndex: "highBid",
-      key: "highBid",
-      sorter: (a, b) => a.highBid - b.highBid,
-      render: (value) => (value ? value.toFixed(2) : "N/-"),
+      title: "Competition Index",
+      dataIndex: "competition_index",
+      key: "competition_index",
+      sorter: (a, b) => a.competition_index - b.competition_index,
+      render: (value) => (value ? value : "-"),
     },
   ]
 
-  // Prepare table data from keywordAnalysisResult
   const tableData =
     keywordAnalysisResult?.map((kw, idx) => ({
       key: idx,
@@ -104,10 +222,11 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal }) =
       highBid: kw.highBid,
     })) || []
 
-  // Handle page change
-  const handlePageChange = (page) => {
-    setCurrentPage(page)
-  }
+  const handlePageChange = (page) => setCurrentPage(page)
+
+  useEffect(() => {
+    dispatch(clearKeywordAnalysis())
+  }, [dispatch])
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
@@ -121,15 +240,12 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal }) =
           title={
             <div className="flex justify-between items-center">
               <span className="font-medium text-gray-700">Keyword Research</span>
-              <button
-                onClick={closeFnc}
-                className="p-2 rounded-full hover:bg-gray-100 transition-all"
-              >
+              <button onClick={closeFnc} className="p-2 rounded-full hover:bg-gray-100">
                 <X className="h-6 w-6 text-gray-500 hover:text-gray-700" />
               </button>
             </div>
           }
-          className="rounded-xl shadow-lg border-0 relative overflow-hidden transition-all duration-300 hover:shadow-xl"
+          className="rounded-xl shadow-lg border-0"
         >
           <p className="mb-4 text-gray-600">Find and analyze keywords for your blog</p>
 
@@ -154,7 +270,6 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal }) =
                 key={index}
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
                 className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full flex items-center"
               >
                 <span>{keyword}</span>
@@ -190,21 +305,35 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal }) =
                 dataSource={tableData}
                 pagination={{
                   current: currentPage,
-                  pageSize: 4, // Limit to 4 rows per page
-                  showSizeChanger: false, // Disable page size changer
+                  pageSize: 4,
+                  showSizeChanger: false,
                   onChange: handlePageChange,
                   total: tableData.length,
                 }}
-                rowKey="key"
-                className="keyword-analysis-table"
-                scroll={{ x: true }} // Enable horizontal scroll for small screens
+                rowSelection={{
+                  selectedRowKeys: selectedKeywords?.focusKeywords || [],
+                  onChange: (selected) => {
+                    dispatch(
+                      setSelectedKeywords({
+                        focusKeywords: selected,
+                        allKeywords: selected, // Store only selected keywords
+                      })
+                    )
+                  },
+                  getCheckboxProps: (record) => ({
+                    name: record.keyword,
+                  }),
+                }}
+                rowKey={(record) => record.keyword}
+                scroll={{ x: true }}
               />
             </div>
           )}
+
           <div className="flex justify-end gap-3 mt-5 border-t border-gray-100">
             <motion.button
               onClick={handleCreateBlog}
-              className="px-5 py-2.5 text-sm font-medium mt-5 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-all duration-300"
+              className="px-5 py-2.5 text-sm font-medium mt-5 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
             >
@@ -212,7 +341,7 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal }) =
             </motion.button>
             <motion.button
               onClick={handleCreateJob}
-              className="px-5 py-2.5 text-sm font-medium mt-5 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-all duration-300"
+              className="px-5 py-2.5 text-sm font-medium mt-5 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
             >
@@ -220,7 +349,7 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal }) =
             </motion.button>
             <motion.button
               onClick={closeFnc}
-              className="px-5 py-2.5 text-sm font-medium mt-5 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-all duration-300"
+              className="px-5 py-2.5 text-sm font-medium mt-5 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
             >

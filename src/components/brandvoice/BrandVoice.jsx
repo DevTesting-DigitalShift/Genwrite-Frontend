@@ -85,15 +85,31 @@ const BrandVoice = () => {
     (event) => {
       if (event.key === "Enter" && inputValue.trim()) {
         event.preventDefault()
+
+        const existing = formData.keywords.map((k) => k.toLowerCase())
+        const seen = new Set()
+
+        const newKeywords = inputValue
+          .split(",")
+          .map((k) => k.trim())
+          .filter((k) => {
+            const lower = k.toLowerCase()
+            if (!k || existing.includes(lower) || seen.has(lower)) return false
+            seen.add(lower)
+            return true
+          })
+
+        if (newKeywords.length === 0) return
+
         setFormData((prev) => ({
           ...prev,
-          keywords: [...new Set([...prev.keywords, inputValue.trim()])],
+          keywords: [...prev.keywords, ...newKeywords],
         }))
         setInputValue("")
         setErrors((prev) => ({ ...prev, keywords: undefined }))
       }
     },
-    [inputValue]
+    [inputValue, formData.keywords]
   )
 
   // Remove keyword

@@ -6,14 +6,8 @@ import {
   Eye,
   MousePointer,
   BarChart3,
-  ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
   ExternalLink,
   RefreshCw,
-  Settings,
-  ChevronLeft,
-  ChevronRight,
   LogIn,
   Link,
   Download,
@@ -22,9 +16,14 @@ import { Helmet } from "react-helmet"
 import { motion } from "framer-motion"
 import { useDispatch, useSelector } from "react-redux"
 import { fetchVerifiedSites, connectGscAccount, fetchGscAuthUrl } from "@store/slices/gscSlice"
-import axios from "axios"
-import { message, Button } from "antd"
+import { message, Button, Spin, Table, Tag, Select, Input } from "antd"
 import { useNavigate, useSearchParams } from "react-router-dom"
+import axiosInstance from "@api/index"
+import Loading from "@components/Loading"
+import * as XLSX from "xlsx"
+
+const { Option } = Select
+const { Search: AntSearch } = Input
 
 const SearchConsole = () => {
   const [searchTerm, setSearchTerm] = useState("")
@@ -39,6 +38,7 @@ const SearchConsole = () => {
   const [error, setError] = useState(null)
   const [isConnecting, setIsConnecting] = useState(false)
   const dispatch = useDispatch()
+  const { user } = useSelector((state) => state.auth)
   const {
     verifiedSites,
     loading: sitesLoading,
@@ -46,8 +46,6 @@ const SearchConsole = () => {
   } = useSelector((state) => state.gsc)
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
-
-  console.log({verifiedSites})
 
   // Calculate date range for API request
   const getDateRangeParams = () => {
@@ -79,60 +77,57 @@ const SearchConsole = () => {
     try {
       setIsConnecting(true)
       const result = await dispatch(fetchGscAuthUrl()).unwrap()
-      console.log({result})
-      if (result) {
-        const popup = window.open(result, "GSC Connect", "width=600,height=600")
-        if (!popup) {
-          throw new Error("Popup blocked. Please allow popups and try again.")
-        }
-
-        const handleMessage = async (event) => {
-          // Ensure the message comes from the expected origin
-          if (event.origin !== window.location.origin) return
-          const { code, state, error: popupError } = event.data
-          if (popupError) {
-            message.error(popupError)
-            setIsConnecting(false)
-            window.removeEventListener("message", handleMessage)
-            return
-          }
-          if (code && state) {
-            try {
-              await dispatch(connectGscAccount({ code, state })).unwrap()
-              message.success("Google Search Console connected successfully!")
-              dispatch(fetchVerifiedSites())
-              // Clear query params if any
-              navigate("/search-console", { replace: true })
-            } catch (err) {
-              message.error("Failed to connect GSC account.")
-              console.error(err)
-            } finally {
-              setIsConnecting(false)
-              window.removeEventListener("message", handleMessage)
-            }
-          }
-        }
-
-        window.addEventListener("message", handleMessage)
-
-        // Fallback: Poll popup closure
-        const checkPopupClosed = setInterval(() => {
-          if (popup.closed) {
-            clearInterval(checkPopupClosed)
-            setIsConnecting(false)
-            window.removeEventListener("message", handleMessage)
-            // message.error("Authentication canceled or failed.")
-          }
-        }, 1000)
+      if (!result) {
+        throw new Error("Failed to retrieve authentication URL")
       }
+      const popup = window.open(result, "GSC Connect", "width=600,height=600")
+      if (!popup) {
+        throw new Error("Popup blocked. Please allow popups and try again.")
+      }
+
+      const handleMessage = async (event) => {
+        if (event.origin !== window.location.origin) return
+        const { code, state, error: popupError } = event.data
+        if (popupError) {
+          message.error(popupError || "Authentication failed")
+          setIsConnecting(false)
+          window.removeEventListener("message", handleMessage)
+          return
+        }
+        if (code && state) {
+          try {
+            await dispatch(connectGscAccount({ code, state })).unwrap()
+            message.success("Google Search Console connected successfully!")
+            dispatch(fetchVerifiedSites())
+            navigate("/search-console", { replace: true })
+          } catch (err) {
+            message.error(err.message || "Failed to connect GSC account")
+            console.error("GSC connection error:", err)
+          } finally {
+            setIsConnecting(false)
+            window.removeEventListener("message", handleMessage)
+          }
+        }
+      }
+
+      window.addEventListener("message", handleMessage)
+
+      const checkPopupClosed = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(checkPopupClosed)
+          setIsConnecting(false)
+          window.removeEventListener("message", handleMessage)
+          message.warning("Authentication canceled")
+        }
+      }, 1000)
     } catch (err) {
-      message.error(err.message || "Failed to initiate GSC connection.")
-      console.error(err)
+      message.error(err.message || "Failed to initiate GSC connection")
+      console.error("GSC auth error:", err)
       setIsConnecting(false)
     }
   }
 
-  // Handle OAuth callback from query params (fallback for direct redirects)
+  // Handle OAuth callback
   useEffect(() => {
     const code = searchParams.get("code")
     const state = searchParams.get("state")
@@ -154,8 +149,8 @@ const SearchConsole = () => {
           dispatch(fetchVerifiedSites())
           setSearchParams({}, { replace: true })
         } catch (err) {
-          message.error("Failed to connect GSC account.")
-          console.error(err)
+          message.error(err.message || "Failed to connect GSC account")
+          console.error("OAuth callback error:", err)
         } finally {
           setIsConnecting(false)
         }
@@ -164,101 +159,152 @@ const SearchConsole = () => {
     }
   }, [searchParams, dispatch, setSearchParams])
 
-  // Fetch analytics data for all verified sites
+  // Fetch analytics data
   const fetchAnalyticsData = async () => {
-    if (!verifiedSites.length) return
+    if (!verifiedSites.length) {
+      setError("No verified sites found. Please connect your Google Search Console account.")
+      setIsLoading(false)
+      return
+    }
     setIsLoading(true)
     setError(null)
     try {
       const { from, to } = getDateRangeParams()
       const blogDataPromises = verifiedSites.map(async (site) => {
-        const siteUrl = site.siteUrl // Matches backend's siteUrl format (e.g., sc-domain:example.com)
-        const response = await axios.get("/api/v1/gsc/sites-data", {
-          params: {
-            siteUrl,
-            from,
-            to,
-            dimensions: ["page", "query"],
-          },
-        })
+        try {
+          const siteUrl = site.siteUrl
+          if (!siteUrl) {
+            throw new Error(`Invalid site URL for site: ${JSON.stringify(site)}`)
+          }
+          const response = await axiosInstance.get("/gsc/sites-data", {
+            params: {
+              siteUrl,
+              blogUrl:
+                "https://thedigitalshift.co/how-to-master-app-store-optimization-aso-for-explosive-growth-2/",
+              from,
+              to,
+              dimensions: ["page", "query"],
+            },
+            timeout: 30000,
+          })
 
-        const analyticsRows = response.data.data?.rows || []
-        return analyticsRows.map((row, index) => ({
-          id: `${siteUrl}-${index}`,
-          blogName: row.keys[0].split("/").pop() || "Untitled Page",
-          url: row.keys[0],
-          clicks: row.clicks || 0,
-          impressions: row.impressions || 0,
-          ctr: row.ctr ? (row.ctr * 100).toFixed(2) : 0,
-          position: row.position ? row.position.toFixed(1) : 0,
-          keywords: row.keys[1] ? [row.keys[1]] : [],
-          publishDate: new Date().toISOString().split("T")[0], // Placeholder; update if backend provides
-          category: "Uncategorized", // Placeholder; extend backend to support categories
-          status: "published", // Placeholder; extend backend for status
-        }))
+          if (!response.data?.data?.rows) {
+            throw new Error("No analytics data returned from API")
+          }
+
+          const analyticsRows = response.data.data.rows || []
+          return analyticsRows.map((row, index) => ({
+            id: `${siteUrl}-${index}`,
+            blogName: row?.keys[0]?.split("/").pop() || "Untitled Page",
+            url: row?.keys[1] || "",
+            clicks: row.clicks || 0,
+            impressions: row.impressions || 0,
+            ctr: row.ctr ? (row.ctr * 100).toFixed(2) : 0,
+            position: row.position ? row.position.toFixed(1) : 0,
+            keywords: row.keys?.length > 1 ? row.keys.slice(0, -1) : [],
+            publishDate: new Date().toISOString().split("T")[0],
+            category: "Uncategorized",
+            status: "published",
+          }))
+        } catch (siteError) {
+          console.error(`Error fetching data for site ${site.siteUrl}:`, siteError)
+          return []
+        }
       })
 
-      const allBlogData = (await Promise.all(blogDataPromises)).flat()
+      const allBlogData = (await Promise.allSettled(blogDataPromises))
+        .filter((result) => result.status === "fulfilled")
+        .flatMap((result) => result.value)
+
+      // if (!allBlogData.length) {
+      //   setError("No valid analytics data retrieved for any sites. Please try reconnecting GSC.")
+      //   return
+      // }
+
       setBlogData(allBlogData)
     } catch (err) {
-      console.error("Error fetching analytics data:", err.response?.data || err)
-      const errorMessage =
-        err.response?.status === 403
-          ? "You do not have access to one or more sites. Please reconnect your GSC account."
-          : err.response?.status === 400
-          ? "Invalid query parameters. Please check your input."
-          : err.response?.data?.error || "Failed to load analytics data."
+      console.error("Error fetching analytics data:", err)
+      let errorMessage = "Failed to load analytics data. Please try again."
+      if (err.response) {
+        switch (err.response.status) {
+          case 403:
+            errorMessage =
+              "You do not have access to one or more sites. Please reconnect your GSC account."
+            break
+          case 400:
+            errorMessage = "Invalid query parameters. Please check your input."
+            break
+          case 429:
+            errorMessage = "Rate limit exceeded. Please try again later."
+            break
+          case 500:
+            errorMessage = "Server error. Please try again later or contact support."
+            break
+          default:
+            errorMessage = err.response.data?.error || errorMessage
+        }
+      } else if (err.code === "ECONNABORTED") {
+        errorMessage = "Request timed out. Please check your network and try again."
+      }
       setError(errorMessage)
     } finally {
       setIsLoading(false)
     }
   }
 
-  // Export data as CSV
+  // Export data as Excel
   const handleExport = async () => {
     if (!blogData.length) {
       message.warning("No data to export")
       return
     }
-    const headers = [
-      "Blog Name",
-      "URL",
-      "Clicks",
-      "Impressions",
-      "CTR (%)",
-      "Avg Position",
-      "Keywords",
-      "Category",
-      "Status",
-      "Publish Date",
-    ]
-    const rows = blogData.map((blog) => [
-      blog.blogName,
-      blog.url,
-      blog.clicks,
-      blog.impressions,
-      blog.ctr,
-      blog.position,
-      blog.keywords.join("; "),
-      blog.category,
-      blog.status,
-      blog.publishDate,
-    ])
-    const csvContent = [
-      headers.join(","),
-      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
-    ].join("\n")
-    const blob = new Blob([csvContent], { type: "text/csv" })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement("a")
-    link.href = url
-    link.download = "search_console_data.csv"
-    link.click()
-    URL.revokeObjectURL(url)
-    message.success("Data exported as CSV")
-  }
+    try {
+      // Define headers
+      const headers = [
+        "Blog Name",
+        "URL",
+        "Clicks",
+        "Impressions",
+        "CTR (%)",
+        "Avg Position",
+        "Keywords",
+        "Category",
+        "Status",
+        "Publish Date",
+      ]
 
-  // Fetch verified sites and analytics data on mount and date range change
+      // Map blogData to rows
+      const rows = blogData.map((blog) => ({
+        "Blog Name": blog.blogName,
+        URL: blog.url,
+        Clicks: blog.clicks,
+        Impressions: blog.impressions,
+        "CTR (%)": blog.ctr,
+        "Avg Position": blog.position,
+        Keywords: blog.keywords.join("; "),
+        Category: blog.category,
+        Status: blog.status,
+        "Publish Date": blog.publishDate,
+      }))
+
+      // Create worksheet
+      const worksheet = XLSX.utils.json_to_sheet(rows, { header: headers })
+
+      // Create workbook and add the worksheet
+      const workbook = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Search Console Data")
+
+      // Generate Excel file and trigger download
+      const fileName = `search_console_data_${new Date().toISOString().split("T")[0]}.xlsx`
+      XLSX.writeFile(workbook, fileName)
+
+      message.success("Data exported successfully")
+    } catch (err) {
+      console.error("Export error:", err)
+      message.error("Failed to export data. Please try again.")
+    }
+  }
+  // Fetch verified sites and analytics data
   useEffect(() => {
     dispatch(fetchVerifiedSites())
   }, [dispatch])
@@ -266,102 +312,191 @@ const SearchConsole = () => {
   useEffect(() => {
     if (verifiedSites.length > 0) {
       fetchAnalyticsData()
+    } else if (!sitesLoading && !verifiedSites.length) {
+      setError("No verified sites found. Please connect your Google Search Console account.")
     }
-  }, [verifiedSites, dateRange])
+  }, [verifiedSites, dateRange, sitesLoading])
 
-  // Filtering and sorting logic
-  const filteredAndSortedData = useMemo(() => {
-    let filtered = blogData.filter((blog) => {
-      const matchesSearch =
-        blog.blogName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        blog.keywords.some((keyword) => keyword.toLowerCase().includes(searchTerm.toLowerCase()))
-      const matchesCategory = filterCategory === "all" || blog.category === filterCategory
-      const matchesStatus = filterStatus === "all" || blog.status === filterStatus
-      return matchesSearch && matchesCategory && matchesStatus
-    })
-
-    if (sortConfig.key) {
-      filtered.sort((a, b) => {
-        const aValue = a[sortConfig.key]
-        const bValue = b[sortConfig.key]
-        if (typeof aValue === "string" && typeof bValue === "string") {
-          return sortConfig.direction === "asc"
-            ? aValue.localeCompare(bValue)
-            : bValue.localeCompare(aValue)
-        }
-        if (typeof aValue === "number" && typeof bValue === "number") {
-          return sortConfig.direction === "asc" ? aValue - bValue : bValue - aValue
-        }
-        return 0
-      })
-    }
-    return filtered
-  }, [blogData, searchTerm, sortConfig, filterCategory, filterStatus])
-
-  // Pagination
-  const totalPages = Math.ceil(filteredAndSortedData.length / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const paginatedData = filteredAndSortedData.slice(startIndex, startIndex + itemsPerPage)
-
-  // Calculate totals
+  // Calculate totals for summary cards (based on unfiltered blogData)
   const totals = useMemo(() => {
-    return filteredAndSortedData.reduce(
+    return blogData.reduce(
       (acc, blog) => ({
-        clicks: acc.clicks + Number(blog.clicks),
-        impressions: acc.impressions + Number(blog.impressions),
+        clicks: acc.clicks + Number(blog.clicks || 0),
+        impressions: acc.impressions + Number(blog.impressions || 0),
         avgCtr:
-          filteredAndSortedData.length > 0
-            ? filteredAndSortedData.reduce((sum, b) => sum + Number(b.ctr), 0) /
-              filteredAndSortedData.length
+          blogData.length > 0
+            ? blogData.reduce((sum, b) => sum + Number(b.ctr || 0), 0) / blogData.length
             : 0,
         avgPosition:
-          filteredAndSortedData.length > 0
-            ? filteredAndSortedData.reduce((sum, b) => sum + Number(b.position), 0) /
-              filteredAndSortedData.length
+          blogData.length > 0
+            ? blogData.reduce((sum, b) => sum + Number(b.position || 0), 0) / blogData.length
             : 0,
       }),
       { clicks: 0, impressions: 0, avgCtr: 0, avgPosition: 0 }
     )
-  }, [filteredAndSortedData])
+  }, [blogData])
 
-  const handleSort = (key) => {
-    setSortConfig((prev) => ({
-      key,
-      direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
-    }))
-  }
+  // Filtering logic for table
+  const filteredData = useMemo(() => {
+    return blogData.filter((blog) => {
+      if (!blog) return false
+      const matchesSearch =
+        (blog.blogName || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (blog.keywords || []).some((keyword) =>
+          (keyword || "").toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      const matchesCategory = filterCategory === "all" || blog.category === filterCategory
+      const matchesStatus = filterStatus === "all" || blog.status === filterStatus
+      return matchesSearch && matchesCategory && matchesStatus
+    })
+  }, [blogData, searchTerm, filterCategory, filterStatus])
 
-  const getSortIcon = (key) => {
-    if (sortConfig.key !== key) return <ArrowUpDown className="w-4 h-4 text-gray-400" />
-    return sortConfig.direction === "asc" ? (
-      <ArrowUp className="w-4 h-4 text-blue-600" />
-    ) : (
-      <ArrowDown className="w-4 h-4 text-blue-600" />
-    )
-  }
-
-  const formatNumber = (num) => {
-    return new Intl.NumberFormat().format(num)
-  }
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "published":
-        return "bg-green-100 text-green-800"
-      case "draft":
-        return "bg-yellow-100 text-yellow-800"
-      case "archived":
-        return "bg-gray-100 text-gray-800"
-      default:
-        return "bg-gray-100 text-gray-800"
-    }
-  }
-
-  const categories = ["all", ...Array.from(new Set(blogData.map((blog) => blog.category)))]
+  const categories = [
+    "all",
+    ...Array.from(new Set(blogData.map((blog) => blog.category || "Uncategorized"))),
+  ]
   const statuses = ["all", "published", "draft", "archived"]
 
+  // Ant Design Table Columns
+  const columns = [
+    {
+      title: "Blog Name",
+      dataIndex: "blogName",
+      key: "blogName",
+      sorter: (a, b) => a.blogName.localeCompare(b.blogName),
+      render: (text, record) => (
+        <div className="max-w-xs">
+          <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2 capitalize">{text}</h3>
+          <p className="text-xs text-gray-400 mt-1">
+            Published:{" "}
+            {new Date(record.publishDate).toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })}
+          </p>
+        </div>
+      ),
+    },
+    {
+      title: "Clicks",
+      dataIndex: "clicks",
+      key: "clicks",
+      sorter: (a, b) => a.clicks - b.clicks,
+      render: (clicks) => (
+        <div className="font-semibold text-gray-900">{new Intl.NumberFormat().format(clicks)}</div>
+      ),
+      align: "center",
+    },
+    {
+      title: "Impressions",
+      dataIndex: "impressions",
+      key: "impressions",
+      sorter: (a, b) => a.impressions - b.impressions,
+      render: (impressions) => (
+        <div className="font-semibold text-gray-900">
+          {new Intl.NumberFormat().format(impressions)}
+        </div>
+      ),
+      align: "center",
+    },
+    {
+      title: "CTR",
+      dataIndex: "ctr",
+      key: "ctr",
+      sorter: (a, b) => a.ctr - b.ctr,
+      render: (ctr) => (
+        <div
+          className={`font-semibold ${
+            ctr >= 8 ? "text-green-600" : ctr >= 5 ? "text-yellow-600" : "text-red-600"
+          }`}
+        >
+          {ctr.toFixed(2)}%
+        </div>
+      ),
+      align: "center",
+    },
+    {
+      title: "Avg Position",
+      dataIndex: "position",
+      key: "position",
+      sorter: (a, b) => a.position - b.position,
+      render: (position) => (
+        <div
+          className={`font-semibold ${
+            position <= 3 ? "text-green-600" : position <= 10 ? "text-yellow-600" : "text-red-600"
+          }`}
+        >
+          {position}
+        </div>
+      ),
+      align: "center",
+    },
+    {
+      title: "Keywords",
+      dataIndex: "keywords",
+      key: "keywords",
+      render: (keywords) => (
+        <div className="flex flex-wrap gap-1 max-w-xs">
+          {keywords.slice(0, 3).map((keyword, idx) => (
+            <Tag key={idx} color="blue">
+              {keyword}
+            </Tag>
+          ))}
+          {keywords.length > 3 && <Tag color="default">+{keywords.length - 3} more</Tag>}
+        </div>
+      ),
+    },
+    {
+      title: "Category",
+      dataIndex: "category",
+      key: "category",
+      sorter: (a, b) => a.category.localeCompare(b.category),
+      render: (category) => <Tag color="default">{category}</Tag>,
+      align: "center",
+    },
+    {
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+      render: (status) => {
+        const color = status === "published" ? "green" : status === "draft" ? "gold" : "default"
+        return <Tag color={color}>{status.charAt(0).toUpperCase() + status.slice(1)}</Tag>
+      },
+      align: "center",
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      render: (_, record) => (
+        <div className="flex items-center justify-center gap-2">
+          <Button
+            type="text"
+            icon={<ExternalLink className="w-4 h-4" />}
+            onClick={() => window.open(record.url, "_blank")}
+            disabled={!record.url}
+            title="View Blog"
+          />
+          {/* <Button
+            type="text"
+            icon={<Settings className="w-4 h-4" />}
+            title="Settings"
+          /> */}
+        </div>
+      ),
+      align: "center",
+    },
+  ]
+
+  // Format number helper
+  const formatNumber = (num) => new Intl.NumberFormat().format(num)
+
   // GSC Connection UI
-  if (!verifiedSites.length) {
+  if (sitesLoading) {
+    return <Loading />
+  }
+
+  if (!verifiedSites.length || error?.includes("No verified sites found")) {
     return (
       <div
         className="p-6 flex items-center justify-center"
@@ -386,13 +521,11 @@ const SearchConsole = () => {
           {error && (
             <div className="bg-red-100 text-red-800 p-3 rounded-lg text-sm mb-4">
               {error}
-              {error.includes("unauthorized_client") && (
-                <div className="mt-2">
-                  <Button type="link" onClick={connectGSC} disabled={isConnecting}>
-                    Try Reconnecting
-                  </Button>
-                </div>
-              )}
+              <div className="mt-2">
+                <Button type="link" onClick={connectGSC} disabled={isConnecting}>
+                  Try Reconnecting
+                </Button>
+              </div>
             </div>
           )}
           <button
@@ -438,50 +571,54 @@ const SearchConsole = () => {
             <p className="text-gray-600">Monitor your blog performance and search analytics</p>
           </div>
           <div className="flex items-center gap-3">
-            <select
-              value={dateRange}
-              onChange={(e) => setDateRange(e.target.value)}
-              className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="7d">Last 7 days</option>
-              <option value="30d">Last 30 days</option>
-              <option value="90d">Last 90 days</option>
-              <option value="1y">Last year</option>
-            </select>
-            <button
+            <Select value={dateRange} onChange={(value) => setDateRange(value)} className="w-32">
+              <Option value="7d">Last 7 days</Option>
+              <Option value="30d">Last 30 days</Option>
+              <Option value="90d">Last 90 days</Option>
+              <Option value="1y">Last year</Option>
+            </Select>
+            <Button
+              icon={<Download className="w-4 h-4" />}
               onClick={handleExport}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              disabled={isLoading || sitesLoading}
+              className="flex items-center gap-2 bg-green-600 text-white hover:bg-green-700"
             >
-              <Download className="w-4 h-4" />
               Export
-            </button>
-            <button
+            </Button>
+            <Button
+              icon={<RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />}
               onClick={fetchAnalyticsData}
               disabled={isLoading || sitesLoading}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700"
             >
-              <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
               Refresh
-            </button>
+            </Button>
           </div>
         </div>
 
         {/* Error Message */}
-        {(error || reduxError) && (
-          <div className="bg-red-100 text-red-800 p-4 rounded-lg text-sm">
-            {error || reduxError}
-          </div>
+        {error && !error.includes("No verified sites found") && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-red-100 text-red-800 p-4 rounded-lg text-sm"
+          >
+            {error}
+            {(error.includes("reconnect") || error.includes("unauthorized_client")) && (
+              <div className="mt-2">
+                <Button type="link" onClick={connectGSC} disabled={isConnecting}>
+                  Reconnect GSC
+                </Button>
+              </div>
+            )}
+          </motion.div>
         )}
 
         {/* Loading State */}
-        {(isLoading || sitesLoading) && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
-            <p className="text-gray-600">Loading analytics data...</p>
-          </div>
-        )}
+        {isLoading && <Loading />}
 
         {/* Summary Cards */}
-        {!isLoading && !sitesLoading && (
+        {!isLoading && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
               <div className="flex items-center justify-between mb-4">
@@ -529,293 +666,69 @@ const SearchConsole = () => {
         )}
 
         {/* Filters and Search */}
-        {!isLoading && !sitesLoading && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        {!isLoading && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3">
             <div className="flex flex-col lg:flex-row gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search blogs or keywords..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
+              <AntSearch
+                placeholder="Search blogs or keywords..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                prefix={<Search className="w-5 h-5 text-gray-400 mr-2" />}
+                className="flex-1"
+              />
               <div className="flex gap-3">
-                <select
+                <Select
                   value={filterCategory}
-                  onChange={(e) => setFilterCategory(e.target.value)}
-                  className="px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  onChange={(value) => setFilterCategory(value)}
+                  className="w-40"
                 >
                   {categories.map((category) => (
-                    <option key={category} value={category}>
+                    <Option key={category} value={category}>
                       {category === "all" ? "All Categories" : category}
-                    </option>
+                    </Option>
                   ))}
-                </select>
-                <select
+                </Select>
+                <Select
                   value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                  className="px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  onChange={(value) => setFilterStatus(value)}
+                  className="w-40"
                 >
                   {statuses.map((status) => (
-                    <option key={status} value={status}>
+                    <Option key={status} value={status}>
                       {status === "all"
                         ? "All Status"
                         : status.charAt(0).toUpperCase() + status.slice(1)}
-                    </option>
+                    </Option>
                   ))}
-                </select>
+                </Select>
               </div>
             </div>
           </div>
         )}
 
         {/* Data Table */}
-        {!isLoading && !sitesLoading && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="text-left p-4 font-semibold text-gray-900">
-                      <button
-                        onClick={() => handleSort("blogName")}
-                        className="flex items-center gap-2 hover:text-blue-600 transition-colors"
-                      >
-                        Blog Name
-                        {getSortIcon("blogName")}
-                      </button>
-                    </th>
-                    <th className="text-center p-4 font-semibold text-gray-900">
-                      <button
-                        onClick={() => handleSort("clicks")}
-                        className="flex items-center gap-2 hover:text-blue-600 transition-colors"
-                      >
-                        Clicks
-                        {getSortIcon("clicks")}
-                      </button>
-                    </th>
-                    <th className="text-center p-4 font-semibold text-gray-900">
-                      <button
-                        onClick={() => handleSort("impressions")}
-                        className="flex items-center gap-2 hover:text-blue-600 transition-colors"
-                      >
-                        Impressions
-                        {getSortIcon("impressions")}
-                      </button>
-                    </th>
-                    <th className="text-center p-4 font-semibold text-gray-900">
-                      <button
-                        onClick={() => handleSort("ctr")}
-                        className="flex items-center gap-2 hover:text-blue-600 transition-colors"
-                      >
-                        CTR
-                        {getSortIcon("ctr")}
-                      </button>
-                    </th>
-                    <th className="text-center p-4 font-semibold text-gray-900">
-                      <button
-                        onClick={() => handleSort("position")}
-                        className="flex items-center gap-2 hover:text-blue-600 transition-colors"
-                      >
-                        Avg Position
-                        {getSortIcon("position")}
-                      </button>
-                    </th>
-                    <th className="text-left p-4 font-semibold text-gray-900">Keywords</th>
-                    <th className="text-center p-4 font-semibold text-gray-900">
-                      <button
-                        onClick={() => handleSort("category")}
-                        className="flex items-center gap-2 hover:text-blue-600 transition-colors"
-                      >
-                        Category
-                        {getSortIcon("category")}
-                      </button>
-                    </th>
-                    <th className="text-center p-4 font-semibold text-gray-900">Status</th>
-                    <th className="text-center p-4 font-semibold text-gray-900">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginatedData.map((blog, index) => (
-                    <tr
-                      key={blog.id}
-                      className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${
-                        index % 2 === 0 ? "bg-white" : "bg-gray-50/50"
-                      }`}
-                    >
-                      <td className="p-4">
-                        <div className="max-w-xs">
-                          <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2">
-                            {blog.blogName}
-                          </h3>
-                          <p className="text-sm text-gray-500 truncate">{blog.url}</p>
-                          <p className="text-xs text-gray-400 mt-1">
-                            Published: {new Date(blog.publishDate).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </td>
-                      <td className="p-4 text-center">
-                        <div className="font-semibold text-gray-900">
-                          {formatNumber(blog.clicks)}
-                        </div>
-                      </td>
-                      <td className="p-4 text-center">
-                        <div className="font-semibold text-gray-900">
-                          {formatNumber(blog.impressions)}
-                        </div>
-                      </td>
-                      <td className="p-4 text-center">
-                        <div
-                          className={`font-semibold ${
-                            blog.ctr >= 8
-                              ? "text-green-600"
-                              : blog.ctr >= 5
-                              ? "text-yellow-600"
-                              : "text-red-600"
-                          }`}
-                        >
-                          {blog.ctr.toFixed(2)}%
-                        </div>
-                      </td>
-                      <td className="p-4 text-center">
-                        <div
-                          className={`font-semibold ${
-                            blog.position <= 3
-                              ? "text-green-600"
-                              : blog.position <= 10
-                              ? "text-yellow-600"
-                              : "text-red-600"
-                          }`}
-                        >
-                          {blog.position.toFixed(1)}
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex flex-wrap gap-1 max-w-xs">
-                          {blog.keywords.slice(0, 3).map((keyword, idx) => (
-                            <span
-                              key={idx}
-                              className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
-                            >
-                              {keyword}
-                            </span>
-                          ))}
-                          {blog.keywords.length > 3 && (
-                            <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
-                              +{blog.keywords.length - 3} more
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="p-4 text-center">
-                        <span className="px-3 py-1 bg-gray-100 text-gray-800 text-xs rounded-full font-medium">
-                          {blog.category}
-                        </span>
-                      </td>
-                      <td className="p-4 text-center">
-                        <span
-                          className={`px-3 py-1 text-xs rounded-full font-medium ${getStatusColor(
-                            blog.status
-                          )}`}
-                        >
-                          {blog.status.charAt(0).toUpperCase() + blog.status.slice(1)}
-                        </span>
-                      </td>
-                      <td className="p-4 text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="View Blog"
-                            onClick={() => window.open(blog.url, "_blank")}
-                          >
-                            <ExternalLink className="w-4 h-4" />
-                          </button>
-                          <button
-                            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
-                            title="Settings"
-                          >
-                            <Settings className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            {/* Pagination */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 border-t border-gray-200">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <span>Show</span>
-                <select
-                  value={itemsPerPage}
-                  onChange={(e) => {
-                    setItemsPerPage(Number(e.target.value))
-                    setCurrentPage(1)
-                  }}
-                  className="px-3 py-1 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value={5}>5</option>
-                  <option value={10}>10</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                </select>
-                <span>of {filteredAndSortedData.length} results</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    const pageNum = i + 1
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => setCurrentPage(pageNum)}
-                        className={`px-3 py-2 text-sm rounded-lg transition-colors ${
-                          currentPage === pageNum
-                            ? "bg-blue-600 text-white"
-                            : "text-gray-600 hover:bg-gray-50"
-                        }`}
-                      >
-                        {pageNum}
-                      </button>
-                    )
-                  })}
-                  {totalPages > 5 && (
-                    <>
-                      <span className="px-2 text-gray-400">...</span>
-                      <button
-                        onClick={() => setCurrentPage(totalPages)}
-                        className={`px-3 py-2 text-sm rounded-lg transition-colors ${
-                          currentPage === totalPages
-                            ? "bg-blue-600 text-white"
-                            : "text-gray-600 hover:bg-gray-50"
-                        }`}
-                      >
-                        {totalPages}
-                      </button>
-                    </>
-                  )}
-                </div>
-                <button
-                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-          </div>
+        {!isLoading && (
+          <Table
+            columns={columns}
+            dataSource={filteredData}
+            rowKey="id"
+            pagination={{
+              current: currentPage,
+              pageSize: itemsPerPage,
+              total: filteredData.length,
+              onChange: (page, pageSize) => {
+                setCurrentPage(page)
+                setItemsPerPage(pageSize)
+              },
+              pageSizeOptions: [5, 10, 25, 50],
+              showSizeChanger: true,
+              showTotal: (total) => `Total ${total} results`,
+            }}
+            className="bg-white rounded-2xl shadow-sm border border-gray-100"
+            locale={{
+              emptyText: "No data available. Try adjusting your filters or refreshing the data.",
+            }}
+          />
         )}
       </div>
     </div>
