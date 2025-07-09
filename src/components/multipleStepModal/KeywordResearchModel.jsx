@@ -24,6 +24,20 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal }) =
     selectedKeywords,
   } = useSelector((state) => state.analysis)
 
+  // Debug: Log selectedKeywords to verify Redux state
+  useEffect(() => {
+    console.log("KeywordResearchModel: Current selectedKeywords in Redux:", selectedKeywords)
+  }, [selectedKeywords])
+
+  // Clear keywordAnalysisResult when keywords become empty, but preserve selectedKeywords
+  useEffect(() => {
+    if (keywords.length === 0) {
+      dispatch(clearKeywordAnalysis())
+      setAutoSelectedKeywords([])
+      setCurrentPage(1)
+    }
+  }, [keywords, dispatch])
+
   const addKeyword = () => {
     const input = newKeyword.trim()
     if (!input) return
@@ -44,12 +58,18 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal }) =
 
     if (newKeywords.length > 0) {
       setKeywords([...keywords, ...newKeywords])
-      setNewKeyword("") // clear input
+      setNewKeyword("")
     }
   }
 
   const removeKeyword = (index) => {
-    setKeywords(keywords.filter((_, i) => i !== index))
+    const updatedKeywords = keywords.filter((_, i) => i !== index)
+    setKeywords(updatedKeywords)
+    if (updatedKeywords.length === 0) {
+      dispatch(clearKeywordAnalysis())
+      setAutoSelectedKeywords([])
+      setCurrentPage(1)
+    }
   }
 
   const handleKeyPress = (e) => {
@@ -60,11 +80,12 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal }) =
   }
 
   const analyzeKeywords = () => {
-    dispatch(analyzeKeywordsThunk(keywords))
-    setCurrentPage(1)
+    if (keywords.length > 0) {
+      dispatch(analyzeKeywordsThunk(keywords))
+      setCurrentPage(1)
+    }
   }
 
-  // Generate auto-selected keywords based on competition index
   const getAutoSelectedKeywords = () => {
     const byCompetition = { LOW: [], MEDIUM: [], HIGH: [] }
     keywordAnalysisResult?.forEach((kw) => {
@@ -76,7 +97,6 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal }) =
       }
     })
 
-    // Sort by competition_index and select top 2 for each category
     const sortedLow = byCompetition.LOW.sort(
       (a, b) => a.competition_index - b.competition_index
     ).slice(0, 2)
@@ -98,8 +118,20 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal }) =
     const autoKeywords = getAutoSelectedKeywords()
     setAutoSelectedKeywords(autoKeywords)
 
-    Modal.confirm({
-      title: "Auto-Selected Keywords",
+    const modal = Modal.info({
+      icon: null,
+      title: (
+        <div className="flex justify-between items-center">
+          <span>Auto-Selected Keywords</span>
+          <button
+            onClick={() => modal.destroy()}
+            className="text-gray-500 hover:text-red-500"
+            aria-label="Close modal"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+      ),
       content: (
         <div>
           <p>We selected these keywords automatically based on competition index:</p>
@@ -115,54 +147,48 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal }) =
       ),
       okText: "Accept",
       cancelText: "Decline",
+      closable: true,
       onOk() {
-        // Combine user-selected and auto-generated keywords
         const finalKeywords = [
           ...(selectedKeywords?.focusKeywords || []),
           ...autoKeywords.filter((kw) => !selectedKeywords?.focusKeywords?.includes(kw)),
-        ].slice(0, 6) // Limit to 6 keywords to avoid too many
+        ].slice(0, 6)
         proceedWithSelectedKeywords(finalKeywords, type)
       },
       onCancel() {
-        // Use only user-selected keywords
         const finalKeywords = selectedKeywords?.focusKeywords || []
         proceedWithSelectedKeywords(finalKeywords, type)
       },
+      okButtonProps: { className: "bg-blue-600 text-white" },
     })
   }
 
   const handleCreateBlog = () => {
-    if (selectedKeywords?.focusKeywords?.length > 0) {
-      proceedWithSelectedKeywords(selectedKeywords.focusKeywords, "blog")
-    } else {
-      confirmAutoKeywords("blog")
-    }
+    confirmAutoKeywords("blog")
   }
 
   const handleCreateJob = () => {
-    if (selectedKeywords?.focusKeywords?.length > 0) {
-      proceedWithSelectedKeywords(selectedKeywords.focusKeywords, "job")
-    } else {
-      confirmAutoKeywords("job")
-    }
+    confirmAutoKeywords("job")
   }
 
-  const proceedWithSelectedKeywords = (finalSelectedKeywords, type) => {
-    // Only send the final selected keywords, not all keywords
-    dispatch(
+  const proceedWithSelectedKeywords = async (finalSelectedKeywords, type) => {
+    console.log("KeywordResearchModel: Dispatching finalSelectedKeywords:", finalSelectedKeywords)
+    await dispatch(
       setSelectedKeywords({
         focusKeywords: finalSelectedKeywords,
-        allKeywords: finalSelectedKeywords, // Only send selected keywords
+        allKeywords: finalSelectedKeywords,
       })
     )
 
-    if (type === "blog") {
-      openSecondStepModal()
-    } else {
-      openJobModal()
-    }
-
-    closeFnc()
+    // Wait briefly to ensure Redux state updates
+    setTimeout(() => {
+      if (type === "blog") {
+        openSecondStepModal()
+      } else {
+        openJobModal()
+      }
+      closeFnc()
+    }, 100)
   }
 
   const columns = [
@@ -224,8 +250,16 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal }) =
 
   const handlePageChange = (page) => setCurrentPage(page)
 
+  // Modified cleanup to avoid resetting selectedKeywords
   useEffect(() => {
-    dispatch(clearKeywordAnalysis())
+    return () => {
+      console.log("KeywordResearchModel: Unmounting, clearing keywordAnalysis only")
+      dispatch(clearKeywordAnalysis()) // Ensure this does not clear selectedKeywords
+      setKeywords([])
+      setNewKeyword("")
+      setAutoSelectedKeywords([])
+      setCurrentPage(1)
+    }
   }, [dispatch])
 
   return (
@@ -240,7 +274,11 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal }) =
           title={
             <div className="flex justify-between items-center">
               <span className="font-medium text-gray-700">Keyword Research</span>
-              <button onClick={closeFnc} className="p-2 rounded-full hover:bg-gray-100">
+              <button
+                onClick={closeFnc}
+                className="p-2 rounded-full hover:bg-gray-100"
+                aria-label="Close keyword research modal"
+              >
                 <X className="h-6 w-6 text-gray-500 hover:text-gray-700" />
               </button>
             </div>
@@ -256,6 +294,7 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal }) =
               onChange={(e) => setNewKeyword(e.target.value)}
               onKeyPress={handleKeyPress}
               className="flex-1"
+              aria-label="Enter keyword"
             />
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Button type="primary" onClick={addKeyword}>
@@ -269,7 +308,7 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal }) =
               <motion.div
                 key={index}
                 initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
+                animate={{ opacity: 1 }}
                 className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full flex items-center"
               >
                 <span>{keyword}</span>
@@ -297,8 +336,7 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal }) =
             </Button>
           </motion.div>
 
-          {analysisError && <div className="text-red-500 mt-2">{analysisError}</div>}
-          {keywordAnalysisResult && Array.isArray(keywordAnalysisResult) && (
+          {keywords.length > 0 && keywordAnalysisResult && Array.isArray(keywordAnalysisResult) && (
             <div className="mt-6">
               <Table
                 columns={columns}
@@ -316,9 +354,10 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal }) =
                     dispatch(
                       setSelectedKeywords({
                         focusKeywords: selected,
-                        allKeywords: selected, // Store only selected keywords
+                        allKeywords: selected,
                       })
                     )
+                    console.log("Table selected keywords:", selected)
                   },
                   getCheckboxProps: (record) => ({
                     name: record.keyword,
@@ -330,26 +369,28 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal }) =
             </div>
           )}
 
-          <div className="flex justify-end gap-3 mt-5 border-t border-gray-100">
+          <div className="flex justify-end gap-3 mt-5 border-t border-gray-100 pt-4">
             <motion.button
               onClick={handleCreateBlog}
-              className="px-5 py-2.5 text-sm font-medium mt-5 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+              className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
+              disabled={!keywordAnalysisResult || analyzing || keywords.length === 0}
             >
               Create Blog
             </motion.button>
             <motion.button
               onClick={handleCreateJob}
-              className="px-5 py-2.5 text-sm font-medium mt-5 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+              className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
+              disabled={!keywordAnalysisResult || analyzing || keywords.length === 0}
             >
               Create New Job
             </motion.button>
             <motion.button
               onClick={closeFnc}
-              className="px-5 py-2.5 text-sm font-medium mt-5 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+              className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
             >

@@ -1,7 +1,14 @@
+import { openUpgradePopup } from "@utils/UpgardePopUp"
+import { Crown } from "lucide-react"
 import { memo, useEffect, useState } from "react"
+import { useSelector } from "react-redux"
+import { useNavigate } from "react-router-dom"
 
 const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData }) => {
   const [topic, setTopic] = useState(data?.topic || "")
+  const { user } = useSelector((state) => state.auth)
+  const navigate = useNavigate()
+  const userPlan = user?.subscription?.plan || user?.plan
   const [errors, setErrors] = useState({
     title: false,
     topic: false,
@@ -137,14 +144,26 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
                       id="ai-generated"
                       name="imageSource"
                       checked={!data?.isUnsplashActive}
-                      onChange={() => handleImageSourceChange("ai")}
+                      onChange={() => {
+                        if (userPlan !== "free") {
+                          handleImageSourceChange("ai")
+                        }
+                      }}
                       className="h-4 w-4 text-[#1B6FC9] focus:ring-[#1B6FC9] border-gray-300"
                     />
                     <label
-                      htmlFor="ai-generated"
-                      className="text-sm text-gray-700 whitespace-nowrap"
+                     htmlFor="ai-generated"
+                      name="imageSource"
+                      onClick={(e) => {
+                        if (userPlan === "free") {
+                          e.preventDefault()
+                          openUpgradePopup({ featureName: "AI-Generated Images", navigate })
+                        }
+                      }}
+                      className="text-sm cursor-pointer flex items-center gap-1 text-gray-700"
                     >
                       AI-Generated Images
+                      {userPlan === "free" && <Crown className="w-4 h-4 text-yellow-500" />}
                     </label>
                   </div>
                 </div>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Card, Tabs, Input, Button, Table, Tag } from "antd"
+import { Card, Tabs, Input, Button, Table, Tag, message } from "antd"
 import {
   SearchOutlined,
   ThunderboltOutlined,
@@ -25,11 +25,9 @@ export default function ToolboxPage() {
   const [currentPage, setCurrentPage] = useState(1) // State for current page
 
   const dispatch = useDispatch()
-  const {
-    keywordAnalysis: keywordAnalysisResult,
-    loading: analyzing,
-    error,
-  } = useSelector((state) => state.analysis)
+  const { keywordAnalysis: keywordAnalysisResult, loading: analyzing } = useSelector(
+    (state) => state.analysis
+  )
 
   const addKeyword = () => {
     const input = newKeyword.trim()
@@ -361,7 +359,6 @@ export default function ToolboxPage() {
                           Analyze Keywords
                         </Button>
                       </motion.div>
-                      {error && <div className="text-red-500 mt-2">{error}</div>}
                       {keywordAnalysisResult &&
                         Array.isArray(keywordAnalysisResult) &&
                         keywordAnalysisResult.length > 0 && (

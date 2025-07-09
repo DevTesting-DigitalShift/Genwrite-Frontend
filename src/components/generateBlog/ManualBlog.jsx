@@ -4,7 +4,6 @@ import {
   Plus,
   Sparkles,
   BarChart3,
-  Eye,
   Clock,
   ArrowLeft,
   Trash2,
@@ -13,12 +12,30 @@ import {
   Search,
   Hash,
   FileText,
+  Bold,
+  Italic,
+  Strikethrough,
+  Heading2,
+  Heading1,
+  Heading3,
+  ListOrdered,
+  List,
 } from "lucide-react"
-import { Link, useNavigate } from "react-router-dom"
+import { useEditor, EditorContent, BubbleMenu } from "@tiptap/react"
+import StarterKit from "@tiptap/starter-kit"
+import Underline from "@tiptap/extension-underline"
+import Heading from "@tiptap/extension-heading"
+import BulletList from "@tiptap/extension-bullet-list"
+import OrderedList from "@tiptap/extension-ordered-list"
+import ListItem from "@tiptap/extension-list-item"
+import Strike from "@tiptap/extension-strike"
+import TextAlign from "@tiptap/extension-text-align"
+import { useNavigate } from "react-router-dom"
+import Toolbar from "@components/Toolbar"
+import { Tooltip } from "antd"
 
 const ManualBlog = () => {
   const navigate = useNavigate()
-  const editorRef = useRef()
 
   const [title, setTitle] = useState("")
   const [content, setContent] = useState("")
@@ -30,37 +47,42 @@ const ManualBlog = () => {
   const [seoScore, setSeoScore] = useState(0)
   const [blogScore, setBlogScore] = useState(0)
 
-  // Calculate scores based on content
-  useEffect(() => {
-    const calculateScores = () => {
-      const wordCount = content.split(/\s+/).filter((word) => word.length > 0).length
-      const hasTitle = title.length > 0
-      const hasKeywords = keywords.length > 0
-      const contentLength = content.length
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        bulletList: { keepMarks: true, keepAttributes: false },
+        orderedList: { keepMarks: true, keepAttributes: false },
+        heading: { levels: [1, 2, 3] },
+      }),
+      Underline,
+      Strike,
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      Heading.configure({ levels: [1, 2, 3] }),
+      BulletList,
+      OrderedList,
+      ListItem,
+    ],
+    content: "",
+    onUpdate: ({ editor }) => {
+      setContent(editor.getHTML())
+    },
+    editorProps: {
+      attributes: {
+        class: "prose prose-lg focus:outline-none min-h-[400px] max-w-full text-gray-800 p-6",
+      },
+    },
+  })
 
-      // SEO Score calculation (0-100)
-      let seoPoints = 0
-      if (hasTitle) seoPoints += 20
-      if (title.length >= 30 && title.length <= 60) seoPoints += 15
-      if (hasKeywords) seoPoints += 25
-      if (keywords.length >= 3) seoPoints += 10
-      if (wordCount >= 300) seoPoints += 20
-      if (wordCount >= 1000) seoPoints += 10
+  const getWordCount = (text) => {
+    return text.trim().split(/\s+/).filter((word) => word.length > 0).length
+  }
 
-      // Blog Score calculation (0-100)
-      let blogPoints = 0
-      if (hasTitle) blogPoints += 15
-      if (contentLength > 100) blogPoints += 20
-      if (wordCount >= 500) blogPoints += 25
-      if (wordCount >= 1500) blogPoints += 20
-      if (hasKeywords) blogPoints += 20
-
-      setSeoScore(Math.min(seoPoints, 100))
-      setBlogScore(Math.min(blogPoints, 100))
+  const handleTitleChange = (e) => {
+    const newTitle = e.target.value
+    if (getWordCount(newTitle) <= 60) {
+      setTitle(newTitle)
     }
-
-    calculateScores()
-  }, [title, content, keywords])
+  }
 
   const addKeyword = () => {
     if (
@@ -85,8 +107,6 @@ const ManualBlog = () => {
 
   const generateKeywords = async () => {
     setIsGeneratingKeywords(true)
-
-    // Mock API call for keyword generation
     setTimeout(() => {
       const suggestedKeywords = [
         "content marketing",
@@ -118,10 +138,12 @@ const ManualBlog = () => {
       alert("Please add both title and content before saving.")
       return
     }
+    if (getWordCount(title) > 60) {
+      alert("Title exceeds 60 words. Please shorten it.")
+      return
+    }
 
     setSaving(true)
-
-    // Mock save operation
     setTimeout(() => {
       const blogPost = {
         id: Date.now().toString(),
@@ -132,17 +154,15 @@ const ManualBlog = () => {
         blogScore,
         createdAt: new Date().toISOString(),
         status: "draft",
-        wordCount: content.split(/\s+/).filter((word) => word.length > 0).length,
+        wordCount: getWordCount(content),
       }
 
-      // Save to localStorage for demo purposes
       const existingBlogs = JSON.parse(localStorage.getItem("userBlogs") || "[]")
       localStorage.setItem("userBlogs", JSON.stringify([blogPost, ...existingBlogs]))
 
       setSaving(false)
       setSaveSuccess(true)
 
-      // Reset success message after 3 seconds
       setTimeout(() => {
         setSaveSuccess(false)
         navigate("/dashboard")
@@ -169,96 +189,163 @@ const ManualBlog = () => {
     }
   }
 
-  const wordCount = content.split(/\s+/).filter((word) => word.length > 0).length
+  const wordCount = getWordCount(content)
+  const titleWordCount = getWordCount(title)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
       <div className="flex h-screen">
         {/* Main Editor Area */}
         <div className="flex-1 flex flex-col">
           {/* Editor Header */}
-          <div className="bg-white border-b border-gray-200 p-6">
+          <header className="bg-white shadow-md border-b border-gray-200 p-6">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900">Create New Blog</h2>
-                  <p className="text-gray-600">Write and optimize your content</p>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => navigate("/dashboard")}
+                  className="inline-flex items-center gap-2 text-gray-700 hover:text-blue-600 transition-colors duration-200 font-medium"
+                  aria-label="Back to dashboard"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                  Back
+                </button>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Create New Blog</h2>
+                    <p className="text-gray-600 text-sm">Write and optimize your content</p>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          </header>
 
-          {/* Title Input */}
           <div className="bg-white border-b border-gray-200 p-6">
             <input
               type="text"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={handleTitleChange}
               placeholder="Enter your blog title..."
-              className="w-full text-3xl font-bold text-gray-900 placeholder-gray-400 border-none outline-none resize-none"
+              className={`w-full text-3xl font-bold text-gray-900 placeholder-gray-400 border-none outline-none resize-none ${
+                titleWordCount > 60 ? "text-red-600" : ""
+              }`}
+              aria-label="Blog title"
             />
             <div className="mt-2 text-sm text-gray-500">
-              {title.length}/60 characters (optimal for SEO)
+              {titleWordCount}/60 words (optimal for SEO)
+              {titleWordCount > 60 && (
+                <span className="text-red-600 ml-2">Title exceeds 60 words</span>
+              )}
             </div>
           </div>
 
           {/* Content Editor */}
-          <div className="flex-1 bg-white p-6">
-            <textarea
-              ref={editorRef}
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Start writing your blog content here...
-
-You can write about anything you want. The AI will help you optimize it for SEO and readability.
-
-Tips:
-• Use your keywords naturally throughout the content
-• Write engaging headlines and subheadings
-• Keep paragraphs short and readable
-• Add value for your readers"
-              className="w-full h-full text-gray-800 placeholder-gray-400 border-none outline-none resize-none text-lg leading-relaxed"
-              style={{ minHeight: "calc(100vh - 300px)" }}
-            />
-          </div>
-
-          {/* Editor Footer */}
-          <div className="bg-gray-50 border-t border-gray-200 p-4">
-            <div className="flex items-center justify-between text-sm text-gray-600">
-              <div className="flex items-center gap-6">
-                <span>{wordCount} words</span>
-                <span>{content.length} characters</span>
-                <span>~{Math.ceil(wordCount / 200)} min read</span>
-              </div>
-            </div>
+          <Toolbar editor={editor} />
+          <div className="flex-1 overflow-y-auto bg-white p-6 shadow-lg">
+            {editor && (
+              <BubbleMenu
+                editor={editor}
+                tippyOptions={{ duration: 100 }}
+                className="flex gap-2 bg-white shadow-lg p-2 rounded-lg border border-gray-200"
+              >
+                <Tooltip title="Bold">
+                  <button
+                    onClick={() => editor.chain().focus().toggleBold().run()}
+                    className={editor.isActive("bold") ? "p-2 rounded bg-blue-100 text-blue-700" : "p-2 rounded hover:bg-gray-200 text-gray-600"}
+                    aria-label="Toggle bold"
+                  >
+                    <Bold className="w-4 h-4" />
+                  </button>
+                </Tooltip>
+                <Tooltip title="Italic">
+                  <button
+                    onClick={() => editor.chain().focus().toggleItalic().run()}
+                    className={editor.isActive("italic") ? "p-2 rounded bg-blue-100 text-blue-700" : "p-2 rounded hover:bg-gray-200 text-gray-600"}
+                    aria-label="Toggle italic"
+                  >
+                    <Italic className="w-4 h-4" />
+                  </button>
+                </Tooltip>
+                <Tooltip title="Strikethrough">
+                  <button
+                    onClick={() => editor.chain().focus().toggleStrike().run()}
+                    className={editor.isActive("strike") ? "p-2 rounded bg-blue-100 text-blue-700" : "p-2 rounded hover:bg-gray-200 text-gray-600"}
+                    aria-label="Toggle strikethrough"
+                  >
+                    <Strikethrough className="w-4 h-4" />
+                  </button>
+                </Tooltip>
+                <Tooltip title="Heading 1">
+                  <button
+                    onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+                    className={editor.isActive("heading", { level: 1 }) ? "p-2 rounded bg-blue-100 text-blue-700" : "p-2 rounded hover:bg-gray-200 text-gray-600"}
+                    aria-label="Toggle heading 1"
+                  >
+                    <Heading1 className="w-4 h-4" />
+                  </button>
+                </Tooltip>
+                <Tooltip title="Heading 2">
+                  <button
+                    onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                    className={editor.isActive("heading", { level: 2 }) ? "p-2 rounded bg-blue-100 text-blue-700" : "p-2 rounded hover:bg-gray-200 text-gray-600"}
+                    aria-label="Toggle heading 2"
+                  >
+                    <Heading2 className="w-4 h-4" />
+                  </button>
+                </Tooltip>
+                <Tooltip title="Heading 3">
+                  <button
+                    onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+                    className={editor.isActive("heading", { level: 3 }) ? "p-2 rounded bg-blue-100 text-blue-700" : "p-2 rounded hover:bg-gray-200 text-gray-600"}
+                    aria-label="Toggle heading 3"
+                  >
+                    <Heading3 className="w-4 h-4" />
+                  </button>
+                </Tooltip>
+                <Tooltip title="Bullet List">
+                  <button
+                    onClick={() => editor.chain().focus().toggleBulletList().run()}
+                    className={editor.isActive("bulletList") ? "p-2 rounded bg-blue-100 text-blue-700" : "p-2 rounded hover:bg-gray-200 text-gray-600"}
+                    aria-label="Toggle bullet list"
+                  >
+                    <List className="w-4 h-4" />
+                  </button>
+                </Tooltip>
+                <Tooltip title="Ordered List">
+                  <button
+                    onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                    className={editor.isActive("orderedList") ? "p-2 rounded bg-blue-100 text-blue-700" : "p-2 rounded hover:bg-gray-200 text-gray-600"}
+                    aria-label="Toggle ordered list"
+                  >
+                    <ListOrdered className="w-4 h-4" />
+                  </button>
+                </Tooltip>
+              </BubbleMenu>
+            )}
+            <EditorContent editor={editor} />
           </div>
         </div>
 
         {/* Sidebar */}
-        <div className="w-80 bg-white shadow-lg border-r border-gray-200 flex flex-col">
-          {/* Sidebar Header */}
+        <div className="w-80 bg-white shadow-lg border-l border-gray-200 flex flex-col">
           <div className="p-6 border-b border-gray-200">
             <div className="flex items-center gap-3 mb-4">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                  <FileText className="w-4 h-4 text-white" />
-                </div>
-                <h1 className="text-xl font-bold text-gray-900">Blog Editor</h1>
+              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                <FileText className="w-4 h-4 text-white" />
               </div>
+              <h1 className="text-xl font-bold text-gray-900">Blog Editor</h1>
             </div>
-
-            {/* Save Button */}
             <button
               onClick={saveBlog}
-              //   disabled={isSaving || !title.trim() || !content.trim()}
               className={`w-full py-3 px-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${
-                isSaving || !title.trim() || !content.trim()
+                isSaving || !title.trim() || !content.trim() || titleWordCount > 60
                   ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                   : "bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg hover:scale-105"
               }`}
+              disabled={isSaving || !title.trim() || !content.trim() || titleWordCount > 60}
+              aria-label="Save blog"
             >
               {isSaving ? (
                 <>
@@ -279,15 +366,12 @@ Tips:
             </button>
           </div>
 
-          {/* Scores Section */}
           <div className="p-6 border-b border-gray-200">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <BarChart3 className="w-5 h-5 text-blue-600" />
               Performance Scores
             </h3>
-
             <div className="space-y-4">
-              {/* Blog Score */}
               <div className="bg-gray-50 rounded-xl p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-gray-700">Blog Score</span>
@@ -312,8 +396,6 @@ Tips:
                   />
                 </div>
               </div>
-
-              {/* SEO Score */}
               <div className="bg-gray-50 rounded-xl p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-gray-700">SEO Score</span>
@@ -339,8 +421,6 @@ Tips:
                 </div>
               </div>
             </div>
-
-            {/* Stats */}
             <div className="grid grid-cols-2 gap-3 mt-4">
               <div className="bg-blue-50 rounded-lg p-3 text-center">
                 <div className="text-lg font-bold text-blue-600">{wordCount}</div>
@@ -353,29 +433,28 @@ Tips:
             </div>
           </div>
 
-          {/* Keywords Section */}
-          <div className="flex-1 p-6 overflow-y-auto">
+          <div className="flex-1 p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <Hash className="w-5 h-5 text-green-600" />
                 Keywords
               </h3>
-              <button
-                onClick={generateKeywords}
-                disabled={isGeneratingKeywords}
-                className="flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm font-medium disabled:opacity-50"
-                title="Generate keyword suggestions"
-              >
-                {isGeneratingKeywords ? (
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Sparkles className="w-4 h-4" />
-                )}
-                Generate
-              </button>
+              <Tooltip title="Generate keyword suggestions">
+                <button
+                  onClick={generateKeywords}
+                  disabled={isGeneratingKeywords}
+                  className="flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm font-medium disabled:opacity-50"
+                  aria-label="Generate keyword suggestions"
+                >
+                  {isGeneratingKeywords ? (
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-4 h-4" />
+                  )}
+                  Optimize
+                </button>
+              </Tooltip>
             </div>
-
-            {/* Add Keyword */}
             <div className="flex gap-2 mb-4">
               <input
                 type="text"
@@ -384,57 +463,32 @@ Tips:
                 onKeyPress={(e) => e.key === "Enter" && addKeyword()}
                 placeholder="Add keyword..."
                 className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                aria-label="Add new keyword"
               />
               <button
                 onClick={addKeyword}
                 className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                aria-label="Add keyword"
               >
                 <Plus className="w-4 h-4" />
               </button>
             </div>
-
-            {/* Keywords List */}
             <div className="space-y-2">
               {keywords.map((keyword) => (
                 <div
                   key={keyword.id}
-                  className={`p-3 rounded-lg border transition-all duration-200 ${
-                    keyword.generated
-                      ? "bg-green-50 border-green-200"
-                      : "bg-gray-50 border-gray-200"
-                  }`}
+                  className="flex items-center justify-between bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm px-3 py-1.5 rounded-full shadow-sm hover:shadow-md transition-all duration-200"
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium text-gray-900 text-sm">{keyword.text}</span>
-                    <button
-                      onClick={() => removeKeyword(keyword.id)}
-                      className="p-1 text-gray-400 hover:text-red-500 transition-colors"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span
-                      className={`px-2 py-1 rounded-full font-medium ${getDifficultyColor(
-                        keyword.difficulty
-                      )}`}
-                    >
-                      {keyword.difficulty}
-                    </span>
-                    <div className="flex items-center gap-1 text-gray-500">
-                      <Search className="w-3 h-3" />
-                      <span>{keyword.volume.toLocaleString()}</span>
-                    </div>
-                  </div>
-                  {keyword.generated && (
-                    <div className="mt-2 flex items-center gap-1 text-xs text-green-600">
-                      <Sparkles className="w-3 h-3" />
-                      AI Generated
-                    </div>
-                  )}
+                  <span>{keyword.text}</span>
+                  <button
+                    onClick={() => removeKeyword(keyword.id)}
+                    className="ml-2 text-white hover:text-red-200 transition-colors"
+                    aria-label={`Remove keyword ${keyword.text}`}
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
                 </div>
               ))}
-
               {keywords.length === 0 && (
                 <div className="text-center py-8 text-gray-500">
                   <Hash className="w-8 h-8 mx-auto mb-2 opacity-50" />

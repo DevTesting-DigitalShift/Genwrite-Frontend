@@ -16,7 +16,7 @@ import { Helmet } from "react-helmet"
 import { motion } from "framer-motion"
 import { useDispatch, useSelector } from "react-redux"
 import { fetchVerifiedSites, connectGscAccount, fetchGscAuthUrl } from "@store/slices/gscSlice"
-import { message, Button, Spin, Table, Tag, Select, Input } from "antd"
+import { message, Button, Spin, Table, Tag, Select, Input, Tooltip } from "antd"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import axiosInstance from "@api/index"
 import Loading from "@components/Loading"
@@ -179,8 +179,8 @@ const SearchConsole = () => {
           const response = await axiosInstance.get("/gsc/sites-data", {
             params: {
               siteUrl,
-              blogUrl:
-                "https://thedigitalshift.co/how-to-master-app-store-optimization-aso-for-explosive-growth-2/",
+              // blogUrl:
+              //   "https://thedigitalshift.co/how-to-master-app-store-optimization-aso-for-explosive-growth-2/",
               from,
               to,
               dimensions: ["page", "query"],
@@ -195,16 +195,13 @@ const SearchConsole = () => {
           const analyticsRows = response.data.data.rows || []
           return analyticsRows.map((row, index) => ({
             id: `${siteUrl}-${index}`,
-            blogName: row?.keys[0]?.split("/").pop() || "Untitled Page",
-            url: row?.keys[1] || "",
+            url: row?.keys[0] || "",
             clicks: row.clicks || 0,
             impressions: row.impressions || 0,
             ctr: row.ctr ? (row.ctr * 100).toFixed(2) : 0,
             position: row.position ? row.position.toFixed(1) : 0,
-            keywords: row.keys?.length > 1 ? row.keys.slice(0, -1) : [],
+            keywords: row.keys?.length > 1 ? row.keys.slice(1) : [],
             publishDate: new Date().toISOString().split("T")[0],
-            category: "Uncategorized",
-            status: "published",
           }))
         } catch (siteError) {
           console.error(`Error fetching data for site ${site.siteUrl}:`, siteError)
@@ -274,18 +271,25 @@ const SearchConsole = () => {
       ]
 
       // Map blogData to rows
-      const rows = blogData.map((blog) => ({
-        "Blog Name": blog.blogName,
-        URL: blog.url,
-        Clicks: blog.clicks,
-        Impressions: blog.impressions,
-        "CTR (%)": blog.ctr,
-        "Avg Position": blog.position,
-        Keywords: blog.keywords.join("; "),
-        Category: blog.category,
-        Status: blog.status,
-        "Publish Date": blog.publishDate,
-      }))
+      const rows = blogData.map((blog) => {
+        console.log({ Keywords: blog.keywords })
+        return {
+          "Blog Name": blog.blogName,
+          URL: blog.url,
+          Clicks: blog.clicks,
+          Impressions: blog.impressions,
+          "CTR (%)": blog.ctr,
+          "Avg Position": blog.position,
+          Keywords:
+            Array.isArray(blog.keywords) && blog.keywords.length > 1
+              ? blog.keywords.slice(1).join(", ")
+              : blog.keywords.join(", "),
+          Category: blog.category,
+          Status: blog.status,
+          "Publish Date": blog.publishDate,
+        }
+      })
+      console.log({ rows })
 
       // Create worksheet
       const worksheet = XLSX.utils.json_to_sheet(rows, { header: headers })
@@ -304,6 +308,7 @@ const SearchConsole = () => {
       message.error("Failed to export data. Please try again.")
     }
   }
+
   // Fetch verified sites and analytics data
   useEffect(() => {
     dispatch(fetchVerifiedSites())
@@ -360,21 +365,17 @@ const SearchConsole = () => {
   // Ant Design Table Columns
   const columns = [
     {
-      title: "Blog Name",
-      dataIndex: "blogName",
-      key: "blogName",
-      sorter: (a, b) => a.blogName.localeCompare(b.blogName),
-      render: (text, record) => (
-        <div className="max-w-xs">
-          <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2 capitalize">{text}</h3>
-          <p className="text-xs text-gray-400 mt-1">
-            Published:{" "}
-            {new Date(record.publishDate).toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
-          </p>
+      title: "Keywords",
+      dataIndex: "keywords",
+      key: "keywords",
+      render: (keywords) => (
+        <div className="flex flex-wrap gap-1 max-w-xs">
+          {keywords.slice(0, 3).map((keyword, idx) => (
+            <Tag key={idx} color="blue">
+              {keyword}
+            </Tag>
+          ))}
+          {keywords.length > 3 && <Tag color="default">+{keywords.length - 3} more</Tag>}
         </div>
       ),
     },
@@ -411,7 +412,7 @@ const SearchConsole = () => {
             ctr >= 8 ? "text-green-600" : ctr >= 5 ? "text-yellow-600" : "text-red-600"
           }`}
         >
-          {ctr.toFixed(2)}%
+          {ctr}%
         </div>
       ),
       align: "center",
@@ -433,55 +434,19 @@ const SearchConsole = () => {
       align: "center",
     },
     {
-      title: "Keywords",
-      dataIndex: "keywords",
-      key: "keywords",
-      render: (keywords) => (
-        <div className="flex flex-wrap gap-1 max-w-xs">
-          {keywords.slice(0, 3).map((keyword, idx) => (
-            <Tag key={idx} color="blue">
-              {keyword}
-            </Tag>
-          ))}
-          {keywords.length > 3 && <Tag color="default">+{keywords.length - 3} more</Tag>}
-        </div>
-      ),
-    },
-    {
-      title: "Category",
-      dataIndex: "category",
-      key: "category",
-      sorter: (a, b) => a.category.localeCompare(b.category),
-      render: (category) => <Tag color="default">{category}</Tag>,
-      align: "center",
-    },
-    {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      render: (status) => {
-        const color = status === "published" ? "green" : status === "draft" ? "gold" : "default"
-        return <Tag color={color}>{status.charAt(0).toUpperCase() + status.slice(1)}</Tag>
-      },
-      align: "center",
-    },
-    {
       title: "Actions",
       key: "actions",
       render: (_, record) => (
         <div className="flex items-center justify-center gap-2">
-          <Button
-            type="text"
-            icon={<ExternalLink className="w-4 h-4" />}
-            onClick={() => window.open(record.url, "_blank")}
-            disabled={!record.url}
-            title="View Blog"
-          />
-          {/* <Button
-            type="text"
-            icon={<Settings className="w-4 h-4" />}
-            title="Settings"
-          /> */}
+          <Tooltip title={record.url}>
+            <Button
+              type="text"
+              icon={<ExternalLink className="w-4 h-4" />}
+              onClick={() => window.open(record.url, "_blank")}
+              disabled={!record.url}
+              title="View Blog"
+            />
+          </Tooltip>
         </div>
       ),
       align: "center",
@@ -670,7 +635,7 @@ const SearchConsole = () => {
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3">
             <div className="flex flex-col lg:flex-row gap-4">
               <AntSearch
-                placeholder="Search blogs or keywords..."
+                placeholder="Search with keywords..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 prefix={<Search className="w-5 h-5 text-gray-400 mr-2" />}

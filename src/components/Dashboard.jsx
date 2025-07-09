@@ -115,7 +115,7 @@ const Dashboard = () => {
   const openSecondStepJobModal = () => {
     setKeywordResearchModal(false)
     dispatch(openJobModal())
-    navigate("/jobs")
+      navigate("/jobs")
   }
 
   const handleSubmit = async (updatedData) => {

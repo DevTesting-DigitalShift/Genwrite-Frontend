@@ -6,10 +6,10 @@ import { packages } from "@constants/templates"
 import { FiPlus, FiSettings, FiCalendar, FiFileText, FiEdit } from "react-icons/fi"
 import { useDispatch, useSelector } from "react-redux"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
-import { useNavigate } from "react-router-dom"
+import { useLocation, useNavigate } from "react-router-dom"
 import { QuestionCircleOutlined } from "@ant-design/icons"
 import { message, Pagination, Popconfirm, Tooltip } from "antd"
-import { Gem, Info, Upload, X } from "lucide-react"
+import { Crown, Gem, Info, Upload, X } from "lucide-react"
 import { Helmet } from "react-helmet"
 import {
   closeJobModal,
@@ -22,6 +22,7 @@ import {
 } from "@store/slices/jobSlice"
 import SkeletonLoader from "@components/Projects/SkeletonLoader"
 import { selectUser } from "@store/slices/authSlice"
+import { openUpgradePopup } from "@utils/UpgardePopUp"
 
 const initialJob = {
   name: "",
@@ -30,7 +31,6 @@ const initialJob = {
     numberOfBlogs: 1,
     topics: [],
     keywords: [],
-    focusKeywords: [],
     templates: [],
     tone: "Professional",
     userDefinedLength: 1000,
@@ -60,7 +60,6 @@ const Jobs = () => {
   const { handlePopup } = useConfirmPopup()
   const [errors, setErrors] = useState({})
   const user = useSelector(selectUser)
-  // Fallback to "free" if user plan is undefined
   const userPlan = (user?.plan || user?.subscription?.plan || "free").toLowerCase()
   const navigate = useNavigate()
   const [recentlyUploadedCount, setRecentlyUploadedCount] = useState(null)
@@ -68,16 +67,26 @@ const Jobs = () => {
   const { jobs, loading: isLoading, showJobModal } = useSelector((state) => state.jobs)
   const [currentPage, setCurrentPage] = useState(1)
   const { selectedKeywords } = useSelector((state) => state.analysis)
+  const [isUserLoaded, setIsUserLoaded] = useState(false)
   const totalPages = jobs.length
+
+  // Initialize formData with keywords from selectedKeywords
   const [formData, setFormData] = useState({
-    focusKeywords: [],
-    focusKeywordInput: "",
-    keywords: [],
+    keywords: [
+      ...new Set([
+        ...(selectedKeywords?.focusKeywords || []),
+        ...(selectedKeywords?.allKeywords || []),
+      ]),
+    ],
     keywordInput: "",
     performKeywordResearch: false,
   })
-  // Add loading state for user data
-  const [isUserLoaded, setIsUserLoaded] = useState(false)
+
+  // Debug: Log selectedKeywords and formData.keywords
+  useEffect(() => {
+    console.log("Jobs: Current selectedKeywords in Redux:", selectedKeywords)
+    console.log("Jobs: Current formData.keywords:", formData.keywords)
+  }, [selectedKeywords, formData.keywords])
 
   // Calculate paginated jobs
   const startIndex = (currentPage - 1) * PAGE_SIZE
@@ -100,10 +109,16 @@ const Jobs = () => {
     }
   }, [user])
 
-  // Sync formData with selectedKeywords when it changes
+  // Sync formData and newJob with selectedKeywords
   useEffect(() => {
-    if (selectedKeywords && selectedKeywords.length > 0) {
-      const uniqueKeywords = [...new Set(selectedKeywords)]
+    if (selectedKeywords?.focusKeywords?.length > 0 || selectedKeywords?.allKeywords?.length > 0) {
+      const uniqueKeywords = [
+        ...new Set([
+          ...(selectedKeywords.focusKeywords || []),
+          ...(selectedKeywords.allKeywords || []),
+        ]),
+      ]
+      console.log("Jobs: Updating formData and newJob with uniqueKeywords:", uniqueKeywords)
       setFormData((prev) => ({
         ...prev,
         keywords: uniqueKeywords,
@@ -123,22 +138,10 @@ const Jobs = () => {
       message.error("User data is still loading. Please try again.")
       return
     }
-    if (["free", "basic"].includes(userPlan)) {
-      handlePopup({
-        title: "Upgrade Required",
-        description: "Job creation is only available for Pro and Enterprise users.",
-        confirmText: "Buy Now",
-        cancelText: "Cancel",
-        onConfirm: () => navigate("/upgrade"),
-      })
-      return
-    }
-
     const jobPayload = {
       ...newJob,
       blogs: {
         ...newJob.blogs,
-        focusKeywords: formData.focusKeywords,
         keywords: formData.keywords,
       },
       options: {
@@ -152,6 +155,7 @@ const Jobs = () => {
       },
     }
 
+    console.log("Jobs: Creating job with payload:", jobPayload)
     dispatch(
       createJobThunk({
         jobPayload,
@@ -169,22 +173,11 @@ const Jobs = () => {
       message.error("User data is still loading. Please try again.")
       return
     }
-    if (["free", "basic"].includes(userPlan)) {
-      handlePopup({
-        title: "Upgrade Required",
-        description: "Job editing is only available for Pro and Enterprise users.",
-        confirmText: "Buy Now",
-        cancelText: "Cancel",
-        onConfirm: () => navigate("/upgrade"),
-      })
-      return
-    }
 
     const jobPayload = {
       ...newJob,
       blogs: {
         ...newJob.blogs,
-        focusKeywords: formData.focusKeywords,
         keywords: formData.keywords,
       },
       options: {
@@ -198,6 +191,7 @@ const Jobs = () => {
       },
     }
 
+    console.log("Jobs: Updating job with payload:", jobPayload)
     dispatch(
       updateJobThunk({
         jobId,
@@ -296,76 +290,75 @@ const Jobs = () => {
       message.error("Stop the job before editing")
       return
     }
+    const uniqueKeywords = [
+      ...new Set([...(job.blogs.keywords || []), ...(selectedKeywords?.focusKeywords || [])]),
+    ]
     setNewJob({
       ...job,
       blogs: {
         ...job.blogs,
-        focusKeywords: job.blogs.focusKeywords || [],
-        keywords: job.blogs.keywords || [],
+        keywords: uniqueKeywords,
       },
     })
     setFormData({
-      focusKeywords: job.blogs.focusKeywords || [],
-      focusKeywordInput: "",
-      keywords: job.blogs.keywords || [],
+      keywords: uniqueKeywords,
       keywordInput: "",
       performKeywordResearch: job.options.performKeywordResearch || false,
     })
+    console.log("Jobs: Editing job with keywords:", uniqueKeywords)
     dispatch(openJobModal())
     setCurrentStep(1)
   }
 
-  const handleKeywordInputChange = (e, type) => {
+  const handleKeywordInputChange = (e) => {
     setFormData((prevState) => ({
       ...prevState,
-      [`${type}Input`]: e.target.value,
+      keywordInput: e.target.value,
     }))
   }
 
-  const handleAddFocusKeyword = (type) => {
-    const inputValue = formData[`${type}Input`]
-    if (inputValue.trim() !== "") {
+  const handleAddKeywordManual = () => {
+    const inputValue = formData.keywordInput.trim()
+    if (inputValue !== "") {
       const newKeywords = inputValue
         .split(",")
         .map((keyword) => keyword.trim())
-        .filter((keyword) => keyword !== "")
-      if (type === "focusKeywords" && formData[type].length + newKeywords.length > 3) {
-        message.error("You can only add up to 3 focus keywords.")
-        return
-      }
+        .filter((keyword) => keyword !== "" && !formData.keywords.includes(keyword.toLowerCase()))
       setFormData((prev) => ({
         ...prev,
-        [type]: [...prev[type], ...newKeywords],
-        [`${type}Input`]: "",
+        keywords: [...prev.keywords, ...newKeywords],
+        keywordInput: "",
       }))
       setNewJob((prev) => ({
         ...prev,
         blogs: {
           ...prev.blogs,
-          [type]: [...prev.blogs[type], ...newKeywords],
+          keywords: [...prev.blogs.keywords, ...newKeywords],
         },
       }))
+      console.log("Jobs: Added manual keywords:", newKeywords)
     }
   }
 
-  const handleKeyFocusPress = (e, type) => {
-    if (e.key === "Enter" || e.key === ",") {
+  const handleKeyPressKeyword = (e) => {
+    if (e.key === "Enter") {
       e.preventDefault()
-      handleAddFocusKeyword(type)
+      handleAddKeywordManual()
     }
   }
 
-  const handleRemoveKeyword = (index, type) => {
-    const updatedKeywords = [...formData[type]]
+  const handleRemoveKeyword = (index) => {
+    const updatedKeywords = [...formData.keywords]
     updatedKeywords.splice(index, 1)
-    setFormData({ ...formData, [type]: updatedKeywords })
+    setFormData({ ...formData, keywords: updatedKeywords })
     setNewJob((prev) => ({
       ...prev,
       blogs: {
         ...prev.blogs,
-        [type]: updatedKeywords,
+        keywords: updatedKeywords,
       },
     }))
+    console.log("Jobs: Removed keyword at index:", index, "New keywords:", updatedKeywords)
   }
 
   const handleCSVUpload = (e) => {
@@ -427,8 +420,68 @@ const Jobs = () => {
     e.target.value = null
   }
 
-  const handleKeywordToggleInputChange = (e) => {
-    setFormData((prev) => ({ ...prev, keywordInput: e.target.value }))
+  const handleCSVKeywordUpload = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.name.toLowerCase().endsWith(".csv")) {
+      message.error("Invalid file type. Please upload a .csv file.")
+      e.target.value = null
+      return
+    }
+
+    const maxSizeInBytes = 20 * 1024
+    if (file.size > maxSizeInBytes) {
+      message.error("File size exceeds 20KB limit. Please upload a smaller file.")
+      e.target.value = null
+      return
+    }
+
+    const reader = new FileReader()
+
+    reader.onload = (event) => {
+      const text = event.target?.result
+      if (!text) return
+
+      const lines = text.trim().split(/\r?\n/).slice(1)
+      const keywords = lines
+        .map((line) => {
+          const parts = line.split(",")
+          return parts.length >= 2 ? parts[1].trim() : null
+        })
+        .filter(Boolean)
+
+      const existingKeywords = formData.keywords.map((t) => t.toLowerCase().trim())
+      const uniqueNewKeywords = keywords.filter(
+        (kw) => !existingKeywords.includes(kw.toLowerCase().trim())
+      )
+
+      if (uniqueNewKeywords.length === 0) {
+        message.warning("No new keywords found in the CSV.")
+        return
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        keywords: [...prev.keywords, ...uniqueNewKeywords],
+      }))
+      setNewJob((prev) => ({
+        ...prev,
+        blogs: {
+          ...prev.blogs,
+          keywords: [...prev.blogs.keywords, ...uniqueNewKeywords],
+        },
+      }))
+      console.log("Jobs: Uploaded CSV keywords:", uniqueNewKeywords)
+
+      if (uniqueNewKeywords.length > 8) {
+        setRecentlyUploadedCount(uniqueNewKeywords.length)
+        setTimeout(() => setRecentlyUploadedCount(null), 5000)
+      }
+    }
+
+    reader.readAsText(file)
+    e.target.value = null
   }
 
   const handleCheckboxChange = (e) => {
@@ -449,7 +502,7 @@ const Jobs = () => {
     setNewJob((prev) => ({
       ...prev,
       options: {
-        ...prev.options,
+        ...newJob.options,
         [name]: checked,
       },
     }))
@@ -459,7 +512,7 @@ const Jobs = () => {
     if (e.key === "Enter") {
       e.preventDefault()
       handleAddKeyword()
-      handleAddToggleKeyword()
+      handleAddKeywordManual()
     }
   }
 
@@ -506,96 +559,25 @@ const Jobs = () => {
         keywords: [...prev.blogs.keywords, ...newKeywords],
       },
     }))
-
+    console.log("Jobs: Added toggle keywords:", newKeywords)
     return true
   }
 
   const handleRemoveToggleKeyword = (index) => {
-    setFormData((prev) => {
-      const updatedKeywords = prev.keywords.filter((_, i) => i !== index)
-      setNewJob((prevJob) => ({
-        ...prevJob,
-        blogs: {
-          ...prevJob.blogs,
-          keywords: updatedKeywords,
-        },
-      }))
-      return {
-        ...prev,
+    const updatedKeywords = [...formData.keywords]
+    updatedKeywords.splice(index, 1)
+    setFormData((prev) => ({
+      ...prev,
+      keywords: updatedKeywords,
+    }))
+    setNewJob((prev) => ({
+      ...prev,
+      blogs: {
+        ...prev.blogs,
         keywords: updatedKeywords,
-      }
-    })
-  }
-
-  const handleCSVKeywordUpload = (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    if (!file.name.toLowerCase().endsWith(".csv")) {
-      message.error("Invalid file type. Please upload a .csv file.")
-      e.target.value = null
-      return
-    }
-
-    const maxSizeInBytes = 20 * 1024
-    if (file.size > maxSizeInBytes) {
-      message.error("File size exceeds 20KB limit. Please upload a smaller file.")
-      e.target.value = null
-      return
-    }
-
-    const reader = new FileReader()
-
-    reader.onload = (event) => {
-      const text = event.target?.result
-      if (!text) return
-
-      const lines = text.trim().split(/\r?\n/).slice(1)
-      const keywords = lines
-        .map((line) => {
-          const parts = line.split(",")
-          return parts.length >= 2 ? parts[1].trim() : null
-        })
-        .filter(Boolean)
-
-      const existingKeywords = formData.keywords.map((t) => t.toLowerCase().trim())
-      const existingFocusKeywords = formData.focusKeywords.map((t) => t.toLowerCase().trim())
-      const uniqueNewKeywords = keywords.filter(
-        (kw) =>
-          !existingKeywords.includes(kw.toLowerCase().trim()) &&
-          !existingFocusKeywords.includes(kw.toLowerCase().trim())
-      )
-
-      if (uniqueNewKeywords.length === 0) {
-        message.warning("No new keywords found in the CSV.")
-        return
-      }
-
-      const newFocusKeywords = uniqueNewKeywords.slice(0, 3 - formData.focusKeywords.length)
-      const newRegularKeywords = uniqueNewKeywords.slice(3 - formData.focusKeywords.length)
-
-      setFormData((prev) => ({
-        ...prev,
-        focusKeywords: [...prev.focusKeywords, ...newFocusKeywords].slice(0, 3),
-        keywords: [...prev.keywords, ...newRegularKeywords],
-      }))
-      setNewJob((prev) => ({
-        ...prev,
-        blogs: {
-          ...prev.blogs,
-          focusKeywords: [...prev.blogs.focusKeywords, ...newFocusKeywords].slice(0, 3),
-          keywords: [...prev.blogs.keywords, ...newRegularKeywords],
-        },
-      }))
-
-      if (uniqueNewKeywords.length > 8) {
-        setRecentlyUploadedCount(uniqueNewKeywords.length)
-        setTimeout(() => setRecentlyUploadedCount(null), 5000)
-      }
-    }
-
-    reader.readAsText(file)
-    e.target.value = null
+      },
+    }))
+    console.log("Jobs: Removed toggle keyword at index:", index, "New keywords:", updatedKeywords)
   }
 
   const renderStep = () => {
@@ -685,6 +667,7 @@ const Jobs = () => {
                   className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                     errors.name ? "border-red-500" : "border-gray-200"
                   }`}
+                  aria-label="Job name"
                 />
               </div>
 
@@ -707,18 +690,21 @@ const Jobs = () => {
                       errors.topic ? "border-red-500" : "border-gray-200"
                     }`}
                     placeholder="Add a topic..."
+                    aria-label="Add topic"
                   />
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => handleAddKeyword("topics")}
                     className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg"
+                    aria-label="Add topic"
                   >
                     Add
                   </motion.button>
                   <label className="px-4 py-2 bg-gray-100 text-gray-700 border rounded-md text-sm cursor-pointer flex items-center gap-1 hover:bg-gray-200">
                     <Upload size={16} />
                     <input type="file" accept=".csv" onChange={handleCSVUpload} hidden />
+                    <span className="sr-only">Upload CSV for topics</span>
                   </label>
                 </div>
                 <div className="flex flex-wrap gap-2 mt-2">
@@ -746,6 +732,7 @@ const Jobs = () => {
                               }))
                             }
                             className="ml-1.5 flex-shrink-0 text-indigo-400 hover:text-indigo-600 focus:outline-none"
+                            aria-label={`Remove topic ${topic}`}
                           >
                             <X className="w-3 h-3" />
                           </button>
@@ -774,6 +761,7 @@ const Jobs = () => {
                   className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
                     errors.tone ? "border-red-500" : "border-gray-200"
                   }`}
+                  aria-label="Select tone of voice"
                 >
                   {tones.map((tone) => (
                     <option key={tone} value={tone}>
@@ -794,6 +782,7 @@ const Jobs = () => {
                     })
                   }
                   className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  aria-label="Select blog length"
                 >
                   {wordLengths.map((length) => (
                     <option key={length} value={length}>
@@ -805,33 +794,114 @@ const Jobs = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Image Source</label>
-                <select
-                  value={newJob.blogs.imageSource}
-                  onChange={(e) =>
-                    setNewJob({
-                      ...newJob,
-                      blogs: { ...newJob.blogs, imageSource: e.target.value },
-                    })
-                  }
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="ai-generated">AI-Generated Images</option>
-                  <option value="unsplash">Stock Images</option>
-                </select>
+                <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      id="unsplash"
+                      name="imageSource"
+                      value="unsplash"
+                      checked={newJob.blogs.imageSource === "unsplash"}
+                      onChange={(e) =>
+                        setNewJob({
+                          ...newJob,
+                          blogs: { ...newJob.blogs, imageSource: e.target.value },
+                        })
+                      }
+                      className="h-4 w-4 text-[#1B6FC9] focus:ring-[#1B6FC9] border-gray-300"
+                    />
+                    <label htmlFor="unsplash" className="text-sm text-gray-700 whitespace-nowrap">
+                      Stock Images
+                    </label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      id="ai-generated"
+                      name="imageSource"
+                      value="ai-generated"
+                      checked={newJob.blogs.imageSource === "ai-generated"}
+                      onChange={(e) => {
+                        if (userPlan !== "free") {
+                          setNewJob({
+                            ...newJob,
+                            blogs: { ...newJob.blogs, imageSource: e.target.value },
+                          })
+                        }
+                      }}
+                      className="h-4 w-4 text-[#1B6FC9] focus:ring-[#1B6FC9] border-gray-300"
+                    />
+                    <label
+                      htmlFor="ai-generated"
+                      onClick={(e) => {
+                        if (userPlan === "free") {
+                          e.preventDefault()
+                          openUpgradePopup({ featureName: "AI-Generated Images", navigate })
+                        }
+                      }}
+                      className="text-sm cursor-pointer flex items-center gap-1 text-gray-700"
+                    >
+                      AI-Generated Images
+                      {userPlan === "free" && <Crown className="w-4 h-4 text-yellow-500" />}
+                    </label>
+                  </div>
+                </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">AI Model</label>
-                <select
-                  value={newJob.blogs.aiModel}
-                  onChange={(e) =>
-                    setNewJob({ ...newJob, blogs: { ...newJob.blogs, aiModel: e.target.value } })
-                  }
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="gemini">Gemini</option>
-                  <option value="openai">Open AI</option>
-                </select>
+                <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      id="gemini"
+                      name="aiModel"
+                      value="gemini"
+                      checked={newJob.blogs.aiModel === "gemini"}
+                      onChange={(e) =>
+                        setNewJob({
+                          ...newJob,
+                          blogs: { ...newJob.blogs, aiModel: e.target.value },
+                        })
+                      }
+                      className="h-4 w-4 text-[#1B6FC9] focus:ring-[#1B6FC9] border-gray-300"
+                    />
+                    <label htmlFor="gemini" className="text-sm text-gray-700">
+                      Gemini
+                    </label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      id="openai"
+                      name="aiModel"
+                      value="openai"
+                      checked={newJob.blogs.aiModel === "openai"}
+                      onChange={(e) => {
+                        if (userPlan !== "free") {
+                          setNewJob({
+                            ...newJob,
+                            blogs: { ...newJob.blogs, aiModel: e.target.value },
+                          })
+                        }
+                      }}
+                      className="h-4 w-4 text-[#1B6FC9] focus:ring-[#1B6FC9] border-gray-300"
+                    />
+                    <label
+                      htmlFor="openai"
+                      onClick={(e) => {
+                        if (userPlan === "free") {
+                          e.preventDefault()
+                          openUpgradePopup({ featureName: "ChatGPT (Open AI)", navigate })
+                        }
+                      }}
+                      className="text-sm cursor-pointer flex items-center gap-1 text-gray-700"
+                    >
+                      ChatGPT (Open AI)
+                      {userPlan === "free" && <Crown className="w-4 h-4 text-yellow-500" />}
+                    </label>
+                  </div>
+                </div>
               </div>
 
               <div className="flex items-center justify-between">
@@ -861,20 +931,23 @@ const Jobs = () => {
                   <input
                     type="text"
                     value={formData.keywordInput}
-                    onChange={handleKeywordToggleInputChange}
-                    onKeyDown={handleTopicKeyPress}
+                    onChange={handleKeywordInputChange}
+                    onKeyDown={handleKeyPressKeyword}
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
                     placeholder="e.g., digital marketing trends, AI in business"
+                    aria-label="Add keyword"
                   />
                   <button
-                    onClick={handleAddToggleKeyword}
+                    onClick={handleAddKeywordManual}
                     className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700"
+                    aria-label="Add keyword"
                   >
                     Add
                   </button>
                   <label className="px-4 py-2 bg-gray-100 text-gray-700 border rounded-md text-sm cursor-pointer flex items-center gap-1 hover:bg-gray-200">
                     <Upload size={16} />
                     <input type="file" accept=".csv" onChange={handleCSVKeywordUpload} hidden />
+                    <span className="sr-only">Upload CSV for keywords</span>
                   </label>
                 </div>
                 <div className="flex flex-wrap gap-2 mt-2 min-h-[28px]">
@@ -882,23 +955,25 @@ const Jobs = () => {
                     .slice()
                     .reverse()
                     .slice(0, 18)
-                    .map((keyword, index) => (
-                      <span
-                        key={`${keyword}-${index}`}
-                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
-                      >
-                        {keyword}
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleRemoveToggleKeyword(formData.keywords.length - 1 - index)
-                          }
-                          className="ml-1.5 flex-shrink-0 text-indigo-400 hover:text-indigo-600 focus:outline-none"
+                    .map((keyword, reversedIndex) => {
+                      const actualIndex = formData.keywords.length - 1 - reversedIndex
+                      return (
+                        <span
+                          key={`${keyword}-${actualIndex}`}
+                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
                         >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </span>
-                    ))}
+                          {keyword}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveKeyword(actualIndex)}
+                            className="ml-1.5 flex-shrink-0 text-indigo-400 hover:text-indigo-600 focus:outline-none"
+                            aria-label={`Remove keyword ${keyword}`}
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )
+                    })}
                   {(formData.keywords.length > 18 || recentlyUploadedCount) && (
                     <span className="text-xs font-medium text-blue-600 self-center">
                       {formData.keywords.length > 18 && `+${formData.keywords.length - 18} more `}
@@ -913,6 +988,7 @@ const Jobs = () => {
               <button
                 onClick={() => setCurrentStep(1)}
                 className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                aria-label="Previous step"
               >
                 Previous
               </button>
@@ -921,6 +997,7 @@ const Jobs = () => {
                   if (validateSteps(2)) setCurrentStep(3)
                 }}
                 className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                aria-label="Next step"
               >
                 Next
               </button>
@@ -945,6 +1022,7 @@ const Jobs = () => {
                         options: { ...newJob.options, includeFaqs: e.target.checked },
                       })
                     }
+                    aria-label="Toggle FAQ inclusion"
                   />
                   <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                 </label>
@@ -962,6 +1040,7 @@ const Jobs = () => {
                         options: { ...newJob.options, includeCompetitorResearch: e.target.checked },
                       })
                     }
+                    aria-label="Toggle competitive research inclusion"
                   />
                   <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                 </label>
@@ -979,6 +1058,7 @@ const Jobs = () => {
                         options: { ...newJob.options, includeInterlinks: e.target.checked },
                       })
                     }
+                    aria-label="Toggle interlinks inclusion"
                   />
                   <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                 </label>
@@ -994,6 +1074,7 @@ const Jobs = () => {
                     checked={newJob.options.wordpressPosting}
                     onChange={handleCheckboxChange}
                     name="wordpressPosting"
+                    aria-label="Toggle WordPress automatic posting"
                   />
                   <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                 </label>
@@ -1012,6 +1093,7 @@ const Jobs = () => {
                           options: { ...newJob.options, includeTableOfContents: e.target.checked },
                         })
                       }
+                      aria-label="Toggle table of contents inclusion"
                     />
                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                   </label>
@@ -1022,12 +1104,14 @@ const Jobs = () => {
               <button
                 onClick={() => setCurrentStep(2)}
                 className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                aria-label="Previous step"
               >
                 Previous
               </button>
               <button
                 onClick={() => setCurrentStep(4)}
                 className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                aria-label="Next step"
               >
                 Next
               </button>
@@ -1063,6 +1147,7 @@ const Jobs = () => {
                     })
                   }}
                   className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  aria-label="Select schedule type"
                 >
                   <option value="daily">Daily</option>
                   <option value="weekly">Weekly</option>
@@ -1093,6 +1178,7 @@ const Jobs = () => {
                             return { ...prev, schedule: { ...prev.schedule, daysOfWeek } }
                           })
                         }}
+                        aria-label={`Select ${d} for weekly schedule`}
                       >
                         {d}
                       </button>
@@ -1123,6 +1209,7 @@ const Jobs = () => {
                             return { ...prev, schedule: { ...prev.schedule, daysOfMonth } }
                           })
                         }}
+                        aria-label={`Select date ${date} for monthly schedule`}
                       >
                         {date}
                       </button>
@@ -1151,6 +1238,7 @@ const Jobs = () => {
                     multiple
                     format="YYYY-MM-DD"
                     className="w-full"
+                    aria-label="Select custom dates"
                   />
                 </div>
               )}
@@ -1164,6 +1252,7 @@ const Jobs = () => {
                   onChange={handleNumberOfBlogsChange}
                   className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Enter the number of blogs"
+                  aria-label="Number of blogs"
                 />
               </div>
             </div>
@@ -1171,12 +1260,14 @@ const Jobs = () => {
               <button
                 onClick={() => setCurrentStep(3)}
                 className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                aria-label="Previous step"
               >
                 Previous
               </button>
               <button
                 onClick={newJob?._id ? () => handleUpdateJob(newJob._id) : handleCreateJob}
                 className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                aria-label={newJob?._id ? "Update job" : "Create job"}
               >
                 {newJob?._id ? "Update" : "Create"} Job
               </button>
@@ -1193,26 +1284,26 @@ const Jobs = () => {
       message.error("User data is still loading. Please try again.")
       return
     }
-    if (["free", "basic"].includes(userPlan)) {
-      handlePopup({
-        title: "Upgrade Required",
-        description: "Job creation is only available for Pro and Enterprise users.",
-        confirmText: "Buy Now",
-        cancelText: "Cancel",
-        icon: <Gem style={{ fontSize: 50, color: "#a47dab" }} />,
-        onConfirm: () => navigate("/upgrade"),
-      })
-      return
-    }
-    setNewJob(initialJob)
+
+    const uniqueKeywords = [
+      ...new Set([
+        ...(selectedKeywords?.focusKeywords || []),
+        ...(selectedKeywords?.allKeywords || []),
+      ]),
+    ]
+    console.log("Jobs: Opening job modal with keywords:", uniqueKeywords)
+    setNewJob({
+      ...initialJob,
+      blogs: {
+        ...initialJob.blogs,
+        keywords: uniqueKeywords,
+      },
+    })
     setFormData({
-      focusKeywords: selectedKeywords?.focusKeywords?.slice(0, 3) || [],
-      keywords: selectedKeywords?.keywords || [],
-      focusKeywordInput: "",
+      keywords: uniqueKeywords,
       keywordInput: "",
       performKeywordResearch: true,
     })
-
     dispatch(openJobModal())
     setCurrentStep(1)
   }
@@ -1244,12 +1335,6 @@ const Jobs = () => {
               <span className="bg-blue-100 rounded-lg p-3">
                 <FiPlus className="w-6 h-6 text-blue-600" />
               </span>
-              {["free", "basic"].includes(userPlan) && (
-                <span className="flex items-center gap-2 rounded-md text-white font-semibold border p-1 px-2 bg-gradient-to-tr from-blue-500 to-purple-500 shadow-md hover:shadow-xl hover:scale-105 transition-all duration-300 ease-in-out animate-pulse backdrop-blur-sm text-lg">
-                  <Gem className="w-4 h-4 animate-bounce" />
-                  Pro
-                </span>
-              )}
             </div>
             <div className="mt-4">
               <h3 className="text-xl font-semibold text-gray-800">Create New Job</h3>
@@ -1302,6 +1387,7 @@ const Jobs = () => {
                           ? "bg-red-100 text-red-600 hover:bg-red-200"
                           : "bg-green-100 text-green-600 hover:bg-green-200"
                       }`}
+                      aria-label={job.status === "active" ? "Stop job" : "Start job"}
                     >
                       {job.status === "active" ? "Stop" : "Start"}
                     </motion.button>
@@ -1335,22 +1421,6 @@ const Jobs = () => {
                               className="px-2 py-1 bg-gray-100 text-gray-600 rounded-md text-xs"
                             >
                               {topic}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {job.blogs.focusKeywords?.length > 0 && (
-                      <div className="flex items-start gap-2 capitalize">
-                        <FiFileText className="w-4 h-4 text-blue-500 mt-0.5" />
-                        <div className="flex flex-wrap gap-2">
-                          Focus Keywords:
-                          {job.blogs.focusKeywords.map((keyword, index) => (
-                            <span
-                              key={index}
-                              className="px-2 py-1 bg-blue-100 text-blue-600 rounded-md text-xs"
-                            >
-                              {keyword}
                             </span>
                           ))}
                         </div>
@@ -1406,6 +1476,7 @@ const Jobs = () => {
                       whileTap={{ scale: 0.95 }}
                       onClick={() => handleEditJob(job)}
                       className="px-4 py-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 flex items-center gap-2"
+                      aria-label="Edit job"
                     >
                       <FiEdit />
                       Edit
@@ -1416,50 +1487,50 @@ const Jobs = () => {
                       icon={<QuestionCircleOutlined style={{ color: "red" }} />}
                       okText="Yes"
                       cancelText="No"
-                      onConfirm={() => handleDeleteJob(job._id)}
-                    >
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
+                        onConfirm={() => handleDeleteJob(job._id)}
                       >
-                        Delete
-                      </motion.button>
-                    </Popconfirm>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          )}
-          {totalPages > PAGE_SIZE && (
-            <div className="flex justify-center mt-6">
-              <Pagination
-                current={currentPage}
-                pageSize={PAGE_SIZE}
-                total={totalPages}
-                onChange={(page) => setCurrentPage(page)}
-                showSizeChanger={false}
-                responsive={true}
-              />
-            </div>
-          )}
-        </div>
-      </div>
-      {showJobModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg w-3/4 max-w-3xl p-6 relative max-h-[98vh] overflow-y-auto">
-            <button
-              onClick={() => dispatch(closeJobModal())}
-              className="absolute top-2 p-4 right-2 text-xl font-bold text-gray-400 hover:text-gray-600"
-            >
-              ✕
-            </button>
-            {renderStep()}
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          className="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
+                        >
+                          Delete
+                        </motion.button>
+                      </Popconfirm>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+            {totalPages > PAGE_SIZE && (
+              <div className="flex justify-center mt-6">
+                <Pagination
+                  current={currentPage}
+                  pageSize={PAGE_SIZE}
+                  total={totalPages}
+                  onChange={(page) => setCurrentPage(page)}
+                  showSizeChanger={false}
+                  responsive={true}
+                />
+              </div>
+            )}
           </div>
         </div>
-      )}
-    </>
-  )
-}
+        {showJobModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-lg w-3/4 max-w-3xl p-6 relative max-h-[98vh] overflow-y-auto">
+              <button
+                onClick={() => dispatch(closeJobModal())}
+                className="absolute top-2 p-4 right-2 text-xl font-bold text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+              {renderStep()}
+            </div>
+          </div>
+        )}
+      </>
+    )
+  }
 
-export default Jobs
+  export default Jobs
