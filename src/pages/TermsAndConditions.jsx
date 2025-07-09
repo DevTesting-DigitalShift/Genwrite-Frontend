@@ -124,36 +124,39 @@ const TermsAndConditions = () => {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
-            <Link
-              to="/signup"
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              Back to Signup
-            </Link>
-            <div className="flex items-center gap-2">
-              <FileText className="w-6 h-6 text-blue-600" />
-              <h1 className="text-2xl font-bold text-gray-900">Terms and Conditions</h1>
+      <header className="bg-white shadow-md border-b border-gray-200 sticky top-0 z-20">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Link
+                to="/signup"
+                className="inline-flex items-center gap-2 text-gray-700 hover:text-blue-600 transition-colors duration-200 font-medium"
+                aria-label="Back to signup page"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                Back to Signup
+              </Link>
+            </div>
+            <div className="flex items-center gap-3">
+              <FileText className="w-7 h-7 text-blue-600" />
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Terms and Conditions</h1>
             </div>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="max-w-4xl mx-auto px-4 py-12">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Introduction */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-8">
-          <div className="flex items-start gap-4 mb-6">
+        <section className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6 sm:p-8 mb-10">
+          <div className="flex flex-col sm:flex-row items-start gap-6 mb-8">
             <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
               <Shield className="w-6 h-6 text-blue-600" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome to GenWrite</h2>
-              <p className="text-gray-600 leading-relaxed">
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">Welcome to GenWrite</h2>
+              <p className="text-gray-600 leading-relaxed text-base sm:text-lg">
                 These Terms and Conditions ("Terms") govern your use of the GenWrite platform and
                 services. Please read them carefully as they contain important information about
                 your rights and obligations.
@@ -161,96 +164,98 @@ const TermsAndConditions = () => {
             </div>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6 mt-8">
-            <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
-              <Calendar className="w-5 h-5 text-blue-600" />
-              <div>
-                <div className="font-semibold text-gray-900 text-sm">Last Updated</div>
-                <div className="text-gray-600 text-sm">{lastUpdated}</div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+            {[
+              { icon: <Calendar className="w-5 h-5 text-blue-600" />, title: "Last Updated", value: lastUpdated },
+              { icon: <Users className="w-5 h-5 text-green-600" />, title: "Applies To", value: "All Users" },
+              { icon: <Globe className="w-5 h-5 text-purple-600" />, title: "Jurisdiction", value: "California, USA" },
+            ].map((item, index) => (
+              <div
+                key={index}
+                className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl border border-gray-100 hover:bg-gray-100 transition-colors duration-200"
+              >
+                {item.icon}
+                <div>
+                  <div className="font-semibold text-gray-900 text-sm sm:text-base">{item.title}</div>
+                  <div className="text-gray-600 text-sm">{item.value}</div>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
-              <Users className="w-5 h-5 text-green-600" />
-              <div>
-                <div className="font-semibold text-gray-900 text-sm">Applies To</div>
-                <div className="text-gray-600 text-sm">All Users</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
-              <Globe className="w-5 h-5 text-purple-600" />
-              <div>
-                <div className="font-semibold text-gray-900 text-sm">Jurisdiction</div>
-                <div className="text-gray-600 text-sm">California, USA</div>
-              </div>
-            </div>
+            ))}
           </div>
-        </div>
+        </section>
 
         {/* Terms Sections */}
-        <div className="space-y-6">
+        <div className="space-y-8">
           {sections.map((section, index) => (
-            <div key={index} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-              <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-3">
-                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 font-bold text-sm">
+            <section
+              key={index}
+              className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6 sm:p-8 transition-all duration-200 hover:shadow-xl"
+            >
+              <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6 flex items-center gap-4">
+                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 font-bold text-base">
                   {index + 1}
                 </div>
                 {section.title}
               </h3>
               <div className="space-y-4">
                 {section.content.map((paragraph, pIndex) => (
-                  <p key={pIndex} className="text-gray-700 leading-relaxed">
-                    {paragraph}
-                  </p>
+                  <div key={pIndex} className="flex items-start gap-3">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <p className="text-gray-600 leading-relaxed text-base">{paragraph}</p>
+                  </div>
                 ))}
               </div>
-            </div>
+            </section>
           ))}
         </div>
 
         {/* Important Notice */}
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 mt-8">
+        <section className="bg-amber-50 border border-amber-200 rounded-3xl p-6 sm:p-8 mt-10 shadow-md">
           <div className="flex items-start gap-3">
             <AlertTriangle className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-semibold text-amber-900 mb-2">Important Notice</h3>
-              <p className="text-amber-800 text-sm leading-relaxed">
+              <h3 className="font-semibold text-amber-900 mb-2 text-lg">Important Notice</h3>
+              <p className="text-amber-800 text-base leading-relaxed">
                 By creating an account or using our services, you acknowledge that you have read,
                 understood, and agree to be bound by these Terms and Conditions. If you do not agree
                 with any part of these terms, you must not use our service.
               </p>
             </div>
           </div>
-        </div>
+        </section>
 
         {/* Contact Section */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mt-8">
+        <section className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6 sm:p-8 mt-10">
           <div className="text-center">
             <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-4">
               <Mail className="w-6 h-6 text-blue-600" />
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Questions About These Terms?</h3>
-            <p className="text-gray-600 mb-6">
+            <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3">Questions About These Terms?</h3>
+            <p className="text-gray-600 text-base mb-6">
               If you have any questions about these Terms and Conditions, please don't hesitate to
               contact us.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <a
                 href="mailto:legal@genwrite.com"
-                className="bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                className="bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center gap-2 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                aria-label="Contact legal team via email"
               >
                 <Mail className="w-4 h-4" />
                 legal@genwrite.com
               </a>
               <Link
                 to="/contact"
-                className="border border-gray-300 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
+                className="border border-blue-300 text-blue-700 px-6 py-3 rounded-xl font-semibold hover:bg-blue-100 transition-colors duration-200 flex items-center justify-center gap-2 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                aria-label="Visit contact support page"
               >
+                <Users className="w-4 h-4" />
                 Contact Support
               </Link>
             </div>
           </div>
-        </div>
-      </div>
+        </section>
+      </main>
     </div>
   )
 }

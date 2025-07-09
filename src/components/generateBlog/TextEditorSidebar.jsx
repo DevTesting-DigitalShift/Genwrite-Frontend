@@ -1,14 +1,28 @@
-import React, { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { X, Plus, Gem, Sparkles, TrendingUp, FileText, CheckCircle, AlertCircle, ExternalLink, Zap, Target, BarChart3 } from "lucide-react";
-import { getEstimatedCost } from "@utils/getEstimatedCost";
-import { useConfirmPopup } from "@/context/ConfirmPopupContext";
-import { useNavigate } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
-import { Button, Tooltip, message } from "antd";
-import { fetchProofreadingSuggestions } from "@store/slices/blogSlice";
-import { fetchCompetitiveAnalysisThunk } from "@store/slices/analysisSlice";
-
+import React, { useEffect, useState } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import {
+  X,
+  Plus,
+  Gem,
+  Sparkles,
+  TrendingUp,
+  FileText,
+  CheckCircle,
+  AlertCircle,
+  ExternalLink,
+  Zap,
+  Target,
+  BarChart3,
+  Crown,
+} from "lucide-react"
+import { getEstimatedCost } from "@utils/getEstimatedCost"
+import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import { useNavigate } from "react-router-dom"
+import { useDispatch, useSelector } from "react-redux"
+import { Button, Tooltip, message } from "antd"
+import { fetchProofreadingSuggestions } from "@store/slices/blogSlice"
+import { fetchCompetitiveAnalysisThunk } from "@store/slices/analysisSlice"
+import { openUpgradePopup } from "@utils/UpgardePopUp"
 
 const TextEditorSidebar = ({
   blog,
@@ -23,26 +37,26 @@ const TextEditorSidebar = ({
   posted,
   isPosting,
 }) => {
-  const [newKeyword, setNewKeyword] = useState("");
-  const [isAnalyzingProofreading, setIsAnalyzingProofreading] = useState(false);
-  const [competitiveAnalysisResults, setCompetitiveAnalysisResults] = useState(null);
-  const [shouldRunCompetitive, setShouldRunCompetitive] = useState(false);
-  const [seoScore, setSeoScore] = useState();
-  const user = useSelector((state) => state.auth.user);
-  const userPlan = user?.plan ?? user?.subscription?.plan;
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
-  const { handlePopup } = useConfirmPopup();
-  const { loading: isAnalyzingCompetitive } = useSelector((state) => state.analysis);
+  const [newKeyword, setNewKeyword] = useState("")
+  const [isAnalyzingProofreading, setIsAnalyzingProofreading] = useState(false)
+  const [competitiveAnalysisResults, setCompetitiveAnalysisResults] = useState(null)
+  const [shouldRunCompetitive, setShouldRunCompetitive] = useState(false)
+  const [seoScore, setSeoScore] = useState()
+  const user = useSelector((state) => state.auth.user)
+  const userPlan = user?.plan ?? user?.subscription?.plan
+  const navigate = useNavigate()
+  const dispatch = useDispatch()
+  const { handlePopup } = useConfirmPopup()
+  const { loading: isAnalyzingCompetitive } = useSelector((state) => state.analysis)
 
   const fetchCompetitiveAnalysis = async () => {
     if (!blog || !blog.title || !blog.content) {
-      message.error("Blog data is incomplete for analysis.");
-      return;
+      message.error("Blog data is incomplete for analysis.")
+      return
     }
 
     const validKeywords =
-      keywords && keywords.length > 0 ? keywords : blog?.focusKeywords || blog.keywords;
+      keywords && keywords.length > 0 ? keywords : blog?.focusKeywords || blog.keywords
 
     try {
       const resultAction = await dispatch(
@@ -52,99 +66,99 @@ const TextEditorSidebar = ({
           content: blog.content,
           keywords: validKeywords,
         })
-      );
+      )
 
       const data = fetchCompetitiveAnalysisThunk.fulfilled.match(resultAction)
         ? resultAction.payload
-        : null;
+        : null
 
-      setSeoScore(data?.blogScore);
-      setCompetitiveAnalysisResults(data);
+      setSeoScore(data?.blogScore)
+      setCompetitiveAnalysisResults(data)
     } catch (err) {
-      console.error("Failed to fetch competitive analysis:", err);
+      console.error("Failed to fetch competitive analysis:", err)
     }
-  };
+  }
 
   useEffect(() => {
     if (shouldRunCompetitive) {
-      fetchCompetitiveAnalysis();
-      setShouldRunCompetitive(false);
+      fetchCompetitiveAnalysis()
+      setShouldRunCompetitive(false)
     }
-  }, [shouldRunCompetitive]);
+  }, [shouldRunCompetitive])
 
   useEffect(() => {
     if (blog?.seoScore || blog?.generatedMetadata?.competitorsAnalysis) {
       setCompetitiveAnalysisResults({
         blogScore: blog.seoScore,
         ...blog?.generatedMetadata?.competitorsAnalysis,
-      });
+      })
     }
-  }, [blog]);
+  }, [blog])
 
   const removeKeyword = (keyword) => {
-    setKeywords(keywords.filter((k) => k !== keyword));
-  };
+    setKeywords(keywords.filter((k) => k !== keyword))
+  }
 
   const addKeywords = () => {
     if (newKeyword.trim()) {
       const keywordsToAdd = newKeyword
         .split(",")
         .map((k) => k.trim())
-        .filter((k) => k && !keywords.includes(k));
-      setKeywords([...keywords, ...keywordsToAdd]);
-      setNewKeyword("");
+        .filter((k) => k && !keywords.includes(k))
+      setKeywords([...keywords, ...keywordsToAdd])
+      setNewKeyword("")
     }
-  };
+  }
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter") {
-      e.preventDefault();
-      addKeywords();
+      e.preventDefault()
+      addKeywords()
     }
-  };
+  }
 
   const handleProofreadingClick = async () => {
     if (!blog || !blog.content) {
-      message.error("Blog content is required for proofreading.");
-      return;
+      message.error("Blog content is required for proofreading.")
+      return
     }
 
     if (isAnalyzingCompetitive) {
       message.error(
         "Please wait for Competitive Analysis to complete before starting Proofreading."
-      );
-      return;
+      )
+      return
     }
 
-    setIsAnalyzingProofreading(true);
+    setIsAnalyzingProofreading(true)
 
     try {
       const result = await dispatch(
         fetchProofreadingSuggestions({
           content: blog.content,
         })
-      ).unwrap();
-      setProofreadingResults(result);
+      ).unwrap()
+      setProofreadingResults(result)
     } catch (error) {
-      console.error("Error fetching proofreading suggestions:", error);
-      message.error("Failed to fetch proofreading suggestions.");
+      console.error("Error fetching proofreading suggestions:", error)
+      message.error("Failed to fetch proofreading suggestions.")
     } finally {
-      setIsAnalyzingProofreading(false);
+      setIsAnalyzingProofreading(false)
     }
-  };
+  }
 
   const handleApplyAllSuggestions = () => {
     if (proofreadingResults.length === 0) {
-      message.info("No suggestions available to apply.");
-      return;
+      message.info("No suggestions available to apply.")
+      return
     }
 
     proofreadingResults.forEach((suggestion) => {
-      handleReplace(suggestion.original, suggestion.change);
-    });
-    setProofreadingResults([]);
-    message.success("All proofreading suggestions applied successfully!");
-  };
+      handleReplace(suggestion.original, suggestion.change)
+    })
+    setProofreadingResults([])
+    message.success("All proofreading suggestions applied successfully!")
+  }
 
   const handleAnalyzing = () => {
     if (userPlan === "free" || userPlan === "basic") {
@@ -154,15 +168,15 @@ const TextEditorSidebar = ({
         confirmText: "Buy Now",
         cancelText: "Cancel",
         onConfirm: () => navigate("/upgrade"),
-      });
+      })
     } else {
       handlePopup({
         title: "Competitive Analysis",
         description: `Do you really want to run competitive analysis?\nIt will cost 10 credits.`,
         onConfirm: () => setShouldRunCompetitive(true),
-      });
+      })
     }
-  };
+  }
 
   const handleProofreadingBlog = () => {
     if (userPlan === "free" || userPlan === "basic") {
@@ -172,7 +186,7 @@ const TextEditorSidebar = ({
         confirmText: "Buy Now",
         cancelText: "Cancel",
         onConfirm: () => navigate("/upgrade"),
-      });
+      })
     } else {
       handlePopup({
         title: "AI Proofreading",
@@ -180,9 +194,9 @@ const TextEditorSidebar = ({
           "blog.proofread"
         )} credits.`,
         onConfirm: handleProofreadingClick,
-      });
+      })
     }
-  };
+  }
 
   const handleKeywordRewrite = () => {
     handlePopup({
@@ -190,8 +204,8 @@ const TextEditorSidebar = ({
       description:
         "Do you want to rewrite the entire content with added keywords? You can rewrite only 3 times.",
       onConfirm: handleSave,
-    });
-  };
+    })
+  }
 
   const ScoreDisplay = ({ score, label, icon: Icon }) => (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-all duration-300">
@@ -209,25 +223,18 @@ const TextEditorSidebar = ({
         <div
           className={`h-2.5 rounded-full transition-all duration-700 ${
             score >= 80
-              ? 'bg-gradient-to-r from-green-500 to-emerald-500'
+              ? "bg-gradient-to-r from-green-500 to-emerald-500"
               : score >= 60
-              ? 'bg-gradient-to-r from-yellow-500 to-orange-500'
-              : 'bg-gradient-to-r from-red-500 to-pink-500'
+              ? "bg-gradient-to-r from-yellow-500 to-orange-500"
+              : "bg-gradient-to-r from-red-500 to-pink-500"
           }`}
           style={{ width: `${score}%` }}
         />
       </div>
     </div>
-  );
+  )
 
-  const FeatureCard = ({ 
-    title, 
-    description, 
-    isPro, 
-    isLoading, 
-    onClick, 
-    buttonText 
-  }) => (
+  const FeatureCard = ({ title, description, isPro, isLoading, onClick, buttonText }) => (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-all duration-300 group">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
@@ -237,8 +244,8 @@ const TextEditorSidebar = ({
           </div>
         </div>
         {isPro && (
-          <span className="flex items-center gap-1 text-xs font-semibold text-white bg-gradient-to-r from-blue-500 to-purple-500 px-2 py-1 rounded-full">
-            Pro
+          <span className="flex items-center gap-1 text-xs font-semibold text-yellow-600 bg-yellow-50 px-2 py-2 rounded-full">
+            <Crown size={15} />
           </span>
         )}
       </div>
@@ -247,14 +254,14 @@ const TextEditorSidebar = ({
         disabled={isLoading}
         className={`w-full py-2 text-sm px-4 rounded-lg font-medium transition-all duration-200 ${
           isLoading
-            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-            : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg transform hover:-translate-y-0.5'
+            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+            : "bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg transform hover:-translate-y-0.5"
         }`}
       >
-        {isLoading ? 'Processing...' : buttonText}
+        {isLoading ? "Processing..." : buttonText}
       </button>
     </div>
-  );
+  )
 
   return (
     <motion.div
@@ -266,8 +273,8 @@ const TextEditorSidebar = ({
       {/* Header */}
       <div className="p-6 border-b border-gray-200 bg-white">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-100 rounded-lg">
-            <BarChart3 className="w-6 h-6 text-blue-600" />
+          <div className="p-2 bg-blue-100 rounded-lg mb-8">
+            <BarChart3 className="w-4 h-4 text-blue-600" />
           </div>
           <div>
             <h2 className="text-xl font-bold text-gray-900">Content Analysis</h2>
@@ -287,10 +294,22 @@ const TextEditorSidebar = ({
             {keywords.length > 0 && (
               <Tooltip title="Rewrite Keywords">
                 <button
-                  onClick={handleKeywordRewrite}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors text-sm font-medium"
+                  onClick={() => {
+                    if (userPlan === "free") {
+                      openUpgradePopup({ featureName: "Keyword Optimization", navigate })
+                    } else {
+                      handleKeywordRewrite()
+                    }
+                  }}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-opacity-80 transition-colors text-sm font-medium
+  ${
+    userPlan === "free"
+      ? "bg-yellow-50 text-yellow-600 hover:bg-yellow-100"
+      : "bg-green-50 text-green-600 hover:bg-green-100"
+  }
+`}
                 >
-                  <Sparkles className="w-4 h-4" />
+                  {userPlan === "free" ? <Crown size={15} /> : <Sparkles className="w-4 h-4" />}
                   Optimize
                 </button>
               </Tooltip>
@@ -348,11 +367,7 @@ const TextEditorSidebar = ({
           </h3>
           <div className="grid gap-4">
             <ScoreDisplay score={blog?.blogScore || 0} label="Content Score" icon={FileText} />
-            <ScoreDisplay 
-              score={seoScore || blog?.seoScore || 0} 
-              label="SEO Score" 
-              icon={Target} 
-            />
+            <ScoreDisplay score={seoScore || blog?.seoScore || 0} label="SEO Score" icon={Target} />
           </div>
         </div>
 
@@ -366,7 +381,7 @@ const TextEditorSidebar = ({
           <FeatureCard
             title="Competitive Analysis"
             description="Analyze against competitors"
-            isPro={['free', 'basic'].includes(userPlan?.toLowerCase?.())}
+            isPro={["free", "basic"].includes(userPlan?.toLowerCase?.())}
             isLoading={isAnalyzingCompetitive}
             onClick={handleAnalyzing}
             buttonText={isAnalyzingCompetitive ? "Analyzing..." : "Run Competitive Analysis"}
@@ -376,7 +391,7 @@ const TextEditorSidebar = ({
             <FeatureCard
               title="AI Proofreading"
               description="Improve grammar and style"
-              isPro={['free', 'basic'].includes(userPlan?.toLowerCase?.())}
+              isPro={["free", "basic"].includes(userPlan?.toLowerCase?.())}
               isLoading={isAnalyzingProofreading}
               onClick={handleProofreadingBlog}
               buttonText="Proofread Content"
@@ -444,12 +459,16 @@ const TextEditorSidebar = ({
                               <AlertCircle className="w-4 h-4 text-orange-500" />
                               <span className="text-sm font-medium text-gray-900">Original:</span>
                             </div>
-                            <p className="text-sm text-gray-600 bg-red-50 p-2 rounded">{suggestion.original}</p>
+                            <p className="text-sm text-gray-600 bg-red-50 p-2 rounded">
+                              {suggestion.original}
+                            </p>
                             <div className="flex items-center gap-2">
                               <CheckCircle className="w-4 h-4 text-green-500" />
                               <span className="text-sm font-medium text-gray-900">Suggested:</span>
                             </div>
-                            <p className="text-sm text-gray-600 bg-green-50 p-2 rounded">{suggestion.change}</p>
+                            <p className="text-sm text-gray-600 bg-green-50 p-2 rounded">
+                              {suggestion.change}
+                            </p>
                           </div>
                         </div>
                       ))}
@@ -473,8 +492,8 @@ const TextEditorSidebar = ({
             disabled={isPosting}
             className={`w-full py-4 px-6 rounded-lg font-semibold text-white transition-all duration-200 ${
               isPosting
-                ? 'bg-gray-400 cursor-not-allowed'
-                : 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 hover:shadow-lg transform hover:-translate-y-0.5'
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 hover:shadow-lg transform hover:-translate-y-0.5"
             }`}
           >
             {isPosting ? "Posting..." : posted?.success ? "Re-Post" : "Post"}
@@ -495,7 +514,7 @@ const TextEditorSidebar = ({
         )}
       </div>
     </motion.div>
-  );
-};
+  )
+}
 
-export default TextEditorSidebar;
+export default TextEditorSidebar

@@ -121,7 +121,7 @@ const LayoutWithSidebarAndHeader = () => {
       title: "Upgrade Required",
       description: (
         <>
-          <span>Content Agent is only available for Pro and Enterprise users.</span>
+          <span>Search Console is only available for Pro and Enterprise users.</span>
           <br />
           <span>Upgrade your plan to unlock this feature.</span>
         </>
@@ -137,8 +137,11 @@ const LayoutWithSidebarAndHeader = () => {
     })
   }
 
-  const handleContentAgentClick = (e, path) => {
-    const isPro = user?.plan === "pro" || user?.subscription?.plan === "pro"
+  const handleSearchConsoleClick = (e, path) => {
+    const allowedPlans = ["pro", "enterprise"]
+    const isPro =
+      allowedPlans.includes(user?.plan) || allowedPlans.includes(user?.subscription?.plan)
+
     if (!isPro) {
       e.preventDefault() // Prevent navigation to /jobs
       handleUpgradePopup(true) // Show popup with back navigation on cancel
@@ -193,16 +196,18 @@ const LayoutWithSidebarAndHeader = () => {
           {Menus.map((Menu, index) => {
             const isActive = location.pathname.startsWith(Menu.path)
             const Icon = Menu.icon
-            const isContentAgent = Menu.title === "Content Agent"
-            const isPro = user?.plan === "pro" || user?.subscription?.plan === "pro"
+            const isSearchConsole = Menu.title === "Search Console"
+            const allowedPlans = ["pro", "enterprise"]
+            const isPro =
+              allowedPlans.includes(user?.plan) || allowedPlans.includes(user?.subscription?.plan)
 
             return (
               <li key={index} className="flex items-center gap-2">
                 <NavLink
                   to={Menu.path}
                   onClick={(e) => {
-                    if (isContentAgent) {
-                      handleContentAgentClick(e, Menu.path)
+                    if (isSearchConsole) {
+                      handleSearchConsoleClick(e, Menu.path)
                     }
                   }}
                   className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors duration-200 text-white hover:bg-white/10 flex-1 ${
@@ -215,7 +220,7 @@ const LayoutWithSidebarAndHeader = () => {
                   />
                   <span className={`${!sidebarOpen ? "hidden" : "block"}`}>{Menu.title}</span>
                 </NavLink>
-                {isContentAgent && !isPro && sidebarOpen && (
+                {isSearchConsole && !isPro && sidebarOpen && (
                   <Tooltip title="Upgrade to Pro to access Content Agent">
                     <button
                       onClick={() => handleUpgradePopup(false)}

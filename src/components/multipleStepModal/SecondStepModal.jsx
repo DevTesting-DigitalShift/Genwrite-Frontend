@@ -2,18 +2,20 @@ import { useState, useEffect } from "react"
 import { fetchBrands } from "@store/slices/brandSlice"
 import { useDispatch, useSelector } from "react-redux"
 import { message } from "antd"
+import { openUpgradePopup } from "@utils/UpgardePopUp"
+import { Crown } from "lucide-react"
+import { useNavigate } from "react-router-dom"
 
 const SecondStepModal = ({ handleNext, handlePrevious, handleClose, data, setData }) => {
   const dispatch = useDispatch()
-  const { selectedKeywords } = useSelector((state) => state.analysis) // Get selected keywords from Redux
+  const { selectedKeywords } = useSelector((state) => state.analysis)
+  const { user } = useSelector((state) => state.auth)
+  const navigate = useNavigate()
+  const userPlan = user?.subscription?.plan || user?.plan
+
   const [formData, setFormData] = useState({
-    focusKeywords: data.focusKeywords || selectedKeywords?.focusKeywords || [],
-    keywords:
-      data.keywords ||
-      selectedKeywords?.allKeywords?.filter(
-        (kw) => !(selectedKeywords?.focusKeywords || []).includes(kw)
-      ) ||
-      [],
+    focusKeywords: selectedKeywords?.focusKeywords || data.focusKeywords || [],
+    keywords: selectedKeywords?.allKeywords || data.keywords || [],
     focusKeywordInput: "",
     keywordInput: "",
     isCheckedQuick: data.isCheckedQuick || false,
@@ -22,29 +24,17 @@ const SecondStepModal = ({ handleNext, handlePrevious, handleClose, data, setDat
   })
 
   const handleKeywordInputChange = (e, type) => {
-    if (type === "keywords") {
-      setFormData((prevState) => ({
-        ...prevState,
-        [`${type}Input`]: e.target.value,
-        keywordInput: e.target.value,
-      }))
-    } else {
-      setFormData((prevState) => ({
-        ...prevState,
-        [`${type}Input`]: e.target.value,
-        focusKeywordInput: e.target.value,
-      }))
-    }
+    setFormData((prevState) => ({
+      ...prevState,
+      [`${type}Input`]: e.target.value,
+    }))
   }
 
   const handleAddKeyword = (type) => {
     const inputValue = formData[`${type}Input`].trim()
     if (!inputValue) return
 
-    // Normalize existing keywords for duplicate check
     const existing = formData[type].map((k) => k.toLowerCase().trim())
-
-    // Get new keywords, remove duplicates (within themselves & existing)
     const seen = new Set()
     const newKeywords = inputValue
       .split(",")
@@ -56,7 +46,6 @@ const SecondStepModal = ({ handleNext, handlePrevious, handleClose, data, setDat
         return true
       })
 
-    // If focusKeywords, limit to 3
     if (type === "focusKeywords") {
       const total = formData[type].length + newKeywords.length
       if (total > 3) {
@@ -65,7 +54,6 @@ const SecondStepModal = ({ handleNext, handlePrevious, handleClose, data, setDat
       }
     }
 
-    // Update state
     setFormData((prev) => ({
       ...prev,
       [type]: [...prev[type], ...newKeywords],
@@ -97,19 +85,15 @@ const SecondStepModal = ({ handleNext, handlePrevious, handleClose, data, setDat
     }
   }, [formData.isCheckedBrand, dispatch])
 
-  // Update formData.keywords when selectedKeywords changes
+  // Sync formData with selectedKeywords from Redux
   useEffect(() => {
-    setFormData((prev) => {
-      const newFocus = selectedKeywords?.focusKeywords || []
-      const newAll = selectedKeywords?.allKeywords || []
-      const newKeywords = newAll.filter((kw) => !newFocus.includes(kw))
-
-      return {
-        ...prev,
-        focusKeywords: [...new Set([...prev.focusKeywords, ...newFocus])].slice(0, 3),
-        keywords: [...new Set([...prev.keywords, ...newKeywords])],
-      }
-    })
+    setFormData((prev) => ({
+      ...prev,
+      focusKeywords: [
+        ...new Set([...prev.focusKeywords, ...(selectedKeywords?.focusKeywords || [])]),
+      ].slice(0, 3),
+      keywords: [...new Set([...prev.keywords, ...(selectedKeywords?.allKeywords || [])])],
+    }))
   }, [selectedKeywords])
 
   return (
@@ -126,7 +110,7 @@ const SecondStepModal = ({ handleNext, handlePrevious, handleClose, data, setDat
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-gray-600">Step 2 of 3</span>
             </div>
-            <div className="h-1 w-full bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-1 w-full bg-gray-200 rounded-full overflow-hidden">
               <div className="h-full w-2/3 bg-[#1B6FC9] rounded-full" />
             </div>
           </div>
@@ -135,20 +119,64 @@ const SecondStepModal = ({ handleNext, handlePrevious, handleClose, data, setDat
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Select AI Model
               </label>
-              <select
-                value={formData.aiModel}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    aiModel: e.target.value,
-                  }))
-                }
-                className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="gemini">Gemini</option>
-                <option value="chatgpt">Chatgpt</option>
-              </select>
+
+              <div className="flex items-center gap-6">
+                {/* Gemini - Free for all */}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    id="gemini"
+                    name="aiModel"
+                    value="gemini"
+                    checked={formData.aiModel === "gemini"}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        aiModel: e.target.value,
+                      }))
+                    }
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-600 border-gray-300"
+                  />
+                  <label htmlFor="gemini" className="text-sm text-gray-700">
+                    Gemini
+                  </label>
+                </div>
+
+                {/* ChatGPT - Premium Only */}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    id="chatgpt"
+                    name="aiModel"
+                    value="chatgpt"
+                    checked={formData.aiModel === "chatgpt"}
+                    onChange={(e) => {
+                      if (userPlan !== "free") {
+                        setFormData((prev) => ({
+                          ...prev,
+                          aiModel: e.target.value,
+                        }))
+                      }
+                    }}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-600 border-gray-300"
+                  />
+                  <label
+                    htmlFor="chatgpt"
+                    onClick={(e) => {
+                      if (userPlan === "free") {
+                        e.preventDefault()
+                        openUpgradePopup({ featureName: "ChatGPT", navigate })
+                      }
+                    }}
+                    className="text-sm cursor-pointer flex items-center gap-1 text-gray-700"
+                  >
+                    ChatGPT
+                    {userPlan === "free" && <Crown className="w-4 h-4 text-yellow-500" />}
+                  </label>
+                </div>
+              </div>
             </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Focus Keywords</label>
               <div className="flex gap-2">
@@ -211,7 +239,7 @@ const SecondStepModal = ({ handleNext, handlePrevious, handleClose, data, setDat
                     {keyword}
                     <button
                       onClick={() => handleRemoveKeyword(index, "keywords")}
-                      className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
+                      className="ml-1 text-blue-400 hover:text-blue-600"
                     >
                       ×
                     </button>
@@ -233,7 +261,7 @@ const SecondStepModal = ({ handleNext, handlePrevious, handleClose, data, setDat
                   }
                   className="sr-only peer"
                 />
-                <div className="w-14 h-8 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 peer-checked:bg-[#1B6FC9] after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all" />
+                <div className="w-14 h-8 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate | x-6 peer-checked:bg-[#1B6FC9] after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all" />
               </label>
             </div>
           </div>

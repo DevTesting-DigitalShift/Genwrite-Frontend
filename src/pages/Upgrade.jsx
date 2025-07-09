@@ -151,7 +151,15 @@ const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
               <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
                 <Check className="w-3 h-3 text-green-600" />
               </div>
-              <span className="text-gray-700 text-sm font-medium">{feature}</span>
+              <span
+                className={`text-sm ${
+                  feature === "Everything in Basic, additionally:"
+                    ? "text-blue-600 font-bold"
+                    : "text-gray-700 font-medium"
+                }`}
+              >
+                {feature}
+              </span>
             </div>
           ))}
         </div>
@@ -353,7 +361,7 @@ const Upgrade = () => {
         annualCredits: 60000,
         description: "Advanced AI features with priority support for growing teams.",
         features: [
-          "Everything in Basic, plus:",
+          "Everything in Basic, additionally:",
           billingPeriod === "annual" ? "60,000 annual credits" : "5,000 monthly credits",
           "Competitor analysis",
           "Retry blog",
