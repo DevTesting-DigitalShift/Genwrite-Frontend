@@ -334,7 +334,7 @@ const Upgrade = () => {
         annualCredits: 18000,
         description: "Perfect for individuals getting started with AI content creation.",
         features: [
-          billingPeriod === "annual" ? "18,000 annual credits" : "1,500 monthly credits",
+          billingPeriod === "annual" ? "18,000 annual credits" : "1,000 monthly credits",
           "Blog generation: single, quick, multiple",
           "Keyword research",
           "Performance monitoring",

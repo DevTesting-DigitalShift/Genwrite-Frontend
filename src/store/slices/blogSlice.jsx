@@ -13,6 +13,7 @@ import {
   retryBlogById,
   proofreadBlogContent,
   getBlogStatsById,
+  getGeneratedTitles,
 } from "@api/blogApi"
 import { message } from "antd"
 
@@ -186,15 +187,15 @@ export const updateBlogById = createAsyncThunk(
   "blogs/updateBlogById",
   async (payload, { rejectWithValue }) => {
     try {
-      const { id, ...updatedData } = payload;
-      const updated = await updateBlog(id, updatedData);
-      const allBlogs = await getAllBlogs();
-      return { updated, allBlogs };
+      const { id, ...updatedData } = payload
+      const updated = await updateBlog(id, updatedData)
+      const allBlogs = await getAllBlogs()
+      return { updated, allBlogs }
     } catch (error) {
-      return rejectWithValue(error.message || "Failed to update blog");
+      return rejectWithValue(error.message || "Failed to update blog")
     }
   }
-);
+)
 
 export const fetchProofreadingSuggestions = createAsyncThunk(
   "blogs/fetchProofreadingSuggestions",
@@ -222,6 +223,24 @@ export const fetchBlogStats = createAsyncThunk(
   }
 )
 
+export const fetchGeneratedTitles = createAsyncThunk(
+  "blogs/fetchGeneratedTitles",
+  async ({ keywords, focusKeywords, topic, template }, { rejectWithValue }) => {
+    try {
+      const titles = await getGeneratedTitles({
+        keywords,
+        focusKeywords,
+        topic,
+        template,
+      })
+      return titles
+    } catch (error) {
+      message.error("Failed to generate blog titles.")
+      return rejectWithValue(error.response?.data?.message || error.message)
+    }
+  }
+)
+
 // ------------------------ Initial State ------------------------
 
 const initialState = {
@@ -232,6 +251,7 @@ const initialState = {
   error: null,
   blogs: [],
   blogStats: {},
+  generatedTitles: [],
 }
 
 // ------------------------ Slice ------------------------
@@ -352,6 +372,19 @@ const blogSlice = createSlice({
         state.blogStats[id] = stats
       })
       .addCase(fetchBlogStats.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload
+      })
+
+      .addCase(fetchGeneratedTitles.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(fetchGeneratedTitles.fulfilled, (state, action) => {
+        state.loading = false
+        state.generatedTitles = action.payload
+      })
+      .addCase(fetchGeneratedTitles.rejected, (state, action) => {
         state.loading = false
         state.error = action.payload
       })
