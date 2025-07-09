@@ -21,24 +21,26 @@ import { useNavigate, useSearchParams } from "react-router-dom"
 import axiosInstance from "@api/index"
 import Loading from "@components/Loading"
 import * as XLSX from "xlsx"
+import { fetchAllBlogs } from "@store/slices/blogSlice"
 
 const { Option } = Select
 const { Search: AntSearch } = Input
 
 const SearchConsole = () => {
   const [searchTerm, setSearchTerm] = useState("")
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" })
   const [filterCategory, setFilterCategory] = useState("all")
   const [filterStatus, setFilterStatus] = useState("all")
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [dateRange, setDateRange] = useState("30d")
+  const [selectedBlog, setSelectedBlog] = useState("all") // New state for selected blog
   const [blogData, setBlogData] = useState([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
   const [isConnecting, setIsConnecting] = useState(false)
   const dispatch = useDispatch()
   const { user } = useSelector((state) => state.auth)
+  const { blogs } = useSelector((state) => state.blog)
   const {
     verifiedSites,
     loading: sitesLoading,
@@ -46,6 +48,10 @@ const SearchConsole = () => {
   } = useSelector((state) => state.gsc)
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    dispatch(fetchAllBlogs())
+  }, [dispatch])
 
   // Calculate date range for API request
   const getDateRangeParams = () => {
@@ -176,15 +182,18 @@ const SearchConsole = () => {
           if (!siteUrl) {
             throw new Error(`Invalid site URL for site: ${JSON.stringify(site)}`)
           }
+          const params = {
+            siteUrl,
+            from,
+            to,
+            dimensions: ["page", "query"],
+          }
+          // Add blogUrl to params if a specific blog is selected
+          if (selectedBlog !== "all") {
+            params.blogUrl = selectedBlog
+          }
           const response = await axiosInstance.get("/gsc/sites-data", {
-            params: {
-              siteUrl,
-              // blogUrl:
-              //   "https://thedigitalshift.co/how-to-master-app-store-optimization-aso-for-explosive-growth-2/",
-              from,
-              to,
-              dimensions: ["page", "query"],
-            },
+            params,
             timeout: 30000,
           })
 
@@ -212,11 +221,6 @@ const SearchConsole = () => {
       const allBlogData = (await Promise.allSettled(blogDataPromises))
         .filter((result) => result.status === "fulfilled")
         .flatMap((result) => result.value)
-
-      // if (!allBlogData.length) {
-      //   setError("No valid analytics data retrieved for any sites. Please try reconnecting GSC.")
-      //   return
-      // }
 
       setBlogData(allBlogData)
     } catch (err) {
@@ -256,55 +260,37 @@ const SearchConsole = () => {
       return
     }
     try {
-      // Define headers
       const headers = [
-        "Blog Name",
-        "URL",
+        "Keywords",
         "Clicks",
         "Impressions",
         "CTR (%)",
         "Avg Position",
-        "Keywords",
-        "Category",
-        "Status",
+        "URL",
         "Publish Date",
       ]
 
-      // Map blogData to rows
-      const rows = blogData.map((blog) => {
-        console.log({ Keywords: blog.keywords })
-        return {
-          "Blog Name": blog.blogName,
-          URL: blog.url,
-          Clicks: blog.clicks,
-          Impressions: blog.impressions,
-          "CTR (%)": blog.ctr,
-          "Avg Position": blog.position,
-          Keywords:
-            Array.isArray(blog.keywords) && blog.keywords.length > 1
-              ? blog.keywords.slice(1).join(", ")
-              : blog.keywords.join(", "),
-          Category: blog.category,
-          Status: blog.status,
-          "Publish Date": blog.publishDate,
-        }
-      })
-      console.log({ rows })
+      const rows = blogData.map((blog) => ({
+        Keywords:
+          Array.isArray(blog.keywords) && blog.keywords.length > 1
+            ? blog.keywords.slice(1).join(", ")
+            : blog.keywords.join(", "),
+        Clicks: blog.clicks,
+        Impressions: blog.impressions,
+        "CTR (%)": blog.ctr,
+        "Avg Position": blog.position,
+        URL: blog.url,
+        "Publish Date": blog.publishDate,
+      }))
 
-      // Create worksheet
       const worksheet = XLSX.utils.json_to_sheet(rows, { header: headers })
-
-      // Create workbook and add the worksheet
       const workbook = XLSX.utils.book_new()
       XLSX.utils.book_append_sheet(workbook, worksheet, "Search Console Data")
-
-      // Generate Excel file and trigger download
       const fileName = `search_console_data_${new Date().toISOString().split("T")[0]}.xlsx`
       XLSX.writeFile(workbook, fileName)
-
       message.success("Data exported successfully")
     } catch (err) {
-      console.error("Export error:", err)
+      console.error("Error exporting data:", err)
       message.error("Failed to export data. Please try again.")
     }
   }
@@ -320,9 +306,9 @@ const SearchConsole = () => {
     } else if (!sitesLoading && !verifiedSites.length) {
       setError("No verified sites found. Please connect your Google Search Console account.")
     }
-  }, [verifiedSites, dateRange, sitesLoading])
+  }, [verifiedSites, dateRange, selectedBlog, sitesLoading]) // Added selectedBlog to dependencies
 
-  // Calculate totals for summary cards (based on unfiltered blogData)
+  // Calculate totals for summary cards
   const totals = useMemo(() => {
     return blogData.reduce(
       (acc, blog) => ({
@@ -361,6 +347,17 @@ const SearchConsole = () => {
     ...Array.from(new Set(blogData.map((blog) => blog.category || "Uncategorized"))),
   ]
   const statuses = ["all", "published", "draft", "archived"]
+
+  // Get unique blog URLs for selection
+  const blogUrls = useMemo(() => {
+    const urls = new Set(
+      blogs.filter((blog) => blog?.taskStatus?.wordpress === "done").map((blog) => blog.title)
+    )
+    return ["all", ...urls]
+  }, [blogs])
+  {
+    console.log({ blogUrls })
+  }
 
   // Ant Design Table Columns
   const columns = [
@@ -635,38 +632,23 @@ const SearchConsole = () => {
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3">
             <div className="flex flex-col lg:flex-row gap-4">
               <AntSearch
-                placeholder="Search with keywords..."
+                placeholder="Search blogs or keywords..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 prefix={<Search className="w-5 h-5 text-gray-400 mr-2" />}
-                className="flex-1"
               />
-              <div className="flex gap-3">
-                <Select
-                  value={filterCategory}
-                  onChange={(value) => setFilterCategory(value)}
-                  className="w-40"
-                >
-                  {categories.map((category) => (
-                    <Option key={category} value={category}>
-                      {category === "all" ? "All Categories" : category}
-                    </Option>
-                  ))}
-                </Select>
-                <Select
-                  value={filterStatus}
-                  onChange={(value) => setFilterStatus(value)}
-                  className="w-40"
-                >
-                  {statuses.map((status) => (
-                    <Option key={status} value={status}>
-                      {status === "all"
-                        ? "All Status"
-                        : status.charAt(0).toUpperCase() + status.slice(1)}
-                    </Option>
-                  ))}
-                </Select>
-              </div>
+              <Select
+                value={selectedBlog}
+                onChange={(value) => setSelectedBlog(value)}
+                className="w-2/3"
+                placeholder="Select Blog"
+              >
+                {blogUrls.map((url) => (
+                  <Option key={url} value={url}>
+                    {url === "all" ? "All Blogs" : url}
+                  </Option>
+                ))}
+              </Select>
             </div>
           </div>
         )}
@@ -685,7 +667,7 @@ const SearchConsole = () => {
                 setCurrentPage(page)
                 setItemsPerPage(pageSize)
               },
-              pageSizeOptions: [5, 10, 25, 50],
+              pageSizeOptions: [10, 20, 50, 100],
               showSizeChanger: true,
               showTotal: (total) => `Total ${total} results`,
             }}

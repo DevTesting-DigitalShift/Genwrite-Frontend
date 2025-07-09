@@ -333,7 +333,6 @@ const MyProjects = () => {
       </div>
 
       {/* Actions: Search, Filters, and New Blog */}
-      {currentItems.length !== 0 && (
         <div className="flex items-center gap-3 justify-end mb-5">
           {/* Search Popover */}
           <Popover
@@ -417,7 +416,7 @@ const MyProjects = () => {
             trigger="click"
             placement="bottomRight"
             content={
-              <div className="min-w-[200px] rounded-lg space-y-1 p-2 bg-white shadow-lg border border-gray-200">
+              <div className="min-w-[200px] rounded-lg space-y-1">
                 {menuOptions.map(({ label, icon, onClick }) => (
                   <Tooltip title={label} placement="left" key={label}>
                     <button
@@ -451,7 +450,7 @@ const MyProjects = () => {
             trigger="click"
             placement="bottomRight"
             content={
-              <div className="min-w-[200px] rounded-lg space-y-1 p-2 bg-white shadow-lg border border-gray-200">
+              <div className="min-w-[200px] rounded-lg space-y-1">
                 {funnelMenuOptions.map(({ label, icon, onClick }) => (
                   <Tooltip title={label} placement="left" key={label}>
                     <button
@@ -490,7 +489,6 @@ const MyProjects = () => {
             </Tooltip>
           </motion.div>
         </div>
-      )}
 
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">

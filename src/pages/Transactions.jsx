@@ -29,7 +29,9 @@ const Transactions = () => {
       dataIndex: "type",
       key: "type",
       render: (type) => (
-        <Tag color={type === "subscription" ? "blue" : "gold"}>{type.toUpperCase()}</Tag>
+        <Tag color={type === "subscription" ? "blue" : "gold"}>
+          {type.replace(/_/g, " ").toUpperCase()}
+        </Tag>
       ),
     },
     {
