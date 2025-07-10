@@ -1,110 +1,134 @@
-import { useState, useEffect } from "react";
-import { fetchBrands } from "@store/slices/brandSlice";
-import { useDispatch, useSelector } from "react-redux";
-import { message, Modal } from "antd";
-import { openUpgradePopup } from "@utils/UpgardePopUp";
-import { Crown, Plus } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react"
+import { useDispatch, useSelector } from "react-redux"
+import { fetchBrands } from "@store/slices/brandSlice"
+import { message, Modal } from "antd"
+import { openUpgradePopup } from "@utils/UpgardePopUp"
+import { Crown, Plus, X } from "lucide-react"
+import { useNavigate } from "react-router-dom"
 
-// Popular WordPress categories (limited to 15 for relevance)
-const POPULAR_CATEGORIES = [
-  "Blogging",
-  "Technology",
-  "Lifestyle",
-  "Travel",
-  "Food & Drink",
-  "Health & Wellness",
-  "Fashion",
-  "Business",
-  "Education",
-  "Entertainment",
-  "Photography",
-  "Fitness",
-  "Marketing",
-  "Finance",
-  "DIY & Crafts",
-];
-
-const SecondStepModal = ({ handleNext, handlePrevious, handleClose, data, setData }) => {
-  const dispatch = useDispatch();
-  const { user } = useSelector((state) => state.auth);
-  const navigate = useNavigate();
-  const userPlan = user?.subscription?.plan || user?.plan;
+const SecondStepModal = ({ handlePrevious, handleClose, data, setData, handleSubmit }) => {
+  const dispatch = useDispatch()
+  const { user } = useSelector((state) => state.auth)
+  const { brands, loading: loadingBrands, error: brandError } = useSelector((state) => state.brand)
+  const navigate = useNavigate()
+  const userPlan = user?.subscription?.plan || user?.plan
 
   const [formData, setFormData] = useState({
     isCheckedQuick: data.isCheckedQuick || false,
     isCheckedBrand: data.isCheckedBrand || false,
     aiModel: data.aiModel || "gemini",
-    categories: data.categories || [],
-  });
-
-  const handleNextStep = () => {
-    setData((prev) => ({ ...prev, ...formData }));
-    handleNext();
-  };
+    brandId: data.brandId || null,
+    isFAQEnabled: data.isFAQEnabled || false,
+    imageSource: data.imageSource || "unsplash",
+    isCompetitiveResearchEnabled: data.isCompetitiveResearchEnabled || false,
+    isCheckedGeneratedImages: data.isCheckedGeneratedImages || false,
+    referenceLinks: data.referenceLinks || [],
+  })
+  const [localFormData, setLocalFormData] = useState({
+    newLink: "",
+  })
 
   useEffect(() => {
     if (formData.isCheckedBrand) {
-      dispatch(fetchBrands());
+      dispatch(fetchBrands())
     }
-  }, [formData.isCheckedBrand, dispatch]);
+  }, [formData.isCheckedBrand, dispatch])
 
-  const handleCategoryAdd = (category) => {
-    if (!formData.categories.includes(category)) {
-      setFormData((prev) => ({
-        ...prev,
-        categories: [...prev.categories, category],
-      }));
+  const handleAddLink = () => {
+    const input = localFormData.newLink.trim()
+    if (!input) return
+
+    const existing = formData.referenceLinks.map((link) => link.toLowerCase().trim())
+
+    const isValidURL = (url) => {
+      try {
+        new URL(url)
+        return true
+      } catch {
+        return false
+      }
     }
-  };
 
-  const handleCategoryRemove = (category) => {
+    const seen = new Set()
+    const newLinks = input
+      .split(",")
+      .map((link) => link.trim())
+      .filter((link) => {
+        const lower = link.toLowerCase()
+        return !seen.has(lower) && isValidURL(link) && !existing.includes(lower) && seen.add(lower)
+      })
+
+    if (newLinks.length === 0) {
+      message.error("Please enter valid, non-duplicate URLs separated by commas.")
+      return
+    }
+
     setFormData((prev) => ({
       ...prev,
-      categories: prev.categories.filter((cat) => cat !== category),
-    }));
-  };
+      referenceLinks: [...prev.referenceLinks, ...newLinks],
+    }))
+    setLocalFormData((prev) => ({ ...prev, newLink: "" }))
+    message.success("Reference link added!")
+  }
+
+  const handleRemoveLink = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      referenceLinks: prev.referenceLinks.filter((_, i) => i !== index),
+    }))
+  }
+
+  const handleNextStep = () => {
+    const updatedData = {
+      ...data,
+      ...formData, // Include all formData fields
+    }
+    handleSubmit(updatedData)
+  }
+
+  const handleImageSourceChange = (source) => {
+    setData((prev) => ({
+      ...prev,
+      isCheckedGeneratedImages: true,
+      isUnsplashActive: source === "unsplash",
+    }))
+    setErrors((prev) => ({ ...prev, imageSource: false }))
+  }
 
   return (
     <Modal
-      title="Step 2: Let's make it Compelling"
+      title="Final Step: Content Enhancements"
       open={true}
       onCancel={handleClose}
       footer={[
         <button
           key="previous"
           onClick={handlePrevious}
-          className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+          className="px-6 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
         >
           Previous
         </button>,
         <button
           key="next"
           onClick={handleNextStep}
-          className="px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 ml-3"
+          className="px-6 py-2 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white rounded-md ml-3"
         >
-          Next
+          Submit
         </button>,
       ]}
       width={800}
       centered
+      transitionName=""
+      maskTransitionName=""
     >
-      <div className="p-6">
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-600">Step 2 of 3</span>
-          </div>
-          <div className="h-1 w-full bg-gray-200 rounded-full overflow-hidden">
-            <div className="h-full w-2/3 bg-[#1B6FC9] rounded-full" />
-          </div>
-        </div>
+      <div className="p-4">
         <div className="space-y-6">
+          {/* AI Model Section */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Select AI Model
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Select AI Model <span className="text-red-500">*</span>
             </label>
-            <div className="flex items-center gap-6">
-              {/* Gemini - Free for all */}
+            <div className="flex flex-wrap gap-6">
               <div className="flex items-center gap-2">
                 <input
                   type="radio"
@@ -124,7 +148,6 @@ const SecondStepModal = ({ handleNext, handlePrevious, handleClose, data, setDat
                   Gemini
                 </label>
               </div>
-              {/* ChatGPT - Premium Only */}
               <div className="flex items-center gap-2">
                 <input
                   type="radio"
@@ -137,7 +160,7 @@ const SecondStepModal = ({ handleNext, handlePrevious, handleClose, data, setDat
                       setFormData((prev) => ({
                         ...prev,
                         aiModel: e.target.value,
-                      }));
+                      }))
                     }
                   }}
                   className="h-4 w-4 text-blue-600 focus:ring-blue-600 border-gray-300"
@@ -146,8 +169,8 @@ const SecondStepModal = ({ handleNext, handlePrevious, handleClose, data, setDat
                   htmlFor="chatgpt"
                   onClick={(e) => {
                     if (userPlan === "free") {
-                      e.preventDefault();
-                      openUpgradePopup({ featureName: "ChatGPT", navigate });
+                      e.preventDefault()
+                      openUpgradePopup({ featureName: "ChatGPT", navigate })
                     }
                   }}
                   className="text-sm cursor-pointer flex items-center gap-1 text-gray-700"
@@ -156,56 +179,95 @@ const SecondStepModal = ({ handleNext, handlePrevious, handleClose, data, setDat
                   {userPlan === "free" && <Crown className="w-4 h-4 text-yellow-500" />}
                 </label>
               </div>
-            </div>
-          </div>
-          {/* --- Category Selection Section --- */}
-          <div>
-            <label className="block text-sm font-medium mb-2">Select Categories</label>
-            {/* Selected Categories Chips */}
-            {formData.categories.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-3">
-                {formData.categories.map((category) => (
-                  <div
-                    key={category}
-                    className="flex items-center gap-2 px-3 py-1 bg-[#1B6FC9] text-white rounded-full text-sm"
-                  >
-                    {category}
-                    <button
-                      onClick={() => handleCategoryRemove(category)}
-                      className="text-white hover:text-gray-200"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-            {/* Category Chips Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-y-auto p-2 rounded-lg border border-gray-200 bg-gray-50">
-              {POPULAR_CATEGORIES.map((category) => (
-                <div
-                  key={category}
-                  className={`flex items-center justify-between p-3 rounded-full bg-white border border-gray-200 text-sm font-medium cursor-pointer transition-all duration-200 ${
-                    formData.categories.includes(category)
-                      ? "opacity-50 cursor-not-allowed"
-                      : "hover:bg-indigo-50 hover:border-indigo-300"
-                  }`}
+              <div className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  id="claude"
+                  name="aiModel"
+                  value="claude"
+                  checked={formData.aiModel === "claude"}
+                  onChange={(e) => {
+                    if (userPlan !== "free" && userPlan !== "basic") {
+                      setFormData((prev) => ({
+                        ...prev,
+                        aiModel: e.target.value,
+                      }))
+                    }
+                  }}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-600 border-gray-300"
+                />
+                <label
+                  htmlFor="claude"
+                  onClick={(e) => {
+                    if (userPlan === "free" || userPlan === "basic") {
+                      e.preventDefault()
+                      openUpgradePopup({ featureName: "Claude", navigate })
+                    }
+                  }}
+                  className="text-sm cursor-pointer flex items-center gap-1 text-gray-700"
                 >
-                  <span>{category}</span>
-                  {!formData.categories.includes(category) && (
-                    <button
-                      onClick={() => handleCategoryAdd(category)}
-                      className="text-[#1B6FC9] hover:text-[#1B6FC9]/80"
-                    >
-                      <Plus size={16} />
-                    </button>
+                  Claude
+                  {(userPlan === "free" || userPlan === "basic") && (
+                    <Crown className="w-4 h-4 text-yellow-500" />
                   )}
-                </div>
-              ))}
+                </label>
+              </div>
             </div>
           </div>
+
+          {/* Image Source */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Image Source <span className="text-red-500">*</span>
+            </label>
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  id="unsplash"
+                  name="imageSource"
+                  checked={data?.isUnsplashActive}
+                  onChange={() => handleImageSourceChange("unsplash")}
+                  className="h-4 w-4 text-[#1B6FC9] focus:ring-[#1B6FC9] border-gray-300"
+                />
+                <label htmlFor="unsplash" className="text-sm text-gray-700 whitespace-nowrap">
+                  Stock Images
+                </label>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  id="ai-generated"
+                  name="imageSource"
+                  checked={!data?.isUnsplashActive}
+                  onChange={() => {
+                    if (userPlan !== "free") {
+                      handleImageSourceChange("ai")
+                    }
+                  }}
+                  className="h-4 w-4 text-[#1B6FC9] focus:ring-[#1B6FC9] border-gray-300"
+                />
+                <label
+                  htmlFor="ai-generated"
+                  onClick={(e) => {
+                    if (userPlan === "free") {
+                      e.preventDefault()
+                      openUpgradePopup({ featureName: "AI-Generated Images", navigate })
+                    }
+                  }}
+                  className="text-sm cursor-pointer flex items-center gap-1 text-gray-700"
+                >
+                  AI-Generated Images
+                  {userPlan === "free" && <Crown className="w-4 h-4 text-yellow-500" />}
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Summary Toggle */}
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Add a Quick Summary</span>
+            <span className="text-sm font-medium text-gray-700">Add a Quick Summary</span>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
@@ -217,19 +279,182 @@ const SecondStepModal = ({ handleNext, handlePrevious, handleClose, data, setDat
                   }))
                 }
                 className="sr-only peer"
+                aria-checked={formData.isCheckedQuick}
               />
-              <div
-                className="w-14 h-8 bg-gray-200 peer-focus:outline-none rounded-full relative 
-                peer peer-checked:after:translate-x-6 peer-checked:bg-[#1B6FC9] 
-                after:content-[''] after:absolute after:top-[4px] after:left-[4px] 
-                after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all"
-              />
+              <div className="w-12 h-6 bg-gray-300 rounded-full peer peer-checked:after:translate-x-6 peer-checked:bg-[#1B6FC9] after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-transform duration-300" />
             </label>
+          </div>
+
+          {/* Brand Voice Section */}
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-gray-700">Write with Brand Voice</span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.isCheckedBrand}
+                  onChange={() =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      isCheckedBrand: !prev.isCheckedBrand,
+                      brandId: !prev.isCheckedBrand ? prev.brandId : null,
+                    }))
+                  }
+                  className="sr-only peer"
+                  aria-checked={formData.isCheckedBrand}
+                />
+                <div className="w-12 h-6 bg-gray-300 rounded-full peer peer-checked:after:translate-x-6 peer-checked:bg-[#1B6FC9] after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-transform duration-300" />
+              </label>
+            </div>
+            {formData.isCheckedBrand && (
+              <div className="mt-3 p-4 rounded-md border border-gray-200 bg-gray-50">
+                {loadingBrands ? (
+                  <div className="text-gray-500 text-sm">Loading brand voices...</div>
+                ) : brandError ? (
+                  <div className="text-red-500 text-sm font-medium">{brandError}</div>
+                ) : brands?.length > 0 ? (
+                  <div className="max-h-48 overflow-y-auto pr-1">
+                    <div className="grid gap-3">
+                      {brands.map((voice) => (
+                        <label
+                          key={voice._id}
+                          className={`flex items-start gap-2 p-3 rounded-md cursor-pointer ${
+                            formData.brandId === voice._id
+                              ? "bg-blue-100 border-blue-300"
+                              : "bg-white border border-gray-200"
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="selectedBrandVoice"
+                            value={voice._id}
+                            checked={formData.brandId === voice._id}
+                            onChange={() =>
+                              setFormData((prev) => ({
+                                ...prev,
+                                brandId: voice._id,
+                              }))
+                            }
+                            className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-600"
+                          />
+                          <div className="flex-1">
+                            <div className="font-medium text-gray-700">{voice.nameOfVoice}</div>
+                            <p className="text-sm text-gray-600 mt-1">{voice.describeBrand}</p>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-gray-500 text-sm italic">
+                    No brand voices available. Create one to get started.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* FAQ Toggle */}
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-gray-700">Add FAQ</span>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.isFAQEnabled}
+                onChange={() =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    isFAQEnabled: !prev.isFAQEnabled,
+                  }))
+                }
+                className="sr-only peer"
+                aria-checked={formData.isFAQEnabled}
+              />
+              <div className="w-12 h-6 bg-gray-300 rounded-full peer peer-checked:after:translate-x-6 peer-checked:bg-[#1B6FC9] after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-transform duration-300" />
+            </label>
+          </div>
+
+          {/* Competitive Research Toggle */}
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-gray-700">Add Competitive Research</span>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.isCompetitiveResearchEnabled}
+                onChange={() =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    isCompetitiveResearchEnabled: !prev.isCompetitiveResearchEnabled,
+                  }))
+                }
+                className="sr-only peer"
+                aria-checked={formData.isCompetitiveResearchEnabled}
+              />
+              <div className="w-12 h-6 bg-gray-300 rounded-full peer peer-checked:after:translate-x-6 peer-checked:bg-[#1B6FC9] after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-transform duration-300" />
+            </label>
+          </div>
+
+          {/* Reference Links Section */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Add Reference Links (Helps make blog more compelling)
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600"
+                placeholder="https://example.com"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault()
+                    handleAddLink()
+                  }
+                }}
+                value={localFormData.newLink}
+                onChange={(e) =>
+                  setLocalFormData((prev) => ({
+                    ...prev,
+                    newLink: e.target.value,
+                  }))
+                }
+              />
+              <button
+                onClick={handleAddLink}
+                className="px-3 py-2 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white rounded-md"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+            {formData.referenceLinks.length > 0 && (
+              <div className="mt-2 space-y-2">
+                {formData.referenceLinks.map((link, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between gap-2 p-2 bg-gray-50 rounded-md"
+                  >
+                    <a
+                      href={link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-blue-600 truncate"
+                    >
+                      {link}
+                    </a>
+                    <button
+                      onClick={() => handleRemoveLink(index)}
+                      className="text-gray-500 hover:text-red-500"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
     </Modal>
-  );
-};
+  )
+}
 
-export default SecondStepModal;
+export default SecondStepModal

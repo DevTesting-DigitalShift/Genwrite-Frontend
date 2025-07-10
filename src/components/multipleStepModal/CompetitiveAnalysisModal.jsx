@@ -152,7 +152,6 @@ const CompetitiveAnalysisModal = ({ closeFnc }) => {
 
           // Store in variable
           const analysisData = result
-          console.log("Analysis data:", analysisData)
 
           setAnalysisResults(analysisData)
         } catch (err) {

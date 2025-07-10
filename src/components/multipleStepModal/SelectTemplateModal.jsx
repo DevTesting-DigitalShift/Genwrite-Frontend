@@ -1,9 +1,9 @@
-import React, { memo, useState } from "react";
-import Carousel from "./Carousel";
-import { message } from "antd";
+import React, { memo, useState } from "react"
+import { Modal, Button, message } from "antd"
+import Carousel from "./Carousel"
 
 const SelectTemplateModal = ({ handleNext, handleClose, data, setData }) => {
-  const [selectedPackage, setSelectedPackage] = useState(null);
+  const [selectedPackage, setSelectedPackage] = useState(null)
   const [formData, setFormData] = useState({
     userDefinedLength: 0,
     tone: "",
@@ -18,7 +18,7 @@ const SelectTemplateModal = ({ handleNext, handleClose, data, setData }) => {
     keywords: [],
     focusKeywordInput: "",
     keywordInput: "",
-  });
+  })
 
   const packages = [
     {
@@ -65,56 +65,56 @@ const SelectTemplateModal = ({ handleNext, handleClose, data, setData }) => {
       name: "Interview",
       description: "Engaging conversations with industry experts.",
     },
-  ];
-
-  // const handlePackageSelect = (index) => {
-  //   setSelectedPackage(index);
-  //   setData({ ...data, template: packages[index] });
-  // };
+  ]
 
   const handlePackageSelect = (index) => {
-    setSelectedPackage(index);
-    setData({ ...data, template: packages[index] });
+    setSelectedPackage(index)
+    setData({ ...data, template: packages[index] })
     setFormData({
       ...formData,
-      template: [packages[index].name]
-    });
-  };
+      template: [packages[index].name],
+    })
+  }
 
   const handleNextClick = () => {
     if (selectedPackage !== null) {
-      const selectedTemplate = packages[selectedPackage];
-      const updatedData = { ...data, selectedTemplate };
-      setData(updatedData);
-      handleNext();
+      const selectedTemplate = packages[selectedPackage]
+      const updatedData = { ...data, selectedTemplate }
+      setData(updatedData)
+      handleNext()
     } else {
-      message.error("Please select a template before proceeding.");
+      message.error("Please select a template before proceeding.")
     }
-  };
+  }
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-      <div className=" w-[800px] bg-white rounded-lg shadow-xl">
-        <div className="flex items-center relative justify-between p-6">
-          <div className="flex items-center gap-2 ">
-            <h2 className="text-lg font-semibold">Select Template</h2>
-            <button
-              onClick={handleClose}
-              className="ml-4 text-4xl absolute right-10 top-5 text-gray-400 hover:text-gray-600"
-            >
-              ×
-            </button>
-          </div>
-        </div>
-        <div className="p-6">
+    <Modal
+      title="Step 1: Select Template"
+      open={true}
+      onCancel={handleClose}
+      footer={[
+        <button
+          key="next"
+          onClick={handleNextClick}
+          className="px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 ml-3"
+        >
+          Next
+        </button>,
+      ]}
+      centered
+      width={800}
+      // bodyStyle={{ padding: "24px" }}
+      transitionName=""
+      maskTransitionName=""
+    >
+      <div>
+        <div className="p-3">
           <Carousel>
             {packages.map((pkg, index) => (
               <div
                 key={index}
                 className={`cursor-pointer transition-all duration-200 ${
-                  formData.template.includes(pkg.name)
-                    ? "border-gray-300 border-2 rounded-lg"
-                    : ""
+                  formData.template.includes(pkg.name) ? "border-gray-300 border-2 rounded-lg" : ""
                 }`}
                 onClick={() => handlePackageSelect(index)}
               >
@@ -126,32 +126,18 @@ const SelectTemplateModal = ({ handleNext, handleClose, data, setData }) => {
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <div
-                    className="p-2 mt-2"
-                  >
-                    <h3 className="font-medium text-gray-900 mb-1">
-                      {pkg.name}
-                    </h3>
-                    <p className="text-sm text-gray-500 line-clamp-2">
-                      {pkg.description}
-                    </p>
+                  <div className="p-2 mt-2">
+                    <h3 className="font-medium text-gray-900 mb-1">{pkg.name}</h3>
+                    <p className="text-sm text-gray-500 line-clamp-2">{pkg.description}</p>
                   </div>
                 </div>
               </div>
             ))}
           </Carousel>
         </div>
-        <div className="flex justify-end p-6 border-t">
-          <button
-            onClick={handleNextClick}
-            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors duration-300"
-          >
-            Next
-          </button>
-        </div>
       </div>
-    </div>
-  );
-};
+    </Modal>
+  )
+}
 
-export default memo(SelectTemplateModal);
+export default memo(SelectTemplateModal)

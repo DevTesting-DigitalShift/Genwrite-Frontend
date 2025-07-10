@@ -1,8 +1,6 @@
 import { memo, useEffect, useState } from "react"
-import { useDispatch, useSelector } from "react-redux"
-import { useNavigate } from "react-router-dom"
-import { openUpgradePopup } from "@utils/UpgardePopUp"
-import { Crown, Plus, Sparkles } from "lucide-react"
+import { useDispatch } from "react-redux"
+import { Plus, Sparkles } from "lucide-react"
 import { message, Modal, Select, Spin } from "antd"
 import { fetchGeneratedTitles } from "@store/slices/blogSlice"
 
@@ -10,21 +8,18 @@ const { Option } = Select
 
 const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData }) => {
   const [topic, setTopic] = useState(data?.topic || "")
-  const { user } = useSelector((state) => state.auth)
   const dispatch = useDispatch()
-  const navigate = useNavigate()
-  const userPlan = user?.subscription?.plan || user?.plan
   const [errors, setErrors] = useState({
     title: false,
     topic: false,
     tone: false,
-    imageSource: false,
+    focusKeyword: false,
+    keyword: false,
   })
+
   const [formData, setFormData] = useState({
     focusKeywords: data.focusKeywords || [],
     keywords: data.keywords || [],
-    focusKeywordInput: (data.focusKeywords || []).join(", "),
-    keywordInput: (data.keywords || []).join(", "),
   })
   const [generatedTitles, setGeneratedTitles] = useState([])
   const [loadingTitles, setLoadingTitles] = useState(false)
@@ -38,7 +33,10 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
 
   const handleAddKeyword = (type) => {
     const inputValue = formData[`${type}Input`].trim()
+    const errorKey = type === "focusKeywords" ? "focusKeyword" : "keyword"
+
     if (!inputValue) {
+      setErrors((prev) => ({ ...prev, [errorKey]: true }))
       message.error("Please enter a keyword.")
       return
     }
@@ -56,6 +54,7 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
       })
 
     if (newKeywords.length === 0) {
+      setErrors((prev) => ({ ...prev, [errorKey]: true }))
       message.error("Please enter valid, non-duplicate keywords separated by commas.")
       return
     }
@@ -63,6 +62,7 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
     if (type === "focusKeywords") {
       const total = formData[type].length + newKeywords.length
       if (total > 3) {
+        setErrors((prev) => ({ ...prev, [errorKey]: true }))
         message.error("You can only add up to 3 focus keywords.")
         return
       }
@@ -73,6 +73,9 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
       [type]: [...prev[type], ...newKeywords],
       [`${type}Input`]: "",
     }))
+
+    // ✅ Clear the specific error once keywords are added successfully
+    setErrors((prev) => ({ ...prev, [errorKey]: false }))
   }
 
   const handleRemoveKeyword = (index, type) => {
@@ -92,18 +95,10 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
     }
   }
 
-  const handleImageSourceChange = (source) => {
-    setData((prev) => ({
-      ...prev,
-      isCheckedGeneratedImages: true,
-      isUnsplashActive: source === "unsplash",
-    }))
-    setErrors((prev) => ({ ...prev, imageSource: false }))
-  }
-
   const handleToneChange = (value) => {
     setData((prev) => ({ ...prev, tone: value }))
     setErrors((prev) => ({ ...prev, tone: false }))
+    return
   }
 
   const handleGenerateTitles = async () => {
@@ -129,17 +124,13 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
     }
   }
 
-  const handleTitleSelect = (value) => {
-    setData((prev) => ({ ...prev, title: value }))
-    setErrors((prev) => ({ ...prev, title: false }))
-  }
-
   const handleNextClick = () => {
     const newErrors = {
       title: !data?.title?.trim(),
       topic: !topic?.trim(),
       tone: !data?.tone,
-      imageSource: !data?.isCheckedGeneratedImages,
+      focusKeyword: formData.focusKeywords.length === 0,
+      keyword: formData.keywords.length === 0,
     }
 
     setErrors(newErrors)
@@ -171,7 +162,7 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
 
   return (
     <Modal
-      title="Step 1: Let's get started"
+      title="Step 2: Crucial Details"
       open={true}
       onCancel={handleClose}
       footer={[
@@ -193,17 +184,10 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
       width={800}
       centered
       bodyStyle={{ maxHeight: "80vh", overflowY: "auto" }}
+      transitionName=""
+      maskTransitionName=""
     >
-      <div className="p-6">
-        <div className="mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-600">Step 1 of 3</span>
-          </div>
-          <div className="h-1 w-full bg-gray-100 rounded-full overflow-hidden">
-            <div className="h-full w-1/3 bg-[#1B6FC9] rounded-full" />
-          </div>
-        </div>
-
+      <div className="p-4">
         <div className="space-y-6">
           {/* Topic */}
           <div>
@@ -222,19 +206,22 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
                 setErrors((prev) => ({ ...prev, topic: false }))
               }}
             />
-            {errors.topic && <p className="mt-1 text-sm text-red-500">Please enter a topic</p>}
           </div>
 
           {/* Focus Keywords */}
           <div>
-            <label className="block text-sm font-medium mb-2">Focus Keywords (up to 3)</label>
+            <label className="block text-sm font-medium mb-2">
+              Focus Keywords (up to 3)<span className="text-red-500 ml-1">*</span>
+            </label>
             <div className="flex gap-2">
               <input
                 type="text"
                 value={formData.focusKeyword}
                 onChange={(e) => handleKeywordInputChange(e, "focusKeywords")}
                 onKeyDown={(e) => handleKeyPress(e, "focusKeywords")}
-                className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B6FC9] text-sm"
+                className={`flex-1 px-3 py-2 bg-gray-50 border ${
+                  errors.focusKeyword ? "border-red-500" : "border-gray-200"
+                } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm`}
                 placeholder="Enter focus keywords, separated by commas"
               />
               <button
@@ -266,14 +253,18 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
 
           {/* Secondary Keywords */}
           <div>
-            <label className="block text-sm font-medium mb-2">Keywords</label>
+            <label className="block text-sm font-medium mb-2">
+              Keywords<span className="text-red-500 ml-1">*</span>
+            </label>
             <div className="flex gap-2">
               <input
                 type="text"
                 value={formData.keyword}
                 onChange={(e) => handleKeywordInputChange(e, "keywords")}
                 onKeyDown={(e) => handleKeyPress(e, "keywords")}
-                className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B6FC9] text-sm"
+                className={`flex-1 px-3 py-2 bg-gray-50 border ${
+                  errors.keyword ? "border-red-500" : "border-gray-200"
+                } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm`}
                 placeholder="Enter secondary keywords, separated by commas"
               />
               <button
@@ -330,7 +321,6 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
                 Generate Titles
               </button>
             </div>
-            {errors.title && <p className="mt-1 text-sm text-red-500">Please enter a title</p>}
             {generatedTitles.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-2">
                 {generatedTitles.map((title, index) => {
@@ -360,61 +350,6 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
             )}
           </div>
 
-          {/* Image Source */}
-          <div className="border-t pt-4">
-            <div className="flex items-center gap-8">
-              <label className="block text-sm font-medium">
-                Image Source <span className="text-red-500">*</span>
-              </label>
-              <div className="flex items-center gap-6">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    id="unsplash"
-                    name="imageSource"
-                    checked={data?.isUnsplashActive}
-                    onChange={() => handleImageSourceChange("unsplash")}
-                    className="h-4 w-4 text-[#1B6FC9] focus:ring-[#1B6FC9] border-gray-300"
-                  />
-                  <label htmlFor="unsplash" className="text-sm text-gray-700 whitespace-nowrap">
-                    Stock Images
-                  </label>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    id="ai-generated"
-                    name="imageSource"
-                    checked={!data?.isUnsplashActive}
-                    onChange={() => {
-                      if (userPlan !== "free") {
-                        handleImageSourceChange("ai")
-                      }
-                    }}
-                    className="h-4 w-4 text-[#1B6FC9] focus:ring-[#1B6FC9] border-gray-300"
-                  />
-                  <label
-                    htmlFor="ai-generated"
-                    onClick={(e) => {
-                      if (userPlan === "free") {
-                        e.preventDefault()
-                        openUpgradePopup({ featureName: "AI-Generated Images", navigate })
-                      }
-                    }}
-                    className="text-sm cursor-pointer flex items-center gap-1 text-gray-700"
-                  >
-                    AI-Generated Images
-                    {userPlan === "free" && <Crown className="w-4 h-4 text-yellow-500" />}
-                  </label>
-                </div>
-              </div>
-            </div>
-            {errors.imageSource && (
-              <p className="mt-1 text-sm text-red-500">Please select an image source</p>
-            )}
-          </div>
-
           {/* Tone and Length */}
           <div className="grid grid-cols-2 gap-6">
             <div>
@@ -432,10 +367,13 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
                 <Option value="casual">Casual</Option>
                 <Option value="friendly">Friendly</Option>
                 <Option value="formal">Formal</Option>
+                <Option value="conversational">Conversational</Option>
+                <Option value="witty">Witty</Option>
+                <Option value="informative">Informative</Option>
+                <Option value="inspirational">Inspirational</Option>
+                <Option value="persuasive">Persuasive</Option>
+                <Option value="empathetic">Empathetic</Option>
               </Select>
-              {errors.tone && (
-                <p className="mt-1 text-sm text-red-500">Please select a tone of voice</p>
-              )}
             </div>
 
             <div>
@@ -446,17 +384,22 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
                   min="500"
                   max="5000"
                   value={data?.userDefinedLength ?? 1000}
-                  className="w-full h-1 rounded-lg appearance-none cursor-pointer bg-gradient-to-r from-[#1B6FC9] to-gray-100 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#1B6FC9]"
-                  style={{
-                    background: `linear-gradient(to right, #1B6FC9 ${
-                      ((data.userDefinedLength - 500) / 4500) * 100
-                    }%, #E5E7EB ${((data.userDefinedLength - 500) / 4500) * 100}%)`,
-                  }}
+                  className="w-full h-1 rounded-lg appearance-none cursor-pointer 
+             [&::-webkit-slider-thumb]:appearance-none 
+             [&::-webkit-slider-thumb]:h-4 
+             [&::-webkit-slider-thumb]:w-4 
+             [&::-webkit-slider-thumb]:rounded-full 
+             [&::-webkit-slider-thumb]:bg-[#1B6FC9]"
                   onChange={(e) => {
                     setData((prev) => ({
                       ...prev,
                       userDefinedLength: parseInt(e.target.value, 10),
                     }))
+                  }}
+                  style={{
+                    background: `linear-gradient(to right, #1B6FC9 ${
+                      ((data?.userDefinedLength ?? 1000) - 500) / 45
+                    }%, #e5e7eb 0%)`, // #e5e7eb is Tailwind's gray-200
                   }}
                 />
                 <span className="mt-2 text-sm text-gray-600 block">

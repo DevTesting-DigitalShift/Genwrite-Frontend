@@ -3,7 +3,6 @@ import Modal from "../utils/Modal"
 import SelectTemplateModal from "./multipleStepModal/SelectTemplateModal"
 import FirstStepModal from "./multipleStepModal/FirstStepModal"
 import SecondStepModal from "./multipleStepModal/SecondStepModal"
-import ThirdStepModal from "./multipleStepModal/ThirdStepModal"
 import { letsBegin, quickTools, stats } from "./dashData/dash"
 import { DashboardBox, QuickBox, Blogs } from "../utils/DashboardBox"
 import { useDispatch, useSelector } from "react-redux"
@@ -196,15 +195,7 @@ const Dashboard = () => {
             handleClose={handleCancel}
             data={modelData}
             setData={setModelData}
-          />
-        )}
-        {currentStep === 3 && (
-          <ThirdStepModal
-            handlePrevious={handlePrev}
             handleSubmit={handleSubmit}
-            handleClose={handleCancel}
-            data={modelData}
-            setData={setModelData}
           />
         )}
         <div className="flex items-center justify-center mt-4">

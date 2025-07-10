@@ -199,9 +199,9 @@ export const updateBlogById = createAsyncThunk(
 
 export const fetchProofreadingSuggestions = createAsyncThunk(
   "blogs/fetchProofreadingSuggestions",
-  async ({ content }, { rejectWithValue }) => {
+  async ({ id }, { rejectWithValue }) => {
     try {
-      const data = await proofreadBlogContent({ content })
+      const data = await proofreadBlogContent({ id })
       return data.suggestions
     } catch (error) {
       console.error("Proofreading error:", error)

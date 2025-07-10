@@ -31,6 +31,7 @@ import TextAlign from "@tiptap/extension-text-align"
 import { useNavigate } from "react-router-dom"
 import { useDispatch } from "react-redux"
 import { Tooltip, Modal, Spin, message } from "antd"
+import Joyride, { STATUS } from "react-joyride"
 import Toolbar from "@components/Toolbar"
 import { fetchGeneratedTitles } from "@store/slices/blogSlice"
 import { packages } from "@constants/templates"
@@ -54,6 +55,22 @@ const ManualBlog = () => {
   const [currentStep, setCurrentStep] = useState(0)
   const [selectedTemplate, setSelectedTemplate] = useState(null)
   const [isPreviewOpen, setIsPreviewOpen] = useState(false)
+  const [runWalkthrough, setRunWalkthrough] = useState(false)
+
+  // Walkthrough steps
+  const walkthroughSteps = [
+    {
+      target: ".topic-input",
+      content: "Enter a topic for your blog to help generate relevant titles.",
+      disableBeacon: true,
+      placement: "top",
+    },
+    {
+      target: ".keywords-section",
+      content: "Add at least 4 keywords to optimize your blog for SEO.",
+      placement: "top",
+    },
+  ]
 
   const editor = useEditor({
     extensions: [
@@ -96,26 +113,19 @@ const ManualBlog = () => {
   }
 
   const handleGenerateTitles = async () => {
-    if (!topic.trim()) {
-      message.error("Please enter a topic & keyword before generating titles.")
+    if (!topic.trim() || keywords.length < 4) {
+      setRunWalkthrough(true)
+      // message.error("Please enter a topic and at least 4 keywords before generating titles.")
       return
     }
 
     const keywordTexts = keywords.map((k) => k.text.trim()).filter(Boolean)
-    if (keywordTexts.length < 4) {
-      message.error("Please enter at least 4 keywords.")
-      return
-    }
-
-    const focusKeywords = keywordTexts.slice(0, 3)
-    const secondaryKeywords = keywordTexts.slice(3)
-
     setIsGeneratingTitles(true)
     try {
       const result = await dispatch(
         fetchGeneratedTitles({
-          keywords: secondaryKeywords,
-          focusKeywords: focusKeywords,
+          keywords: keywordTexts.slice(3),
+          focusKeywords: keywordTexts.slice(0, 3),
           topic,
           template: selectedTemplate || "default",
         })
@@ -191,11 +201,11 @@ const ManualBlog = () => {
 
   const saveBlog = async () => {
     if (!title.trim() || !content.trim()) {
-      alert("Please add both title and content before saving.")
+      message.error("Please add both title and content before saving.")
       return
     }
     if (getWordCount(title) > 60) {
-      alert("Title exceeds 60 words. Please shorten it.")
+      message.error("Title exceeds 60 words. Please shorten it.")
       return
     }
 
@@ -265,12 +275,35 @@ const ManualBlog = () => {
     setSelectedTemplate(null)
   }
 
+  const handlePreview = () => {
+    if (!selectedTemplate) {
+      message.error("Please select a template to preview.")
+      return
+    }
+    if (!content.trim()) {
+      message.error("Please write some content to preview.")
+      return
+    }
+    setIsPreviewOpen(true)
+  }
+
+  const handlePreviewClose = () => {
+    setIsPreviewOpen(false)
+  }
+
+  // Handle walkthrough completion
+  const handleJoyrideCallback = (data) => {
+    const { status } = data
+    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
+      setRunWalkthrough(false)
+    }
+  }
+
   const generatePreviewContent = () => {
     if (!selectedTemplate || !content.trim()) {
       return `<h1>${title || "Preview Title"}</h1><p>No content available for preview.</p>`
     }
 
-    // Parse the content to extract paragraphs, headings, etc.
     const parser = new DOMParser()
     const doc = parser.parseFromString(content, "text/html")
     const paragraphs = Array.from(doc.querySelectorAll("p")).map((p) => p.textContent)
@@ -419,27 +452,52 @@ const ManualBlog = () => {
     return previewContent
   }
 
-  const handlePreview = () => {
-    if (!selectedTemplate) {
-      message.error("Please select a template to preview.")
-      return
-    }
-    if (!content.trim()) {
-      message.error("Please write some content to preview.")
-      return
-    }
-    setIsPreviewOpen(true)
-  }
-
-  const handlePreviewClose = () => {
-    setIsPreviewOpen(false)
-  }
-
   const wordCount = getWordCount(content)
   const titleWordCount = getWordCount(title)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
+      <Joyride
+        steps={walkthroughSteps}
+        run={runWalkthrough}
+        continuous
+        showSkipButton
+        callback={handleJoyrideCallback}
+        styles={{
+          options: {
+            primaryColor: "#1B6FC9",
+            textColor: "#1F2937",
+            backgroundColor: "#FFFFFF",
+            zIndex: 1000,
+          },
+          buttonNext: {
+            backgroundColor: "#1B6FC9",
+            borderRadius: "8px",
+            padding: "8px 16px",
+            fontWeight: "600",
+          },
+          buttonBack: {
+            color: "#1B6FC9",
+            borderRadius: "8px",
+            padding: "8px 16px",
+          },
+          buttonSkip: {
+            color: "#6B7280",
+            fontSize: "14px",
+          },
+          tooltip: {
+            borderRadius: "8px",
+            padding: "16px",
+            // boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+          },
+        }}
+        locale={{
+          back: "Previous",
+          next: "Next",
+          skip: "Skip Tour",
+          last: "Finish",
+        }}
+      />
       <Modal
         title="Select Template"
         open={currentStep === 0}
@@ -449,6 +507,7 @@ const ManualBlog = () => {
             key="next"
             onClick={handleNext}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:bg-blue-700"
+            aria-label="Proceed to next step"
           >
             Next
           </button>,
@@ -494,6 +553,7 @@ const ManualBlog = () => {
             key="close"
             onClick={handlePreviewClose}
             className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:bg-gray-700"
+            aria-label="Close preview"
           >
             Close
           </button>,
@@ -508,7 +568,7 @@ const ManualBlog = () => {
       </Modal>
 
       {currentStep === 1 && (
-        <div className="flex h-screen">
+        <div className="flex flex-col lg:flex-row h-screen">
           {/* Main Editor Area */}
           <div className="flex-1 flex flex-col">
             {/* Editor Header */}
@@ -529,6 +589,7 @@ const ManualBlog = () => {
                   <button
                     onClick={handlePreview}
                     className="px-4 py-2 bg-gradient-to-r from-[#1B6FC9] to-[#4C9FE8] text-white rounded-lg hover:from-[#1B6FC9]/90 hover:to-[#4C9FE8]/90 flex items-center"
+                    aria-label="Preview blog"
                   >
                     <Eye size={16} className="mr-2" />
                     Preview
@@ -536,13 +597,13 @@ const ManualBlog = () => {
                 </div>
               </div>
               <div className="mt-4">
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-col sm:flex-row">
                   <input
                     type="text"
                     value={title}
                     onChange={handleTitleChange}
                     placeholder="Enter your blog title..."
-                    className={`flex-1 text-3xl font-bold text-gray-900 placeholder-gray-400 border-none outline-none resize-none ${
+                    className={`flex-1 text-2xl sm:text-3xl font-bold text-gray-900 placeholder-gray-400 border-none outline-none resize-none ${
                       titleWordCount > 60 ? "text-red-600" : ""
                     }`}
                     aria-label="Blog title"
@@ -551,6 +612,7 @@ const ManualBlog = () => {
                     onClick={handleGenerateTitles}
                     disabled={isGeneratingTitles}
                     className="px-4 py-2 bg-gradient-to-r from-[#1B6FC9] to-[#4C9FE8] text-white rounded-lg hover:from-[#1B6FC9]/90 hover:to-[#4C9FE8]/90 flex items-center"
+                    aria-label="Generate titles"
                   >
                     {isGeneratingTitles ? (
                       <Spin size="small" />
@@ -575,11 +637,12 @@ const ManualBlog = () => {
                           <button
                             type="button"
                             onClick={() => handleTitleSelect(generatedTitle)}
-                            className={`px-3 py-1 rounded-full text-sm border transition truncate max-w-[300px] ${
+                            className={`px-3 py-1 rounded-full text-sm border transition truncate max-w-[200px] sm:max-w-[300px] ${
                               isSelected
                                 ? "bg-[#1B6FC9] text-white border-[#1B6FC9]"
                                 : "bg-gray-100 text-gray-700 border-gray-300 opacity-60 hover:opacity-100 hover:bg-gray-200"
                             }`}
+                            aria-label={`Select title: ${generatedTitle}`}
                           >
                             {generatedTitle}
                           </button>
@@ -711,7 +774,7 @@ const ManualBlog = () => {
           </div>
 
           {/* Sidebar */}
-          <div className="w-80 bg-white shadow-lg border-l border-gray-200 flex flex-col">
+          <div className="w-full lg:w-80 bg-white shadow-lg border-l border-gray-200 flex flex-col">
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
@@ -748,7 +811,7 @@ const ManualBlog = () => {
               </button>
             </div>
 
-            <div className="p-6 border-b border-gray-200">
+            <div className="p-6 pt-4 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <BarChart3 className="w-5 h-5 text-blue-600" />
                 Performance Scores
@@ -815,7 +878,7 @@ const ManualBlog = () => {
               </div>
             </div>
 
-            <div className="flex-1 p-6">
+            <div className="flex-1 p-6 pt-4">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <FileText className="w-5 h-5 text-blue-600" />
                 Topic
@@ -826,60 +889,60 @@ const ManualBlog = () => {
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
                   placeholder="Enter blog topic..."
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  className="topic-input w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                   aria-label="Blog topic"
                 />
               </div>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                  <Hash className="w-5 h-5 text-green-600" />
-                  Keywords
-                </h3>
-                <Tooltip title="Generate keyword suggestions">
+              <div className="keywords-section">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <Hash className="w-5 h-5 text-green-600" />
+                    Keywords
+                  </h3>
+                  <Tooltip title="Regenerate using keywords">
+                    <button
+                      onClick={generateKeywords}
+                      disabled={isGeneratingKeywords}
+                      className="flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm font-medium disabled:opacity-50"
+                      aria-label="Generate keyword suggestions"
+                    >
+                      {isGeneratingKeywords ? (
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Sparkles className="w-4 h-4" />
+                      )}
+                      Optimize
+                    </button>
+                  </Tooltip>
+                </div>
+                <div className="flex gap-2 mb-4">
+                  <input
+                    type="text"
+                    value={newKeyword}
+                    onChange={(e) => setNewKeyword(e.target.value)}
+                    onKeyPress={(e) => e.key === "Enter" && addKeyword()}
+                    placeholder="Add keyword..."
+                    className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    aria-label="Add new keyword"
+                  />
                   <button
-                    onClick={generateKeywords}
-                    disabled={isGeneratingKeywords}
-                    className="flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm font-medium disabled:opacity-50"
-                    aria-label="Generate keyword suggestions"
+                    onClick={addKeyword}
+                    className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    aria-label="Add keyword"
                   >
-                    {isGeneratingKeywords ? (
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Sparkles className="w-4 h-4" />
-                    )}
-                    Optimize
+                    <Plus className="w-4 h-4" />
                   </button>
-                </Tooltip>
-              </div>
-              <div className="flex gap-2 mb-4">
-                <input
-                  type="text"
-                  value={newKeyword}
-                  onChange={(e) => setNewKeyword(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && addKeyword()}
-                  placeholder="Add keyword..."
-                  className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                  aria-label="Add new keyword"
-                />
-                <button
-                  onClick={addKeyword}
-                  className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  aria-label="Add keyword"
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
-              </div>
-              <div className="space-y-2">
-                <div className="flex flex-wrap gap-2 mt-2 max-h-64 overflow-y-auto">
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2 max-h-64 overflow-y-auto sm:overflow-x-auto sm:flex-nowrap">
                   {keywords.map((keyword) => (
                     <div
                       key={keyword.id}
-                      className="flex items-center bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm px-3 py-1.5 rounded-full shadow-sm hover:shadow-md transition-all duration-200"
+                      className="flex items-center bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm px-3 py-1.5 rounded-full shadow-sm hover:shadow-md transition-all duration-200 max-w-[100px] sm:max-w-[150px] md:max-w-[200px] break-words"
                     >
-                      <span>{keyword.text}</span>
+                      <span className="truncate">{keyword.text}</span>
                       <button
                         onClick={() => removeKeyword(keyword.id)}
-                        className="ml-2 text-white hover:text-red-200 transition-colors"
+                        className="ml-2 text-white hover:text-red-200 transition-colors p-1"
                         aria-label={`Remove keyword ${keyword.text}`}
                       >
                         <X className="w-3 h-3" />
@@ -888,8 +951,8 @@ const ManualBlog = () => {
                   ))}
                 </div>
                 {keywords.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    <Hash className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <div className="text-center text-gray-500">
+                    {/* <Hash className="w-8 h-8 mx-auto mb-2 opacity-50" /> */}
                     <p className="text-sm">No keywords added yet</p>
                     <p className="text-xs">Add keywords to improve SEO</p>
                   </div>

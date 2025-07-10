@@ -28,6 +28,7 @@ const ToolBox = () => {
   const [isSaving, setIsSaving] = useState(false)
   const [isPosted, setIsPosted] = useState(null)
   const [isPosting, setIsPosting] = useState(false)
+  const [formData, setFormData] = useState({ category: "" })
 
   useEffect(() => {
     if (id) {
@@ -78,15 +79,16 @@ const ToolBox = () => {
 
     const previewContainer = document.querySelector(".markdown-body")
     const content = previewContainer?.innerHTML || editorContent
-
+    
     if (!content || content.trim() === "" || content === "<p></p>" || content === "<p><br></p>") {
       message.error("Editor content is empty. Please add some content before posting.")
       return
     }
-
+    
     const postData = {
       blogId: blogToDisplay._id,
       includeTableOfContents: true,
+      categories: formData.category
     }
 
     const key = "wordpress-posting"
@@ -298,6 +300,8 @@ const ToolBox = () => {
                 handleSave={handleSave}
                 posted={isPosted}
                 isPosting={isPosting}
+                formData={formData}
+                setFormData={setFormData}
               />
             </div>
           </div>

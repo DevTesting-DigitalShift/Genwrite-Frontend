@@ -706,48 +706,6 @@ const TextEditor = ({
         <ListOrdered className="w-5 h-5" />
       </button>
       <button
-        onClick={() =>
-          safeEditorAction(() => {
-            const url = prompt("Enter URL")
-            if (url) {
-              if (activeTab === "normal") {
-                normalEditor.chain().focus().setLink({ href: url }).run()
-              } else if (activeTab === "html") {
-                insertText(`<a href="${url}">`, "</a>", htmlEditorRef)
-              } else {
-                insertText("[", `](${url})`, mdEditorRef)
-              }
-            }
-          })
-        }
-        className="p-2 rounded hover:bg-gray-100"
-      >
-        <LinkIcon className="w-5 h-5" />
-      </button>
-      <button
-        onClick={() =>
-          safeEditorAction(() => {
-            const url = prompt("Enter Image URL")
-            if (url) {
-              if (activeTab === "normal") {
-                normalEditor.chain().focus().setImage({ src: url }).run()
-              } else if (activeTab === "html") {
-                insertText(
-                  `<img src="${url}" alt="description" class="max-w-full my-4 rounded-lg mx-auto" />`,
-                  "",
-                  htmlEditorRef
-                )
-              } else {
-                insertText(`![Image](${url})`, "", mdEditorRef)
-              }
-            }
-          })
-        }
-        className="p-2 rounded hover:bg-gray-100"
-      >
-        <ImageIcon className="w-5 h-5" />
-      </button>
-      <button
         onClick={() => safeEditorAction(() => normalEditor?.chain().focus().undo().run())}
         className="p-2 rounded hover:bg-gray-100"
       >
@@ -759,7 +717,7 @@ const TextEditor = ({
       >
         <Redo2 className="w-5 h-5" />
       </button>
-      <SmallBottomBox id={blog?._id} />
+      <SmallBottomBox id={blog?.content} />
     </div>
   )
 

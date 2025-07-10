@@ -1,15 +1,6 @@
 import React from "react"
 import { Link } from "react-router-dom"
-import {
-  ArrowLeft,
-  Shield,
-  FileText,
-  Calendar,
-  Mail,
-  AlertTriangle,
-  Users,
-  Globe,
-} from "lucide-react"
+import { ArrowLeft, Mail, Users, AlertTriangle } from "lucide-react"
 
 const TermsAndConditions = () => {
   const lastUpdated = "January 15, 2025"
@@ -124,98 +115,51 @@ const TermsAndConditions = () => {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="bg-white shadow-md border-b border-gray-200 sticky top-0 z-20">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <header className="border-b border-gray-200 sticky top-0 bg-white">
+        <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link
-                to="/signup"
-                className="inline-flex items-center gap-2 text-gray-700 hover:text-blue-600 transition-colors duration-200 font-medium"
-                aria-label="Back to signup page"
-              >
-                <ArrowLeft className="w-5 h-5" />
-                Back to Signup
-              </Link>
-            </div>
-            <div className="flex items-center gap-3">
-              <FileText className="w-7 h-7 text-blue-600" />
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Terms and Conditions</h1>
-            </div>
+            <img src="/Images/logo_genwrite_2.png" alt="GenWrite Logo" class="w-40 h-auto" />
           </div>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className="max-w-4xl mx-auto px-4 py-8">
+        <h1 className="text-4xl font-semibold text-gray-900 mb-10">Terms and Conditions</h1>
         {/* Introduction */}
-        <section className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6 sm:p-8 mb-10">
-          <div className="flex flex-col sm:flex-row items-start gap-6 mb-8">
-            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
-              <Shield className="w-6 h-6 text-blue-600" />
-            </div>
-            <div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">Welcome to GenWrite</h2>
-              <p className="text-gray-600 leading-relaxed text-base sm:text-lg">
-                These Terms and Conditions ("Terms") govern your use of the GenWrite platform and
-                services. Please read them carefully as they contain important information about
-                your rights and obligations.
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-            {[
-              { icon: <Calendar className="w-5 h-5 text-blue-600" />, title: "Last Updated", value: lastUpdated },
-              { icon: <Users className="w-5 h-5 text-green-600" />, title: "Applies To", value: "All Users" },
-              { icon: <Globe className="w-5 h-5 text-purple-600" />, title: "Jurisdiction", value: "California, USA" },
-            ].map((item, index) => (
-              <div
-                key={index}
-                className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl border border-gray-100 hover:bg-gray-100 transition-colors duration-200"
-              >
-                {item.icon}
-                <div>
-                  <div className="font-semibold text-gray-900 text-sm sm:text-base">{item.title}</div>
-                  <div className="text-gray-600 text-sm">{item.value}</div>
-                </div>
-              </div>
-            ))}
-          </div>
+        <section className="mb-8">
+          <p className="text-gray-600 leading-relaxed">
+            These Terms and Conditions govern your use of the GenWrite platform and
+            services. Please read them carefully as they contain important information about your
+            rights and obligations.
+          </p>
+          <p className="text-gray-600 mt-2 text-sm">Last Updated: {lastUpdated}</p>
         </section>
 
         {/* Terms Sections */}
         <div className="space-y-8">
           {sections.map((section, index) => (
-            <section
-              key={index}
-              className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6 sm:p-8 transition-all duration-200 hover:shadow-xl"
-            >
-              <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6 flex items-center gap-4">
-                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 font-bold text-base">
-                  {index + 1}
-                </div>
-                {section.title}
-              </h3>
-              <div className="space-y-4">
+            <section key={index}>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">{section.title}</h3>
+              <ul className="list-disc pl-5 space-y-2">
                 {section.content.map((paragraph, pIndex) => (
-                  <div key={pIndex} className="flex items-start gap-3">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                    <p className="text-gray-600 leading-relaxed text-base">{paragraph}</p>
-                  </div>
+                  <li key={pIndex} className="text-gray-600">
+                    {paragraph}
+                  </li>
                 ))}
-              </div>
+              </ul>
             </section>
           ))}
         </div>
 
         {/* Important Notice */}
-        <section className="bg-amber-50 border border-amber-200 rounded-3xl p-6 sm:p-8 mt-10 shadow-md">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
+        <section className="mt-8">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5" />
             <div>
-              <h3 className="font-semibold text-amber-900 mb-2 text-lg">Important Notice</h3>
-              <p className="text-amber-800 text-base leading-relaxed">
+              <h3 className="font-semibold text-gray-900 mb-2">Important Notice</h3>
+              <p className="text-gray-600">
                 By creating an account or using our services, you acknowledge that you have read,
                 understood, and agree to be bound by these Terms and Conditions. If you do not agree
                 with any part of these terms, you must not use our service.
@@ -225,34 +169,29 @@ const TermsAndConditions = () => {
         </section>
 
         {/* Contact Section */}
-        <section className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6 sm:p-8 mt-10">
-          <div className="text-center">
-            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-4">
-              <Mail className="w-6 h-6 text-blue-600" />
-            </div>
-            <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3">Questions About These Terms?</h3>
-            <p className="text-gray-600 text-base mb-6">
-              If you have any questions about these Terms and Conditions, please don't hesitate to
-              contact us.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <a
-                href="mailto:legal@genwrite.com"
-                className="bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center gap-2 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                aria-label="Contact legal team via email"
-              >
-                <Mail className="w-4 h-4" />
-                legal@genwrite.com
-              </a>
-              <Link
-                to="/contact"
-                className="border border-blue-300 text-blue-700 px-6 py-3 rounded-xl font-semibold hover:bg-blue-100 transition-colors duration-200 flex items-center justify-center gap-2 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                aria-label="Visit contact support page"
-              >
-                <Users className="w-4 h-4" />
-                Contact Support
-              </Link>
-            </div>
+        <section className="mt-8">
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">Questions About These Terms?</h3>
+          <p className="text-gray-600 leading-relaxed mb-4">
+            If you have any questions about these Terms and Conditions, please don't hesitate to
+            contact us.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <a
+              href="mailto:legal@genwrite.com"
+              className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors font-medium"
+              aria-label="Contact legal team via email"
+            >
+              <Mail className="w-4 h-4" />
+              legal@genwrite.com
+            </a>
+            <Link
+              to="/contact"
+              className="inline-flex items-center gap-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-100 transition-colors font-medium"
+              aria-label="Visit contact support page"
+            >
+              <Users className="w-4 h-4" />
+              Contact Support
+            </Link>
           </div>
         </section>
       </main>

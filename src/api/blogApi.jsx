@@ -145,12 +145,9 @@ export const retryBlogById = async (id, payload = { createNew: false }) => {
   }
 }
 
-export const proofreadBlogContent = async ({ content, message }) => {
+export const proofreadBlogContent = async ({ id }) => {
   try {
-    const response = await axiosInstance.post("/blogs/proofread", {
-      content,
-      message,
-    })
+    const response = await axiosInstance.post(`/blogs/${id}/proofread`)
     return response.data
   } catch (error) {
     throw new Error(error.response?.data?.message || "Failed to get proofreading suggestions")

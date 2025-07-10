@@ -1,15 +1,14 @@
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useMemo } from "react"
 import MultiDatePicker from "react-multi-date-picker"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import Carousel from "@components/multipleStepModal/Carousel"
 import { packages } from "@constants/templates"
 import { FiPlus, FiSettings, FiCalendar, FiFileText, FiEdit } from "react-icons/fi"
 import { useDispatch, useSelector } from "react-redux"
-import { useConfirmPopup } from "@/context/ConfirmPopupContext"
-import { useLocation, useNavigate } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 import { QuestionCircleOutlined } from "@ant-design/icons"
-import { message, Pagination, Popconfirm, Tooltip } from "antd"
-import { Crown, Gem, Info, Upload, X } from "lucide-react"
+import { message, Modal, Pagination, Popconfirm, Select, Tooltip } from "antd"
+import { Crown, Info, Plus, Upload, X } from "lucide-react"
 import { Helmet } from "react-helmet"
 import {
   closeJobModal,
@@ -26,7 +25,7 @@ import { openUpgradePopup } from "@utils/UpgardePopUp"
 
 const initialJob = {
   name: "",
-  schedule: { type: "daily", customDates: [], days: [] },
+  schedule: { type: "daily", customDates: [], daysOfWeek: [], daysOfMonth: [] },
   blogs: {
     numberOfBlogs: 1,
     topics: [],
@@ -50,6 +49,7 @@ const initialJob = {
 }
 
 const PAGE_SIZE = 15
+const MAX_BLOGS = 100 // Added max limit for numberOfBlogs
 
 const Jobs = () => {
   const tones = ["Professional", "Casual", "Friendly", "Formal", "Technical"]
@@ -57,7 +57,6 @@ const Jobs = () => {
   const [currentStep, setCurrentStep] = useState(1)
   const [newJob, setNewJob] = useState(initialJob)
   const [topicInput, setTopicInput] = useState("")
-  const { handlePopup } = useConfirmPopup()
   const [errors, setErrors] = useState({})
   const user = useSelector(selectUser)
   const userPlan = (user?.plan || user?.subscription?.plan || "free").toLowerCase()
@@ -68,29 +67,22 @@ const Jobs = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const { selectedKeywords } = useSelector((state) => state.analysis)
   const [isUserLoaded, setIsUserLoaded] = useState(false)
-  const totalPages = jobs.length
 
   // Initialize formData with keywords from selectedKeywords
   const [formData, setFormData] = useState({
-    keywords: [
-      ...new Set([
-        ...(selectedKeywords?.focusKeywords || []),
-        ...(selectedKeywords?.allKeywords || []),
-      ]),
-    ],
+    keywords: [],
     keywordInput: "",
     performKeywordResearch: false,
   })
 
-  // Debug: Log selectedKeywords and formData.keywords
-  useEffect(() => {
-    console.log("Jobs: Current selectedKeywords in Redux:", selectedKeywords)
-    console.log("Jobs: Current formData.keywords:", formData.keywords)
-  }, [selectedKeywords, formData.keywords])
+  // Calculate total pages correctly
+  const totalPages = Math.ceil(jobs.length / PAGE_SIZE)
 
-  // Calculate paginated jobs
-  const startIndex = (currentPage - 1) * PAGE_SIZE
-  const paginatedJobs = jobs.slice(startIndex, startIndex + PAGE_SIZE)
+  // Memoize paginated jobs to prevent unnecessary re-computation
+  const paginatedJobs = useMemo(() => {
+    const startIndex = (currentPage - 1) * PAGE_SIZE
+    return jobs.slice(startIndex, startIndex + PAGE_SIZE)
+  }, [jobs, currentPage])
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" })
@@ -102,60 +94,94 @@ const Jobs = () => {
 
   // Check if user is loaded
   useEffect(() => {
-    if (user?.name || user?.credits) {
-      setIsUserLoaded(true)
-    } else {
-      setIsUserLoaded(false)
-    }
+    setIsUserLoaded(!!(user?.name || user?.credits))
   }, [user])
 
   // Sync formData and newJob with selectedKeywords
   useEffect(() => {
-    if (selectedKeywords?.focusKeywords?.length > 0 || selectedKeywords?.allKeywords?.length > 0) {
-      const uniqueKeywords = [
-        ...new Set([
-          ...(selectedKeywords.focusKeywords || []),
-          ...(selectedKeywords.allKeywords || []),
-        ]),
-      ]
-      console.log("Jobs: Updating formData and newJob with uniqueKeywords:", uniqueKeywords)
-      setFormData((prev) => ({
-        ...prev,
-        keywords: uniqueKeywords,
-      }))
-      setNewJob((prev) => ({
-        ...prev,
-        blogs: {
-          ...prev.blogs,
-          keywords: uniqueKeywords,
-        },
-      }))
-    }
+    const uniqueKeywords = [
+      ...new Set([
+        ...(selectedKeywords?.focusKeywords || []),
+        ...(selectedKeywords?.allKeywords || []),
+      ]),
+    ]
+    setFormData((prev) => ({
+      ...prev,
+      keywords: [...new Set([...prev.keywords, ...uniqueKeywords])], // Preserve existing manual keywords
+    }))
+    setNewJob((prev) => ({
+      ...prev,
+      blogs: {
+        ...prev.blogs,
+        keywords: [...new Set([...prev.blogs.keywords, ...uniqueKeywords])],
+      },
+    }))
   }, [selectedKeywords])
+
+  const validateSteps = (step) => {
+    const errors = {}
+    if (step === 1) {
+      if (newJob.blogs.templates.length === 0) {
+        errors.template = true
+        message.error("Please select at least one template before proceeding.")
+      }
+    }
+    if (step === 2) {
+      if (!newJob.name) {
+        errors.name = true
+        message.error("Please enter a job name.")
+      }
+      if (newJob.blogs.topics.length === 0) {
+        errors.topics = true
+        message.error("Please add at least one topic.")
+      }
+      if (!formData.performKeywordResearch && formData.keywords.length === 0) {
+        errors.keywords = true
+        message.error("Please add at least one keyword or enable keyword research.")
+      }
+    }
+    if (step === 4) {
+      if (newJob.blogs.numberOfBlogs < 1 || newJob.blogs.numberOfBlogs > MAX_BLOGS) {
+        errors.numberOfBlogs = true
+        message.error(`Number of blogs must be between 1 and ${MAX_BLOGS}.`)
+      }
+      if (
+        newJob.schedule.type === "weekly" &&
+        (!newJob.schedule.daysOfWeek || newJob.schedule.daysOfWeek.length === 0)
+      ) {
+        errors.daysOfWeek = true
+        message.error("Please select at least one day of the week.")
+      }
+      if (
+        newJob.schedule.type === "monthly" &&
+        (!newJob.schedule.daysOfMonth || newJob.schedule.daysOfMonth.length === 0)
+      ) {
+        errors.daysOfMonth = true
+        message.error("Please select at least one date of the month.")
+      }
+      if (
+        newJob.schedule.type === "custom" &&
+        (!newJob.schedule.customDates || newJob.schedule.customDates.length === 0)
+      ) {
+        errors.customDates = true
+        message.error("Please select at least one custom date.")
+      }
+    }
+    setErrors(errors)
+    return Object.keys(errors).length === 0
+  }
 
   const handleCreateJob = () => {
     if (!isUserLoaded) {
       message.error("User data is still loading. Please try again.")
       return
     }
+    if (!validateSteps(2) || !validateSteps(4)) return
     const jobPayload = {
       ...newJob,
-      blogs: {
-        ...newJob.blogs,
-        keywords: formData.keywords,
-      },
-      options: {
-        ...newJob.options,
-        includeFaqs: newJob.options.includeFaqs || false,
-        useBrandVoice: newJob.options.useBrandVoice || false,
-        includeCompetitorResearch: newJob.options.includeCompetitorResearch || false,
-        includeInterlinks: newJob.options.includeInterlinks || false,
-        performKeywordResearch: formData.performKeywordResearch || false,
-        includeTableOfContents: newJob.options.includeTableOfContents || false,
-      },
+      blogs: { ...newJob.blogs, keywords: formData.keywords },
+      options: { ...newJob.options, performKeywordResearch: formData.performKeywordResearch },
     }
-
-    console.log("Jobs: Creating job with payload:", jobPayload)
     dispatch(
       createJobThunk({
         jobPayload,
@@ -163,35 +189,24 @@ const Jobs = () => {
           dispatch(closeJobModal())
           dispatch(fetchJobs())
           setCurrentPage(1)
+          setNewJob(initialJob)
+          setFormData({ keywords: [], keywordInput: "", performKeywordResearch: false })
         },
       })
     )
   }
 
-  const handleUpdateJob = async (jobId) => {
+  const handleUpdateJob = (jobId) => {
     if (!isUserLoaded) {
       message.error("User data is still loading. Please try again.")
       return
     }
-
+    if (!validateSteps(2) || !validateSteps(4)) return
     const jobPayload = {
       ...newJob,
-      blogs: {
-        ...newJob.blogs,
-        keywords: formData.keywords,
-      },
-      options: {
-        ...newJob.options,
-        includeFaqs: newJob.options.includeFaqs || false,
-        useBrandVoice: newJob.options.useBrandVoice || false,
-        includeCompetitorResearch: newJob.options.includeCompetitorResearch || false,
-        includeInterlinks: newJob.options.includeInterlinks || false,
-        performKeywordResearch: formData.performKeywordResearch || false,
-        includeTableOfContents: newJob.options.includeTableOfContents || false,
-      },
+      blogs: { ...newJob.blogs, keywords: formData.keywords },
+      options: { ...newJob.options, performKeywordResearch: formData.performKeywordResearch },
     }
-
-    console.log("Jobs: Updating job with payload:", jobPayload)
     dispatch(
       updateJobThunk({
         jobId,
@@ -200,6 +215,8 @@ const Jobs = () => {
           dispatch(closeJobModal())
           dispatch(fetchJobs())
           setCurrentPage(1)
+          setNewJob(initialJob)
+          setFormData({ keywords: [], keywordInput: "", performKeywordResearch: false })
         },
       })
     )
@@ -207,16 +224,18 @@ const Jobs = () => {
 
   const handleNumberOfBlogsChange = (e) => {
     const value = parseInt(e.target.value, 10)
-    if (!isNaN(value) && value >= 0) {
-      setNewJob({
-        ...newJob,
-        blogs: { ...newJob.blogs, numberOfBlogs: value },
-      })
+    if (!isNaN(value) && value >= 0 && value <= MAX_BLOGS) {
+      setNewJob({ ...newJob, blogs: { ...newJob.blogs, numberOfBlogs: value } })
+      setErrors((prev) => ({ ...prev, numberOfBlogs: false }))
     }
   }
 
   const handleStartJob = (jobId) => {
     const job = jobs.find((job) => job._id === jobId)
+    if (!job) {
+      message.error("Job not found.")
+      return
+    }
     dispatch(toggleJobStatusThunk({ jobId, currentStatus: job.status }))
   }
 
@@ -227,357 +246,149 @@ const Jobs = () => {
     }
   }
 
-  const validateSteps = (step) => {
-    const errors = {}
+  const handleAddItems = (input, type) => {
+    const trimmedInput = input.trim()
+    if (!trimmedInput) return
 
-    if (step === 1) {
-      if (newJob.blogs.templates.length === 0) {
-        errors.template = true
-        message.error("Please select at least one template before proceeding.")
-      }
-    }
-
-    if (step === 2) {
-      if (!newJob.name) {
-        errors.name = true
-        message.error("Please fill all the required fields.")
-      }
-    }
-
-    setErrors(errors)
-    return Object.keys(errors).length === 0
-  }
-
-  const handleAddKeyword = (type) => {
-    const input = topicInput.trim()
-    if (!input) return
-
-    const existing = newJob.blogs.topics.map((t) => t.toLowerCase().trim())
+    const existing =
+      type === "topics"
+        ? newJob.blogs.topics.map((t) => t.toLowerCase().trim())
+        : formData.keywords.map((k) => k.toLowerCase().trim())
     const seen = new Set()
-
-    const newTopics = input
+    const newItems = trimmedInput
       .split(",")
-      .map((t) => t.trim())
-      .filter((t) => {
-        const lower = t.toLowerCase()
-        if (!t || existing.includes(lower) || seen.has(lower)) return false
+      .map((item) => item.trim())
+      .filter((item) => {
+        const lower = item.toLowerCase()
+        if (!item || seen.has(lower) || existing.includes(lower)) return false
         seen.add(lower)
         return true
       })
 
-    if (newTopics.length === 0) return
+    if (newItems.length === 0) return
 
-    setNewJob((prev) => ({
-      ...prev,
-      blogs: {
-        ...prev.blogs,
-        topics: [...prev.blogs.topics, ...newTopics],
-      },
-    }))
-
-    setTopicInput("")
-  }
-
-  const handleKeyPress = (e, type) => {
-    if (e.key === "Enter") {
-      e.preventDefault()
-      handleAddKeyword(type)
+    if (type === "topics") {
+      setNewJob((prev) => ({
+        ...prev,
+        blogs: { ...prev.blogs, topics: [...prev.blogs.topics, ...newItems] },
+      }))
+      setTopicInput("")
+      setErrors((prev) => ({ ...prev, topics: false }))
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        keywords: [...prev.keywords, ...newItems],
+        keywordInput: "",
+      }))
+      setNewJob((prev) => ({
+        ...prev,
+        blogs: { ...prev.blogs, keywords: [...prev.blogs.keywords, ...newItems] },
+      }))
+      setErrors((prev) => ({ ...prev, keywords: false }))
     }
   }
 
+  const handleCSVUpload = (e, type) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.name.toLowerCase().endsWith(".csv")) {
+      message.error("Invalid file type. Please upload a .csv file.")
+      e.target.value = null
+      return
+    }
+
+    const maxSizeInBytes = 20 * 1024
+    if (file.size > maxSizeInBytes) {
+      message.error("File size exceeds 20KB limit. Please upload a smaller file.")
+      e.target.value = null
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const text = event.target?.result
+      if (!text) return
+
+      const lines = text.trim().split(/\r?\n/).slice(1)
+      const items = lines
+        .map((line) => {
+          const parts = line.split(",")
+          return parts.length >= 2 ? parts[1].trim() : null
+        })
+        .filter(Boolean)
+
+      const existing =
+        type === "topics"
+          ? newJob.blogs.topics.map((t) => t.toLowerCase().trim())
+          : formData.keywords.map((k) => k.toLowerCase().trim())
+      const uniqueNewItems = items.filter((item) => !existing.includes(item.toLowerCase().trim()))
+
+      if (uniqueNewItems.length === 0) {
+        message.warning(`No new ${type} found in the CSV.`)
+        return
+      }
+
+      if (type === "topics") {
+        setNewJob((prev) => ({
+          ...prev,
+          blogs: { ...prev.blogs, topics: [...prev.blogs.topics, ...uniqueNewItems] },
+        }))
+        setErrors((prev) => ({ ...prev, topics: false }))
+      } else {
+        setFormData((prev) => ({
+          ...prev,
+          keywords: [...prev.keywords, ...uniqueNewItems],
+        }))
+        setNewJob((prev) => ({
+          ...prev,
+          blogs: { ...prev.blogs, keywords: [...prev.blogs.keywords, ...uniqueNewItems] },
+        }))
+        setErrors((prev) => ({ ...prev, keywords: false }))
+      }
+
+      if (uniqueNewItems.length > 8) {
+        setRecentlyUploadedCount(uniqueNewItems.length)
+        setTimeout(() => setRecentlyUploadedCount(null), 5000)
+      }
+    }
+    reader.readAsText(file)
+    e.target.value = null
+  }
+
   const handleEditJob = (job) => {
+    if (!job?._id) {
+      message.error("Invalid job ID.")
+      return
+    }
     if (job.status === "active") {
-      message.error("Stop the job before editing")
+      message.error("Stop the job before editing.")
       return
     }
     const uniqueKeywords = [
       ...new Set([...(job.blogs.keywords || []), ...(selectedKeywords?.focusKeywords || [])]),
     ]
-    setNewJob({
-      ...job,
-      blogs: {
-        ...job.blogs,
-        keywords: uniqueKeywords,
-      },
-    })
+    setNewJob({ ...job, blogs: { ...job.blogs, keywords: uniqueKeywords } })
     setFormData({
       keywords: uniqueKeywords,
       keywordInput: "",
       performKeywordResearch: job.options.performKeywordResearch || false,
     })
-    console.log("Jobs: Editing job with keywords:", uniqueKeywords)
     dispatch(openJobModal())
     setCurrentStep(1)
   }
 
-  const handleKeywordInputChange = (e) => {
-    setFormData((prevState) => ({
-      ...prevState,
-      keywordInput: e.target.value,
-    }))
-  }
-
-  const handleAddKeywordManual = () => {
-    const inputValue = formData.keywordInput.trim()
-    if (inputValue !== "") {
-      const newKeywords = inputValue
-        .split(",")
-        .map((keyword) => keyword.trim())
-        .filter((keyword) => keyword !== "" && !formData.keywords.includes(keyword.toLowerCase()))
-      setFormData((prev) => ({
-        ...prev,
-        keywords: [...prev.keywords, ...newKeywords],
-        keywordInput: "",
-      }))
-      setNewJob((prev) => ({
-        ...prev,
-        blogs: {
-          ...prev.blogs,
-          keywords: [...prev.blogs.keywords, ...newKeywords],
-        },
-      }))
-      console.log("Jobs: Added manual keywords:", newKeywords)
-    }
-  }
-
-  const handleKeyPressKeyword = (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault()
-      handleAddKeywordManual()
-    }
-  }
-
-  const handleRemoveKeyword = (index) => {
-    const updatedKeywords = [...formData.keywords]
-    updatedKeywords.splice(index, 1)
-    setFormData({ ...formData, keywords: updatedKeywords })
-    setNewJob((prev) => ({
-      ...prev,
-      blogs: {
-        ...prev.blogs,
-        keywords: updatedKeywords,
-      },
-    }))
-    console.log("Jobs: Removed keyword at index:", index, "New keywords:", updatedKeywords)
-  }
-
-  const handleCSVUpload = (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    if (!file.name.toLowerCase().endsWith(".csv")) {
-      message.error("Invalid file type. Please upload a .csv file.")
-      e.target.value = null
-      return
-    }
-
-    const maxSizeInBytes = 20 * 1024
-    if (file.size > maxSizeInBytes) {
-      message.error("File size exceeds 20KB limit. Please upload a smaller file.")
-      e.target.value = null
-      return
-    }
-
-    const reader = new FileReader()
-
-    reader.onload = (event) => {
-      const text = event.target?.result
-      if (!text) return
-
-      const lines = text.trim().split(/\r?\n/).slice(1)
-      const keywords = lines
-        .map((line) => {
-          const parts = line.split(",")
-          return parts.length >= 2 ? parts[1].trim() : null
-        })
-        .filter(Boolean)
-
-      const existingTopics = newJob.blogs.topics.map((t) => t.toLowerCase().trim())
-      const uniqueNewTopics = keywords.filter(
-        (kw) => !existingTopics.includes(kw.toLowerCase().trim())
-      )
-
-      if (uniqueNewTopics.length === 0) {
-        message.warning("No new topics found in the CSV.")
-        return
-      }
-
-      setNewJob((prev) => ({
-        ...prev,
-        blogs: {
-          ...prev.blogs,
-          topics: [...prev.blogs.topics, ...uniqueNewTopics],
-        },
-      }))
-
-      if (uniqueNewTopics.length > 8) {
-        setRecentlyUploadedCount(uniqueNewTopics.length)
-        setTimeout(() => setRecentlyUploadedCount(null), 5000)
-      }
-    }
-
-    reader.readAsText(file)
-    e.target.value = null
-  }
-
-  const handleCSVKeywordUpload = (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    if (!file.name.toLowerCase().endsWith(".csv")) {
-      message.error("Invalid file type. Please upload a .csv file.")
-      e.target.value = null
-      return
-    }
-
-    const maxSizeInBytes = 20 * 1024
-    if (file.size > maxSizeInBytes) {
-      message.error("File size exceeds 20KB limit. Please upload a smaller file.")
-      e.target.value = null
-      return
-    }
-
-    const reader = new FileReader()
-
-    reader.onload = (event) => {
-      const text = event.target?.result
-      if (!text) return
-
-      const lines = text.trim().split(/\r?\n/).slice(1)
-      const keywords = lines
-        .map((line) => {
-          const parts = line.split(",")
-          return parts.length >= 2 ? parts[1].trim() : null
-        })
-        .filter(Boolean)
-
-      const existingKeywords = formData.keywords.map((t) => t.toLowerCase().trim())
-      const uniqueNewKeywords = keywords.filter(
-        (kw) => !existingKeywords.includes(kw.toLowerCase().trim())
-      )
-
-      if (uniqueNewKeywords.length === 0) {
-        message.warning("No new keywords found in the CSV.")
-        return
-      }
-
-      setFormData((prev) => ({
-        ...prev,
-        keywords: [...prev.keywords, ...uniqueNewKeywords],
-      }))
-      setNewJob((prev) => ({
-        ...prev,
-        blogs: {
-          ...prev.blogs,
-          keywords: [...prev.blogs.keywords, ...uniqueNewKeywords],
-        },
-      }))
-      console.log("Jobs: Uploaded CSV keywords:", uniqueNewKeywords)
-
-      if (uniqueNewKeywords.length > 8) {
-        setRecentlyUploadedCount(uniqueNewKeywords.length)
-        setTimeout(() => setRecentlyUploadedCount(null), 5000)
-      }
-    }
-
-    reader.readAsText(file)
-    e.target.value = null
-  }
-
   const handleCheckboxChange = (e) => {
     const { name, checked } = e.target
-    if (name === "wordpressPosting" && checked) {
-      if (!user?.wordpressLink) {
-        message.error(
-          "Please connect your WordPress account in your profile before enabling automatic posting."
-        )
-        navigate("/profile")
-        return
-      }
+    if (name === "wordpressPosting" && checked && !user?.wordpressLink) {
+      message.error(
+        "Please connect your WordPress account in your profile before enabling automatic posting."
+      )
+      navigate("/profile")
+      return
     }
-    setFormData({
-      ...formData,
-      [name]: checked,
-    })
-    setNewJob((prev) => ({
-      ...prev,
-      options: {
-        ...newJob.options,
-        [name]: checked,
-      },
-    }))
-  }
-
-  const handleTopicKeyPress = (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault()
-      handleAddKeyword()
-      handleAddKeywordManual()
-    }
-  }
-
-  const handleAddToggleKeyword = () => {
-    const inputValue = formData.keywordInput.trim()
-    if (!inputValue) return false
-
-    const existingKeywords = formData.keywords.map((k) => k.toLowerCase())
-    const jobKeywords = newJob.blogs.keywords.map((k) => k.toLowerCase())
-
-    const seen = new Set()
-
-    const newKeywords = inputValue
-      .split(",")
-      .map((k) => k.trim())
-      .filter((k) => {
-        const lower = k.toLowerCase()
-        if (
-          !k ||
-          seen.has(lower) ||
-          existingKeywords.includes(lower) ||
-          jobKeywords.includes(lower)
-        )
-          return false
-        seen.add(lower)
-        return true
-      })
-
-    if (newKeywords.length === 0) {
-      setFormData((prev) => ({ ...prev, keywordInput: "" }))
-      return false
-    }
-
-    setFormData((prev) => ({
-      ...prev,
-      keywords: [...prev.keywords, ...newKeywords],
-      keywordInput: "",
-    }))
-
-    setNewJob((prev) => ({
-      ...prev,
-      blogs: {
-        ...prev.blogs,
-        keywords: [...prev.blogs.keywords, ...newKeywords],
-      },
-    }))
-    console.log("Jobs: Added toggle keywords:", newKeywords)
-    return true
-  }
-
-  const handleRemoveToggleKeyword = (index) => {
-    const updatedKeywords = [...formData.keywords]
-    updatedKeywords.splice(index, 1)
-    setFormData((prev) => ({
-      ...prev,
-      keywords: updatedKeywords,
-    }))
-    setNewJob((prev) => ({
-      ...prev,
-      blogs: {
-        ...prev.blogs,
-        keywords: updatedKeywords,
-      },
-    }))
-    console.log("Jobs: Removed toggle keyword at index:", index, "New keywords:", updatedKeywords)
+    setFormData((prev) => ({ ...prev, [name]: checked }))
+    setNewJob((prev) => ({ ...prev, options: { ...prev.options, [name]: checked } }))
   }
 
   const renderStep = () => {
@@ -585,18 +396,17 @@ const Jobs = () => {
       case 1:
         return (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-            <h3 className="text-xl font-semibold text-gray-800 mb-4">Step 1: Select Templates</h3>
             <p className="text-sm text-gray-600 mb-4">
               Select up to 3 templates for the types of blogs you want to generate.
             </p>
             <Carousel>
-              {packages.map((pkg, index) => (
+              {packages.map((pkg) => (
                 <div
                   key={pkg.name}
                   className={`cursor-pointer transition-all duration-200 ${
                     newJob.blogs.templates.includes(pkg.name)
                       ? "border-gray-300 border-2 rounded-lg"
-                      : errors.templates
+                      : errors.template
                       ? "border-red-500 border-2"
                       : ""
                   }`}
@@ -611,14 +421,13 @@ const Jobs = () => {
                           ),
                         },
                       }))
+                      setErrors((prev) => ({ ...prev, template: false }))
                     } else if (newJob.blogs.templates.length < 3) {
                       setNewJob((prev) => ({
                         ...prev,
-                        blogs: {
-                          ...prev.blogs,
-                          templates: [...prev.blogs.templates, pkg.name],
-                        },
+                        blogs: { ...prev.blogs, templates: [...prev.blogs.templates, pkg.name] },
                       }))
+                      setErrors((prev) => ({ ...prev, template: false }))
                     } else {
                       message.error("You can only select up to 3 templates.")
                     }
@@ -640,22 +449,11 @@ const Jobs = () => {
                 </div>
               ))}
             </Carousel>
-            <div className="flex justify-end mt-6">
-              <button
-                onClick={() => {
-                  if (validateSteps(1)) setCurrentStep(2)
-                }}
-                className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-              >
-                Next
-              </button>
-            </div>
           </motion.div>
         )
       case 2:
         return (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-            <h3 className="text-xl font-semibold text-gray-800 mb-4">Step 2: Job Details</h3>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Job Name</label>
@@ -663,31 +461,31 @@ const Jobs = () => {
                   type="text"
                   value={newJob.name}
                   placeholder="Enter job name"
-                  onChange={(e) => setNewJob({ ...newJob, name: e.target.value })}
+                  onChange={(e) => {
+                    setNewJob({ ...newJob, name: e.target.value })
+                    setErrors((prev) => ({ ...prev, name: false }))
+                  }}
                   className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                     errors.name ? "border-red-500" : "border-gray-200"
                   }`}
                   aria-label="Job name"
                 />
               </div>
-
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-2 flex gap-2 items-center">
                   Topics
                   <Tooltip title="Upload a .csv file in the format: `S.No., Keyword`">
-                    <div className="cursor-pointer">
-                      <Info size={16} className="text-blue-500" />
-                    </div>
+                    <Info size={16} className="text-blue-500 cursor-pointer" />
                   </Tooltip>
                 </label>
                 <div className="flex gap-2 mb-2">
                   <input
                     type="text"
                     value={topicInput}
-                    onKeyDown={(e) => handleKeyPress(e, "topics")}
+                    onKeyDown={(e) => e.key === "Enter" && handleAddItems(topicInput, "topics")}
                     onChange={(e) => setTopicInput(e.target.value)}
                     className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                      errors.topic ? "border-red-500" : "border-gray-200"
+                      errors.topics ? "border-red-500" : "border-gray-200"
                     }`}
                     placeholder="Add a topic..."
                     aria-label="Add topic"
@@ -695,15 +493,20 @@ const Jobs = () => {
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => handleAddKeyword("topics")}
-                    className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg"
+                    onClick={() => handleAddItems(topicInput, "topics")}
+                    className="px-4 py-2 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white rounded-lg"
                     aria-label="Add topic"
                   >
-                    Add
+                    <Plus />
                   </motion.button>
                   <label className="px-4 py-2 bg-gray-100 text-gray-700 border rounded-md text-sm cursor-pointer flex items-center gap-1 hover:bg-gray-200">
                     <Upload size={16} />
-                    <input type="file" accept=".csv" onChange={handleCSVUpload} hidden />
+                    <input
+                      type="file"
+                      accept=".csv"
+                      onChange={(e) => handleCSVUpload(e, "topics")}
+                      hidden
+                    />
                     <span className="sr-only">Upload CSV for topics</span>
                   </label>
                 </div>
@@ -748,32 +551,28 @@ const Jobs = () => {
                   )}
                 </div>
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Tone of Voice
                 </label>
-                <select
+                <Select
                   value={newJob.blogs.tone}
                   onChange={(e) =>
                     setNewJob({ ...newJob, blogs: { ...newJob.blogs, tone: e.target.value } })
                   }
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                    errors.tone ? "border-red-500" : "border-gray-200"
-                  }`}
+                  className="w-full"
                   aria-label="Select tone of voice"
                 >
                   {tones.map((tone) => (
-                    <option key={tone} value={tone}>
+                    <Option key={tone} value={tone}>
                       {tone}
-                    </option>
+                    </Option>
                   ))}
-                </select>
+                </Select>
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Length</label>
-                <select
+                <Select
                   value={newJob.blogs.userDefinedLength}
                   onChange={(e) =>
                     setNewJob({
@@ -781,17 +580,16 @@ const Jobs = () => {
                       blogs: { ...newJob.blogs, userDefinedLength: parseInt(e.target.value) },
                     })
                   }
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full"
                   aria-label="Select blog length"
                 >
                   {wordLengths.map((length) => (
-                    <option key={length} value={length}>
+                    <Option key={length} value={length}>
                       {length} words
-                    </option>
+                    </Option>
                   ))}
-                </select>
+                </Select>
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Image Source</label>
                 <div className="flex items-center gap-6">
@@ -847,7 +645,6 @@ const Jobs = () => {
                   </div>
                 </div>
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">AI Model</label>
                 <div className="flex items-center gap-6">
@@ -901,29 +698,64 @@ const Jobs = () => {
                       {userPlan === "free" && <Crown className="w-4 h-4 text-yellow-500" />}
                     </label>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      id="claude"
+                      name="aiModel"
+                      value="claude"
+                      checked={newJob.blogs.aiModel === "claude"}
+                      onChange={(e) => {
+                        if (userPlan !== "free" || "basic") {
+                          setNewJob({
+                            ...newJob,
+                            blogs: { ...newJob.blogs, aiModel: e.target.value },
+                          })
+                        }
+                      }}
+                      className="h-4 w-4 text-[#1B6FC9] focus:ring-[#1B6FC9] border-gray-300"
+                    />
+                    <label
+                      htmlFor="claude"
+                      onClick={(e) => {
+                        if (userPlan === "free" || userPlan === "basic") {
+                          e.preventDefault()
+                          openUpgradePopup({ featureName: "Claude", navigate })
+                        }
+                      }}
+                      className="text-sm cursor-pointer flex items-center gap-1 text-gray-700"
+                    >
+                      Claude
+                      {userPlan === "free" ||
+                        (userPlan === "basic" && <Crown className="w-4 h-4 text-yellow-500" />)}
+                    </label>
+                  </div>
                 </div>
               </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">
-                  Perform Keyword Research?
-                  <p className="text-xs text-gray-500">
-                    Allow AI to find relevant keywords for the topics.
-                  </p>
-                </span>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="performKeywordResearch"
-                    checked={formData.performKeywordResearch}
-                    onChange={handleCheckboxChange}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                </label>
-              </div>
             </div>
-
+          </motion.div>
+        )
+      case 3:
+        return (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-gray-700">
+                Perform Keyword Research?
+                <p className="text-xs text-gray-500">
+                  Allow AI to find relevant keywords for the topics.
+                </p>
+              </span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="performKeywordResearch"
+                  checked={formData.performKeywordResearch}
+                  onChange={handleCheckboxChange}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]"></div>
+              </label>
+            </div>
             {!formData.performKeywordResearch && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Keywords</label>
@@ -931,22 +763,33 @@ const Jobs = () => {
                   <input
                     type="text"
                     value={formData.keywordInput}
-                    onChange={handleKeywordInputChange}
-                    onKeyDown={handleKeyPressKeyword}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, keywordInput: e.target.value }))
+                    }
+                    onKeyDown={(e) =>
+                      e.key === "Enter" && handleAddItems(formData.keywordInput, "keywords")
+                    }
+                    className={`flex-1 px-3 py-2 border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 ${
+                      errors.keywords ? "border-red-500" : "border-gray-300"
+                    }`}
                     placeholder="e.g., digital marketing trends, AI in business"
                     aria-label="Add keyword"
                   />
                   <button
-                    onClick={handleAddKeywordManual}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700"
+                    onClick={() => handleAddItems(formData.keywordInput, "keywords")}
+                    className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm hover:bg-[#1B6FC9]/90"
                     aria-label="Add keyword"
                   >
-                    Add
+                    <Plus />
                   </button>
                   <label className="px-4 py-2 bg-gray-100 text-gray-700 border rounded-md text-sm cursor-pointer flex items-center gap-1 hover:bg-gray-200">
                     <Upload size={16} />
-                    <input type="file" accept=".csv" onChange={handleCSVKeywordUpload} hidden />
+                    <input
+                      type="file"
+                      accept=".csv"
+                      onChange={(e) => handleCSVUpload(e, "keywords")}
+                      hidden
+                    />
                     <span className="sr-only">Upload CSV for keywords</span>
                   </label>
                 </div>
@@ -965,7 +808,15 @@ const Jobs = () => {
                           {keyword}
                           <button
                             type="button"
-                            onClick={() => handleRemoveKeyword(actualIndex)}
+                            onClick={() => {
+                              const updatedKeywords = [...formData.keywords]
+                              updatedKeywords.splice(actualIndex, 1)
+                              setFormData((prev) => ({ ...prev, keywords: updatedKeywords }))
+                              setNewJob((prev) => ({
+                                ...prev,
+                                blogs: { ...prev.blogs, keywords: updatedKeywords },
+                              }))
+                            }}
                             className="ml-1.5 flex-shrink-0 text-indigo-400 hover:text-indigo-600 focus:outline-none"
                             aria-label={`Remove keyword ${keyword}`}
                           >
@@ -983,138 +834,31 @@ const Jobs = () => {
                 </div>
               </div>
             )}
-
-            <div className="flex justify-between mt-6">
-              <button
-                onClick={() => setCurrentStep(1)}
-                className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
-                aria-label="Previous step"
-              >
-                Previous
-              </button>
-              <button
-                onClick={() => {
-                  if (validateSteps(2)) setCurrentStep(3)
-                }}
-                className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-                aria-label="Next step"
-              >
-                Next
-              </button>
-            </div>
-          </motion.div>
-        )
-      case 3:
-        return (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-            <h3 className="text-xl font-semibold text-gray-800 mb-4">Step 3: Blog Options</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="flex items-center justify-between py-2 border-b">
-                <span className="text-sm font-medium text-gray-700">Add FAQ</span>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="sr-only peer"
-                    checked={newJob.options.includeFaqs}
-                    onChange={(e) =>
-                      setNewJob({
-                        ...newJob,
-                        options: { ...newJob.options, includeFaqs: e.target.checked },
-                      })
-                    }
-                    aria-label="Toggle FAQ inclusion"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                </label>
-              </div>
-              <div className="flex items-center justify-between py-2 border-b">
-                <span className="text-sm font-medium text-gray-700">Add Competitive Research</span>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="sr-only peer"
-                    checked={newJob.options.includeCompetitorResearch}
-                    onChange={(e) =>
-                      setNewJob({
-                        ...newJob,
-                        options: { ...newJob.options, includeCompetitorResearch: e.target.checked },
-                      })
-                    }
-                    aria-label="Toggle competitive research inclusion"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                </label>
-              </div>
-              <div className="flex items-center justify-between py-2 border-b">
-                <span className="text-sm font-medium text-gray-700">Add InterLinks</span>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="sr-only peer"
-                    checked={newJob.options.includeInterlinks}
-                    onChange={(e) =>
-                      setNewJob({
-                        ...newJob,
-                        options: { ...newJob.options, includeInterlinks: e.target.checked },
-                      })
-                    }
-                    aria-label="Toggle interlinks inclusion"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                </label>
-              </div>
-              <div className="flex items-center justify-between py-2 border-b">
-                <span className="text-sm font-medium text-gray-700">
-                  WordPress Automatic Posting
-                </span>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="sr-only peer"
-                    checked={newJob.options.wordpressPosting}
-                    onChange={handleCheckboxChange}
-                    name="wordpressPosting"
-                    aria-label="Toggle WordPress automatic posting"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                </label>
-              </div>
-              {newJob.options.wordpressPosting && (
-                <div className="flex items-center justify-between py-2 border-b">
-                  <span className="text-sm font-medium text-gray-700">Table of Content</span>
+              {[
+                { label: "Add FAQ", name: "includeFaqs" },
+                { label: "Add Competitive Research", name: "includeCompetitorResearch" },
+                { label: "Add InterLinks", name: "includeInterlinks" },
+                { label: "WordPress Automatic Posting", name: "wordpressPosting" },
+                ...(newJob.options.wordpressPosting
+                  ? [{ label: "Table of Content", name: "includeTableOfContents" }]
+                  : []),
+              ].map(({ label, name }) => (
+                <div key={name} className="flex items-center justify-between py-2 border-b">
+                  <span className="text-sm font-medium text-gray-700">{label}</span>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
                       type="checkbox"
                       className="sr-only peer"
-                      checked={newJob.options.includeTableOfContents}
-                      onChange={(e) =>
-                        setNewJob({
-                          ...newJob,
-                          options: { ...newJob.options, includeTableOfContents: e.target.checked },
-                        })
-                      }
-                      aria-label="Toggle table of contents inclusion"
+                      checked={newJob.options[name]}
+                      onChange={handleCheckboxChange}
+                      name={name}
+                      aria-label={`Toggle ${label.toLowerCase()}`}
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]"></div>
                   </label>
                 </div>
-              )}
-            </div>
-            <div className="flex justify-between mt-6">
-              <button
-                onClick={() => setCurrentStep(2)}
-                className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
-                aria-label="Previous step"
-              >
-                Previous
-              </button>
-              <button
-                onClick={() => setCurrentStep(4)}
-                className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-                aria-label="Next step"
-              >
-                Next
-              </button>
+              ))}
             </div>
           </motion.div>
         )
@@ -1131,20 +875,22 @@ const Jobs = () => {
                   value={newJob.schedule.type}
                   onChange={(e) => {
                     const type = e.target.value
-                    let daysOfWeek = []
-                    let daysOfMonth = []
-                    if (type === "weekly") daysOfWeek = []
-                    if (type === "monthly") daysOfMonth = []
                     setNewJob({
                       ...newJob,
                       schedule: {
                         ...newJob.schedule,
                         type,
-                        daysOfWeek,
-                        daysOfMonth,
-                        customDates: [],
+                        daysOfWeek: type === "weekly" ? [] : newJob.schedule.daysOfWeek,
+                        daysOfMonth: type === "monthly" ? [] : newJob.schedule.daysOfMonth,
+                        customDates: type === "custom" ? [] : newJob.schedule.customDates,
                       },
                     })
+                    setErrors((prev) => ({
+                      ...prev,
+                      daysOfWeek: false,
+                      daysOfMonth: false,
+                      customDates: false,
+                    }))
                   }}
                   className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
                   aria-label="Select schedule type"
@@ -1167,9 +913,9 @@ const Jobs = () => {
                         type="button"
                         className={`px-2 py-1 rounded ${
                           newJob.schedule.daysOfWeek?.includes(i)
-                            ? "bg-blue-500 text-white"
+                            ? "bg-[#1B6FC9] text-white"
                             : "bg-gray-200 text-gray-700"
-                        }`}
+                        } ${errors.daysOfWeek ? "border-2 border-red-500" : ""}`}
                         onClick={() => {
                           setNewJob((prev) => {
                             const daysOfWeek = prev.schedule.daysOfWeek?.includes(i)
@@ -1177,6 +923,7 @@ const Jobs = () => {
                               : [...(prev.schedule.daysOfWeek || []), i]
                             return { ...prev, schedule: { ...prev.schedule, daysOfWeek } }
                           })
+                          setErrors((prev) => ({ ...prev, daysOfWeek: false }))
                         }}
                         aria-label={`Select ${d} for weekly schedule`}
                       >
@@ -1198,9 +945,9 @@ const Jobs = () => {
                         type="button"
                         className={`px-2 py-1 rounded ${
                           newJob.schedule.daysOfMonth?.includes(date)
-                            ? "bg-blue-500 text-white"
+                            ? "bg-[#1B6FC9] text-white"
                             : "bg-gray-200 text-gray-700"
-                        }`}
+                        } ${errors.daysOfMonth ? "border-2 border-red-500" : ""}`}
                         onClick={() => {
                           setNewJob((prev) => {
                             const daysOfMonth = prev.schedule.daysOfMonth?.includes(date)
@@ -1208,6 +955,7 @@ const Jobs = () => {
                               : [...(prev.schedule.daysOfMonth || []), date]
                             return { ...prev, schedule: { ...prev.schedule, daysOfMonth } }
                           })
+                          setErrors((prev) => ({ ...prev, daysOfMonth: false }))
                         }}
                         aria-label={`Select date ${date} for monthly schedule`}
                       >
@@ -1222,24 +970,28 @@ const Jobs = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Select Dates
                   </label>
-                  <MultiDatePicker
-                    value={newJob.schedule.customDates}
-                    onChange={(dates) =>
-                      setNewJob({
-                        ...newJob,
-                        schedule: {
-                          ...newJob.schedule,
-                          customDates: dates,
-                          days: [],
-                          daysOfMonth: [],
-                        },
-                      })
-                    }
-                    multiple
-                    format="YYYY-MM-DD"
-                    className="w-full"
-                    aria-label="Select custom dates"
-                  />
+                  <div className={errors.customDates ? "border-2 border-red-500 rounded-lg" : ""}>
+                    <MultiDatePicker
+                      value={newJob.schedule.customDates}
+                      onChange={(dates) => {
+                        setNewJob({
+                          ...newJob,
+                          schedule: {
+                            ...newJob.schedule,
+                            customDates: dates,
+                            daysOfWeek: [],
+                            daysOfMonth: [],
+                          },
+                        })
+                        setErrors((prev) => ({ ...prev, customDates: false }))
+                      }}
+                      multiple
+                      format="YYYY-MM-DD"
+                      className="w-full"
+                      inputClass="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      aria-label="Select custom dates"
+                    />
+                  </div>
                 </div>
               )}
               <div>
@@ -1250,27 +1002,15 @@ const Jobs = () => {
                   type="number"
                   value={newJob.blogs.numberOfBlogs}
                   onChange={handleNumberOfBlogsChange}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                    errors.numberOfBlogs ? "border-red-500" : "border-gray-200"
+                  }`}
                   placeholder="Enter the number of blogs"
                   aria-label="Number of blogs"
+                  min="1"
+                  max={MAX_BLOGS}
                 />
               </div>
-            </div>
-            <div className="flex justify-between mt-6">
-              <button
-                onClick={() => setCurrentStep(3)}
-                className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
-                aria-label="Previous step"
-              >
-                Previous
-              </button>
-              <button
-                onClick={newJob?._id ? () => handleUpdateJob(newJob._id) : handleCreateJob}
-                className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-                aria-label={newJob?._id ? "Update job" : "Create job"}
-              >
-                {newJob?._id ? "Update" : "Create"} Job
-              </button>
             </div>
           </motion.div>
         )
@@ -1284,29 +1024,52 @@ const Jobs = () => {
       message.error("User data is still loading. Please try again.")
       return
     }
-
     const uniqueKeywords = [
       ...new Set([
         ...(selectedKeywords?.focusKeywords || []),
         ...(selectedKeywords?.allKeywords || []),
       ]),
     ]
-    console.log("Jobs: Opening job modal with keywords:", uniqueKeywords)
-    setNewJob({
-      ...initialJob,
-      blogs: {
-        ...initialJob.blogs,
-        keywords: uniqueKeywords,
-      },
-    })
-    setFormData({
-      keywords: uniqueKeywords,
-      keywordInput: "",
-      performKeywordResearch: true,
-    })
+    setNewJob({ ...initialJob, blogs: { ...initialJob.blogs, keywords: uniqueKeywords } })
+    setFormData({ keywords: uniqueKeywords, keywordInput: "", performKeywordResearch: true })
     dispatch(openJobModal())
     setCurrentStep(1)
   }
+
+  const footerButtons = [
+    currentStep > 1 && (
+      <button
+        key="previous"
+        onClick={() => setCurrentStep(currentStep - 1)}
+        className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg mr-3 hover:bg-gray-300"
+        aria-label="Previous step"
+      >
+        Previous
+      </button>
+    ),
+    currentStep < 4 && (
+      <button
+        key="next"
+        onClick={() => {
+          if (validateSteps(currentStep)) setCurrentStep(currentStep + 1)
+        }}
+        className="px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90"
+        aria-label="Next step"
+      >
+        Next
+      </button>
+    ),
+    currentStep === 4 && (
+      <button
+        key="submit"
+        onClick={newJob?._id ? () => handleUpdateJob(newJob._id) : handleCreateJob}
+        className="px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90"
+        aria-label={newJob?._id ? "Update job" : "Create job"}
+      >
+        {newJob?._id ? "Update" : "Create"} Job
+      </button>
+    ),
+  ]
 
   return (
     <>
@@ -1325,7 +1088,6 @@ const Jobs = () => {
             </motion.h1>
             <p className="text-gray-600 mt-2">Manage your automated content generation jobs</p>
           </div>
-
           <motion.div
             whileHover={{ y: -2 }}
             className="w-full md:w-1/2 lg:w-1/3 h-48 p-6 bg-white rounded-xl shadow-sm hover:shadow-md cursor-pointer mb-8"
@@ -1343,7 +1105,7 @@ const Jobs = () => {
               </p>
             </div>
           </motion.div>
-          {totalPages > 0 && (
+          {jobs.length > 0 && (
             <h2 className="text-xl font-semibold text-gray-800 mb-6">Active Jobs</h2>
           )}
 
@@ -1353,7 +1115,7 @@ const Jobs = () => {
                 <SkeletonLoader key={index} />
               ))}
             </div>
-          ) : totalPages === 0 ? (
+          ) : jobs.length === 0 ? (
             <div
               className="flex flex-col justify-center items-center"
               style={{ minHeight: "calc(100vh - 250px)" }}
@@ -1367,15 +1129,13 @@ const Jobs = () => {
                   key={job._id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 20 }}
-                  whileHover={{ y: -5 }}
                   className="bg-white rounded-xl shadow-lg hover:shadow-xl p-6 transition-all duration-200"
                 >
                   <div className="flex justify-between items-start mb-4">
                     <div>
                       <h3 className="text-lg font-semibold text-gray-800 capitalize">{job.name}</h3>
                       <p className="text-sm text-gray-500 mt-1">
-                        ID: {job._id.toString().slice(-6)}
+                        ID: {(job._id || "").toString().slice(-6) || "N/A"}
                       </p>
                     </div>
                     <motion.button
@@ -1392,7 +1152,6 @@ const Jobs = () => {
                       {job.status === "active" ? "Stop" : "Start"}
                     </motion.button>
                   </div>
-
                   <div className="space-y-3 text-sm text-gray-600">
                     <div className="flex items-center gap-2 capitalize">
                       <FiCalendar className="w-4 h-4 text-blue-500" />
@@ -1410,8 +1169,8 @@ const Jobs = () => {
                       <FiCalendar className="w-4 h-4 text-red-500" />
                       <span>Status: {job.status}</span>
                     </div>
-                    {job.blogs.topics.length > 0 && (
-                      <div className="flex items-start gap-2 capitalize">
+                    {job.blogs.topics?.length > 0 && (
+                      <div className="flex items-start gap-2">
                         <FiFileText className="w-4 h-4 text-purple-500 mt-0.5" />
                         <div className="flex flex-wrap gap-2">
                           Topics:
@@ -1427,7 +1186,7 @@ const Jobs = () => {
                       </div>
                     )}
                     {job.blogs.keywords?.length > 0 && (
-                      <div className="flex items-start gap-2 capitalize">
+                      <div className="flex items-start gap-2">
                         <FiFileText className="w-4 h-4 text-indigo-500 mt-0.5" />
                         <div className="flex flex-wrap gap-2">
                           Keywords:
@@ -1446,17 +1205,19 @@ const Jobs = () => {
                       <FiCalendar className="w-4 h-4 text-yellow-500" />
                       <span>
                         Created:{" "}
-                        {new Date(job.createdAt).toLocaleString("en-IN", {
-                          dateStyle: "medium",
-                          timeStyle: "short",
-                        }) || "N/A"}
+                        {job.createdAt
+                          ? new Date(job.createdAt).toLocaleString("en-IN", {
+                              dateStyle: "medium",
+                              timeStyle: "short",
+                            })
+                          : "N/A"}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <FiFileText className="w-4 h-4 text-purple-500" />
-                      <span>Generated Blogs: {job?.createdBlogs?.length}</span>
+                      <span>Generated Blogs: {(job.createdBlogs || []).length}</span>
                     </div>
-                    {job?.lastRun && (
+                    {job.lastRun && (
                       <div className="flex items-center gap-2">
                         <FiCalendar className="w-4 h-4 text-yellow-500" />
                         <span>
@@ -1469,7 +1230,6 @@ const Jobs = () => {
                       </div>
                     )}
                   </div>
-
                   <div className="flex gap-2 mt-6">
                     <motion.button
                       whileHover={{ scale: 1.05 }}
@@ -1482,55 +1242,69 @@ const Jobs = () => {
                       Edit
                     </motion.button>
                     <Popconfirm
-                      title="Job Deletion"
-                      description="Are you sure to delete the job?"
+                      title="Delete Job"
+                      description="Are you sure you want to delete this job?"
                       icon={<QuestionCircleOutlined style={{ color: "red" }} />}
                       okText="Yes"
                       cancelText="No"
-                        onConfirm={() => handleDeleteJob(job._id)}
+                      onConfirm={() => handleDeleteJob(job._id)}
+                    >
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
+                        aria-label="Delete job"
                       >
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          className="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
-                        >
-                          Delete
-                        </motion.button>
-                      </Popconfirm>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            )}
-            {totalPages > PAGE_SIZE && (
-              <div className="flex justify-center mt-6">
-                <Pagination
-                  current={currentPage}
-                  pageSize={PAGE_SIZE}
-                  total={totalPages}
-                  onChange={(page) => setCurrentPage(page)}
-                  showSizeChanger={false}
-                  responsive={true}
-                />
-              </div>
-            )}
-          </div>
-        </div>
-        {showJobModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-lg w-3/4 max-w-3xl p-6 relative max-h-[98vh] overflow-y-auto">
-              <button
-                onClick={() => dispatch(closeJobModal())}
-                className="absolute top-2 p-4 right-2 text-xl font-bold text-gray-400 hover:text-gray-600"
-              >
-                ✕
-              </button>
-              {renderStep()}
-            </div>
-          </div>
-        )}
-      </>
-    )
-  }
+                        Delete
+                      </motion.button>
+                    </Popconfirm>
+                  </div>
 
-  export default Jobs
+                  {totalPages > 1 && (
+                    <div className="flex justify-center mt-6">
+                      <Pagination
+                        current={currentPage}
+                        pageSize={PAGE_SIZE}
+                        total={jobs.length}
+                        onChange={(page) => setCurrentPage(page)}
+                        showSizeChanger={false}
+                        responsive
+                      />
+                    </div>
+                  )}
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+      <Modal
+        title={`Step ${currentStep}: ${
+          currentStep === 1
+            ? "Select Templates"
+            : currentStep === 2
+            ? "Job Details"
+            : currentStep === 3
+            ? "Blog Options"
+            : "Schedule Settings"
+        }`}
+        open={showJobModal}
+        onCancel={() => {
+          dispatch(closeJobModal())
+          setNewJob(initialJob)
+          setFormData({ keywords: [], keywordInput: "", performKeywordResearch: false })
+          setCurrentStep(1)
+          setErrors({})
+        }}
+        footer={footerButtons}
+        width={800}
+        centered
+        className="custom-modal"
+      >
+        <div className="p-4 max-h-[80vh] overflow-y-auto">{renderStep()}</div>
+      </Modal>
+    </>
+  )
+}
+
+export default Jobs
