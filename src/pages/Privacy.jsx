@@ -1,19 +1,5 @@
 import { Link } from "react-router-dom"
-import {
-  ArrowLeft,
-  Shield,
-  Lock,
-  Calendar,
-  Mail,
-  Eye,
-  Database,
-  Users,
-  Globe,
-  AlertTriangle,
-  CheckCircle,
-  Settings,
-  Download,
-} from "lucide-react"
+import { ArrowLeft, Mail, Users, AlertTriangle } from "lucide-react"
 
 const PrivacyPolicy = () => {
   const lastUpdated = "January 15, 2025"
@@ -21,7 +7,6 @@ const PrivacyPolicy = () => {
   const sections = [
     {
       title: "1. Information We Collect",
-      icon: <Database className="w-5 h-5" />,
       content: [
         "Account Information: Name, email address, password, and profile information you provide when creating an account.",
         "Content Data: Text, documents, and other content you create, upload, or generate using our AI writing tools.",
@@ -32,7 +17,6 @@ const PrivacyPolicy = () => {
     },
     {
       title: "2. How We Use Your Information",
-      icon: <Settings className="w-5 h-5" />,
       content: [
         "Service Provision: To provide, maintain, and improve our AI writing platform and related services.",
         "Personalization: To customize your experience and provide relevant content suggestions and recommendations.",
@@ -43,7 +27,6 @@ const PrivacyPolicy = () => {
     },
     {
       title: "3. Information Sharing and Disclosure",
-      icon: <Users className="w-5 h-5" />,
       content: [
         "We do not sell, trade, or rent your personal information to third parties for marketing purposes.",
         "Service Providers: We may share data with trusted third-party service providers who assist in operating our platform.",
@@ -54,7 +37,6 @@ const PrivacyPolicy = () => {
     },
     {
       title: "4. Data Security and Protection",
-      icon: <Lock className="w-5 h-5" />,
       content: [
         "Encryption: All data is encrypted in transit using TLS 1.3 and at rest using AES-256 encryption.",
         "Access Controls: Strict access controls ensure only authorized personnel can access user data.",
@@ -65,7 +47,6 @@ const PrivacyPolicy = () => {
     },
     {
       title: "5. Your Privacy Rights",
-      icon: <CheckCircle className="w-5 h-5" />,
       content: [
         "Access: You can request access to the personal information we hold about you.",
         "Correction: You can update or correct your personal information through your account settings.",
@@ -76,7 +57,6 @@ const PrivacyPolicy = () => {
     },
     {
       title: "6. Cookies and Tracking Technologies",
-      icon: <Eye className="w-5 h-5" />,
       content: [
         "Essential Cookies: Required for basic functionality like authentication and security.",
         "Analytics Cookies: Help us understand how users interact with our platform to improve the experience.",
@@ -87,7 +67,6 @@ const PrivacyPolicy = () => {
     },
     {
       title: "7. AI and Machine Learning",
-      icon: <Database className="w-5 h-5" />,
       content: [
         "Model Training: We may use aggregated, anonymized data to improve our AI models and services.",
         "Content Processing: Your content is processed by our AI systems to provide writing assistance and suggestions.",
@@ -98,7 +77,6 @@ const PrivacyPolicy = () => {
     },
     {
       title: "8. International Data Transfers",
-      icon: <Globe className="w-5 h-5" />,
       content: [
         "Global Service: Our service is provided globally, which may require transferring data across borders.",
         "Adequate Protection: We ensure adequate protection for international data transfers through appropriate safeguards.",
@@ -109,7 +87,6 @@ const PrivacyPolicy = () => {
     },
     {
       title: "9. Data Retention",
-      icon: <Calendar className="w-5 h-5" />,
       content: [
         "Account Data: Retained for as long as your account is active or as needed to provide services.",
         "Content Data: Retained according to your subscription plan and deletion requests.",
@@ -120,7 +97,6 @@ const PrivacyPolicy = () => {
     },
     {
       title: "10. Children's Privacy",
-      icon: <Shield className="w-5 h-5" />,
       content: [
         "Age Requirement: Our service is not intended for children under 13 years of age.",
         "No Collection: We do not knowingly collect personal information from children under 13.",
@@ -132,133 +108,55 @@ const PrivacyPolicy = () => {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="bg-white shadow-md border-b border-gray-200 sticky top-0 z-20">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <header className="border-b border-gray-200 sticky top-0 bg-white">
+        <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link
-                to="/signup"
-                className="inline-flex items-center gap-2 text-gray-700 hover:text-blue-600 transition-colors duration-200 font-medium"
-                aria-label="Back to signup page"
-              >
-                <ArrowLeft className="w-5 h-5" />
-                Back to Signup
-              </Link>
-            </div>
-            <div className="flex items-center gap-3">
-              <Shield className="w-7 h-7 text-blue-600" />
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Privacy Policy</h1>
-            </div>
+           <img src="/Images/logo_genwrite_2.png" alt="GenWrite Logo" class="w-40 h-auto"/>
           </div>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className="max-w-4xl mx-auto px-4 py-8">
         {/* Introduction */}
-        <section className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6 sm:p-8 mb-10">
-          <div className="flex flex-col sm:flex-row items-start gap-6 mb-8">
-            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
-              <Lock className="w-6 h-6 text-blue-600" />
-            </div>
-            <div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">Your Privacy Matters</h2>
-              <p className="text-gray-600 leading-relaxed text-base sm:text-lg">
-                At GenWrite, we are committed to protecting your privacy and ensuring the security
-                of your personal information. This Privacy Policy explains how we collect, use, and
-                safeguard your data when you use our AI writing platform.
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-            {[
-              { icon: <Calendar className="w-5 h-5 text-blue-600" />, title: "Last Updated", value: lastUpdated },
-              { icon: <Shield className="w-5 h-5 text-green-600" />, title: "GDPR Compliant", value: "Full Compliance" },
-              { icon: <Lock className="w-5 h-5 text-purple-600" />, title: "Encryption", value: "AES-256" },
-            ].map((item, index) => (
-              <div
-                key={index}
-                className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl border border-gray-100 hover:bg-gray-100 transition-colors duration-200"
-              >
-                {item.icon}
-                <div>
-                  <div className="font-semibold text-gray-900 text-sm sm:text-base">{item.title}</div>
-                  <div className="text-gray-600 text-sm">{item.value}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Privacy Principles */}
-        <section className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-3xl p-6 sm:p-8 mb-10 border border-blue-200 shadow-md">
-          <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
-            <CheckCircle className="w-6 h-6 text-blue-600" />
-            Our Privacy Principles
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {[
-              "Transparency in data collection",
-              "Minimal data collection",
-              "User control over data",
-              "Strong security measures",
-              "No data selling",
-              "Regular policy updates",
-            ].map((principle, index) => (
-              <div key={index} className="flex items-center gap-3">
-                <div className="w-3 h-3 bg-blue-500 rounded-full flex-shrink-0"></div>
-                <span className="text-gray-700 font-medium text-base">{principle}</span>
-              </div>
-            ))}
-          </div>
+        <h1 className="text-4xl font-semibold text-gray-900 mb-5">Privacy Policy</h1>
+        <section className="mb-8">
+          <p className="text-gray-600 leading-relaxed">
+            At GenWrite, we are committed to protecting your privacy and ensuring the security of
+            your personal information. This Privacy Policy explains how we collect, use, and
+            safeguard your data when you use our AI writing platform.
+          </p>
+          <p className="text-gray-600 text-sm mt-2">Last Updated: {lastUpdated}</p>
         </section>
 
         {/* Privacy Sections */}
         <div className="space-y-8">
           {sections.map((section, index) => (
-            <section
-              key={index}
-              className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6 sm:p-8 transition-all duration-200 hover:shadow-xl"
-            >
-              <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6 flex items-center gap-4">
-                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
-                  {section.icon}
-                </div>
-                {section.title}
-              </h3>
-              <div className="space-y-4">
+            <section key={index}>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">{section.title}</h3>
+              <ul className="list-disc pl-5 space-y-2">
                 {section.content.map((paragraph, pIndex) => (
-                  <div key={pIndex} className="flex items-start gap-3">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                    <p className="text-gray-600 leading-relaxed text-base">{paragraph}</p>
-                  </div>
+                  <li key={pIndex} className="text-gray-600">
+                    {paragraph}
+                  </li>
                 ))}
-              </div>
+              </ul>
             </section>
           ))}
         </div>
 
         {/* Data Rights Section */}
-        <section className="bg-blue-50 border border-blue-200 rounded-3xl p-6 sm:p-8 mt-10 shadow-md">
-          <div className="flex flex-col sm:flex-row items-start gap-6 mb-8">
-            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
-              <Download className="w-6 h-6 text-blue-600" />
-            </div>
-            <div>
-              <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3">Exercise Your Data Rights</h3>
-              <p className="text-gray-600 leading-relaxed text-base">
-                You have the right to access, correct, delete, or export your personal data. Contact
-                us to exercise any of these rights or if you have questions about our privacy
-                practices.
-              </p>
-            </div>
-          </div>
+        <section className="mt-8">
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">Exercise Your Data Rights</h3>
+          <p className="text-gray-600 leading-relaxed mb-4">
+            You have the right to access, correct, delete, or export your personal data. Contact us
+            to exercise any of these rights or if you have questions about our privacy practices.
+          </p>
           <div className="flex flex-col sm:flex-row gap-4">
             <a
               href="mailto:privacy@genwrite.com"
-              className="bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center gap-2 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors font-medium"
               aria-label="Contact privacy team via email"
             >
               <Mail className="w-4 h-4" />
@@ -266,7 +164,7 @@ const PrivacyPolicy = () => {
             </a>
             <Link
               to="/contact"
-              className="border border-blue-300 text-blue-700 px-6 py-3 rounded-xl font-semibold hover:bg-blue-100 transition-colors duration-200 flex items-center justify-center gap-2 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              className="inline-flex items-center gap-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-100 transition-colors font-medium"
               aria-label="Visit contact support page"
             >
               <Users className="w-4 h-4" />
@@ -276,12 +174,12 @@ const PrivacyPolicy = () => {
         </section>
 
         {/* Important Notice */}
-        <section className="bg-amber-50 border border-amber-200 rounded-3xl p-6 mt-8 shadow-md">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
+        <section className="mt-8">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5" />
             <div>
-              <h3 className="font-semibold text-amber-900 mb-2 text-lg">Policy Updates</h3>
-              <p className="text-amber-800 text-base leading-relaxed">
+              <h3 className="font-semibold text-gray-900 mb-2">Policy Updates</h3>
+              <p className="text-gray-600">
                 We may update this Privacy Policy from time to time. We will notify you of any
                 material changes by email or through our platform. Your continued use of our service
                 after such changes constitutes acceptance of the updated policy.

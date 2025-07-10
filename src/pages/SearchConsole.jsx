@@ -355,9 +355,6 @@ const SearchConsole = () => {
     )
     return ["all", ...urls]
   }, [blogs])
-  {
-    console.log({ blogUrls })
-  }
 
   // Ant Design Table Columns
   const columns = [

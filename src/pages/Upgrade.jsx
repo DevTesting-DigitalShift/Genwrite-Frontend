@@ -9,7 +9,6 @@ import { message } from "antd"
 
 const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
   const [customCredits, setCustomCredits] = useState(500)
-  const currentCredits = billingPeriod === "annual" ? plan.annualCredits : plan.credits
 
   const handleCustomCreditsChange = (e) => {
     const value = parseInt(e.target.value, 10)
@@ -330,11 +329,10 @@ const Upgrade = () => {
         name: "Basic Plan",
         priceMonthly: 20,
         priceAnnual: 199,
-        credits: 1500,
-        annualCredits: 18000,
+        credits: 1000,
         description: "Perfect for individuals getting started with AI content creation.",
         features: [
-          billingPeriod === "annual" ? "18,000 annual credits" : "1,000 monthly credits",
+          billingPeriod === "annual" ? "12,000 annual credits" : "1,000 monthly credits",
           "Blog generation: single, quick, multiple",
           "Keyword research",
           "Performance monitoring",
@@ -357,12 +355,11 @@ const Upgrade = () => {
         name: "GenWrite Pro",
         priceMonthly: 50,
         priceAnnual: 499,
-        credits: 5000,
-        annualCredits: 60000,
+        credits: 45000,
         description: "Advanced AI features with priority support for growing teams.",
         features: [
           "Everything in Basic, additionally:",
-          billingPeriod === "annual" ? "60,000 annual credits" : "5,000 monthly credits",
+          billingPeriod === "annual" ? "54,000 annual credits" : "4,500 monthly credits",
           "Competitor analysis",
           "Retry blog",
           "Regenerate content",
@@ -383,7 +380,6 @@ const Upgrade = () => {
         priceMonthly: "Custom",
         priceAnnual: "Custom",
         credits: "Unlimited",
-        annualCredits: "Unlimited",
         description: "Tailored solutions with unlimited access and dedicated support.",
         features: [
           "Unlimited credits",
@@ -408,7 +404,6 @@ const Upgrade = () => {
         priceMonthly: null,
         priceAnnual: null,
         credits: null,
-        annualCredits: null,
         description: "Flexible one-time credit purchase for occasional users.",
         features: [
           "Custom credit amount",

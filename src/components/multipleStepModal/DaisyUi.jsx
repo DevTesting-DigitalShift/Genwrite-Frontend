@@ -1,22 +1,28 @@
-import { useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
-import Carousel from "./Carousel";
-import { Info, Upload, X } from "lucide-react";
-import { packages } from "@constants/templates";
-import { useConfirmPopup } from "@/context/ConfirmPopupContext";
-import { createMultiBlog } from "@store/slices/blogSlice";
-import { getEstimatedCost } from "@utils/getEstimatedCost";
-import { Modal, Tooltip, message } from "antd";
+import { useState } from "react"
+import { useDispatch, useSelector } from "react-redux"
+import { useNavigate } from "react-router-dom"
+import Carousel from "./Carousel"
+import { Info, Upload, X } from "lucide-react"
+import { packages } from "@constants/templates"
+import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import { createMultiBlog } from "@store/slices/blogSlice"
+import { getEstimatedCost } from "@utils/getEstimatedCost"
+import { Modal, Select, Tooltip, message } from "antd"
 
 const MultiStepModal = ({ closeFnc }) => {
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
-  const { handlePopup } = useConfirmPopup();
-  const user = useSelector((state) => state.auth.user);
+  const dispatch = useDispatch()
+  const navigate = useNavigate()
+  const { handlePopup } = useConfirmPopup()
+  const user = useSelector((state) => state.auth.user)
 
-  const [currentStep, setCurrentStep] = useState(0);
-  const [recentlyUploadedCount, setRecentlyUploadedCount] = useState(null);
+  const [currentStep, setCurrentStep] = useState(0)
+  const [recentlyUploadedCount, setRecentlyUploadedCount] = useState(null)
+  const { Option } = Select
+  const [errors, setErrors] = useState({
+    topics: false,
+    keywords: false,
+    tone: false,
+  })
 
   const [formData, setFormData] = useState({
     templates: [],
@@ -40,52 +46,62 @@ const MultiStepModal = ({ closeFnc }) => {
     selectedDates: null,
     aiModel: "gemini",
     includeTableOfContents: false,
-  });
+  })
 
   const handleNext = () => {
     if (currentStep === 0) {
       if (formData.templates.length === 0) {
-        message.error("Please add at least one template.");
-        return;
+        message.error("Please add at least one template.")
+        return
       }
     }
     if (currentStep === 1) {
-      if (formData.topics.length === 0 && formData.topicInput.trim() === "") {
-        message.error("Please add at least one topic.");
-        return;
+      const newErrors = {
+        topics: formData.topics.length === 0 && formData.topicInput.trim() === "",
+        keywords:
+          !formData.performKeywordResearch &&
+          formData.keywords.length === 0 &&
+          formData.keywordInput.trim() === "",
+        tone: !formData.tone,
       }
-      if (!formData.tone) {
-        message.error("Please select a Tone of Voice.");
-        return;
+      setErrors(newErrors)
+      if (Object.values(newErrors).some((error) => error)) {
+        message.error("Please fill all required fields in this step.")
+        return
       }
     }
-    setCurrentStep((prev) => prev + 1);
-  };
+    setCurrentStep((prev) => prev + 1)
+  }
 
   const handlePrev = () => {
-    setCurrentStep((prev) => (prev > 0 ? prev - 1 : prev));
-  };
+    setCurrentStep((prev) => (prev > 0 ? prev - 1 : prev))
+  }
 
   const handleClose = () => {
-    closeFnc();
-  };
+    closeFnc()
+  }
 
   const handleSubmit = () => {
-    if (formData.topics.length === 0 && formData.topicInput.trim() === "") {
-      message.error("Please add at least one topic.");
-      return;
+    const newErrors = {
+      topics: formData.topics.length === 0 && formData.topicInput.trim() === "",
+      keywords:
+        !formData.performKeywordResearch &&
+        formData.keywords.length === 0 &&
+        formData.keywordInput.trim() === "",
+      tone: !formData.tone,
     }
-    if (!formData.tone) {
-      message.error("Please select a Tone of Voice.");
-      return;
+    setErrors(newErrors)
+    if (Object.values(newErrors).some((error) => error)) {
+      message.error("Please fill all required fields.")
+      return
     }
     if (formData.numberOfBlogs < 1) {
-      message.error("Number of blogs must be at least 1.");
-      return;
+      message.error("Number of blogs must be at least 1.")
+      return
     }
     if (formData.numberOfBlogs > 10) {
-      message.error("Number of blogs must be at most 10.");
-      return;
+      message.error("Number of blogs must be at most 10.")
+      return
     }
 
     handlePopup({
@@ -106,240 +122,261 @@ const MultiStepModal = ({ closeFnc }) => {
         </>
       ),
       onConfirm: () => {
-        dispatch(createMultiBlog({ blogData: formData, navigate }));
-        handleClose();
+        dispatch(createMultiBlog({ blogData: formData, navigate }))
+        handleClose()
       },
-    });
-  };
+    })
+  }
 
   const handlePackageSelect = (index) => {
-    const selectedPackageName = packages[index].name;
-    const isSelected = formData.templates.includes(selectedPackageName);
+    const selectedPackageName = packages[index].name
+    const isSelected = formData.templates.includes(selectedPackageName)
 
     if (isSelected) {
       setFormData((prev) => ({
         ...prev,
         templates: prev.templates.filter((name) => name !== selectedPackageName),
-      }));
+      }))
     } else if (formData.templates.length < 3) {
       setFormData((prev) => ({
         ...prev,
         templates: [...prev.templates, selectedPackageName],
-      }));
+      }))
     } else {
-      message.error("You can select a maximum of 3 templates.");
+      message.error("You can select a maximum of 3 templates.")
     }
-  };
+  }
 
   const handleInputChange = (e) => {
-    const { name, value, type } = e.target;
-    const val = type === "number" ? parseInt(value, 10) || 0 : value;
+    const { name, value, type } = e.target
+    const val = type === "number" ? parseInt(value, 10) || 0 : value
     setFormData({
       ...formData,
       [name]: val,
-    });
-  };
+    })
+  }
 
   const handleCheckboxChange = async (e) => {
-    const { name, checked } = e.target;
+    const { name, checked } = e.target
     if (name === "wordpressPostStatus" && checked) {
       try {
         if (!user?.wordpressLink) {
           message.error(
             "Please connect your WordPress account in your profile before enabling automatic posting."
-          );
-          navigate("/profile");
-          return;
+          )
+          navigate("/profile")
+          return
         }
       } catch {
-        message.error("Failed to check profile. Please try again.");
-        return;
+        message.error("Failed to check profile. Please try again.")
+        return
       }
     }
     setFormData({
       ...formData,
       [name]: checked,
-    });
-  };
+    })
+    if (name === "performKeywordResearch") {
+      setErrors((prev) => ({ ...prev, keywords: false }))
+    }
+  }
 
   const handleTopicInputChange = (e) => {
-    setFormData((prev) => ({ ...prev, topicInput: e.target.value }));
-  };
+    setFormData((prev) => ({ ...prev, topicInput: e.target.value }))
+    setErrors((prev) => ({ ...prev, topics: false }))
+  }
 
   const handleKeywordInputChange = (e) => {
-    setFormData((prev) => ({ ...prev, keywordInput: e.target.value }));
-  };
+    setFormData((prev) => ({ ...prev, keywordInput: e.target.value }))
+    setErrors((prev) => ({ ...prev, keywords: false }))
+  }
 
   const handleAddTopic = () => {
-    const inputValue = formData.topicInput;
-    if (inputValue.trim() !== "") {
-      const existing = formData.topics.map((t) => t.toLowerCase().trim());
-      const newTopics = inputValue
-        .split(",")
-        .map((t) => t.trim())
-        .filter((t) => t !== "" && !existing.includes(t.toLowerCase()));
-
-      if (newTopics.length > 0) {
-        setFormData((prev) => ({
-          ...prev,
-          topics: [...prev.topics, ...newTopics],
-          topicInput: "",
-        }));
-        return true;
-      } else {
-        setFormData((prev) => ({ ...prev, topicInput: "" }));
-        return false;
-      }
+    const inputValue = formData.topicInput
+    if (inputValue.trim() === "") {
+      setErrors((prev) => ({ ...prev, topics: true }))
+      message.error("Please enter a topic.")
+      return false
     }
-    return false;
-  };
+
+    const existing = formData.topics.map((t) => t.toLowerCase().trim())
+    const newTopics = inputValue
+      .split(",")
+      .map((t) => t.trim())
+      .filter((t) => t !== "" && !existing.includes(t.toLowerCase()))
+
+    if (newTopics.length === 0) {
+      setErrors((prev) => ({ ...prev, topics: true }))
+      message.error("Please enter valid, non-duplicate topics separated by commas.")
+      setFormData((prev) => ({ ...prev, topicInput: "" }))
+      return false
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      topics: [...prev.topics, ...newTopics],
+      topicInput: "",
+    }))
+    setErrors((prev) => ({ ...prev, topics: false }))
+    return true
+  }
 
   const handleRemoveTopic = (index) => {
     setFormData((prev) => ({
       ...prev,
       topics: prev.topics.filter((_, i) => i !== index),
-    }));
-  };
+    }))
+  }
 
   const handleAddKeyword = () => {
-    const inputValue = formData.keywordInput;
-    if (inputValue.trim() !== "") {
-      const existing = formData.keywords.map((k) => k.toLowerCase().trim());
-      const newKeywords = inputValue
-        .split(",")
-        .map((k) => k.trim())
-        .filter((k) => k !== "" && !existing.includes(k.toLowerCase()));
-
-      if (newKeywords.length > 0) {
-        setFormData((prev) => ({
-          ...prev,
-          keywords: [...prev.keywords, ...newKeywords],
-          keywordInput: "",
-        }));
-        return true;
-      } else {
-        setFormData((prev) => ({ ...prev, keywordInput: "" }));
-        return false;
-      }
+    const inputValue = formData.keywordInput
+    if (inputValue.trim() === "") {
+      setErrors((prev) => ({ ...prev, keywords: true }))
+      message.error("Please enter a keyword.")
+      return false
     }
-    return false;
-  };
+
+    const existing = formData.keywords.map((k) => k.toLowerCase().trim())
+    const newKeywords = inputValue
+      .split(",")
+      .map((k) => k.trim())
+      .filter((k) => k !== "" && !existing.includes(k.toLowerCase()))
+
+    if (newKeywords.length === 0) {
+      setErrors((prev) => ({ ...prev, keywords: true }))
+      message.error("Please enter valid, non-duplicate keywords separated by commas.")
+      setFormData((prev) => ({ ...prev, keywordInput: "" }))
+      return false
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      keywords: [...prev.keywords, ...newKeywords],
+      keywordInput: "",
+    }))
+    setErrors((prev) => ({ ...prev, keywords: false }))
+    return true
+  }
 
   const handleRemoveKeyword = (index) => {
     setFormData((prev) => ({
       ...prev,
       keywords: prev.keywords.filter((_, i) => i !== index),
-    }));
-  };
+    }))
+  }
 
   const handleTopicKeyPress = (e) => {
     if (e.key === "Enter") {
-      e.preventDefault();
-      handleAddTopic();
-      handleAddKeyword();
+      e.preventDefault()
+      const topicAdded = handleAddTopic()
+      if (!formData.performKeywordResearch && topicAdded) {
+        handleAddKeyword()
+      }
     }
-  };
+  }
 
   const handleImageSourceChange = (source) => {
-    setFormData((prev) => ({ ...prev, imageSource: source }));
-  };
+    setFormData((prev) => ({ ...prev, imageSource: source }))
+  }
 
   const handleCSVUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const file = e.target.files?.[0]
+    if (!file) return
 
     if (!file.name.toLowerCase().endsWith(".csv")) {
-      message.error("Invalid file type. Please upload a .csv file.");
-      e.target.value = null;
-      return;
+      message.error("Invalid file type. Please upload a .csv file.")
+      e.target.value = null
+      return
     }
 
-    const maxSizeInBytes = 20 * 1024;
+    const maxSizeInBytes = 20 * 1024
     if (file.size > maxSizeInBytes) {
-      message.error("File size exceeds 20KB limit. Please upload a smaller file.");
-      e.target.value = null;
-      return;
+      message.error("File size exceeds 20KB limit. Please upload a smaller file.")
+      e.target.value = null
+      return
     }
 
-    const reader = new FileReader();
+    const reader = new FileReader()
     reader.onload = (event) => {
-      const text = event.target?.result;
-      if (!text) return;
+      const text = event.target?.result
+      if (!text) return
 
-      const lines = text.trim().split(/\r?\n/).slice(1);
+      const lines = text.trim().split(/\r?\n/).slice(1)
       const keywords = lines
         .map((line) => {
-          const parts = line.split(",");
-          return parts.length >= 2 ? parts[1].trim() : null;
+          const parts = line.split(",")
+          return parts.length >= 2 ? parts[1].trim() : null
         })
-        .filter(Boolean);
+        .filter(Boolean)
 
-      const existingTopics = formData.topics.map((t) => t.toLowerCase().trim());
+      const existingTopics = formData.topics.map((t) => t.toLowerCase().trim())
       const uniqueNewTopics = keywords.filter(
         (kw) => !existingTopics.includes(kw.toLowerCase().trim())
-      );
+      )
 
       if (uniqueNewTopics.length === 0) {
-        message.warning("No new topics found in the CSV.");
-        return;
+        message.error("No new topics found in the CSV.")
+        return
       }
 
       setFormData((prev) => ({
         ...prev,
         topics: [...prev.topics, ...uniqueNewTopics],
-      }));
+      }))
+      setErrors((prev) => ({ ...prev, topics: false }))
 
       if (uniqueNewTopics.length > 8) {
-        setRecentlyUploadedCount(uniqueNewTopics.length);
-        setTimeout(() => setRecentlyUploadedCount(null), 5000);
+        setRecentlyUploadedCount(uniqueNewTopics.length)
+        setTimeout(() => setRecentlyUploadedCount(null), 5000)
       }
-    };
-    reader.readAsText(file);
-    e.target.value = null;
-  };
+    }
+    reader.readAsText(file)
+    e.target.value = null
+  }
 
   const handleCSVKeywordUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const file = e.target.files?.[0]
+    if (!file) return
 
-    const reader = new FileReader();
+    const reader = new FileReader()
     reader.onload = (event) => {
-      const text = event.target?.result;
-      if (!text) return;
+      const text = event.target?.result
+      if (!text) return
 
-      const lines = text.trim().split(/\r?\n/).slice(1);
+      const lines = text.trim().split(/\r?\n/).slice(1)
       const keywords = lines
         .map((line) => {
-          const parts = line.split(",");
-          return parts.length >= 2 ? parts[1].trim() : null;
+          const parts = line.split(",")
+          return parts.length >= 2 ? parts[1].trim() : null
         })
-        .filter(Boolean);
+        .filter(Boolean)
 
-      const existingKeywords = formData.keywords.map((t) => t.toLowerCase().trim());
+      const existingKeywords = formData.keywords.map((t) => t.toLowerCase().trim())
       const uniqueNewKeywords = keywords.filter(
         (kw) => !existingKeywords.includes(kw.toLowerCase().trim())
-      );
+      )
 
       if (uniqueNewKeywords.length === 0) {
-        message.warning("No new keywords found in the CSV.");
-        return;
+        message.error("No new keywords found in the CSV.")
+        return
       }
 
       setFormData((prev) => ({
         ...prev,
         keywords: [...prev.keywords, ...uniqueNewKeywords],
-      }));
+      }))
+      setErrors((prev) => ({ ...prev, keywords: false }))
 
       if (uniqueNewKeywords.length > 8) {
-        setRecentlyUploadedCount(uniqueNewKeywords.length);
-        setTimeout(() => setRecentlyUploadedCount(null), 5000);
+        setRecentlyUploadedCount(uniqueNewKeywords.length)
+        setTimeout(() => setRecentlyUploadedCount(null), 5000)
       }
-    };
-    reader.readAsText(file);
-    e.target.value = null;
-  };
+    }
+    reader.readAsText(file)
+    e.target.value = null
+  }
 
-  const steps = ["Select Template's", "Add Details", "Configure Output"];
+  const steps = ["Select Template's", "Add Details", "Configure Output"]
 
   return (
     <Modal
@@ -358,7 +395,7 @@ const MultiStepModal = ({ closeFnc }) => {
           )}
           <button
             onClick={currentStep === 2 ? handleSubmit : handleNext}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="px-4 py-2 text-sm font-medium text-white bg-[#1B6FC9] rounded-md hover:bg-[#1B6FC9]/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             {currentStep === 2 ? "Generate Blogs" : "Next"}
           </button>
@@ -366,15 +403,10 @@ const MultiStepModal = ({ closeFnc }) => {
       }
       width={800}
       centered
+      transitionName=""
+      maskTransitionName=""
     >
-      <div className="p-6">
-        <div className="w-full bg-gray-100 h-2 rounded-full my-6">
-          <div
-            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-            style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
-          />
-        </div>
-
+      <div className="p-4">
         {currentStep === 0 && (
           <div>
             <p className="text-sm text-gray-600 mb-4">
@@ -428,12 +460,14 @@ const MultiStepModal = ({ closeFnc }) => {
                   value={formData.topicInput}
                   onChange={handleTopicInputChange}
                   onKeyDown={handleTopicKeyPress}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                  className={`flex-1 px-3 py-2 border ${
+                    errors.topics ? "border-red-500" : "border-gray-300"
+                  } rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-50`}
                   placeholder="e.g., digital marketing trends, AI in business"
                 />
                 <button
                   onClick={handleAddTopic}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700"
+                  className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm hover:bg-[#1B6FC9]/90"
                 >
                   Add
                 </button>
@@ -485,14 +519,14 @@ const MultiStepModal = ({ closeFnc }) => {
                   onChange={handleCheckboxChange}
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]"></div>
               </label>
             </div>
             {!formData.performKeywordResearch && (
               <div className="space-y-6">
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
-                    Keywords
+                    Keywords <span className="text-red-500">*</span>
                     <Tooltip title="Upload a .csv file in the format: `S.No., Keyword`">
                       <div className="cursor-pointer">
                         <Info size={16} className="text-blue-500" />
@@ -505,12 +539,14 @@ const MultiStepModal = ({ closeFnc }) => {
                       value={formData.keywordInput}
                       onChange={handleKeywordInputChange}
                       onKeyDown={handleTopicKeyPress}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                      className={`flex-1 px-3 py-2 border ${
+                        errors.keywords ? "border-red-500" : "border-gray-300"
+                      } rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-50`}
                       placeholder="e.g., digital marketing trends, AI in business"
                     />
                     <button
                       onClick={handleAddKeyword}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700"
+                      className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm hover:bg-[#1B6FC9]/90"
                     >
                       Add
                     </button>
@@ -519,6 +555,9 @@ const MultiStepModal = ({ closeFnc }) => {
                       <input type="file" accept=".csv" onChange={handleCSVKeywordUpload} hidden />
                     </label>
                   </div>
+                  {errors.keywords && (
+                    <p className="mt-1 text-sm text-red-500">Please add at least one keyword</p>
+                  )}
                   <div className="flex flex-wrap gap-2 mt-2 min-h-[28px]">
                     {formData.keywords
                       .slice()
@@ -543,8 +582,7 @@ const MultiStepModal = ({ closeFnc }) => {
                       ))}
                     {(formData.keywords.length > 18 || recentlyUploadedCount) && (
                       <span className="text-xs font-medium text-blue-600 self-center">
-                        {formData.keywords.length > 18 &&
-                          `+${formData.keywords.length - 18} more `}
+                        {formData.keywords.length > 18 && `+${formData.keywords.length - 18} more `}
                         {recentlyUploadedCount && `(+${recentlyUploadedCount} uploaded)`}
                       </span>
                     )}
@@ -557,24 +595,28 @@ const MultiStepModal = ({ closeFnc }) => {
                 <label htmlFor="tone" className="block text-sm font-medium text-gray-700 mb-1">
                   Tone of Voice <span className="text-red-500">*</span>
                 </label>
-                <select
-                  id="tone"
-                  name="tone"
+                <Select
+                  className="w-full"
                   value={formData.tone}
-                  onChange={handleInputChange}
-                  required
-                  className={`w-full px-3 py-2 border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 ${
-                    !formData.tone ? "border-red-300 text-gray-500" : "border-gray-300"
-                  }`}
+                  onChange={(value) => {
+                    setFormData((prev) => ({ ...prev, tone: value }))
+                    setErrors((prev) => ({ ...prev, tone: false }))
+                  }}
+                  placeholder="Select tone"
+                  status={errors.tone ? "error" : ""}
                 >
-                  <option disabled value="">
-                    -- Select a Tone --
-                  </option>
-                  <option value="professional">Professional</option>
-                  <option value="friendly">Friendly</option>
-                  <option value="casual">Casual</option>
-                  <option value="formal">Formal</option>
-                </select>
+                  <Option value="">Select Tone</Option>
+                  <Option value="professional">Professional</Option>
+                  <Option value="casual">Casual</Option>
+                  <Option value="friendly">Friendly</Option>
+                  <Option value="formal">Formal</Option>
+                  <Option value="conversational">Conversational</Option>
+                  <Option value="witty">Witty</Option>
+                  <Option value="informative">Informative</Option>
+                  <Option value="inspirational">Inspirational</Option>
+                  <Option value="persuasive">Persuasive</Option>
+                  <Option value="empathetic">Empathetic</Option>
+                </Select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -586,19 +628,17 @@ const MultiStepModal = ({ closeFnc }) => {
                     min="500"
                     max="5000"
                     value={formData.userDefinedLength}
-                    className={`w-full h-1 rounded-lg appearance-none cursor-pointer 
-                    bg-gradient-to-r from-[#1B6FC9] to-gray-100
-                    [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#1B6FC9]`}
-                    style={{
-                      background: `linear-gradient(to right, #1B6FC9 ${
-                        ((formData.userDefinedLength - 500) / 4500) * 100
-                      }%, #E5E7EB ${((formData.userDefinedLength - 500) / 4500) * 100}%)`,
-                    }}
+                      className="w-full h-1 rounded-lg appearance-none cursor-pointer bg-gradient-to-r from-[#1B6FC9] to-gray-100 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#1B6FC9]"
+                      style={{
+                        background: `linear-gradient(to right, #1B6FC9 ${
+                          ((formData.userDefinedLength - 500) / 4500) * 100
+                        }%, #E5E7EB ${((formData.userDefinedLength - 500) / 4500) * 100}%)`,
+                      }}
                     onChange={(e) => {
                       setFormData((prev) => ({
                         ...prev,
-                        userDefinedLength: e.target.value,
-                      }));
+                        userDefinedLength: parseInt(e.target.value, 10),
+                      }))
                     }}
                   />
                   <span className="mt-2 text-sm text-gray-600 block">
@@ -630,7 +670,7 @@ const MultiStepModal = ({ closeFnc }) => {
                     }
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                   />
-                  <span className="ml-2 text-sm text-gray-700">Gemini</span>
+                  <span className="block text-sm font-medium leading-6 text-gray-900 ml-2">Gemini</span>
                 </label>
                 <label className="inline-flex items-center cursor-pointer">
                   <input
@@ -646,7 +686,7 @@ const MultiStepModal = ({ closeFnc }) => {
                     }
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                   />
-                  <span className="ml-2 text-sm text-gray-700">ChatGPT</span>
+                  <span className="block text-sm font-medium leading-6 text-gray-900 ml-2">ChatGPT</span>
                 </label>
                 <label className="inline-flex items-center cursor-pointer">
                   <input
@@ -662,7 +702,7 @@ const MultiStepModal = ({ closeFnc }) => {
                     }
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                   />
-                  <span className="ml-2 text-sm text-gray-700">Claude</span>
+                  <span  className="block text-sm font-medium leading-6 text-gray-900 ml-2">Claude</span>
                 </label>
               </div>
             </div>
@@ -671,23 +711,6 @@ const MultiStepModal = ({ closeFnc }) => {
               <fieldset className="mt-2">
                 <legend className="sr-only">Image source selection</legend>
                 <div className="flex items-center gap-x-6">
-                  <div className="flex items-center gap-x-2">
-                    <input
-                      id="image-source-ai"
-                      name="image-source"
-                      type="radio"
-                      value="ai"
-                      checked={formData.imageSource === "ai"}
-                      onChange={() => handleImageSourceChange("ai")}
-                      className="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <label
-                      htmlFor="image-source-ai"
-                      className="block text-sm font-medium leading-6 text-gray-900"
-                    >
-                      AI Generated Images
-                    </label>
-                  </div>
                   <div className="flex items-center gap-x-2">
                     <input
                       id="image-source-unsplash"
@@ -703,6 +726,23 @@ const MultiStepModal = ({ closeFnc }) => {
                       className="block text-sm font-medium leading-6 text-gray-900"
                     >
                       Stock Images
+                    </label>
+                  </div>
+                  <div className="flex items-center gap-x-2">
+                    <input
+                      id="image-source-ai"
+                      name="image-source"
+                      type="radio"
+                      value="ai"
+                      checked={formData.imageSource === "ai"}
+                      onChange={() => handleImageSourceChange("ai")}
+                      className="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <label
+                      htmlFor="image-source-ai"
+                      className="block text-sm font-medium leading-6 text-gray-900"
+                    >
+                      AI Generated Images
                     </label>
                   </div>
                 </div>
@@ -724,7 +764,7 @@ const MultiStepModal = ({ closeFnc }) => {
                     onChange={handleCheckboxChange}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]"></div>
                 </label>
               </div>
               <div className="flex items-center justify-between">
@@ -742,7 +782,7 @@ const MultiStepModal = ({ closeFnc }) => {
                     onChange={handleCheckboxChange}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]"></div>
                 </label>
               </div>
             </div>
@@ -761,7 +801,7 @@ const MultiStepModal = ({ closeFnc }) => {
                   onChange={handleCheckboxChange}
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]"></div>
               </label>
             </div>
             <div className="pt-4 border-t border-gray-200">
@@ -798,7 +838,7 @@ const MultiStepModal = ({ closeFnc }) => {
                     onChange={handleCheckboxChange}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]"></div>
                 </label>
               </div>
               {formData.wordpressPostStatus && (
@@ -817,7 +857,7 @@ const MultiStepModal = ({ closeFnc }) => {
                       onChange={handleCheckboxChange}
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]"></div>
                   </label>
                 </div>
               )}
@@ -826,7 +866,7 @@ const MultiStepModal = ({ closeFnc }) => {
         )}
       </div>
     </Modal>
-  );
-};
+  )
+}
 
-export default MultiStepModal;
+export default MultiStepModal

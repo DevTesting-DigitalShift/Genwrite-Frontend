@@ -24,11 +24,6 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal }) =
     selectedKeywords,
   } = useSelector((state) => state.analysis)
 
-  // Debug: Log selectedKeywords to verify Redux state
-  useEffect(() => {
-    console.log("KeywordResearchModel: Current selectedKeywords in Redux:", selectedKeywords)
-  }, [selectedKeywords])
-
   // Clear keywordAnalysisResult when keywords become empty, but preserve selectedKeywords
   useEffect(() => {
     if (keywords.length === 0) {
@@ -172,7 +167,6 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal }) =
   }
 
   const proceedWithSelectedKeywords = async (finalSelectedKeywords, type) => {
-    console.log("KeywordResearchModel: Dispatching finalSelectedKeywords:", finalSelectedKeywords)
     await dispatch(
       setSelectedKeywords({
         focusKeywords: finalSelectedKeywords,
@@ -253,7 +247,6 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal }) =
   // Modified cleanup to avoid resetting selectedKeywords
   useEffect(() => {
     return () => {
-      console.log("KeywordResearchModel: Unmounting, clearing keywordAnalysis only")
       dispatch(clearKeywordAnalysis()) // Ensure this does not clear selectedKeywords
       setKeywords([])
       setNewKeyword("")
@@ -357,7 +350,6 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal }) =
                         allKeywords: selected,
                       })
                     )
-                    console.log("Table selected keywords:", selected)
                   },
                   getCheckboxProps: (record) => ({
                     name: record.keyword,

@@ -1,0 +1,1 @@
+const i=Object.freeze({analysis:{competitors:10,keywords:1},blog:{quick:5,proofread:5,single:10},aiImages:10});function n(o,s="gemini"){const t=o.split(".");let e=t.length==1?i[o]:i[t[0]][t[1]];if(!e)throw new Error("Unknown Operation: No cost avaliable");return s.toLowerCase()!="gemini"&&(e=Math.ceil(1.5*e)),e}export{n as g};

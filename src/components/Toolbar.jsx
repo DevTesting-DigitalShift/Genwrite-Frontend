@@ -31,7 +31,7 @@ const Toolbar = ({ editor }) => {
   const activeStyle = "p-2 rounded bg-blue-100 text-blue-700 border border-blue-400"
 
   return (
-    <div className="flex flex-wrap gap-2 bg-gray-50 p-3 border-b border-gray-200 rounded-t-xl shadow-md">
+    <div className="flex flex-wrap gap-2 bg-gray-50 p-3 border-b border-gray-200 shadow-md">
       <button
         onClick={() => editor.chain().focus().toggleBold().run()}
         className={editor.isActive("bold") ? activeStyle : buttonStyle}
