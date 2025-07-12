@@ -1,117 +1,92 @@
-import { Table, Tag, Tooltip, Input, DatePicker, Select, message } from "antd"
-import { motion, AnimatePresence } from "framer-motion"
-import { useEffect, useState } from "react"
-import { useNavigate } from "react-router-dom"
-import { useDispatch, useSelector } from "react-redux"
-import { SearchOutlined } from "@ant-design/icons"
-import { loadUser } from "@api/authApi"
-import { Helmet } from "react-helmet"
-
-// [s ] DONE filter in blogs to search functionality
-// [ s] DONE link if the status is completed else not
-// [s ] DONE date range filter near to search - add line blog this to this and date this use from ant design
+import { Table, Tag, Tooltip, Input, Select, Spin, Empty } from "antd";
+import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { SearchOutlined } from "@ant-design/icons";
+import { Helmet } from "react-helmet";
+import dayjs from "dayjs";
+import { getCreditLogs } from "@store/slices/creditLogSlice";
 
 const CreditLogsTable = () => {
-  const [logs, setLogs] = useState([])
-  const [filteredLogs, setFilteredLogs] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [searchText, setSearchText] = useState("")
-  const [dateRange, setDateRange] = useState([])
-  const [user, setUser] = useState(null)
-  const navigate = useNavigate()
-  const { RangePicker } = DatePicker
-  const dispatch = useDispatch()
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 10,
-  })
+  const dispatch = useDispatch();
+  const { Option } = Select;
 
-  const pageSizeOptions = [10, 20, 50, 100]
+  // Local State
+  const [searchText, setSearchText] = useState("");
+  const [dateRange, setDateRange] = useState("24h"); // Default to "Last 24 Hours"
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 10 });
 
+  const pageSizeOptions = [10, 20, 50, 100];
+
+  // Redux State
+  const { logs, loading, totalLogs } = useSelector((state) => state.creditLogs);
+
+  // Calculate date range based on selection
+  const getDateRangeParams = (range) => {
+    const now = dayjs();
+    switch (range) {
+      case "24h":
+        return {
+          start: now.subtract(24, "hours").startOf("hour").toISOString(),
+          end: now.endOf("hour").toISOString(),
+        };
+      case "7d":
+        return {
+          start: now.subtract(7, "days").startOf("day").toISOString(),
+          end: now.endOf("day").toISOString(),
+        };
+      case "30d":
+        return {
+          start: now.subtract(30, "days").startOf("day").toISOString(),
+          end: now.endOf("day").toISOString(),
+        };
+      default:
+        return {};
+    }
+  };
+
+  // Fetch Logs
   useEffect(() => {
-    const fetchCurrentUser = async () => {
-      try {
-        const user = await loadUser(navigate)
-        dispatch(setUser(user?.user))
-      } catch (err) {
-        console.error("User load failed:", err)
-      }
-    }
+    const params = {
+      page: pagination.current,
+      limit: pagination.pageSize,
+      ...(searchText ? { search: searchText } : {}),
+      ...getDateRangeParams(dateRange),
+    };
 
-    fetchCurrentUser()
-  }, [dispatch, navigate])
-
-  useEffect(() => {
-    const fetchLogs = async () => {
-      try {
-        setLogs(user?.creditLogs)
-        setFilteredLogs(user?.creditLogs)
-      } catch (err) {
-        message.error("Failed to load credit logs")
-        console.error("Failed to load credit logs", err)
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchLogs()
-  }, [user])
-
-  // Handle search and date filter
-  useEffect(() => {
-    let filtered = logs
-
-    // Search filter
-    if (searchText) {
-      filtered = filtered?.filter((log) =>
-        log.meta?.blogTitle?.toLowerCase().includes(searchText.toLowerCase())
-      )
-    }
-
-    // Date range filter
-    if (dateRange && dateRange.length === 2 && dateRange[0] && dateRange[1]) {
-      const start = dateRange[0].startOf("day").toDate()
-      const end = dateRange[1].endOf("day").toDate()
-
-      filtered = filtered.filter((log) => {
-        const logDate = new Date(log.createdAt)
-        return logDate >= start && logDate <= end
-      })
-    }
-
-    setFilteredLogs(filtered)
-  }, [searchText, dateRange, logs])
-
-  const handleBlogClick = (blog) => {
-    navigate(`/toolbox/${blog._id}`, { state: { blog } })
-  }
+    dispatch(getCreditLogs(params));
+  }, [dispatch, searchText, dateRange, pagination]);
 
   const columns = [
     {
       title: "Date",
       dataIndex: "createdAt",
       key: "createdAt",
-      sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      sorter: (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
       render: (date) => (
         <span className="text-sm text-gray-600">
-          {new Date(date).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}
+          {new Date(date).toLocaleString("en-IN", {
+            dateStyle: "medium",
+            timeStyle: "short",
+          })}
         </span>
       ),
     },
     {
       title: "Type",
-      dataIndex: "type",
-      key: "type",
+      dataIndex: "category",
+      key: "category",
       filters: [
         { text: "Deduction", value: "DEDUCTION" },
         { text: "Adjustment", value: "ADJUSTMENT" },
       ],
-      onFilter: (value, record) => record.type === value,
-      render: (type) => (
+      onFilter: (value, record) => record.category === value,
+      render: (category) => (
         <Tag
-          color={type === "DEDUCTION" ? "red" : "green"}
+          color={category === "DEDUCTION" ? "red" : "green"}
           className="font-medium px-2 py-0.5 rounded-full"
         >
-          {type}
+          {category}
         </Tag>
       ),
     },
@@ -121,7 +96,11 @@ const CreditLogsTable = () => {
       key: "amount",
       sorter: (a, b) => a.amount - b.amount,
       render: (amount) => (
-        <span className={`font-semibold ${amount < 0 ? "text-red-500" : "text-green-600"}`}>
+        <span
+          className={`font-semibold ${
+            amount < 0 ? "text-red-500" : "text-green-600"
+          }`}
+        >
           {amount > 0 ? `+${amount}` : amount}
         </span>
       ),
@@ -135,7 +114,10 @@ const CreditLogsTable = () => {
           {desc}
           {row.meta?.error && (
             <Tooltip title={row.meta.error}>
-              <Tag color="volcano" className="ml-2 cursor-pointer px-2 py-0.5 rounded-full">
+              <Tag
+                color="volcano"
+                className="ml-2 cursor-pointer px-2 py-0.5 rounded-full"
+              >
                 Error
               </Tag>
             </Tooltip>
@@ -147,22 +129,16 @@ const CreditLogsTable = () => {
       title: "Blog Topic",
       dataIndex: ["meta", "blogTitle"],
       key: "blogTitle",
-      render: (_, row) => (
-        <span
-          // onClick={() => navigate(`/toolbox/${row.meta.blogId}`)}
-          // className="text-blue-500 cursor-pointer hover:underline"
-        >
-          {row.meta?.blogTitle}
-        </span>
-      ),
+      render: (blogTitle) => <span>{blogTitle || "N/A"}</span>,
     },
-  ]
+  ];
 
   return (
     <AnimatePresence>
       <Helmet>
         <title>Credit Logs | GenWrite</title>
       </Helmet>
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -180,40 +156,53 @@ const CreditLogsTable = () => {
               onChange={(e) => setSearchText(e.target.value)}
               className="w-64 rounded-lg border-gray-200 hover:border-blue-300"
             />
-            <RangePicker
-              onChange={(dates) => setDateRange(dates || [])}
-              className="rounded-lg border-gray-200 hover:border-blue-300"
-              format="YYYY-MM-DD"
-            />
+            <Select
+              value={dateRange}
+              onChange={(value) => setDateRange(value)}
+              className="w-48 rounded-lg border-gray-200 hover:border-blue-300"
+              placeholder="Select date range"
+            >
+              <Option value="24h">Last 24 Hours</Option>
+              <Option value="7d">Last 7 Days</Option>
+              <Option value="30d">Last 30 Days</Option>
+            </Select>
             <Select
               value={pagination.pageSize}
               onChange={(value) => setPagination({ ...pagination, pageSize: value })}
-              options={pageSizeOptions.map((size) => ({ label: `${size} / page`, value: size }))}
-              style={{ width: 120 }}
+              options={pageSizeOptions.map((size) => ({
+                label: `${size} / page`,
+                value: size,
+              }))}
+              className="w-32 rounded-lg border-gray-200 hover:border-blue-300"
             />
           </div>
         </div>
+
         <Table
-          dataSource={filteredLogs}
+          dataSource={logs}
           columns={columns}
           loading={loading}
-          rowKey={(row, idx) => `${row.createdAt}-${idx}`}
+          rowKey={(row, idx) => `${row._id}-${idx}`}
           pagination={{
             current: pagination.current,
             pageSize: pagination.pageSize,
-            showSizeChanger: false,
+            total: totalLogs,
+            showSizeChanger: false, // Already handled by separate page size selector
             onChange: (page, pageSize) => {
-              setPagination({ current: page, pageSize })
+              setPagination({ current: page, pageSize });
             },
           }}
           className="rounded-xl overflow-hidden"
           rowClassName="hover:bg-gray-50 transition-colors"
           bordered={false}
           scroll={{ x: "max-content" }}
+          locale={{
+            emptyText: loading ? <Spin /> : <Empty description="No logs found" />,
+          }}
         />
       </motion.div>
     </AnimatePresence>
-  )
-}
+  );
+};
 
-export default CreditLogsTable
+export default CreditLogsTable;

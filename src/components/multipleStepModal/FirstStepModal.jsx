@@ -212,8 +212,6 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
             />
           </div>
 
-          {console.log(formData)}
-
           {/* Focus Keywords */}
           <div>
             <label className="block text-sm font-medium mb-2">
