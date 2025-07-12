@@ -38,7 +38,7 @@ export const fetchKeywordSuggestions = createAsyncThunk(
       const suggestions = await fetchGoogleSuggestions(query)
       return suggestions
     } catch (error) {
-      console.log("error", error)
+      console.error("error", error)
       return rejectWithValue("Failed to fetch suggestions")
     }
   }

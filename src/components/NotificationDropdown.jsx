@@ -9,7 +9,6 @@ import {
 } from "@ant-design/icons"
 import { useDispatch } from "react-redux"
 import { markAllNotificationsAsRead } from "@store/slices/userSlice"
-// import { load } from "@store/slices/authSlice"
 
 const { Text } = Typography
 
