@@ -380,7 +380,7 @@ const MultiStepModal = ({ closeFnc }) => {
 
   return (
     <Modal
-      title={`Step ${currentStep + 1} | ${steps[currentStep]}`}
+      title={`Step ${currentStep + 1} : ${steps[currentStep]}`}
       open={true}
       onCancel={handleClose}
       footer={

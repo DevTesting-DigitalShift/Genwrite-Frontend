@@ -323,7 +323,7 @@ const MyProjects = () => {
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <Link
               to="/blog-editor"
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
+              className="flex items-center gap-2 px-4 py-2 bg-[#1B6FC9]  hover:bg-[#1B6FC9]/90 text-white rounded-lg transition-colors text-sm font-medium"
             >
               <Plus className="w-4 h-4" />
               New Blog
@@ -333,162 +333,160 @@ const MyProjects = () => {
       </div>
 
       {/* Actions: Search, Filters, and New Blog */}
-        <div className="flex items-center gap-3 justify-end mb-5">
-          {/* Search Popover */}
-          <Popover
-            content={
-              <div className="flex flex-col gap-3 w-72 p-3">
-                <Select
-                  defaultValue="title"
-                  onChange={(value) => setSearchType(value)}
-                  options={[
-                    { value: "title", label: "Search by Title" },
-                    { value: "keywords", label: "Search by Focus Keywords" },
-                  ]}
-                  className="w-full"
-                />
+      <div className="flex items-center gap-3 justify-end mb-5">
+        {/* Search Popover */}
+        <Popover
+          content={
+            <div className="flex flex-col gap-3 w-72 p-3">
+              <Select
+                defaultValue="title"
+                onChange={(value) => setSearchType(value)}
+                options={[
+                  { value: "title", label: "Search by Title" },
+                  { value: "keywords", label: "Search by Focus Keywords" },
+                ]}
+                className="w-full"
+              />
+              <Input
+                placeholder={`Search by ${searchType === "title" ? "title" : "focus keywords"}...`}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onPressEnter={handleSearchModalOk}
+                className="w-full"
+              />
+              <Button
+                type="primary"
+                onClick={handleSearchModalOk}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Search
+              </Button>
+            </div>
+          }
+          title="Search Blogs"
+          trigger="click"
+          placement="bottomRight"
+          open={isSearchModalOpen}
+          onOpenChange={(visible) => setSearchModalOpen(visible)}
+        >
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Tooltip title="Search Blogs">
+              {isSearchOpen ? (
                 <Input
+                  autoFocus
                   placeholder={`Search by ${
                     searchType === "title" ? "title" : "focus keywords"
                   }...`}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   onPressEnter={handleSearchModalOk}
-                  className="w-full"
+                  onBlur={() => setSearchOpen(false)}
+                  className="w-48 rounded-lg border-gray-300 shadow-sm"
                 />
+              ) : (
                 <Button
-                  type="primary"
-                  onClick={handleSearchModalOk}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  Search
-                </Button>
-              </div>
-            }
-            title="Search Blogs"
-            trigger="click"
-            placement="bottomRight"
-            open={isSearchModalOpen}
-            onOpenChange={(visible) => setSearchModalOpen(visible)}
-          >
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Tooltip title="Search Blogs">
-                {isSearchOpen ? (
-                  <Input
-                    autoFocus
-                    placeholder={`Search by ${
-                      searchType === "title" ? "title" : "focus keywords"
-                    }...`}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    onPressEnter={handleSearchModalOk}
-                    onBlur={() => setSearchOpen(false)}
-                    className="w-48 rounded-lg border-gray-300 shadow-sm"
-                  />
-                ) : (
-                  <Button
-                    type="default"
-                    icon={<Search className="w-4 h-4" />}
-                    onClick={toggleSearch}
-                    className="p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100"
-                  />
-                )}
-              </Tooltip>
-            </motion.div>
-          </Popover>
+                  type="default"
+                  icon={<Search className="w-4 h-4" />}
+                  onClick={toggleSearch}
+                  className="p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100"
+                />
+              )}
+            </Tooltip>
+          </motion.div>
+        </Popover>
 
-          {/* Refresh Button */}
+        {/* Refresh Button */}
+        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+          <Tooltip title="Refresh">
+            <Button
+              type="default"
+              icon={<RefreshCcw className="w-4 h-4" />}
+              onClick={handleRefresh}
+              className="p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100"
+            />
+          </Tooltip>
+        </motion.div>
+
+        {/* Sort Popover */}
+        <Popover
+          open={isMenuOpen}
+          onOpenChange={(visible) => setMenuOpen(visible)}
+          trigger="click"
+          placement="bottomRight"
+          content={
+            <div className="min-w-[200px] rounded-lg space-y-1">
+              {menuOptions.map(({ label, icon, onClick }) => (
+                <Tooltip title={label} placement="left" key={label}>
+                  <button
+                    onClick={onClick}
+                    className="w-full flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                  >
+                    <span className="text-lg">{icon}</span>
+                    <span>{label}</span>
+                  </button>
+                </Tooltip>
+              ))}
+            </div>
+          }
+        >
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Tooltip title="Refresh">
+            <Tooltip title="Sort Blogs">
               <Button
                 type="default"
-                icon={<RefreshCcw className="w-4 h-4" />}
-                onClick={handleRefresh}
+                icon={<ArrowDownUp className="w-4 h-4" />}
+                onClick={toggleMenu}
                 className="p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100"
               />
             </Tooltip>
           </motion.div>
+        </Popover>
 
-          {/* Sort Popover */}
-          <Popover
-            open={isMenuOpen}
-            onOpenChange={(visible) => setMenuOpen(visible)}
-            trigger="click"
-            placement="bottomRight"
-            content={
-              <div className="min-w-[200px] rounded-lg space-y-1">
-                {menuOptions.map(({ label, icon, onClick }) => (
-                  <Tooltip title={label} placement="left" key={label}>
-                    <button
-                      onClick={onClick}
-                      className="w-full flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
-                    >
-                      <span className="text-lg">{icon}</span>
-                      <span>{label}</span>
-                    </button>
-                  </Tooltip>
-                ))}
-              </div>
-            }
-          >
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Tooltip title="Sort Blogs">
-                <Button
-                  type="default"
-                  icon={<ArrowDownUp className="w-4 h-4" />}
-                  onClick={toggleMenu}
-                  className="p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100"
-                />
-              </Tooltip>
-            </motion.div>
-          </Popover>
-
-          {/* Filter Popover */}
-          <Popover
-            open={funnelMenuOpen}
-            onOpenChange={(visible) => setFunnelMenuOpen(visible)}
-            trigger="click"
-            placement="bottomRight"
-            content={
-              <div className="min-w-[200px] rounded-lg space-y-1">
-                {funnelMenuOptions.map(({ label, icon, onClick }) => (
-                  <Tooltip title={label} placement="left" key={label}>
-                    <button
-                      onClick={onClick}
-                      className="w-full flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
-                    >
-                      <span className="text-lg">{icon}</span>
-                      <span>{label}</span>
-                    </button>
-                  </Tooltip>
-                ))}
-              </div>
-            }
-          >
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Tooltip title="Filter Blogs">
-                <Button
-                  type="default"
-                  icon={<Filter className="w-4 h-4" />}
-                  onClick={toggleFunnelMenu}
-                  className="p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100"
-                />
-              </Tooltip>
-            </motion.div>
-          </Popover>
-
-          {/* Reset Filters Button */}
+        {/* Filter Popover */}
+        <Popover
+          open={funnelMenuOpen}
+          onOpenChange={(visible) => setFunnelMenuOpen(visible)}
+          trigger="click"
+          placement="bottomRight"
+          content={
+            <div className="min-w-[200px] rounded-lg space-y-1">
+              {funnelMenuOptions.map(({ label, icon, onClick }) => (
+                <Tooltip title={label} placement="left" key={label}>
+                  <button
+                    onClick={onClick}
+                    className="w-full flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                  >
+                    <span className="text-lg">{icon}</span>
+                    <span>{label}</span>
+                  </button>
+                </Tooltip>
+              ))}
+            </div>
+          }
+        >
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Tooltip title="Reset Filters">
+            <Tooltip title="Filter Blogs">
               <Button
                 type="default"
-                icon={<RotateCcw className="w-4 h-4" />}
-                onClick={resetFilters}
+                icon={<Filter className="w-4 h-4" />}
+                onClick={toggleFunnelMenu}
                 className="p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100"
               />
             </Tooltip>
           </motion.div>
-        </div>
+        </Popover>
+
+        {/* Reset Filters Button */}
+        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+          <Tooltip title="Reset Filters">
+            <Button
+              type="default"
+              icon={<RotateCcw className="w-4 h-4" />}
+              onClick={resetFilters}
+              className="p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100"
+            />
+          </Tooltip>
+        </motion.div>
+      </div>
 
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -499,19 +497,12 @@ const MyProjects = () => {
           ))}
         </div>
       ) : currentItems.length === 0 ? (
-        <div className="text-center py-12">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <PenTool className="w-8 h-8 text-gray-400" />
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No blogs yet</h3>
-          <p className="text-gray-600 mb-6">Create your first blog to get started</p>
-          <Link
-            to="/blog-editor"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-          >
-            <Plus className="w-4 h-4" />
-            Create Your First Blog
-          </Link>
+        <div
+          className="flex flex-col justify-center items-center"
+          style={{ minHeight: "calc(100vh - 270px)" }}
+        >
+          <img src="Images/no-blog.png" alt="Trash" style={{ width: "8rem" }} />
+          <p className="text-xl mt-5">No blogs available.</p>
         </div>
       ) : (
         <>

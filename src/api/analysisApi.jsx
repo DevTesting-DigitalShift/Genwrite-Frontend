@@ -17,3 +17,13 @@ export const analyzeKeywords = async (keywords) => {
   })
   return response.data
 }
+
+export const fetchGoogleSuggestions = async (query) => {
+  const response = await axiosInstance.get("https://suggestqueries.google.com/complete/search", {
+    params: {
+      client: "firefox",
+      q: query,
+    },
+  })
+  return response.data[1] || []
+}

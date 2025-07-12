@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect } from "react";
 import {
   Save,
   Plus,
@@ -18,46 +18,53 @@ import {
   CheckCircle,
   Hash,
   Eye,
-} from "lucide-react"
-import { useEditor, EditorContent, BubbleMenu } from "@tiptap/react"
-import StarterKit from "@tiptap/starter-kit"
-import Underline from "@tiptap/extension-underline"
-import Heading from "@tiptap/extension-heading"
-import BulletList from "@tiptap/extension-bullet-list"
-import OrderedList from "@tiptap/extension-ordered-list"
-import ListItem from "@tiptap/extension-list-item"
-import Strike from "@tiptap/extension-strike"
-import TextAlign from "@tiptap/extension-text-align"
-import { useNavigate } from "react-router-dom"
-import { useDispatch } from "react-redux"
-import { Tooltip, Modal, Spin, message } from "antd"
-import Joyride, { STATUS } from "react-joyride"
-import Toolbar from "@components/Toolbar"
-import { fetchGeneratedTitles } from "@store/slices/blogSlice"
-import { packages } from "@constants/templates"
+  Image as ImageIcon,
+} from "lucide-react";
+import { useEditor, EditorContent, BubbleMenu } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Underline from "@tiptap/extension-underline";
+import Heading from "@tiptap/extension-heading";
+import BulletList from "@tiptap/extension-bullet-list";
+import OrderedList from "@tiptap/extension-ordered-list";
+import ListItem from "@tiptap/extension-list-item";
+import Strike from "@tiptap/extension-strike";
+import TextAlign from "@tiptap/extension-text-align";
+import Image from "@tiptap/extension-image";
+import Link from "@tiptap/extension-link";
+import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { Tooltip, Modal, Spin, message, Input } from "antd";
+import Joyride, { STATUS } from "react-joyride";
+import Toolbar from "@components/Toolbar";
+import { fetchGeneratedTitles } from "@store/slices/blogSlice";
+import { packages } from "@constants/templates";
+import Carousel from "@components/multipleStepModal/Carousel";
 
 const ManualBlog = () => {
-  const navigate = useNavigate()
-  const dispatch = useDispatch()
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
 
-  const [title, setTitle] = useState("")
-  const [topic, setTopic] = useState("")
-  const [content, setContent] = useState("")
-  const [keywords, setKeywords] = useState([])
-  const [newKeyword, setNewKeyword] = useState("")
-  const [isGeneratingKeywords, setIsGeneratingKeywords] = useState(false)
-  const [isGeneratingTitles, setIsGeneratingTitles] = useState(false)
-  const [isSaving, setSaving] = useState(false)
-  const [saveSuccess, setSaveSuccess] = useState(false)
-  const [seoScore, setSeoScore] = useState(0)
-  const [blogScore, setBlogScore] = useState(0)
-  const [generatedTitles, setGeneratedTitles] = useState([])
-  const [currentStep, setCurrentStep] = useState(0)
-  const [selectedTemplate, setSelectedTemplate] = useState(null)
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false)
-  const [runWalkthrough, setRunWalkthrough] = useState(false)
+  const [title, setTitle] = useState("");
+  const [topic, setTopic] = useState("");
+  const [content, setContent] = useState("");
+  const [keywords, setKeywords] = useState([]);
+  const [newKeyword, setNewKeyword] = useState("");
+  const [isGeneratingKeywords, setIsGeneratingKeywords] = useState(false);
+  const [isGeneratingTitles, setIsGeneratingTitles] = useState(false);
+  const [isSaving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [seoScore, setSeoScore] = useState(0);
+  const [blogScore, setBlogScore] = useState(0);
+  const [generatedTitles, setGeneratedTitles] = useState([]);
+  const [hasGeneratedTitles, setHasGeneratedTitles] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [runWalkthrough, setRunWalkthrough] = useState(false);
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+  const [imageUrl, setImageUrl] = useState("");
+  const [imageAltText, setImageAltText] = useState("");
 
-  // Walkthrough steps
   const walkthroughSteps = [
     {
       target: ".topic-input",
@@ -70,7 +77,7 @@ const ManualBlog = () => {
       content: "Add at least 4 keywords to optimize your blog for SEO.",
       placement: "top",
     },
-  ]
+  ];
 
   const editor = useEditor({
     extensions: [
@@ -86,41 +93,53 @@ const ManualBlog = () => {
       BulletList,
       OrderedList,
       ListItem,
+      Image.configure({
+        inline: false,
+        allowBase64: false,
+      }),
+      Link.configure({
+        openOnClick: true,
+        autolink: true,
+        HTMLAttributes: {
+          class: "text-blue-600 underline cursor-pointer",
+          rel: "noopener noreferrer",
+          target: "_blank",
+        },
+      }),
     ],
     content: "",
     onUpdate: ({ editor }) => {
-      setContent(editor.getHTML())
+      setContent(editor.getHTML());
     },
     editorProps: {
       attributes: {
         class: "prose prose-lg focus:outline-none min-h-[400px] max-w-full text-gray-800 p-6",
       },
     },
-  })
+  });
 
   const getWordCount = (text) => {
     return text
       .trim()
       .split(/\s+/)
-      .filter((word) => word.length > 0).length
-  }
+      .filter((word) => word.length > 0).length;
+  };
 
   const handleTitleChange = (e) => {
-    const newTitle = e.target.value
+    const newTitle = e.target.value;
     if (getWordCount(newTitle) <= 60) {
-      setTitle(newTitle)
+      setTitle(newTitle);
     }
-  }
+  };
 
   const handleGenerateTitles = async () => {
     if (!topic.trim() || keywords.length < 4) {
-      setRunWalkthrough(true)
-      // message.error("Please enter a topic and at least 4 keywords before generating titles.")
-      return
+      setRunWalkthrough(true);
+      return;
     }
 
-    const keywordTexts = keywords.map((k) => k.text.trim()).filter(Boolean)
-    setIsGeneratingTitles(true)
+    const keywordTexts = keywords.map((k) => k.text.trim()).filter(Boolean);
+    setIsGeneratingTitles(true);
     try {
       const result = await dispatch(
         fetchGeneratedTitles({
@@ -129,31 +148,32 @@ const ManualBlog = () => {
           topic,
           template: selectedTemplate || "default",
         })
-      ).unwrap()
-      setGeneratedTitles(result)
+      ).unwrap();
+      setGeneratedTitles(result);
+      setHasGeneratedTitles(true);
     } catch (error) {
       // Error handled in the thunk
     } finally {
-      setIsGeneratingTitles(false)
+      setIsGeneratingTitles(false);
     }
-  }
+  };
 
   const handleTitleSelect = (generatedTitle) => {
-    setTitle(generatedTitle)
-  }
+    setTitle(generatedTitle);
+  };
 
   const addKeyword = () => {
-    const input = newKeyword.trim()
-    if (!input) return
+    const input = newKeyword.trim();
+    if (!input) return;
 
     const inputKeywords = input
       .split(",")
       .map((k) => k.trim())
       .filter(
         (k) => k && !keywords.some((existing) => existing.text.toLowerCase() === k.toLowerCase())
-      )
+      );
 
-    if (inputKeywords.length === 0) return
+    if (inputKeywords.length === 0) return;
 
     const newKeywordObjects = inputKeywords.map((k) => ({
       id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
@@ -161,18 +181,18 @@ const ManualBlog = () => {
       difficulty: ["easy", "medium", "hard"][Math.floor(Math.random() * 3)],
       volume: Math.floor(Math.random() * 10000) + 100,
       generated: false,
-    }))
+    }));
 
-    setKeywords((prev) => [...prev, ...newKeywordObjects])
-    setNewKeyword("")
-  }
+    setKeywords((prev) => [...prev, ...newKeywordObjects]);
+    setNewKeyword("");
+  };
 
   const removeKeyword = (id) => {
-    setKeywords(keywords.filter((k) => k.id !== id))
-  }
+    setKeywords(keywords.filter((k) => k.id !== id));
+  };
 
   const generateKeywords = async () => {
-    setIsGeneratingKeywords(true)
+    setIsGeneratingKeywords(true);
     setTimeout(() => {
       const suggestedKeywords = [
         "content marketing",
@@ -181,7 +201,7 @@ const ManualBlog = () => {
         "blog writing",
         "content creation",
         "online marketing",
-      ]
+      ];
 
       const newKeywords = suggestedKeywords
         .filter((keyword) => !keywords.find((k) => k.text.toLowerCase() === keyword.toLowerCase()))
@@ -192,24 +212,24 @@ const ManualBlog = () => {
           difficulty: ["easy", "medium", "hard"][Math.floor(Math.random() * 3)],
           volume: Math.floor(Math.random() * 5000) + 500,
           generated: true,
-        }))
+        }));
 
-      setKeywords([...keywords, ...newKeywords])
-      setIsGeneratingKeywords(false)
-    }, 2000)
-  }
+      setKeywords([...keywords, ...newKeywords]);
+      setIsGeneratingKeywords(false);
+    }, 2000);
+  };
 
   const saveBlog = async () => {
     if (!title.trim() || !content.trim()) {
-      message.error("Please add both title and content before saving.")
-      return
+      message.error("Please add both title and content before saving.");
+      return;
     }
     if (getWordCount(title) > 60) {
-      message.error("Title exceeds 60 words. Please shorten it.")
-      return
+      message.error("Title exceeds 60 words. Please shorten it.");
+      return;
     }
 
-    setSaving(true)
+    setSaving(true);
     setTimeout(() => {
       const blogPost = {
         id: Date.now().toString(),
@@ -223,108 +243,154 @@ const ManualBlog = () => {
         createdAt: new Date().toISOString(),
         status: "draft",
         wordCount: getWordCount(content),
-      }
+      };
 
-      const existingBlogs = JSON.parse(localStorage.getItem("userBlogs") || "[]")
-      localStorage.setItem("userBlogs", JSON.stringify([blogPost, ...existingBlogs]))
+      const existingBlogs = JSON.parse(localStorage.getItem("userBlogs") || "[]");
+      localStorage.setItem("userBlogs", JSON.stringify([blogPost, ...existingBlogs]));
 
-      setSaving(false)
-      setSaveSuccess(true)
+      setSaving(false);
+      setSaveSuccess(true);
 
       setTimeout(() => {
-        setSaveSuccess(false)
-        navigate("/dashboard")
-      }, 2000)
-    }, 1500)
-  }
+        setSaveSuccess(false);
+        navigate("/dashboard");
+      }, 2000);
+    }, 1500);
+  };
 
   const getScoreColor = (score) => {
-    if (score >= 80) return "text-green-600 bg-green-100"
-    if (score >= 60) return "text-yellow-600 bg-yellow-100"
-    return "text-red-600 bg-red-100"
-  }
+    if (score >= 80) return "text-green-600 bg-green-100";
+    if (score >= 60) return "text-yellow-600 bg-yellow-100";
+    return "text-red-600 bg-red-100";
+  };
 
   const getDifficultyColor = (difficulty) => {
     switch (difficulty) {
       case "easy":
-        return "bg-green-100 text-green-800"
+        return "bg-green-100 text-green-800";
       case "medium":
-        return "bg-yellow-100 text-yellow-800"
+        return "bg-yellow-100 text-yellow-800";
       case "hard":
-        return "bg-red-100 text-red-800"
+        return "bg-red-100 text-red-800";
       default:
-        return "bg-gray-100 text-gray-800"
+        return "bg-gray-100 text-gray-800";
     }
-  }
+  };
 
   const handlePackageSelect = (index) => {
-    setSelectedTemplate(packages[index].name)
-  }
+    setSelectedTemplate(packages[index].name);
+  };
 
   const handleNext = () => {
     if (!selectedTemplate) {
-      message.error("Please select a template before proceeding.")
-      return
+      message.error("Please select a template before proceeding.");
+      return;
     }
-    setCurrentStep(1)
-  }
+    setCurrentStep(1);
+  };
 
   const handleClose = () => {
-    navigate("/blogs")
-    setCurrentStep(0)
-    setSelectedTemplate(null)
-  }
+    navigate("/blogs");
+    setCurrentStep(0);
+    setSelectedTemplate(null);
+    setHasGeneratedTitles(false);
+  };
 
   const handlePreview = () => {
     if (!selectedTemplate) {
-      message.error("Please select a template to preview.")
-      return
+      message.error("Please select a template to preview.");
+      return;
     }
     if (!content.trim()) {
-      message.error("Please write some content to preview.")
-      return
+      message.error("Please write some content to preview.");
+      return;
     }
-    setIsPreviewOpen(true)
-  }
+    setIsPreviewOpen(true);
+  };
 
   const handlePreviewClose = () => {
-    setIsPreviewOpen(false)
-  }
+    setIsPreviewOpen(false);
+  };
 
-  // Handle walkthrough completion
-  const handleJoyrideCallback = (data) => {
-    const { status } = data
-    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
-      setRunWalkthrough(false)
+  const handleOpenImageModal = () => {
+    setIsImageModalOpen(true);
+    setImageUrl("");
+    setImageAltText("");
+  };
+
+  const handleImageModalSave = () => {
+    if (!imageUrl.trim()) {
+      message.error("Please enter an image URL.");
+      return;
     }
-  }
+
+    const urlPattern = /^(https?:\/\/.*\.(?:png|jpg|jpeg|gif|webp|svg))$/i;
+    if (!urlPattern.test(imageUrl)) {
+      message.error("Please enter a valid image URL (e.g., ending with .png, .jpg, etc.).");
+      return;
+    }
+
+    if (editor) {
+      editor
+        .chain()
+        .focus()
+        .insertContent({
+          type: "image",
+          attrs: {
+            src: imageUrl,
+            alt: imageAltText.trim() || "User uploaded image",
+            title: imageAltText.trim() || "User uploaded image",
+          },
+        })
+        .run();
+    } else {
+      message.error("Editor is not initialized. Please try again.");
+    }
+
+    setIsImageModalOpen(false);
+    setImageUrl("");
+    setImageAltText("");
+  };
+
+  const handleImageModalCancel = () => {
+    setIsImageModalOpen(false);
+    setImageUrl("");
+    setImageAltText("");
+  };
+
+  const handleJoyrideCallback = (data) => {
+    const { status } = data;
+    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
+      setRunWalkthrough(false);
+    }
+  };
 
   const generatePreviewContent = () => {
     if (!selectedTemplate || !content.trim()) {
-      return `<h1>${title || "Preview Title"}</h1><p>No content available for preview.</p>`
+      return `<h1>${title || "Preview Title"}</h1><p>No content available for preview.</p>`;
     }
 
-    const parser = new DOMParser()
-    const doc = parser.parseFromString(content, "text/html")
-    const paragraphs = Array.from(doc.querySelectorAll("p")).map((p) => p.textContent)
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(content, "text/html");
+    const paragraphs = Array.from(doc.querySelectorAll("p")).map((p) => p.textContent);
     const headings = Array.from(doc.querySelectorAll("h1, h2, h3")).map((h) => ({
       level: h.tagName.toLowerCase(),
       text: h.textContent,
-    }))
+    }));
 
-    let previewContent = `<h1>${title || topic || "Your Blog Title"}</h1>`
+    let previewContent = `<h1>${title || topic || "Your Blog Title"}</h1>`;
 
     switch (selectedTemplate) {
       case "Classic":
         previewContent += `
-          <div class="prose">
+          <div class="prose prose-lg">
             ${content}
           </div>
-        `
-        break
+        `;
+        break;
       case "Listicle":
         previewContent += `
-          <div class="prose">
+          <div class="prose prose-lg">
             <p>Introduction to your listicle...</p>
             <ol>
               ${paragraphs
@@ -335,11 +401,11 @@ const ManualBlog = () => {
             <h2>Conclusion</h2>
             <p>Summary of the list...</p>
           </div>
-        `
-        break
+        `;
+        break;
       case "Product Review":
         previewContent += `
-          <div class="prose">
+          <div class="prose prose-lg">
             <p>Introduction to the product...</p>
             <h2>Pros</h2>
             <ul>
@@ -358,11 +424,11 @@ const ManualBlog = () => {
             <h2>Verdict</h2>
             <p>Final thoughts on the product...</p>
           </div>
-        `
-        break
+        `;
+        break;
       case "How to....":
         previewContent += `
-          <div class="prose">
+          <div class="prose prose-lg">
             <p>Introduction to the guide...</p>
             <ol>
               ${paragraphs.map((p, i) => `<li><strong>Step ${i + 1}: ${p}</strong></li>`).join("")}
@@ -370,11 +436,11 @@ const ManualBlog = () => {
             <h2>Conclusion</h2>
             <p>Summary of the guide...</p>
           </div>
-        `
-        break
+        `;
+        break;
       case "News Article":
         previewContent += `
-          <div class="prose">
+          <div class="prose prose-lg">
             <p>${paragraphs[0] || "Lead paragraph summarizing the news..."}</p>
             <h2>Details</h2>
             ${paragraphs
@@ -384,11 +450,11 @@ const ManualBlog = () => {
             <h2>Background</h2>
             <p>Context and background information...</p>
           </div>
-        `
-        break
+        `;
+        break;
       case "Opinion Piece":
         previewContent += `
-          <div class="prose">
+          <div class="prose prose-lg">
             <p>Introduction to your perspective...</p>
             <h2>Main Argument</h2>
             ${paragraphs
@@ -403,11 +469,11 @@ const ManualBlog = () => {
             <h2>Conclusion</h2>
             <p>Restate your position...</p>
           </div>
-        `
-        break
+        `;
+        break;
       case "Case Study":
         previewContent += `
-          <div class="prose">
+          <div class="prose prose-lg">
             <p>Introduction to the case study...</p>
             <h2>Background</h2>
             ${paragraphs
@@ -422,11 +488,11 @@ const ManualBlog = () => {
             <h2>Conclusion</h2>
             <p>Key takeaways and recommendations...</p>
           </div>
-        `
-        break
+        `;
+        break;
       case "Interview":
         previewContent += `
-          <div class="prose">
+          <div class="prose prose-lg">
             <p>Introduction to the interviewee...</p>
             ${paragraphs
               .map(
@@ -439,24 +505,50 @@ const ManualBlog = () => {
             <h2>Conclusion</h2>
             <p>Summary of the interview...</p>
           </div>
-        `
-        break
+        `;
+        break;
       default:
         previewContent += `
-          <div class="prose">
+          <div class="prose prose-lg">
             ${content}
           </div>
-        `
+        `;
     }
 
-    return previewContent
-  }
+    return previewContent;
+  };
 
-  const wordCount = getWordCount(content)
-  const titleWordCount = getWordCount(title)
+  const wordCount = getWordCount(content);
+  const titleWordCount = getWordCount(title);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
+      <style>
+        {`
+          .ProseMirror a {
+            color: #2563eb !important;
+            text-decoration: underline !important;
+            cursor: pointer !important;
+          }
+          .ProseMirror img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 1rem 0;
+          }
+          .prose a {
+            color: #2563eb !important;
+            text-decoration: underline !important;
+            cursor: pointer !important;
+          }
+          .prose img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 1rem 0;
+          }
+        `}
+      </style>
       <Joyride
         steps={walkthroughSteps}
         run={runWalkthrough}
@@ -488,7 +580,6 @@ const ManualBlog = () => {
           tooltip: {
             borderRadius: "8px",
             padding: "16px",
-            // boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
           },
         }}
         locale={{
@@ -506,7 +597,7 @@ const ManualBlog = () => {
           <button
             key="next"
             onClick={handleNext}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:bg-blue-700"
+            className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md hover:bg-[#1B6FC9]/90 focus:outline-none focus:bg-[#1B6FC9]"
             aria-label="Proceed to next step"
           >
             Next
@@ -516,11 +607,11 @@ const ManualBlog = () => {
         centered
       >
         <div className="p-3">
-          <div className="flex gap-4 overflow-x-auto py-2 px-1">
+          <Carousel>
             {packages.map((pkg, index) => (
               <div
                 key={index}
-                className={`min-w-[200px] cursor-pointer transition-all duration-200 ${
+                className={`cursor-pointer transition-all duration-200 ${
                   selectedTemplate === pkg.name ? "border-gray-300 border-2 rounded-lg" : ""
                 }`}
                 onClick={() => handlePackageSelect(index)}
@@ -540,10 +631,50 @@ const ManualBlog = () => {
                 </div>
               </div>
             ))}
+          </Carousel>
+        </div>
+      </Modal>
+      <Modal
+        title="Add Image"
+        open={isImageModalOpen}
+        onOk={handleImageModalSave}
+        onCancel={handleImageModalCancel}
+        okText="Save"
+        cancelText="Cancel"
+        width={600}
+        centered
+        okButtonProps={{
+          className: "bg-[#1b6fc9] text-white hover:bg-[#1b6fc9]/90 border-none",
+        }}
+        cancelButtonProps={{
+          className: "bg-gray-200 text-gray-800 hover:bg-gray-300 border-none",
+        }}
+      >
+        <div className="p-4 space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">Image URL</label>
+            <Input
+              type="text"
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              placeholder="Enter image URL (e.g., https://example.com/image.jpg)"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              aria-label="Image URL"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Alt Text</label>
+            <Input
+              type="text"
+              value={imageAltText}
+              onChange={(e) => setImageAltText(e.target.value)}
+              placeholder="Enter alt text for the image"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              aria-label="Image alt text"
+            />
           </div>
         </div>
       </Modal>
-
       <Modal
         title="Blog Preview"
         open={isPreviewOpen}
@@ -562,27 +693,22 @@ const ManualBlog = () => {
         centered
       >
         <div
-          className="prose max-w-none p-4"
+          className="prose prose-lg max-w-none p-4"
           dangerouslySetInnerHTML={{ __html: generatePreviewContent() }}
         />
       </Modal>
-
       {currentStep === 1 && (
         <div className="flex flex-col lg:flex-row h-screen">
-          {/* Main Editor Area */}
           <div className="flex-1 flex flex-col">
-            {/* Editor Header */}
             <header className="bg-white shadow-md border-b border-gray-200 p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-                      <FileText className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <h2 className="text-2xl font-bold text-gray-900">Create New Blog</h2>
-                      <p className="text-gray-600 text-sm">Write and optimize your content</p>
-                    </div>
+                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Create New Blog</h2>
+                    <p className="text-gray-600 text-sm">Write and optimize your content</p>
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -608,19 +734,21 @@ const ManualBlog = () => {
                     }`}
                     aria-label="Blog title"
                   />
-                  <button
-                    onClick={handleGenerateTitles}
-                    disabled={isGeneratingTitles}
-                    className="px-4 py-2 bg-gradient-to-r from-[#1B6FC9] to-[#4C9FE8] text-white rounded-lg hover:from-[#1B6FC9]/90 hover:to-[#4C9FE8]/90 flex items-center"
-                    aria-label="Generate titles"
-                  >
-                    {isGeneratingTitles ? (
-                      <Spin size="small" />
-                    ) : (
-                      <Sparkles size={16} className="mr-2" />
-                    )}
-                    Generate Titles
-                  </button>
+                  {!hasGeneratedTitles && (
+                    <button
+                      onClick={handleGenerateTitles}
+                      disabled={isGeneratingTitles}
+                      className="px-4 py-2 bg-gradient-to-r from-[#1B6FC9] to-[#4C9FE8] text-white rounded-lg hover:from-[#1B6FC9]/90 hover:to-[#4C9FE8]/90 flex items-center"
+                      aria-label="Generate titles"
+                    >
+                      {isGeneratingTitles ? (
+                        <Spin size="small" />
+                      ) : (
+                        <Sparkles size={16} className="mr-2" />
+                      )}
+                      Generate Titles
+                    </button>
+                  )}
                 </div>
                 <div className="mt-2 text-sm text-gray-500">
                   {titleWordCount}/60 words (optimal for SEO)
@@ -631,7 +759,7 @@ const ManualBlog = () => {
                 {generatedTitles.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-4">
                     {generatedTitles.map((generatedTitle, index) => {
-                      const isSelected = generatedTitle === title
+                      const isSelected = generatedTitle === title;
                       return (
                         <div key={index} className="relative group">
                           <button
@@ -647,15 +775,13 @@ const ManualBlog = () => {
                             {generatedTitle}
                           </button>
                         </div>
-                      )
+                      );
                     })}
                   </div>
                 )}
               </div>
             </header>
-
-            {/* Content Editor */}
-            <Toolbar editor={editor} />
+            <Toolbar editor={editor} onOpenImageModal={handleOpenImageModal} />
             <div className="flex-1 overflow-y-auto bg-white p-6 shadow-lg">
               {editor && (
                 <BubbleMenu
@@ -668,7 +794,7 @@ const ManualBlog = () => {
                       onClick={() => editor.chain().focus().toggleBold().run()}
                       className={
                         editor.isActive("bold")
-                          ? "p-2 rounded bg-blue-100 text-blue-700"
+                          ? "p-2 rounded bg-[#1B6FC9] text-blue-700"
                           : "p-2 rounded hover:bg-gray-200 text-gray-600"
                       }
                       aria-label="Toggle bold"
@@ -681,7 +807,7 @@ const ManualBlog = () => {
                       onClick={() => editor.chain().focus().toggleItalic().run()}
                       className={
                         editor.isActive("italic")
-                          ? "p-2 rounded bg-blue-100 text-blue-700"
+                          ? "p-2 rounded bg-[#1B6FC9] text-blue-700"
                           : "p-2 rounded hover:bg-gray-200 text-gray-600"
                       }
                       aria-label="Toggle italic"
@@ -694,7 +820,7 @@ const ManualBlog = () => {
                       onClick={() => editor.chain().focus().toggleStrike().run()}
                       className={
                         editor.isActive("strike")
-                          ? "p-2 rounded bg-blue-100 text-blue-700"
+                          ? "p-2 rounded bg-[#1B6FC9] text-blue-700"
                           : "p-2 rounded hover:bg-gray-200 text-gray-600"
                       }
                       aria-label="Toggle strikethrough"
@@ -707,7 +833,7 @@ const ManualBlog = () => {
                       onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
                       className={
                         editor.isActive("heading", { level: 1 })
-                          ? "p-2 rounded bg-blue-100 text-blue-700"
+                          ? "p-2 rounded bg-[#1B6FC9] text-blue-700"
                           : "p-2 rounded hover:bg-gray-200 text-gray-600"
                       }
                       aria-label="Toggle heading 1"
@@ -720,7 +846,7 @@ const ManualBlog = () => {
                       onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
                       className={
                         editor.isActive("heading", { level: 2 })
-                          ? "p-2 rounded bg-blue-100 text-blue-700"
+                          ? "p-2 rounded bg-[#1B6FC9] text-blue-700"
                           : "p-2 rounded hover:bg-gray-200 text-gray-600"
                       }
                       aria-label="Toggle heading 2"
@@ -733,7 +859,7 @@ const ManualBlog = () => {
                       onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
                       className={
                         editor.isActive("heading", { level: 3 })
-                          ? "p-2 rounded bg-blue-100 text-blue-700"
+                          ? "p-2 rounded bg-[#1B6FC9] text-blue-700"
                           : "p-2 rounded hover:bg-gray-200 text-gray-600"
                       }
                       aria-label="Toggle heading 3"
@@ -746,7 +872,7 @@ const ManualBlog = () => {
                       onClick={() => editor.chain().focus().toggleBulletList().run()}
                       className={
                         editor.isActive("bulletList")
-                          ? "p-2 rounded bg-blue-100 text-blue-700"
+                          ? "p-2 rounded bg-[#1B6FC9] text-blue-700"
                           : "p-2 rounded hover:bg-gray-200 text-gray-600"
                       }
                       aria-label="Toggle bullet list"
@@ -759,7 +885,7 @@ const ManualBlog = () => {
                       onClick={() => editor.chain().focus().toggleOrderedList().run()}
                       className={
                         editor.isActive("orderedList")
-                          ? "p-2 rounded bg-blue-100 text-blue-700"
+                          ? "p-2 rounded bg-[#1B6FC9] text-blue-700"
                           : "p-2 rounded hover:bg-gray-200 text-gray-600"
                       }
                       aria-label="Toggle ordered list"
@@ -772,8 +898,6 @@ const ManualBlog = () => {
               <EditorContent editor={editor} />
             </div>
           </div>
-
-          {/* Sidebar */}
           <div className="w-full lg:w-80 bg-white shadow-lg border-l border-gray-200 flex flex-col">
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center gap-3 mb-4">
@@ -810,7 +934,6 @@ const ManualBlog = () => {
                 )}
               </button>
             </div>
-
             <div className="p-6 pt-4 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <BarChart3 className="w-5 h-5 text-blue-600" />
@@ -877,7 +1000,6 @@ const ManualBlog = () => {
                 </div>
               </div>
             </div>
-
             <div className="flex-1 p-6 pt-4">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <FileText className="w-5 h-5 text-blue-600" />
@@ -927,7 +1049,7 @@ const ManualBlog = () => {
                   />
                   <button
                     onClick={addKeyword}
-                    className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="p-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 transition-colors"
                     aria-label="Add keyword"
                   >
                     <Plus className="w-4 h-4" />
@@ -952,7 +1074,6 @@ const ManualBlog = () => {
                 </div>
                 {keywords.length === 0 && (
                   <div className="text-center text-gray-500">
-                    {/* <Hash className="w-8 h-8 mx-auto mb-2 opacity-50" /> */}
                     <p className="text-sm">No keywords added yet</p>
                     <p className="text-xs">Add keywords to improve SEO</p>
                   </div>
@@ -963,7 +1084,7 @@ const ManualBlog = () => {
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default ManualBlog
+export default ManualBlog;

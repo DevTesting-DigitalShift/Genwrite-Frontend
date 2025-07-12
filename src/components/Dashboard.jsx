@@ -40,8 +40,8 @@ const Dashboard = () => {
   const [seoAnalysisModal, setSeoAnalysisModal] = useState(false)
   const [modelData, setModelData] = useState({})
   const [recentBlogData, setRecentBlogData] = useState([])
-  const [allBlogs, setAllBlogs] = useState([])
   const [loading, setLoading] = useState(true)
+  const { blogs} = useSelector((state) => state.blog)
 
   const dispatch = useDispatch()
   const navigate = useNavigate()
@@ -114,7 +114,7 @@ const Dashboard = () => {
   const openSecondStepJobModal = () => {
     setKeywordResearchModal(false)
     dispatch(openJobModal())
-      navigate("/jobs")
+    navigate("/jobs")
   }
 
   const handleSubmit = async (updatedData) => {
@@ -206,9 +206,15 @@ const Dashboard = () => {
       {daisyUIModal && <DaisyUIModal closeFnc={hideDaisy} />}
       {multiStepModal && <MultiStepModal closeFnc={hideMultiStepModal} />}
       {quickBlogModal && <QuickBlogModal closeFnc={hideQuickBlogModal} />}
-      {competitiveAnalysisModal && <CompetitiveAnalysisModal closeFnc={hideCompetitiveAnalysis} />}
+      {competitiveAnalysisModal && (
+        <CompetitiveAnalysisModal
+          closeFnc={hideCompetitiveAnalysis}
+          open={showCompetitiveAnalysis}
+          blogs={blogs}
+        />
+      )}
       {performanceModal && (
-        <PerformanceMonitoringModal closeFnc={() => setPerformanceModal(false)} />
+        <PerformanceMonitoringModal closeFnc={() => setPerformanceModal(false)} visible={() => setPerformanceModal(true)} />
       )}
       {keywordResearchModal && (
         <KeywordResearchModel
