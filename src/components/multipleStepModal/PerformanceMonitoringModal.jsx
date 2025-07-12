@@ -2,11 +2,11 @@ import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { X, Tag, Tags } from "lucide-react"
 import { useDispatch, useSelector } from "react-redux"
-import { Table, Tooltip, message } from "antd"
+import { Modal, Table, Tooltip, message } from "antd"
 import { InfoCircleOutlined } from "@ant-design/icons"
 import { fetchAllBlogs, fetchBlogStats } from "@store/slices/blogSlice"
 
-const PerformanceMonitoringModal = ({ closeFnc }) => {
+const PerformanceMonitoringModal = ({ closeFnc, visible }) => {
   const [formData, setFormData] = useState({
     selectedBlog: null,
     title: "",
@@ -44,6 +44,7 @@ const PerformanceMonitoringModal = ({ closeFnc }) => {
     ari: "📙 ARI (Automated Readability Index): Based on sentence and word length. Lower = easier.",
     seo: "📈 Blog Score: Evaluates keyword use, metadata, and structure. Aim for 80+ for strong SEO.",
   }
+
   const InfoTooltip = ({ type = "seo" }) => (
     <Tooltip title={scoreInfo[type]} trigger={["hover", "click"]} placement="top">
       <InfoCircleOutlined className="ml-2 text-gray-500 hover:text-blue-500 cursor-pointer" />
@@ -101,7 +102,6 @@ const PerformanceMonitoringModal = ({ closeFnc }) => {
     const { readabililty = {}, seo = {}, engagement = {}, metadata = {} } = stats
     const keywordDensity = seo?.keywordDensity || {}
 
-    // Calculate short-tail and long-tail keyword counts
     const shortTailCount = Object.keys(keywordDensity).filter(
       (keyword) => keyword.split(" ").length <= 2
     ).length
@@ -109,7 +109,6 @@ const PerformanceMonitoringModal = ({ closeFnc }) => {
       (keyword) => keyword.split(" ").length > 2
     ).length
 
-    // Convert object to array of data
     const dataSource = Object.entries(keywordDensity).map(
       ([keyword, { count, density }], index) => ({
         key: keyword,
@@ -156,7 +155,6 @@ const PerformanceMonitoringModal = ({ closeFnc }) => {
         <div className="mb-6 text-center">
           <h3 className="text-2xl font-bold text-gray-800">Blog Performance Overview</h3>
         </div>
-        {/* Metadata Section */}
         <div className="mb-8 capitalize">
           <div className="flex items-center gap-2 mb-4">
             <div className="p-1.5 bg-purple-100 rounded text-purple-500">
@@ -178,29 +176,24 @@ const PerformanceMonitoringModal = ({ closeFnc }) => {
             </div>
             <h4 className="text-xl font-semibold text-gray-800">Metadata</h4>
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
               <p className="text-xs text-gray-500">Title</p>
               <p className="text-sm font-medium text-gray-800 truncate">{metadata?.title || "-"}</p>
             </div>
-
             <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
               <p className="text-xs text-gray-500">Tone</p>
               <p className="text-sm font-medium text-gray-800">{metadata?.tone || "-"}</p>
             </div>
-
             <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
               <p className="text-xs text-gray-500">Template</p>
               <p className="text-sm font-medium text-gray-800">{metadata?.template || "-"}</p>
             </div>
-
             <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
               <p className="text-xs text-gray-500">AI Model</p>
               <p className="text-sm font-medium text-gray-800">{metadata?.aiModel || "-"}</p>
             </div>
           </div>
-
           {metadata?.generatedAt && (
             <div className="mt-4 bg-gray-50 p-3 rounded-lg border normal-case border-gray-100">
               <p className="text-xs text-gray-500">Generated At</p>
@@ -210,7 +203,6 @@ const PerformanceMonitoringModal = ({ closeFnc }) => {
             </div>
           )}
         </div>
-        {/* SEO Section */}
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-4">
             <div className="p-1.5 bg-blue-100 rounded text-blue-500">
@@ -231,7 +223,6 @@ const PerformanceMonitoringModal = ({ closeFnc }) => {
             </div>
             <h4 className="text-xl font-semibold text-gray-800">SEO</h4>
           </div>
-
           <div className="grid grid-cols-1 gap-4">
             {Boolean(seo?.score) && (
               <ScoreBox
@@ -242,7 +233,6 @@ const PerformanceMonitoringModal = ({ closeFnc }) => {
                 color="bg-blue-500"
               />
             )}
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <StatCard
                 icon={
@@ -266,7 +256,6 @@ const PerformanceMonitoringModal = ({ closeFnc }) => {
                 color="border-blue-100"
                 delay={1}
               />
-
               <StatCard
                 icon={
                   <svg
@@ -290,7 +279,6 @@ const PerformanceMonitoringModal = ({ closeFnc }) => {
                 color="border-purple-100"
                 delay={2}
               />
-
               <StatCard
                 icon={
                   <svg
@@ -316,7 +304,6 @@ const PerformanceMonitoringModal = ({ closeFnc }) => {
               />
             </div>
           </div>
-
           <div className="mt-6">
             <h5 className="text-sm font-semibold text-gray-700 mb-3">Focus Keywords</h5>
             <div className="flex flex-wrap gap-2">
@@ -333,7 +320,6 @@ const PerformanceMonitoringModal = ({ closeFnc }) => {
               ))}
             </div>
           </div>
-
           {seo?.keywords.length > 0 && (
             <div className="mt-4">
               <h5 className="text-sm font-semibold text-gray-700 mb-3">Other Keywords</h5>
@@ -344,7 +330,7 @@ const PerformanceMonitoringModal = ({ closeFnc }) => {
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.1 }}
-                    className="px-3 py-1 bg-gray-100 rounded-full text-sm text-gray-700 border border-gray-200 hover:bg-gray-200 transition-colors"
+                    className="px-3 py-2 bg-gray-100 rounded-full text-sm text-gray-700 border border-gray-200 hover:bg-gray-200 transition-colors"
                   >
                     {k}
                   </motion.span>
@@ -352,7 +338,6 @@ const PerformanceMonitoringModal = ({ closeFnc }) => {
               </div>
             </div>
           )}
-
           <div className="mt-6">
             <h5 className="text-sm font-semibold text-gray-700 mb-3">Keyword Analysis</h5>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -405,7 +390,6 @@ const PerformanceMonitoringModal = ({ closeFnc }) => {
             </motion.div>
           </div>
         </div>
-        {/* Readability Section */}
         <div>
           <div className="flex items-center gap-2 mb-4">
             <div className="p-1.5 bg-teal-100 rounded text-teal-500">
@@ -426,7 +410,6 @@ const PerformanceMonitoringModal = ({ closeFnc }) => {
             </div>
             <h4 className="text-xl font-semibold text-gray-800">Readability</h4>
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <ScoreBox
               score={readabililty?.fleschEase?.score || 0}
@@ -435,7 +418,6 @@ const PerformanceMonitoringModal = ({ closeFnc }) => {
               level={readabililty?.fleschEase?.level || "-"}
               color="bg-teal-500"
             />
-
             <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
               <div className="flex justify-between items-center">
                 <span className="text-sm font-semibold text-gray-600">
@@ -450,7 +432,6 @@ const PerformanceMonitoringModal = ({ closeFnc }) => {
                 {readabililty?.smogIndex?.score || 0} grade
               </p>
             </div>
-
             <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
               <div className="flex justify-between items-center">
                 <span className="text-sm font-semibold text-gray-600">
@@ -464,7 +445,6 @@ const PerformanceMonitoringModal = ({ closeFnc }) => {
                 {readabililty?.ari?.score || 0} grade
               </p>
             </div>
-
             <StatCard
               icon={
                 <svg
@@ -489,7 +469,6 @@ const PerformanceMonitoringModal = ({ closeFnc }) => {
               delay={0}
             />
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             <StatCard
               icon={
@@ -512,28 +491,24 @@ const PerformanceMonitoringModal = ({ closeFnc }) => {
               color="border-amber-100"
               delay={1}
             />
-
             <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
               <p className="text-sm font-semibold text-gray-600">Sentence Count</p>
               <p className="text-2xl font-bold text-gray-800 mt-1">
                 {readabililty?.sentenceCount || 0}
               </p>
             </div>
-
             <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
               <p className="text-sm font-semibold text-gray-600">Avg Sentence Length</p>
               <p className="text-2xl font-bold text-gray-800 mt-1">
                 {readabililty?.avgSentenceLength || 0}
               </p>
             </div>
-
             <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
               <p className="text-sm font-semibold text-gray-600">Avg Word Length</p>
               <p className="text-2xl font-bold text-gray-800 mt-1">
                 {readabililty?.avgWordLength || 0}
               </p>
             </div>
-
             <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
               <p className="text-sm font-semibold text-gray-600">Syllables</p>
               <p className="text-2xl font-bold text-gray-800 mt-1">
@@ -546,118 +521,122 @@ const PerformanceMonitoringModal = ({ closeFnc }) => {
     )
   }
 
+  useEffect(() => {
+    if (visible) {
+      document.body.style.overflow = "hidden"
+    } else {
+      document.body.style.overflow = "auto"
+    }
+
+    return () => {
+      document.body.style.overflow = "auto" // Cleanup on unmount
+    }
+  }, [visible])
+
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-60 z-50 h-[100vh]">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        className="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-200"
-      >
-        <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gray-50">
-          <motion.div
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="flex items-center gap-3"
-          >
-            <div className="p-2 bg-blue-500 rounded-lg text-white">
+    <Modal
+      title={
+        <motion.div
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="flex items-center gap-3"
+        >
+          <div className="p-2 bg-blue-500 rounded-lg text-white">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+          </div>
+          <h2 className="text-lg">Performance Dashboard</h2>
+        </motion.div>
+      }
+      open={visible}
+      onCancel={closeFnc}
+      footer={null}
+      width={900}
+      centered
+      bodyStyle={{ maxHeight: "85vh", overflowY: "auto" }}
+      className="rounded-2xl shadow-2xl"
+    >
+      <div className="space-y-6 mt-5 p-4">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <label className="block text-md font-semibold text-gray-700 mb-2">Select Blog</label>
+          <div className="relative">
+            <select
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 appearance-none shadow-sm"
+              onChange={(e) => {
+                const blog = allBlogs.find((b) => b._id === e.target.value)
+                if (blog) handleBlogSelect(blog)
+              }}
+              value={formData.selectedBlog?._id || ""}
+            >
+              <option value="" className="bg-gray-50">
+                Select a blog
+              </option>
+              {allBlogs
+                ?.filter((b) => b.status === "complete" && b.isArchived === false)
+                .map((blog) => (
+                  <option key={blog._id} value={blog._id} className="bg-gray-50">
+                    {blog.title}
+                  </option>
+                ))}
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
               <svg
+                className="h-5 w-5"
                 xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+                viewBox="0 0 20 20"
+                fill="currentColor"
               >
-                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                <path
+                  fillRule="evenodd"
+                  d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                  clipRule="evenodd"
+                />
               </svg>
             </div>
-            <h2 className="text-2xl font-bold text-gray-800">Performance Dashboard</h2>
-          </motion.div>
-
-          <button onClick={closeFnc} className="p-2 rounded-full hover:bg-gray-200 transition-all">
-            <X className="h-6 w-6 text-gray-600 hover:text-gray-800" />
-          </button>
-        </div>
-
-        <div className="p-6 overflow-y-auto max-h-[85vh]">
-          <div className="space-y-6">
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Select Blog</label>
-              <div className="relative">
-                <select
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 appearance-none shadow-sm"
-                  onChange={(e) => {
-                    const blog = allBlogs.find((b) => b._id === e.target.value)
-                    if (blog) handleBlogSelect(blog)
-                  }}
-                  value={formData.selectedBlog?._id || ""}
-                >
-                  <option value="" className="bg-gray-50">
-                    Select a blog
-                  </option>
-                  {allBlogs
-                    ?.filter((b) => b.status === "complete" && b.isArchived === false)
-                    .map((blog) => (
-                      <option key={blog._id} value={blog._id} className="bg-gray-50">
-                        {blog.title}
-                      </option>
-                    ))}
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
-                  <svg
-                    className="h-5 w-5"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-              </div>
-            </motion.div>
-
-            {formData.selectedBlog && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.2 }}
-                className="border border-gray-200 rounded-lg overflow-hidden shadow-sm"
-              >
-                <div className="p-4 bg-gray-50 border-b border-gray-200">
-                  <h3 className="text-lg font-semibold text-gray-700">Preview</h3>
-                </div>
-                <div className="p-5">
-                  <h3 className="text-xl font-semibold text-gray-800 mb-2 truncate">
-                    {formData.title}
-                  </h3>
-                  <p className="text-gray-600 text-sm line-clamp-3">
-                    {(formData.content || "")
-                      .replace(/[#>*=_`~-]+/g, "")
-                      .replace(/\n+/g, " ")
-                      .replace(/\s+/g, " ")
-                      .trim()}
-                  </p>
-                </div>
-              </motion.div>
-            )}
-
-            <StatsInfoBox stats={stats} />
           </div>
-        </div>
-      </motion.div>
-    </div>
+        </motion.div>
+        {formData.selectedBlog && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="border border-gray-200 rounded-lg overflow-hidden shadow-sm"
+          >
+            <div className="p-4 bg-gray-50 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-700">Preview</h3>
+            </div>
+            <div className="p-5">
+              <h3 className="text-xl font-semibold text-gray-800 mb-2 truncate">
+                {formData.title}
+              </h3>
+              <p className="text-gray-600 text-sm line-clamp-3">
+                {(formData.content || "")
+                  .replace(/[#>*=_`~-]+/g, "")
+                  .replace(/\n+/g, " ")
+                  .replace(/\s+/g, " ")
+                  .trim()}
+              </p>
+            </div>
+          </motion.div>
+        )}
+        <StatsInfoBox stats={stats} />
+      </div>
+    </Modal>
   )
 }
 

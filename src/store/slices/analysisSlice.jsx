@@ -1,6 +1,6 @@
 // src/store/slices/analysisSlice.ts
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit"
-import { analyzeKeywords, runCompetitiveAnalysis } from "@api/analysisApi"
+import { analyzeKeywords, fetchGoogleSuggestions, runCompetitiveAnalysis } from "@api/analysisApi"
 import { message } from "antd"
 
 export const fetchCompetitiveAnalysisThunk = createAsyncThunk(
@@ -31,10 +31,24 @@ export const analyzeKeywordsThunk = createAsyncThunk(
   }
 )
 
+export const fetchKeywordSuggestions = createAsyncThunk(
+  "analysis/fetchSuggestions",
+  async (query, { rejectWithValue }) => {
+    try {
+      const suggestions = await fetchGoogleSuggestions(query)
+      return suggestions
+    } catch (error) {
+      console.log("error", error)
+      return rejectWithValue("Failed to fetch suggestions")
+    }
+  }
+)
+
 const analysisSlice = createSlice({
   name: "analysis",
   initialState: {
     keywordAnalysis: [],
+    suggestions: [],
     loading: false,
     analyzing: false,
     result: null,
@@ -52,6 +66,10 @@ const analysisSlice = createSlice({
     clearKeywordAnalysis: (state) => {
       state.keywordAnalysis = null
       state.selectedKeywords = []
+    },
+    clearSuggestions: (state) => {
+      state.suggestions = []
+      state.error = null
     },
   },
   extraReducers: (builder) => {
@@ -81,8 +99,22 @@ const analysisSlice = createSlice({
         state.loading = false
         state.error = action.payload
       })
+
+      .addCase(fetchKeywordSuggestions.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(fetchKeywordSuggestions.fulfilled, (state, action) => {
+        state.loading = false
+        state.suggestions = action.payload
+      })
+      .addCase(fetchKeywordSuggestions.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload
+      })
   },
 })
 
-export const { clearAnalysis, clearKeywordAnalysis, setSelectedKeywords } = analysisSlice.actions
+export const { clearAnalysis, clearKeywordAnalysis, setSelectedKeywords, clearSuggestions } =
+  analysisSlice.actions
 export default analysisSlice.reducer
