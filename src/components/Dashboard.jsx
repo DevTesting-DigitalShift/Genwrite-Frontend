@@ -6,7 +6,7 @@ import SecondStepModal from "./multipleStepModal/SecondStepModal"
 import { letsBegin, quickTools, stats } from "./dashData/dash"
 import { DashboardBox, QuickBox, Blogs } from "../utils/DashboardBox"
 import { useDispatch, useSelector } from "react-redux"
-import { createNewBlog } from "@store/slices/blogSlice"
+import { createNewBlog, fetchAllBlogs } from "@store/slices/blogSlice"
 import { useNavigate } from "react-router-dom"
 import MultiStepModal from "./multipleStepModal/DaisyUi"
 import DaisyUIModal from "./DaisyUIModal"
@@ -41,7 +41,7 @@ const Dashboard = () => {
   const [modelData, setModelData] = useState({})
   const [recentBlogData, setRecentBlogData] = useState([])
   const [loading, setLoading] = useState(true)
-  const { blogs} = useSelector((state) => state.blog)
+  const { blogs } = useSelector((state) => state.blog)
 
   const dispatch = useDispatch()
   const navigate = useNavigate()
@@ -79,20 +79,14 @@ const Dashboard = () => {
   }, [dispatch, navigate])
 
   useEffect(() => {
-    const fetchBlogs = async () => {
-      try {
-        const blogs = await getAllBlogs()
-        const recent = blogs
-          .filter((b) => b.status === "complete" && b.isArchived === false)
-          .slice(-3)
-        setRecentBlogData(recent)
-      } catch (error) {
-        console.error("Error fetching blogs:", error.message)
-      }
-    }
-
-    fetchBlogs()
+    dispatch(fetchAllBlogs())
   }, [])
+
+  useEffect(() => {
+    const recent = blogs.filter((b) => b.status === "complete" && b.isArchived === false).slice(-3)
+
+    setRecentBlogData(recent)
+  }, [blogs])
 
   // Event handlers
   const showModal = () => setIsModalVisible(true)
@@ -120,15 +114,21 @@ const Dashboard = () => {
   const handleSubmit = async (updatedData) => {
     try {
       const totalCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
-      const estimatedCost =
-        getEstimatedCost("blog.single", modelData.aiModel) +
-        (modelData.isUnsplashActive ? 0 : getEstimatedCost("aiImages"))
+
+      // Calculate blog + image cost based on AI model
+      const estimatedBlogCost = getEstimatedCost("blog.single", modelData.aiModel)
+      const estimatedImageCost = modelData.isUnsplashActive
+        ? 0
+        : getEstimatedCost("aiImages", modelData.aiModel)
+
+      const estimatedCost = estimatedBlogCost + estimatedImageCost
+
       handlePopup({
         title: "Confirm Blog Creation",
         description: (
           <>
             <span>
-              Single Blog generation cost: <b>{estimatedCost} credits.</b>
+              Single Blog generation cost: <b>{estimatedCost} credits</b>
             </span>
             <br />
             <span>Do you want to continue?</span>
@@ -139,11 +139,11 @@ const Dashboard = () => {
             message.error("You do not have enough credits to generate this blog.")
             handlePopup(false)
             return
-          } else {
-            dispatch(createNewBlog({ blogData: updatedData, navigate }))
-            setIsModalVisible(false)
-            setCurrentStep(0)
           }
+
+          dispatch(createNewBlog({ blogData: updatedData, navigate }))
+          setIsModalVisible(false)
+          setCurrentStep(0)
         },
       })
     } catch (error) {
@@ -214,7 +214,11 @@ const Dashboard = () => {
         />
       )}
       {performanceModal && (
-        <PerformanceMonitoringModal closeFnc={() => setPerformanceModal(false)} visible={() => setPerformanceModal(true)} />
+        <PerformanceMonitoringModal
+          allBlogs={blogs}
+          closeFnc={() => setPerformanceModal(false)}
+          visible={() => setPerformanceModal(true)}
+        />
       )}
       {keywordResearchModal && (
         <KeywordResearchModel

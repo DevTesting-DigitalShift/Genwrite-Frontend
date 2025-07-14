@@ -90,35 +90,35 @@ const MultiStepModal = ({ closeFnc }) => {
         formData.keywordInput.trim() === "",
       tone: !formData.tone,
     }
+
     setErrors(newErrors)
+
     if (Object.values(newErrors).some((error) => error)) {
       message.error("Please fill all required fields.")
       return
     }
-    if (formData.numberOfBlogs < 1) {
-      message.error("Number of blogs must be at least 1.")
+
+    if (formData.numberOfBlogs < 1 || formData.numberOfBlogs > 10) {
+      message.error("Number of blogs must be between 1 and 10.")
       return
     }
-    if (formData.numberOfBlogs > 10) {
-      message.error("Number of blogs must be at most 10.")
-      return
-    }
+
+    // ✅ Include aiModel in cost calculation
+    const model = formData.aiModel || "gemini" // fallback just in case
+    const blogCost = getEstimatedCost("blog.single", model)
+    const imageCost = formData.imageSource === "unsplash" ? 0 : getEstimatedCost("aiImages", model)
+    const totalCost = formData.numberOfBlogs * (blogCost + imageCost)
 
     handlePopup({
       title: "Bulk Blog Generation",
       description: (
         <>
           <span>
-            Estimated Cost for bulk blogs :{" "}
-            <b>
-              {formData.numberOfBlogs *
-                (getEstimatedCost("blog.single") +
-                  (formData.imageSource === "unsplash" ? 0 : getEstimatedCost("aiImages")))}{" "}
-              credits
-            </b>
+            Estimated cost for <b>{formData.numberOfBlogs}</b> blog
+            {formData.numberOfBlogs > 1 ? "s" : ""}: <b>{totalCost} credits</b>
           </span>
           <br />
-          <span>Do you want to continue ? </span>
+          <span>Do you want to continue?</span>
         </>
       ),
       onConfirm: () => {
@@ -628,12 +628,12 @@ const MultiStepModal = ({ closeFnc }) => {
                     min="500"
                     max="5000"
                     value={formData.userDefinedLength}
-                      className="w-full h-1 rounded-lg appearance-none cursor-pointer bg-gradient-to-r from-[#1B6FC9] to-gray-100 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#1B6FC9]"
-                      style={{
-                        background: `linear-gradient(to right, #1B6FC9 ${
-                          ((formData.userDefinedLength - 500) / 4500) * 100
-                        }%, #E5E7EB ${((formData.userDefinedLength - 500) / 4500) * 100}%)`,
-                      }}
+                    className="w-full h-1 rounded-lg appearance-none cursor-pointer bg-gradient-to-r from-[#1B6FC9] to-gray-100 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#1B6FC9]"
+                    style={{
+                      background: `linear-gradient(to right, #1B6FC9 ${
+                        ((formData.userDefinedLength - 500) / 4500) * 100
+                      }%, #E5E7EB ${((formData.userDefinedLength - 500) / 4500) * 100}%)`,
+                    }}
                     onChange={(e) => {
                       setFormData((prev) => ({
                         ...prev,
@@ -670,7 +670,9 @@ const MultiStepModal = ({ closeFnc }) => {
                     }
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                   />
-                  <span className="block text-sm font-medium leading-6 text-gray-900 ml-2">Gemini</span>
+                  <span className="block text-sm font-medium leading-6 text-gray-900 ml-2">
+                    Gemini
+                  </span>
                 </label>
                 <label className="inline-flex items-center cursor-pointer">
                   <input
@@ -686,7 +688,9 @@ const MultiStepModal = ({ closeFnc }) => {
                     }
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                   />
-                  <span className="block text-sm font-medium leading-6 text-gray-900 ml-2">ChatGPT</span>
+                  <span className="block text-sm font-medium leading-6 text-gray-900 ml-2">
+                    ChatGPT
+                  </span>
                 </label>
                 <label className="inline-flex items-center cursor-pointer">
                   <input
@@ -702,7 +706,9 @@ const MultiStepModal = ({ closeFnc }) => {
                     }
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                   />
-                  <span  className="block text-sm font-medium leading-6 text-gray-900 ml-2">Claude</span>
+                  <span className="block text-sm font-medium leading-6 text-gray-900 ml-2">
+                    Claude
+                  </span>
                 </label>
               </div>
             </div>

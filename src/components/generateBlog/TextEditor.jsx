@@ -264,7 +264,7 @@ const TextEditor = ({
       ),
       confirmText: "Buy Now",
       cancelText: "Cancel",
-      onConfirm: () => navigate("/upgrade"),
+      onConfirm: () => navigate("/pricing"),
     })
   }
 
@@ -878,7 +878,7 @@ const TextEditor = ({
           description: "Rewrite is only available for Pro and Enterprise users.",
           confirmText: "Buy Now",
           cancelText: "Cancel",
-          onConfirm: () => navigate("/upgrade"),
+          onConfirm: () => navigate("/pricing"),
         })
       } else {
         handlePopup({

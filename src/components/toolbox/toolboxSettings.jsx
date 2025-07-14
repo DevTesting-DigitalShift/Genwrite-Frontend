@@ -17,12 +17,13 @@ import { Keyboard, WholeWord } from "lucide-react"
 
 export default function ToolboxPage() {
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState("keyword")
+  const [activeTab, setActiveTab] = useState("content")
   const [keywords, setKeywords] = useState([])
   const [newKeyword, setNewKeyword] = useState("")
   const [competitiveAnalysisModalOpen, setCompetitiveAnalysisModalOpen] = useState(false)
   const [pageSize, setPageSize] = useState(10) // State for page size
   const [currentPage, setCurrentPage] = useState(1) // State for current page
+  const { blogs } = useSelector((state) => state.blog)
 
   const dispatch = useDispatch()
   const { keywordAnalysis: keywordAnalysisResult, loading: analyzing } = useSelector(
@@ -413,7 +414,11 @@ export default function ToolboxPage() {
           ]}
         />
         {competitiveAnalysisModalOpen && (
-          <CompetitiveAnalysisModal closeFnc={() => setCompetitiveAnalysisModalOpen(false)} />
+          <CompetitiveAnalysisModal
+            blogs={blogs}
+            open={competitiveAnalysisModalOpen}
+            closeFnc={() => setCompetitiveAnalysisModalOpen(false)}
+          />
         )}
       </motion.div>
     </>

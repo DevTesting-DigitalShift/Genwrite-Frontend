@@ -18,7 +18,7 @@ export const DashboardBox = ({ title, content, id, functions, icon, gradient }) 
       confirmText: "Buy Now",
       cancelText: "Cancel",
       icon: <Gem style={{ fontSize: 50, color: "#a47dab" }} />,
-      onConfirm: () => navigate("/upgrade"),
+      onConfirm: () => navigate("/pricing"),
     })
   }
 
@@ -92,7 +92,7 @@ export const QuickBox = ({ icon, title, content, id, functions, bgColor, hoverBg
       description: "Competitor Analysis is only available for Pro and Enterprise users.",
       confirmText: "Buy Now",
       cancelText: "Cancel",
-      onConfirm: () => navigate("/upgrade"),
+      onConfirm: () => navigate("/pricing"),
     })
   }
   const handleClick = () => {

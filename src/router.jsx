@@ -16,7 +16,7 @@ const BrandVoice = lazy(() => import("@components/brandvoice/BrandVoice"))
 const PreviewBlog = lazy(() => import("@pages/preview/PreviewBlog"))
 const jobs = lazy(() => import("@pages/Jobs"))
 const trashcan = lazy(() => import("@pages/Trashcan"))
-const upgrade = lazy(() => import("@pages/Upgrade"))
+const pricing = lazy(() => import("@pages/Upgrade"))
 const Profile = lazy(() => import("@pages/Profile"))
 const Login = lazy(() => import("@components/auth/Login"))
 const ForgotPassword = lazy(() => import("@components/auth/ForgotPassword"))
@@ -62,7 +62,7 @@ const router = createBrowserRouter([
       { path: "integrations", element: withSuspense(PluginsMain) },
       { path: "jobs", element: withSuspense(jobs) },
       { path: "trashcan", element: withSuspense(trashcan) },
-      { path: "upgrade", element: withSuspense(upgrade) },
+      { path: "pricing", element: withSuspense(pricing) },
       { path: "profile", element: withSuspense(Profile) },
       { path: "brand-voice", element: withSuspense(BrandVoice) },
       { path: "transactions", element: withSuspense(Transactions) },

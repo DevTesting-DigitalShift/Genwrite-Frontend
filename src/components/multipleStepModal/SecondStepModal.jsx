@@ -92,7 +92,6 @@ const SecondStepModal = ({ handlePrevious, handleClose, data, setData, handleSub
       isCheckedGeneratedImages: true,
       isUnsplashActive: source === "unsplash",
     }))
-    setErrors((prev) => ({ ...prev, imageSource: false }))
   }
 
   return (
@@ -124,94 +123,108 @@ const SecondStepModal = ({ handlePrevious, handleClose, data, setData, handleSub
       <div className="p-4">
         <div className="space-y-6">
           {/* AI Model Section */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select AI Model <span className="text-red-500">*</span>
-            </label>
-            <div className="flex flex-wrap gap-6">
-              <div className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  id="gemini"
-                  name="aiModel"
-                  value="gemini"
-                  checked={formData.aiModel === "gemini"}
-                  onChange={(e) =>
+          <div className="flex flex-wrap gap-6">
+            {/* Gemini */}
+            <div className="flex items-center gap-2">
+              <input
+                type="radio"
+                id="gemini"
+                name="aiModel"
+                value="gemini"
+                checked={formData.aiModel === "gemini"}
+                onChange={(e) => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    aiModel: e.target.value,
+                  }))
+                  setData((prev) => ({
+                    ...prev,
+                    aiModel: e.target.value,
+                  }))
+                }}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-600 border-gray-300"
+              />
+              <label htmlFor="gemini" className="text-sm text-gray-700">
+                Gemini
+              </label>
+            </div>
+
+            {/* ChatGPT */}
+            <div className="flex items-center gap-2">
+              <input
+                type="radio"
+                id="chatgpt"
+                name="aiModel"
+                value="chatgpt"
+                checked={formData.aiModel === "chatgpt"}
+                onChange={(e) => {
+                  // if (userPlan !== "free") {
                     setFormData((prev) => ({
                       ...prev,
                       aiModel: e.target.value,
                     }))
+                    setData((prev) => ({
+                      ...prev,
+                      aiModel: e.target.value,
+                    }))
                   }
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-600 border-gray-300"
-                />
-                <label htmlFor="gemini" className="text-sm text-gray-700">
-                  Gemini
-                </label>
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  id="chatgpt"
-                  name="aiModel"
-                  value="chatgpt"
-                  checked={formData.aiModel === "chatgpt"}
-                  onChange={(e) => {
-                    if (userPlan !== "free") {
-                      setFormData((prev) => ({
-                        ...prev,
-                        aiModel: e.target.value,
-                      }))
-                    }
-                  }}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-600 border-gray-300"
-                />
-                <label
-                  htmlFor="chatgpt"
-                  onClick={(e) => {
-                    if (userPlan === "free") {
-                      e.preventDefault()
-                      openUpgradePopup({ featureName: "ChatGPT", navigate })
-                    }
-                  }}
-                  className="text-sm cursor-pointer flex items-center gap-1 text-gray-700"
-                >
-                  ChatGPT
-                  {userPlan === "free" && <Crown className="w-4 h-4 text-yellow-500" />}
-                </label>
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  id="claude"
-                  name="aiModel"
-                  value="claude"
-                  checked={formData.aiModel === "claude"}
-                  onChange={(e) => {
-                    if (userPlan !== "free" && userPlan !== "basic") {
-                      setFormData((prev) => ({
-                        ...prev,
-                        aiModel: e.target.value,
-                      }))
-                    }
-                  }}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-600 border-gray-300"
-                />
-                <label
-                  htmlFor="claude"
-                  onClick={(e) => {
-                    if (userPlan === "free" || userPlan === "basic") {
-                      e.preventDefault()
-                      openUpgradePopup({ featureName: "Claude", navigate })
-                    }
-                  }}
-                  className="text-sm cursor-pointer flex items-center gap-1 text-gray-700"
-                >
-                  Claude
-                  {(userPlan === "free" || userPlan === "basic") && (
-                    <Crown className="w-4 h-4 text-yellow-500" />
-                  )}
-                </label>
-              </div>
+                // }
+              }
+                className="h-4 w-4 text-blue-600 focus:ring-blue-600 border-gray-300"
+              />
+              <label
+                htmlFor="chatgpt"
+                onClick={(e) => {
+                  if (userPlan === "free") {
+                    e.preventDefault()
+                    openUpgradePopup({ featureName: "ChatGPT", navigate })
+                  }
+                }}
+                className="text-sm cursor-pointer flex items-center gap-1 text-gray-700"
+              >
+                ChatGPT
+                {/* {userPlan === "free" && <Crown className="w-4 h-4 text-yellow-500" />} */}
+              </label>
+            </div>
+
+            {/* Claude */}
+            <div className="flex items-center gap-2">
+              <input
+                type="radio"
+                id="claude"
+                name="aiModel"
+                value="claude"
+                checked={formData.aiModel === "claude"}
+                onChange={(e) => {
+                  // if (userPlan !== "free" && userPlan !== "basic") {
+                    setFormData((prev) => ({
+                      ...prev,
+                      aiModel: e.target.value,
+                    }))
+                    setData((prev) => ({
+                      ...prev,
+                      aiModel: e.target.value,
+                    }))
+                  }
+                // }
+              }
+                className="h-4 w-4 text-blue-600 focus:ring-blue-600 border-gray-300"
+              />
+              <label
+                htmlFor="claude"
+                onClick={(e) => {
+                  if (userPlan === "free" || userPlan === "basic") {
+                    e.preventDefault()
+                    openUpgradePopup({ featureName: "Claude", navigate })
+                  }
+                }}
+                className="text-sm cursor-pointer flex items-center gap-1 text-gray-700"
+              >
+                Claude
+                {/* {(userPlan === "free" || userPlan === "basic") && (
+                  <Crown className="w-4 h-4 text-yellow-500" />
+                )} */}
+              </label>
             </div>
           </div>
 

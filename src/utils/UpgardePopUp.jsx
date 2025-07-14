@@ -12,7 +12,7 @@ export const openUpgradePopup = ({ featureName = "", navigate, fromPage = false,
     ),
     okText: "Buy Now",
     cancelText: "Cancel",
-    onOk: () => navigate?.("/upgrade"),
+    onOk: () => navigate?.("/pricing"),
     onCancel: () => {
       if (fromPage && navigate) navigate(-1)
       if (onCancel) onCancel()

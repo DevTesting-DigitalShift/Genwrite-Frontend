@@ -268,14 +268,14 @@ const blogSlice = createSlice({
     builder
       // Fetch recent
       .addCase(fetchAllBlogs.pending, (state) => {
-        state.loading = true
+        // state.loading = true
       })
       .addCase(fetchAllBlogs.fulfilled, (state, action) => {
-        state.loading = false
+        // state.loading = false
         state.blogs = action.payload
       })
       .addCase(fetchAllBlogs.rejected, (state, action) => {
-        state.loading = false
+        // state.loading = false
         state.error = action.payload
       })
 

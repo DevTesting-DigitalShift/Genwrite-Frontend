@@ -114,7 +114,7 @@ const Sidebar = () => {
             <NavItem
               icon={<img src="./Images/jobsicon.svg" alt="jobs" />}
               text="Upgrade"
-              to="/upgrade"
+              to="/pricing"
             />
           </ul>
         </nav>

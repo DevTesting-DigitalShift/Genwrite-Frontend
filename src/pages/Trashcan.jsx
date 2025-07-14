@@ -180,18 +180,30 @@ const Trashcan = () => {
                   text={
                     <span className="flex items-center justify-center gap-1 py-1 font-medium tracking-wide">
                       <img
-                        src={`./Images/${isGemini ? "gemini" : "chatgpt"}.png`}
+                        src={`./Images/${
+                          isGemini ? "gemini" : aiModel === "claude" ? "claude" : "chatgpt"
+                        }.png`}
                         alt=""
                         width={20}
                         height={20}
                         loading="lazy"
                         className="bg-white"
                       />
-                      {isGemini ? "Gemini-1.5-flash" : "Chatgpt-4o-mini"}
+                      {isGemini
+                        ? "Gemini-1.5-flash"
+                        : aiModel === "claude"
+                        ? "Claude-3-Haiku"
+                        : "ChatGPT-4o-mini"}
                     </span>
                   }
                   className="absolute top-0"
-                  color={isGemini ? "#4796E3" : "#74AA9C"}
+                  color={
+                    isGemini
+                      ? "#4796E3" // Gemini blue
+                      : aiModel === "claude"
+                      ? "#9368F8" // Claude purple-ish
+                      : "#74AA9C" // ChatGPT green
+                  }
                 >
                   <div
                     className={`bg-white shadow-md hover:shadow-xl transition-all duration-300 rounded-xl p-4 min-h-[180px] min-w-[390px] relative
