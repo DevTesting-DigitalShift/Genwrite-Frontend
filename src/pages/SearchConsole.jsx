@@ -22,6 +22,8 @@ import axiosInstance from "@api/index"
 import Loading from "@components/Loading"
 import * as XLSX from "xlsx"
 import { fetchAllBlogs } from "@store/slices/blogSlice"
+import UpgradeModal from "@components/UpgradeModal"
+import { selectUser } from "@store/slices/authSlice"
 
 const { Option } = Select
 const { Search: AntSearch } = Input
@@ -39,7 +41,8 @@ const SearchConsole = () => {
   const [error, setError] = useState(null)
   const [isConnecting, setIsConnecting] = useState(false)
   const dispatch = useDispatch()
-  const { user } = useSelector((state) => state.auth)
+  const user = useSelector(selectUser)
+  const userPlan = (user?.plan || user?.subscription?.plan || "free").toLowerCase()
   const { blogs } = useSelector((state) => state.blog)
   const {
     verifiedSites,
@@ -48,6 +51,10 @@ const SearchConsole = () => {
   } = useSelector((state) => state.gsc)
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
+
+  if (userPlan === "free" || userPlan === "basic") {
+    return <UpgradeModal featureName={"Google Search Console"} />
+  }
 
   useEffect(() => {
     dispatch(fetchAllBlogs())
@@ -299,14 +306,6 @@ const SearchConsole = () => {
   useEffect(() => {
     dispatch(fetchVerifiedSites())
   }, [dispatch])
-
-  useEffect(() => {
-    if (verifiedSites.length > 0) {
-      fetchAnalyticsData()
-    } else if (!sitesLoading && !verifiedSites.length) {
-      setError("No verified sites found. Please connect your Google Search Console account.")
-    }
-  }, [verifiedSites, dateRange, selectedBlog, sitesLoading]) // Added selectedBlog to dependencies
 
   // Calculate totals for summary cards
   const totals = useMemo(() => {

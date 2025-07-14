@@ -1,35 +1,43 @@
-// | Model        | Cost per 1K tokens (input+output) | Approx Cost Ratio (ChatGPT / Gemini) |
-// | ------------ | --------------------------------- | ------------------------------------ |
-// | Gemini Flash | ~ $ 0.0125 (estimated)            | 1x (baseline)                        |
-// | GPT-4 Turbo  | ~ $ 0.025  (estimated)            | ~1.5x Gemini                        |
-
-const CHATGPT_MULTIPLIER = 1.5
+const CHATGPT_MULTIPLIER = 1.5;
+const CLAUDE_MULTIPLIER = 3;
 
 export const creditCostswithGemini = Object.freeze({
   analysis: {
-    competitors: 10, // competitor summaries & deep analysis using ai
-    keywords: 1, // keywords suggestion per title
+    competitors: 10, // competitor summaries & deep analysis using AI
+    keywords: 1,     // keyword suggestion per title
   },
   blog: {
-    quick: 5, // quick blog with 1 image
+    quick: 5,       // quick blog with 1 image
     proofread: 5,
-    single: 10, // single blog without images / unstock images
+    single: 10,     // single blog without images / unstock images
   },
-  aiImages: 10, // credits to add for ai images (fixed for all ai as using dall-e-3 for all)
-})
+  aiImages: 10,      // credits to add for AI images (fixed for all AI as using DALL·E 3)
+});
 
 /**
  *
  * @param {"analysis.competitors"|"analysis.keywords"|"blog.quick"|"blog.proofread"|"blog.single"|"aiImages"} type
+ * @param {"gemini"|"chatgpt"|"claude"} aiModel
  * @returns {number}
  */
 export function getEstimatedCost(type, aiModel = "gemini") {
-  const types = type.split(".")
+  const types = type.split(".");
   let cost =
-    types.length == 1 ? creditCostswithGemini[type] : creditCostswithGemini[types[0]][types[1]]
-  if (!cost) throw new Error("Unknown Operation: No cost avaliable")
-  if (aiModel.toLowerCase() != "gemini") {
-    cost = Math.ceil(CHATGPT_MULTIPLIER * cost)
+    types.length === 1
+      ? creditCostswithGemini[type]
+      : creditCostswithGemini[types[0]][types[1]];
+
+  if (!cost) throw new Error("Unknown Operation: No cost available");
+
+  switch (aiModel.toLowerCase()) {
+    case "chatgpt":
+      cost = Math.ceil(CHATGPT_MULTIPLIER * cost);
+      break;
+    case "claude":
+      cost = Math.ceil(CLAUDE_MULTIPLIER * cost);
+      break;
+    // "gemini" or any unrecognized default will stay base
   }
-  return cost
+
+  return cost;
 }

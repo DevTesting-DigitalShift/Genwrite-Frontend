@@ -2,11 +2,11 @@ import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { X, Tag, Tags } from "lucide-react"
 import { useDispatch, useSelector } from "react-redux"
-import { Modal, Table, Tooltip, message } from "antd"
+import { Modal, Select, Table, Tooltip, message } from "antd"
 import { InfoCircleOutlined } from "@ant-design/icons"
 import { fetchAllBlogs, fetchBlogStats } from "@store/slices/blogSlice"
 
-const PerformanceMonitoringModal = ({ closeFnc, visible }) => {
+const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
   const [formData, setFormData] = useState({
     selectedBlog: null,
     title: "",
@@ -14,11 +14,6 @@ const PerformanceMonitoringModal = ({ closeFnc, visible }) => {
   })
   const [stats, setStats] = useState(null)
   const dispatch = useDispatch()
-  const { blogs: allBlogs } = useSelector((state) => state.blog)
-
-  useEffect(() => {
-    dispatch(fetchAllBlogs())
-  }, [dispatch])
 
   const handleBlogSelect = async (blog) => {
     setFormData({
@@ -567,47 +562,32 @@ const PerformanceMonitoringModal = ({ closeFnc, visible }) => {
       bodyStyle={{ maxHeight: "85vh", overflowY: "auto" }}
       className="rounded-2xl shadow-2xl"
     >
-      <div className="space-y-6 mt-5 p-4">
+      <div className="space-y-6 p-4">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <label className="block text-md font-semibold text-gray-700 mb-2">Select Blog</label>
+          <label className="block text-base font-semibold text-gray-700 mb-2">Select Blog</label>
           <div className="relative">
-            <select
-              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 appearance-none shadow-sm"
-              onChange={(e) => {
-                const blog = allBlogs.find((b) => b._id === e.target.value)
+            <Select
+              className="w-full"
+              placeholder="Select Blog"
+              onChange={(value) => {
+                const blog = allBlogs.find((b) => b._id === value)
                 if (blog) handleBlogSelect(blog)
               }}
               value={formData.selectedBlog?._id || ""}
             >
-              <option value="" className="bg-gray-50">
-                Select a blog
-              </option>
+              <Option value="">Select Blog</Option>
               {allBlogs
                 ?.filter((b) => b.status === "complete" && b.isArchived === false)
                 .map((blog) => (
-                  <option key={blog._id} value={blog._id} className="bg-gray-50">
+                  <Option key={blog._id} value={blog._id} className="bg-gray-50">
                     {blog.title}
-                  </option>
+                  </Option>
                 ))}
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
-              <svg
-                className="h-5 w-5"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </div>
+            </Select>
           </div>
         </motion.div>
         {formData.selectedBlog && (

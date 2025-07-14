@@ -128,26 +128,13 @@ const LayoutWithSidebarAndHeader = () => {
       ),
       confirmText: "Buy Now",
       cancelText: "Cancel",
-      onConfirm: () => navigate("/upgrade"),
+      onConfirm: () => navigate("/pricing"),
       onCancel: () => {
         if (fromContentAgent) {
           navigate(-1) // Navigate back to the previous page
         }
       },
     })
-  }
-
-  const handleSearchConsoleClick = (e, path) => {
-    const allowedPlans = ["pro", "enterprise"]
-    const isPro =
-      allowedPlans.includes(user?.plan) || allowedPlans.includes(user?.subscription?.plan)
-
-    if (!isPro) {
-      e.preventDefault() // Prevent navigation to /jobs
-      handleUpgradePopup(true) // Show popup with back navigation on cancel
-    } else {
-      navigate(path) // Navigate to /jobs for Pro users
-    }
   }
 
   return (
@@ -178,10 +165,10 @@ const LayoutWithSidebarAndHeader = () => {
         {sidebarOpen && (
           <div className="mb-6 px-2">
             <button
-              onClick={() => navigate("/upgrade")}
+              onClick={() => navigate("/pricing")}
               className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg flex items-center justify-center gap-2 group capitalize"
             >
-              {user?.plan === "pro" ? (
+              {user?.plan === "pro" || user?.plan === "enterprise" ? (
                 <Crown className="w-4 h-4 group-hover:rotate-12 transition-transform duration-300" />
               ) : (
                 <Zap className="w-4 h-4 group-hover:scale-110 transition-transform duration-300" />
@@ -196,20 +183,18 @@ const LayoutWithSidebarAndHeader = () => {
           {Menus.map((Menu, index) => {
             const isActive = location.pathname.startsWith(Menu.path)
             const Icon = Menu.icon
+
             const isSearchConsole = Menu.title === "Search Console"
-            const allowedPlans = ["pro", "enterprise"]
+            const isContentAgent = Menu.title === "Content Agent"
             const isPro =
-              allowedPlans.includes(user?.plan) || allowedPlans.includes(user?.subscription?.plan)
+              ["pro", "enterprise"].includes(user?.plan) ||
+              ["pro", "enterprise"].includes(user?.subscription?.plan)
+            const isFreeUser = user?.plan === "free" || user?.subscription?.plan === "free"
 
             return (
               <li key={index} className="flex items-center gap-2">
                 <NavLink
                   to={Menu.path}
-                  onClick={(e) => {
-                    if (isSearchConsole) {
-                      handleSearchConsoleClick(e, Menu.path)
-                    }
-                  }}
                   className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors duration-200 text-white hover:bg-white/10 flex-1 ${
                     isActive ? "bg-white/20 font-semibold" : ""
                   }`}
@@ -220,15 +205,25 @@ const LayoutWithSidebarAndHeader = () => {
                   />
                   <span className={`${!sidebarOpen ? "hidden" : "block"}`}>{Menu.title}</span>
                 </NavLink>
+
+                {/* 👇 Show upgrade icon only for "Content Agent" and free users */}
+                {isContentAgent && isFreeUser && sidebarOpen && (
+                  <button
+                    onClick={() => handleUpgradePopup({ featureName: "Content Agent" })}
+                    className="p-1 bg-yellow-500 text-white rounded-md transition-all duration-200 hover:scale-105"
+                  >
+                    <Crown className="w-4 h-4" />
+                  </button>
+                )}
+
+                {/* Optional: existing logic for Search Console & Pro users */}
                 {isSearchConsole && !isPro && sidebarOpen && (
-                  <Tooltip title="Upgrade to Pro to access Content Agent">
-                    <button
-                      onClick={() => handleUpgradePopup(false)}
-                      className="p-1 bg-yellow-400 hover:bg-yellow-500 text-white rounded-md transition-all duration-200 hover:scale-105"
-                    >
-                      <Crown className="w-4 h-4" />
-                    </button>
-                  </Tooltip>
+                  <button
+                    onClick={() => handleUpgradePopup({ featureName: "Search Console" })}
+                    className="p-1 bg-yellow-500 text-white rounded-md transition-all duration-200 hover:scale-105"
+                  >
+                    <Crown className="w-4 h-4" />
+                  </button>
                 )}
               </li>
             )
@@ -260,7 +255,7 @@ const LayoutWithSidebarAndHeader = () => {
             <img src="/Images/logo_genwrite_2.png" loading="lazy" alt="Logo" className="w-36" />
           </div>
           <div className="flex items-center space-x-4">
-            <GoProButton onClick={() => navigate("/upgrade")} />
+            <GoProButton onClick={() => navigate("/pricing")} />
             {isUserLoaded ? (
               <>
                 <Tooltip title="User Credits">

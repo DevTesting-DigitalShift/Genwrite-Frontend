@@ -192,7 +192,7 @@ const TextEditorSidebar = ({
         description: "Competitor Analysis is only available for Pro and Enterprise users.",
         confirmText: "Buy Now",
         cancelText: "Cancel",
-        onConfirm: () => navigate("/upgrade"),
+        onConfirm: () => navigate("/pricing"),
       })
     } else {
       handlePopup({
@@ -210,7 +210,7 @@ const TextEditorSidebar = ({
         description: "AI Proofreading is only available for Pro and Enterprise users.",
         confirmText: "Buy Now",
         cancelText: "Cancel",
-        onConfirm: () => navigate("/upgrade"),
+        onConfirm: () => navigate("/pricing"),
       })
     } else {
       handlePopup({
