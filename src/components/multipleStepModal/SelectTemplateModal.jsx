@@ -1,4 +1,4 @@
-import React, { memo, useState } from "react"
+import React, { memo, useEffect, useState } from "react"
 import { Modal, Button, message } from "antd"
 import Carousel from "./Carousel"
 
@@ -86,6 +86,17 @@ const SelectTemplateModal = ({ handleNext, handleClose, data, setData }) => {
       message.error("Please select a template before proceeding.")
     }
   }
+
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = "hidden"
+    } else {
+      document.body.style.overflow = "auto"
+    }
+    return () => {
+      document.body.style.overflow = "auto"
+    }
+  }, [open])
 
   return (
     <Modal

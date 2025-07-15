@@ -26,7 +26,7 @@ import { SkeletonDashboardCard, SkeletonGridCard } from "./Projects/SkeletonLoad
 import { openJobModal } from "@store/slices/jobSlice"
 import { message } from "antd"
 import { motion } from "framer-motion"
-import { clearKeywordAnalysis } from "@store/slices/analysisSlice"
+import { clearKeywordAnalysis, clearSelectedKeywords } from "@store/slices/analysisSlice"
 
 const Dashboard = () => {
   const [isModalVisible, setIsModalVisible] = useState(false)
@@ -117,25 +117,20 @@ const Dashboard = () => {
 
       // Calculate blog + image cost based on AI model
       const estimatedBlogCost = getEstimatedCost("blog.single", modelData.aiModel)
-      const estimatedImageCost = modelData.isUnsplashActive
-        ? 0
-        : getEstimatedCost("aiImages", modelData.aiModel)
-
-      const estimatedCost = estimatedBlogCost + estimatedImageCost
 
       handlePopup({
         title: "Confirm Blog Creation",
         description: (
           <>
             <span>
-              Single Blog generation cost: <b>{estimatedCost} credits</b>
+              Single Blog generation cost: <b>{estimatedBlogCost} credits</b>
             </span>
             <br />
             <span>Do you want to continue?</span>
           </>
         ),
         onConfirm: () => {
-          if (estimatedCost > totalCredits) {
+          if (estimatedBlogCost > totalCredits) {
             message.error("You do not have enough credits to generate this blog.")
             handlePopup(false)
             return
@@ -146,6 +141,7 @@ const Dashboard = () => {
           setCurrentStep(0)
         },
       })
+      dispatch(clearSelectedKeywords())
     } catch (error) {
       console.error("Error submitting form:", error)
     }
@@ -155,6 +151,7 @@ const Dashboard = () => {
     setIsModalVisible(false)
     setCurrentStep(0)
     setModelData({})
+    dispatch(clearSelectedKeywords())
   }
 
   const handleNext = () => setCurrentStep(currentStep + 1)
@@ -228,6 +225,7 @@ const Dashboard = () => {
           }}
           openSecondStepModal={openSecondStepModal}
           openJobModal={openSecondStepJobModal} // Pass the job modal opener
+          visible={keywordResearchModal}
         />
       )}
       {seoAnalysisModal && <SeoAnalysisModal closeFnc={() => setSeoAnalysisModal(false)} />}

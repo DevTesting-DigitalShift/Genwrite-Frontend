@@ -24,7 +24,7 @@ export const createJobThunk = createAsyncThunk(
       if (onSuccess) onSuccess()
       return data
     } catch (error) {
-      message.error("Failed to create job. Please try again.")
+      message.error(error?.response?.data?.message || "Failed to create job. Please try again.")
       return rejectWithValue(error.response?.data?.message || error.message)
     }
   }

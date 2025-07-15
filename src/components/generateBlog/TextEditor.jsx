@@ -536,6 +536,11 @@ const TextEditor = ({
             Gemini
             <img src="/Images/gemini.png" alt="gemini" className="w-5" />
           </span>
+        ) : blog?.aiModel?.toLowerCase() === "claude" ? (
+          <span className="flex items-center gap-2">
+            Claude
+            <img src="/Images/claude.png" alt="claude" className="w-5" />
+          </span>
         ) : (
           <span className="flex items-center gap-2">
             ChatGPT

@@ -4,13 +4,11 @@ import { fetchBrands } from "@store/slices/brandSlice"
 import { message, Modal } from "antd"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
 import { Crown, Plus, X } from "lucide-react"
-import { useNavigate } from "react-router-dom"
 
 const SecondStepModal = ({ handlePrevious, handleClose, data, setData, handleSubmit }) => {
   const dispatch = useDispatch()
   const { user } = useSelector((state) => state.auth)
   const { brands, loading: loadingBrands, error: brandError } = useSelector((state) => state.brand)
-  const navigate = useNavigate()
   const userPlan = user?.subscription?.plan || user?.plan
 
   const [formData, setFormData] = useState({
@@ -89,7 +87,7 @@ const SecondStepModal = ({ handlePrevious, handleClose, data, setData, handleSub
   const handleImageSourceChange = (source) => {
     setData((prev) => ({
       ...prev,
-      isCheckedGeneratedImages: true,
+      isCheckedGeneratedImages: !prev.isCheckedBrand,
       isUnsplashActive: source === "unsplash",
     }))
   }
@@ -122,161 +120,141 @@ const SecondStepModal = ({ handlePrevious, handleClose, data, setData, handleSub
     >
       <div className="p-4">
         <div className="space-y-6">
-          {/* AI Model Section */}
-          <div className="flex flex-wrap gap-6">
-            {/* Gemini */}
-            <div className="flex items-center gap-2">
-              <input
-                type="radio"
-                id="gemini"
-                name="aiModel"
-                value="gemini"
-                checked={formData.aiModel === "gemini"}
-                onChange={(e) => {
-                  setFormData((prev) => ({
-                    ...prev,
-                    aiModel: e.target.value,
-                  }))
-                  setData((prev) => ({
-                    ...prev,
-                    aiModel: e.target.value,
-                  }))
-                }}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-600 border-gray-300"
-              />
-              <label htmlFor="gemini" className="text-sm text-gray-700">
-                Gemini
-              </label>
+          {/* AI Model Selection */}
+          <div className="mb-6">
+            <label className="block text-sm font-semibold text-gray-700 mb-3">
+              Select AI Model
+            </label>
+            <div className="flex gap-6 flex-wrap">
+              {[
+                {
+                  id: "gemini",
+                  label: "Gemini",
+                  logo: "/Images/gemini.png",
+                  restricted: false,
+                },
+                {
+                  id: "chatgpt",
+                  label: "ChatGPT",
+                  logo: "/Images/chatgpt.png",
+                  restricted: userPlan === "free",
+                },
+                {
+                  id: "claude",
+                  label: "Claude",
+                  logo: "/Images/claude.png",
+                  restricted: userPlan === "free" || userPlan === "basic",
+                },
+              ].map((model) => (
+                <label
+                  key={model.id}
+                  htmlFor={model.id}
+                  className={`relative border rounded-lg px-4 py-3 flex items-center gap-3 cursor-pointer transition-all duration-150 ${
+                    formData.aiModel === model.id ? "border-blue-600 bg-blue-50" : "border-gray-300"
+                  } hover:shadow-sm w-full max-w-[200px]`}
+                  // onClick={(e) => {
+                  //   if (model.restricted) {
+                  //     e.preventDefault()
+                  //     openUpgradePopup({ featureName: model.label, navigate })
+                  //   }
+                  // }}
+                >
+                  <input
+                    type="radio"
+                    id={model.id}
+                    name="aiModel"
+                    value={model.id}
+                    checked={formData.aiModel === model.id}
+                    onChange={(e) => {
+                      // if (!model.restricted) {
+                      setFormData((prev) => ({ ...prev, aiModel: e.target.value }))
+                      setData((prev) => ({ ...prev, aiModel: e.target.value }))
+                      // }
+                    }}
+                    className="hidden"
+                  />
+                  <img src={model.logo} alt={model.label} className="w-6 h-6 object-contain" />
+                  <span className="text-sm font-medium text-gray-800">{model.label}</span>
+                  {/* {model.restricted && (
+                    <Crown className="w-4 h-4 text-yellow-500 absolute top-2 right-2" />
+                  )} */}
+                </label>
+              ))}
             </div>
+          </div>
 
-            {/* ChatGPT */}
-            <div className="flex items-center gap-2">
-              <input
-                type="radio"
-                id="chatgpt"
-                name="aiModel"
-                value="chatgpt"
-                checked={formData.aiModel === "chatgpt"}
-                onChange={(e) => {
-                  // if (userPlan !== "free") {
+          {/* Toggle for Adding Image */}
+          <div className="flex justify-between items-center">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Add Image</label>
+            <div className="flex items-center">
+              <label htmlFor="add-image-toggle" className="relative inline-block w-12 h-6">
+                <input
+                  type="checkbox"
+                  id="add-image-toggle"
+                  className="sr-only peer"
+                  checked={formData?.isCheckedGeneratedImages}
+                  onChange={(e) => {
+                    const checked = e.target.checked
                     setFormData((prev) => ({
                       ...prev,
-                      aiModel: e.target.value,
+                      isCheckedGeneratedImages: checked,
                     }))
                     setData((prev) => ({
                       ...prev,
-                      aiModel: e.target.value,
+                      isCheckedGeneratedImages: checked,
                     }))
-                  }
-                // }
-              }
-                className="h-4 w-4 text-blue-600 focus:ring-blue-600 border-gray-300"
-              />
-              <label
-                htmlFor="chatgpt"
-                onClick={(e) => {
-                  if (userPlan === "free") {
-                    e.preventDefault()
-                    openUpgradePopup({ featureName: "ChatGPT", navigate })
-                  }
-                }}
-                className="text-sm cursor-pointer flex items-center gap-1 text-gray-700"
-              >
-                ChatGPT
-                {/* {userPlan === "free" && <Crown className="w-4 h-4 text-yellow-500" />} */}
-              </label>
-            </div>
+                  }}
+                />
 
-            {/* Claude */}
-            <div className="flex items-center gap-2">
-              <input
-                type="radio"
-                id="claude"
-                name="aiModel"
-                value="claude"
-                checked={formData.aiModel === "claude"}
-                onChange={(e) => {
-                  // if (userPlan !== "free" && userPlan !== "basic") {
-                    setFormData((prev) => ({
-                      ...prev,
-                      aiModel: e.target.value,
-                    }))
-                    setData((prev) => ({
-                      ...prev,
-                      aiModel: e.target.value,
-                    }))
-                  }
-                // }
-              }
-                className="h-4 w-4 text-blue-600 focus:ring-blue-600 border-gray-300"
-              />
-              <label
-                htmlFor="claude"
-                onClick={(e) => {
-                  if (userPlan === "free" || userPlan === "basic") {
-                    e.preventDefault()
-                    openUpgradePopup({ featureName: "Claude", navigate })
-                  }
-                }}
-                className="text-sm cursor-pointer flex items-center gap-1 text-gray-700"
-              >
-                Claude
-                {/* {(userPlan === "free" || userPlan === "basic") && (
-                  <Crown className="w-4 h-4 text-yellow-500" />
-                )} */}
+                <div className="w-12 h-6 bg-gray-300 rounded-full peer peer-checked:bg-[#1B6FC9] transition-all duration-300" />
+                <div className="absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-300 peer-checked:translate-x-6" />
               </label>
             </div>
           </div>
 
-          {/* Image Source */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Image Source <span className="text-red-500">*</span>
-            </label>
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  id="unsplash"
-                  name="imageSource"
-                  checked={data?.isUnsplashActive}
-                  onChange={() => handleImageSourceChange("unsplash")}
-                  className="h-4 w-4 text-[#1B6FC9] focus:ring-[#1B6FC9] border-gray-300"
-                />
-                <label htmlFor="unsplash" className="text-sm text-gray-700 whitespace-nowrap">
-                  Stock Images
+          {/* Image Source Selection - Only show if toggle is ON */}
+          {formData?.isCheckedGeneratedImages && (
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-3">Image Source</label>
+              <div className="flex gap-6 flex-wrap">
+                {/* Unsplash / Stock Images */}
+                <label
+                  htmlFor="unsplash"
+                  className={`border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150 ${
+                    data?.isUnsplashActive ? "border-blue-600 bg-blue-50" : "border-gray-300"
+                  } hover:shadow-sm w-full max-w-[200px]`}
+                >
+                  <input
+                    type="radio"
+                    id="unsplash"
+                    name="imageSource"
+                    checked={data?.isUnsplashActive}
+                    onChange={() => handleImageSourceChange("unsplash")}
+                    className="hidden"
+                  />
+                  <span className="text-sm font-medium text-gray-800">Stock Images</span>
                 </label>
-              </div>
 
-              <div className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  id="ai-generated"
-                  name="imageSource"
-                  checked={!data?.isUnsplashActive}
-                  onChange={() => {
-                    if (userPlan !== "free") {
-                      handleImageSourceChange("ai")
-                    }
-                  }}
-                  className="h-4 w-4 text-[#1B6FC9] focus:ring-[#1B6FC9] border-gray-300"
-                />
+                {/* AI Generated Images */}
                 <label
                   htmlFor="ai-generated"
-                  onClick={(e) => {
-                    if (userPlan === "free") {
-                      e.preventDefault()
-                      openUpgradePopup({ featureName: "AI-Generated Images", navigate })
-                    }
-                  }}
-                  className="text-sm cursor-pointer flex items-center gap-1 text-gray-700"
+                  className={`border rounded-lg px-4 py-3 flex items-center gap-3 justify-center  cursor-pointer transition-all duration-150 ${
+                    !data?.isUnsplashActive ? "border-blue-600 bg-blue-50" : "border-gray-300"
+                  } hover:shadow-sm w-full max-w-[200px] relative`}
                 >
-                  AI-Generated Images
-                  {userPlan === "free" && <Crown className="w-4 h-4 text-yellow-500" />}
+                  <input
+                    type="radio"
+                    id="ai-generated"
+                    name="imageSource"
+                    checked={!data?.isUnsplashActive}
+                    onChange={() => handleImageSourceChange("ai")}
+                    className="hidden"
+                  />
+                  <span className="text-sm font-medium text-gray-800">AI-Generated Images</span>
                 </label>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Quick Summary Toggle */}
           <div className="flex items-center justify-between">

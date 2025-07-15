@@ -10,25 +10,23 @@ import {
   setSelectedKeywords,
 } from "@store/slices/analysisSlice"
 
-const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal }) => {
+const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, visible }) => {
   const [newKeyword, setNewKeyword] = useState("")
   const [keywords, setKeywords] = useState([])
   const [currentPage, setCurrentPage] = useState(1)
-  const [autoSelectedKeywords, setAutoSelectedKeywords] = useState([])
 
   const dispatch = useDispatch()
+
   const {
     keywordAnalysis: keywordAnalysisResult,
     loading: analyzing,
-    error: analysisError,
     selectedKeywords,
   } = useSelector((state) => state.analysis)
+  
+  // console.log({ selectedKeywords })
 
-  // Clear keywordAnalysisResult when keywords become empty, but preserve selectedKeywords
   useEffect(() => {
     if (keywords.length === 0) {
-      dispatch(clearKeywordAnalysis())
-      setAutoSelectedKeywords([])
       setCurrentPage(1)
     }
   }, [keywords, dispatch])
@@ -62,7 +60,6 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal }) =
     setKeywords(updatedKeywords)
     if (updatedKeywords.length === 0) {
       dispatch(clearKeywordAnalysis())
-      setAutoSelectedKeywords([])
       setCurrentPage(1)
     }
   }
@@ -111,20 +108,12 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal }) =
 
   const confirmAutoKeywords = (type) => {
     const autoKeywords = getAutoSelectedKeywords()
-    setAutoSelectedKeywords(autoKeywords)
 
     const modal = Modal.info({
       icon: null,
       title: (
         <div className="flex justify-between items-center">
           <span>Auto-Selected Keywords</span>
-          <button
-            onClick={() => modal.destroy()}
-            className="text-gray-500 hover:text-red-500"
-            aria-label="Close modal"
-          >
-            <X className="h-5 w-5" />
-          </button>
         </div>
       ),
       content: (
@@ -167,17 +156,26 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal }) =
   }
 
   const proceedWithSelectedKeywords = async (finalSelectedKeywords, type) => {
+    // Split into focusKeywords (first 3) and keywords (remaining)
+    const focusKeywords = finalSelectedKeywords.slice(0, 3)
+    const keywords = finalSelectedKeywords.slice(3)
+
     await dispatch(
       setSelectedKeywords({
-        focusKeywords: finalSelectedKeywords,
+        focusKeywords,
         allKeywords: finalSelectedKeywords,
+        keywords,
       })
     )
 
     // Wait briefly to ensure Redux state updates
     setTimeout(() => {
       if (type === "blog") {
-        openSecondStepModal()
+        openSecondStepModal({
+          focusKeywords,
+          keywords,
+          allKeywords: finalSelectedKeywords,
+        })
       } else {
         openJobModal()
       }
@@ -247,121 +245,31 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal }) =
   // Modified cleanup to avoid resetting selectedKeywords
   useEffect(() => {
     return () => {
-      dispatch(clearKeywordAnalysis()) // Ensure this does not clear selectedKeywords
       setKeywords([])
       setNewKeyword("")
-      setAutoSelectedKeywords([])
       setCurrentPage(1)
     }
   }, [dispatch])
 
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = "hidden"
+    } else {
+      document.body.style.overflow = "auto"
+    }
+    return () => {
+      document.body.style.overflow = "auto"
+    }
+  }, [open])
+
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        className="relative w-full max-w-4xl rounded-2xl overflow-hidden border"
-      >
-        <Card
-          title={
-            <div className="flex justify-between items-center">
-              <span className="font-medium text-gray-700">Keyword Research</span>
-              <button
-                onClick={closeFnc}
-                className="p-2 rounded-full hover:bg-gray-100"
-                aria-label="Close keyword research modal"
-              >
-                <X className="h-6 w-6 text-gray-500 hover:text-gray-700" />
-              </button>
-            </div>
-          }
-          className="rounded-xl shadow-lg border-0"
-        >
-          <p className="mb-4 text-gray-600">Find and analyze keywords for your blog</p>
-
-          <div className="flex gap-2 mb-4">
-            <Input
-              placeholder="Enter a keyword"
-              value={newKeyword}
-              onChange={(e) => setNewKeyword(e.target.value)}
-              onKeyPress={handleKeyPress}
-              className="flex-1"
-              aria-label="Enter keyword"
-            />
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button type="primary" onClick={addKeyword}>
-                Add
-              </Button>
-            </motion.div>
-          </div>
-
-          <div className="flex flex-wrap gap-2 mb-6">
-            {keywords.map((keyword, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1 }}
-                className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full flex items-center"
-              >
-                <span>{keyword}</span>
-                <motion.div
-                  whileHover={{ scale: 1.2 }}
-                  whileTap={{ scale: 0.8 }}
-                  className="ml-2 cursor-pointer"
-                  onClick={() => removeKeyword(index)}
-                >
-                  <CloseOutlined className="text-blue-800 text-xs" />
-                </motion.div>
-              </motion.div>
-            ))}
-          </div>
-
-          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-            <Button
-              block
-              type="primary"
-              onClick={analyzeKeywords}
-              loading={analyzing}
-              disabled={keywords.length === 0}
-            >
-              Analyze Keywords
-            </Button>
-          </motion.div>
-
-          {keywords.length > 0 && keywordAnalysisResult && Array.isArray(keywordAnalysisResult) && (
-            <div className="mt-6">
-              <Table
-                columns={columns}
-                dataSource={tableData}
-                pagination={{
-                  current: currentPage,
-                  pageSize: 4,
-                  showSizeChanger: false,
-                  onChange: handlePageChange,
-                  total: tableData.length,
-                }}
-                rowSelection={{
-                  selectedRowKeys: selectedKeywords?.focusKeywords || [],
-                  onChange: (selected) => {
-                    dispatch(
-                      setSelectedKeywords({
-                        focusKeywords: selected,
-                        allKeywords: selected,
-                      })
-                    )
-                  },
-                  getCheckboxProps: (record) => ({
-                    name: record.keyword,
-                  }),
-                }}
-                rowKey={(record) => record.keyword}
-                scroll={{ x: true }}
-              />
-            </div>
-          )}
-
-          <div className="flex justify-end gap-3 mt-5 border-t border-gray-100 pt-4">
+    <Modal
+      open={visible}
+      onCancel={closeFnc}
+      closable={true}
+      footer={[
+        <>
+          <div className="flex justify-end gap-3 pt-2 border-gray-100">
             <motion.button
               onClick={handleCreateBlog}
               className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
@@ -389,9 +297,103 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal }) =
               Close
             </motion.button>
           </div>
-        </Card>
-      </motion.div>
-    </div>
+        </>,
+      ]}
+      width={1000}
+      centered
+      title="Keyword Research"
+      maskClosable
+    >
+      <div>
+        <p className="mb-4 text-gray-600">Find and analyze keywords for your blog</p>
+
+        <div className="flex gap-2 mb-4">
+          <Input
+            placeholder="Enter a keyword"
+            value={newKeyword}
+            onChange={(e) => setNewKeyword(e.target.value)}
+            onKeyPress={handleKeyPress}
+            className="flex-1"
+            aria-label="Enter keyword"
+          />
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Button type="primary" onClick={addKeyword}>
+              Add
+            </Button>
+          </motion.div>
+        </div>
+
+        <div className="flex flex-wrap gap-2 mb-6">
+          {keywords.map((keyword, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1 }}
+              className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full flex items-center"
+            >
+              <span>{keyword}</span>
+              <motion.div
+                whileHover={{ scale: 1.2 }}
+                whileTap={{ scale: 0.8 }}
+                className="ml-2 cursor-pointer"
+                onClick={() => removeKeyword(index)}
+              >
+                <CloseOutlined className="text-blue-800 text-xs" />
+              </motion.div>
+            </motion.div>
+          ))}
+        </div>
+
+        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+          <Button
+            block
+            type="primary"
+            onClick={analyzeKeywords}
+            loading={analyzing}
+            disabled={keywords.length === 0}
+          >
+            Analyze Keywords
+          </Button>
+        </motion.div>
+
+        {keywords.length > 0 &&
+          !analyzing &&
+          keywordAnalysisResult &&
+          Array.isArray(keywordAnalysisResult) &&
+          keywordAnalysisResult.length > 0 && (
+            <div className="mt-6">
+              <Table
+                columns={columns}
+                dataSource={tableData}
+                pagination={{
+                  current: currentPage,
+                  pageSize: 4,
+                  showSizeChanger: false,
+                  onChange: handlePageChange,
+                  total: tableData.length,
+                }}
+                rowSelection={{
+                  selectedRowKeys: selectedKeywords?.focusKeywords || [],
+                  onChange: (selected) => {
+                    dispatch(
+                      setSelectedKeywords({
+                        focusKeywords: selected,
+                        allKeywords: selected,
+                        keywords: selected.slice(3), // Update keywords for remaining
+                      })
+                    )
+                  },
+                  getCheckboxProps: (record) => ({
+                    name: record.keyword,
+                  }),
+                }}
+                rowKey={(record) => record.keyword}
+                scroll={{ x: true }}
+              />
+            </div>
+          )}
+      </div>
+    </Modal>
   )
 }
 

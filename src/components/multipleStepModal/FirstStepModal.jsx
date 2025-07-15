@@ -8,8 +8,25 @@ const { Option } = Select
 
 const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData }) => {
   const [topic, setTopic] = useState(data?.topic || "")
-  const [hasGeneratedTitles, setHasGeneratedTitles] = useState(false) // Track if titles were generated
+  const [hasGeneratedTitles, setHasGeneratedTitles] = useState(false)
+
+  const { selectedKeywords } = useSelector((state) => state.analysis)
+
+  console.log(
+    "selectedKeywords?.focusKeywords",
+    selectedKeywords?.focusKeywords,
+    "selectedKeywords?.keywords",
+    selectedKeywords?.keywords
+  )
+
   const dispatch = useDispatch()
+  const [formData, setFormData] = useState({
+    focusKeywordInput: "",
+    focusKeywords: selectedKeywords?.focusKeywords || [],
+    keywordInput: "",
+    keywords: selectedKeywords?.keywords || [],
+  })
+
   const [errors, setErrors] = useState({
     title: false,
     topic: false,
@@ -19,20 +36,34 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
     keyword: false,
     keywordInput: "",
   })
-  const [formData, setFormData] = useState({
-    focusKeywordInput: "",
-    focusKeywords: data.focusKeywords || [],
-    keywordInput: "",
-    keywords: data.keywords || [],
-  })
   const [generatedTitles, setGeneratedTitles] = useState([])
   const [loadingTitles, setLoadingTitles] = useState(false)
 
+  // Sync formData with data prop changes
+  useEffect(() => {
+    setFormData((prev) => ({
+      ...prev,
+      focusKeywords: selectedKeywords?.focusKeywords || [],
+      keywords: selectedKeywords?.keywords || [],
+    }))
+  }, [selectedKeywords])
+
   // Reset hasGeneratedTitles when modal opens
   useEffect(() => {
-    setHasGeneratedTitles(false) // Reset when modal is opened
-    setGeneratedTitles([]) // Clear previous titles
-  }, []) // Run only on mount (modal open)
+    setHasGeneratedTitles(false)
+    setGeneratedTitles([])
+  }, [])
+
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = "hidden"
+    } else {
+      document.body.style.overflow = "auto"
+    }
+    return () => {
+      document.body.style.overflow = "auto"
+    }
+  }, [open])
 
   const handleKeywordInputChange = (e) => {
     setFormData((prev) => ({ ...prev, keywordInput: e.target.value }))
@@ -65,15 +96,16 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
     if (inputValue.trim() !== "") {
       const newKeywords = inputValue
         .split(",")
-        .map((focusKeywords) => focusKeywords.trim())
+        .map((focusKeyword) => focusKeyword.trim())
         .filter(
-          (focusKeywords) => focusKeywords !== "" && !formData.focusKeywords.includes(focusKeywords)
+          (focusKeyword) => focusKeyword !== "" && !formData.focusKeywords.includes(focusKeyword)
         )
 
       if (newKeywords.length > 0) {
+        const updatedFocusKeywords = [...formData.focusKeywords, ...newKeywords].slice(0, 3) // Limit to 3
         setFormData((prev) => ({
           ...prev,
-          focusKeywords: [...prev.focusKeywords, ...newKeywords],
+          focusKeywords: updatedFocusKeywords,
           focusKeywordInput: "",
         }))
       }
@@ -86,15 +118,17 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
     setFormData((prev) => ({
       ...prev,
       [type]: updatedKeywords,
-      [`${type}Input`]: updatedKeywords.join(", "),
     }))
   }
 
   const handleKeyPress = (e, type) => {
     if (e.key === "Enter") {
       e.preventDefault()
-      handleAddKeyword(type)
-      handleFocusAddKeyword()
+      if (type === "focusKeywords") {
+        handleFocusAddKeyword()
+      } else {
+        handleAddKeyword()
+      }
     }
   }
 
@@ -119,7 +153,7 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
         })
       ).unwrap()
       setGeneratedTitles(result)
-      setHasGeneratedTitles(true) // Disable button after generating titles
+      setHasGeneratedTitles(true)
     } catch (error) {
       // Error handled in thunk
     } finally {
@@ -314,7 +348,6 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
                   setErrors((prev) => ({ ...prev, title: false }))
                 }}
               />
-              {/* Conditionally render or disable the Generate Titles button */}
               {!hasGeneratedTitles && (
                 <button
                   onClick={handleGenerateTitles}
