@@ -1,23 +1,11 @@
 import React, { useState, useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import SkeletonLoader from "./SkeletonLoader"
-import { Badge, Button, Input, Popconfirm, Tooltip, Select, Modal, Popover, Pagination } from "antd"
-import {
-  ArrowDownUp,
-  Filter,
-  Funnel,
-  Menu,
-  PenTool,
-  Plus,
-  RefreshCcw,
-  RotateCcw,
-  Search,
-  Trash2,
-} from "lucide-react"
+import { Badge, Button, Input, Popconfirm, Tooltip, Select, Popover, Pagination } from "antd"
+import { ArrowDownUp, Filter, Plus, RefreshCcw, RotateCcw, Search, Trash2 } from "lucide-react"
 import { motion } from "framer-motion"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import {
-  CalendarOutlined,
   CheckCircleOutlined,
   SortAscendingOutlined,
   HourglassOutlined,
@@ -27,8 +15,8 @@ import {
   ClockCircleOutlined,
 } from "@ant-design/icons"
 import { Helmet } from "react-helmet"
-import { useDispatch } from "react-redux"
-import { archiveBlog, retryBlog } from "@store/slices/blogSlice"
+import { useDispatch, useSelector } from "react-redux"
+import { archiveBlog, fetchAllBlogs, retryBlog } from "@store/slices/blogSlice"
 import { getAllBlogs } from "@api/blogApi"
 
 const MyProjects = () => {
@@ -39,7 +27,7 @@ const MyProjects = () => {
   const [loading, setLoading] = useState(true)
   const [sortType, setSortType] = useState("createdAt")
   const [sortOrder, setSortOrder] = useState("desc")
-  const [statusFilter, setStatusFilter] = useState("all") // New state for status filter
+  const [statusFilter, setStatusFilter] = useState("all")
   const navigate = useNavigate()
   const [isMenuOpen, setMenuOpen] = useState(false)
   const [funnelMenuOpen, setFunnelMenuOpen] = useState(false)
@@ -52,6 +40,9 @@ const MyProjects = () => {
   const dispatch = useDispatch()
   const TRUNCATE_LENGTH = 120
   const PAGE_SIZE = 15
+  const { blogs } = useSelector((state) => state.blog)
+
+  console.log({blogs})
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" })
@@ -93,12 +84,14 @@ const MyProjects = () => {
     setSearchModalOpen(false)
   }
 
+  useEffect(() => {
+    dispatch(fetchAllBlogs())
+  }, [])
+
   const fetchBlogs = async () => {
     try {
       setLoading(true)
-      const allBlogs = await getAllBlogs()
-
-      const filteredBlogs = allBlogs.filter((blog) => !blog.isArchived)
+      const filteredBlogs = blogs.data.filter((blog) => !blog.isArchived)
       setBlogsData(filteredBlogs)
 
       applySortAndFilter(

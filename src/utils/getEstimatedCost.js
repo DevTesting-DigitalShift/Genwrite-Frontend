@@ -1,5 +1,5 @@
-const CHATGPT_MULTIPLIER = 1.5;
-const CLAUDE_MULTIPLIER = 3;
+const CHATGPT_MULTIPLIER = 3;
+const CLAUDE_MULTIPLIER = 5;
 
 export const creditCostswithGemini = Object.freeze({
   analysis: {

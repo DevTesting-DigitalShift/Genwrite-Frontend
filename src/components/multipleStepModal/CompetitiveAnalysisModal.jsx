@@ -21,7 +21,6 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
     contentType: "text",
     selectedProject: null,
   })
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [analysisResults, setAnalysisResults] = useState(null)
   const { handlePopup } = useConfirmPopup()
   const dispatch = useDispatch()
@@ -33,20 +32,17 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
 
   // Handle API response or error
   useEffect(() => {
-    if (isAnalyzing && !analysisLoading) {
+    if (!analysisLoading) {
       if (analysis) {
         setAnalysisResults(analysis)
-        setIsAnalyzing(false)
       } else if (analysisError) {
         console.error("Analysis error:", analysisError)
         message.error(analysisError || "Failed to perform competitive analysis. Please try again.")
-        setIsAnalyzing(false)
       } else {
         console.warn("Unexpected state: analysis and analysisError are both null")
-        setIsAnalyzing(false)
       }
     }
-  }, [analysis, analysisError, analysisLoading, isAnalyzing])
+  }, [analysis, analysisError, analysisLoading])
 
   // Reset form and results when modal closes
   useEffect(() => {
@@ -60,7 +56,6 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
         selectedProject: null,
       })
       setAnalysisResults(null)
-      setIsAnalyzing(false)
     }
   }, [open])
 
@@ -149,7 +144,6 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
         </p>
       ),
       onConfirm: async () => {
-        setIsAnalyzing(true)
         try {
           const result = await dispatch(
             fetchCompetitiveAnalysisThunk({
@@ -220,9 +214,9 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
     )
   }, [analysisResults])
 
-  if (isAnalyzing || analysisLoading) {
+  if (analysisLoading) {
     return (
-      <div className="h-[calc(100vh-200px)] p-4 flex items-center justify-center">
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center">
         <Loading />
       </div>
     )
@@ -245,11 +239,11 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
             <button
               onClick={handleSubmit}
               className={`px-4 py-2 text-sm font-medium text-white bg-[#1B6FC9]  rounded-md hover:bg-[#1B6FC9]/90 transition ${
-                isAnalyzing || analysisLoading ? "opacity-50 cursor-not-allowed" : ""
+                analysisLoading ? "opacity-50 cursor-not-allowed" : ""
               }`}
-              disabled={isAnalyzing || analysisLoading}
+              disabled={analysisLoading}
             >
-              {isAnalyzing || analysisLoading ? (
+              {analysisLoading ? (
                 <span className="flex items-center gap-2">
                   <LoadingOutlined />
                   Analyzing...

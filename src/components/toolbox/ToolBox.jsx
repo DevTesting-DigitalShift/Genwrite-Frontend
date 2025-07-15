@@ -28,7 +28,7 @@ const ToolBox = () => {
   const [isSaving, setIsSaving] = useState(false)
   const [isPosted, setIsPosted] = useState(null)
   const [isPosting, setIsPosting] = useState(false)
-  const [formData, setFormData] = useState({ category: "" })
+  const [formData, setFormData] = useState({ category: "", includeTableOfContents: false })
 
   useEffect(() => {
     if (id) {

@@ -263,6 +263,16 @@ const TextEditorSidebar = ({
     return "bg-red-100 text-red-700"
   }
 
+  const handleCheckboxChange = (e) => {
+    const { name, checked } = e.target
+
+    console.log({ name, checked })
+
+    setFormData(() => ({
+      [name]: checked,
+    }))
+  }
+
   const FeatureCard = ({ title, description, isPro, isLoading, onClick, buttonText }) => (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-all duration-300 group">
       <div className="flex items-center justify-between mb-4">
@@ -514,32 +524,33 @@ const TextEditorSidebar = ({
               )}
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
                 <div className="space-y-3">
-                  {Object.entries(competitiveAnalysisResults?.insights?.analysis || competitiveAnalysisResults?.analysis).map(
-                    ([key, value]) => (
-                      <div key={key} className="flex items-start gap-3">
-                        <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <p className="font-medium text-gray-900">
-                            {key.replace(/([A-Z])/g, " $1")}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            {typeof value === "object" ? (
-                              <ul className="list-disc ml-5">
-                                {Object.entries(value).map(([subKey, subValue]) => (
-                                  <li key={subKey}>
-                                    <strong>{subKey.replace(/([A-Z])/g, " $1")}: </strong>
-                                    {subValue}
-                                  </li>
-                                ))}
-                              </ul>
-                            ) : (
-                              value
-                            )}
-                          </p>
-                        </div>
+                  {Object.entries(
+                    competitiveAnalysisResults?.insights?.analysis ||
+                      competitiveAnalysisResults?.analysis
+                  ).map(([key, value]) => (
+                    <div key={key} className="flex items-start gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium text-gray-900">
+                          {key.replace(/([A-Z])/g, " $1")}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {typeof value === "object" ? (
+                            <ul className="list-disc ml-5">
+                              {Object.entries(value).map(([subKey, subValue]) => (
+                                <li key={subKey}>
+                                  <strong>{subKey.replace(/([A-Z])/g, " $1")}: </strong>
+                                  {subValue}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            value
+                          )}
+                        </p>
                       </div>
-                    )
-                  )}
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -705,6 +716,23 @@ const TextEditorSidebar = ({
             {errors.category && (
               <p className="mt-2 text-sm text-red-500">Please select a category</p>
             )}
+          </div>
+
+          <div className="flex items-center justify-between py-2">
+            <span className="text-sm font-medium text-gray-700">
+              Include Table of Contents
+              <p className="text-xs text-gray-500">Generate a table of contents for each blog.</p>
+            </span>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                name="includeTableOfContents"
+                checked={formData.includeTableOfContents}
+                onChange={handleCheckboxChange}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]"></div>
+            </label>
           </div>
         </div>
       </Modal>

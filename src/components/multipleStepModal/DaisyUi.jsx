@@ -8,12 +8,14 @@ import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { createMultiBlog } from "@store/slices/blogSlice"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { Modal, Select, Tooltip, message } from "antd"
+import { openUpgradePopup } from "@utils/UpgardePopUp"
 
 const MultiStepModal = ({ closeFnc }) => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
   const user = useSelector((state) => state.auth.user)
+  const userPlan = user?.subscription?.plan || user?.plan
 
   const [currentStep, setCurrentStep] = useState(0)
   const [recentlyUploadedCount, setRecentlyUploadedCount] = useState(null)
@@ -42,10 +44,11 @@ const MultiStepModal = ({ closeFnc }) => {
     includeFaqs: true,
     numberOfBlogs: 1,
     wordpressPostStatus: false,
-    postFrequency: 10 * 60, // in seconds
+    postFrequency: 10 * 60,
     selectedDates: null,
     aiModel: "gemini",
     includeTableOfContents: false,
+    isCheckedGeneratedImages: true,
   })
 
   const handleNext = () => {
@@ -106,8 +109,8 @@ const MultiStepModal = ({ closeFnc }) => {
     // ✅ Include aiModel in cost calculation
     const model = formData.aiModel || "gemini" // fallback just in case
     const blogCost = getEstimatedCost("blog.single", model)
-    const imageCost = formData.imageSource === "unsplash" ? 0 : getEstimatedCost("aiImages", model)
-    const totalCost = formData.numberOfBlogs * (blogCost + imageCost)
+
+    const totalCost = formData.numberOfBlogs * blogCost
 
     handlePopup({
       title: "Bulk Blog Generation",
@@ -376,7 +379,7 @@ const MultiStepModal = ({ closeFnc }) => {
     e.target.value = null
   }
 
-  const steps = ["Select Template's", "Add Details", "Configure Output"]
+  const steps = ["Select Template's", "Add Details", "z"]
 
   return (
     <Modal
@@ -651,109 +654,160 @@ const MultiStepModal = ({ closeFnc }) => {
         )}
         {currentStep === 2 && (
           <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+            {/* Select AI Model */}
+            <div className="mb-6">
+              <label className="block text-sm font-semibold text-gray-700 mb-3">
                 Select AI Model
               </label>
-              <div className="flex gap-6">
-                <label className="inline-flex items-center cursor-pointer">
+              <div className="flex gap-4 flex-wrap">
+                {[
+                  {
+                    id: "gemini",
+                    label: "Gemini",
+                    logo: "/Images/gemini.png",
+                    restricted: false,
+                  },
+                  {
+                    id: "chatgpt",
+                    label: "ChatGPT",
+                    logo: "/Images/chatgpt.png",
+                    restricted: userPlan === "free",
+                  },
+                  {
+                    id: "claude",
+                    label: "Claude",
+                    logo: "/Images/claude.png",
+                    restricted: userPlan === "free" || userPlan === "basic",
+                  },
+                ].map((model) => (
+                  <label
+                    key={model.id}
+                    htmlFor={model.id}
+                    className={`border rounded-lg px-4 py-3 flex items-center gap-3 cursor-pointer transition-all duration-150 ${
+                      formData.aiModel === model.id
+                        ? "border-blue-600 bg-blue-50"
+                        : "border-gray-300"
+                    } hover:shadow-sm w-full max-w-[220px]`}
+                    // onClick={(e) => {
+                    //   if (model.restricted) {
+                    //     e.preventDefault()
+                    //     openUpgradePopup({ featureName: model.label, navigate })
+                    //   }
+                    // }}
+                  >
+                    <input
+                      type="radio"
+                      id={model.id}
+                      name="aiModel"
+                      value={model.id}
+                      checked={formData.aiModel === model.id}
+                      onChange={(e) => {
+                        // if (!model.restricted) {
+                        setFormData((prev) => ({
+                          ...prev,
+                          aiModel: e.target.value,
+                        }))
+                        // }
+                      }}
+                      className="hidden"
+                    />
+                    <img src={model.logo} alt={model.label} className="w-6 h-6 object-contain" />
+                    <span className="text-sm font-medium text-gray-800">{model.label}</span>
+                    {/* {model.restricted && (
+                    <Crown className="w-4 h-4 text-yellow-500 absolute top-2 right-2" />
+                  )} */}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Add Image</label>
+              <div className="flex items-center">
+                <label htmlFor="add-image-toggle" className="relative inline-block w-12 h-6">
                   <input
-                    type="radio"
-                    name="aiModel"
-                    value="gemini"
-                    checked={formData.aiModel === "gemini"}
-                    onChange={(e) =>
+                    type="checkbox"
+                    id="add-image-toggle"
+                    className="sr-only peer"
+                    checked={formData?.isCheckedGeneratedImages}
+                    onChange={(e) => {
+                      const checked = e.target.checked
                       setFormData((prev) => ({
                         ...prev,
-                        aiModel: e.target.value,
+                        isCheckedGeneratedImages: checked,
                       }))
-                    }
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                  />
-                  <span className="block text-sm font-medium leading-6 text-gray-900 ml-2">
-                    Gemini
-                  </span>
-                </label>
-                <label className="inline-flex items-center cursor-pointer">
-                  <input
-                    type="radio"
-                    name="aiModel"
-                    value="chatgpt"
-                    checked={formData.aiModel === "chatgpt"}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
+                      setData((prev) => ({
                         ...prev,
-                        aiModel: e.target.value,
+                        isCheckedGeneratedImages: checked,
                       }))
-                    }
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                    }}
                   />
-                  <span className="block text-sm font-medium leading-6 text-gray-900 ml-2">
-                    ChatGPT
-                  </span>
-                </label>
-                <label className="inline-flex items-center cursor-pointer">
-                  <input
-                    type="radio"
-                    name="aiModel"
-                    value="claude"
-                    checked={formData.aiModel === "claude"}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        aiModel: e.target.value,
-                      }))
-                    }
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                  />
-                  <span className="block text-sm font-medium leading-6 text-gray-900 ml-2">
-                    Claude
-                  </span>
+
+                  <div className="w-12 h-6 bg-gray-300 rounded-full peer peer-checked:bg-[#1B6FC9] transition-all duration-300" />
+                  <div className="absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-300 peer-checked:translate-x-6" />
                 </label>
               </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Image Source</label>
-              <fieldset className="mt-2">
-                <legend className="sr-only">Image source selection</legend>
-                <div className="flex items-center gap-x-6">
-                  <div className="flex items-center gap-x-2">
-                    <input
-                      id="image-source-unsplash"
-                      name="image-source"
-                      type="radio"
-                      value="unsplash"
-                      checked={formData.imageSource === "unsplash"}
-                      onChange={() => handleImageSourceChange("unsplash")}
-                      className="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
+
+            {/* Select Image Source */}
+            {formData.isCheckedGeneratedImages && (
+              <div className="mb-6">
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  Image Source
+                </label>
+                <div className="flex gap-4 flex-wrap">
+                  {[
+                    {
+                      id: "unsplash",
+                      label: "Stock Images",
+                      value: "unsplash",
+                      restricted: false,
+                    },
+                    {
+                      id: "ai",
+                      label: "AI Generated",
+                      value: "ai",
+                      restricted: userPlan === "free",
+                    },
+                  ].map((source) => (
                     <label
-                      htmlFor="image-source-unsplash"
-                      className="block text-sm font-medium leading-6 text-gray-900"
+                      key={source.id}
+                      htmlFor={source.id}
+                      className={`border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150 ${
+                        formData.imageSource === source.value
+                          ? "border-blue-600 bg-blue-50"
+                          : "border-gray-300"
+                      } hover:shadow-sm w-full max-w-[220px]`}
+                      // onClick={(e) => {
+                      //   if (source.restricted) {
+                      //     e.preventDefault()
+                      //     openUpgradePopup({ featureName: model.label, navigate })
+                      //   }
+                      // }}
                     >
-                      Stock Images
+                      <input
+                        type="radio"
+                        id={source.id}
+                        name="imageSource"
+                        value={source.value}
+                        checked={formData.imageSource === source.value}
+                        onChange={() => {
+                          // if (source.restricted) {
+                          handleImageSourceChange(source.value)
+                          // }
+                        }}
+                        className="hidden"
+                      />
+                      <span className="text-sm font-medium text-gray-800">{source.label}</span>
+                      {/* {source.restricted && (
+                  <Crown className="w-4 h-4 text-yellow-500 absolute top-2 right-2" />
+                )} */}
                     </label>
-                  </div>
-                  <div className="flex items-center gap-x-2">
-                    <input
-                      id="image-source-ai"
-                      name="image-source"
-                      type="radio"
-                      value="ai"
-                      checked={formData.imageSource === "ai"}
-                      onChange={() => handleImageSourceChange("ai")}
-                      className="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <label
-                      htmlFor="image-source-ai"
-                      className="block text-sm font-medium leading-6 text-gray-900"
-                    >
-                      AI Generated Images
-                    </label>
-                  </div>
+                  ))}
                 </div>
-              </fieldset>
-            </div>
+              </div>
+            )}
+
             <div className="space-y-4 pt-4 border-t border-gray-200">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-700">

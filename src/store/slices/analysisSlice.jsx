@@ -63,9 +63,11 @@ const analysisSlice = createSlice({
     setSelectedKeywords: (state, action) => {
       state.selectedKeywords = action.payload
     },
+    clearSelectedKeywords: (state) => {
+      state.selectedKeywords = []
+    },
     clearKeywordAnalysis: (state) => {
       state.keywordAnalysis = null
-      state.selectedKeywords = []
     },
     clearSuggestions: (state) => {
       state.suggestions = []
@@ -115,6 +117,6 @@ const analysisSlice = createSlice({
   },
 })
 
-export const { clearAnalysis, clearKeywordAnalysis, setSelectedKeywords, clearSuggestions } =
+export const { clearAnalysis, clearKeywordAnalysis, setSelectedKeywords, clearSuggestions, clearSelectedKeywords } =
   analysisSlice.actions
 export default analysisSlice.reducer
