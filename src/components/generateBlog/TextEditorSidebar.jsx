@@ -253,7 +253,7 @@ const TextEditorSidebar = ({
     }
     onPost()
     setIsCategoryModalOpen(false)
-    setFormData({ category: "" })
+    setFormData({ category: "", includeTableOfContents: false }) // Reset formData
     setErrors({ category: false })
   }
 
@@ -265,10 +265,8 @@ const TextEditorSidebar = ({
 
   const handleCheckboxChange = (e) => {
     const { name, checked } = e.target
-
-    console.log({ name, checked })
-
-    setFormData(() => ({
+    setFormData((prevFormData) => ({
+      ...prevFormData,
       [name]: checked,
     }))
   }
@@ -619,15 +617,16 @@ const TextEditorSidebar = ({
               onClick={handlePostClick}
               loading={isPosting}
               disabled={isPosting}
-              className={`w-full py-4 px-6 rounded-lg font-semibold text-white transition-all duration-200 ${
+              className={`w-full p-6 rounded-lg text-lg font-semibold text-white transition-all duration-200 ${
                 isPosting
                   ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 hover:shadow-lg transform hover:-translate-y-0.5"
+                  : "bg-green-600  hover:from-green-600 hover:to-emerald-600 hover:shadow-lg transform hover:-translate-y-0.5"
               }`}
             >
-              {isPosting ? "Posting..." : posted?.success ? "Re-Post" : "Post"}
+              {isPosting ? "Posting..." : blog?.wordpress ? "Re-Post" : "Post"}
             </Button>
           </motion.div>
+
           {posted?.success && posted?.link && (
             <div className="mt-3 text-center">
               <a
@@ -650,7 +649,7 @@ const TextEditorSidebar = ({
         open={isCategoryModalOpen}
         onCancel={() => {
           setIsCategoryModalOpen(false)
-          setFormData({ category: "" })
+          setFormData({ category: "", includeTableOfContents: false })
           setErrors({ category: false })
         }}
         footer={
@@ -658,7 +657,7 @@ const TextEditorSidebar = ({
             <Button
               onClick={() => {
                 setIsCategoryModalOpen(false)
-                setFormData({ category: "" })
+                setFormData({ category: "", includeTableOfContents: false })
                 setErrors({ category: false })
               }}
               className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"

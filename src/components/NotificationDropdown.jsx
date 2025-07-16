@@ -154,11 +154,30 @@ const NotificationDropdown = ({ notifications }) => {
       overlay={content}
       placement="bottomRight"
     >
-      <Badge count={unreadCount} offset={[-2, 4]} size="small">
+      <Badge
+        count={unreadCount}
+        showZero={false}
+        style={{
+          backgroundColor: "#1B6FC9",
+          color: "#fff",
+          fontWeight: "600",
+          fontSize: "0.75rem", // ~12px
+          lineHeight: "20px",
+          // minWidth: "10px",
+          // height: "20px",
+          width: "10px",
+          padding: "0 6px",
+          borderRadius: "100%", // 🔵 Make it a circle
+          boxShadow: "0 0 0 1px #1B6FC9",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
         <BellOutlined
-          className={`text-2xl cursor-pointer transition-colors ${
-            unreadCount > 0 ? "text-blue-600" : "text-gray-700"
-          }`}
+          className={`text-2xl cursor-pointer transition-colors duration-200 ease-in-out 
+      ${unreadCount > 0 ? "text-blue-600 animate-bounce" : "text-gray-700 hover:text-blue-600"}
+    `}
         />
       </Badge>
     </Dropdown>

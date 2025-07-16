@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect } from "react"
 import {
   Save,
-  Plus,
   Sparkles,
   BarChart3,
   FileText,
@@ -19,51 +18,116 @@ import {
   Hash,
   Eye,
   Image as ImageIcon,
-} from "lucide-react";
-import { useEditor, EditorContent, BubbleMenu } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import Underline from "@tiptap/extension-underline";
-import Heading from "@tiptap/extension-heading";
-import BulletList from "@tiptap/extension-bullet-list";
-import OrderedList from "@tiptap/extension-ordered-list";
-import ListItem from "@tiptap/extension-list-item";
-import Strike from "@tiptap/extension-strike";
-import TextAlign from "@tiptap/extension-text-align";
-import Image from "@tiptap/extension-image";
-import Link from "@tiptap/extension-link";
-import { useNavigate } from "react-router-dom";
-import { useDispatch } from "react-redux";
-import { Tooltip, Modal, Spin, message, Input } from "antd";
-import Joyride, { STATUS } from "react-joyride";
-import Toolbar from "@components/Toolbar";
-import { fetchGeneratedTitles } from "@store/slices/blogSlice";
-import { packages } from "@constants/templates";
-import Carousel from "@components/multipleStepModal/Carousel";
+  Plus,
+} from "lucide-react"
+import { useEditor, EditorContent, BubbleMenu } from "@tiptap/react"
+import StarterKit from "@tiptap/starter-kit"
+import Underline from "@tiptap/extension-underline"
+import Heading from "@tiptap/extension-heading"
+import BulletList from "@tiptap/extension-bullet-list"
+import OrderedList from "@tiptap/extension-ordered-list"
+import ListItem from "@tiptap/extension-list-item"
+import Strike from "@tiptap/extension-strike"
+import TextAlign from "@tiptap/extension-text-align"
+import Image from "@tiptap/extension-image"
+import Link from "@tiptap/extension-link"
+import { useNavigate } from "react-router-dom"
+import { useDispatch } from "react-redux"
+import { Tooltip, Modal, Spin, message, Input } from "antd"
+import Joyride, { STATUS } from "react-joyride"
+import Toolbar from "@components/Toolbar"
+import { createManualBlog, updateBlogById } from "@store/slices/blogSlice"
+import TemplateModal from "./TemplateModal"
 
-const ManualBlog = () => {
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
+const ManualBlog = ({ blog = {} }) => {
+  const navigate = useNavigate()
+  const dispatch = useDispatch()
 
-  const [title, setTitle] = useState("");
-  const [topic, setTopic] = useState("");
-  const [content, setContent] = useState("");
-  const [keywords, setKeywords] = useState([]);
-  const [newKeyword, setNewKeyword] = useState("");
-  const [isGeneratingKeywords, setIsGeneratingKeywords] = useState(false);
-  const [isGeneratingTitles, setIsGeneratingTitles] = useState(false);
-  const [isSaving, setSaving] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
-  const [seoScore, setSeoScore] = useState(0);
-  const [blogScore, setBlogScore] = useState(0);
-  const [generatedTitles, setGeneratedTitles] = useState([]);
-  const [hasGeneratedTitles, setHasGeneratedTitles] = useState(false);
-  const [currentStep, setCurrentStep] = useState(0);
-  const [selectedTemplate, setSelectedTemplate] = useState(null);
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [runWalkthrough, setRunWalkthrough] = useState(false);
-  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
-  const [imageUrl, setImageUrl] = useState("");
-  const [imageAltText, setImageAltText] = useState("");
+  const [showTemplateModal, setShowTemplateModal] = useState(!blog._id) // Show modal only for new blogs
+  const [title, setTitle] = useState(blog.title || "")
+  const [topic, setTopic] = useState(blog.topic || "")
+  const [content, setContent] = useState(blog.content || "")
+  const [keywords, setKeywords] = useState(
+    blog.focusKeywords?.map((k) => ({
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+      text: k,
+      difficulty: "medium",
+      volume: 1000,
+      generated: false,
+    })) || []
+  )
+  const [newKeyword, setNewKeyword] = useState("")
+  const [isGeneratingKeywords, setIsGeneratingKeywords] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveSuccess, setSaveSuccess] = useState(false)
+  const [seoScore, setSeoScore] = useState(blog.seoScore || 0)
+  const [blogScore, setBlogScore] = useState(blog.blogScore || 0)
+  const [runWalkthrough, setRunWalkthrough] = useState(false)
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false)
+  const [imageUrl, setImageUrl] = useState("")
+  const [imageAltText, setImageAltText] = useState("")
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false)
+  const [blogId, setBlogId] = useState()
+  const [formData, setFormData] = useState({
+    title: "",
+    topic: "",
+    tone: "Informative",
+    focusKeywords: [],
+    keywords: [],
+    userDefinedLength: 1200,
+    focusKeywordInput: "",
+    keywordInput: "",
+  })
+  const [errors, setErrors] = useState({
+    title: false,
+    topic: false,
+    tone: false,
+    focusKeywords: false,
+    keywords: false,
+    userDefinedLength: false,
+    template: false,
+  })
+
+  const handleSubmit = async () => {
+    const blogData = {
+      title: formData.title?.trim(),
+      topic: formData.topic?.trim(),
+      tone: formData.tone?.trim(),
+      focusKeywords: formData.focusKeywords,
+      keywords: formData.keywords,
+      userDefinedLength: Number(formData.userDefinedLength),
+      template: formData.template,
+    }
+
+    const newErrors = {}
+
+    if (!blogData.title) newErrors.title = true
+    if (!blogData.topic) newErrors.topic = true
+    if (!blogData.tone) newErrors.tone = true
+    if (!blogData.template) newErrors.template = true
+    if (!blogData.userDefinedLength || blogData.userDefinedLength <= 0)
+      newErrors.userDefinedLength = true
+    if (!blogData.focusKeywords || blogData.focusKeywords.length === 0)
+      newErrors.focusKeywords = true
+    if (!blogData.keywords || blogData.keywords.length === 0) newErrors.keywords = true
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors((prev) => ({ ...prev, ...newErrors }))
+      message.error("Please fill all required fields correctly.")
+      return
+    }
+
+    try {
+      const res = await dispatch(createManualBlog(blogData)).unwrap()
+      setBlogId(res._id)
+      console.log("Blog created successfully:", res)
+    } catch (err) {
+      console.error("Failed to create blog:", err)
+      message.error(err?.message || "Failed to create blog")
+    }
+  }
+
+  console.log({ blogId })
 
   const walkthroughSteps = [
     {
@@ -77,7 +141,7 @@ const ManualBlog = () => {
       content: "Add at least 4 keywords to optimize your blog for SEO.",
       placement: "top",
     },
-  ];
+  ]
 
   const editor = useEditor({
     extensions: [
@@ -107,73 +171,47 @@ const ManualBlog = () => {
         },
       }),
     ],
-    content: "",
+    content: blog.content || "",
     onUpdate: ({ editor }) => {
-      setContent(editor.getHTML());
+      setContent(editor.getHTML())
     },
     editorProps: {
       attributes: {
         class: "prose prose-lg focus:outline-none min-h-[400px] max-w-full text-gray-800 p-6",
       },
     },
-  });
+  })
 
   const getWordCount = (text) => {
     return text
       .trim()
       .split(/\s+/)
-      .filter((word) => word.length > 0).length;
-  };
+      .filter((word) => word.length > 0).length
+  }
 
   const handleTitleChange = (e) => {
-    const newTitle = e.target.value;
+    const newTitle = e.target.value
     if (getWordCount(newTitle) <= 60) {
-      setTitle(newTitle);
+      setTitle(newTitle)
     }
-  };
-
-  const handleGenerateTitles = async () => {
-    if (!topic.trim() || keywords.length < 4) {
-      setRunWalkthrough(true);
-      return;
-    }
-
-    const keywordTexts = keywords.map((k) => k.text.trim()).filter(Boolean);
-    setIsGeneratingTitles(true);
-    try {
-      const result = await dispatch(
-        fetchGeneratedTitles({
-          keywords: keywordTexts.slice(3),
-          focusKeywords: keywordTexts.slice(0, 3),
-          topic,
-          template: selectedTemplate || "default",
-        })
-      ).unwrap();
-      setGeneratedTitles(result);
-      setHasGeneratedTitles(true);
-    } catch (error) {
-      // Error handled in the thunk
-    } finally {
-      setIsGeneratingTitles(false);
-    }
-  };
+  }
 
   const handleTitleSelect = (generatedTitle) => {
-    setTitle(generatedTitle);
-  };
+    setTitle(generatedTitle)
+  }
 
   const addKeyword = () => {
-    const input = newKeyword.trim();
-    if (!input) return;
+    const input = newKeyword.trim()
+    if (!input) return
 
     const inputKeywords = input
       .split(",")
       .map((k) => k.trim())
       .filter(
         (k) => k && !keywords.some((existing) => existing.text.toLowerCase() === k.toLowerCase())
-      );
+      )
 
-    if (inputKeywords.length === 0) return;
+    if (inputKeywords.length === 0) return
 
     const newKeywordObjects = inputKeywords.map((k) => ({
       id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
@@ -181,18 +219,18 @@ const ManualBlog = () => {
       difficulty: ["easy", "medium", "hard"][Math.floor(Math.random() * 3)],
       volume: Math.floor(Math.random() * 10000) + 100,
       generated: false,
-    }));
+    }))
 
-    setKeywords((prev) => [...prev, ...newKeywordObjects]);
-    setNewKeyword("");
-  };
+    setKeywords((prev) => [...prev, ...newKeywordObjects])
+    setNewKeyword("")
+  }
 
   const removeKeyword = (id) => {
-    setKeywords(keywords.filter((k) => k.id !== id));
-  };
+    setKeywords(keywords.filter((k) => k.id !== id))
+  }
 
   const generateKeywords = async () => {
-    setIsGeneratingKeywords(true);
+    setIsGeneratingKeywords(true)
     setTimeout(() => {
       const suggestedKeywords = [
         "content marketing",
@@ -201,7 +239,7 @@ const ManualBlog = () => {
         "blog writing",
         "content creation",
         "online marketing",
-      ];
+      ]
 
       const newKeywords = suggestedKeywords
         .filter((keyword) => !keywords.find((k) => k.text.toLowerCase() === keyword.toLowerCase()))
@@ -212,122 +250,100 @@ const ManualBlog = () => {
           difficulty: ["easy", "medium", "hard"][Math.floor(Math.random() * 3)],
           volume: Math.floor(Math.random() * 5000) + 500,
           generated: true,
-        }));
+        }))
 
-      setKeywords([...keywords, ...newKeywords]);
-      setIsGeneratingKeywords(false);
-    }, 2000);
-  };
+      setKeywords([...keywords, ...newKeywords])
+      setIsGeneratingKeywords(false)
+    }, 2000)
+  }
 
   const saveBlog = async () => {
     if (!title.trim() || !content.trim()) {
-      message.error("Please add both title and content before saving.");
-      return;
+      message.error("Please add both title and content before saving.")
+      return
     }
     if (getWordCount(title) > 60) {
-      message.error("Title exceeds 60 words. Please shorten it.");
-      return;
+      message.error("Title exceeds 60 words. Please shorten it.")
+      return
     }
 
-    setSaving(true);
-    setTimeout(() => {
-      const blogPost = {
-        id: Date.now().toString(),
-        title,
-        topic,
-        content,
-        keywords,
-        template: selectedTemplate,
-        seoScore,
-        blogScore,
-        createdAt: new Date().toISOString(),
-        status: "draft",
-        wordCount: getWordCount(content),
-      };
+    setIsSaving(true)
+    try {
+      const response = await dispatch(
+        updateBlogById({
+          id: blogId,
+          title,
+          content,
+          published: blog.published || false,
+          focusKeywords: keywords.slice(0, 3).map((k) => k.text), // First 3 as focus keywords
+          keywords: keywords.slice(3).map((k) => k.text), // Remaining as secondary keywords
+        })
+      ).unwrap()
 
-      const existingBlogs = JSON.parse(localStorage.getItem("userBlogs") || "[]");
-      localStorage.setItem("userBlogs", JSON.stringify([blogPost, ...existingBlogs]));
+      console.log({ response })
 
-      setSaving(false);
-      setSaveSuccess(true);
-
-      setTimeout(() => {
-        setSaveSuccess(false);
-        navigate("/dashboard");
-      }, 2000);
-    }, 1500);
-  };
+      if (response) {
+        message.success("Blog updated successfully")
+        setSaveSuccess(true)
+        setTimeout(() => {
+          setSaveSuccess(false)
+        }, 1000)
+      }
+    } catch (error) {
+      console.error("Error updating the blog:", error)
+      message.error("Failed to save blog.")
+    } finally {
+      setIsSaving(false)
+    }
+  }
 
   const getScoreColor = (score) => {
-    if (score >= 80) return "text-green-600 bg-green-100";
-    if (score >= 60) return "text-yellow-600 bg-yellow-100";
-    return "text-red-600 bg-red-100";
-  };
+    if (score >= 80) return "text-green-600 bg-green-100"
+    if (score >= 60) return "text-yellow-600 bg-yellow-100"
+    return "text-red-600 bg-red-100"
+  }
 
   const getDifficultyColor = (difficulty) => {
     switch (difficulty) {
       case "easy":
-        return "bg-green-100 text-green-800";
+        return "bg-green-100 text-green-800"
       case "medium":
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-yellow-100 text-yellow-800"
       case "hard":
-        return "bg-red-100 text-red-800";
+        return "bg-red-100 text-red-800"
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 text-gray-800"
     }
-  };
-
-  const handlePackageSelect = (index) => {
-    setSelectedTemplate(packages[index].name);
-  };
-
-  const handleNext = () => {
-    if (!selectedTemplate) {
-      message.error("Please select a template before proceeding.");
-      return;
-    }
-    setCurrentStep(1);
-  };
-
-  const handleClose = () => {
-    navigate("/blogs");
-    setCurrentStep(0);
-    setSelectedTemplate(null);
-    setHasGeneratedTitles(false);
-  };
+  }
 
   const handlePreview = () => {
-    if (!selectedTemplate) {
-      message.error("Please select a template to preview.");
-      return;
-    }
     if (!content.trim()) {
-      message.error("Please write some content to preview.");
-      return;
+      message.error("Please write some content to preview.")
+      return
     }
-    setIsPreviewOpen(true);
-  };
+    setIsPreviewOpen(true)
+  }
 
   const handlePreviewClose = () => {
-    setIsPreviewOpen(false);
-  };
+    setIsPreviewOpen(false)
+  }
 
   const handleOpenImageModal = () => {
-    setIsImageModalOpen(true);
-    setImageUrl("");
-    setImageAltText("");
-  };
+    setIsImageModalOpen(true)
+    setImageUrl("")
+    setImageAltText("")
+  }
 
   const handleImageModalSave = () => {
     if (!imageUrl.trim()) {
-      message.error("Please enter an image URL.");
-      return;
+      message.error("Please enter an image URL.")
+      return
     }
 
-    const urlPattern = /^(https?:\/\/.*\.(?:png|jpg|jpeg|gif|webp|svg))$/i;
+    const urlPattern = /^(https?:\/\/.*\.(?:png|jpg|jpeg|gif|webp|svg))$/i
     if (!urlPattern.test(imageUrl)) {
-      message.error("Please enter a valid image URL (e.g., ending with .png, .jpg, etc.).");
-      return;
+      message.error("Please enter a valid image URL (e.g., ending with .png, .jpg, etc.).")
+      return
     }
 
     if (editor) {
@@ -342,184 +358,81 @@ const ManualBlog = () => {
             title: imageAltText.trim() || "User uploaded image",
           },
         })
-        .run();
+        .run()
     } else {
-      message.error("Editor is not initialized. Please try again.");
+      message.error("Editor is not initialized. Please try again.")
     }
 
-    setIsImageModalOpen(false);
-    setImageUrl("");
-    setImageAltText("");
-  };
+    setIsImageModalOpen(false)
+    setImageUrl("")
+    setImageAltText("")
+  }
 
   const handleImageModalCancel = () => {
-    setIsImageModalOpen(false);
-    setImageUrl("");
-    setImageAltText("");
-  };
+    setIsImageModalOpen(false)
+    setImageUrl("")
+    setImageAltText("")
+  }
 
   const handleJoyrideCallback = (data) => {
-    const { status } = data;
+    const { status } = data
     if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
-      setRunWalkthrough(false);
+      setRunWalkthrough(false)
     }
-  };
+  }
 
   const generatePreviewContent = () => {
-    if (!selectedTemplate || !content.trim()) {
-      return `<h1>${title || "Preview Title"}</h1><p>No content available for preview.</p>`;
+    if (!content.trim()) {
+      return `<h1>${title || "Preview Title"}</h1><p>No content available for preview.</p>`
     }
 
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(content, "text/html");
-    const paragraphs = Array.from(doc.querySelectorAll("p")).map((p) => p.textContent);
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(content, "text/html")
+    const paragraphs = Array.from(doc.querySelectorAll("p")).map((p) => p.textContent)
     const headings = Array.from(doc.querySelectorAll("h1, h2, h3")).map((h) => ({
       level: h.tagName.toLowerCase(),
       text: h.textContent,
-    }));
+    }))
 
-    let previewContent = `<h1>${title || topic || "Your Blog Title"}</h1>`;
+    let previewContent = `<h1>${title || topic || "Your Blog Title"}</h1>`
 
-    switch (selectedTemplate) {
-      case "Classic":
-        previewContent += `
-          <div class="prose prose-lg">
-            ${content}
-          </div>
-        `;
-        break;
-      case "Listicle":
-        previewContent += `
-          <div class="prose prose-lg">
-            <p>Introduction to your listicle...</p>
-            <ol>
-              ${paragraphs
-                .slice(0, Math.min(paragraphs.length, 5))
-                .map((p, i) => `<li><strong>${i + 1}. ${p}</strong></li>`)
-                .join("")}
-            </ol>
-            <h2>Conclusion</h2>
-            <p>Summary of the list...</p>
-          </div>
-        `;
-        break;
-      case "Product Review":
-        previewContent += `
-          <div class="prose prose-lg">
-            <p>Introduction to the product...</p>
-            <h2>Pros</h2>
-            <ul>
-              ${paragraphs
-                .slice(0, Math.floor(paragraphs.length / 2))
-                .map((p) => `<li>${p}</li>`)
-                .join("")}
-            </ul>
-            <h2>Cons</h2>
-            <ul>
-              ${paragraphs
-                .slice(Math.floor(paragraphs.length / 2))
-                .map((p) => `<li>${p}</li>`)
-                .join("")}
-            </ul>
-            <h2>Verdict</h2>
-            <p>Final thoughts on the product...</p>
-          </div>
-        `;
-        break;
-      case "How to....":
-        previewContent += `
-          <div class="prose prose-lg">
-            <p>Introduction to the guide...</p>
-            <ol>
-              ${paragraphs.map((p, i) => `<li><strong>Step ${i + 1}: ${p}</strong></li>`).join("")}
-            </ol>
-            <h2>Conclusion</h2>
-            <p>Summary of the guide...</p>
-          </div>
-        `;
-        break;
-      case "News Article":
-        previewContent += `
-          <div class="prose prose-lg">
-            <p>${paragraphs[0] || "Lead paragraph summarizing the news..."}</p>
-            <h2>Details</h2>
-            ${paragraphs
-              .slice(1)
-              .map((p) => `<p>${p}</p>`)
-              .join("")}
-            <h2>Background</h2>
-            <p>Context and background information...</p>
-          </div>
-        `;
-        break;
-      case "Opinion Piece":
-        previewContent += `
-          <div class="prose prose-lg">
-            <p>Introduction to your perspective...</p>
-            <h2>Main Argument</h2>
-            ${paragraphs
-              .slice(0, Math.floor(paragraphs.length / 2))
-              .map((p) => `<p>${p}</p>`)
-              .join("")}
-            <h2>Counterarguments</h2>
-            ${paragraphs
-              .slice(Math.floor(paragraphs.length / 2))
-              .map((p) => `<p>${p}</p>`)
-              .join("")}
-            <h2>Conclusion</h2>
-            <p>Restate your position...</p>
-          </div>
-        `;
-        break;
-      case "Case Study":
-        previewContent += `
-          <div class="prose prose-lg">
-            <p>Introduction to the case study...</p>
-            <h2>Background</h2>
-            ${paragraphs
-              .slice(0, Math.floor(paragraphs.length / 3))
-              .map((p) => `<p>${p}</p>`)
-              .join("")}
-            <h2>Analysis</h2>
-            ${paragraphs
-              .slice(Math.floor(paragraphs.length / 3))
-              .map((p) => `<p>${p}</p>`)
-              .join("")}
-            <h2>Conclusion</h2>
-            <p>Key takeaways and recommendations...</p>
-          </div>
-        `;
-        break;
-      case "Interview":
-        previewContent += `
-          <div class="prose prose-lg">
-            <p>Introduction to the interviewee...</p>
-            ${paragraphs
-              .map(
-                (p, i) => `
-                <h2>Question ${i + 1}</h2>
-                <p>${p}</p>
-              `
-              )
-              .join("")}
-            <h2>Conclusion</h2>
-            <p>Summary of the interview...</p>
-          </div>
-        `;
-        break;
-      default:
-        previewContent += `
-          <div class="prose prose-lg">
-            ${content}
-          </div>
-        `;
-    }
+    previewContent += `
+      <div class="prose prose-lg">
+        ${content}
+      </div>
+    `
 
-    return previewContent;
-  };
+    return previewContent
+  }
 
-  const wordCount = getWordCount(content);
-  const titleWordCount = getWordCount(title);
+  const handleTemplateModalClose = () => {
+    setShowTemplateModal(false)
+  }
+
+  const handleTemplateModalSubmit = (blogData) => {
+    setTitle(blogData.title)
+    setTopic(blogData.topic)
+    setKeywords([
+      ...blogData.focusKeywords.map((k) => ({
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+        text: k,
+        difficulty: "medium",
+        volume: 1000,
+        generated: false,
+      })),
+      ...blogData.keywords.map((k) => ({
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+        text: k,
+        difficulty: "medium",
+        volume: 500,
+        generated: true,
+      })),
+    ])
+    setShowTemplateModal(false)
+  }
+
+  const wordCount = getWordCount(content)
+  const titleWordCount = getWordCount(title)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
@@ -590,51 +503,6 @@ const ManualBlog = () => {
         }}
       />
       <Modal
-        title="Select Template"
-        open={currentStep === 0}
-        onCancel={handleClose}
-        footer={[
-          <button
-            key="next"
-            onClick={handleNext}
-            className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md hover:bg-[#1B6FC9]/90 focus:outline-none focus:bg-[#1B6FC9]"
-            aria-label="Proceed to next step"
-          >
-            Next
-          </button>,
-        ]}
-        width={800}
-        centered
-      >
-        <div className="p-3">
-          <Carousel>
-            {packages.map((pkg, index) => (
-              <div
-                key={index}
-                className={`cursor-pointer transition-all duration-200 ${
-                  selectedTemplate === pkg.name ? "border-gray-300 border-2 rounded-lg" : ""
-                }`}
-                onClick={() => handlePackageSelect(index)}
-              >
-                <div className="bg-white rounded-lg overflow-hidden shadow-sm">
-                  <div className="relative">
-                    <img
-                      src={pkg.imgSrc || "/placeholder.svg"}
-                      alt={pkg.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="p-2 mt-2">
-                    <h3 className="font-medium text-gray-900 mb-1">{pkg.name}</h3>
-                    <p className="text-sm text-gray-500 line-clamp-2">{pkg.description}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </Carousel>
-        </div>
-      </Modal>
-      <Modal
         title="Add Image"
         open={isImageModalOpen}
         onOk={handleImageModalSave}
@@ -697,7 +565,18 @@ const ManualBlog = () => {
           dangerouslySetInnerHTML={{ __html: generatePreviewContent() }}
         />
       </Modal>
-      {currentStep === 1 && (
+
+      <TemplateModal
+        closeFnc={handleTemplateModalClose}
+        isOpen={showTemplateModal}
+        handleSubmit={handleSubmit}
+        errors={errors}
+        setErrors={setErrors}
+        formData={formData}
+        setFormData={setFormData}
+      />
+
+      {!showTemplateModal && (
         <div className="flex flex-col lg:flex-row h-screen">
           <div className="flex-1 flex flex-col">
             <header className="bg-white shadow-md border-b border-gray-200 p-6">
@@ -707,7 +586,9 @@ const ManualBlog = () => {
                     <FileText className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Create New Blog</h2>
+                    <h2 className="text-2xl font-bold text-gray-900">
+                      {blog._id ? "Edit Blog" : "Create New Blog"}
+                    </h2>
                     <p className="text-gray-600 text-sm">Write and optimize your content</p>
                   </div>
                 </div>
@@ -734,21 +615,7 @@ const ManualBlog = () => {
                     }`}
                     aria-label="Blog title"
                   />
-                  {!hasGeneratedTitles && (
-                    <button
-                      onClick={handleGenerateTitles}
-                      disabled={isGeneratingTitles}
-                      className="px-4 py-2 bg-gradient-to-r from-[#1B6FC9] to-[#4C9FE8] text-white rounded-lg hover:from-[#1B6FC9]/90 hover:to-[#4C9FE8]/90 flex items-center"
-                      aria-label="Generate titles"
-                    >
-                      {isGeneratingTitles ? (
-                        <Spin size="small" />
-                      ) : (
-                        <Sparkles size={16} className="mr-2" />
-                      )}
-                      Generate Titles
-                    </button>
-                  )}
+                  
                 </div>
                 <div className="mt-2 text-sm text-gray-500">
                   {titleWordCount}/60 words (optimal for SEO)
@@ -756,29 +623,6 @@ const ManualBlog = () => {
                     <span className="text-red-600 ml-2">Title exceeds 60 words</span>
                   )}
                 </div>
-                {generatedTitles.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-4">
-                    {generatedTitles.map((generatedTitle, index) => {
-                      const isSelected = generatedTitle === title;
-                      return (
-                        <div key={index} className="relative group">
-                          <button
-                            type="button"
-                            onClick={() => handleTitleSelect(generatedTitle)}
-                            className={`px-3 py-1 rounded-full text-sm border transition truncate max-w-[200px] sm:max-w-[300px] ${
-                              isSelected
-                                ? "bg-[#1B6FC9] text-white border-[#1B6FC9]"
-                                : "bg-gray-100 text-gray-700 border-gray-300 opacity-60 hover:opacity-100 hover:bg-gray-200"
-                            }`}
-                            aria-label={`Select title: ${generatedTitle}`}
-                          >
-                            {generatedTitle}
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
               </div>
             </header>
             <Toolbar editor={editor} onOpenImageModal={handleOpenImageModal} />
@@ -1001,20 +845,6 @@ const ManualBlog = () => {
               </div>
             </div>
             <div className="flex-1 p-6 pt-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-blue-600" />
-                Topic
-              </h3>
-              <div className="mb-4">
-                <input
-                  type="text"
-                  value={topic}
-                  onChange={(e) => setTopic(e.target.value)}
-                  placeholder="Enter blog topic..."
-                  className="topic-input w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                  aria-label="Blog topic"
-                />
-              </div>
               <div className="keywords-section">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
@@ -1084,7 +914,7 @@ const ManualBlog = () => {
         </div>
       )}
     </div>
-  );
-};
+  )
+}
 
-export default ManualBlog;
+export default ManualBlog

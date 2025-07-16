@@ -42,9 +42,9 @@ export const createBlogMultiple = async (blogData) => {
 }
 
 // Get all blogs
-export const getAllBlogs = async () => {
+export const getAllBlogs = async (params = {}) => {
   try {
-    const response = await axiosInstance.get("/blogs")
+    const response = await axiosInstance.get("/blogs", { params })
     return response.data
   } catch (error) {
     throw new Error(error.response?.data?.message || "Failed to fetch blogs")
@@ -167,4 +167,13 @@ export const getGeneratedTitles = async ({ keywords, focusKeywords, topic, templ
     template,
   })
   return response.data
+}
+
+export const createSimpleBlog = async (data) => {
+  try {
+    const response = await axiosInstance.post("/blogs/new", data)
+    return response.data
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to create blog")
+  }
 }

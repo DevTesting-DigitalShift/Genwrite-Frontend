@@ -87,7 +87,7 @@ const ToolBox = () => {
 
     const postData = {
       blogId: blogToDisplay._id,
-      includeTableOfContents: true,
+      includeTableOfContents: formData.includeTableOfContents,
       categories: formData.category,
     }
 
