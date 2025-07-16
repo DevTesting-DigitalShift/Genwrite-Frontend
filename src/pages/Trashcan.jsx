@@ -27,7 +27,7 @@ const Trashcan = () => {
     try {
       setLoading(true)
       const blogs = await getAllBlogs()
-      const filteredBlogs = blogs.filter((blog) => blog.isArchived)
+      const filteredBlogs = blogs.data.filter((blog) => blog.isArchived)
       setTrashedBlogs(filteredBlogs)
     } catch (error) {
       console.error("Error fetching trashed blogs:", error.message)

@@ -22,8 +22,6 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
     loading: analyzing,
     selectedKeywords,
   } = useSelector((state) => state.analysis)
-  
-  // console.log({ selectedKeywords })
 
   useEffect(() => {
     if (keywords.length === 0) {

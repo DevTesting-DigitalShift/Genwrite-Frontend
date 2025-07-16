@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import SkeletonLoader from "./SkeletonLoader"
-import { Badge, Button, Input, Popconfirm, Tooltip, Select, Popover, Pagination } from "antd"
+import { Badge, Button, Input, Popconfirm, Tooltip, Popover, Pagination, DatePicker } from "antd"
 import { ArrowDownUp, Filter, Plus, RefreshCcw, RotateCcw, Search, Trash2 } from "lucide-react"
 import { motion } from "framer-motion"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
@@ -17,137 +17,62 @@ import {
 import { Helmet } from "react-helmet"
 import { useDispatch, useSelector } from "react-redux"
 import { archiveBlog, fetchAllBlogs, retryBlog } from "@store/slices/blogSlice"
-import { getAllBlogs } from "@api/blogApi"
+import moment from "moment"
+
+const { RangePicker } = DatePicker
 
 const MyProjects = () => {
-  const [blogsData, setBlogsData] = useState([])
   const [filteredBlogs, setFilteredBlogs] = useState([])
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(5)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [sortType, setSortType] = useState("createdAt")
   const [sortOrder, setSortOrder] = useState("desc")
   const [statusFilter, setStatusFilter] = useState("all")
-  const navigate = useNavigate()
-  const [isMenuOpen, setMenuOpen] = useState(false)
-  const [funnelMenuOpen, setFunnelMenuOpen] = useState(false)
-  const [isSearchOpen, setSearchOpen] = useState(false)
+  const [dateRange, setDateRange] = useState([null, null])
   const [searchTerm, setSearchTerm] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
-  const [searchType, setSearchType] = useState("title")
-  const [isSearchModalOpen, setSearchModalOpen] = useState(false)
+  const [isMenuOpen, setMenuOpen] = useState(false)
+  const [isFunnelMenuOpen, setFunnelMenuOpen] = useState(false)
+  const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
   const dispatch = useDispatch()
+  const { blogs } = useSelector((state) => state.blog)
   const TRUNCATE_LENGTH = 120
   const PAGE_SIZE = 15
-  const { blogs } = useSelector((state) => state.blog)
 
-  console.log({blogs})
-
+  // Scroll to top on page change
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" })
   }, [currentPage])
 
-  const toggleSearch = () => setSearchModalOpen(true)
+  // Toggle sort menu
   const toggleMenu = () => {
     setMenuOpen((prev) => {
-      if (!prev) setFunnelMenuOpen(false) // close funnel if opening menu
+      if (!prev) setFunnelMenuOpen(false)
       return !prev
     })
   }
 
+  // Toggle filter menu
   const toggleFunnelMenu = () => {
     setFunnelMenuOpen((prev) => {
-      if (!prev) setMenuOpen(false) // close menu if opening funnel
+      if (!prev) setMenuOpen(false)
       return !prev
     })
   }
 
+  // Reset filters
   const resetFilters = () => {
     setSortOrder("")
     setSortType("")
     setStatusFilter("all")
-  }
-
-  const handleSearch = () => {
+    setDateRange([null, null])
     setSearchTerm("")
     setDebouncedSearch("")
-    setSearchOpen(false)
   }
 
-  const handleSearchModalOk = () => {
-    setSearchOpen(true)
-    setSearchModalOpen(false)
-  }
-
-  const handleSearchModalCancel = () => {
-    setSearchModalOpen(false)
-  }
-
-  useEffect(() => {
-    dispatch(fetchAllBlogs())
-  }, [])
-
-  const fetchBlogs = async () => {
-    try {
-      setLoading(true)
-      const filteredBlogs = blogs.data.filter((blog) => !blog.isArchived)
-      setBlogsData(filteredBlogs)
-
-      applySortAndFilter(
-        filteredBlogs,
-        sortType,
-        sortOrder,
-        debouncedSearch,
-        searchType,
-        statusFilter
-      )
-    } catch (error) {
-      console.error("Error fetching blogs:", error.message || "Failed to fetch blogs")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const applySortAndFilter = (blogs, sortBy, order, search, searchType, status) => {
-    let sortedBlogs = [...blogs]
-
-    // Apply status filter
-    if (status !== "all") {
-      sortedBlogs = sortedBlogs.filter((blog) => blog.status.toLowerCase() === status.toLowerCase())
-    }
-
-    // Apply search filter
-    if (search) {
-      sortedBlogs = sortedBlogs.filter((blog) => {
-        if (searchType === "title") {
-          return blog.title.toLowerCase().includes(search.toLowerCase())
-        } else {
-          return (
-            blog.focusKeywords &&
-            blog.focusKeywords.some((keyword) =>
-              keyword.toLowerCase().includes(search.toLowerCase())
-            )
-          )
-        }
-      })
-    }
-
-    // Apply sorting
-    sortedBlogs.sort((a, b) => {
-      if (sortBy === "az") {
-        return order === "asc" ? a.title.localeCompare(b.title) : b.title.localeCompare(a.title)
-      } else {
-        return order === "asc"
-          ? new Date(a.createdAt) - new Date(b.createdAt)
-          : new Date(b.createdAt) - new Date(a.createdAt)
-      }
-    })
-
-    setFilteredBlogs(sortedBlogs)
-    setCurrentPage(1)
-  }
-
+  // Debounce search input
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearch(searchTerm)
@@ -156,14 +81,43 @@ const MyProjects = () => {
     return () => clearTimeout(handler)
   }, [searchTerm])
 
+  // Fetch blogs with filters
+  const fetchBlogs = useCallback(async () => {
+    setLoading(true)
+    try {
+      const queryParams = {
+        sort: `${sortType || "createdAt"}:${sortOrder || "desc"}`,
+        status: statusFilter !== "all" ? statusFilter : undefined,
+        q: debouncedSearch || undefined,
+        start: dateRange[0] ? dateRange[0].toISOString() : undefined,
+        end: dateRange[1] ? dateRange[1].toISOString() : undefined,
+      }
+      await dispatch(fetchAllBlogs(queryParams))
+    } catch (error) {
+      console.error("Failed to fetch blogs:", error)
+    } finally {
+      setLoading(false)
+    }
+  }, [dispatch, sortType, sortOrder, statusFilter, debouncedSearch, dateRange])
+
+  // Initial fetch on mount
   useEffect(() => {
     fetchBlogs()
-  }, [])
+  }, []) // Run only once on mount
 
+  // Update blogs when filters change
   useEffect(() => {
-    applySortAndFilter(blogsData, sortType, sortOrder, debouncedSearch, searchType, statusFilter)
-  }, [blogsData, sortType, sortOrder, debouncedSearch, searchType, statusFilter])
+    if (Array.isArray(blogs?.data)) {
+      setFilteredBlogs(blogs.data.filter((blog) => !blog.isArchived))
+    }
+  }, [blogs])
 
+  // Fetch blogs when filters change
+  useEffect(() => {
+    fetchBlogs()
+  }, [sortType, sortOrder, statusFilter, debouncedSearch, dateRange])
+
+  // Responsive items per page
   useEffect(() => {
     const updateItemsPerPage = () => {
       if (window.innerWidth >= 1024) {
@@ -177,42 +131,61 @@ const MyProjects = () => {
 
     updateItemsPerPage()
     window.addEventListener("resize", updateItemsPerPage)
-
     return () => window.removeEventListener("resize", updateItemsPerPage)
   }, [])
 
+  // Handle blog click
   const handleBlogClick = (blog) => {
     navigate(`/toolbox/${blog._id}`)
   }
 
+  // Handle retry
   const handleRetry = async (id) => {
-    dispatch(retryBlog({ id }))
+    try {
+      await dispatch(retryBlog({ id }))
+      await fetchBlogs()
+    } catch (error) {
+      console.error("Failed to retry blog:", error)
+    }
   }
 
+  // Handle archive
+  const handleArchive = async (id) => {
+    try {
+      await dispatch(archiveBlog(id))
+      await fetchBlogs()
+    } catch (error) {
+      console.error("Failed to archive blog:", error)
+    }
+  }
+
+  // Truncate content
   const truncateContent = (content, length = TRUNCATE_LENGTH) => {
     if (!content) return ""
     return content.length > length ? content.substring(0, length) + "..." : content
   }
 
+  // Strip markdown
+  const stripMarkdown = (text) => {
+    return text
+      ?.replace(/<[^>]*>/g, "")
+      ?.replace(/[\\*#=_~`>\-]+/g, "")
+      ?.replace(/\s{2,}/g, " ")
+      ?.trim()
+  }
+
+  // Pagination
   const totalPages = filteredBlogs.length
   const startIndex = (currentPage - 1) * itemsPerPage
   const currentItems = filteredBlogs.slice(startIndex, startIndex + itemsPerPage)
 
-  const handlePageChange = (pageNumber) => {
-    setCurrentPage(pageNumber)
-  }
-
-  const handleArchive = async (id) => {
-    await dispatch(archiveBlog(id))
-    setBlogsData((prev) => prev.filter((blog) => blog._id !== id))
-  }
-
+  // Menu options for sorting
   const menuOptions = [
     {
       label: "A-Z (Ascending)",
       icon: <SortAscendingOutlined />,
       onClick: () => {
-        setSortType("az")
+        setSortType("title")
         setSortOrder("asc")
         setMenuOpen(false)
       },
@@ -221,7 +194,7 @@ const MyProjects = () => {
       label: "Z-A (Descending)",
       icon: <SortDescendingOutlined />,
       onClick: () => {
-        setSortType("az")
+        setSortType("title")
         setSortOrder("desc")
         setMenuOpen(false)
       },
@@ -246,6 +219,7 @@ const MyProjects = () => {
     },
   ]
 
+  // Filter options
   const funnelMenuOptions = [
     {
       label: "Status: Completed",
@@ -273,25 +247,21 @@ const MyProjects = () => {
     },
   ]
 
-  const handleRefresh = async () => {
-    await fetchBlogs()
-  }
-
-  const stripMarkdown = (text) => {
-    return text
-      ?.replace(/<[^>]*>/g, "") // Remove HTML tags like <h1>, <p>, etc.
-      ?.replace(/[\\*#=_~`>\-]+/g, "") // Remove markdown special characters
-      ?.replace(/\s{2,}/g, " ") // Collapse multiple spaces
-      ?.trim() // Trim leading/trailing whitespace
-  }
+  // Date range presets
+  const datePresets = [
+    { label: "Last 7 Days", value: [moment().subtract(7, "days"), moment()] },
+    { label: "Last 30 Days", value: [moment().subtract(30, "days"), moment()] },
+    { label: "Last 3 Months", value: [moment().subtract(3, "months"), moment()] },
+    { label: "Last 6 Months", value: [moment().subtract(6, "months"), moment()] },
+    { label: "This Year", value: [moment().startOf("year"), moment()] },
+  ]
 
   return (
     <div className="p-5">
       <Helmet>
         <title>Blogs | GenWrite</title>
       </Helmet>
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        {/* Title and Description */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div className="flex-1">
           <motion.h1
             initial={{ opacity: 0, y: -10 }}
@@ -311,12 +281,11 @@ const MyProjects = () => {
             suite of tools.
           </motion.p>
         </div>
-
         {currentItems.length !== 0 && (
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <Link
               to="/blog-editor"
-              className="flex items-center gap-2 px-4 py-2 bg-[#1B6FC9]  hover:bg-[#1B6FC9]/90 text-white rounded-lg transition-colors text-sm font-medium"
+              className="flex items-center gap-2 px-4 py-2 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white rounded-lg transition-colors text-sm font-medium"
             >
               <Plus className="w-4 h-4" />
               New Blog
@@ -325,160 +294,115 @@ const MyProjects = () => {
         )}
       </div>
 
-      {/* Actions: Search, Filters, and New Blog */}
-      <div className="flex items-center gap-3 justify-end mb-5">
-        {/* Search Popover */}
-        <Popover
-          content={
-            <div className="flex flex-col gap-3 w-72 p-3">
-              <Select
-                defaultValue="title"
-                onChange={(value) => setSearchType(value)}
-                options={[
-                  { value: "title", label: "Search by Title" },
-                  { value: "keywords", label: "Search by Focus Keywords" },
-                ]}
-                className="w-full"
-              />
-              <Input
-                placeholder={`Search by ${searchType === "title" ? "title" : "focus keywords"}...`}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onPressEnter={handleSearchModalOk}
-                className="w-full"
-              />
-              <Button
-                type="primary"
-                onClick={handleSearchModalOk}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                Search
-              </Button>
-            </div>
-          }
-          title="Search Blogs"
-          trigger="click"
-          placement="bottomRight"
-          open={isSearchModalOpen}
-          onOpenChange={(visible) => setSearchModalOpen(visible)}
-        >
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Tooltip title="Search Blogs">
-              {isSearchOpen ? (
-                <Input
-                  autoFocus
-                  placeholder={`Search by ${
-                    searchType === "title" ? "title" : "focus keywords"
-                  }...`}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onPressEnter={handleSearchModalOk}
-                  onBlur={() => setSearchOpen(false)}
-                  className="w-48 rounded-lg border-gray-300 shadow-sm"
-                />
-              ) : (
-                <Button
-                  type="default"
-                  icon={<Search className="w-4 h-4" />}
-                  onClick={toggleSearch}
-                  className="p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100"
-                />
-              )}
-            </Tooltip>
-          </motion.div>
-        </Popover>
-
-        {/* Refresh Button */}
-        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-          <Tooltip title="Refresh">
-            <Button
-              type="default"
-              icon={<RefreshCcw className="w-4 h-4" />}
-              onClick={handleRefresh}
-              className="p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100"
-            />
-          </Tooltip>
-        </motion.div>
-
-        {/* Sort Popover */}
-        <Popover
-          open={isMenuOpen}
-          onOpenChange={(visible) => setMenuOpen(visible)}
-          trigger="click"
-          placement="bottomRight"
-          content={
-            <div className="min-w-[200px] rounded-lg space-y-1">
-              {menuOptions.map(({ label, icon, onClick }) => (
-                <Tooltip title={label} placement="left" key={label}>
-                  <button
-                    onClick={onClick}
-                    className="w-full flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
-                  >
-                    <span className="text-lg">{icon}</span>
-                    <span>{label}</span>
-                  </button>
-                </Tooltip>
-              ))}
-            </div>
-          }
-        >
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Tooltip title="Sort Blogs">
+      {/* Filter and Sort Bar */}
+      <div className="flex flex-col sm:flex-row gap-4 bg-gray-100 p-4 rounded-lg mb-6">
+        <div className="flex-1">
+          <Input
+            placeholder="Search blogs..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            prefix={<Search className="w-4 h-4 text-gray-500" />}
+            className="rounded-lg border-gray-300 shadow-sm"
+          />
+        </div>
+        <div className="flex gap-2">
+          <Popover
+            open={isMenuOpen}
+            onOpenChange={(visible) => setMenuOpen(visible)}
+            trigger="click"
+            placement="bottomRight"
+            content={
+              <div className="min-w-[200px] rounded-lg space-y-1">
+                {menuOptions.map(({ label, icon, onClick }) => (
+                  <Tooltip title={label} placement="left" key={label}>
+                    <button
+                      onClick={onClick}
+                      className="w-full flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                    >
+                      <span className="text-lg">{icon}</span>
+                      <span>{label}</span>
+                    </button>
+                  </Tooltip>
+                ))}
+              </div>
+            }
+          >
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Button
                 type="default"
                 icon={<ArrowDownUp className="w-4 h-4" />}
                 onClick={toggleMenu}
                 className="p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100"
-              />
-            </Tooltip>
-          </motion.div>
-        </Popover>
+              >
+                Sort
+              </Button>
+            </motion.div>
+          </Popover>
 
-        {/* Filter Popover */}
-        <Popover
-          open={funnelMenuOpen}
-          onOpenChange={(visible) => setFunnelMenuOpen(visible)}
-          trigger="click"
-          placement="bottomRight"
-          content={
-            <div className="min-w-[200px] rounded-lg space-y-1">
-              {funnelMenuOptions.map(({ label, icon, onClick }) => (
-                <Tooltip title={label} placement="left" key={label}>
-                  <button
-                    onClick={onClick}
-                    className="w-full flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
-                  >
-                    <span className="text-lg">{icon}</span>
-                    <span>{label}</span>
-                  </button>
-                </Tooltip>
-              ))}
-            </div>
-          }
-        >
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Tooltip title="Filter Blogs">
+          <Popover
+            open={isFunnelMenuOpen}
+            onOpenChange={(visible) => setFunnelMenuOpen(visible)}
+            trigger="click"
+            placement="bottomRight"
+            content={
+              <div className="min-w-[200px] rounded-lg space-y-1">
+                {funnelMenuOptions.map(({ label, icon, onClick }) => (
+                  <Tooltip title={label} placement="left" key={label}>
+                    <button
+                      onClick={onClick}
+                      className="w-full flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                    >
+                      <span className="text-lg">{icon}</span>
+                      <span>{label}</span>
+                    </button>
+                  </Tooltip>
+                ))}
+              </div>
+            }
+          >
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Button
                 type="default"
                 icon={<Filter className="w-4 h-4" />}
                 onClick={toggleFunnelMenu}
                 className="p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100"
-              />
-            </Tooltip>
-          </motion.div>
-        </Popover>
+              >
+                Filter
+              </Button>
+            </motion.div>
+          </Popover>
 
-        {/* Reset Filters Button */}
-        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-          <Tooltip title="Reset Filters">
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Button
+              type="default"
+              icon={<RefreshCcw className="w-4 h-4" />}
+              onClick={fetchBlogs}
+              className="p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100"
+            >
+              Refresh
+            </Button>
+          </motion.div>
+
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <Button
               type="default"
               icon={<RotateCcw className="w-4 h-4" />}
               onClick={resetFilters}
               className="p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100"
-            />
-          </Tooltip>
-        </motion.div>
+            >
+              Reset
+            </Button>
+          </motion.div>
+        </div>
+        <div className="flex-1">
+          <RangePicker
+            presets={datePresets}
+            value={dateRange}
+            onChange={(dates) => setDateRange(dates)}
+            className="w-full rounded-lg border-gray-300 shadow-sm"
+            format="YYYY-MM-DD"
+          />
+        </div>
       </div>
 
       {loading ? (
@@ -537,24 +461,17 @@ const MyProjects = () => {
                     </span>
                   }
                   className="absolute top-0"
-                  color={
-                    isGemini
-                      ? "#4796E3" // Gemini blue
-                      : aiModel === "claude"
-                      ? "#9368F8" // Claude purple-ish
-                      : "#74AA9C" // ChatGPT green
-                  }
+                  color={isGemini ? "#4796E3" : aiModel === "claude" ? "#9368F8" : "#74AA9C"}
                 >
                   <div
                     className={`bg-white shadow-md hover:shadow-xl transition-all duration-300 rounded-xl p-4 min-h-[180px] min-w-[390px] relative
                       ${
-                        (status === "failed"
+                        status === "failed"
                           ? "border-red-500"
                           : status === "pending" || status === "in-progress"
                           ? "border-yellow-500"
-                          : "border-green-500") + " border-2"
-                      }
-                    `}
+                          : "border-green-500"
+                      } border-2`}
                     title={title}
                   >
                     <div className="text-xs font-semibold text-gray-400 mb-2 -mt-2">
@@ -597,7 +514,7 @@ const MyProjects = () => {
                             {title}
                           </h3>
                           <p className="text-sm text-gray-600 mb-4 line-clamp-3 break-all">
-                            {stripMarkdown(content) || ""}
+                            {truncateContent(stripMarkdown(content)) || ""}
                           </p>
                         </div>
                       </div>

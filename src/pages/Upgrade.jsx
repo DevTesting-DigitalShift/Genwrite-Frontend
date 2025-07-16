@@ -382,7 +382,7 @@ const Upgrade = () => {
         credits: "Unlimited",
         description: "Tailored solutions with unlimited access and dedicated support.",
         features: [
-          "Unlimited credits",
+          "Flexible usage based on your needs",
           "All Pro features included",
           "Custom AI models & workflows",
           "Dedicated support manager",

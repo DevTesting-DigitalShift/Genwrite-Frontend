@@ -12,13 +12,6 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
 
   const { selectedKeywords } = useSelector((state) => state.analysis)
 
-  console.log(
-    "selectedKeywords?.focusKeywords",
-    selectedKeywords?.focusKeywords,
-    "selectedKeywords?.keywords",
-    selectedKeywords?.keywords
-  )
-
   const dispatch = useDispatch()
   const [formData, setFormData] = useState({
     focusKeywordInput: "",

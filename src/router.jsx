@@ -29,7 +29,7 @@ const SearchConsole = lazy(() => import("@pages/SearchConsole"))
 const TermsAndConditions = lazy(() => import("@pages/TermsAndConditions"))
 const PrivacyPolicy = lazy(() => import("@pages/Privacy"))
 const HumanizeContent = lazy(() => import("@pages/HumanizeContent"))
-const ManualBlog = lazy(() => import("@components/generateBlog/ManualBlog"))
+const ManualBlog = lazy(() => import("@components/generateBlog/ManualBlogEditor.jsx/ManualBlog"))
 
 /**
  * Wraps a component in React.Suspense with fallback support.

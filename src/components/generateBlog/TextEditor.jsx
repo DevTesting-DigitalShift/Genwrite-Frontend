@@ -42,7 +42,7 @@ import { ProofreadingDecoration } from "@/extensions/ProofreadingDecoration"
 import { useProofreadingUI } from "@components/generateBlog/useProofreadingUI"
 import { sendRetryLines } from "@api/blogApi"
 import { Helmet } from "react-helmet"
-import { Tooltip, message } from "antd"
+import { Select, Tooltip, message } from "antd"
 import Loading from "@components/Loading"
 
 const FONT_OPTIONS = [
@@ -501,7 +501,7 @@ const TextEditor = ({
   }
 
   const FontDropdown = () => (
-    <select
+    <Select
       value={selectedFont}
       onChange={(e) => {
         if (userPlan === "free" || userPlan === "basic") {
@@ -510,27 +510,27 @@ const TextEditor = ({
         }
         setSelectedFont(e.target.value)
       }}
-      className="p-2 rounded border bg-white hover:bg-gray-100"
+      className="w-28"
     >
       {FONT_OPTIONS.map((font) => (
-        <option key={font.value} value={font.value}>
+        <Option key={font.value} value={font.value}>
           {font.label}
-        </option>
+        </Option>
       ))}
-    </select>
+    </Select>
   )
 
   const ModelDropdown = () => (
-    <div className="relative" ref={dropdownRef}>
-      <button className="flex items-center gap-2 font-bold mr-4 hover:bg-gray-100 p-2 rounded">
+    <div className="relative">
+      <div className="flex items-center gap-2 font-bold mr-4 hover:bg-gray-100 p-2 rounded">
         GenWrite
-      </button>
+      </div>
     </div>
   )
 
   const ModelDropdown1 = () => (
-    <div className="relative" ref={dropdownRef}>
-      <button className="flex capitalize items-center gap-2 font-semibold mr-4 hover:bg-gray-100 p-2 rounded">
+    <div className="relative">
+      <div className="flex capitalize items-center gap-2 font-semibold mr-4 cursor-default hover:bg-gray-100 p-2 rounded">
         {blog?.aiModel?.toLowerCase() === "gemini" ? (
           <span className="flex items-center gap-2">
             Gemini
@@ -547,7 +547,7 @@ const TextEditor = ({
             <img src="/Images/chatgpt.png" alt="chatgpt" className="w-5" />
           </span>
         )}
-      </button>
+      </div>
     </div>
   )
 

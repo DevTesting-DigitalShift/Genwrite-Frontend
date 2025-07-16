@@ -3,7 +3,7 @@ import Modal from "../utils/Modal"
 import SelectTemplateModal from "./multipleStepModal/SelectTemplateModal"
 import FirstStepModal from "./multipleStepModal/FirstStepModal"
 import SecondStepModal from "./multipleStepModal/SecondStepModal"
-import { letsBegin, quickTools, stats } from "./dashData/dash"
+import { letsBegin, quickTools } from "./dashData/dash"
 import { DashboardBox, QuickBox, Blogs } from "../utils/DashboardBox"
 import { useDispatch, useSelector } from "react-redux"
 import { createNewBlog, fetchAllBlogs } from "@store/slices/blogSlice"
@@ -21,7 +21,6 @@ import { Clock, Sparkles } from "lucide-react"
 import { Helmet } from "react-helmet"
 import SeoAnalysisModal from "./multipleStepModal/SeoAnalysisModal"
 import KeywordResearchModel from "./multipleStepModal/KeywordResearchModel"
-import { getAllBlogs } from "@api/blogApi"
 import { SkeletonDashboardCard, SkeletonGridCard } from "./Projects/SkeletonLoader"
 import { openJobModal } from "@store/slices/jobSlice"
 import { message } from "antd"
@@ -47,6 +46,29 @@ const Dashboard = () => {
   const navigate = useNavigate()
   const user = useSelector(selectUser)
   const { handlePopup } = useConfirmPopup()
+
+  // Event handlers
+  const showModal = () => setIsModalVisible(true)
+  const showDaisy = () => setDaisyUIModal(true)
+  const hideDaisy = () => setDaisyUIModal(false)
+  const showMultiStepModal = () => setMultiStepModal(true)
+  const hideMultiStepModal = () => setMultiStepModal(false)
+  const showQuickBlogModal = () => setQuickBlogModal(true)
+  const hideQuickBlogModal = () => setQuickBlogModal(false)
+  const showCompetitiveAnalysis = () => setCompetitiveAnalysisModal(true)
+  const hideCompetitiveAnalysis = () => setCompetitiveAnalysisModal(false)
+
+  const openSecondStepModal = () => {
+    setKeywordResearchModal(false)
+    setIsModalVisible(true)
+    setCurrentStep(0)
+  }
+
+  const openSecondStepJobModal = () => {
+    setKeywordResearchModal(false)
+    dispatch(openJobModal())
+    navigate("/jobs")
+  }
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -83,33 +105,15 @@ const Dashboard = () => {
   }, [])
 
   useEffect(() => {
-    const recent = blogs.filter((b) => b.status === "complete" && b.isArchived === false).slice(-3)
-
-    setRecentBlogData(recent)
+    if (blogs?.data && Array.isArray(blogs.data)) {
+      const recent = blogs.data
+        .filter((b) => b.status === "complete" && b.isArchived === false)
+        .slice(-3)
+      setRecentBlogData(recent)
+    } else {
+      setRecentBlogData([]) // fallback in case blogs.data is not ready
+    }
   }, [blogs])
-
-  // Event handlers
-  const showModal = () => setIsModalVisible(true)
-  const showDaisy = () => setDaisyUIModal(true)
-  const hideDaisy = () => setDaisyUIModal(false)
-  const showMultiStepModal = () => setMultiStepModal(true)
-  const hideMultiStepModal = () => setMultiStepModal(false)
-  const showQuickBlogModal = () => setQuickBlogModal(true)
-  const hideQuickBlogModal = () => setQuickBlogModal(false)
-  const showCompetitiveAnalysis = () => setCompetitiveAnalysisModal(true)
-  const hideCompetitiveAnalysis = () => setCompetitiveAnalysisModal(false)
-
-  const openSecondStepModal = () => {
-    setKeywordResearchModal(false)
-    setIsModalVisible(true)
-    setCurrentStep(0)
-  }
-
-  const openSecondStepJobModal = () => {
-    setKeywordResearchModal(false)
-    dispatch(openJobModal())
-    navigate("/jobs")
-  }
 
   const handleSubmit = async (updatedData) => {
     try {

@@ -14,16 +14,18 @@ import {
   proofreadBlogContent,
   getBlogStatsById,
   getGeneratedTitles,
+  createSimpleBlog,
 } from "@api/blogApi"
 import { message } from "antd"
 
 // ----------------------- Async Thunks -----------------------
 
+// blogSlice.ts
 export const fetchAllBlogs = createAsyncThunk(
   "blogs/fetchAllBlogs",
-  async (_, { rejectWithValue }) => {
+  async (params = {}, { rejectWithValue }) => {
     try {
-      const blogs = await getAllBlogs()
+      const blogs = await getAllBlogs(params)
       return blogs
     } catch (error) {
       return rejectWithValue(error.message)
@@ -241,6 +243,18 @@ export const fetchGeneratedTitles = createAsyncThunk(
   }
 )
 
+export const createManualBlog = createAsyncThunk(
+  "blogs/createBlog",
+  async (blogData, { rejectWithValue }) => {
+    try {
+      const response = await createSimpleBlog(blogData)
+      return response.blog
+    } catch (error) {
+      return rejectWithValue(error)
+    }
+  }
+)
+
 // ------------------------ Initial State ------------------------
 
 const initialState = {
@@ -267,15 +281,15 @@ const blogSlice = createSlice({
   extraReducers: (builder) => {
     builder
       // Fetch recent
-      .addCase(fetchAllBlogs.pending, (state) => {
-        state.loading = true
-      })
+      // .addCase(fetchAllBlogs.pending, (state) => {
+      //   state.loading = true
+      // })
       .addCase(fetchAllBlogs.fulfilled, (state, action) => {
-        state.loading = false
+        // state.loading = false
         state.blogs = action.payload
       })
       .addCase(fetchAllBlogs.rejected, (state, action) => {
-        state.loading = false
+        // state.loading = false
         state.error = action.payload
       })
 
@@ -385,6 +399,19 @@ const blogSlice = createSlice({
         state.generatedTitles = action.payload
       })
       .addCase(fetchGeneratedTitles.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload
+      })
+
+      .addCase(createManualBlog.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(createManualBlog.fulfilled, (state, action) => {
+        state.loading = false
+        state.blogs.data.unshift(action.payload.blog) // or push depending on ordering
+      })
+      .addCase(createManualBlog.rejected, (state, action) => {
         state.loading = false
         state.error = action.payload
       })
