@@ -1,17 +1,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import SkeletonLoader from "./SkeletonLoader"
-import {
-  Badge,
-  Button,
-  Input,
-  Popconfirm,
-  Tooltip,
-  Popover,
-  Pagination,
-  DatePicker,
-  message,
-} from "antd"
+import { Badge, Button, Input, Popconfirm, Tooltip, Popover, Pagination, DatePicker, message } from "antd"
 import { ArrowDownUp, Filter, Plus, RefreshCcw, RotateCcw, Search, Trash2 } from "lucide-react"
 import { motion } from "framer-motion"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
@@ -39,7 +29,7 @@ const MyProjects = () => {
   const [sortType, setSortType] = useState("createdAt")
   const [sortOrder, setSortOrder] = useState("desc")
   const [statusFilter, setStatusFilter] = useState("all")
-  const [dateRange, setDateRange] = useState([moment().subtract(7, "days"), moment()])
+  const [dateRange, setDateRange] = useState([null, null])
   const [searchTerm, setSearchTerm] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
   const [isMenuOpen, setMenuOpen] = useState(false)
@@ -91,12 +81,6 @@ const MyProjects = () => {
     return () => clearTimeout(handler)
   }, [searchTerm])
 
-  useEffect(() => {
-    if (Array.isArray(blogs?.data)) {
-      setFilteredBlogs(blogs.data.filter((blog) => !blog.isArchived))
-    }
-  }, [blogs])
-
   // Fetch blogs with filters
   const fetchBlogs = useCallback(async () => {
     setLoading(true)
@@ -109,7 +93,7 @@ const MyProjects = () => {
         end: dateRange[1] ? moment(dateRange[1]).toISOString() : undefined,
         page: currentPage,
         limit: itemsPerPage, // Use itemsPerPage instead of FIXED_LIMIT
-        isArchived: false,
+        isArchived: false, // Filter out archived blogs on the server
       }
       const response = await dispatch(fetchAllBlogs(queryParams)).unwrap()
       setFilteredBlogs(response.data || [])
@@ -124,27 +108,12 @@ const MyProjects = () => {
     } finally {
       setLoading(false)
     }
-  }, [
-    dispatch,
-    sortType,
-    sortOrder,
-    statusFilter,
-    debouncedSearch,
-    dateRange,
-    currentPage,
-    itemsPerPage,
-  ])
+  }, [dispatch, sortType, sortOrder, statusFilter, debouncedSearch, dateRange, currentPage, itemsPerPage])
 
   // Fetch blogs when filters or page change
   useEffect(() => {
     fetchBlogs()
   }, [fetchBlogs])
-
-  useEffect(() => {
-    if (Array.isArray(blogs?.data)) {
-      setFilteredBlogs(blogs.data.filter((blog) => !blog.isArchived))
-    }
-  }, [blogs])
 
   // Responsive items per page
   useEffect(() => {
@@ -183,10 +152,11 @@ const MyProjects = () => {
   // Handle archive
   const handleArchive = async (id) => {
     try {
-      await dispatch(archiveBlog(id))
+      await dispatch(archiveBlog(id)).unwrap()
       await fetchBlogs()
     } catch (error) {
       console.error("Failed to archive blog:", error)
+      message.error("Failed to archive blog. Please try again.")
     }
   }
 
@@ -319,8 +289,7 @@ const MyProjects = () => {
             transition={{ duration: 0.4, delay: 0.1 }}
             className="text-gray-500 text-sm mt-2 max-w-md"
           >
-            All your content creation tools in one place. Streamline your workflow with our powerful
-            suite of tools.
+            All your content creation tools in one place. Streamline your workflow with our powerful suite of tools.
           </motion.p>
         </div>
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -456,7 +425,6 @@ const MyProjects = () => {
             </div>
           ))}
         </div>
-      ) : blogs?.data?.length === 0 ? (
       ) : filteredBlogs.length === 0 ? (
         <div
           className="flex flex-col justify-center items-center"
@@ -468,8 +436,7 @@ const MyProjects = () => {
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 place-items-center p-2">
-            {blogs?.data?.map((blog) => {
-            {filteredBlogs?.map((blog) => {
+            {filteredBlogs.map((blog) => {
               const {
                 _id,
                 title,
@@ -478,7 +445,6 @@ const MyProjects = () => {
                 content,
                 aiModel,
                 focusKeywords,
-                isManuallyEdited,
                 updatedAt,
                 wordpress,
                 agendaJob,
@@ -511,13 +477,13 @@ const MyProjects = () => {
                 >
                   <div
                     className={`bg-white shadow-md hover:shadow-xl transition-all duration-300 rounded-xl p-4 min-h-[180px] min-w-[390px] relative
-                                 ${
-                                   status === "failed"
-                                     ? "border-red-500"
-                                     : status === "pending" || status === "in-progress"
-                                     ? "border-yellow-500"
-                                     : "border-green-500"
-                                 } border-2`}
+                      ${
+                        status === "failed"
+                          ? "border-red-500"
+                          : status === "pending" || status === "in-progress"
+                          ? "border-yellow-500"
+                          : "border-green-500"
+                      } border-2`}
                     title={title}
                   >
                     <div className="text-xs font-semibold text-gray-400 mb-2 -mt-2">
@@ -591,15 +557,14 @@ const MyProjects = () => {
                         </Popconfirm>
                       )}
                       <Button
-                        type="undefined"
+                        type="text"
                         className="p-2 hover:!border-red-500 hover:text-red-500"
                         onClick={() =>
                           handlePopup({
                             title: "Move to Trash",
                             description: (
                               <span className="my-2">
-                                Blog <b>{title}</b> will be moved to trash. You can restore it
-                                later.
+                                Blog <b>{title}</b> will be moved to trash. You can restore it later.
                               </span>
                             ),
                             confirmText: "Delete",
@@ -607,7 +572,7 @@ const MyProjects = () => {
                               handleArchive(_id)
                             },
                             confirmProps: {
-                              type: "undefined",
+                              type: "text",
                               className: "border-red-500 hover:bg-red-500 hover:text-white",
                             },
                             cancelProps: {
@@ -668,4 +633,3 @@ const MyProjects = () => {
 }
 
 export default MyProjects
-
