@@ -15,10 +15,10 @@ import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { QuestionCircleOutlined } from "@ant-design/icons"
 import { motion } from "framer-motion"
 import { Helmet } from "react-helmet"
-import { useDispatch, useSelector } from "react-redux"
+import { useDispatch } from "react-redux"
 import SkeletonLoader from "@components/Projects/SkeletonLoader"
 import { getAllBlogs } from "@api/blogApi"
-import { deleteAllUserBlogs, restoreTrashedBlog, fetchAllBlogs } from "@store/slices/blogSlice"
+import { deleteAllUserBlogs, restoreTrashedBlog } from "@store/slices/blogSlice"
 import { debounce } from "lodash"
 import moment from "moment"
 
@@ -38,10 +38,16 @@ const Trashcan = () => {
 
   const { handlePopup } = useConfirmPopup()
   const dispatch = useDispatch()
-  const { blogs, loading } = useSelector((state) => state.blog)
-
   const TRUNCATE_LENGTH = 85
-  const PAGE_SIZE_OPTIONS = [10, 15, 20, 50]
+  const PAGE_SIZE_OPTIONS = [10, 15, 20, 50] // Must respect maxPerPage: 100
+
+  // Date range presets
+  const datePresets = [
+    { label: "Last 7 Days", value: [moment().subtract(7, "days"), moment()] },
+    { label: "Last 30 Days", value: [moment().subtract(30, "days"), moment()] },
+    { label: "Last 3 Months", value: [moment().subtract(3, "months"), moment()] },
+    { label: "This Year", value: [moment().startOf("year"), moment()] },
+  ]
 
   // Debounced search handler
   const debouncedSearch = useCallback(
@@ -67,7 +73,7 @@ const Trashcan = () => {
       }
       const response = await getAllBlogs(queryParams)
       setTrashedBlogs(response.data || [])
-      setTotalBlogs(response.total || 0)
+      setTotalBlogs(response.totalItems || 0)
     } catch (error) {
       console.error("Failed to fetch trashed blogs:", error)
       message.error("Failed to load trashed blogs. Please try again.")
@@ -86,26 +92,33 @@ const Trashcan = () => {
     window.scrollTo({ top: 0, behavior: "smooth" })
   }, [currentPage])
 
+  // Truncate content
   const truncateContent = (content, length = TRUNCATE_LENGTH) => {
     if (!content) return ""
     return content.length > length ? content.substring(0, length) + "..." : content
   }
 
+  // Strip markdown
   const cleanText = (text) => {
-    return text.replace(/[#=~`*_\-]+/g, "").trim()
+    return text
+      ?.replace(/[#=~`*_\-]+/g, "")
+      ?.replace(/\s{2,}/g, " ")
+      ?.trim() || ""
   }
 
+  // Handle restore
   const handleRestore = async (id) => {
     try {
       await dispatch(restoreTrashedBlog(id)).unwrap()
       message.success("Blog restored successfully")
-      fetchTrashedBlogs() // Refresh the list
+      fetchTrashedBlogs()
     } catch (error) {
       console.error("Failed to restore blog:", error)
       message.error("Failed to restore blog. Please try again.")
     }
   }
 
+  // Handle bulk delete
   const handleBulkDelete = async () => {
     try {
       await dispatch(deleteAllUserBlogs()).unwrap()
@@ -119,16 +132,17 @@ const Trashcan = () => {
     }
   }
 
+  // Handle refresh
   const handleRefresh = async () => {
     setCurrentPage(1)
     await fetchTrashedBlogs()
     message.info("Blog list refreshed")
   }
 
+  // Handle blog click
   const handleBlogClick = (blog) => {
-    // Implement navigation or action for clicking a blog (e.g., view details)
-    // Example: navigate(`/blog/${blog._id}`)
     message.info(`Clicked on blog: ${blog.title}`)
+    // Example: navigate(`/blog/${blog._id}`)
   }
 
   return (
@@ -136,279 +150,299 @@ const Trashcan = () => {
       <Helmet>
         <title>Trashcan | GenWrite</title>
       </Helmet>
-      <div className="flex flex-col lg:flex-row items-center justify-between gap-4 mb-6">
-        <motion.h1
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
-        >
-          Trashcan
-        </motion.h1>
-        <div className="flex items-center gap-3">
-          <Button
-            type="default"
-            icon={<RefreshCcw className="w-4 h-4" />}
-            onClick={handleRefresh}
-            className="hover:!border-yellow-500 hover:text-yellow-500"
-            disabled={isLoading}
+      <div>
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+          <motion.h1
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
           >
-            Refresh
-          </Button>
-          {trashedBlogs.length > 0 && (
-            <Button
-              type="default"
-              icon={<Trash2 className="w-4 h-4" />}
-              onClick={() =>
-                handlePopup({
-                  title: "Delete All Trashed Blogs",
-                  description: (
-                    <span className="my-2">
-                      All trashed blogs will be <b>permanently deleted</b>. This action cannot be
-                      undone.
-                    </span>
-                  ),
-                  confirmText: "Delete All",
-                  onConfirm: handleBulkDelete,
-                  confirmProps: {
-                    className: "border-red-500 hover:bg-red-500 hover:text-white",
-                  },
-                  cancelProps: {
-                    danger: false,
-                  },
-                })
-              }
-              className="hover:!border-red-500 hover:text-red-500"
+            Trashcan
+          </motion.h1>
+          <div className="flex items-center gap-3">
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                type="default"
+                icon={<RefreshCcw className="w-4 h-4" />}
+                onClick={handleRefresh}
+                className="hover:!border-yellow-500 hover:text-yellow-500 rounded-lg"
+                disabled={isLoading}
+              >
+                Refresh
+              </Button>
+            </motion.div>
+            {trashedBlogs.length > 0 && (
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  type="default"
+                  icon={<Trash2 className="w-4 h-4" />}
+                  onClick={() =>
+                    handlePopup({
+                      title: "Delete All Trashed Blogs",
+                      description: (
+                        <span className="my-2">
+                          All trashed blogs will be <b>permanently deleted</b>. This action cannot be undone.
+                        </span>
+                      ),
+                      confirmText: "Delete All",
+                      onConfirm: handleBulkDelete,
+                      confirmProps: {
+                        className: "border-red-500 hover:bg-red-500 hover:text-white",
+                      },
+                      cancelProps: {
+                        danger: false,
+                      },
+                    })
+                  }
+                  className="hover:!border-red-500 hover:text-red-500 rounded-lg"
+                  disabled={isLoading}
+                >
+                  Delete All
+                </Button>
+              </motion.div>
+            )}
+          </div>
+        </div>
+        <motion.p
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+          className="text-gray-600 text-sm sm:text-base max-w-xl mb-6"
+        >
+          Restore valuable work or permanently delete clutter. Trashed items are deleted after 7 days.
+        </motion.p>
+
+        {/* Filters */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+          className="bg-white/90 backdrop-blur-md rounded-xl shadow-sm border border-gray-100 p-4 mb-6"
+        >
+          <div className="flex flex-col sm:flex-row gap-4">
+            <AntSearch
+              placeholder="Search by title or keywords..."
+              onChange={(e) => debouncedSearch(e.target.value)}
+              prefix={<Search className="w-5 h-5 text-gray-400 mr-2" />}
+              allowClear
+              className="w-full  rounded-lg"
+              disabled={isLoading}
+            />
+            <Select
+              value={statusFilter}
+              onChange={(value) => {
+                setStatusFilter(value)
+                setCurrentPage(1)
+              }}
+              className="w-full sm:w-1/4 rounded-lg"
+              placeholder="Filter by status"
               disabled={isLoading}
             >
-              Delete All
-            </Button>
-          )}
-        </div>
-      </div>
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.3 }}
-        className="text-gray-600 max-w-xl mb-4"
-      >
-        Restore valuable work or permanently delete clutter. Trashed items are deleted after 7 days.
-      </motion.p>
+              <Option value="all">All Statuses</Option>
+              <Option value="complete">Complete</Option>
+              <Option value="failed">Failed</Option>
+              <Option value="pending">Pending</Option>
+            </Select>
+          </div>
+        </motion.div>
 
-      {/* Filters */}
-      {/* <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6">
-        <div className="flex flex-col lg:flex-row gap-4">
-          <AntSearch
-            placeholder="Search by title or keywords..."
-            onChange={(e) => debouncedSearch(e.target.value)}
-            prefix={<Search className="w-5 h-5 text-gray-400 mr-2" />}
-            allowClear
-            className="w-full lg:w-1/3"
-            disabled={isLoading}
-          />
-          <Select
-            value={statusFilter}
-            onChange={(value) => {
-              setStatusFilter(value)
-              setCurrentPage(1)
-            }}
-            className="w-full lg:w-1/4"
-            placeholder="Filter by status"
-            disabled={isLoading}
+        {/* Blog Grid */}
+        {isLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[...Array(pageSize)].map((_, index) => (
+              <div key={index} className="bg-white shadow-md rounded-xl p-4">
+                <SkeletonLoader />
+              </div>
+            ))}
+          </div>
+        ) : trashedBlogs.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4 }}
+            className="flex flex-col justify-center items-center"
+            style={{ minHeight: "calc(100vh - 250px)" }}
           >
-            <Option value="all">All </Option>
-            <Option value="complete">Complete</Option>
-            <Option value="failed">Failed</Option>
-            <Option value="pending">Pending</Option>
-          </Select>
-          <RangePicker
-            value={dateRange}
-            onChange={(dates) => {
-              setDateRange(dates)
-              setCurrentPage(1)
-            }}
-            className="w-full lg:w-1/3"
-            disabled={isLoading}
-            format="YYYY-MM-DD"
-          />
-        </div>
-      </div> */}
-
-      {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {[...Array(pageSize)].map((_, index) => (
-            <div key={index} className="bg-white shadow-md rounded-xl p-4">
-              <SkeletonLoader />
-            </div>
-          ))}
-        </div>
-      ) : trashedBlogs.length === 0 ? (
-        <div
-          className="flex flex-col justify-center items-center"
-          style={{ minHeight: "calc(100vh - 250px)" }}
-        >
-          <img src="Images/trash-can.png" alt="Trash" style={{ width: "8rem" }} />
-          <p className="text-xl mt-5">No trashed blogs available.</p>
-        </div>
-      ) : (
-        <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 p-2">
-            {trashedBlogs.map((blog) => {
-              const {
-                _id,
-                title,
-                status,
-                createdAt,
-                content,
-                aiModel,
-                focusKeywords,
-                wordpress,
-                archiveDate,
-              } = blog
-              const isGemini = /gemini/gi.test(aiModel)
-              return (
-                <Badge.Ribbon
-                  key={_id}
-                  text={
-                    <span className="flex items-center justify-center gap-1 py-1 font-medium tracking-wide">
-                      <img
-                        src={`./Images/${
-                          isGemini ? "gemini" : aiModel === "claude" ? "claude" : "chatgpt"
-                        }.png`}
-                        alt=""
-                        width={20}
-                        height={20}
-                        loading="lazy"
-                        className="bg-white"
-                      />
-                      {isGemini
-                        ? "Gemini-1.5-flash"
-                        : aiModel === "claude"
-                        ? "Claude-3-Haiku"
-                        : "ChatGPT-4o-mini"}
-                    </span>
-                  }
-                  className="absolute top-0"
-                  color={
-                    isGemini
-                      ? "#4796E3" // Gemini blue
-                      : aiModel === "claude"
-                      ? "#9368F8" // Claude purple-ish
-                      : "#74AA9C" // ChatGPT green
-                  }
-                >
-                  <div
-                    className={`bg-white shadow-md hover:shadow-xl transition-all duration-300 rounded-xl p-4 min-h-[180px] min-w-[390px] relative
-                      ${
-                        (status === "failed"
-                          ? "border-red-500"
-                          : status === "complete"
-                          ? "border-green-500"
-                          : "border-yellow-500") + " border-2"
-                      }
-                    `}
-                    title={title}
-                  >
-                    <div className="text-xs font-semibold text-gray-400 mb-2 -mt-2">
-                      {new Date(createdAt).toLocaleDateString("en-US", {
-                        dateStyle: "medium",
-                      })}
-                    </div>
-                    <Tooltip
-                      color={
-                        status === "complete" ? "black" : status === "failed" ? "red" : "orange"
-                      }
-                      title={
-                        status === "complete" ? "Click to view blog" : "Cannot view incomplete blog"
-                      }
-                    >
-                      <div
-                        className={`cursor-${status === "complete" ? "pointer" : "default"}`}
-                        onClick={() => {
-                          if (status === "complete") {
-                            handleBlogClick(blog)
-                          }
-                        }}
-                      >
-                        <div className="flex flex-col gap-4 items-center justify-between mb-2">
-                          <h3 className="text-lg capitalize font-semibold text-gray-900 !text-left max-w-76">
-                            {title}
-                          </h3>
-                          <p className="text-sm text-gray-600 mb-4 line-clamp-3 break-all">
-                            {truncateContent(cleanText(content))}
-                          </p>
-                        </div>
-                      </div>
-                    </Tooltip>
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex flex-wrap gap-2">
-                        {focusKeywords?.map((keyword, index) => (
-                          <span
-                            key={index}
-                            className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full"
-                          >
-                            {keyword}
-                          </span>
-                        ))}
-                      </div>
-                      <Popconfirm
-                        title="Restore Blog"
-                        description="Are you sure to restore this blog?"
-                        icon={<QuestionCircleOutlined style={{ color: "red" }} />}
-                        okText="Yes"
-                        cancelText="No"
-                        onConfirm={() => handleRestore(_id)}
-                      >
+            <img src="Images/trash-can.png" alt="Trash" style={{ width: "8rem" }} />
+            <p className="text-xl mt-5 text-gray-600">No trashed blogs available.</p>
+          </motion.div>
+        ) : (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.4 }}
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 p-2"
+            >
+              {trashedBlogs.map((blog) => {
+                const {
+                  _id,
+                  title,
+                  status,
+                  createdAt,
+                  content,
+                  aiModel,
+                  focusKeywords,
+                  wordpress,
+                  archiveDate,
+                } = blog
+                const isGemini = /gemini/gi.test(aiModel)
+                return (
+                  <Badge.Ribbon
+                    key={_id}
+                    text={
+                      <span className="flex items-center justify-center gap-1 py-1 font-medium tracking-wide">
                         <img
-                          src="Images/restore.svg"
-                          alt="Restore"
-                          width="20"
-                          height="20"
-                          className="cursor-pointer restore-icon"
+                          src={`./Images/${
+                            isGemini ? "gemini" : aiModel === "claude" ? "claude" : "chatgpt"
+                          }.png`}
+                          alt=""
+                          width={20}
+                          height={20}
+                          loading="lazy"
+                          className="bg-white"
                         />
-                      </Popconfirm>
-                    </div>
-                    <div className="mt-3 mb-2 flex justify-end text-xs text-right text-gray-500 font-medium">
-                      {wordpress?.postedOn && (
-                        <span>
-                          Posted on:  
-                          {new Date(wordpress.postedOn).toLocaleDateString("en-US", {
+                        {isGemini
+                          ? "Gemini-1.5-flash"
+                          : aiModel === "claude"
+                          ? "Claude-3-Haiku"
+                          : "ChatGPT-4o-mini"}
+                      </span>
+                    }
+                    className="absolute top-0"
+                    color={
+                      isGemini ? "#4796E3" : aiModel === "claude" ? "#9368F8" : "#74AA9C"
+                    }
+                  >
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className={`bg-white shadow-md hover:shadow-xl transition-all duration-300 rounded-xl p-4 min-h-[180px] min-w-[390px] relative border-2
+                        ${
+                          status === "failed"
+                            ? "border-red-500"
+                            : status === "complete"
+                            ? "border-green-500"
+                            : "border-yellow-500"
+                        }`}
+                      title={title}
+                    >
+                      <div className="text-xs font-semibold text-gray-400 mb-2 -mt-2">
+                        {new Date(createdAt).toLocaleDateString("en-US", {
+                          dateStyle: "medium",
+                        })}
+                      </div>
+                      <Tooltip
+                        color={
+                          status === "complete" ? "black" : status === "failed" ? "red" : "orange"
+                        }
+                        title={
+                          status === "complete"
+                            ? "Click to view blog"
+                            : "Cannot view incomplete blog"
+                        }
+                      >
+                        <div
+                          className={`cursor-${status === "complete" ? "pointer" : "default"}`}
+                          onClick={() => {
+                            if (status === "complete") {
+                              handleBlogClick(blog)
+                            }
+                          }}
+                        >
+                          <div className="flex flex-col gap-4 items-center justify-between mb-2">
+                            <h3 className="text-lg capitalize font-semibold text-gray-900 !text-left max-w-76">
+                              {title}
+                            </h3>
+                            <p className="text-sm text-gray-600 mb-4 line-clamp-3 break-all">
+                              {truncateContent(cleanText(content))}
+                            </p>
+                          </div>
+                        </div>
+                      </Tooltip>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex flex-wrap gap-2">
+                          {focusKeywords?.map((keyword, index) => (
+                            <span
+                              key={index}
+                              className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full"
+                            >
+                              {keyword}
+                            </span>
+                          ))}
+                        </div>
+                        <Popconfirm
+                          title="Restore Blog"
+                          description="Are you sure to restore this blog?"
+                          icon={<QuestionCircleOutlined style={{ color: "red" }} />}
+                          okText="Yes"
+                          cancelText="No"
+                          onConfirm={() => handleRestore(_id)}
+                        >
+                          <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                            <img
+                              src="Images/restore.svg"
+                              alt="Restore"
+                              width="20"
+                              height="20"
+                              className="cursor-pointer restore-icon"
+                            />
+                          </motion.div>
+                        </Popconfirm>
+                      </div>
+                      <div className="mt-3 mb-2 flex justify-end text-xs text-right text-gray-500 font-medium">
+                        {wordpress?.postedOn && (
+                          <span>
+                            Posted on:  
+                            {new Date(wordpress.postedOn).toLocaleDateString("en-US", {
+                              dateStyle: "medium",
+                            })}
+                          </span>
+                        )}
+                        <span className="block -mb-2 text-sm text-right">
+                          Archive Date:{" "}
+                          {new Date(archiveDate).toLocaleDateString("en-US", {
                             dateStyle: "medium",
                           })}
                         </span>
-                      )}
-                      <span className="block -mb-2 text-sm text-right">
-                        Archive Date:{" "}
-                        {new Date(archiveDate).toLocaleDateString("en-US", {
-                          dateStyle: "medium",
-                        })}
-                      </span>
-                    </div>
-                  </div>
-                </Badge.Ribbon>
-              )
-            })}
-          </div>
-          {totalBlogs > 0 && (
-            <div className="flex justify-center mt-6">
-              <Pagination
-                current={currentPage}
-                pageSize={pageSize}
-                total={totalBlogs}
-                pageSizeOptions={PAGE_SIZE_OPTIONS}
-                onChange={(page, newPageSize) => {
-                  setCurrentPage(page)
-                  setPageSize(newPageSize)
-                }}
-                showSizeChanger
-                showTotal={(total) => `Total ${total} blogs`}
-                responsive={true}
-                disabled={isLoading}
-              />
-            </div>
-          )}
-        </>
-      )}
+                      </div>
+                    </motion.div>
+                  </Badge.Ribbon>
+                )
+              })}
+            </motion.div>
+            {totalBlogs > 0 && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.4, delay: 0.3 }}
+                className="flex justify-center mt-6"
+              >
+                <Pagination
+                  current={currentPage}
+                  pageSize={pageSize}
+                  total={totalBlogs}
+                  pageSizeOptions={PAGE_SIZE_OPTIONS.filter((size) => size <= 100)} // Respect maxPerPage
+                  onChange={(page, newPageSize) => {
+                    setCurrentPage(page)
+                    if (newPageSize !== pageSize) {
+                      setPageSize(newPageSize)
+                      setCurrentPage(1)
+                    }
+                  }}
+                  showSizeChanger
+                  showTotal={(total) => `Total ${total} blogs`}
+                  responsive={true}
+                  disabled={isLoading}
+                />
+              </motion.div>
+            )}
+          </>
+        )}
+      </div>
       <style>
         {`
           .restore-icon {
