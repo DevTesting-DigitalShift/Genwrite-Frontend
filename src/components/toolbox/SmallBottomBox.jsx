@@ -23,7 +23,7 @@ const SmallBottomBox = ({ id }) => {
 
   const handleRetry = async () => {
     try {
-      const resultAction = await dispatch(retryBlog({ id: id.id, payload: { createNew: true } }))
+      const resultAction = await dispatch(retryBlog({ id: id._id, payload: { createNew: true } }))
 
       if (retryBlog.fulfilled.match(resultAction)) {
         message.success(resultAction.payload?.message || "Blog regenerated successfully!")
@@ -54,8 +54,6 @@ const SmallBottomBox = ({ id }) => {
       })
     }
   }
-
-
 
   const menuItems = [
     {

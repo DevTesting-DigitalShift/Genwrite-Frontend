@@ -722,7 +722,7 @@ const TextEditor = ({
       >
         <Redo2 className="w-5 h-5" />
       </button>
-      <SmallBottomBox id={blog?.content} />
+      <SmallBottomBox id={blog} />
     </div>
   )
 

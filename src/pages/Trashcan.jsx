@@ -63,7 +63,7 @@ const Trashcan = () => {
         start: dateRange[0] ? moment(dateRange[0]).toISOString() : undefined,
         end: dateRange[1] ? moment(dateRange[1]).toISOString() : undefined,
         page: currentPage,
-        pageSize: pageSize,
+        limit: pageSize,
       }
       const response = await getAllBlogs(queryParams)
       setTrashedBlogs(response.data || [])
@@ -196,7 +196,7 @@ const Trashcan = () => {
       </motion.p>
 
       {/* Filters */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6">
+      {/* <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6">
         <div className="flex flex-col lg:flex-row gap-4">
           <AntSearch
             placeholder="Search by title or keywords..."
@@ -232,7 +232,7 @@ const Trashcan = () => {
             format="YYYY-MM-DD"
           />
         </div>
-      </div>
+      </div> */}
 
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
