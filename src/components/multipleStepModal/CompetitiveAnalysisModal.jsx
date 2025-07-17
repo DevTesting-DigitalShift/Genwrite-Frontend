@@ -80,7 +80,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
   }
 
   const handleProjectSelect = (value) => {
-    const project = blogs.find((p) => p._id === value)
+    const project = blogs.data.find((p) => p._id === value)
     if (project) {
       setFormData((prev) => ({
         ...prev,
@@ -262,7 +262,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
       maskTransitionName=""
       bodyStyle={{ maxHeight: "80vh", overflowY: "auto", padding: 0 }}
     >
-      <div className="p-4">
+      <div className="p-2">
         {analysisResults ? (
           <Tabs defaultActiveKey="results">
             <TabPane tab="Analysis Results" key="results">
@@ -373,11 +373,13 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
                 dropdownStyle={{ maxHeight: 200, overflowY: "auto" }}
               >
                 <Select.Option value="">Select a project</Select.Option>
-                {blogs.map((project) => (
-                  <Select.Option key={project._id} value={project._id}>
-                    {project.title}
-                  </Select.Option>
-                ))}
+                {blogs?.data
+                  ?.filter((project) => project.status === "complete" && project.isArchived === false)
+                  .map((project) => (
+                    <Select.Option key={project._id} value={project._id}>
+                      {project.title.charAt(0).toUpperCase() + project.title.slice(1)}
+                    </Select.Option>
+                  ))}
               </Select>
             </div>
 

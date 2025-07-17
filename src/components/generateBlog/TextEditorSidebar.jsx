@@ -14,6 +14,7 @@ import {
   Target,
   BarChart3,
   Crown,
+  SlidersHorizontal,
 } from "lucide-react"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
@@ -24,6 +25,7 @@ import { fetchProofreadingSuggestions } from "@store/slices/blogSlice"
 import { fetchCompetitiveAnalysisThunk } from "@store/slices/analysisSlice"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
 import { SettingTwoTone } from "@ant-design/icons"
+import { ImEqualizer } from "react-icons/im"
 
 // Popular WordPress categories (limited to 15 for relevance)
 const POPULAR_CATEGORIES = [
@@ -43,6 +45,8 @@ const POPULAR_CATEGORIES = [
   "Finance",
   "DIY & Crafts",
 ]
+
+const AUTO_GENERATED_CATEGORIES = ["AI Trends", "Wellness Tips", "Investment", "Online Learning"]
 
 const TextEditorSidebar = ({
   blog,
@@ -314,7 +318,13 @@ const TextEditorSidebar = ({
             <div>
               <div className="flex justify-between mb-2">
                 <h2 className="text-xl font-bold text-gray-900">Content Analysis</h2>
-                <SettingTwoTone className="cursor-pointer text-xl" onClick={() => setOpen(true)} />
+                <Tooltip title="Content Enhancements Summary">
+                  <SlidersHorizontal
+                    className="cursor-pointer text-blue-500"
+                    size={20}
+                    onClick={() => setOpen(true)}
+                  />
+                </Tooltip>
                 <Modal
                   title="Content Enhancements Summary"
                   open={open}
@@ -677,19 +687,48 @@ const TextEditorSidebar = ({
         width={600}
       >
         <div className="p-3 space-y-4">
-          <div>
-            {/* Selected Category Chip */}
-            {formData.category && (
-              <div className="flex flex-wrap gap-2 mb-3 items-center text-center">
-                <div className="flex items-center gap-2 px-3 py-1.5 pb-2 bg-blue-500 text-white rounded-full text-sm">
-                  {formData.category}
-                  <button onClick={handleCategoryRemove} className="text-white hover:text-gray-200">
-                    <X size={15} />
-                  </button>
-                </div>
+          {/* Selected Category Chip */}
+          {formData.category && (
+            <div className="flex flex-wrap gap-2 mb-3 items-center text-center">
+              <div className="flex items-center gap-2 px-3 py-1.5 pb-2 bg-blue-500 text-white rounded-full text-sm">
+                {formData.category}
+                <button onClick={handleCategoryRemove} className="text-white hover:text-gray-200">
+                  <X size={15} />
+                </button>
               </div>
-            )}
-            {/* Category Chips Grid */}
+            </div>
+          )}
+
+          {/* Auto-Generated Categories Section */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-700 mb-2">Auto-Generated Categories</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-y-auto p-3 rounded-md border border-indigo-200 bg-indigo-50">
+              {AUTO_GENERATED_CATEGORIES.map((category) => (
+                <div
+                  key={category}
+                  onClick={() => handleCategoryAdd(category)}
+                  className={`flex items-center justify-between p-3 rounded-md bg-white border ${
+                    errors.category && !formData.category ? "border-red-500" : "border-indigo-300"
+                  } text-sm font-medium cursor-pointer transition-all duration-200 ${
+                    formData.category === category
+                      ? "bg-indigo-100 border-indigo-400"
+                      : "hover:bg-indigo-50 hover:border-indigo-400"
+                  }`}
+                >
+                  <span>{category}</span>
+                  {formData.category !== category && (
+                    <button className="text-indigo-600 hover:text-indigo-700">
+                      <Plus size={16} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Popular Categories Section */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-700 mb-2">Popular Categories</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-y-auto p-3 rounded-md border border-gray-200 bg-gray-50">
               {POPULAR_CATEGORIES.map((category) => (
                 <div
@@ -717,6 +756,7 @@ const TextEditorSidebar = ({
             )}
           </div>
 
+          {/* Table of Contents Toggle */}
           <div className="flex items-center justify-between py-2">
             <span className="text-sm font-medium text-gray-700">
               Include Table of Contents

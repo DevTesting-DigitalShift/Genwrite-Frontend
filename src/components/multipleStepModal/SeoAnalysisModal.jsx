@@ -691,7 +691,7 @@ const SeoAnalysisModal = ({ closeFnc }) => {
                 <select
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 appearance-none"
                   onChange={(e) => {
-                    const blog = allBlogs.find((b) => b._id === e.target.value)
+                    const blog = allBlogs.data.find((b) => b._id === e.target.value)
                     if (blog) handleBlogSelect(blog)
                   }}
                   value={formData.selectedBlog?._id || ""}
@@ -699,7 +699,7 @@ const SeoAnalysisModal = ({ closeFnc }) => {
                   <option value="" className="bg-gray-50">
                     Select a blog
                   </option>
-                  {allBlogs.map((blog) => (
+                  {allBlogs.data.map((blog) => (
                     <option key={blog._id} value={blog._id} className="bg-gray-50 capitalize">
                       {blog.title}
                     </option>

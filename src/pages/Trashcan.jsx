@@ -1,80 +1,134 @@
 import React, { useState, useEffect, useCallback } from "react"
-import { Button, Tooltip, Popconfirm, Badge, Pagination } from "antd"
-import { RefreshCcw, Trash2 } from "lucide-react"
+import {
+  Button,
+  Tooltip,
+  Popconfirm,
+  Badge,
+  Pagination,
+  Input,
+  Select,
+  DatePicker,
+  message,
+} from "antd"
+import { RefreshCcw, Trash2, Search } from "lucide-react"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { QuestionCircleOutlined } from "@ant-design/icons"
 import { motion } from "framer-motion"
 import { Helmet } from "react-helmet"
-import { useDispatch } from "react-redux"
+import { useDispatch, useSelector } from "react-redux"
 import SkeletonLoader from "@components/Projects/SkeletonLoader"
 import { getAllBlogs } from "@api/blogApi"
-import { deleteAllUserBlogs, restoreTrashedBlog } from "@store/slices/blogSlice"
+import { deleteAllUserBlogs, restoreTrashedBlog, fetchAllBlogs } from "@store/slices/blogSlice"
+import { debounce } from "lodash"
+import moment from "moment"
+
+const { Search: AntSearch } = Input
+const { Option } = Select
+const { RangePicker } = DatePicker
 
 const Trashcan = () => {
   const [trashedBlogs, setTrashedBlogs] = useState([])
-  const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(15)
+  const [totalBlogs, setTotalBlogs] = useState(0)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [dateRange, setDateRange] = useState([null, null])
+  const [isLoading, setIsLoading] = useState(false)
+
   const { handlePopup } = useConfirmPopup()
   const dispatch = useDispatch()
-  const TRUNCATE_LENGTH = 85
-  const PAGE_SIZE = 15
+  const { blogs, loading } = useSelector((state) => state.blog)
 
+  const TRUNCATE_LENGTH = 85
+  const PAGE_SIZE_OPTIONS = [10, 15, 20, 50]
+
+  // Debounced search handler
+  const debouncedSearch = useCallback(
+    debounce((value) => {
+      setSearchTerm(value)
+      setCurrentPage(1) // Reset to first page on search
+    }, 500),
+    []
+  )
+
+  // Fetch trashed blogs from backend
+  const fetchTrashedBlogs = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const queryParams = {
+        isArchived: true,
+        status: statusFilter !== "all" ? statusFilter : undefined,
+        q: searchTerm || undefined,
+        start: dateRange[0] ? moment(dateRange[0]).toISOString() : undefined,
+        end: dateRange[1] ? moment(dateRange[1]).toISOString() : undefined,
+        page: currentPage,
+        pageSize: pageSize,
+      }
+      const response = await getAllBlogs(queryParams)
+      setTrashedBlogs(response.data || [])
+      setTotalBlogs(response.total || 0)
+    } catch (error) {
+      console.error("Failed to fetch trashed blogs:", error)
+      message.error("Failed to load trashed blogs. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
+  }, [statusFilter, searchTerm, dateRange, currentPage, pageSize])
+
+  // Fetch blogs on mount and when dependencies change
+  useEffect(() => {
+    fetchTrashedBlogs()
+  }, [fetchTrashedBlogs])
+
+  // Scroll to top on page change
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" })
   }, [currentPage])
-
-  const fetchTrashedBlogs = async () => {
-    try {
-      setLoading(true)
-      const blogs = await getAllBlogs()
-      const filteredBlogs = blogs.data.filter((blog) => blog.isArchived)
-      setTrashedBlogs(filteredBlogs)
-    } catch (error) {
-      console.error("Error fetching trashed blogs:", error.message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    fetchTrashedBlogs()
-  }, [])
 
   const truncateContent = (content, length = TRUNCATE_LENGTH) => {
     if (!content) return ""
     return content.length > length ? content.substring(0, length) + "..." : content
   }
 
+  const cleanText = (text) => {
+    return text.replace(/[#=~`*_\-]+/g, "").trim()
+  }
+
   const handleRestore = async (id) => {
-    await dispatch(restoreTrashedBlog(id))
-    setTrashedBlogs((prev) => {
-      const newBlogs = prev.filter((blog) => blog._id !== id)
-      // If the current page becomes empty and it's not the first page, go to the previous page
-      if (newBlogs.length <= (currentPage - 1) * PAGE_SIZE && currentPage > 1) {
-        setCurrentPage((prevPage) => prevPage - 1)
-      }
-      return newBlogs
-    })
+    try {
+      await dispatch(restoreTrashedBlog(id)).unwrap()
+      message.success("Blog restored successfully")
+      fetchTrashedBlogs() // Refresh the list
+    } catch (error) {
+      console.error("Failed to restore blog:", error)
+      message.error("Failed to restore blog. Please try again.")
+    }
   }
 
   const handleBulkDelete = async () => {
-    await dispatch(deleteAllUserBlogs())
-    setTrashedBlogs([])
-    setCurrentPage(1)
+    try {
+      await dispatch(deleteAllUserBlogs()).unwrap()
+      message.success("All trashed blogs deleted successfully")
+      setTrashedBlogs([])
+      setCurrentPage(1)
+      setTotalBlogs(0)
+    } catch (error) {
+      console.error("Failed to delete all blogs:", error)
+      message.error("Failed to delete all blogs. Please try again.")
+    }
   }
 
   const handleRefresh = async () => {
+    setCurrentPage(1)
     await fetchTrashedBlogs()
-    setCurrentPage(1) // Reset to first page on refresh
+    message.info("Blog list refreshed")
   }
 
-  // Calculate paginated blogs
-  const totalPages = trashedBlogs.length
-  const startIndex = (currentPage - 1) * PAGE_SIZE
-  const paginatedBlogs = trashedBlogs.slice(startIndex, startIndex + PAGE_SIZE)
-
-  const cleanText = (text) => {
-    return text.replace(/[#=~`*_\-]+/g, "").trim()
+  const handleBlogClick = (blog) => {
+    // Implement navigation or action for clicking a blog (e.g., view details)
+    // Example: navigate(`/blog/${blog._id}`)
+    message.info(`Clicked on blog: ${blog.title}`)
   }
 
   return (
@@ -82,40 +136,41 @@ const Trashcan = () => {
       <Helmet>
         <title>Trashcan | GenWrite</title>
       </Helmet>
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-col lg:flex-row items-center justify-between gap-4 mb-6">
         <motion.h1
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="text-3xl md:text-4xl font-bold bg-blue-600 bg-clip-text text-transparent"
+          className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
         >
           Trashcan
         </motion.h1>
-        {trashedBlogs.length !== 0 && (
-          <div className="flex justify-end gap-2">
+        <div className="flex items-center gap-3">
+          <Button
+            type="default"
+            icon={<RefreshCcw className="w-4 h-4" />}
+            onClick={handleRefresh}
+            className="hover:!border-yellow-500 hover:text-yellow-500"
+            disabled={isLoading}
+          >
+            Refresh
+          </Button>
+          {trashedBlogs.length > 0 && (
             <Button
-              type="button"
-              className="p-2 hover:!border-yellow-500 hover:text-yellow-500"
-              onClick={handleRefresh}
-            >
-              <RefreshCcw />
-            </Button>
-            <Button
-              type="button"
-              className="p-2 hover:!border-red-500 hover:text-red-500"
+              type="default"
+              icon={<Trash2 className="w-4 h-4" />}
               onClick={() =>
                 handlePopup({
-                  title: "Delete All",
+                  title: "Delete All Trashed Blogs",
                   description: (
                     <span className="my-2">
-                      All selected blogs will be <b>permanently deleted</b>. This action cannot be
+                      All trashed blogs will be <b>permanently deleted</b>. This action cannot be
                       undone.
                     </span>
                   ),
-                  confirmText: "Delete",
+                  confirmText: "Delete All",
                   onConfirm: handleBulkDelete,
                   confirmProps: {
-                    type: "undefined",
                     className: "border-red-500 hover:bg-red-500 hover:text-white",
                   },
                   cancelProps: {
@@ -123,28 +178,65 @@ const Trashcan = () => {
                   },
                 })
               }
+              className="hover:!border-red-500 hover:text-red-500"
+              disabled={isLoading}
             >
-              <Trash2 />
+              Delete All
             </Button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
       <motion.p
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3 }}
-        className="text-gray-600 max-w-xl mt-2"
+        className="text-gray-600 max-w-xl mb-4"
       >
-        Restore valuable work or permanently delete clutter.
+        Restore valuable work or permanently delete clutter. Trashed items are deleted after 7 days.
       </motion.p>
-      {trashedBlogs.length !== 0 && (
-        <p className="text-yellow-500 font-semibold mb-4">
-          Warning: Trashed items will be permanently deleted after 7 days.
-        </p>
-      )}
-      {loading ? (
+
+      {/* Filters */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6">
+        <div className="flex flex-col lg:flex-row gap-4">
+          <AntSearch
+            placeholder="Search by title or keywords..."
+            onChange={(e) => debouncedSearch(e.target.value)}
+            prefix={<Search className="w-5 h-5 text-gray-400 mr-2" />}
+            allowClear
+            className="w-full lg:w-1/3"
+            disabled={isLoading}
+          />
+          <Select
+            value={statusFilter}
+            onChange={(value) => {
+              setStatusFilter(value)
+              setCurrentPage(1)
+            }}
+            className="w-full lg:w-1/4"
+            placeholder="Filter by status"
+            disabled={isLoading}
+          >
+            <Option value="all">All </Option>
+            <Option value="complete">Complete</Option>
+            <Option value="failed">Failed</Option>
+            <Option value="pending">Pending</Option>
+          </Select>
+          <RangePicker
+            value={dateRange}
+            onChange={(dates) => {
+              setDateRange(dates)
+              setCurrentPage(1)
+            }}
+            className="w-full lg:w-1/3"
+            disabled={isLoading}
+            format="YYYY-MM-DD"
+          />
+        </div>
+      </div>
+
+      {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {[...Array(PAGE_SIZE)].map((_, index) => (
+          {[...Array(pageSize)].map((_, index) => (
             <div key={index} className="bg-white shadow-md rounded-xl p-4">
               <SkeletonLoader />
             </div>
@@ -161,7 +253,7 @@ const Trashcan = () => {
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 p-2">
-            {paginatedBlogs.map((blog) => {
+            {trashedBlogs.map((blog) => {
               const {
                 _id,
                 title,
@@ -226,9 +318,12 @@ const Trashcan = () => {
                       color={
                         status === "complete" ? "black" : status === "failed" ? "red" : "orange"
                       }
+                      title={
+                        status === "complete" ? "Click to view blog" : "Cannot view incomplete blog"
+                      }
                     >
                       <div
-                        className="cursor-pointer"
+                        className={`cursor-${status === "complete" ? "pointer" : "default"}`}
                         onClick={() => {
                           if (status === "complete") {
                             handleBlogClick(blog)
@@ -258,7 +353,7 @@ const Trashcan = () => {
                       </div>
                       <Popconfirm
                         title="Restore Blog"
-                        description="Are you sure to restore the blog?"
+                        description="Are you sure to restore this blog?"
                         icon={<QuestionCircleOutlined style={{ color: "red" }} />}
                         okText="Yes"
                         cancelText="No"
@@ -294,15 +389,21 @@ const Trashcan = () => {
               )
             })}
           </div>
-          {totalPages > PAGE_SIZE && (
+          {totalBlogs > 0 && (
             <div className="flex justify-center mt-6">
               <Pagination
                 current={currentPage}
-                pageSize={PAGE_SIZE}
-                total={totalPages}
-                onChange={(page) => setCurrentPage(page)}
-                showSizeChanger={false}
+                pageSize={pageSize}
+                total={totalBlogs}
+                pageSizeOptions={PAGE_SIZE_OPTIONS}
+                onChange={(page, newPageSize) => {
+                  setCurrentPage(page)
+                  setPageSize(newPageSize)
+                }}
+                showSizeChanger
+                showTotal={(total) => `Total ${total} blogs`}
                 responsive={true}
+                disabled={isLoading}
               />
             </div>
           )}
@@ -315,6 +416,12 @@ const Trashcan = () => {
           }
           .restore-icon:hover {
             filter: invert(18%) sepia(99%) saturate(7482%) hue-rotate(357deg) brightness(97%) contrast(119%);
+          }
+          .ant-select-disabled .ant-select-selector,
+          .ant-input-disabled,
+          .ant-picker-disabled {
+            background-color: #f5f5f5 !important;
+            cursor: not-allowed !important;
           }
         `}
       </style>

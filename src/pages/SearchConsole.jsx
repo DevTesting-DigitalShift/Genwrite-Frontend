@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useCallback } from "react"
 import {
   Search,
   TrendingUp,
@@ -22,46 +22,39 @@ import axiosInstance from "@api/index"
 import Loading from "@components/Loading"
 import * as XLSX from "xlsx"
 import { fetchAllBlogs } from "@store/slices/blogSlice"
-import UpgradeModal from "@components/UpgradeModal"
 import { selectUser } from "@store/slices/authSlice"
+import UpgradeModal from "@components/UpgradeModal"
 
 const { Option } = Select
 const { Search: AntSearch } = Input
 
 const SearchConsole = () => {
   const [searchTerm, setSearchTerm] = useState("")
-  const [filterCategory, setFilterCategory] = useState("all")
-  const [filterStatus, setFilterStatus] = useState("all")
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [dateRange, setDateRange] = useState("30d")
-  const [selectedBlog, setSelectedBlog] = useState("all") // New state for selected blog
+  const [selectedBlog, setSelectedBlog] = useState("all")
   const [blogData, setBlogData] = useState([])
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState(null)
   const [isConnecting, setIsConnecting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState(null)
+  const [searchParams, setSearchParams] = useSearchParams()
+
   const dispatch = useDispatch()
   const user = useSelector(selectUser)
   const userPlan = (user?.plan || user?.subscription?.plan || "free").toLowerCase()
   const { blogs } = useSelector((state) => state.blog)
-  const {
-    verifiedSites,
-    loading: sitesLoading,
-    error: reduxError,
-  } = useSelector((state) => state.gsc)
-  const [searchParams, setSearchParams] = useSearchParams()
+  const { verifiedSites, loading: sitesLoading, error } = useSelector((state) => state.gsc)
+
   const navigate = useNavigate()
 
-  if (userPlan === "free" || userPlan === "basic") {
-    return <UpgradeModal featureName={"Google Search Console"} />
-  }
-
+  // Fetch blogs on mount
   useEffect(() => {
     dispatch(fetchAllBlogs())
   }, [dispatch])
 
   // Calculate date range for API request
-  const getDateRangeParams = () => {
+  const getDateRangeParams = useCallback(() => {
     const to = new Date()
     const from = new Date()
     switch (dateRange) {
@@ -83,10 +76,10 @@ const SearchConsole = () => {
       from: from.toISOString().split("T")[0],
       to: to.toISOString().split("T")[0],
     }
-  }
+  }, [dateRange])
 
   // Google Search Console authentication
-  const connectGSC = async () => {
+  const connectGSC = useCallback(async () => {
     try {
       setIsConnecting(true)
       const result = await dispatch(fetchGscAuthUrl()).unwrap()
@@ -138,7 +131,7 @@ const SearchConsole = () => {
       console.error("GSC auth error:", err)
       setIsConnecting(false)
     }
-  }
+  }, [dispatch, navigate])
 
   // Handle OAuth callback
   useEffect(() => {
@@ -147,7 +140,7 @@ const SearchConsole = () => {
     const error = searchParams.get("error")
 
     if (error) {
-      message.error(`Authentication failed: ${error}`)
+      setErrorMessage(`Authentication failed: ${error}`)
       setSearchParams({}, { replace: true })
       setIsConnecting(false)
       return
@@ -162,7 +155,7 @@ const SearchConsole = () => {
           dispatch(fetchVerifiedSites())
           setSearchParams({}, { replace: true })
         } catch (err) {
-          message.error(err.message || "Failed to connect GSC account")
+          setErrorMessage(err.message || "Failed to connect GSC account")
           console.error("OAuth callback error:", err)
         } finally {
           setIsConnecting(false)
@@ -173,14 +166,14 @@ const SearchConsole = () => {
   }, [searchParams, dispatch, setSearchParams])
 
   // Fetch analytics data
-  const fetchAnalyticsData = async () => {
+  const fetchAnalyticsData = useCallback(async () => {
     if (!verifiedSites.length) {
-      setError("No verified sites found. Please connect your Google Search Console account.")
+      setBlogData([])
       setIsLoading(false)
       return
     }
     setIsLoading(true)
-    setError(null)
+    setErrorMessage(null)
     try {
       const { from, to } = getDateRangeParams()
       const blogDataPromises = verifiedSites.map(async (site) => {
@@ -195,7 +188,6 @@ const SearchConsole = () => {
             to,
             dimensions: ["page", "query"],
           }
-          // Add blogUrl to params if a specific blog is selected
           if (selectedBlog !== "all") {
             params.blogUrl = selectedBlog
           }
@@ -208,8 +200,7 @@ const SearchConsole = () => {
             throw new Error("No analytics data returned from API")
           }
 
-          const analyticsRows = response.data.data.rows || []
-          return analyticsRows.map((row, index) => ({
+          return response.data.data.rows.map((row, index) => ({
             id: `${siteUrl}-${index}`,
             url: row?.keys[0] || "",
             clicks: row.clicks || 0,
@@ -254,14 +245,25 @@ const SearchConsole = () => {
       } else if (err.code === "ECONNABORTED") {
         errorMessage = "Request timed out. Please check your network and try again."
       }
-      setError(errorMessage)
+      setErrorMessage(errorMessage)
+      message.error(errorMessage)
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [verifiedSites, dateRange, selectedBlog, getDateRangeParams])
+
+  // Fetch verified sites and analytics data
+  useEffect(() => {
+    dispatch(fetchVerifiedSites())
+  }, [dispatch])
+
+  // Fetch analytics data when dependencies change
+  useEffect(() => {
+    fetchAnalyticsData()
+  }, [fetchAnalyticsData])
 
   // Export data as Excel
-  const handleExport = async () => {
+  const handleExport = useCallback(async () => {
     if (!blogData.length) {
       message.warning("No data to export")
       return
@@ -278,10 +280,7 @@ const SearchConsole = () => {
       ]
 
       const rows = blogData.map((blog) => ({
-        Keywords:
-          Array.isArray(blog.keywords) && blog.keywords.length > 1
-            ? blog.keywords.slice(1).join(", ")
-            : blog.keywords.join(", "),
+        Keywords: Array.isArray(blog.keywords) ? blog.keywords.join(", ") : "",
         Clicks: blog.clicks,
         Impressions: blog.impressions,
         "CTR (%)": blog.ctr,
@@ -300,12 +299,7 @@ const SearchConsole = () => {
       console.error("Error exporting data:", err)
       message.error("Failed to export data. Please try again.")
     }
-  }
-
-  // Fetch verified sites and analytics data
-  useEffect(() => {
-    dispatch(fetchVerifiedSites())
-  }, [dispatch])
+  }, [blogData])
 
   // Calculate totals for summary cards
   const totals = useMemo(() => {
@@ -331,26 +325,20 @@ const SearchConsole = () => {
     return blogData.filter((blog) => {
       if (!blog) return false
       const matchesSearch =
-        (blog.blogName || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (blog.url || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
         (blog.keywords || []).some((keyword) =>
           (keyword || "").toLowerCase().includes(searchTerm.toLowerCase())
         )
-      const matchesCategory = filterCategory === "all" || blog.category === filterCategory
-      const matchesStatus = filterStatus === "all" || blog.status === filterStatus
-      return matchesSearch && matchesCategory && matchesStatus
+      return matchesSearch
     })
-  }, [blogData, searchTerm, filterCategory, filterStatus])
-
-  const categories = [
-    "all",
-    ...Array.from(new Set(blogData.map((blog) => blog.category || "Uncategorized"))),
-  ]
-  const statuses = ["all", "published", "draft", "archived"]
+  }, [blogData, searchTerm])
 
   // Get unique blog URLs for selection
   const blogUrls = useMemo(() => {
     const urls = new Set(
-      blogs.filter((blog) => blog?.taskStatus?.wordpress === "done").map((blog) => blog.title)
+      blogs.data
+        ?.filter((blog) => blog?.taskStatus?.wordpress === "done")
+        .map((blog) => blog.url || blog.title)
     )
     return ["all", ...urls]
   }, [blogs])
@@ -448,6 +436,11 @@ const SearchConsole = () => {
 
   // Format number helper
   const formatNumber = (num) => new Intl.NumberFormat().format(num)
+
+  // Render UpgradeModal if user is on free or basic plan
+  if (userPlan === "free" || userPlan === "basic") {
+    return <UpgradeModal featureName={"Google Search Console"} />
+  }
 
   // GSC Connection UI
   if (sitesLoading) {
@@ -555,14 +548,15 @@ const SearchConsole = () => {
         </div>
 
         {/* Error Message */}
-        {error && !error.includes("No verified sites found") && (
+        {errorMessage && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             className="bg-red-100 text-red-800 p-4 rounded-lg text-sm"
           >
-            {error}
-            {(error.includes("reconnect") || error.includes("unauthorized_client")) && (
+            {errorMessage}
+            {(errorMessage.includes("reconnect") ||
+              errorMessage.includes("unauthorized_client")) && (
               <div className="mt-2">
                 <Button type="link" onClick={connectGSC} disabled={isConnecting}>
                   Reconnect GSC
@@ -628,7 +622,7 @@ const SearchConsole = () => {
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3">
             <div className="flex flex-col lg:flex-row gap-4">
               <AntSearch
-                placeholder="Search blogs or keywords..."
+                placeholder="Search by URL or keywords..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 prefix={<Search className="w-5 h-5 text-gray-400 mr-2" />}

@@ -574,13 +574,13 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
               className="w-full"
               placeholder="Select Blog"
               onChange={(value) => {
-                const blog = allBlogs.find((b) => b._id === value)
+                const blog = allBlogs.data.find((b) => b._id === value)
                 if (blog) handleBlogSelect(blog)
               }}
               value={formData.selectedBlog?._id || ""}
             >
               <Option value="">Select Blog</Option>
-              {allBlogs
+              {allBlogs.data
                 ?.filter((b) => b.status === "complete" && b.isArchived === false)
                 .map((blog) => (
                   <Option key={blog._id} value={blog._id} className="bg-gray-50">
