@@ -28,8 +28,7 @@ const Auth = ({ path }) => {
   const [showPassword, setShowPassword] = useState(false)
   const [isSignup, setIsSignup] = useState(path === "signup")
   const [loading, setLoading] = useState(false)
-  const [generalError, setGeneralError] = useState(null)
-  const [termsAccepted, setTermsAccepted] = useState(false) // New state for terms checkbox
+  const [termsAccepted, setTermsAccepted] = useState(false)
 
   const dispatch = useDispatch()
   const navigate = useNavigate()
@@ -76,7 +75,6 @@ const Auth = ({ path }) => {
     setFormData((prev) => ({ ...prev, [name]: value }))
     // Clear specific error when user starts typing
     setErrors((prev) => ({ ...prev, [name]: undefined }))
-    setGeneralError(null)
   }, [])
 
   // Handle terms checkbox
@@ -85,7 +83,7 @@ const Auth = ({ path }) => {
     setErrors((prev) => ({ ...prev, terms: undefined }))
   }, [])
 
-  // Handle Google 
+  // Handle Google
   const handleGoogleLogin = useGoogleLogin({
     flow: "implicit",
     redirect_uri: "https://genwrite-frontend-eight.vercel.app/login",
@@ -98,11 +96,9 @@ const Auth = ({ path }) => {
         })
         .catch((err) => {
           console.error("Google login error:", err)
-          setGeneralError("Google login failed.")
         })
     },
     onError: () => {
-      setGeneralError("Google login failed to initialize.")
       message.error("Google login initialization failed.")
     },
   })
@@ -128,7 +124,6 @@ const Auth = ({ path }) => {
       }
 
       setLoading(true)
-      setGeneralError(null)
 
       try {
         const action = isSignup
@@ -141,9 +136,7 @@ const Auth = ({ path }) => {
           navigate("/dashboard", { replace: true })
         }, 100)
       } catch (err) {
-        const backendError = err?.message || err?.payload?.message || "Something went wrong."
-        setGeneralError(backendError)
-        message.error(backendError)
+        message.error(err.data.message)
         console.error("Auth error:", err)
       } finally {
         setLoading(false)
@@ -157,7 +150,6 @@ const Auth = ({ path }) => {
     setIsSignup(path === "signup")
     setFormData({ email: "", password: "", name: "" })
     setErrors({})
-    setGeneralError(null)
     setTermsAccepted(false)
   }, [path])
 
@@ -485,19 +477,6 @@ const Auth = ({ path }) => {
                     </button>
                   </div>
                 )}
-
-                <AnimatePresence>
-                  {generalError && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                      className="bg-red-50 border border-red-200 rounded-xl p-3"
-                    >
-                      <p className="text-red-600 text-sm text-center font-medium">{generalError}</p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
 
                 <motion.button
                   whileHover={{ y: -2, scale: 1.02 }}

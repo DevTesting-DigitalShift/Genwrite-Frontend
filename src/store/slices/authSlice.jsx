@@ -36,7 +36,7 @@ export const loginUser = createAsyncThunk(
       }
       return rejectWithValue("Invalid login response")
     } catch (err) {
-      return rejectWithValue("Login failed")
+      return rejectWithValue(err.response)
     }
   }
 )
