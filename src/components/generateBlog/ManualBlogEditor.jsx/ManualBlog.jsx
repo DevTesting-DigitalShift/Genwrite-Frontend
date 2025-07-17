@@ -88,6 +88,15 @@ const ManualBlog = ({ blog = {} }) => {
     template: false,
   })
 
+  const finalKeywords =
+    keywords.length > 0
+      ? keywords
+      : formData.focusKeywords?.length > 0
+      ? formData.focusKeywords.map((text, idx) => ({ id: idx, text }))
+      : formData.keywords?.length > 0
+      ? formData.keywords.map((text, idx) => ({ id: idx + 1000, text }))
+      : []
+
   const handleSubmit = async () => {
     const blogData = {
       title: formData.title?.trim(),
@@ -120,14 +129,14 @@ const ManualBlog = ({ blog = {} }) => {
     try {
       const res = await dispatch(createManualBlog(blogData)).unwrap()
       setBlogId(res._id)
-      console.log("Blog created successfully:", res)
+
+      // ✅ Close modal after successful blog creation
+      setShowTemplateModal(false)
     } catch (err) {
       console.error("Failed to create blog:", err)
       message.error(err?.message || "Failed to create blog")
     }
   }
-
-  console.log({ blogId })
 
   const walkthroughSteps = [
     {
@@ -194,10 +203,6 @@ const ManualBlog = ({ blog = {} }) => {
     if (getWordCount(newTitle) <= 60) {
       setTitle(newTitle)
     }
-  }
-
-  const handleTitleSelect = (generatedTitle) => {
-    setTitle(generatedTitle)
   }
 
   const addKeyword = () => {
@@ -275,12 +280,10 @@ const ManualBlog = ({ blog = {} }) => {
           title,
           content,
           published: blog.published || false,
-          focusKeywords: keywords.slice(0, 3).map((k) => k.text), // First 3 as focus keywords
-          keywords: keywords.slice(3).map((k) => k.text), // Remaining as secondary keywords
+          focusKeywords: keywords.slice(0, 3).map((k) => k.text),
+          keywords: keywords.slice(3).map((k) => k.text),
         })
       ).unwrap()
-
-      console.log({ response })
 
       if (response) {
         message.success("Blog updated successfully")
@@ -301,19 +304,6 @@ const ManualBlog = ({ blog = {} }) => {
     if (score >= 80) return "text-green-600 bg-green-100"
     if (score >= 60) return "text-yellow-600 bg-yellow-100"
     return "text-red-600 bg-red-100"
-  }
-
-  const getDifficultyColor = (difficulty) => {
-    switch (difficulty) {
-      case "easy":
-        return "bg-green-100 text-green-800"
-      case "medium":
-        return "bg-yellow-100 text-yellow-800"
-      case "hard":
-        return "bg-red-100 text-red-800"
-      default:
-        return "bg-gray-100 text-gray-800"
-    }
   }
 
   const handlePreview = () => {
@@ -406,7 +396,23 @@ const ManualBlog = ({ blog = {} }) => {
   }
 
   const handleTemplateModalClose = () => {
-    setShowTemplateModal(false)
+    const isEmpty =
+      !formData.title?.trim() ||
+      !formData.topic?.trim() ||
+      !formData.tone?.trim() ||
+      !formData.template ||
+      !formData.userDefinedLength ||
+      formData.userDefinedLength <= 0 ||
+      !formData.focusKeywords ||
+      formData.focusKeywords.length === 0 ||
+      !formData.keywords ||
+      formData.keywords.length === 0
+
+    if (isEmpty) {
+      navigate("/blogs")
+    } else {
+      setShowTemplateModal(false)
+    }
   }
 
   const handleTemplateModalSubmit = (blogData) => {
@@ -607,7 +613,7 @@ const ManualBlog = ({ blog = {} }) => {
                 <div className="flex gap-2 flex-col sm:flex-row">
                   <input
                     type="text"
-                    value={title}
+                    value={formData.title || title}
                     onChange={handleTitleChange}
                     placeholder="Enter your blog title..."
                     className={`flex-1 text-2xl sm:text-3xl font-bold text-gray-900 placeholder-gray-400 border-none outline-none resize-none ${
@@ -615,7 +621,6 @@ const ManualBlog = ({ blog = {} }) => {
                     }`}
                     aria-label="Blog title"
                   />
-                  
                 </div>
                 <div className="mt-2 text-sm text-gray-500">
                   {titleWordCount}/60 words (optimal for SEO)
@@ -757,7 +762,12 @@ const ManualBlog = ({ blog = {} }) => {
                     ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                     : "bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg hover:scale-105"
                 }`}
-                disabled={isSaving || !title.trim() || !content.trim() || titleWordCount > 60}
+                disabled={
+                  isSaving ||
+                  !(title.trim() || formData.title?.trim()) ||
+                  !content.trim() ||
+                  titleWordCount > 60
+                }
                 aria-label="Save blog"
               >
                 {isSaving ? (
@@ -886,7 +896,7 @@ const ManualBlog = ({ blog = {} }) => {
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-2 mt-2 max-h-64 overflow-y-auto sm:overflow-x-auto sm:flex-nowrap">
-                  {keywords.map((keyword) => (
+                  {finalKeywords.map((keyword) => (
                     <div
                       key={keyword.id}
                       className="flex items-center bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm px-3 py-1.5 rounded-full shadow-sm hover:shadow-md transition-all duration-200 max-w-[100px] sm:max-w-[150px] md:max-w-[200px] break-words"
@@ -902,7 +912,7 @@ const ManualBlog = ({ blog = {} }) => {
                     </div>
                   ))}
                 </div>
-                {keywords.length === 0 && (
+                {finalKeywords.length === 0 && (
                   <div className="text-center text-gray-500">
                     <p className="text-sm">No keywords added yet</p>
                     <p className="text-xs">Add keywords to improve SEO</p>
