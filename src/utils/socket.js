@@ -3,7 +3,13 @@ import { io } from "socket.io-client"
 let socket
 
 export const connectSocket = (token) => {
-  socket = io("http://localhost:8000", {
+  if (socket) {
+    console.warn("Socket already connected")
+    return socket
+  }
+  const url = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000"
+  console.debug("Connecting to socket at:", url)
+  socket = io(url, {
     path: "/events", // must match backend
     auth: { token }, // send JWT here
     transports: ["websocket"],

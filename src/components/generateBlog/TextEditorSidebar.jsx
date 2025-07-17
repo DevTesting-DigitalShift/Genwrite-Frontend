@@ -513,17 +513,17 @@ const TextEditorSidebar = ({
           {competitiveAnalysisResults && (
             <div className="space-y-4">
               <h3 className="font-semibold text-gray-900">Analysis Results</h3>
-              {blog.referenceLinks.length > 0 && (
+              {blog?.generatedMetadata?.competitors?.length > 0 && (
                 <div className="bg-white shadow-md p-3 rounded-lg border border-gray-200">
-                  <span className="text-sm font-medium">Reference Links :</span>
+                  <span className="text-sm font-medium">Competitors Links :</span>
                   <ul className="list-disc mt-2 list-inside space-y-1 text-sm text-gray-700">
-                    {blog.referenceLinks.map((link, index) => (
+                    {blog.generatedMetadata.competitors.map((item, index) => (
                       <li
                         key={index}
                         className="hover:underline hover:text-blue-500 text-blue-600 transition"
                       >
-                        <a href={link} target="_blank" rel="noopener noreferrer">
-                          {link}
+                        <a href={item.link || item.url} target="_blank" rel="noopener noreferrer">
+                          {item.title}
                         </a>
                       </li>
                     ))}
@@ -637,7 +637,7 @@ const TextEditorSidebar = ({
             </Button>
           </motion.div>
 
-          {posted?.success && posted?.link && (
+          {posted?.link && (
             <div className="mt-3 text-center">
               <a
                 href={posted.link}

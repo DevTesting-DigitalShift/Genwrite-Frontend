@@ -46,6 +46,7 @@ const ToolBox = () => {
     setIsLoading(true)
     if (blog) {
       setEditorContent(blog.content ?? "")
+      setIsPosted(blog?.wordpress || null)
       setIsLoading(false)
     } else {
       setEditorContent("")
