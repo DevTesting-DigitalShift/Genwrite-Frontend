@@ -75,22 +75,6 @@ const NotificationDropdown = ({ notifications }) => {
     }
   }
 
-  useEffect(() => {
-    const socket = getSocket()
-    if (!socket) return
-
-    const handleNewNotification = (data) => {
-      setLocalNotifications((prev) => [data, ...prev])
-    }
-
-    socket.on("notification", handleNewNotification)
-
-    // Cleanup on unmount
-    return () => {
-      socket.off("notification", handleNewNotification)
-    }
-  }, [])
-
   // Memoized notification list content
   const content = useMemo(
     () => (

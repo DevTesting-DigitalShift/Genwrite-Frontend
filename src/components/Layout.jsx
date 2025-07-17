@@ -22,6 +22,7 @@ import { RiCoinsFill } from "react-icons/ri"
 import NotificationDropdown from "@components/NotificationDropdown"
 import GoProButton from "@components/GoProButton"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import { getSocket } from "@utils/socket"
 
 const LayoutWithSidebarAndHeader = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -32,23 +33,30 @@ const LayoutWithSidebarAndHeader = () => {
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
 
-  useEffect(() => {
-    const fetchCurrentUser = async () => {
-      try {
-        await dispatch(loadAuthenticatedUser()).unwrap()
-      } catch (err) {
-        console.error("User load failed:", err)
-        navigate("/login")
-      }
+  const fetchCurrentUser = async () => {
+    try {
+      await dispatch(loadAuthenticatedUser()).unwrap()
+    } catch (err) {
+      console.error("User load failed:", err)
+      navigate("/login")
     }
+  }
 
+  useEffect(() => {
+    const socket = getSocket()
+    if (!socket || !socket.connected) return
+
+    socket.on("user:credits", fetchCurrentUser)
+    socket.on("user:notification", fetchCurrentUser)
+
+    return () => {
+      socket.off("user:credits", fetchCurrentUser)
+      socket.off("user:notification", fetchCurrentUser)
+    }
+  }, [])
+
+  useEffect(() => {
     fetchCurrentUser()
-
-    const interval = setInterval(() => {
-      fetchCurrentUser()
-    }, 180000)
-
-    return () => clearInterval(interval)
   }, [dispatch, navigate])
 
   useEffect(() => {
@@ -186,9 +194,7 @@ const LayoutWithSidebarAndHeader = () => {
 
             const isSearchConsole = Menu.title === "Search Console"
             const isContentAgent = Menu.title === "Content Agent"
-            const isPro =
-              ["pro", "enterprise"].includes(user?.plan) ||
-              ["pro", "enterprise"].includes(user?.subscription?.plan)
+            const isPro = ["pro", "enterprise"].includes(user?.subscription?.plan)
             const isFreeUser = user?.plan === "free" || user?.subscription?.plan === "free"
 
             return (
