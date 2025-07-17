@@ -44,7 +44,7 @@ const LayoutWithSidebarAndHeader = () => {
 
   useEffect(() => {
     const socket = getSocket()
-    if (!socket || !socket.connected) return
+    if (!socket) return
 
     socket.on("user:credits", fetchCurrentUser)
     socket.on("user:notification", fetchCurrentUser)
