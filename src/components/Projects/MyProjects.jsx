@@ -1,7 +1,17 @@
 import { useState, useEffect, useCallback } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import SkeletonLoader from "./SkeletonLoader"
-import { Badge, Button, Input, Popconfirm, Tooltip, Popover, Pagination, DatePicker, message } from "antd"
+import {
+  Badge,
+  Button,
+  Input,
+  Popconfirm,
+  Tooltip,
+  Popover,
+  Pagination,
+  DatePicker,
+  message,
+} from "antd"
 import { ArrowDownUp, Filter, Plus, RefreshCcw, RotateCcw, Search, Trash2 } from "lucide-react"
 import { motion } from "framer-motion"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
@@ -93,7 +103,7 @@ const MyProjects = () => {
         end: dateRange[1] ? moment(dateRange[1]).toISOString() : undefined,
         page: currentPage,
         limit: itemsPerPage, // Use itemsPerPage instead of FIXED_LIMIT
-        isArchived: false, // Filter out archived blogs on the server
+        isArchived: "",
       }
       const response = await dispatch(fetchAllBlogs(queryParams)).unwrap()
       setFilteredBlogs(response.data || [])
@@ -108,7 +118,16 @@ const MyProjects = () => {
     } finally {
       setLoading(false)
     }
-  }, [dispatch, sortType, sortOrder, statusFilter, debouncedSearch, dateRange, currentPage, itemsPerPage])
+  }, [
+    dispatch,
+    sortType,
+    sortOrder,
+    statusFilter,
+    debouncedSearch,
+    dateRange,
+    currentPage,
+    itemsPerPage,
+  ])
 
   // Fetch blogs when filters or page change
   useEffect(() => {
@@ -289,7 +308,8 @@ const MyProjects = () => {
             transition={{ duration: 0.4, delay: 0.1 }}
             className="text-gray-500 text-sm mt-2 max-w-md"
           >
-            All your content creation tools in one place. Streamline your workflow with our powerful suite of tools.
+            All your content creation tools in one place. Streamline your workflow with our powerful
+            suite of tools.
           </motion.p>
         </div>
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -564,7 +584,8 @@ const MyProjects = () => {
                             title: "Move to Trash",
                             description: (
                               <span className="my-2">
-                                Blog <b>{title}</b> will be moved to trash. You can restore it later.
+                                Blog <b>{title}</b> will be moved to trash. You can restore it
+                                later.
                               </span>
                             ),
                             confirmText: "Delete",

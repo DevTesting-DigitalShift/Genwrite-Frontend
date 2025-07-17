@@ -10,6 +10,9 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
   const [topic, setTopic] = useState(data?.topic || "")
   const [hasGeneratedTitles, setHasGeneratedTitles] = useState(false)
 
+  const MAX_VISIBLE_KEYWORDS = 18 // adjust as needed
+
+  const [showAllKeywords, setShowAllKeywords] = useState(false)
   const { selectedKeywords } = useSelector((state) => state.analysis)
 
   const dispatch = useDispatch()
@@ -294,7 +297,7 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
                 className={`flex-1 px-3 py-2 bg-gray-50 border ${
                   errors.keyword ? "border-red-500" : "border-gray-200"
                 } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm`}
-                placeholder="Enter secondary keywords, separated by commas"
+                placeholder="Enter keywords, separated by commas"
               />
               <button
                 onClick={handleAddKeyword}
@@ -305,9 +308,12 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
             </div>
             {formData.keywords.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-2">
-                {formData.keywords.map((keyword, index) => (
+                {(showAllKeywords
+                  ? formData.keywords
+                  : formData.keywords.slice(0, MAX_VISIBLE_KEYWORDS)
+                ).map((keyword, index) => (
                   <span
-                    key={index}
+                    key={`${keyword}-${index}`}
                     className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
                   >
                     {keyword}
@@ -319,6 +325,18 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
                     </button>
                   </span>
                 ))}
+
+                {formData.keywords.length > MAX_VISIBLE_KEYWORDS && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllKeywords(!showAllKeywords)}
+                    className="text-xs text-blue-600 underline ml-2 self-center"
+                  >
+                    {showAllKeywords
+                      ? "Show less"
+                      : `+${formData.keywords.length - MAX_VISIBLE_KEYWORDS} more`}
+                  </button>
+                )}
               </div>
             )}
           </div>

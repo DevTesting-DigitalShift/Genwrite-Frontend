@@ -16,6 +16,7 @@ const MultiStepModal = ({ closeFnc }) => {
   const { handlePopup } = useConfirmPopup()
   const user = useSelector((state) => state.auth.user)
   const userPlan = user?.subscription?.plan || user?.plan
+  const [showAllTopics, setShowAllTopics] = useState(false)
 
   const [currentStep, setCurrentStep] = useState(0)
   const [recentlyUploadedCount, setRecentlyUploadedCount] = useState(null)
@@ -480,11 +481,12 @@ const MultiStepModal = ({ closeFnc }) => {
                 </label>
               </div>
               <div className="flex flex-wrap gap-2 mt-2 min-h-[28px]">
-                {formData.topics
-                  .slice()
-                  .reverse()
-                  .slice(0, 18)
-                  .map((topic, index) => (
+                {(showAllTopics
+                  ? formData.topics
+                  : formData.topics.slice().reverse().slice(0, 18)
+                ).map((topic, index) => {
+                  const actualIndex = showAllTopics ? index : formData.topics.length - 1 - index
+                  return (
                     <span
                       key={`${topic}-${index}`}
                       className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
@@ -492,17 +494,31 @@ const MultiStepModal = ({ closeFnc }) => {
                       {topic}
                       <button
                         type="button"
-                        onClick={() => handleRemoveTopic(formData.topics.length - 1 - index)}
+                        onClick={() => handleRemoveTopic(actualIndex)}
                         className="ml-1.5 flex-shrink-0 text-indigo-400 hover:text-indigo-600 focus:outline-none"
                       >
                         <X className="w-3 h-3" />
                       </button>
                     </span>
-                  ))}
-                {(formData.topics.length > 18 || recentlyUploadedCount) && (
-                  <span className="text-xs font-medium text-blue-600 self-center">
+                  )
+                })}
+
+                {(formData.topics.length > 18 || recentlyUploadedCount) && !showAllTopics && (
+                  <span
+                    onClick={() => setShowAllTopics(true)}
+                    className="cursor-pointer text-xs font-medium text-blue-600 self-center"
+                  >
                     {formData.topics.length > 18 && `+${formData.topics.length - 18} more `}
                     {recentlyUploadedCount && `(+${recentlyUploadedCount} uploaded)`}
+                  </span>
+                )}
+
+                {showAllTopics && (
+                  <span
+                    onClick={() => setShowAllTopics(false)}
+                    className="cursor-pointer text-xs font-medium text-red-600 self-center"
+                  >
+                    Show less
                   </span>
                 )}
               </div>
@@ -877,8 +893,9 @@ const MultiStepModal = ({ closeFnc }) => {
                   name="numberOfBlogs"
                   min="1"
                   max="10"
-                  value={formData.numberOfBlogs}
+                  value={formData.numberOfBlogs === 0 ? "" : formData.numberOfBlogs}
                   onChange={handleInputChange}
+                  onWheel={(e) => e.currentTarget.blur()}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
                   placeholder="e.g., 5"
                 />
