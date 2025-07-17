@@ -29,13 +29,13 @@ import { useDispatch, useSelector } from "react-redux"
 import { archiveBlog, fetchAllBlogs, retryBlog } from "@store/slices/blogSlice"
 import moment from "moment"
 
-const { Search: AntSearch } = Input
 const { RangePicker } = DatePicker
 
 const MyProjects = () => {
+  const [filteredBlogs, setFilteredBlogs] = useState([])
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(15)
-  const [totalBlogs, setTotalBlogs] = useState(0)
+  const [loading, setLoading] = useState(false)
   const [sortType, setSortType] = useState("createdAt")
   const [sortOrder, setSortOrder] = useState("desc")
   const [statusFilter, setStatusFilter] = useState("all")
@@ -44,83 +44,12 @@ const MyProjects = () => {
   const [debouncedSearch, setDebouncedSearch] = useState("")
   const [isMenuOpen, setMenuOpen] = useState(false)
   const [isFunnelMenuOpen, setFunnelMenuOpen] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
   const dispatch = useDispatch()
-  const { blogs, loading } = useSelector((state) => state.blog)
-
+  const { blogs } = useSelector((state) => state.blog)
   const TRUNCATE_LENGTH = 120
-  const FIXED_LIMIT = 15
-
-  // Debounce search input
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedSearch(searchTerm)
-      setCurrentPage(1) // Reset to first page on search
-    }, 400)
-
-    return () => clearTimeout(handler)
-  }, [searchTerm])
-
-  // Reset filters when navigating to pages other than 1
-  useEffect(() => {
-    if (currentPage !== 1) {
-      setSortOrder("desc")
-      setSortType("createdAt")
-      setStatusFilter("all")
-      setDateRange([null, null])
-      setSearchTerm("")
-      setDebouncedSearch("")
-    }
-  }, [currentPage])
-
-  // Fetch blogs with filters and pagination
-  const fetchBlogs = useCallback(async () => {
-    setIsLoading(true)
-    try {
-      const queryParams = {
-        sort: `${sortType}:${sortOrder}`,
-        status: statusFilter !== "all" ? statusFilter : undefined,
-        q: debouncedSearch || undefined,
-        start: dateRange[0] ? moment(dateRange[0]).toISOString() : undefined,
-        end: dateRange[1] ? moment(dateRange[1]).toISOString() : undefined,
-        page: currentPage,
-        limit: FIXED_LIMIT,
-      }
-      const response = await dispatch(fetchAllBlogs(queryParams)).unwrap()
-      console.log({ response })
-      setTotalBlogs(response.totalItems || 0)
-    } catch (error) {
-      console.error("Failed to fetch blogs:", error)
-      message.error("Failed to load blogs. Please try again.")
-    } finally {
-      setIsLoading(false)
-    }
-  }, [dispatch, sortType, sortOrder, statusFilter, debouncedSearch, dateRange, currentPage])
-
-  // Fetch blogs when filters or pagination change
-  useEffect(() => {
-    fetchBlogs()
-  }, [fetchBlogs])
-
-  // Responsive items per page for skeleton loading
-  useEffect(() => {
-    const updateItemsPerPage = () => {
-      if (window.innerWidth >= 1024) {
-        setItemsPerPage(15)
-      } else if (window.innerWidth >= 768) {
-        setItemsPerPage(12)
-      } else {
-        setItemsPerPage(6)
-      }
-    }
-
-    updateItemsPerPage()
-    window.addEventListener("resize", updateItemsPerPage)
-    return () => window.removeEventListener("resize", updateItemsPerPage)
-  }, [])
+  const [totalBlogs, setTotalBlogs] = useState(0)
 
   // Scroll to top on page change
   useEffect(() => {
@@ -145,15 +74,95 @@ const MyProjects = () => {
 
   // Reset filters
   const resetFilters = () => {
-    setSortOrder("desc")
     setSortType("createdAt")
+    setSortOrder("desc")
     setStatusFilter("all")
     setDateRange([null, null])
     setSearchTerm("")
     setDebouncedSearch("")
     setCurrentPage(1)
-    message.info("Filters reset")
   }
+
+  // Debounce search input
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm)
+    }, 400)
+    return () => clearTimeout(handler)
+  }, [searchTerm])
+
+  useEffect(() => {
+    if (Array.isArray(blogs?.data)) {
+      setFilteredBlogs(blogs.data.filter((blog) => !blog.isArchived))
+    }
+  }, [blogs])
+
+  // Fetch blogs with filters
+  const fetchBlogs = useCallback(async () => {
+    setLoading(true)
+    try {
+      const queryParams = {
+        sort: sortType && sortOrder ? `${sortType}:${sortOrder}` : undefined,
+        status: statusFilter !== "all" ? statusFilter : undefined,
+        q: debouncedSearch || undefined,
+        start: dateRange[0] ? moment(dateRange[0]).toISOString() : undefined,
+        end: dateRange[1] ? moment(dateRange[1]).toISOString() : undefined,
+        page: currentPage,
+        limit: itemsPerPage, // Use itemsPerPage instead of FIXED_LIMIT
+        isArchived: false,
+      }
+      const response = await dispatch(fetchAllBlogs(queryParams)).unwrap()
+      setFilteredBlogs(response.data || [])
+      setTotalBlogs(response.totalItems || 0)
+    } catch (error) {
+      console.error("Failed to fetch blogs:", {
+        error: error.message,
+        status: error.status,
+        response: error.response,
+      })
+      message.error("Failed to load blogs. Please try again.")
+    } finally {
+      setLoading(false)
+    }
+  }, [
+    dispatch,
+    sortType,
+    sortOrder,
+    statusFilter,
+    debouncedSearch,
+    dateRange,
+    currentPage,
+    itemsPerPage,
+  ])
+
+  // Fetch blogs when filters or page change
+  useEffect(() => {
+    fetchBlogs()
+  }, [fetchBlogs])
+
+  useEffect(() => {
+    if (Array.isArray(blogs?.data)) {
+      setFilteredBlogs(blogs.data.filter((blog) => !blog.isArchived))
+    }
+  }, [blogs])
+
+  // Responsive items per page
+  useEffect(() => {
+    const updateItemsPerPage = () => {
+      if (window.innerWidth >= 1024) {
+        setItemsPerPage(15)
+      } else if (window.innerWidth >= 768) {
+        setItemsPerPage(12)
+      } else {
+        setItemsPerPage(6)
+      }
+      setCurrentPage(1) // Reset to page 1 when itemsPerPage changes
+    }
+
+    updateItemsPerPage()
+    window.addEventListener("resize", updateItemsPerPage)
+    return () => window.removeEventListener("resize", updateItemsPerPage)
+  }, [])
 
   // Handle blog click
   const handleBlogClick = (blog) => {
@@ -164,7 +173,6 @@ const MyProjects = () => {
   const handleRetry = async (id) => {
     try {
       await dispatch(retryBlog({ id })).unwrap()
-      message.success("Blog retry initiated")
       await fetchBlogs()
     } catch (error) {
       console.error("Failed to retry blog:", error)
@@ -175,12 +183,10 @@ const MyProjects = () => {
   // Handle archive
   const handleArchive = async (id) => {
     try {
-      await dispatch(archiveBlog(id)).unwrap()
-      message.success("Blog moved to trash")
+      await dispatch(archiveBlog(id))
       await fetchBlogs()
     } catch (error) {
       console.error("Failed to archive blog:", error)
-      message.error("Failed to archive blog. Please try again.")
     }
   }
 
@@ -245,6 +251,15 @@ const MyProjects = () => {
 
   // Filter options
   const funnelMenuOptions = [
+    {
+      label: "All Statuses",
+      icon: <CheckCircleOutlined />,
+      onClick: () => {
+        setStatusFilter("all")
+        setFunnelMenuOpen(false)
+        setCurrentPage(1)
+      },
+    },
     {
       label: "Status: Completed",
       icon: <CheckCircleOutlined />,
@@ -320,16 +335,14 @@ const MyProjects = () => {
       </div>
 
       {/* Filter and Sort Bar */}
-      <div className="flex flex-col sm:flex-row gap-4 bg-white p-4 rounded-lg mb-6 shadow-sm border border-gray-100">
+      <div className="flex flex-col sm:flex-row gap-4 bg-gray-100 p-4 rounded-lg mb-6">
         <div className="flex-1">
-          <AntSearch
+          <Input
             placeholder="Search blogs..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             prefix={<Search className="w-4 h-4 text-gray-500" />}
             className="rounded-lg border-gray-300 shadow-sm"
-            allowClear
-            disabled={isLoading}
           />
         </div>
         <div className="flex gap-2">
@@ -360,7 +373,6 @@ const MyProjects = () => {
                 icon={<ArrowDownUp className="w-4 h-4" />}
                 onClick={toggleMenu}
                 className="p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100"
-                disabled={isLoading}
               >
                 Sort
               </Button>
@@ -394,7 +406,6 @@ const MyProjects = () => {
                 icon={<Filter className="w-4 h-4" />}
                 onClick={toggleFunnelMenu}
                 className="p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100"
-                disabled={isLoading}
               >
                 Filter
               </Button>
@@ -407,7 +418,6 @@ const MyProjects = () => {
               icon={<RefreshCcw className="w-4 h-4" />}
               onClick={fetchBlogs}
               className="p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100"
-              disabled={isLoading}
             >
               Refresh
             </Button>
@@ -419,7 +429,6 @@ const MyProjects = () => {
               icon={<RotateCcw className="w-4 h-4" />}
               onClick={resetFilters}
               className="p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100"
-              disabled={isLoading}
             >
               Reset
             </Button>
@@ -435,31 +444,30 @@ const MyProjects = () => {
             }}
             className="w-full rounded-lg border-gray-300 shadow-sm"
             format="YYYY-MM-DD"
-            disabled={isLoading}
           />
         </div>
       </div>
 
-      {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 place-items-center p-2">
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {[...Array(itemsPerPage)].map((_, index) => (
-            <div key={index} className="bg-white shadow-md rounded-xl p-4 min-w-[390px]">
+            <div key={index} className="bg-white shadow-md rounded-xl p-4">
               <SkeletonLoader />
             </div>
           ))}
         </div>
-      ) : blogs.data.length === 0 ? (
+      ) : filteredBlogs.length === 0 ? (
         <div
           className="flex flex-col justify-center items-center"
           style={{ minHeight: "calc(100vh - 270px)" }}
         >
-          <img src="Images/no-blog.png" alt="No Blogs" style={{ width: "8rem" }} />
+          <img src="Images/no-blog.png" alt="Trash" style={{ width: "8rem" }} />
           <p className="text-xl mt-5">No blogs available.</p>
         </div>
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 place-items-center p-2">
-            {blogs.data.map((blog) => {
+            {filteredBlogs?.map((blog) => {
               const {
                 _id,
                 title,
@@ -500,13 +508,13 @@ const MyProjects = () => {
                 >
                   <div
                     className={`bg-white shadow-md hover:shadow-xl transition-all duration-300 rounded-xl p-4 min-h-[180px] min-w-[390px] relative
-                      ${
-                        status === "failed"
-                          ? "border-red-500"
-                          : status === "pending" || status === "in-progress"
-                          ? "border-yellow-500"
-                          : "border-green-500"
-                      } border-2`}
+                                 ${
+                                   status === "failed"
+                                     ? "border-red-500"
+                                     : status === "pending" || status === "in-progress"
+                                     ? "border-yellow-500"
+                                     : "border-green-500"
+                                 } border-2`}
                     title={title}
                   >
                     <div className="text-xs font-semibold text-gray-400 mb-2 -mt-2">
@@ -537,9 +545,7 @@ const MyProjects = () => {
                       }
                     >
                       <div
-                        className={`cursor-${
-                          status === "complete" || status === "failed" ? "pointer" : "default"
-                        }`}
+                        className="cursor-pointer"
                         onClick={() => {
                           if (status === "complete" || status === "failed") {
                             handleBlogClick(blog)
@@ -578,12 +584,12 @@ const MyProjects = () => {
                           cancelText="No"
                           onConfirm={() => handleRetry(_id)}
                         >
-                          <RotateCcw className="w-5 h-5 cursor-pointer" />
+                          <RotateCcw />
                         </Popconfirm>
                       )}
                       <Button
-                        type="default"
-                        icon={<Trash2 className="w-5 h-5" />}
+                        type="undefined"
+                        className="p-2 hover:!border-red-500 hover:text-red-500"
                         onClick={() =>
                           handlePopup({
                             title: "Move to Trash",
@@ -598,6 +604,7 @@ const MyProjects = () => {
                               handleArchive(_id)
                             },
                             confirmProps: {
+                              type: "undefined",
                               className: "border-red-500 hover:bg-red-500 hover:text-white",
                             },
                             cancelProps: {
@@ -605,8 +612,9 @@ const MyProjects = () => {
                             },
                           })
                         }
-                        className="p-2 hover:!border-red-500 hover:text-red-500"
-                      />
+                      >
+                        <Trash2 />
+                      </Button>
                     </div>
                     <div className="mt-3 -mb-2 flex justify-end text-xs text-right text-gray-500 font-medium">
                       {wordpress?.postedOn && (
@@ -630,18 +638,23 @@ const MyProjects = () => {
             })}
           </div>
           {totalBlogs > 0 && (
-            <div className="flex justify-center mt-6">
+            <div className="flex justify-center mt-8">
               <Pagination
                 current={currentPage}
-                pageSize={FIXED_LIMIT}
                 total={totalBlogs}
+                pageSize={itemsPerPage}
                 onChange={(page, pageSize) => {
                   setCurrentPage(page)
-                  setItemsPerPage(pageSize)
+                  if (pageSize !== itemsPerPage) {
+                    setItemsPerPage(pageSize)
+                    setCurrentPage(1)
+                  }
                 }}
                 showTotal={(total) => `Total ${total} blogs`}
                 responsive={true}
-                disabled={isLoading}
+                showSizeChanger={true}
+                pageSizeOptions={["6", "12", "15"]}
+                disabled={loading}
               />
             </div>
           )}

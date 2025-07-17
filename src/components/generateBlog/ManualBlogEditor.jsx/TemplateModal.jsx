@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useDispatch } from "react-redux"
 import { Modal, Input, Select, message, Spin } from "antd"
 import { Plus, Sparkles, X } from "lucide-react"
@@ -19,6 +19,7 @@ const TemplateModal = ({
   const [selectedTemplate, setSelectedTemplate] = useState(null)
   const [isGeneratingTitles, setIsGeneratingTitles] = useState(false)
   const [generatedTitles, setGeneratedTitles] = useState([])
+  const [hasGeneratedTitles, setHasGeneratedTitles] = useState(false)
 
   const dispatch = useDispatch()
 
@@ -132,8 +133,8 @@ const TemplateModal = ({
           topic: formData.topic,
         })
       ).unwrap()
-      console.log({ result })
       setGeneratedTitles(result)
+      setHasGeneratedTitles(true)
       message.success("Titles generated successfully!")
     } catch (error) {
       console.error("Failed to generate titles:", error)
@@ -142,6 +143,11 @@ const TemplateModal = ({
       setIsGeneratingTitles(false)
     }
   }
+
+  useEffect(() => {
+    setHasGeneratedTitles(false)
+    setGeneratedTitles([])
+  }, [])
 
   return (
     <Modal
@@ -182,7 +188,7 @@ const TemplateModal = ({
       width={800}
       centered
     >
-      <div className="p-4">
+      <div className="p-2">
         {currentStep === 0 && (
           <div className="p-3">
             <Carousel>
@@ -354,19 +360,21 @@ const TemplateModal = ({
                   } rounded-md text-sm focus:ring-2 focus:ring-blue-600`}
                   aria-label="Blog title"
                 />
-                <button
-                  onClick={handleGenerateTitles}
-                  disabled={isGeneratingTitles}
-                  className="px-4 py-2 bg-gradient-to-r from-[#1B6FC9] to-[#4C9FE8] text-white rounded-lg hover:from-[#1B6FC9]/90 hover:to-[#4C9FE8]/90 flex items-center"
-                  aria-label="Generate titles"
-                >
-                  {isGeneratingTitles ? (
-                    <Spin size="small" />
-                  ) : (
-                    <Sparkles size={16} className="mr-2" />
-                  )}
-                  Generate Titles
-                </button>
+                {!hasGeneratedTitles && (
+                  <button
+                    onClick={handleGenerateTitles}
+                    disabled={isGeneratingTitles}
+                    className="px-4 py-2 bg-gradient-to-r from-[#1B6FC9] to-[#4C9FE8] text-white rounded-lg hover:from-[#1B6FC9]/90 hover:to-[#4C9FE8]/90 flex items-center"
+                    aria-label="Generate titles"
+                  >
+                    {isGeneratingTitles ? (
+                      <Spin size="small" />
+                    ) : (
+                      <Sparkles size={16} className="mr-2" />
+                    )}
+                    Generate Titles
+                  </button>
+                )}
               </div>
               {generatedTitles.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-4">
