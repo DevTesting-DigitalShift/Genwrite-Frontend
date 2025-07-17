@@ -39,7 +39,7 @@ const MyProjects = () => {
   const [sortType, setSortType] = useState("createdAt")
   const [sortOrder, setSortOrder] = useState("desc")
   const [statusFilter, setStatusFilter] = useState("all")
-  const [dateRange, setDateRange] = useState([null, null])
+  const [dateRange, setDateRange] = useState([moment().subtract(7, "days"), moment()])
   const [searchTerm, setSearchTerm] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
   const [isMenuOpen, setMenuOpen] = useState(false)
@@ -448,7 +448,7 @@ const MyProjects = () => {
             </div>
           ))}
         </div>
-      ) : blogs.data.length === 0 ? (
+      ) : blogs?.data?.length === 0 ? (
         <div
           className="flex flex-col justify-center items-center"
           style={{ minHeight: "calc(100vh - 270px)" }}
@@ -459,7 +459,7 @@ const MyProjects = () => {
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 place-items-center p-2">
-            {blogs.data.map((blog) => {
+            {blogs?.data?.map((blog) => {
               const {
                 _id,
                 title,
@@ -468,6 +468,7 @@ const MyProjects = () => {
                 content,
                 aiModel,
                 focusKeywords,
+                isManuallyEdited,
                 updatedAt,
                 wordpress,
                 agendaJob,

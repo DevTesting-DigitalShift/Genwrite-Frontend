@@ -194,7 +194,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
                   {competitor.title}
                 </span>
                 <a
-                  href={competitor.link}
+                  href={competitor?.link ?? competitor?.url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-600 text-sm hover:underline"
@@ -206,8 +206,14 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
             }
             className="text-sm text-gray-700 leading-relaxed"
           >
-            <p className="mb-2 font-medium">{competitor.snippet}</p>
-            <div>{parseSummary(competitor.summary)}</div>
+            {competitor?.content ? (
+              <div>{parseSummary(competitor.content)}</div>
+            ) : (
+              <>
+                <p className="mb-2 font-medium">{competitor.snippet}</p>
+                <div>{parseSummary(competitor.summary)}</div>
+              </>
+            )}
           </Panel>
         ))}
       </Collapse>
@@ -374,7 +380,9 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
               >
                 <Select.Option value="">Select a project</Select.Option>
                 {blogs?.data
-                  ?.filter((project) => project.status === "complete" && project.isArchived === false)
+                  ?.filter(
+                    (project) => project.status === "complete" && project.isArchived === false
+                  )
                   .map((project) => (
                     <Select.Option key={project._id} value={project._id}>
                       {project.title.charAt(0).toUpperCase() + project.title.slice(1)}
