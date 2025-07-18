@@ -1,3 +1,4 @@
+import { fetchCategories } from "@api/otherApi"
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit"
 import { message } from "antd"
 
@@ -46,12 +47,27 @@ export const postToWordPress = createAsyncThunk(
   }
 )
 
+export const getCategoriesThunk = createAsyncThunk(
+  "categories/getAll",
+  async (_, { rejectWithValue }) => {
+    try {
+      const data = await fetchCategories()
+      console.log({ data })
+      return data
+    } catch (err) {
+      console.error("Error in getCategoriesThunk", err)
+      return rejectWithValue(err.response?.data || err.message)
+    }
+  }
+)
+
 const wordpressSlice = createSlice({
   name: "wordpress",
   initialState: {
     loading: false,
     error: null,
     success: false,
+    categories: [],
   },
   reducers: {},
   extraReducers: (builder) => {
@@ -66,6 +82,19 @@ const wordpressSlice = createSlice({
         state.success = true
       })
       .addCase(postToWordPress.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload
+      })
+
+      .addCase(getCategoriesThunk.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(getCategoriesThunk.fulfilled, (state, action) => {
+        state.loading = false
+        state.categories = action.payload
+      })
+      .addCase(getCategoriesThunk.rejected, (state, action) => {
         state.loading = false
         state.error = action.payload
       })

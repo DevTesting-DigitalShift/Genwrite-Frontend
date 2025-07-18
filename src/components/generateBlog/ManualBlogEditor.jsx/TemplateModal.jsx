@@ -20,6 +20,9 @@ const TemplateModal = ({
   const [isGeneratingTitles, setIsGeneratingTitles] = useState(false)
   const [generatedTitles, setGeneratedTitles] = useState([])
   const [hasGeneratedTitles, setHasGeneratedTitles] = useState(false)
+  const [showAllKeywords, setShowAllKeywords] = useState(false)
+
+  const visibleKeywords = showAllKeywords ? formData.keywords : formData.keywords.slice(0, 18)
 
   const dispatch = useDispatch()
 
@@ -296,9 +299,6 @@ const TemplateModal = ({
                   </span>
                 ))}
               </div>
-              {errors.focusKeywords && (
-                <p className="text-red-500 text-sm mt-1">Please add at least one focus keyword.</p>
-              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -324,9 +324,9 @@ const TemplateModal = ({
                 </button>
               </div>
               <div className="flex flex-wrap gap-2 mt-2">
-                {formData.keywords.map((keyword, index) => (
+                {visibleKeywords.map((keyword, index) => (
                   <span
-                    key={index}
+                    key={`${keyword}-${index}`}
                     className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
                   >
                     {keyword}
@@ -339,12 +339,22 @@ const TemplateModal = ({
                     </button>
                   </span>
                 ))}
+
+                {formData.keywords.length > 18 && (
+                  <span
+                    onClick={() => setShowAllKeywords((prev) => !prev)}
+                    className="text-xs font-medium text-blue-600 self-center cursor-pointer flex items-center gap-1"
+                  >
+                    {showAllKeywords ? (
+                      <>Show less</>
+                    ) : (
+                      <>
+                        +{formData.keywords.length - 18} more
+                      </>
+                    )}
+                  </span>
+                )}
               </div>
-              {errors.keywords && (
-                <p className="text-red-500 text-sm mt-1">
-                  Please add at least one secondary keyword.
-                </p>
-              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -402,7 +412,6 @@ const TemplateModal = ({
                   })}
                 </div>
               )}
-              {errors.title && <p className="text-red-500 text-sm mt-1">Title cannot be empty.</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -431,9 +440,6 @@ const TemplateModal = ({
               <span className="mt-2 text-sm text-gray-600 block">
                 {formData?.userDefinedLength ?? 1000} words
               </span>
-              {errors.userDefinedLength && (
-                <p className="text-red-500 text-sm mt-1">Word count must be a positive number.</p>
-              )}
             </div>
           </div>
         )}

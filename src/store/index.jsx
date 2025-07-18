@@ -5,7 +5,7 @@ import userReducer from "./slices/userSlice"
 import jobsReducer from "./slices/jobSlice"
 import brandReducer from "./slices/brandSlice"
 import analysisReducer from "./slices/analysisSlice"
-import otherReducer from "./slices/otherSlice"
+import wordpressReducer from "./slices/otherSlice"
 import gscReducer from "./slices/gscSlice"
 import humanizeReducer from "./slices/humanizeSlice"
 import creditLogsReducer from "./slices/creditLogSlice"
@@ -18,7 +18,7 @@ export const store = configureStore({
     jobs: jobsReducer,
     brand: brandReducer,
     analysis: analysisReducer,
-    other: otherReducer,
+    wordpress: wordpressReducer,
     gsc: gscReducer,
     humanize: humanizeReducer,
     creditLogs: creditLogsReducer,

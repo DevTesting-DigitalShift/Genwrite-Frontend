@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from "react"
-import { Link, useNavigate } from "react-router-dom"
-import SkeletonLoader from "./SkeletonLoader"
+import { useState, useEffect, useCallback } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import SkeletonLoader from "./SkeletonLoader";
 import {
   Badge,
   Button,
@@ -11,10 +11,19 @@ import {
   Pagination,
   DatePicker,
   message,
-} from "antd"
-import { ArrowDownUp, Filter, Plus, RefreshCcw, RotateCcw, Search, Trash2 } from "lucide-react"
-import { motion } from "framer-motion"
-import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+} from "antd";
+import {
+  ArrowDownUp,
+  Calendar,
+  Filter,
+  Plus,
+  RefreshCcw,
+  RotateCcw,
+  Search,
+  Trash2,
+} from "lucide-react";
+import { motion } from "framer-motion";
+import { useConfirmPopup } from "@/context/ConfirmPopupContext";
 import {
   CheckCircleOutlined,
   SortAscendingOutlined,
@@ -23,100 +32,121 @@ import {
   SortDescendingOutlined,
   FieldTimeOutlined,
   ClockCircleOutlined,
-} from "@ant-design/icons"
-import { Helmet } from "react-helmet"
-import { useDispatch, useSelector } from "react-redux"
-import { archiveBlog, fetchAllBlogs, retryBlog } from "@store/slices/blogSlice"
-import moment from "moment"
+} from "@ant-design/icons";
+import { Helmet } from "react-helmet";
+import { useDispatch, useSelector } from "react-redux";
+import { archiveBlog, fetchAllBlogs, retryBlog } from "@store/slices/blogSlice";
+import moment from "moment";
 
-const { RangePicker } = DatePicker
+const { RangePicker } = DatePicker;
 
 const MyProjects = () => {
-  const [filteredBlogs, setFilteredBlogs] = useState([])
-  const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(15)
-  const [loading, setLoading] = useState(false)
-  const [sortType, setSortType] = useState("createdAt")
-  const [sortOrder, setSortOrder] = useState("desc")
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [dateRange, setDateRange] = useState([null, null])
-  const [searchTerm, setSearchTerm] = useState("")
-  const [debouncedSearch, setDebouncedSearch] = useState("")
-  const [isMenuOpen, setMenuOpen] = useState(false)
-  const [isFunnelMenuOpen, setFunnelMenuOpen] = useState(false)
-  const navigate = useNavigate()
-  const { handlePopup } = useConfirmPopup()
-  const dispatch = useDispatch()
-  const { blogs } = useSelector((state) => state.blog)
-  const TRUNCATE_LENGTH = 120
-  const [totalBlogs, setTotalBlogs] = useState(0)
+  const [filteredBlogs, setFilteredBlogs] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(15);
+  const [loading, setLoading] = useState(false);
+  const [sortType, setSortType] = useState("createdAt");
+  const [sortOrder, setSortOrder] = useState("desc");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [dateRange, setDateRange] = useState([null, null]); // For manual RangePicker selections
+  const [presetDateRange, setPresetDateRange] = useState([null, null]); // For preset selections
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [isMenuOpen, setMenuOpen] = useState(false);
+  const [isFunnelMenuOpen, setFunnelMenuOpen] = useState(false);
+  const [isCustomDatePickerOpen, setIsCustomDatePickerOpen] = useState(false);
+  const navigate = useNavigate();
+  const { handlePopup } = useConfirmPopup();
+  const dispatch = useDispatch();
+  const { blogs } = useSelector((state) => state.blog);
+  const TRUNCATE_LENGTH = 120;
+  const [totalBlogs, setTotalBlogs] = useState(0);
 
   // Scroll to top on page change
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" })
-  }, [currentPage])
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [currentPage]);
 
   // Toggle sort menu
   const toggleMenu = () => {
     setMenuOpen((prev) => {
-      if (!prev) setFunnelMenuOpen(false)
-      return !prev
-    })
-  }
+      if (!prev) setFunnelMenuOpen(false);
+      return !prev;
+    });
+  };
 
   // Toggle filter menu
   const toggleFunnelMenu = () => {
     setFunnelMenuOpen((prev) => {
-      if (!prev) setMenuOpen(false)
-      return !prev
-    })
-  }
+      if (!prev) setMenuOpen(false);
+      return !prev;
+    });
+  };
+
+  // Toggle custom date picker menu
+  const toggleCustomDateRangeMenu = () => {
+    setIsCustomDatePickerOpen((prev) => {
+      if (!prev) setMenuOpen(false);
+      return !prev;
+    });
+  };
 
   // Reset filters
   const resetFilters = () => {
-    setSortType("createdAt")
-    setSortOrder("desc")
-    setStatusFilter("all")
-    setDateRange([null, null])
-    setSearchTerm("")
-    setDebouncedSearch("")
-    setCurrentPage(1)
-  }
+    setSortType("createdAt");
+    setSortOrder("desc");
+    setStatusFilter("all");
+    setDateRange([null, null]);
+    setPresetDateRange([null, null]);
+    setSearchTerm("");
+    setDebouncedSearch("");
+    setCurrentPage(1);
+  };
 
   // Debounce search input
   useEffect(() => {
     const handler = setTimeout(() => {
-      setDebouncedSearch(searchTerm)
-    }, 400)
-    return () => clearTimeout(handler)
-  }, [searchTerm])
+      setDebouncedSearch(searchTerm);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
 
   // Fetch blogs with filters
   const fetchBlogs = useCallback(async () => {
-    setLoading(true)
+    setLoading(true);
     try {
       const queryParams = {
         sort: sortType && sortOrder ? `${sortType}:${sortOrder}` : undefined,
         status: statusFilter !== "all" ? statusFilter : undefined,
         q: debouncedSearch || undefined,
-        start: dateRange[0] ? moment(dateRange[0]).toISOString() : undefined,
-        end: dateRange[1] ? moment(dateRange[1]).toISOString() : undefined,
+        start:
+          dateRange[0]
+            ? moment(dateRange[0]).toISOString()
+            : presetDateRange[0]
+            ? moment(presetDateRange[0]).toISOString()
+            : undefined,
+        end:
+          dateRange[1]
+            ? moment(dateRange[1]).toISOString()
+            : presetDateRange[1]
+            ? moment(presetDateRange[1]).toISOString()
+            : undefined,
         page: currentPage,
-        limit: itemsPerPage, // Use itemsPerPage instead of FIXED_LIMIT
+        limit: itemsPerPage,
         isArchived: "",
-      }
-      const response = await dispatch(fetchAllBlogs(queryParams)).unwrap()
-      setFilteredBlogs(response.data || [])
-      setTotalBlogs(response.totalItems || 0)
+      };
+      const response = await dispatch(fetchAllBlogs(queryParams)).unwrap();
+      setFilteredBlogs(response.data || []);
+      setTotalBlogs(response.totalItems || 0);
     } catch (error) {
       console.error("Failed to fetch blogs:", {
         error: error.message,
         status: error.status,
         response: error.response,
-      })
-      message.error("Failed to load blogs. Please try again.")
+      });
+      message.error("Failed to load blogs. Please try again.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }, [
     dispatch,
@@ -125,65 +155,68 @@ const MyProjects = () => {
     statusFilter,
     debouncedSearch,
     dateRange,
+    presetDateRange,
     currentPage,
     itemsPerPage,
-  ])
+  ]);
 
   // Fetch blogs when filters or page change
   useEffect(() => {
-    fetchBlogs()
-  }, [fetchBlogs])
+    fetchBlogs();
+  }, [fetchBlogs]);
 
   // Responsive items per page
   useEffect(() => {
     const updateItemsPerPage = () => {
       if (window.innerWidth >= 1024) {
-        setItemsPerPage(15)
+        setItemsPerPage(15);
       } else if (window.innerWidth >= 768) {
-        setItemsPerPage(12)
+        setItemsPerPage(12);
       } else {
-        setItemsPerPage(6)
+        setItemsPerPage(6);
       }
-      setCurrentPage(1) // Reset to page 1 when itemsPerPage changes
-    }
+      setCurrentPage(1); // Reset to page 1 when itemsPerPage changes
+    };
 
-    updateItemsPerPage()
-    window.addEventListener("resize", updateItemsPerPage)
-    return () => window.removeEventListener("resize", updateItemsPerPage)
-  }, [])
+    updateItemsPerPage();
+    window.addEventListener("resize", updateItemsPerPage);
+    return () => window.removeEventListener("resize", updateItemsPerPage);
+  }, []);
 
   // Handle blog click
   const handleBlogClick = (blog) => {
-    navigate(`/toolbox/${blog._id}`)
-  }
+    navigate(`/toolbox/${blog._id}`);
+  };
 
   // Handle retry
   const handleRetry = async (id) => {
     try {
-      await dispatch(retryBlog({ id })).unwrap()
-      await fetchBlogs()
+      await dispatch(retryBlog({ id })).unwrap();
+      await fetchBlogs();
+      message.success("Blog retry initiated successfully!");
     } catch (error) {
-      console.error("Failed to retry blog:", error)
-      message.error("Failed to retry blog. Please try again.")
+      console.error("Failed to retry blog:", error);
+      message.error("Failed to retry blog. Please try again.");
     }
-  }
+  };
 
   // Handle archive
   const handleArchive = async (id) => {
     try {
-      await dispatch(archiveBlog(id)).unwrap()
-      await fetchBlogs()
+      await dispatch(archiveBlog(id)).unwrap();
+      await fetchBlogs();
+      message.success("Blog moved to trash successfully!");
     } catch (error) {
-      console.error("Failed to archive blog:", error)
-      message.error("Failed to archive blog. Please try again.")
+      console.error("Failed to archive blog:", error);
+      message.error("Failed to archive blog. Please try again.");
     }
-  }
+  };
 
   // Truncate content
   const truncateContent = (content, length = TRUNCATE_LENGTH) => {
-    if (!content) return ""
-    return content.length > length ? content.substring(0, length) + "..." : content
-  }
+    if (!content) return "";
+    return content.length > length ? content.substring(0, length) + "..." : content;
+  };
 
   // Strip markdown
   const stripMarkdown = (text) => {
@@ -191,8 +224,8 @@ const MyProjects = () => {
       ?.replace(/<[^>]*>/g, "")
       ?.replace(/[\\*#=_~`>\-]+/g, "")
       ?.replace(/\s{2,}/g, " ")
-      ?.trim()
-  }
+      ?.trim();
+  };
 
   // Menu options for sorting
   const menuOptions = [
@@ -200,43 +233,43 @@ const MyProjects = () => {
       label: "A-Z (Ascending)",
       icon: <SortAscendingOutlined />,
       onClick: () => {
-        setSortType("title")
-        setSortOrder("asc")
-        setMenuOpen(false)
-        setCurrentPage(1)
+        setSortType("title");
+        setSortOrder("asc");
+        setMenuOpen(false);
+        setCurrentPage(1);
       },
     },
     {
       label: "Z-A (Descending)",
       icon: <SortDescendingOutlined />,
       onClick: () => {
-        setSortType("title")
-        setSortOrder("desc")
-        setMenuOpen(false)
-        setCurrentPage(1)
+        setSortType("title");
+        setSortOrder("desc");
+        setMenuOpen(false);
+        setCurrentPage(1);
       },
     },
     {
       label: "Created Date (Newest)",
       icon: <FieldTimeOutlined />,
       onClick: () => {
-        setSortType("createdAt")
-        setSortOrder("desc")
-        setMenuOpen(false)
-        setCurrentPage(1)
+        setSortType("createdAt");
+        setSortOrder("desc");
+        setMenuOpen(false);
+        setCurrentPage(1);
       },
     },
     {
       label: "Created Date (Oldest)",
       icon: <ClockCircleOutlined />,
       onClick: () => {
-        setSortType("createdAt")
-        setSortOrder("asc")
-        setMenuOpen(false)
-        setCurrentPage(1)
+        setSortType("createdAt");
+        setSortOrder("asc");
+        setMenuOpen(false);
+        setCurrentPage(1);
       },
     },
-  ]
+  ];
 
   // Filter options
   const funnelMenuOptions = [
@@ -244,48 +277,93 @@ const MyProjects = () => {
       label: "All Statuses",
       icon: <CheckCircleOutlined />,
       onClick: () => {
-        setStatusFilter("all")
-        setFunnelMenuOpen(false)
-        setCurrentPage(1)
+        setStatusFilter("all");
+        setFunnelMenuOpen(false);
+        setCurrentPage(1);
       },
     },
     {
       label: "Status: Completed",
       icon: <CheckCircleOutlined />,
       onClick: () => {
-        setStatusFilter("complete")
-        setFunnelMenuOpen(false)
-        setCurrentPage(1)
+        setStatusFilter("complete");
+        setFunnelMenuOpen(false);
+        setCurrentPage(1);
       },
     },
     {
       label: "Status: Pending",
       icon: <HourglassOutlined />,
       onClick: () => {
-        setStatusFilter("pending")
-        setFunnelMenuOpen(false)
-        setCurrentPage(1)
+        setStatusFilter("pending");
+        setFunnelMenuOpen(false);
+        setCurrentPage(1);
       },
     },
     {
       label: "Status: Failed",
       icon: <CloseCircleOutlined />,
       onClick: () => {
-        setStatusFilter("failed")
-        setFunnelMenuOpen(false)
-        setCurrentPage(1)
+        setStatusFilter("failed");
+        setFunnelMenuOpen(false);
+        setCurrentPage(1);
       },
     },
-  ]
+  ];
 
   // Date range presets
   const datePresets = [
-    { label: "Last 7 Days", value: [moment().subtract(7, "days"), moment()] },
-    { label: "Last 30 Days", value: [moment().subtract(30, "days"), moment()] },
-    { label: "Last 3 Months", value: [moment().subtract(3, "months"), moment()] },
-    { label: "Last 6 Months", value: [moment().subtract(6, "months"), moment()] },
-    { label: "This Year", value: [moment().startOf("year"), moment()] },
-  ]
+    {
+      label: "Last 7 Days",
+      value: [moment().subtract(7, "days"), moment()],
+      onClick: () => {
+        setPresetDateRange([moment().subtract(7, "days"), moment()]);
+        setDateRange([null, null]); // Ensure RangePicker remains empty
+        setCurrentPage(1);
+        setIsCustomDatePickerOpen(false);
+      },
+    },
+    {
+      label: "Last 30 Days",
+      value: [moment().subtract(30, "days"), moment()],
+      onClick: () => {
+        setPresetDateRange([moment().subtract(30, "days"), moment()]);
+        setDateRange([null, null]); // Ensure RangePicker remains empty
+        setCurrentPage(1);
+        setIsCustomDatePickerOpen(false);
+      },
+    },
+    {
+      label: "Last 3 Months",
+      value: [moment().subtract(3, "months"), moment()],
+      onClick: () => {
+        setPresetDateRange([moment().subtract(3, "months"), moment()]);
+        setDateRange([null, null]); // Ensure RangePicker remains empty
+        setCurrentPage(1);
+        setIsCustomDatePickerOpen(false);
+      },
+    },
+    {
+      label: "Last 6 Months",
+      value: [moment().subtract(6, "months"), moment()],
+      onClick: () => {
+        setPresetDateRange([moment().subtract(6, "months"), moment()]);
+        setDateRange([null, null]); // Ensure RangePicker remains empty
+        setCurrentPage(1);
+        setIsCustomDatePickerOpen(false);
+      },
+    },
+    {
+      label: "This Year",
+      value: [moment().startOf("year"), moment()],
+      onClick: () => {
+        setPresetDateRange([moment().startOf("year"), moment()]);
+        setDateRange([null, null]); // Ensure RangePicker remains empty
+        setCurrentPage(1);
+        setIsCustomDatePickerOpen(false);
+      },
+    },
+  ];
 
   return (
     <div className="p-5">
@@ -324,7 +402,7 @@ const MyProjects = () => {
       </div>
 
       {/* Filter and Sort Bar */}
-      <div className="flex flex-col sm:flex-row gap-4 bg-gray-100 p-4 rounded-lg mb-6">
+      <div className="flex flex-col sm:flex-row gap-4 bg-white p-4 rounded-lg mb-6">
         <div className="flex-1">
           <Input
             placeholder="Search blogs..."
@@ -332,6 +410,7 @@ const MyProjects = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             prefix={<Search className="w-4 h-4 text-gray-500" />}
             className="rounded-lg border-gray-300 shadow-sm"
+            aria-label="Search blogs"
           />
         </div>
         <div className="flex gap-2">
@@ -347,6 +426,7 @@ const MyProjects = () => {
                     <button
                       onClick={onClick}
                       className="w-full flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                      aria-label={`Sort by ${label}`}
                     >
                       <span className="text-lg">{icon}</span>
                       <span>{label}</span>
@@ -362,6 +442,7 @@ const MyProjects = () => {
                 icon={<ArrowDownUp className="w-4 h-4" />}
                 onClick={toggleMenu}
                 className="p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100"
+                aria-label="Open sort menu"
               >
                 Sort
               </Button>
@@ -380,6 +461,7 @@ const MyProjects = () => {
                     <button
                       onClick={onClick}
                       className="w-full flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                      aria-label={`Filter by ${label}`}
                     >
                       <span className="text-lg">{icon}</span>
                       <span>{label}</span>
@@ -395,8 +477,46 @@ const MyProjects = () => {
                 icon={<Filter className="w-4 h-4" />}
                 onClick={toggleFunnelMenu}
                 className="p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100"
+                aria-label="Open filter menu"
               >
                 Filter
+              </Button>
+            </motion.div>
+          </Popover>
+
+          <Popover
+            open={isCustomDatePickerOpen}
+            onOpenChange={(visible) => setIsCustomDatePickerOpen(visible)}
+            trigger="click"
+            placement="bottomRight"
+            content={
+              <div>
+                {datePresets.map(({ label, onClick }) => (
+                  <Tooltip title={label} placement="left" key={label}>
+                    <button
+                      onClick={onClick}
+                      className="w-full flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                      aria-label={`Filter by ${label}`}
+                    >
+                      <span className="text-lg">
+                        <FieldTimeOutlined />
+                      </span>
+                      <span>{label}</span>
+                    </button>
+                  </Tooltip>
+                ))}
+              </div>
+            }
+          >
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                type="default"
+                icon={<Calendar className="w-4 h-4" />}
+                onClick={toggleCustomDateRangeMenu}
+                className="p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100"
+                aria-label="Open date preset menu"
+              >
+                Custom Date
               </Button>
             </motion.div>
           </Popover>
@@ -407,6 +527,7 @@ const MyProjects = () => {
               icon={<RefreshCcw className="w-4 h-4" />}
               onClick={fetchBlogs}
               className="p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100"
+              aria-label="Refresh blogs"
             >
               Refresh
             </Button>
@@ -418,6 +539,7 @@ const MyProjects = () => {
               icon={<RotateCcw className="w-4 h-4" />}
               onClick={resetFilters}
               className="p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100"
+              aria-label="Reset filters"
             >
               Reset
             </Button>
@@ -425,14 +547,16 @@ const MyProjects = () => {
         </div>
         <div className="flex-1">
           <RangePicker
-            presets={datePresets}
             value={dateRange}
             onChange={(dates) => {
-              setDateRange(dates)
-              setCurrentPage(1)
+              setDateRange(dates);
+              setPresetDateRange([null, null]); // Clear preset when manual dates are selected
+              setCurrentPage(1);
             }}
             className="w-full rounded-lg border-gray-300 shadow-sm"
             format="YYYY-MM-DD"
+            placeholder={["Start date", "End date"]}
+            aria-label="Select date range"
           />
         </div>
       </div>
@@ -450,13 +574,14 @@ const MyProjects = () => {
           className="flex flex-col justify-center items-center"
           style={{ minHeight: "calc(100vh - 270px)" }}
         >
-          <img src="Images/no-blog.png" alt="Trash" style={{ width: "8rem" }} />
+          <img src="Images/no-blog.png" alt="No blogs" style={{ width: "8rem" }} />
           <p className="text-xl mt-5">No blogs available.</p>
         </div>
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 place-items-center p-2">
             {filteredBlogs.map((blog) => {
+              const isManualEditor = blog.isManuallyEdited === true;
               const {
                 _id,
                 title,
@@ -468,78 +593,81 @@ const MyProjects = () => {
                 updatedAt,
                 wordpress,
                 agendaJob,
-              } = blog
-              const isGemini = /gemini/gi.test(aiModel)
+              } = blog;
+              const isGemini = /gemini/gi.test(aiModel);
               return (
                 <Badge.Ribbon
                   key={_id}
                   text={
                     <span className="flex items-center justify-center gap-1 py-1 font-medium tracking-wide">
-                      <img
-                        src={`./Images/${
-                          isGemini ? "gemini" : aiModel === "claude" ? "claude" : "chatgpt"
-                        }.png`}
-                        alt=""
-                        width={20}
-                        height={20}
-                        loading="lazy"
-                        className="bg-white"
-                      />
-                      {isGemini
-                        ? "Gemini-1.5-flash"
-                        : aiModel === "claude"
-                        ? "Claude-3-Haiku"
-                        : "ChatGPT-4o-mini"}
+                      {isManualEditor ? (
+                        <>
+                          {/* <img
+                            src="./Images/manual.png"
+                            alt="manual"
+                            width={20}
+                            height={20}
+                            loading="lazy"
+                            className="bg-white"
+                          /> */}
+                          Manually Generated
+                        </>
+                      ) : (
+                        <>
+                          <img
+                            src={`./Images/${
+                              isGemini ? "gemini" : aiModel === "claude" ? "claude" : "chatgpt"
+                            }.png`}
+                            alt={isGemini ? "Gemini" : aiModel === "claude" ? "Claude" : "ChatGPT"}
+                            width={20}
+                            height={20}
+                            loading="lazy"
+                            className="bg-white"
+                          />
+                          {isGemini
+                            ? "Gemini-1.5-flash"
+                            : aiModel === "claude"
+                            ? "Claude-3-Haiku"
+                            : "ChatGPT-4o-mini"}
+                        </>
+                      )}
                     </span>
                   }
                   className="absolute top-0"
-                  color={isGemini ? "#4796E3" : aiModel === "claude" ? "#9368F8" : "#74AA9C"}
+                  color={
+                    isManualEditor
+                      ? "#9CA3AF"
+                      : isGemini
+                      ? "#4796E3"
+                      : aiModel === "claude"
+                      ? "#9368F8"
+                      : "#74AA9C"
+                  }
                 >
                   <div
-                    className={`bg-white shadow-md hover:shadow-xl transition-all duration-300 rounded-xl p-4 min-h-[180px] min-w-[390px] relative
-                      ${
-                        status === "failed"
-                          ? "border-red-500"
-                          : status === "pending" || status === "in-progress"
-                          ? "border-yellow-500"
-                          : "border-green-500"
-                      } border-2`}
+                    className={`bg-white shadow-md hover:shadow-xl transition-all duration-300 rounded-xl p-4 min-h-[180px] min-w-[390px] relative ${
+                      isManualEditor
+                        ? "border-gray-500"
+                        : status === "failed"
+                        ? "border-red-500"
+                        : status === "pending" || status === "in-progress"
+                        ? "border-yellow-500"
+                        : "border-green-500"
+                    } border-2`}
                     title={title}
                   >
                     <div className="text-xs font-semibold text-gray-400 mb-2 -mt-2">
-                      {new Date(createdAt).toLocaleDateString("en-US", {
-                        dateStyle: "medium",
-                      })}
+                      {new Date(createdAt).toLocaleDateString("en-US", { dateStyle: "medium" })}
                     </div>
-                    <Tooltip
-                      title={
-                        status === "complete"
-                          ? title
-                          : status === "failed"
-                          ? "Blog generation failed"
-                          : status === "pending"
-                          ? `Pending Blog will be generated ${
-                              agendaJob?.nextRunAt
-                                ? "at " +
-                                  new Date(agendaJob.nextRunAt).toLocaleString("en-IN", {
-                                    dateStyle: "medium",
-                                    timeStyle: "short",
-                                  })
-                                : "shortly"
-                            }`
-                          : `Blog generation is ${status}`
-                      }
-                      color={
-                        status === "complete" ? "green" : status === "failed" ? "red" : "#eab308"
-                      }
-                    >
+
+                    {isManualEditor ? (
                       <div
                         className="cursor-pointer"
-                        onClick={() => {
-                          if (status === "complete" || status === "failed") {
-                            handleBlogClick(blog)
-                          }
-                        }}
+                        onClick={() => navigate(`/blog-editor`)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => e.key === "Enter" && navigate(`/blog-editor`)}
+                        aria-label={`View blog ${title}`}
                       >
                         <div className="flex flex-col gap-4 items-center justify-between mb-2">
                           <h3 className="text-lg capitalize font-semibold text-gray-900 !text-left max-w-76">
@@ -550,7 +678,57 @@ const MyProjects = () => {
                           </p>
                         </div>
                       </div>
-                    </Tooltip>
+                    ) : (
+                      <Tooltip
+                        title={
+                          status === "complete"
+                            ? title
+                            : status === "failed"
+                            ? "Blog generation failed"
+                            : status === "pending"
+                            ? `Pending Blog will be generated ${
+                                agendaJob?.nextRunAt
+                                  ? "at " +
+                                    new Date(agendaJob.nextRunAt).toLocaleString("en-IN", {
+                                      dateStyle: "medium",
+                                      timeStyle: "short",
+                                    })
+                                  : "shortly"
+                              }`
+                            : `Blog generation is ${status}`
+                        }
+                        color={
+                          status === "complete" ? "green" : status === "failed" ? "red" : "#eab308"
+                        }
+                      >
+                        <div
+                          className="cursor-pointer"
+                          onClick={() => {
+                            if (status === "complete" || status === "failed") {
+                              handleBlogClick(blog);
+                            }
+                          }}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) =>
+                            e.key === "Enter" &&
+                            (status === "complete" || status === "failed") &&
+                            handleBlogClick(blog)
+                          }
+                          aria-label={`View blog ${title}`}
+                        >
+                          <div className="flex flex-col gap-4 items-center justify-between mb-2">
+                            <h3 className="text-lg capitalize font-semibold text-gray-900 !text-left max-w-76">
+                              {title}
+                            </h3>
+                            <p className="text-sm text-gray-600 mb-4 line-clamp-3 break-all">
+                              {truncateContent(stripMarkdown(content)) || ""}
+                            </p>
+                          </div>
+                        </div>
+                      </Tooltip>
+                    )}
+
                     <div className="flex items-center justify-end gap-2">
                       <div className="flex flex-wrap gap-2">
                         {focusKeywords?.map((keyword, index) => (
@@ -573,7 +751,13 @@ const MyProjects = () => {
                           cancelText="No"
                           onConfirm={() => handleRetry(_id)}
                         >
-                          <RotateCcw />
+                          <Button
+                            type="text"
+                            className="p-2 hover:!border-blue-500 hover:text-blue-500"
+                            aria-label="Retry blog generation"
+                          >
+                            <RotateCcw />
+                          </Button>
                         </Popconfirm>
                       )}
                       <Button
@@ -590,7 +774,7 @@ const MyProjects = () => {
                             ),
                             confirmText: "Delete",
                             onConfirm: () => {
-                              handleArchive(_id)
+                              handleArchive(_id);
                             },
                             confirmProps: {
                               type: "text",
@@ -601,21 +785,23 @@ const MyProjects = () => {
                             },
                           })
                         }
+                        aria-label={`Move blog ${title} to trash`}
                       >
                         <Trash2 />
                       </Button>
                     </div>
+
                     <div className="mt-3 -mb-2 flex justify-end text-xs text-right text-gray-500 font-medium">
                       {wordpress?.postedOn && (
                         <span className="">
-                          Posted on: {""}  
+                          Posted on:{" "}
                           {new Date(wordpress.postedOn).toLocaleDateString("en-US", {
                             dateStyle: "medium",
                           })}
                         </span>
                       )}
                       <span className="ml-auto">
-                        Last updated: {""}  
+                        Last updated:{" "}
                         {new Date(updatedAt).toLocaleDateString("en-US", {
                           dateStyle: "medium",
                         })}
@@ -623,25 +809,25 @@ const MyProjects = () => {
                     </div>
                   </div>
                 </Badge.Ribbon>
-              )
+              );
             })}
           </div>
-          {totalBlogs > 0 && (
+          {totalBlogs > 15 && (
             <div className="flex justify-center mt-8">
               <Pagination
                 current={currentPage}
                 total={totalBlogs}
                 pageSize={itemsPerPage}
                 onChange={(page, pageSize) => {
-                  setCurrentPage(page)
+                  setCurrentPage(page);
                   if (pageSize !== itemsPerPage) {
-                    setItemsPerPage(pageSize)
-                    setCurrentPage(1)
+                    setItemsPerPage(pageSize);
+                    setCurrentPage(1);
                   }
                 }}
                 showTotal={(total) => `Total ${total} blogs`}
                 responsive={true}
-                showSizeChanger={true}
+                showSizeChanger={false}
                 pageSizeOptions={["6", "12", "15"]}
                 disabled={loading}
               />
@@ -650,7 +836,7 @@ const MyProjects = () => {
         </>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default MyProjects
+export default MyProjects;

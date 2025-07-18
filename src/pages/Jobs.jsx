@@ -79,11 +79,8 @@ const Jobs = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const { selectedKeywords } = useSelector((state) => state.analysis)
   const [isUserLoaded, setIsUserLoaded] = useState(false)
-
-  // Redirect to UpgradeModal for free plan
-  if (userPlan === "free") {
-    return <UpgradeModal featureName="Content Agent" />
-  }
+  const [showAllTopics, setShowAllTopics] = useState(false)
+  const [showAllKeywords, setShowAllKeywords] = useState(false)
 
   // Initialize formData with keywords from selectedKeywords
   const [formData, setFormData] = useState({
@@ -92,8 +89,21 @@ const Jobs = () => {
     performKeywordResearch: false,
   })
 
+  const keywordsToShow = showAllKeywords
+    ? formData.keywords.slice().reverse()
+    : formData.keywords.slice().reverse().slice(0, 18)
+
+  const topicsToShow = showAllTopics
+    ? newJob.blogs.topics.slice().reverse()
+    : newJob.blogs.topics.slice().reverse().slice(0, 18)
+
+  // Redirect to UpgradeModal for free plan
+  if (userPlan === "free") {
+    return <UpgradeModal featureName="Content Agent" />
+  }
+
   // Calculate total pages
-  const totalPages = Math.ceil(jobs.length / PAGE_SIZE) 
+  const totalPages = Math.ceil(jobs.length / PAGE_SIZE)
 
   // Memoize paginated jobs
   const paginatedJobs = useMemo(() => {
@@ -611,42 +621,47 @@ const Jobs = () => {
                   </label>
                 </div>
                 <div className="flex flex-wrap gap-2 mt-2">
-                  {newJob.blogs.topics
-                    .slice()
-                    .reverse()
-                    .slice(0, 18)
-                    .map((topic, reversedIndex) => {
-                      const actualIndex = newJob.blogs.topics.length - 1 - reversedIndex
-                      return (
-                        <span
-                          key={`${topic}-${actualIndex}`}
-                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
+                  {topicsToShow.map((topic, reversedIndex) => {
+                    const actualIndex = newJob.blogs.topics.length - 1 - reversedIndex
+                    return (
+                      <span
+                        key={`${topic}-${actualIndex}`}
+                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
+                      >
+                        {topic}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setNewJob((prev) => ({
+                              ...prev,
+                              blogs: {
+                                ...prev.blogs,
+                                topics: prev.blogs.topics.filter((_, i) => i !== actualIndex),
+                              },
+                            }))
+                          }
+                          className="ml-1.5 flex-shrink-0 text-indigo-400 hover:text-indigo-600 focus:outline-none"
+                          aria-label={`Remove topic ${topic}`}
                         >
-                          {topic}
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setNewJob((prev) => ({
-                                ...prev,
-                                blogs: {
-                                  ...prev.blogs,
-                                  topics: prev.blogs.topics.filter((_, i) => i !== actualIndex),
-                                },
-                              }))
-                            }
-                            className="ml-1.5 flex-shrink-0 text-indigo-400 hover:text-indigo-600 focus:outline-none"
-                            aria-label={`Remove topic ${topic}`}
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </span>
-                      )
-                    })}
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    )
+                  })}
+
                   {(newJob.blogs.topics.length > 18 || recentlyUploadedCount) && (
-                    <span className="text-xs font-medium text-blue-600 self-center">
-                      {newJob.blogs.topics.length > 18 &&
-                        `+${newJob.blogs.topics.length - 18} more `}
-                      {recentlyUploadedCount && `(+${recentlyUploadedCount} uploaded)`}
+                    <span
+                      onClick={() => setShowAllTopics((prev) => !prev)}
+                      className="text-xs font-medium text-blue-600 self-center cursor-pointer flex items-center gap-1"
+                    >
+                      {showAllTopics ? (
+                        <>Show less</>
+                      ) : (
+                        <>
+                          +{newJob.blogs.topics.length - 18} more
+                          {recentlyUploadedCount && ` (+${recentlyUploadedCount} uploaded)`}
+                        </>
+                      )}
                     </span>
                   )}
                 </div>
@@ -845,40 +860,46 @@ const Jobs = () => {
                   </div>
 
                   <div className="flex flex-wrap gap-2 mt-2 min-h-[28px]">
-                    {formData.keywords
-                      .slice()
-                      .reverse()
-                      .slice(0, 18)
-                      .map((keyword, reversedIndex) => {
-                        const actualIndex = formData.keywords.length - 1 - reversedIndex
-                        return (
-                          <span
-                            key={`${keyword}-${actualIndex}`}
-                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
+                    {keywordsToShow.map((keyword, reversedIndex) => {
+                      const actualIndex = formData.keywords.length - 1 - reversedIndex
+                      return (
+                        <span
+                          key={`${keyword}-${actualIndex}`}
+                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
+                        >
+                          {keyword}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updatedKeywords = [...formData.keywords]
+                              updatedKeywords.splice(actualIndex, 1)
+                              setFormData((prev) => ({ ...prev, keywords: updatedKeywords }))
+                              setNewJob((prev) => ({
+                                ...prev,
+                                blogs: { ...prev.blogs, keywords: updatedKeywords },
+                              }))
+                            }}
+                            className="ml-1.5 flex-shrink-0 text-indigo-400 hover:text-indigo-600 focus:outline-none"
                           >
-                            {keyword}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const updatedKeywords = [...formData.keywords]
-                                updatedKeywords.splice(actualIndex, 1)
-                                setFormData((prev) => ({ ...prev, keywords: updatedKeywords }))
-                                setNewJob((prev) => ({
-                                  ...prev,
-                                  blogs: { ...prev.blogs, keywords: updatedKeywords },
-                                }))
-                              }}
-                              className="ml-1.5 flex-shrink-0 text-indigo-400 hover:text-indigo-600 focus:outline-none"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </span>
-                        )
-                      })}
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      )
+                    })}
+
                     {(formData.keywords.length > 18 || recentlyUploadedCount) && (
-                      <span className="text-xs font-medium text-blue-600 self-center">
-                        {formData.keywords.length > 18 && `+${formData.keywords.length - 18} more `}
-                        {recentlyUploadedCount && `(+${recentlyUploadedCount} uploaded)`}
+                      <span
+                        onClick={() => setShowAllKeywords((prev) => !prev)}
+                        className="text-xs font-medium text-blue-600 self-center cursor-pointer flex items-center gap-1"
+                      >
+                        {showAllKeywords ? (
+                          <>Show less</>
+                        ) : (
+                          <>
+                            +{formData.keywords.length - 18} more
+                            {recentlyUploadedCount && ` (+${recentlyUploadedCount} uploaded)`}
+                          </>
+                        )}
                       </span>
                     )}
                   </div>
@@ -1205,15 +1226,25 @@ const Jobs = () => {
                       <div className="flex items-start gap-2">
                         <FiFileText className="w-4 h-4 text-purple-500 mt-0.5" />
                         <div className="flex flex-wrap gap-2">
-                          Topics:
-                          {job.blogs.topics.map((topic, index) => (
-                            <span
-                              key={index}
-                              className="px-2 py-1 bg-gray-100 text-gray-600 rounded-md text-xs"
+                          <span className="text-sm text-gray-700 font-medium">Topics:</span>
+                          {(showAllTopics ? job.blogs.topics : job.blogs.topics.slice(0, 6)).map(
+                            (topic, index) => (
+                              <span
+                                key={index}
+                                className="px-2 py-1 bg-gray-100 text-gray-600 rounded-md text-xs"
+                              >
+                                {topic}
+                              </span>
+                            )
+                          )}
+                          {job.blogs.topics.length > 6 && (
+                            <button
+                              onClick={() => setShowAllTopics((prev) => !prev)}
+                              className="text-xs text-blue-600 hover:underline"
                             >
-                              {topic}
-                            </span>
-                          ))}
+                              {showAllTopics ? "Show less" : `+${job.blogs.topics.length - 6} more`}
+                            </button>
+                          )}
                         </div>
                       </div>
                     )}
@@ -1234,18 +1265,6 @@ const Jobs = () => {
                       </div>
                     )}
                     <div className="flex items-center gap-2">
-                      <FiCalendar className="w-4 h-4 text-yellow-500" />
-                      <span>
-                        Created:{" "}
-                        {job.createdAt
-                          ? new Date(job.createdAt).toLocaleString("en-IN", {
-                              dateStyle: "medium",
-                              timeStyle: "short",
-                            })
-                          : "N/A"}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
                       <FiFileText className="w-4 h-4 text-purple-500" />
                       <span>Generated Blogs: {(job.createdBlogs || []).length}</span>
                     </div>
@@ -1261,6 +1280,18 @@ const Jobs = () => {
                         </span>
                       </div>
                     )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <FiCalendar className="w-4 h-4 text-yellow-500" />
+                    <span>
+                      Created:{" "}
+                      {job.createdAt
+                        ? new Date(job.createdAt).toLocaleString("en-IN", {
+                            dateStyle: "medium",
+                            timeStyle: "short",
+                          })
+                        : "N/A"}
+                    </span>
                   </div>
                   <div className="flex gap-2 mt-6">
                     <motion.button
