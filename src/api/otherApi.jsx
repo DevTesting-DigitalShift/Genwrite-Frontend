@@ -16,8 +16,12 @@ export const createStripeSession = async (payload) => {
   return response.data
 }
 
-
 export const humanizeContentGenerator = async (payload) => {
   const response = await axiosInstance.post("/generate/humanised-content", payload)
+  return response.data
+}
+
+export const fetchCategories = async () => {
+  const response = await axiosInstance.get("/wordpress/category")
   return response.data
 }

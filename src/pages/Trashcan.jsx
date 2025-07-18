@@ -100,10 +100,12 @@ const Trashcan = () => {
 
   // Strip markdown
   const cleanText = (text) => {
-    return text
-      ?.replace(/[#=~`*_\-]+/g, "")
-      ?.replace(/\s{2,}/g, " ")
-      ?.trim() || ""
+    return (
+      text
+        ?.replace(/[#=~`*_\-]+/g, "")
+        ?.replace(/\s{2,}/g, " ")
+        ?.trim() || ""
+    )
   }
 
   // Handle restore
@@ -122,7 +124,6 @@ const Trashcan = () => {
   const handleBulkDelete = async () => {
     try {
       await dispatch(deleteAllUserBlogs()).unwrap()
-      message.success("All trashed blogs deleted successfully")
       setTrashedBlogs([])
       setCurrentPage(1)
       setTotalBlogs(0)
@@ -167,7 +168,6 @@ const Trashcan = () => {
                 type="default"
                 icon={<RefreshCcw className="w-4 h-4" />}
                 onClick={handleRefresh}
-                className="hover:!border-yellow-500 hover:text-yellow-500 rounded-lg"
                 disabled={isLoading}
               >
                 Refresh
@@ -183,7 +183,8 @@ const Trashcan = () => {
                       title: "Delete All Trashed Blogs",
                       description: (
                         <span className="my-2">
-                          All trashed blogs will be <b>permanently deleted</b>. This action cannot be undone.
+                          All trashed blogs will be <b>permanently deleted</b>. This action cannot
+                          be undone.
                         </span>
                       ),
                       confirmText: "Delete All",
@@ -196,7 +197,6 @@ const Trashcan = () => {
                       },
                     })
                   }
-                  className="hover:!border-red-500 hover:text-red-500 rounded-lg"
                   disabled={isLoading}
                 >
                   Delete All
@@ -211,9 +211,10 @@ const Trashcan = () => {
           transition={{ duration: 0.4, delay: 0.1 }}
           className="text-gray-600 text-sm sm:text-base max-w-xl mb-6"
         >
-          Restore valuable work or permanently delete clutter. Trashed items are deleted after 7 days.
+          Restore valuable work or permanently delete clutter. Trashed items are deleted after 7
+          days.
         </motion.p>
-
+        
         {/* Filters */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -312,9 +313,7 @@ const Trashcan = () => {
                       </span>
                     }
                     className="absolute top-0"
-                    color={
-                      isGemini ? "#4796E3" : aiModel === "claude" ? "#9368F8" : "#74AA9C"
-                    }
+                    color={isGemini ? "#4796E3" : aiModel === "claude" ? "#9368F8" : "#74AA9C"}
                   >
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
@@ -414,7 +413,7 @@ const Trashcan = () => {
                 )
               })}
             </motion.div>
-            {totalBlogs > 0 && (
+            {totalBlogs > 15 && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -433,7 +432,7 @@ const Trashcan = () => {
                       setCurrentPage(1)
                     }
                   }}
-                  showSizeChanger
+                  showSizeChanger={false}
                   showTotal={(total) => `Total ${total} blogs`}
                   responsive={true}
                   disabled={isLoading}
@@ -443,22 +442,6 @@ const Trashcan = () => {
           </>
         )}
       </div>
-      <style>
-        {`
-          .restore-icon {
-            transition: filter 0.2s;
-          }
-          .restore-icon:hover {
-            filter: invert(18%) sepia(99%) saturate(7482%) hue-rotate(357deg) brightness(97%) contrast(119%);
-          }
-          .ant-select-disabled .ant-select-selector,
-          .ant-input-disabled,
-          .ant-picker-disabled {
-            background-color: #f5f5f5 !important;
-            cursor: not-allowed !important;
-          }
-        `}
-      </style>
     </div>
   )
 }
