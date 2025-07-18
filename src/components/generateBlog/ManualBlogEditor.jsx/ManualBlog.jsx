@@ -550,7 +550,7 @@
           />
         </Modal>
 
-        {/* <TemplateModal
+        <TemplateModal
           closeFnc={handleTemplateModalClose}
           isOpen={showTemplateModal}
           handleSubmit={handleSubmit}
@@ -558,7 +558,7 @@
           setErrors={setErrors}
           formData={formData}
           setFormData={setFormData}
-        /> */}
+        />
 
         {showTemplateModal && (
           <div className="flex flex-col lg:flex-row h-screen">
