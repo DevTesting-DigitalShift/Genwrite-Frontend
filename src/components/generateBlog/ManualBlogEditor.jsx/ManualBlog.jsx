@@ -17,7 +17,7 @@
     CheckCircle,
     Hash,
     Eye,
-    Image,
+    Image as ImageIcon,
     Plus,
   } from "lucide-react"
   import { useEditor, EditorContent, BubbleMenu } from "@tiptap/react"
@@ -33,7 +33,7 @@
   import Link from "@tiptap/extension-link"
   import { useNavigate } from "react-router-dom"
   import { useDispatch } from "react-redux"
-  import { Tooltip, Modal, message, Input } from "antd"
+  import { Tooltip, Modal, Spin, message, Input } from "antd"
   import Joyride, { STATUS } from "react-joyride"
   import Toolbar from "@components/Toolbar"
   import { createManualBlog, updateBlogById } from "@store/slices/blogSlice"
