@@ -156,11 +156,13 @@ const NotificationDropdown = ({ notifications }) => {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          top: "2px",
+          right: "2px"
         }}
       >
         <BellOutlined
           className={`text-2xl cursor-pointer transition-colors duration-200 ease-in-out 
-      ${unreadCount > 0 ? "text-blue-600 animate-bounce" : "text-gray-700 hover:text-blue-600"}
+      ${unreadCount > 0 ? "text-blue-600" : "text-gray-700 hover:text-blue-600"}
     `}
         />
       </Badge>
