@@ -1,138 +1,144 @@
-import { useEffect, useState } from "react"
-import { useParams } from "react-router-dom"
-import { useDispatch, useSelector } from "react-redux"
-import { motion, AnimatePresence } from "framer-motion"
-import axiosInstance from "../../api"
-import { fetchBlogById, updateBlogById } from "../../store/slices/blogSlice"
-import TextEditor from "../generateBlog/TextEditor"
-import TextEditorSidebar from "../generateBlog/TextEditorSidebar"
-import { Loader2 } from "lucide-react"
-import { Helmet } from "react-helmet"
-import { sendRetryLines } from "@api/blogApi"
-import ReactMarkdown from "react-markdown"
-import remarkGfm from "remark-gfm"
-import rehypeRaw from "rehype-raw"
-import { Button, message, Modal, Typography } from "antd"
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { motion, AnimatePresence } from "framer-motion";
+import axiosInstance from "../../api";
+import { fetchBlogById, updateBlogById } from "../../store/slices/blogSlice";
+import TextEditor from "../generateBlog/TextEditor";
+import TextEditorSidebar from "../generateBlog/TextEditorSidebar";
+import { Loader2 } from "lucide-react";
+import { Helmet } from "react-helmet";
+import { sendRetryLines } from "@api/blogApi";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
+import { Button, message, Modal, Typography } from "antd";
 
 const ToolBox = () => {
-  const { id } = useParams()
-  const dispatch = useDispatch()
-  const blog = useSelector((state) => state.blog.selectedBlog)
-  const [activeTab, setActiveTab] = useState("normal")
-  const [isLoading, setIsLoading] = useState(true)
-  const [keywords, setKeywords] = useState([])
-  const [editorContent, setEditorContent] = useState("")
-  const [proofreadingResults, setProofreadingResults] = useState([])
-  const [saveModalOpen, setSaveModalOpen] = useState(false)
-  const [saveContent, setSaveContent] = useState(null)
-  const [isSaving, setIsSaving] = useState(false)
-  const [isPosted, setIsPosted] = useState(null)
-  const [isPosting, setIsPosting] = useState(false)
-  const [formData, setFormData] = useState({ category: "", includeTableOfContents: false })
+  const { id } = useParams();
+  const dispatch = useDispatch();
+  const blog = useSelector((state) => state.blog.selectedBlog);
+  const [activeTab, setActiveTab] = useState("normal");
+  const [isLoading, setIsLoading] = useState(true);
+  const [keywords, setKeywords] = useState([]);
+  const [editorContent, setEditorContent] = useState("");
+  const [proofreadingResults, setProofreadingResults] = useState([]);
+  const [saveModalOpen, setSaveModalOpen] = useState(false);
+  const [saveContent, setSaveContent] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isPosted, setIsPosted] = useState(null);
+  const [isPosting, setIsPosting] = useState(false);
+  const [formData, setFormData] = useState({ category: "", includeTableOfContents: false });
 
   useEffect(() => {
     if (id) {
-      dispatch(fetchBlogById(id))
+      dispatch(fetchBlogById(id));
     }
-  }, [id, dispatch])
+  }, [id, dispatch]);
 
   useEffect(() => {
     if (blog?.keywords) {
-      setKeywords(blog.keywords)
+      setKeywords(blog.keywords);
     }
-  }, [blog?.keywords])
+  }, [blog?.keywords]);
 
   useEffect(() => {
-    setIsLoading(true)
+    setIsLoading(true);
     if (blog) {
-      setEditorContent(blog.content ?? "")
-      setIsPosted(blog?.wordpress || null)
-      setIsLoading(false)
+      setEditorContent(blog.content ?? "");
+      setIsPosted(blog?.wordpress || null);
+      setIsLoading(false);
     } else {
-      setEditorContent("")
-      setIsLoading(false)
+      setEditorContent("");
+      setIsLoading(false);
     }
-  }, [blog])
+  }, [blog]);
 
-  const blogToDisplay = blog
+  const blogToDisplay = blog;
 
   const handleReplace = (original, change) => {
     if (typeof original !== "string" || typeof change !== "string") {
-      console.error("Invalid types passed to handleReplace:", { original, change })
-      message.error("Something went wrong while applying suggestion.")
-      return
+      console.error("Invalid types passed to handleReplace:", { original, change });
+      message.error("Something went wrong while applying suggestion.");
+      return;
     }
 
-    let updatedContent = editorContent
-    const regex = new RegExp(original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g")
-    updatedContent = updatedContent.replace(regex, change)
-    setEditorContent(updatedContent)
+    let updatedContent = editorContent;
+    const regex = new RegExp(original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g");
+    updatedContent = updatedContent.replace(regex, change);
+    setEditorContent(updatedContent);
 
-    setProofreadingResults((prev) => prev.filter((s) => s.original !== original))
-  }
+    setProofreadingResults((prev) => prev.filter((s) => s.original !== original));
+  };
 
-  const handlePostToWordPress = async () => {
-    setIsPosting(true)
+  const handlePostToWordPress = async (postData) => {
+    setIsPosting(true);
+    console.log("Attempting to post to WordPress:", {
+      blogId: blogToDisplay?._id,
+      title: blogToDisplay?.title,
+      content: editorContent,
+      category: postData.categories,
+      includeTableOfContents: postData.includeTableOfContents,
+    });
+
     if (!blogToDisplay?.title) {
-      message.error("Blog title is missing.")
-      return
+      message.error("Blog title is missing.");
+      setIsPosting(false);
+      return;
     }
 
-    const previewContainer = document.querySelector(".markdown-body")
-    const content = previewContainer?.innerHTML || editorContent
-
-    if (!content || content.trim() === "" || content === "<p></p>" || content === "<p><br></p>") {
-      message.error("Editor content is empty. Please add some content before posting.")
-      return
+    if (!editorContent || editorContent.trim() === "" || editorContent === "<p></p>" || editorContent === "<p><br></p>") {
+      message.error("Editor content is empty. Please add some content before posting.");
+      setIsPosting(false);
+      return;
     }
 
-    const postData = {
-      blogId: blogToDisplay._id,
-      includeTableOfContents: formData.includeTableOfContents,
-      categories: formData.category,
+    if (!postData.categories) {
+      message.error("Please select a category.");
+      setIsPosting(false);
+      return;
     }
 
-    const key = "wordpress-posting"
-
-    message.loading({
-      content: "Posting to WordPress...",
-      key,
-      duration: 0, // Don't auto-close
-    })
+    const key = "wordpress-posting";
 
     try {
-      const response = await axiosInstance.post("/wordpress/post", postData)
+      const response = await axiosInstance.post("/wordpress/post", {
+        blogId: blogToDisplay._id,
+        title: blogToDisplay.title,
+        content: editorContent,
+        categories: postData.categories, // Single string
+        includeTableOfContents: postData.includeTableOfContents,
+      });
 
-      setIsPosted(response?.data)
-
-      if (response?.data) {
-        setIsPosting(false)
-      }
-
+      console.log("Post response:", response.data);
+      setIsPosted(response?.data);
       message.success({
         content: "Blog posted successfully!",
         key,
         duration: 3,
-      })
+      });
     } catch (error) {
-      console.error(error.response.data.message)
-      let errorMessage = "Failed to post to WordPress"
+      console.error("Failed to post to WordPress:", {
+        error: error.message,
+        status: error.response?.status,
+        response: error.response?.data,
+      });
+      let errorMessage = "Failed to post to WordPress";
       if (error?.response?.data?.message) {
-        errorMessage = error.response.data.message
+        errorMessage = error.response.data.message;
       }
-
       message.error({
-        content: `${errorMessage}`,
+        content: errorMessage,
         key,
         duration: 5,
-      })
+      });
     } finally {
-      setIsPosting(false)
+      setIsPosting(false);
     }
-  }
+  };
 
   const handleSave = async () => {
-    setIsSaving(true)
+    setIsSaving(true);
     try {
       await dispatch(
         updateBlogById({
@@ -143,44 +149,45 @@ const ToolBox = () => {
           focusKeywords: blog?.focusKeywords,
           keywords,
         })
-      )
-      const res = await sendRetryLines(blog._id)
+      );
+      const res = await sendRetryLines(blog._id);
       if (res.data) {
-        setSaveContent(res.data) // Store the response content
-        setSaveModalOpen(true) // Show the modal
-        message.success("Review the suggested content.")
+        setSaveContent(res.data);
+        setSaveModalOpen(true);
+        message.success("Review the suggested content.");
       } else {
-        message.error("No content received from retry.")
+        message.error("No content received from retry.");
       }
     } catch (error) {
-      console.error("Error updating the blog:", error)
-      message.error("Failed to save blog.")
+      console.error("Error updating the blog:", error);
+      message.error("Failed to save blog.");
     } finally {
-      setIsSaving(false)
+      setIsSaving(false);
     }
-  }
+  };
 
-  const { Title } = Typography
+  const { Title } = Typography;
 
   const handleAcceptSave = () => {
     if (saveContent) {
-      setEditorContent(saveContent) // Replace entire editor content
-      message.success("Content updated successfully!")
+      setEditorContent(saveContent);
+      message.success("Content updated successfully!");
     }
-    setSaveModalOpen(false)
-    setSaveContent(null)
-  }
+    setSaveModalOpen(false);
+    setSaveContent(null);
+  };
 
   const handleRejectSave = () => {
-    setSaveModalOpen(false)
-    setSaveContent(null)
-    message.info("Changes discarded.")
-  }
+    setSaveModalOpen(false);
+    setSaveContent(null);
+    message.info("Changes discarded.");
+  };
 
   const tabVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 },
-  }
+  };
+
   return (
     <>
       <Helmet>
@@ -206,8 +213,7 @@ const ToolBox = () => {
               </>,
             ]}
             onCancel={handleRejectSave}
-            width={700} // Equivalent to max-w-2xl
-            // bodyStyle={{ height: "85vh", overflow: "auto" }}
+            width={700}
             className="rounded-lg"
           >
             <Title level={3} style={{ marginBottom: "16px" }}>
@@ -322,7 +328,7 @@ const ToolBox = () => {
         </div>
       </div>
     </>
-  )
-}
+  );
+};
 
-export default ToolBox
+export default ToolBox;

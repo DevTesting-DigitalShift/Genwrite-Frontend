@@ -42,8 +42,6 @@ const POPULAR_CATEGORIES = [
   "DIY & Crafts",
 ];
 
-const AUTO_GENERATED_CATEGORIES = ["AI Trends", "Wellness Tips", "Investment", "Online Learning"];
-
 const TextEditorSidebar = ({
   blog,
   keywords,
@@ -66,7 +64,7 @@ const TextEditorSidebar = ({
   const [shouldRunCompetitive, setShouldRunCompetitive] = useState(false);
   const [seoScore, setSeoScore] = useState();
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
-  const [errors, setErrors] = useState({ categories: false });
+  const [errors, setErrors] = useState({ category: false });
   const user = useSelector((state) => state.auth.user);
   const userPlan = user?.plan ?? user?.subscription?.plan;
   const navigate = useNavigate();
@@ -83,19 +81,13 @@ const TextEditorSidebar = ({
         status: error.status,
         response: error.response,
       });
-      // message.error("Failed to load categories. Please try again.");
     });
   }, [dispatch]);
 
-  // Log categories for debugging
-  useEffect(() => {
-    console.log("Categories from Redux:", categories);
-    console.log("WordPress error:", wordpressError);
-  }, [categories, wordpressError]);
-
   const fetchCompetitiveAnalysis = useCallback(async () => {
     if (!blog || !blog.title || !blog.content) {
-      message.error("Blog data is incomplete for analysis.");
+      message.error("Blog title or content is missing for analysis.");
+      console.log("Blog data:", { title: blog?.title, content: blog?.content });
       return;
     }
 
@@ -270,42 +262,34 @@ const TextEditorSidebar = ({
     (category) => {
       setFormData((prev) => ({
         ...prev,
-        categories: [...(prev.categories || []), category].filter(
-          (c, i, arr) => c && arr.indexOf(c) === i
-        ),
+        category: category, // Store single category as string
       }));
-      setErrors({ categories: false });
+      setErrors({ category: false });
     },
     [setFormData]
   );
 
-  const handleCategoryRemove = useCallback(
-    (category) => {
-      setFormData((prev) => ({
-        ...prev,
-        categories: (prev.categories || []).filter((c) => c !== category),
-      }));
-    },
-    [setFormData]
-  );
+  const handleCategoryRemove = useCallback(() => {
+    setFormData((prev) => ({
+      ...prev,
+      category: "", // Clear the single category
+    }));
+  }, [setFormData]);
 
   const addCustomCategory = useCallback(() => {
     if (customCategory.trim()) {
-      if ((formData.categories || []).includes(customCategory.trim())) {
-        message.error("Category already added.");
+      if (formData.category === customCategory.trim()) {
+        message.error("Category already selected.");
         return;
       }
       setFormData((prev) => ({
         ...prev,
-        categories: [...(prev.categories || []), customCategory.trim()].filter(
-          (c, i, arr) => c && arr.indexOf(c) === i
-        ),
+        category: customCategory.trim(),
       }));
       setCustomCategory("");
-      setErrors({ categories: false });
-      message.success("Custom category added successfully!");
+      setErrors({ category: false });
     }
-  }, [customCategory, formData.categories]);
+  }, [customCategory, formData.category, setFormData]);
 
   const handleCustomCategoryKeyDown = useCallback(
     (e) => {
@@ -322,17 +306,17 @@ const TextEditorSidebar = ({
   }, []);
 
   const handleCategorySubmit = useCallback(() => {
-    if (!formData.categories || formData.categories.length === 0) {
-      setErrors({ categories: true });
-      message.error("Please select at least one category.");
+    if (!formData.category) {
+      setErrors({ category: true });
+      message.error("Please select a category.");
       return;
     }
     try {
-      console.log("Posting blog with payload:", { ...formData, blogId: blog._id });
-      onPost({ ...formData, categories: formData.categories });
+      console.log("Posting with data:", { ...formData, categories: formData.category });
+      onPost({ ...formData, categories: formData.category });
       setIsCategoryModalOpen(false);
-      setFormData((prev) => ({ ...prev, categories: [], includeTableOfContents: false }));
-      setErrors({ categories: false });
+      setFormData((prev) => ({ ...prev, category: "", includeTableOfContents: false }));
+      setErrors({ category: false });
       message.success("Blog posted successfully!");
     } catch (error) {
       console.error("Failed to post blog:", {
@@ -342,7 +326,7 @@ const TextEditorSidebar = ({
       });
       message.error("Failed to post blog. Please try again.");
     }
-  }, [formData, onPost, blog]);
+  }, [formData, onPost]);
 
   const getScoreColor = useCallback((score) => {
     if (score >= 80) return "bg-green-100 text-green-700";
@@ -816,12 +800,12 @@ const TextEditorSidebar = ({
 
       {/* Category Selection Modal */}
       <Modal
-        title="Select Categories"
+        title="Select Category"
         open={isCategoryModalOpen}
         onCancel={() => {
           setIsCategoryModalOpen(false);
-          setFormData((prev) => ({ ...prev, categories: [], includeTableOfContents: false }));
-          setErrors({ categories: false });
+          setFormData((prev) => ({ ...prev, category: "", includeTableOfContents: false }));
+          setErrors({ category: false });
           setCustomCategory("");
         }}
         footer={
@@ -831,10 +815,10 @@ const TextEditorSidebar = ({
                 setIsCategoryModalOpen(false);
                 setFormData((prev) => ({
                   ...prev,
-                  categories: [],
+                  category: "",
                   includeTableOfContents: false,
                 }));
-                setErrors({ categories: false });
+                setErrors({ category: false });
                 setCustomCategory("");
               }}
               className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -856,34 +840,23 @@ const TextEditorSidebar = ({
         width={600}
       >
         <div className="p-3 space-y-4">
-          {/* Selected Categories Chips */}
-          {(formData.categories || []).length > 0 && (
+          {/* Selected Category Display */}
+          {formData.category && (
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="flex flex-wrap gap-2 mb-3 items-center"
+              className="flex items-center gap-2 px-3 py-1.5 bg-blue-500 text-white rounded-full text-sm w-fit"
             >
-              {formData.categories.map((category, index) => (
-                <motion.div
-                  key={category}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  transition={{ duration: 0.2, delay: index * 0.1 }}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-blue-500 text-white rounded-full text-sm"
-                >
-                  <span className="truncate max-w-[150px]">{category}</span>
-                  <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => handleCategoryRemove(category)}
-                    className="text-white hover:text-gray-200"
-                    aria-label={`Remove category ${category}`}
-                  >
-                    <X size={15} />
-                  </motion.button>
-                </motion.div>
-              ))}
+              <span className="truncate max-w-[150px]">{formData.category}</span>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={handleCategoryRemove}
+                className="text-white hover:text-gray-200"
+                aria-label={`Remove category ${formData.category}`}
+              >
+                <X size={15} />
+              </motion.button>
             </motion.div>
           )}
 
@@ -898,13 +871,19 @@ const TextEditorSidebar = ({
                 onKeyDown={handleCustomCategoryKeyDown}
                 placeholder="Enter custom category"
                 className="flex-1 px-4 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                disabled={!!formData.category}
                 aria-label="Add custom category"
               />
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={addCustomCategory}
-                className="bg-blue-600 text-white p-2.5 rounded-lg hover:bg-blue-700 hover:shadow-lg"
+                disabled={!!formData.category}
+                className={`p-2.5 rounded-lg ${
+                  formData.category
+                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    : "bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg"
+                }`}
                 aria-label="Add custom category"
               >
                 <Plus className="w-4 h-4" />
@@ -922,20 +901,22 @@ const TextEditorSidebar = ({
                 {(categories || []).map((category) => (
                   <motion.div
                     key={category.id || category.name}
-                    onClick={() => handleCategoryAdd(category.name)}
+                    onClick={() => !formData.category && handleCategoryAdd(category.name)}
                     whileHover={{ scale: 1.02, backgroundColor: "#e0e7ff" }}
                     className={`flex items-center justify-between p-3 rounded-md bg-white border ${
-                      errors.categories && !formData.categories?.length
+                      errors.category && !formData.category
                         ? "border-red-500"
                         : "border-indigo-200"
                     } text-sm font-medium cursor-pointer transition-all duration-200 ${
-                      formData.categories?.includes(category.name)
+                      formData.category === category.name
                         ? "bg-indigo-100 border-indigo-400"
+                        : formData.category
+                        ? "opacity-50 cursor-not-allowed"
                         : ""
                     }`}
                   >
                     <span className="truncate">{category.name}</span>
-                    {!formData.categories?.includes(category.name) && (
+                    {!formData.category && (
                       <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
@@ -958,21 +939,23 @@ const TextEditorSidebar = ({
               {POPULAR_CATEGORIES.map((category) => (
                 <motion.div
                   key={category}
-                  onClick={() => handleCategoryAdd(category)}
+                  onClick={() => !formData.category && handleCategoryAdd(category)}
                   whileHover={{ scale: 1.02, backgroundColor: "#f3f4f6" }}
                   className={`flex items-center justify-between p-3 rounded-md bg-white border ${
-                    errors.categories && !formData.categories?.length
+                    errors.category && !formData.category
                       ? "border-red-500"
                       : "border-gray-200"
                   } text-sm font-medium cursor-pointer transition-all duration-200 ${
-                    formData.categories?.includes(category)
+                    formData.category === category
                       ? "bg-blue-100 border-blue-300"
+                      : formData.category
+                      ? "opacity-50 cursor-not-allowed"
                       : ""
                   }`}
                   aria-label={`Select category ${category}`}
                 >
                   <span className="truncate">{category}</span>
-                  {!formData.categories?.includes(category) && (
+                  {!formData.category && (
                     <motion.button
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
@@ -985,13 +968,13 @@ const TextEditorSidebar = ({
                 </motion.div>
               ))}
             </div>
-            {isCategoryModalOpen && errors.categories && !formData.categories?.length && (
+            {isCategoryModalOpen && errors.category && !formData.category && (
               <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="mt-2 text-sm text-red-500"
               >
-                Please select at least one category
+                Please select a category
               </motion.p>
             )}
           </div>
