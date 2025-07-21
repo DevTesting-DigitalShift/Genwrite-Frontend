@@ -192,7 +192,6 @@ const MyProjects = () => {
     try {
       await dispatch(retryBlog({ id })).unwrap();
       await fetchBlogs();
-      message.success("Blog retry initiated successfully!");
     } catch (error) {
       console.error("Failed to retry blog:", error);
       message.error("Failed to retry blog. Please try again.");
@@ -204,7 +203,6 @@ const MyProjects = () => {
     try {
       await dispatch(archiveBlog(id)).unwrap();
       await fetchBlogs();
-      message.success("Blog moved to trash successfully!");
     } catch (error) {
       console.error("Failed to archive blog:", error);
       message.error("Failed to archive blog. Please try again.");

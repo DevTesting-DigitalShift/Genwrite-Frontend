@@ -112,7 +112,6 @@ const Trashcan = () => {
   const handleRestore = async (id) => {
     try {
       await dispatch(restoreTrashedBlog(id)).unwrap()
-      message.success("Blog restored successfully")
       fetchTrashedBlogs()
     } catch (error) {
       console.error("Failed to restore blog:", error)
