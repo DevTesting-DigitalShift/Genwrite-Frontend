@@ -1,11 +1,11 @@
-import React, { useState, useCallback, useEffect, useRef } from "react";
-import { useEditor, EditorContent, BubbleMenu } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import Underline from "@tiptap/extension-underline";
-import Link from "@tiptap/extension-link";
-import TextAlign from "@tiptap/extension-text-align";
-import Heading from "@tiptap/extension-heading";
-import Image from "@tiptap/extension-image";
+import React, { useState, useCallback, useEffect, useRef } from "react"
+import { useEditor, EditorContent, BubbleMenu } from "@tiptap/react"
+import StarterKit from "@tiptap/starter-kit"
+import Underline from "@tiptap/extension-underline"
+import Link from "@tiptap/extension-link"
+import TextAlign from "@tiptap/extension-text-align"
+import Heading from "@tiptap/extension-heading"
+import Image from "@tiptap/extension-image"
 import {
   Bold,
   Italic,
@@ -26,29 +26,27 @@ import {
   AlignJustify,
   Copy,
   Image as ImageIcon,
-} from "lucide-react";
-import { Modal, Input, Button, Select, message, Tooltip } from "antd";
+} from "lucide-react"
+import { Modal, Input, Button, Select, message, Tooltip } from "antd"
 
 const ToolbarButton = ({ onClick, title, children, isActive }) => (
   <button
     onClick={onClick}
-    className={`p-2 rounded hover:bg-gray-100 duration-200 ${
-      isActive ? "bg-gray-200" : ""
-    }`}
+    className={`p-2 rounded hover:bg-gray-100 duration-200 ${isActive ? "bg-gray-200" : ""}`}
     title={title}
   >
     {children}
   </button>
-);
+)
 
 const RichTextEditor = ({ title, onTitleChange, onContentChange }) => {
-  const [isLinkModalVisible, setIsLinkModalVisible] = useState(false);
-  const [linkUrl, setLinkUrl] = useState("");
-  const [isImageModalVisible, setIsImageModalVisible] = useState(false);
-  const [imageUrl, setImageUrl] = useState("");
-  const [imageAlt, setImageAlt] = useState("");
-  const [fontFamily, setFontFamily] = useState("Inter");
-  const titleRef = useRef(null);
+  const [isLinkModalVisible, setIsLinkModalVisible] = useState(false)
+  const [linkUrl, setLinkUrl] = useState("")
+  const [isImageModalVisible, setIsImageModalVisible] = useState(false)
+  const [imageUrl, setImageUrl] = useState("")
+  const [imageAlt, setImageAlt] = useState("")
+  const [fontFamily, setFontFamily] = useState("Inter")
+  const titleRef = useRef(null)
 
   const editor = useEditor({
     extensions: [
@@ -90,12 +88,12 @@ const RichTextEditor = ({ title, onTitleChange, onContentChange }) => {
         levels: [1, 2, 3],
       }).extend({
         renderHTML({ node, HTMLAttributes }) {
-          const level = node.attrs.level;
+          const level = node.attrs.level
           const classes = {
             1: "text-4xl font-bold mb-4",
             2: "text-3xl font-semibold mb-3",
             3: "text-2xl font-medium mb-2",
-          };
+          }
 
           return [
             `h${level}`,
@@ -104,7 +102,7 @@ const RichTextEditor = ({ title, onTitleChange, onContentChange }) => {
               class: classes[level],
             },
             0,
-          ];
+          ]
         },
       }),
       Image.configure({
@@ -116,7 +114,7 @@ const RichTextEditor = ({ title, onTitleChange, onContentChange }) => {
     ],
     content: "",
     onUpdate: ({ editor }) => {
-      onContentChange(editor.getHTML());
+      onContentChange(editor.getHTML())
     },
     editorProps: {
       attributes: {
@@ -125,116 +123,108 @@ const RichTextEditor = ({ title, onTitleChange, onContentChange }) => {
       },
       handleClickOn: (view, pos, node, nodePos, event) => {
         if (node.type.name === "text" && node.marks.some((mark) => mark.type.name === "link")) {
-          return false; // Let the browser handle the link click
+          return false // Let the browser handle the link click
         }
-        return true; // Handle other clicks normally
+        return true // Handle other clicks normally
       },
     },
-  });
+  })
 
   // Auto-resize title textarea
   useEffect(() => {
     if (titleRef.current) {
-      titleRef.current.style.height = "auto";
-      titleRef.current.style.height = titleRef.current.scrollHeight + "px";
+      titleRef.current.style.height = "auto"
+      titleRef.current.style.height = titleRef.current.scrollHeight + "px"
     }
-  }, [title]);
+  }, [title])
 
   const handleTitleKeyDown = (e) => {
     if (e.key === "Enter") {
-      e.preventDefault();
-      editor?.chain().focus().run();
+      e.preventDefault()
+      editor?.chain().focus().run()
     }
-  };
+  }
 
   // Callback to open the link modal
   const showLinkModal = useCallback(() => {
-    const previousUrl = editor.getAttributes("link").href;
-    setLinkUrl(previousUrl || "");
-    setIsLinkModalVisible(true);
-  }, [editor]);
+    const previousUrl = editor.getAttributes("link").href
+    setLinkUrl(previousUrl || "")
+    setIsLinkModalVisible(true)
+  }, [editor])
 
   // Callback to handle closing the link modal
   const handleLinkModalCancel = () => {
-    setIsLinkModalVisible(false);
-    setLinkUrl("");
-  };
+    setIsLinkModalVisible(false)
+    setLinkUrl("")
+  }
 
   // Callback to handle setting the link from the modal
   const handleLinkModalOk = useCallback(() => {
     if (linkUrl) {
-      editor?.chain().focus().extendMarkRange("link").setLink({ href: linkUrl }).run();
+      editor?.chain().focus().extendMarkRange("link").setLink({ href: linkUrl }).run()
     } else {
-      editor?.chain().focus().extendMarkRange("link").unsetLink().run();
+      editor?.chain().focus().extendMarkRange("link").unsetLink().run()
     }
-    setIsLinkModalVisible(false);
-    setLinkUrl("");
-  }, [editor, linkUrl]);
+    setIsLinkModalVisible(false)
+    setLinkUrl("")
+  }, [editor, linkUrl])
 
   // Callback to open the image modal
   const showImageModal = useCallback(() => {
-    setImageUrl("");
-    setImageAlt("");
-    setIsImageModalVisible(true);
-  }, []);
+    setImageUrl("")
+    setImageAlt("")
+    setIsImageModalVisible(true)
+  }, [])
 
   // Callback to handle closing the image modal
   const handleImageModalCancel = () => {
-    setIsImageModalVisible(false);
-    setImageUrl("");
-    setImageAlt("");
-  };
+    setIsImageModalVisible(false)
+    setImageUrl("")
+    setImageAlt("")
+  }
 
   // Callback to handle inserting the image from the modal
   const handleImageModalOk = useCallback(() => {
     if (imageUrl) {
-      editor
-        ?.chain()
-        .focus()
-        .setImage({ src: imageUrl, alt: imageAlt })
-        .run();
+      editor?.chain().focus().setImage({ src: imageUrl, alt: imageAlt }).run()
     }
-    setIsImageModalVisible(false);
-    setImageUrl("");
-    setImageAlt("");
-  }, [editor, imageUrl, imageAlt]);
+    setIsImageModalVisible(false)
+    setImageUrl("")
+    setImageAlt("")
+  }, [editor, imageUrl, imageAlt])
 
   // Font change handler
   const handleFontChange = (value) => {
-    setFontFamily(value);
+    setFontFamily(value)
     if (editor) {
-      editor.commands.setContent(
-        editor.getHTML(),
-        false,
-        {
-          preserveWhitespace: true,
-          rootBlock: {
-            attributes: {
-              style: `font-family: ${value}, sans-serif;`,
-            },
+      editor.commands.setContent(editor.getHTML(), false, {
+        preserveWhitespace: true,
+        rootBlock: {
+          attributes: {
+            style: `font-family: ${value}, sans-serif;`,
           },
-        }
-      );
+        },
+      })
     }
-  };
+  }
 
   // Copy content to clipboard
   const handleCopyContent = () => {
     if (editor) {
-      const content = editor.getHTML();
+      const content = editor.getHTML()
       navigator.clipboard.writeText(content).then(
         () => {
-          message.success("Content copied to clipboard!");
+          message.success("Content copied to clipboard!")
         },
         () => {
-          message.error("Failed to copy content.");
+          message.error("Failed to copy content.")
         }
-      );
+      )
     }
-  };
+  }
 
   if (!editor) {
-    return null;
+    return null
   }
 
   const toolbarButtons = [
@@ -352,7 +342,7 @@ const RichTextEditor = ({ title, onTitleChange, onContentChange }) => {
       isActive: false,
       title: "Copy Content",
     },
-  ];
+  ]
 
   return (
     <div className="h-full flex flex-col bg-white">
@@ -383,47 +373,42 @@ const RichTextEditor = ({ title, onTitleChange, onContentChange }) => {
           >
             <LinkIcon className="w-4 h-4" />
           </ToolbarButton>
-          <ToolbarButton
-            onClick={showImageModal}
-            title="Insert Image"
-            isActive={false}
-          >
+          <ToolbarButton onClick={showImageModal} title="Insert Image" isActive={false}>
             <ImageIcon className="w-4 h-4" />
           </ToolbarButton>
         </BubbleMenu>
       )}
       <div className="flex-1 overflow-y-auto">
         <div className="px-8 py-12">
-          <textarea
-            ref={titleRef}
-            value={title}
-            onChange={(e) => onTitleChange(e.target.value)}
-            onKeyDown={handleTitleKeyDown}
-            placeholder="Your Title..."
-            className="w-full text-4xl font-bold bg-transparent border-none outline-none resize-none overflow-hidden leading-tight mb-8"
-            rows={1}
-          />
+          <div className="p-4 border border-gray-200 rounded-lg mb-5">
+            <textarea
+              ref={titleRef}
+              value={title}
+              onChange={(e) => onTitleChange(e.target.value)}
+              onKeyDown={handleTitleKeyDown}
+              placeholder="Your Title..."
+              className="w-full text-4xl font-bold bg-transparent border-none outline-none resize-none overflow-hidden leading-tight "
+              rows={1}
+            />
+          </div>
 
           <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-2 flex items-center space-x-1 mb-4">
             {toolbarButtons.map((button, index) => {
-              const Icon = button.icon;
+              const Icon = button.icon
               return (
                 <Tooltip key={index} title={button.title} arrow>
                   <span>
-                    <ToolbarButton
-                      onClick={button.command}
-                      isActive={button.isActive}
-                    >
+                    <ToolbarButton onClick={button.command} isActive={button.isActive}>
                       <Icon className="w-4 h-4" />
                     </ToolbarButton>
                   </span>
                 </Tooltip>
-              );
+              )
             })}
             <Select
               defaultValue="Inter"
               onChange={handleFontChange}
-              className="w-32"
+              className="w-40"
               options={[
                 { value: "Inter", label: "Inter" },
                 { value: "Arial", label: "Arial" },
@@ -500,7 +485,7 @@ const RichTextEditor = ({ title, onTitleChange, onContentChange }) => {
         <div>Last saved: Just now</div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default RichTextEditor;
+export default RichTextEditor
