@@ -166,7 +166,7 @@ export default function ToolboxPage() {
     },
     {
       key: "humanize-content",
-      title: "Content Processor",
+      title: "Humanize Content",
       icon: <ImMagicWand className="text-blue-500" />,
       description:
         "Transform AI-generated text into natural, human-sounding content while preserving intent and clarity.",

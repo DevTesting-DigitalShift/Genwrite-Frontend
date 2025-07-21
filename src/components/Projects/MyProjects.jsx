@@ -34,7 +34,7 @@ import {
   ClockCircleOutlined,
 } from "@ant-design/icons";
 import { Helmet } from "react-helmet";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { archiveBlog, fetchAllBlogs, retryBlog } from "@store/slices/blogSlice";
 import moment from "moment";
 
@@ -58,7 +58,6 @@ const MyProjects = () => {
   const navigate = useNavigate();
   const { handlePopup } = useConfirmPopup();
   const dispatch = useDispatch();
-  const { blogs } = useSelector((state) => state.blog);
   const TRUNCATE_LENGTH = 120;
   const [totalBlogs, setTotalBlogs] = useState(0);
 

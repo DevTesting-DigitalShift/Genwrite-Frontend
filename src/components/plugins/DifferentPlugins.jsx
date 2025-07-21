@@ -41,7 +41,7 @@ const DifferentPlugins = ({
               </Button>
             </a>
             <Button block type="primary" onClick={onCheck} className="transition-all">
-              {wordpressStatus?.status === "200" ? "Connected" : "Connect"}
+              {wordpressStatus?.success ? "Connected" : "Connect"}
             </Button>
           </div>
         </div>
@@ -51,56 +51,3 @@ const DifferentPlugins = ({
 }
 
 export default DifferentPlugins
-
-// import React from "react";
-
-// const DifferentPlugins = ({
-//   pluginImage,
-//   pluginInstallUrl,
-//   pluginName,
-//   pluginTitle,
-//   name,
-//   updatedDate,
-//   onClick,
-// }) => {
-//   return (
-//     <div
-//       onClick={onClick}
-//       className="border-b-2 border-gray-200 cursor-pointer"
-//     >
-//       <div className="flex bg-white h-20 items-center justify-between px-3">
-//         <div>
-//           <img
-//             src={pluginImage}
-//             alt={pluginName}
-//             className="h-16 w-16 object-contain"
-//           />
-//         </div>
-//         <div className="flex-1 ml-4">
-//           <h2 className="text-lg text-black font-medium">{pluginName}</h2>
-//           <p className="text-sm text-gray-700">{pluginTitle}</p>
-//         </div>
-//         <div className="text-gray-700 text-sm">
-//           <span>{name}</span>
-//         </div>
-//         <div className="text-gray-700 text-sm">
-//           <span>Last Updated {updatedDate} months ago</span>
-//         </div>
-//         <div>
-//           <a
-//             href={pluginInstallUrl}
-//             target="_blank"
-//             rel="noopener noreferrer"
-//             onClick={(e) => e.stopPropagation()}
-//           >
-//             <button className="bg-blue-500 text-white text-sm font-normal px-4 py-2 rounded-md hover:bg-blue-600">
-//               Install
-//             </button>
-//           </a>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default DifferentPlugins;
