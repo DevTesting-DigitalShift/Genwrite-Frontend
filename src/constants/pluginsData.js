@@ -18,12 +18,16 @@ export const pluginsData = (setWordpressStatus) => [
         btn.disabled = true
 
         const res = await axiosInstance.get("/wordpress/check")
-        setWordpressStatus(res)
+        setWordpressStatus({
+          status: res.status,
+          message: res.data.message,
+          success: res.data.success,
+        })
         if (res.data.success) {
-          message.success(res.data.message) 
+          message.success(res.data.message)
         }
       } catch (err) {
-        console.err(err)
+        console.error(err)
         switch (err.status) {
           case 400:
             message.error("No wordpress link found. Add wordpress link into your profile.")
@@ -34,20 +38,10 @@ export const pluginsData = (setWordpressStatus) => [
           default:
             message.error("Wordpress Connection Error")
         }
-        // navigate("/profile")
       } finally {
         btn.innerText = "Connect"
         btn.disabled = false
       }
     },
   },
-  // {
-  //   id: 112,
-  //   pluginImage: "./Images/grammerly.png",
-  //   pluginInstallUrl: "https://grammerly.com",
-  //   pluginName: "Grammerly",
-  //   pluginTitle: "Background layer project vertical list thumbnail pixel.",
-  //   name: "Atlas",
-  //   updatedDate: "11",
-  // },
 ]
