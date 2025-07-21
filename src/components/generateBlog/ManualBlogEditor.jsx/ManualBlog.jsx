@@ -937,7 +937,7 @@ const ManualBlog = () => {
       {/* Main Editor Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Bar */}
-        <div className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shadow-sm">
+        <div className="h-16 bg-white border-b border-gray-200 flex items-center justify-between p-6 shadow-sm">
           <div className="flex items-center space-x-4">
             <h1 className="text-xl font-semibold text-gray-800">Blog Editor</h1>
             <div className="text-sm text-gray-500">
@@ -953,7 +953,6 @@ const ManualBlog = () => {
         </div>
 
         {/* Editor Container */}
-
         <RichTextEditor
           title={title}
           content={content}
