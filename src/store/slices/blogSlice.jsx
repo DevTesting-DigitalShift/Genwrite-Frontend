@@ -15,6 +15,7 @@ import {
   getBlogStatsById,
   getGeneratedTitles,
   createSimpleBlog,
+  getBlogStatus,
 } from "@api/blogApi"
 import { message } from "antd"
 
@@ -255,6 +256,18 @@ export const createManualBlog = createAsyncThunk(
   }
 )
 
+export const fetchBlogStatus = createAsyncThunk(
+  "blogs/fetchBlogStatus",
+  async (params = {}, { rejectWithValue }) => {
+    try {
+      const result = await getBlogStatus(params)
+      return result
+    } catch (error) {
+      return rejectWithValue(error.message)
+    }
+  }
+)
+
 // ------------------------ Initial State ------------------------
 
 const initialState = {
@@ -266,6 +279,7 @@ const initialState = {
   blogs: [],
   blogStats: {},
   generatedTitles: [],
+  blogStatus: null,
 }
 
 // ------------------------ Slice ------------------------
@@ -412,6 +426,18 @@ const blogSlice = createSlice({
         state.blogs.data.unshift(action.payload.blog) // or push depending on ordering
       })
       .addCase(createManualBlog.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload
+      })
+
+      .addCase(fetchBlogStatus.pending, (state) => {
+        state.loading = true
+      })
+      .addCase(fetchBlogStatus.fulfilled, (state, action) => {
+        state.loading = false
+        state.blogStatus = action.payload // Add `blogStatus` in initialState
+      })
+      .addCase(fetchBlogStatus.rejected, (state, action) => {
         state.loading = false
         state.error = action.payload
       })
