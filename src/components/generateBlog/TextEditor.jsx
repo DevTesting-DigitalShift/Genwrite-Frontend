@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useLayoutEffect, useMemo } from "react"
+import React, { useState, useEffect, useRef, useLayoutEffect, useMemo, useCallback } from "react"
 import { useEditor, EditorContent, BubbleMenu } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 import Link from "@tiptap/extension-link"
@@ -66,6 +66,7 @@ const TextEditor = ({
   const [showPreview, setShowPreview] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [editorReady, setEditorReady] = useState(false)
+  const [isEditorLoading, setIsEditorLoading] = useState(false) // New state for editor loading
   const [selectedFont, setSelectedFont] = useState(FONT_OPTIONS[0].value)
   const [selectionPosition, setSelectionPosition] = useState(null)
   const [showModelDropdown, setShowModelDropdown] = useState(false)
@@ -75,8 +76,8 @@ const TextEditor = ({
   const [originalContent, setOriginalContent] = useState(null)
   const [selectionRange, setSelectionRange] = useState({ from: 0, to: 0 })
   const [retryModalOpen, setRetryModalOpen] = useState(false)
-  const [linkModalOpen, setLinkModalOpen] = useState(false) // New state for link modal
-  const [linkUrl, setLinkUrl] = useState("") // New state for link URL
+  const [linkModalOpen, setLinkModalOpen] = useState(false)
+  const [linkUrl, setLinkUrl] = useState("")
   const [bubblePos, setBubblePos] = useState({ top: 0, left: 0 })
   const htmlEditorRef = useRef(null)
   const mdEditorRef = useRef(null)
@@ -95,10 +96,19 @@ const TextEditor = ({
 
   const safeContent = content ?? ""
 
-  // Memoize initial content to avoid redundant parsing
+  // Memoize initial content
   const initialContent = useMemo(() => {
     return safeContent ? marked.parse(safeContent, { gfm: true }) : "<p></p>"
   }, [safeContent])
+
+  // Handle tab switch loading
+  useEffect(() => {
+    setIsEditorLoading(true)
+    const timer = setTimeout(() => {
+      setIsEditorLoading(false)
+    }, 1500) // 1.5 seconds loading
+    return () => clearTimeout(timer)
+  }, [activeTab])
 
   // Show message for failed blog status
   useEffect(() => {
@@ -108,7 +118,7 @@ const TextEditor = ({
     }
   }, [blog?.status])
 
-  // Add custom styles for suggestions, fonts, and editor stability
+  // Add custom styles
   useEffect(() => {
     const style = document.createElement("style")
     style.innerHTML = `
@@ -148,6 +158,15 @@ const TextEditor = ({
         width: 100% !important;
         min-width: 100% !important;
       }
+      .editor-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: calc(100vh - 300px);
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+      }
     `
     document.head.appendChild(style)
     return () => document.head.removeChild(style)
@@ -164,7 +183,7 @@ const TextEditor = ({
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
-  // Initialize Tiptap editor with stable dependencies
+  // Initialize Tiptap editor
   const normalEditor = useEditor(
     {
       extensions: [
@@ -205,12 +224,12 @@ const TextEditor = ({
         },
       },
     },
-    [selectedFont, proofreadingResults] // Removed activeTab
+    [selectedFont, proofreadingResults]
   )
 
   const { activeSpan, bubbleRef, applyChange, rejectChange } = useProofreadingUI(normalEditor)
 
-  // Update bubble menu position for proofreading
+  // Update bubble menu position
   useLayoutEffect(() => {
     if (activeSpan instanceof HTMLElement && bubbleRef.current) {
       const spanRect = activeSpan.getBoundingClientRect()
@@ -764,17 +783,19 @@ const TextEditor = ({
   )
 
   const renderContentArea = () => {
-    if (!editorReady || blog?.status === "pending") {
+    // Show loading state when editor is loading
+    if (isEditorLoading || !editorReady || blog?.status === "pending") {
       return (
-        <div className="h-[calc(100vh-200px)] p-4 flex items-center justify-center editor-container">
+        <div className="editor-loading">
           <Loading />
         </div>
       )
     }
+
     if (showPreview && (activeTab === "markdown" || activeTab === "html")) {
       return (
         <div
-          className={`h-[calc(100vh-200px)] p-6 border rounded-md overflow-y-auto bg-white ${selectedFont} editor-container`}
+          className={`h-[calc(100vh-300px)] p-6 border rounded-md overflow-y-auto bg-white ${selectedFont} editor-container`}
         >
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
@@ -991,7 +1012,6 @@ const TextEditor = ({
                   position: "absolute",
                   top: bubblePos.top,
                   left: bubblePos.left,
-                  // zIndex: 5,
                 }}
               >
                 <div style={{ marginBottom: 4 }}>
