@@ -177,3 +177,12 @@ export const createSimpleBlog = async (data) => {
     throw new Error(error.response?.data?.message || "Failed to create blog")
   }
 }
+
+export const getBlogStatus = async (params = {}) => {
+  try {
+    const response = await axiosInstance.get("/blogs/status", { params })
+    return response.data
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to fetch blog status")
+  }
+}
