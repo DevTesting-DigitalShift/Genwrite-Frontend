@@ -15,10 +15,9 @@ import {
 import { Helmet } from "react-helmet"
 import { motion } from "framer-motion"
 import { useDispatch, useSelector } from "react-redux"
-import { fetchVerifiedSites, connectGscAccount, fetchGscAuthUrl } from "@store/slices/gscSlice"
+import { fetchVerifiedSites, connectGscAccount, fetchGscAuthUrl, fetchGscAnalytics } from "@store/slices/gscSlice"
 import { message, Button, Spin, Table, Tag, Select, Input, Tooltip } from "antd"
 import { useNavigate, useSearchParams } from "react-router-dom"
-import axiosInstance from "@api/index"
 import Loading from "@components/Loading"
 import * as XLSX from "xlsx"
 import { fetchAllBlogs } from "@store/slices/blogSlice"
@@ -34,7 +33,6 @@ const SearchConsole = () => {
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [dateRange, setDateRange] = useState("30d")
   const [selectedBlog, setSelectedBlog] = useState("all")
-  const [blogData, setBlogData] = useState([])
   const [isLoading, setIsLoading] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)
   const [errorMessage, setErrorMessage] = useState(null)
@@ -44,7 +42,7 @@ const SearchConsole = () => {
   const user = useSelector(selectUser)
   const userPlan = (user?.plan || user?.subscription?.plan || "free").toLowerCase()
   const { blogs } = useSelector((state) => state.blog)
-  const { verifiedSites, loading: sitesLoading, error } = useSelector((state) => state.gsc)
+  const { analyticsData, loading: sitesLoading, error } = useSelector((state) => state.gsc)
 
   const navigate = useNavigate()
 
@@ -93,26 +91,22 @@ const SearchConsole = () => {
 
       const handleMessage = async (event) => {
         if (event.origin !== window.location.origin) return
-        const { code, state, error: popupError } = event.data
-        if (popupError) {
-          message.error(popupError || "Authentication failed")
-          setIsConnecting(false)
-          window.removeEventListener("message", handleMessage)
-          return
-        }
-        if (code && state) {
+        if (typeof event.data === "string" && event.data === "GSC Connected") {
           try {
-            await dispatch(connectGscAccount({ code, state })).unwrap()
+            await dispatch(fetchVerifiedSites()).unwrap()
             message.success("Google Search Console connected successfully!")
-            dispatch(fetchVerifiedSites())
             navigate("/search-console", { replace: true })
           } catch (err) {
-            message.error(err.message || "Failed to connect GSC account")
-            console.error("GSC connection error:", err)
+            message.error(err.message || "Failed to verify GSC connection")
+            console.error("GSC verification error:", err)
           } finally {
             setIsConnecting(false)
             window.removeEventListener("message", handleMessage)
           }
+        } else if (typeof event.data === "string") {
+          message.error(event.data || "Authentication failed")
+          setIsConnecting(false)
+          window.removeEventListener("message", handleMessage)
         }
       }
 
@@ -167,100 +161,73 @@ const SearchConsole = () => {
 
   // Fetch analytics data
   const fetchAnalyticsData = useCallback(async () => {
-    if (!verifiedSites.length) {
-      setBlogData([])
-      setIsLoading(false)
-      return
-    }
     setIsLoading(true)
     setErrorMessage(null)
     try {
       const { from, to } = getDateRangeParams()
-      const blogDataPromises = verifiedSites.map(async (site) => {
-        try {
-          const siteUrl = site.siteUrl
-          if (!siteUrl) {
-            throw new Error(`Invalid site URL for site: ${JSON.stringify(site)}`)
-          }
-          const params = {
-            siteUrl,
-            from,
-            to,
-            dimensions: ["page", "query"],
-          }
-          if (selectedBlog !== "all") {
-            params.blogUrl = selectedBlog
-          }
-          const response = await axiosInstance.get("/gsc/sites-data", {
-            params,
-            timeout: 30000,
-          })
-
-          if (!response.data?.data?.rows) {
-            throw new Error("No analytics data returned from API")
-          }
-
-          return response.data.data.rows.map((row, index) => ({
-            id: `${siteUrl}-${index}`,
-            url: row?.keys[0] || "",
-            clicks: row.clicks || 0,
-            impressions: row.impressions || 0,
-            ctr: row.ctr ? (row.ctr * 100).toFixed(2) : 0,
-            position: row.position ? row.position.toFixed(1) : 0,
-            keywords: row.keys?.length > 1 ? row.keys.slice(1) : [],
-            publishDate: new Date().toISOString().split("T")[0],
-          }))
-        } catch (siteError) {
-          console.error(`Error fetching data for site ${site.siteUrl}:`, siteError)
-          return []
-        }
-      })
-
-      const allBlogData = (await Promise.allSettled(blogDataPromises))
-        .filter((result) => result.status === "fulfilled")
-        .flatMap((result) => result.value)
-
-      setBlogData(allBlogData)
+      const params = {
+        from,
+        to,
+        page: currentPage,
+        limit: itemsPerPage,
+      }
+      if (selectedBlog !== "all") {
+        params.blogUrl = selectedBlog
+      }
+      const data = await dispatch(fetchGscAnalytics(params)).unwrap()
+      // Backend returns array directly
+      setBlogData(data.map((item, index) => ({
+        id: `${item.link}-${index}`,
+        url: item.link,
+        clicks: item.clicks,
+        impressions: item.impressions,
+        ctr: (item.ctr * 100).toFixed(2),
+        position: item.position.toFixed(1),
+        keywords: [item.key],
+        countryCode: item.countryCode,
+        countryName: item.countryName,
+        blogId: item.blogId,
+        blogTitle: item.blogTitle,
+      })))
     } catch (err) {
       console.error("Error fetching analytics data:", err)
-      let errorMessage = "Failed to load analytics data. Please try again."
-      if (err.response) {
-        switch (err.response.status) {
-          case 403:
-            errorMessage =
-              "You do not have access to one or more sites. Please reconnect your GSC account."
+      if (err.message) {
+        switch (err.message) {
+          case "You do not have access to the site":
+            errorMessage = "You do not have access to the site. Please reconnect your GSC account."
             break
-          case 400:
-            errorMessage = "Invalid query parameters. Please check your input."
+          case "Missing required query params: from, to":
+            errorMessage = "Invalid date range. Please check your input."
             break
-          case 429:
-            errorMessage = "Rate limit exceeded. Please try again later."
+          case "User does not have a linked WordPress site":
+            errorMessage = "Please link a WordPress site in your account settings."
             break
-          case 500:
-            errorMessage = "Server error. Please try again later or contact support."
+          case "No data found for the specified parameters":
+            errorMessage = "No data found for the selected filters."
             break
           default:
-            errorMessage = err.response.data?.error || errorMessage
+            errorMessage = err.message
         }
-      } else if (err.code === "ECONNABORTED") {
-        errorMessage = "Request timed out. Please check your network and try again."
       }
       setErrorMessage(errorMessage)
       message.error(errorMessage)
+      setBlogData([])
     } finally {
       setIsLoading(false)
     }
-  }, [verifiedSites, dateRange, selectedBlog, getDateRangeParams])
+  }, [dispatch, dateRange, selectedBlog, currentPage, itemsPerPage, getDateRangeParams])
 
-  // Fetch verified sites and analytics data
-  useEffect(() => {
-    dispatch(fetchVerifiedSites())
-  }, [dispatch])
+  const [blogData, setBlogData] = useState([])
 
   // Fetch analytics data when dependencies change
   useEffect(() => {
-    fetchAnalyticsData()
-  }, [fetchAnalyticsData])
+    if (user?.wordpressLink) {
+      fetchAnalyticsData()
+    } else {
+      setErrorMessage("Please link a WordPress site in your account settings.")
+      setIsLoading(false)
+    }
+  }, [fetchAnalyticsData, user])
 
   // Export data as Excel
   const handleExport = useCallback(async () => {
@@ -276,17 +243,19 @@ const SearchConsole = () => {
         "CTR (%)",
         "Avg Position",
         "URL",
-        "Publish Date",
+        "Country",
+        "Blog Title",
       ]
 
       const rows = blogData.map((blog) => ({
-        Keywords: Array.isArray(blog.keywords) ? blog.keywords.join(", ") : "",
+        Keywords: Array.isArray(blog.keywords) ? blog.keywords.join(", ") : blog.keywords,
         Clicks: blog.clicks,
         Impressions: blog.impressions,
         "CTR (%)": blog.ctr,
         "Avg Position": blog.position,
         URL: blog.url,
-        "Publish Date": blog.publishDate,
+        Country: blog.countryName,
+        "Blog Title": blog.blogTitle,
       }))
 
       const worksheet = XLSX.utils.json_to_sheet(rows, { header: headers })
@@ -328,7 +297,9 @@ const SearchConsole = () => {
         (blog.url || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
         (blog.keywords || []).some((keyword) =>
           (keyword || "").toLowerCase().includes(searchTerm.toLowerCase())
-        )
+        ) ||
+        (blog.blogTitle || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (blog.countryName || "").toLowerCase().includes(searchTerm.toLowerCase())
       return matchesSearch
     })
   }, [blogData, searchTerm])
@@ -359,6 +330,12 @@ const SearchConsole = () => {
           {keywords.length > 3 && <Tag color="default">+{keywords.length - 3} more</Tag>}
         </div>
       ),
+    },
+    {
+      title: "Blog Title",
+      dataIndex: "blogTitle",
+      key: "blogTitle",
+      render: (blogTitle) => <div className="font-medium">{blogTitle}</div>,
     },
     {
       title: "Clicks",
@@ -415,6 +392,14 @@ const SearchConsole = () => {
       align: "center",
     },
     {
+      title: "Country",
+      dataIndex: "countryName",
+      key: "countryName",
+      render: (countryName, record) => (
+        <div>{`${countryName} (${record.countryCode})`}</div>
+      ),
+    },
+    {
       title: "Actions",
       key: "actions",
       render: (_, record) => (
@@ -447,7 +432,7 @@ const SearchConsole = () => {
     return <Loading />
   }
 
-  if (!verifiedSites.length || error?.includes("No verified sites found")) {
+  if (!user?.gsc && !error?.includes("No data found")) {
     return (
       <div
         className="p-6 flex items-center justify-center"
@@ -622,7 +607,7 @@ const SearchConsole = () => {
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3">
             <div className="flex flex-col lg:flex-row gap-4">
               <AntSearch
-                placeholder="Search by URL or keywords..."
+                placeholder="Search by URL, keywords, or title..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 prefix={<Search className="w-5 h-5 text-gray-400 mr-2" />}

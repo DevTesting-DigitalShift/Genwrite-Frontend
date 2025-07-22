@@ -1,23 +1,39 @@
 import axiosInstance from "."
 
 export const getVerifiedSites = async () => {
-  const response = await axiosInstance.get("/gsc/sites")
-  return response.data.sites
+  try {
+    const response = await axiosInstance.get("/gsc/data")
+    return response.data || []
+  } catch (error) {
+    throw new Error(error.response?.data?.error || "Failed to fetch verified sites")
+  }
 }
 
 export const getGscAnalytics = async (params) => {
-  const response = await axiosInstance.get("/gsc/sites-data", { params })
-  return response.data.data.rows
+  try {
+    const response = await axiosInstance.get("/gsc/data", { params })
+    return response.data // Backend returns array of objects directly
+  } catch (error) {
+    throw new Error(error.response?.data?.error)
+  }
 }
 
-export const connectGsc = async (code) => {
-  const response = await axiosInstance.get("/gsc/callback", {
-    params: { code },
-  })
-  return response.data
+export const connectGsc = async ({ code, state }) => {
+  try {
+    const response = await axiosInstance.get("/gsc/callback", {
+      params: { code, state },
+    })
+    return response.data
+  } catch (error) {
+    throw new Error(error.response?.data?.error || "Failed to connect GSC")
+  }
 }
 
 export const getGscAuthUrl = async () => {
-  const response = await axiosInstance.get("/gsc/auth")
-  return response.data.url
+  try {
+    const response = await axiosInstance.get("/gsc/auth")
+    return response.data.url
+  } catch (error) {
+    throw new Error(error.response?.data?.error || "Failed to get auth URL")
+  }
 }

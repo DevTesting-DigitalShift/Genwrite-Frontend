@@ -5,10 +5,12 @@ export const fetchVerifiedSites = createAsyncThunk(
   "gsc/fetchVerifiedSites",
   async (_, { rejectWithValue }) => {
     try {
-      const sites = await getVerifiedSites()
-      return sites // Expecting { sites: [{ siteUrl, permissionLevel }, ...] } from backend
+      const data = await getVerifiedSites()
+      // Since backend doesn't return sites directly, we may need to derive from /gsc/data or user data
+      // For now, return empty array or fetch from another endpoint if added
+      return data
     } catch (error) {
-      return rejectWithValue(error.response?.data?.error || "Failed to fetch verified sites")
+      return rejectWithValue(error.message || "Failed to fetch verified sites")
     }
   }
 )
@@ -18,9 +20,9 @@ export const fetchGscAnalytics = createAsyncThunk(
   async (params, { rejectWithValue }) => {
     try {
       const data = await getGscAnalytics(params)
-      return data // Expecting { data: { rows: [{ keys, clicks, impressions, ctr, position }, ...] } }
+      return data // Array of { clicks, impressions, ctr, position, key, link, countryCode, countryName, blogId, blogTitle }
     } catch (error) {
-      return rejectWithValue(error.response?.data?.error || "Failed to fetch analytics data")
+      return rejectWithValue(error.message)
     }
   }
 )
@@ -30,9 +32,9 @@ export const connectGscAccount = createAsyncThunk(
   async ({ code, state }, { rejectWithValue }) => {
     try {
       const data = await connectGsc({ code, state })
-      return data // Expecting success message or data from backend
+      return data
     } catch (error) {
-      return rejectWithValue(error.response?.data?.error || "Failed to connect GSC")
+      return rejectWithValue(error.message || "Failed to connect GSC")
     }
   }
 )
@@ -42,9 +44,9 @@ export const fetchGscAuthUrl = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const url = await getGscAuthUrl()
-      return url // Just the string URL
+      return url
     } catch (error) {
-      return rejectWithValue(error.response?.data?.error || "Failed to get auth URL")
+      return rejectWithValue(error.message || "Failed to get auth URL")
     }
   }
 )
@@ -52,7 +54,7 @@ export const fetchGscAuthUrl = createAsyncThunk(
 const gscSlice = createSlice({
   name: "gsc",
   initialState: {
-    verifiedSites: [],
+    verifiedSites: [], // Will need backend endpoint to fetch verified sites
     analyticsData: [],
     gscAuthUrl: null,
     loading: false,
@@ -77,7 +79,6 @@ const gscSlice = createSlice({
         state.loading = false
         state.error = action.payload
       })
-      
       .addCase(fetchGscAnalytics.pending, (state) => {
         state.loading = true
         state.error = null
@@ -90,7 +91,6 @@ const gscSlice = createSlice({
         state.loading = false
         state.error = action.payload
       })
-
       .addCase(connectGscAccount.pending, (state) => {
         state.loading = true
         state.error = null
@@ -102,7 +102,6 @@ const gscSlice = createSlice({
         state.loading = false
         state.error = action.payload
       })
-
       .addCase(fetchGscAuthUrl.pending, (state) => {
         state.loading = true
         state.error = null
