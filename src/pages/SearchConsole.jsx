@@ -15,7 +15,12 @@ import {
 import { Helmet } from "react-helmet"
 import { motion } from "framer-motion"
 import { useDispatch, useSelector } from "react-redux"
-import { fetchVerifiedSites, connectGscAccount, fetchGscAuthUrl, fetchGscAnalytics } from "@store/slices/gscSlice"
+import {
+  fetchVerifiedSites,
+  connectGscAccount,
+  fetchGscAuthUrl,
+  fetchGscAnalytics,
+} from "@store/slices/gscSlice"
 import { message, Button, Spin, Table, Tag, Select, Input, Tooltip } from "antd"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import Loading from "@components/Loading"
@@ -168,49 +173,50 @@ const SearchConsole = () => {
       const params = {
         from,
         to,
-        page: currentPage,
-        limit: itemsPerPage,
       }
       if (selectedBlog !== "all") {
         params.blogUrl = selectedBlog
       }
       const data = await dispatch(fetchGscAnalytics(params)).unwrap()
       // Backend returns array directly
-      setBlogData(data.map((item, index) => ({
-        id: `${item.link}-${index}`,
-        url: item.link,
-        clicks: item.clicks,
-        impressions: item.impressions,
-        ctr: (item.ctr * 100).toFixed(2),
-        position: item.position.toFixed(1),
-        keywords: [item.key],
-        countryCode: item.countryCode,
-        countryName: item.countryName,
-        blogId: item.blogId,
-        blogTitle: item.blogTitle,
-      })))
+      setBlogData(
+        data.map((item, index) => ({
+          id: `${item.link}-${index}`,
+          url: item.link,
+          clicks: item.clicks,
+          impressions: item.impressions,
+          ctr: (item.ctr * 100).toFixed(2),
+          position: item.position.toFixed(1),
+          keywords: [item.key],
+          countryCode: item.countryCode,
+          countryName: item.countryName,
+          blogId: item.blogId,
+          blogTitle: item.blogTitle,
+        }))
+      )
     } catch (err) {
       console.error("Error fetching analytics data:", err)
       if (err.message) {
+        let error = ""
         switch (err.message) {
           case "You do not have access to the site":
-            errorMessage = "You do not have access to the site. Please reconnect your GSC account."
+            error = "You do not have access to the site. Please reconnect your GSC account."
             break
           case "Missing required query params: from, to":
-            errorMessage = "Invalid date range. Please check your input."
+            error = "Invalid date range. Please check your input."
             break
           case "User does not have a linked WordPress site":
-            errorMessage = "Please link a WordPress site in your account settings."
+            error = "Please link a WordPress site in your account settings."
             break
           case "No data found for the specified parameters":
-            errorMessage = "No data found for the selected filters."
+            error = "No data found for the selected filters."
             break
           default:
-            errorMessage = err.message
+            error = err.message
         }
       }
-      setErrorMessage(errorMessage)
-      message.error(errorMessage)
+      setErrorMessage(error)
+      message.error(error)
       setBlogData([])
     } finally {
       setIsLoading(false)
@@ -395,9 +401,7 @@ const SearchConsole = () => {
       title: "Country",
       dataIndex: "countryName",
       key: "countryName",
-      render: (countryName, record) => (
-        <div>{`${countryName} (${record.countryCode})`}</div>
-      ),
+      render: (countryName, record) => <div>{`${countryName} (${record.countryCode})`}</div>,
     },
     {
       title: "Actions",
