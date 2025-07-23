@@ -40,6 +40,8 @@ const initialJob = {
     userDefinedLength: 1000,
     imageSource: "unsplash",
     aiModel: "gemini",
+    brandId: null,
+    useBrandVoice: false,
   },
   options: {
     wordpressPosting: false,
@@ -48,9 +50,7 @@ const initialJob = {
     includeInterlinks: false,
     performKeywordResearch: false,
     includeTableOfContents: false,
-    outboundLinks: false,
-    isCheckedBrand: false,
-    brandId: null, // Add brandId to options
+    addOutBoundLinks: false,
   },
   status: "active",
 }
@@ -178,7 +178,7 @@ const Jobs = () => {
         errors.keywords = true
         message.error("Please add at least one keyword or enable keyword research.")
       }
-      if (newJob.options.isCheckedBrand && !newJob.options.brandId) {
+      if (newJob.blogs.useBrandVoice && !newJob.blogs.brandId) {
         errors.brandId = true
         message.error("Please select a brand voice.")
       }
@@ -241,7 +241,7 @@ const Jobs = () => {
       options: {
         ...newJob.options,
         performKeywordResearch: formData.performKeywordResearch,
-        brandId: newJob.options.isCheckedBrand ? newJob.options.brandId : null, // Include brandId
+        brandId: newJob.blogs.useBrandVoice ? newJob.blogs.brandId : null, // Include brandId
       },
     }
     dispatch(
@@ -270,7 +270,7 @@ const Jobs = () => {
       options: {
         ...newJob.options,
         performKeywordResearch: formData.performKeywordResearch,
-        brandId: newJob.options.isCheckedBrand ? newJob.options.brandId : null, // Include brandId
+        brandId: newJob.blogs.useBrandVoice ? newJob.blogs.brandId : null, // Include brandId
       },
     }
     dispatch(
@@ -974,7 +974,7 @@ const Jobs = () => {
                     ? [
                         {
                           label: "Show Outbound Links",
-                          name: "outboundLinks",
+                          name: "addOutBoundLinks",
                           desc: "Add outbound links to relevant competitor content.",
                         },
                       ]
@@ -1006,25 +1006,26 @@ const Jobs = () => {
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
                       type="checkbox"
-                      checked={newJob.options.isCheckedBrand}
+                      checked={newJob.blogs.useBrandVoice}
                       onChange={() => {
                         setNewJob((prev) => ({
                           ...prev,
-                          options: {
-                            ...prev.options,
-                            isCheckedBrand: !prev.options.isCheckedBrand,
-                            brandId: !prev.options.isCheckedBrand ? prev.options.brandId : null,
+                          blogs: {
+                            ...prev.blogs,
+                            useBrandVoice: !prev.blogs.useBrandVoice,
+                            brandId: !prev.blogs.useBrandVoice ? prev.blogs.brandId : null,
                           },
                         }))
                         setErrors((prev) => ({ ...prev, brandId: false }))
                       }}
                       className="sr-only peer"
-                      aria-checked={newJob.options.isCheckedBrand}
+                      aria-checked={newJob.blogs.useBrandVoice}
                     />
                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]" />
                   </label>
                 </div>
-                {newJob.options.isCheckedBrand && (
+                {console.log(newJob.blogs.useBrandVoice)}
+                {newJob.blogs.useBrandVoice && (
                   <div className="mt-3 p-4 rounded-md border border-gray-200 bg-gray-50">
                     {loadingBrands ? (
                       <div className="text-gray-500 text-sm">Loading brand voices...</div>
@@ -1037,7 +1038,7 @@ const Jobs = () => {
                             <label
                               key={voice._id}
                               className={`flex items-start gap-2 p-3 rounded-md cursor-pointer ${
-                                newJob.options.brandId === voice._id
+                                newJob.blogs.brandId === voice._id
                                   ? "bg-blue-100 border-blue-300"
                                   : "bg-white border border-gray-200"
                               } ${errors.brandId ? "border-red-500" : ""}`}
@@ -1046,11 +1047,11 @@ const Jobs = () => {
                                 type="radio"
                                 name="selectedBrandVoice"
                                 value={voice._id}
-                                checked={newJob.options.brandId === voice._id}
+                                checked={newJob.blogs.brandId === voice._id}
                                 onChange={() => {
                                   setNewJob((prev) => ({
                                     ...prev,
-                                    options: { ...prev.options, brandId: voice._id },
+                                    blogs: { ...prev.blogs, brandId: voice._id },
                                   }))
                                   setErrors((prev) => ({ ...prev, brandId: false }))
                                 }}
