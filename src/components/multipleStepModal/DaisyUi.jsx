@@ -50,6 +50,7 @@ const MultiStepModal = ({ closeFnc }) => {
     aiModel: "gemini",
     includeTableOfContents: false,
     isCheckedGeneratedImages: true,
+    outboundLinks: false
   })
 
   const handleNext = () => {
@@ -880,6 +881,26 @@ const MultiStepModal = ({ closeFnc }) => {
                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]"></div>
               </label>
             </div>
+            {formData.useCompetitors && (
+              <div className="flex items-center justify-between mt-2">
+                <span className="text-sm font-medium text-gray-700">
+                  Show Outbound Links
+                  <p className="text-xs text-gray-500">
+                    Display outbound links found during competitor analysis.
+                  </p>
+                </span>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="outboundLinks"
+                    checked={formData.outboundLinks}
+                    onChange={handleCheckboxChange}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]" />
+                </label>
+              </div>
+            )}
             <div className="pt-4 border-t border-gray-200">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">

@@ -11,31 +11,41 @@ import {
   LogIn,
   Link,
   Download,
+  RotateCcw,
 } from "lucide-react"
 import { Helmet } from "react-helmet"
 import { motion } from "framer-motion"
 import { useDispatch, useSelector } from "react-redux"
-import { fetchVerifiedSites, connectGscAccount, fetchGscAuthUrl, fetchGscAnalytics } from "@store/slices/gscSlice"
-import { message, Button, Spin, Table, Tag, Select, Input, Tooltip } from "antd"
+import {
+  fetchVerifiedSites,
+  connectGscAccount,
+  fetchGscAuthUrl,
+  fetchGscAnalytics,
+  clearAnalytics,
+} from "@store/slices/gscSlice"
+import { message, Button, Table, Tag, Select, Input, Tooltip, DatePicker } from "antd"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import Loading from "@components/Loading"
 import * as XLSX from "xlsx"
 import { fetchAllBlogs } from "@store/slices/blogSlice"
 import { selectUser } from "@store/slices/authSlice"
 import UpgradeModal from "@components/UpgradeModal"
+import moment from "moment"
 
 const { Option } = Select
 const { Search: AntSearch } = Input
+const { RangePicker } = DatePicker
 
 const SearchConsole = () => {
   const [searchTerm, setSearchTerm] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [dateRange, setDateRange] = useState("30d")
+  const [customDateRange, setCustomDateRange] = useState([null, null])
   const [selectedBlog, setSelectedBlog] = useState("all")
+  const [selectedCountry, setSelectedCountry] = useState("all")
   const [isLoading, setIsLoading] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)
-  const [errorMessage, setErrorMessage] = useState(null)
   const [searchParams, setSearchParams] = useSearchParams()
 
   const dispatch = useDispatch()
@@ -53,28 +63,82 @@ const SearchConsole = () => {
 
   // Calculate date range for API request
   const getDateRangeParams = useCallback(() => {
-    const to = new Date()
-    const from = new Date()
-    switch (dateRange) {
-      case "7d":
-        from.setDate(to.getDate() - 7)
-        break
-      case "90d":
-        from.setDate(to.getDate() - 90)
-        break
-      case "1y":
-        from.setFullYear(to.getFullYear() - 1)
-        break
-      case "30d":
-      default:
-        from.setDate(to.getDate() - 30)
-        break
+    let from, to
+    if (customDateRange[0] && customDateRange[1]) {
+      from = customDateRange[0].startOf("day").toISOString().split("T")[0]
+      to = customDateRange[1].endOf("day").toISOString().split("T")[0]
+    } else {
+      to = new Date()
+      from = new Date()
+      switch (dateRange) {
+        case "7d":
+          from.setDate(to.getDate() - 7)
+          break
+        case "30d":
+          from.setDate(to.getDate() - 30)
+          break
+        case "180d":
+          from.setDate(to.getDate() - 180)
+          break
+        default:
+          from.setDate(to.getDate() - 30)
+      }
+      from = from.toISOString().split("T")[0]
+      to = to.toISOString().split("T")[0]
     }
-    return {
-      from: from.toISOString().split("T")[0],
-      to: to.toISOString().split("T")[0],
+    return { from, to }
+  }, [dateRange, customDateRange])
+
+  // Fetch analytics data
+  const fetchAnalyticsData = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const { from, to } = getDateRangeParams()
+      const params = {
+        from,
+        to,
+        page: currentPage,
+        limit: itemsPerPage,
+      }
+      if (selectedBlog !== "all") {
+        params.blogUrl = selectedBlog
+      }
+      if (selectedCountry !== "all") {
+        params.countryCode = selectedCountry
+      }
+      const data = await dispatch(fetchGscAnalytics(params)).unwrap()
+      setBlogData(
+        data.map((item, index) => ({
+          id: `${item.link}-${index}`,
+          url: item.link,
+          clicks: item.clicks,
+          impressions: item.impressions,
+          ctr: (item.ctr * 100).toFixed(2),
+          position: item.position.toFixed(1),
+          keywords: [item.key].map((k) => (k.length > 50 ? `${k.substring(0, 47)}...` : k)),
+          countryCode: item.countryCode,
+          countryName: item.countryName,
+          blogId: item.blogId,
+          blogTitle: item.blogTitle,
+        }))
+      )
+    } catch (err) {
+      const errorMessage = err.message || err.error || "Failed to fetch analytics data"
+      message.error(errorMessage)
+      console.error("Error fetching analytics data:", err)
+      setBlogData([])
+    } finally {
+      setIsLoading(false)
     }
-  }, [dateRange])
+  }, [
+    dispatch,
+    dateRange,
+    selectedBlog,
+    selectedCountry,
+    currentPage,
+    itemsPerPage,
+    getDateRangeParams,
+  ])
 
   // Google Search Console authentication
   const connectGSC = useCallback(async () => {
@@ -96,8 +160,10 @@ const SearchConsole = () => {
             await dispatch(fetchVerifiedSites()).unwrap()
             message.success("Google Search Console connected successfully!")
             navigate("/search-console", { replace: true })
+            fetchAnalyticsData()
           } catch (err) {
-            message.error(err.message || "Failed to verify GSC connection")
+            const errorMessage = err.message || err.error || "Failed to verify GSC connection"
+            message.error(errorMessage)
             console.error("GSC verification error:", err)
           } finally {
             setIsConnecting(false)
@@ -121,11 +187,12 @@ const SearchConsole = () => {
         }
       }, 1000)
     } catch (err) {
-      message.error(err.message || "Failed to initiate GSC connection")
+      const errorMessage = err.message || err.error || "Failed to initiate GSC connection"
+      message.error(errorMessage)
       console.error("GSC auth error:", err)
       setIsConnecting(false)
     }
-  }, [dispatch, navigate])
+  }, [dispatch, navigate, fetchAnalyticsData])
 
   // Handle OAuth callback
   useEffect(() => {
@@ -134,7 +201,7 @@ const SearchConsole = () => {
     const error = searchParams.get("error")
 
     if (error) {
-      setErrorMessage(`Authentication failed: ${error}`)
+      message.error(`Authentication failed: ${error}`)
       setSearchParams({}, { replace: true })
       setIsConnecting(false)
       return
@@ -148,8 +215,10 @@ const SearchConsole = () => {
           message.success("Google Search Console connected successfully!")
           dispatch(fetchVerifiedSites())
           setSearchParams({}, { replace: true })
+          fetchAnalyticsData()
         } catch (err) {
-          setErrorMessage(err.message || "Failed to connect GSC account")
+          const errorMessage = err.message || err.error || "Failed to connect GSC account"
+          message.error(errorMessage)
           console.error("OAuth callback error:", err)
         } finally {
           setIsConnecting(false)
@@ -157,77 +226,24 @@ const SearchConsole = () => {
       }
       connect()
     }
-  }, [searchParams, dispatch, setSearchParams])
-
-  // Fetch analytics data
-  const fetchAnalyticsData = useCallback(async () => {
-    setIsLoading(true)
-    setErrorMessage(null)
-    try {
-      const { from, to } = getDateRangeParams()
-      const params = {
-        from,
-        to,
-        page: currentPage,
-        limit: itemsPerPage,
-      }
-      if (selectedBlog !== "all") {
-        params.blogUrl = selectedBlog
-      }
-      const data = await dispatch(fetchGscAnalytics(params)).unwrap()
-      // Backend returns array directly
-      setBlogData(data.map((item, index) => ({
-        id: `${item.link}-${index}`,
-        url: item.link,
-        clicks: item.clicks,
-        impressions: item.impressions,
-        ctr: (item.ctr * 100).toFixed(2),
-        position: item.position.toFixed(1),
-        keywords: [item.key],
-        countryCode: item.countryCode,
-        countryName: item.countryName,
-        blogId: item.blogId,
-        blogTitle: item.blogTitle,
-      })))
-    } catch (err) {
-      console.error("Error fetching analytics data:", err)
-      if (err.message) {
-        switch (err.message) {
-          case "You do not have access to the site":
-            errorMessage = "You do not have access to the site. Please reconnect your GSC account."
-            break
-          case "Missing required query params: from, to":
-            errorMessage = "Invalid date range. Please check your input."
-            break
-          case "User does not have a linked WordPress site":
-            errorMessage = "Please link a WordPress site in your account settings."
-            break
-          case "No data found for the specified parameters":
-            errorMessage = "No data found for the selected filters."
-            break
-          default:
-            errorMessage = err.message
-        }
-      }
-      setErrorMessage(errorMessage)
-      message.error(errorMessage)
-      setBlogData([])
-    } finally {
-      setIsLoading(false)
-    }
-  }, [dispatch, dateRange, selectedBlog, currentPage, itemsPerPage, getDateRangeParams])
+  }, [searchParams, dispatch, setSearchParams, fetchAnalyticsData])
 
   const [blogData, setBlogData] = useState([])
 
-  // Fetch analytics data when dependencies change
   useEffect(() => {
-    if (user?.wordpressLink) {
+    if (user?.gsc) {
       fetchAnalyticsData()
-    } else {
-      setErrorMessage("Please link a WordPress site in your account settings.")
-      setIsLoading(false)
     }
-  }, [fetchAnalyticsData, user])
+    return () => {
+      dispatch(clearAnalytics())
+    }
+  }, [fetchAnalyticsData, user, dispatch])
+
+  // Reset date range to default (30d)
+  const resetDateRange = useCallback(() => {
+    setCustomDateRange([null, null])
+    setDateRange("30d")
+  }, [])
 
   // Export data as Excel
   const handleExport = useCallback(async () => {
@@ -242,9 +258,9 @@ const SearchConsole = () => {
         "Impressions",
         "CTR (%)",
         "Avg Position",
+        "Blog Title",
         "URL",
         "Country",
-        "Blog Title",
       ]
 
       const rows = blogData.map((blog) => ({
@@ -265,8 +281,9 @@ const SearchConsole = () => {
       XLSX.writeFile(workbook, fileName)
       message.success("Data exported successfully")
     } catch (err) {
+      const errorMessage = err.message || err.error || "Failed to export data"
+      message.error(errorMessage)
       console.error("Error exporting data:", err)
-      message.error("Failed to export data. Please try again.")
     }
   }, [blogData])
 
@@ -289,6 +306,12 @@ const SearchConsole = () => {
     )
   }, [blogData])
 
+  // Get unique countries for filter
+  const countries = useMemo(() => {
+    const countrySet = new Set(blogData.map((blog) => blog.countryCode).filter(Boolean))
+    return ["all", ...countrySet]
+  }, [blogData])
+
   // Filtering logic for table
   const filteredData = useMemo(() => {
     return blogData.filter((blog) => {
@@ -300,15 +323,16 @@ const SearchConsole = () => {
         ) ||
         (blog.blogTitle || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
         (blog.countryName || "").toLowerCase().includes(searchTerm.toLowerCase())
-      return matchesSearch
+      const matchesCountry = selectedCountry === "all" || blog.countryCode === selectedCountry
+      return matchesSearch && matchesCountry
     })
-  }, [blogData, searchTerm])
+  }, [blogData, searchTerm, selectedCountry])
 
   // Get unique blog URLs for selection
   const blogUrls = useMemo(() => {
     const urls = new Set(
       blogs.data
-        ?.filter((blog) => blog?.taskStatus?.wordpress === "done")
+        ?.filter((blog) => blog.status === "complete" && blog.wordpress)
         .map((blog) => blog.url || blog.title)
     )
     return ["all", ...urls]
@@ -317,25 +341,25 @@ const SearchConsole = () => {
   // Ant Design Table Columns
   const columns = [
     {
+      title: "Blog Title",
+      dataIndex: "blogTitle",
+      key: "blogTitle",
+      render: (blogTitle) => <div className="font-medium">{blogTitle}</div>,
+    },
+    {
       title: "Keywords",
       dataIndex: "keywords",
       key: "keywords",
       render: (keywords) => (
         <div className="flex flex-wrap gap-1 max-w-xs">
           {keywords.slice(0, 3).map((keyword, idx) => (
-            <Tag key={idx} color="blue">
-              {keyword}
-            </Tag>
+            <Tooltip key={idx} title={keyword.length > 50 ? keyword : null}>
+              <Tag color="blue">{keyword}</Tag>
+            </Tooltip>
           ))}
           {keywords.length > 3 && <Tag color="default">+{keywords.length - 3} more</Tag>}
         </div>
       ),
-    },
-    {
-      title: "Blog Title",
-      dataIndex: "blogTitle",
-      key: "blogTitle",
-      render: (blogTitle) => <div className="font-medium">{blogTitle}</div>,
     },
     {
       title: "Clicks",
@@ -395,9 +419,7 @@ const SearchConsole = () => {
       title: "Country",
       dataIndex: "countryName",
       key: "countryName",
-      render: (countryName, record) => (
-        <div>{`${countryName} (${record.countryCode})`}</div>
-      ),
+      render: (countryName, record) => <div>{`${countryName} (${record.countryCode})`}</div>,
     },
     {
       title: "Actions",
@@ -425,11 +447,6 @@ const SearchConsole = () => {
   // Render UpgradeModal if user is on free or basic plan
   if (userPlan === "free" || userPlan === "basic") {
     return <UpgradeModal featureName={"Google Search Console"} />
-  }
-
-  // GSC Connection UI
-  if (sitesLoading) {
-    return <Loading />
   }
 
   if (!user?.gsc && !error?.includes("No data found")) {
@@ -507,12 +524,27 @@ const SearchConsole = () => {
             <p className="text-gray-600">Monitor your blog performance and search analytics</p>
           </div>
           <div className="flex items-center gap-3">
-            <Select value={dateRange} onChange={(value) => setDateRange(value)} className="w-32">
-              <Option value="7d">Last 7 days</Option>
-              <Option value="30d">Last 30 days</Option>
-              <Option value="90d">Last 90 days</Option>
-              <Option value="1y">Last year</Option>
-            </Select>
+            <Button
+              onClick={() => setDateRange("7d")}
+              type={dateRange === "7d" && !customDateRange[0] ? "primary" : "default"}
+              className="flex items-center gap-2"
+            >
+              Last 7 Days
+            </Button>
+            <Button
+              onClick={() => setDateRange("30d")}
+              type={dateRange === "30d" && !customDateRange[0] ? "primary" : "default"}
+              className="flex items-center gap-2"
+            >
+              Last 30 Days
+            </Button>
+            <Button
+              onClick={() => setDateRange("180d")}
+              type={dateRange === "180d" && !customDateRange[0] ? "primary" : "default"}
+              className="flex items-center gap-2"
+            >
+              Last 6 Months
+            </Button>
             <Button
               icon={<Download className="w-4 h-4" />}
               onClick={handleExport}
@@ -531,25 +563,6 @@ const SearchConsole = () => {
             </Button>
           </div>
         </div>
-
-        {/* Error Message */}
-        {errorMessage && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-red-100 text-red-800 p-4 rounded-lg text-sm"
-          >
-            {errorMessage}
-            {(errorMessage.includes("reconnect") ||
-              errorMessage.includes("unauthorized_client")) && (
-              <div className="mt-2">
-                <Button type="link" onClick={connectGSC} disabled={isConnecting}>
-                  Reconnect GSC
-                </Button>
-              </div>
-            )}
-          </motion.div>
-        )}
 
         {/* Loading State */}
         {isLoading && <Loading />}
@@ -624,6 +637,33 @@ const SearchConsole = () => {
                   </Option>
                 ))}
               </Select>
+              <Select
+                value={selectedCountry}
+                onChange={(value) => setSelectedCountry(value)}
+                className="w-2/3"
+                placeholder="Select Country"
+              >
+                {countries.map((country) => (
+                  <Option key={country} value={country}>
+                    {country === "all" ? "All Countries" : country}
+                  </Option>
+                ))}
+              </Select>
+              <div className="flex items-center gap-2">
+                <RangePicker
+                  value={customDateRange}
+                  onChange={(dates) => setCustomDateRange(dates)}
+                  disabledDate={(current) => current && current > moment().endOf("day")}
+                  className="w-2/3"
+                />
+                <Button
+                  icon={<RotateCcw className="w-4 h-4" />}
+                  onClick={resetDateRange}
+                  className="flex items-center gap-2"
+                >
+                  Reset
+                </Button>
+              </div>
             </div>
           </div>
         )}
@@ -648,7 +688,9 @@ const SearchConsole = () => {
             }}
             className="bg-white rounded-2xl shadow-sm border border-gray-100"
             locale={{
-              emptyText: "No data available. Try adjusting your filters or refreshing the data.",
+              emptyText: error
+                ? `Error: ${error}. Please try refreshing or reconnecting GSC.`
+                : "No data available. Try adjusting your filters or refreshing the data.",
             }}
           />
         )}

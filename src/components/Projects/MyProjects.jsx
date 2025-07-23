@@ -187,6 +187,10 @@ const MyProjects = () => {
     navigate(`/toolbox/${blog._id}`);
   };
 
+  const handleManualBlogClick = (blog) => {
+    navigate(`/blog-editor/${blog._id}`);
+  };
+
   // Handle retry
   const handleRetry = async (id) => {
     try {
@@ -660,7 +664,7 @@ const MyProjects = () => {
                     {isManualEditor ? (
                       <div
                         className="cursor-pointer"
-                        onClick={() => navigate(`/blog-editor`)}
+                        onClick={() => handleManualBlogClick(blog)}
                         role="button"
                         tabIndex={0}
                         onKeyDown={(e) => e.key === "Enter" && navigate(`/blog-editor`)}
