@@ -134,7 +134,7 @@ const Dashboard = () => {
   useEffect(() => {
     if (blogs?.data && Array.isArray(blogs.data)) {
       const recent = blogs.data
-        .filter((b) => b.status === "complete" && b.isArchived === false)
+        .filter((b) => b.isArchived === false)
         .slice(-3)
       setRecentBlogData(recent)
     } else {
@@ -405,7 +405,7 @@ const Dashboard = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
+              <h1 className="bg-clip-text bg-gradient-to-r font-bold from-blue-600 md:text-4xl text-3xl text-transparent to-purple-600">
                 Let's Begin <span className="ml-2 text-2xl text-yellow-400">✨</span>
               </h1>
               <p className="text-gray-600 text-lg mt-2">
@@ -589,36 +589,41 @@ const Dashboard = () => {
                 </div>
                 <h2 className="text-xl font-semibold text-gray-900">Quick Tools</h2>
               </div>
-              <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                <AnimatePresence>
-                  {loading
-                    ? Array.from({ length: 3 }).map((_, idx) => <SkeletonGridCard key={idx} />)
-                    : quickTools.map((item, index) => (
-                        <QuickBox
-                          key={index}
-                          imageUrl={item.imageUrl}
-                          title={item.title}
-                          content={item.content}
-                          id={item.id}
-                          color={item.color}
-                          icon={item.icon}
-                          bgColor={item.bgColor}
-                          hoverBg={item.hoverBg}
-                          functions={{
-                            ...(item.id === 3
-                              ? { showPerformanceMonitoring: () => setPerformanceModal(true) }
-                              : {}),
-                            ...(item.id === 2
-                              ? { showSeoAnalysis: () => setSeoAnalysisModal(true) }
-                              : {}),
-                            ...(item.id === 1
-                              ? { showKeywordResearch: () => setKeywordResearchModal(true) }
-                              : {}),
-                            ...(item.id === 4 ? { showCompetitiveAnalysis } : {}),
-                          }}
-                        />
-                      ))}
-                </AnimatePresence>
+              <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+               <AnimatePresence>
+  {loading
+    ? Array.from({ length: 4 }).map((_, idx) => <SkeletonGridCard key={idx} />)
+    : quickTools.map((item, index) => {
+        const functions = {}
+
+        if (item.id === 1) {
+          functions.showKeywordResearch = () => setKeywordResearchModal(true)
+        } else if (item.id === 2) {
+          functions.showSeoAnalysis = () => setSeoAnalysisModal(true)
+        } else if (item.id === 3) {
+          functions.showPerformanceMonitoring = () => setPerformanceModal(true)
+        } else if (item.id === 4) {
+          functions.showCompetitiveAnalysis = () => showCompetitiveAnalysis()
+        }
+
+        return (
+          <QuickBox
+            key={index}
+            id={item.id}
+            icon={item.icon}
+            title={item.title}
+            content={item.content}
+            bgColor={item.bgColor}
+            hoverBg={item.hoverBg}
+            color={item.color}
+            navigate={item.navigate}
+            functions={functions}
+          />
+        )
+      })}
+</AnimatePresence>
+
+
               </div>
             </div>
 

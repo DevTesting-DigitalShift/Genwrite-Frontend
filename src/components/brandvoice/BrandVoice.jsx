@@ -19,6 +19,7 @@ const BrandVoice = () => {
   const [isUploading, setIsUploading] = useState(false)
   const [formData, setFormData] = useState({
     nameOfVoice: "",
+    postLink: "",
     keywords: [],
     describeBrand: "",
     sitemapUrl: "", // Added sitemapUrl to formData
@@ -43,6 +44,15 @@ const BrandVoice = () => {
     const newErrors = {}
     if (!formData.nameOfVoice.trim()) {
       newErrors.nameOfVoice = "Name of Voice is required."
+    }
+    if (!formData.postLink.trim()) {
+      newErrors.postLink = "Post link is required."
+    } else {
+      try {
+        new URL(formData.postLink)
+      } catch {
+        newErrors.postLink = "Please enter a valid URL (e.g., https://example.com)."
+      }
     }
     if (formData.keywords.length === 0) {
       newErrors.keywords = "At least one keyword is required."
@@ -162,6 +172,7 @@ const BrandVoice = () => {
     setIsUploading(true)
     const payload = {
       nameOfVoice: formData.nameOfVoice.trim(),
+      postLink: formData.postLink.trim(),
       keywords: formData.keywords.map((k) => k.trim()).filter(Boolean),
       describeBrand: formData.describeBrand.trim(),
       sitemap: formData.sitemapUrl.trim(),
@@ -171,6 +182,7 @@ const BrandVoice = () => {
     const resetForm = () => {
       setFormData({
         nameOfVoice: "",
+        postLink: "",
         keywords: [],
         describeBrand: "",
         sitemapUrl: "", // Reset sitemapUrl
@@ -199,6 +211,7 @@ const BrandVoice = () => {
   const handleEdit = useCallback((brand) => {
     setFormData({
       nameOfVoice: brand.nameOfVoice || "",
+      postLink: brand.postLink || "",
       keywords: Array.isArray(brand.keywords) ? brand.keywords : [],
       describeBrand: brand.describeBrand || "",
       sitemapUrl: brand.sitemapUrl || "", // Load sitemapUrl
@@ -320,6 +333,32 @@ const BrandVoice = () => {
             {errors.nameOfVoice && (
               <p id="nameOfVoice-error" className="text-red-500 text-xs mt-1">
                 {errors.nameOfVoice}
+              </p>
+            )}
+          </div>
+
+          {/* Post Link */}
+          <div>
+            <label htmlFor="postLink" className="text-sm font-medium text-gray-700 flex gap-2 mb-1">
+              Post or Blog Link <span className="text-red-500">*</span>
+            </label>
+            <motion.input
+              id="postLink"
+              type="url"
+              name="postLink"
+              value={formData.postLink}
+              onChange={handleInputChange}
+              placeholder="e.g., https://example.com/blog"
+              className={`w-full p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
+                errors.postLink ? "border-red-500" : "border-gray-300"
+              }`}
+              whileFocus={{ scale: 1.01 }}
+              aria-invalid={!!errors.postLink}
+              aria-describedby={errors.postLink ? "postLink-error" : undefined}
+            />
+            {errors.postLink && (
+              <p id="postLink-error" className="text-red-500 text-xs mt-1">
+                {errors.postLink}
               </p>
             )}
           </div>

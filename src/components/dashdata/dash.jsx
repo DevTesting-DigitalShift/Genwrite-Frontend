@@ -1,4 +1,4 @@
-import { Activity, BarChart3, Grid3X3, PenTool, Search, Sparkles, Target, TrendingUp, Users, Zap } from "lucide-react"
+import { Activity, BarChart2Icon, BarChart3, Grid3X3, PenTool, Search, Sparkles, Target, TrendingUp, Users, Zap } from "lucide-react"
 
 export const stats = [
   { label: "Total Projects", value: "24", change: "+12%", icon: <Target className="w-5 h-5" /> },
@@ -42,29 +42,17 @@ export const letsBegin = [
 export const quickTools = [
   {
     id: 1,
-    imageUrl: "./Images/keyword.png",
     title: "Keyword Research",
-    content: "Fill bold reesizing vector create group inspect effect.",
+    content: "Do keyword magic ✨",
     icon: <Search className="w-8 h-8" />,
     color: "text-blue-600",
     bgColor: "bg-blue-50",
     hoverBg: "hover:bg-blue-100",
   },
-  // {
-  //   id: 2,
-  //   imageUrl: "./Images/seoanalysis.png",
-  //   title: "SEO Analysis",
-  //   content: "Generate blogs, emails , product description etc.",
-  //   icon: <TrendingUp className="w-8 h-8" />,
-  //   color: "text-green-600",
-  //   bgColor: "bg-green-50",
-  //   hoverBg: "hover:bg-green-100",
-  // },
   {
     id: 3,
-    imageUrl: "./Images/performancemonitoring.png",
     title: "Performance Monitoring",
-    content: "Generate blogs, emails , product description etc.",
+    content: "Track your site’s health.",
     icon: <Activity className="w-8 h-8" />,
     color: "text-orange-600",
     bgColor: "bg-orange-50",
@@ -72,13 +60,22 @@ export const quickTools = [
   },
   {
     id: 4,
-    imageUrl: "./Images/competitor.png",
     title: "Competitor Analysis",
-    content: "Analyze your competitors' content and strategies",
+    content: "Spy like a pro 🔍",
     icon: <Users className="w-8 h-8" />,
     color: "text-purple-600",
     bgColor: "bg-purple-50",
     hoverBg: "hover:bg-purple-100",
+  },
+  {
+    id: 5,
+    title: "Analytics",
+    content: "Track & visualize everything 📊",
+    icon: <BarChart2Icon className="w-8 h-8" />,
+    color: "text-green-600",
+    bgColor: "bg-green-50",
+    hoverBg: "hover:bg-green-100",
+    navigate: "/analytics",
   },
 ]
 

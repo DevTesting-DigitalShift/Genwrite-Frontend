@@ -19,6 +19,7 @@ import {
   toggleJobStatusThunk,
   updateJobThunk,
 } from "@store/slices/jobSlice"
+import { fetchBrands } from "@store/slices/brandSlice" // Import fetchBrands
 import SkeletonLoader from "@components/Projects/SkeletonLoader"
 import { selectUser } from "@store/slices/authSlice"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
@@ -43,11 +44,13 @@ const initialJob = {
   options: {
     wordpressPosting: false,
     includeFaqs: false,
-    useBrandVoice: false,
     includeCompetitorResearch: false,
     includeInterlinks: false,
     performKeywordResearch: false,
     includeTableOfContents: false,
+    outboundLinks: false,
+    isCheckedBrand: false,
+    brandId: null, // Add brandId to options
   },
   status: "active",
 }
@@ -76,13 +79,14 @@ const Jobs = () => {
   const [recentlyUploadedCount, setRecentlyUploadedCount] = useState(null)
   const dispatch = useDispatch()
   const { jobs, loading: isLoading, showJobModal } = useSelector((state) => state.jobs)
+  const { brands, loading: loadingBrands, error: brandError } = useSelector((state) => state.brand)
   const [currentPage, setCurrentPage] = useState(1)
   const { selectedKeywords } = useSelector((state) => state.analysis)
   const [isUserLoaded, setIsUserLoaded] = useState(false)
   const [showAllTopics, setShowAllTopics] = useState(false)
   const [showAllKeywords, setShowAllKeywords] = useState(false)
 
-  // Initialize formData with keywords from selectedKeywords
+  // Initialize formData with keywords
   const [formData, setFormData] = useState({
     keywords: [],
     keywordInput: "",
@@ -97,13 +101,8 @@ const Jobs = () => {
     ? newJob.blogs.topics.slice().reverse()
     : newJob.blogs.topics.slice().reverse().slice(0, 18)
 
-  // Redirect to UpgradeModal for free plan
-  if (userPlan === "free") {
-    return <UpgradeModal featureName="Content Agent" />
-  }
-
   // Calculate total pages
-  const totalPages = Math.ceil(jobs.length / PAGE_SIZE)
+  const totalPages = useMemo(() => Math.ceil(jobs.length / PAGE_SIZE), [jobs])
 
   // Memoize paginated jobs
   const paginatedJobs = useMemo(() => {
@@ -117,6 +116,11 @@ const Jobs = () => {
 
   useEffect(() => {
     dispatch(fetchJobs())
+  }, [dispatch])
+
+  // Fetch brands when component mounts
+  useEffect(() => {
+    dispatch(fetchBrands())
   }, [dispatch])
 
   // Check if user is loaded
@@ -174,6 +178,10 @@ const Jobs = () => {
         errors.keywords = true
         message.error("Please add at least one keyword or enable keyword research.")
       }
+      if (newJob.options.isCheckedBrand && !newJob.options.brandId) {
+        errors.brandId = true
+        message.error("Please select a brand voice.")
+      }
       if (
         newJob.schedule.type === "weekly" &&
         (!newJob.schedule.daysOfWeek || newJob.schedule.daysOfWeek.length === 0)
@@ -226,11 +234,15 @@ const Jobs = () => {
       return
     }
     if (!checkJobLimit()) return
-    if (!validateSteps(2) || !validateSteps(4)) return
+    if (!validateSteps(2) || !validateSteps(3)) return
     const jobPayload = {
       ...newJob,
       blogs: { ...newJob.blogs, keywords: formData.keywords },
-      options: { ...newJob.options, performKeywordResearch: formData.performKeywordResearch },
+      options: {
+        ...newJob.options,
+        performKeywordResearch: formData.performKeywordResearch,
+        brandId: newJob.options.isCheckedBrand ? newJob.options.brandId : null, // Include brandId
+      },
     }
     dispatch(
       createJobThunk({
@@ -251,11 +263,15 @@ const Jobs = () => {
       message.error("User data is still loading. Please try again.")
       return
     }
-    if (!validateSteps(2) || !validateSteps(4)) return
+    if (!validateSteps(2) || !validateSteps(3)) return
     const jobPayload = {
       ...newJob,
       blogs: { ...newJob.blogs, keywords: formData.keywords },
-      options: { ...newJob.options, performKeywordResearch: formData.performKeywordResearch },
+      options: {
+        ...newJob.options,
+        performKeywordResearch: formData.performKeywordResearch,
+        brandId: newJob.options.isCheckedBrand ? newJob.options.brandId : null, // Include brandId
+      },
     }
     dispatch(
       updateJobThunk({
@@ -418,7 +434,14 @@ const Jobs = () => {
     const uniqueKeywords = [
       ...new Set([...(job.blogs.keywords || []), ...(selectedKeywords?.focusKeywords || [])]),
     ]
-    setNewJob({ ...job, blogs: { ...job.blogs, keywords: uniqueKeywords } })
+    setNewJob({
+      ...job,
+      blogs: { ...job.blogs, keywords: uniqueKeywords },
+      options: {
+        ...job.options,
+        brandId: job.options.brandId || null, // Ensure brandId is included
+      },
+    })
     setFormData({
       keywords: uniqueKeywords,
       keywordInput: "",
@@ -437,8 +460,13 @@ const Jobs = () => {
       navigate("/profile")
       return
     }
-    setFormData((prev) => ({ ...prev, [name]: checked }))
-    setNewJob((prev) => ({ ...prev, options: { ...prev.options, [name]: checked } }))
+    setNewJob((prev) => ({
+      ...prev,
+      options: { ...prev.options, [name]: checked },
+    }))
+    if (name === "performKeywordResearch") {
+      setFormData((prev) => ({ ...prev, performKeywordResearch: checked }))
+    }
   }
 
   const handleOpenJobModal = () => {
@@ -453,7 +481,11 @@ const Jobs = () => {
         ...(selectedKeywords?.allKeywords || []),
       ]),
     ]
-    setNewJob({ ...initialJob, blogs: { ...initialJob.blogs, keywords: uniqueKeywords } })
+    setNewJob({
+      ...initialJob,
+      blogs: { ...initialJob.blogs, keywords: uniqueKeywords },
+      options: { ...initialJob.options, brandId: null }, // Initialize brandId
+    })
     setFormData({ keywords: uniqueKeywords, keywordInput: "", performKeywordResearch: true })
     dispatch(openJobModal())
     setCurrentStep(1)
@@ -718,12 +750,12 @@ const Jobs = () => {
                           ? "border-blue-600 bg-blue-50"
                           : "border-gray-300"
                       } hover:shadow-sm w-full max-w-[220px] relative`}
-                      // onClick={(e) => {
-                      //   if (model.restricted) {
-                      //     e.preventDefault()
-                      //     openUpgradePopup({ featureName: model.featureName, navigate })
-                      //   }
-                      // }}
+                      onClick={(e) => {
+                        if (model.restricted) {
+                          e.preventDefault()
+                          openUpgradePopup({ featureName: model.featureName, navigate })
+                        }
+                      }}
                     >
                       <input
                         type="radio"
@@ -732,20 +764,20 @@ const Jobs = () => {
                         value={model.value}
                         checked={newJob.blogs.aiModel === model.value}
                         onChange={() => {
-                          // if (!model.restricted) {
-                          setNewJob({
-                            ...newJob,
-                            blogs: { ...newJob.blogs, aiModel: model.value },
-                          })
-                          // }
+                          if (!model.restricted) {
+                            setNewJob({
+                              ...newJob,
+                              blogs: { ...newJob.blogs, aiModel: model.value },
+                            })
+                          }
                         }}
                         className="hidden"
                       />
                       <img src={model.logo} alt={model.label} className="w-6 h-6 object-contain" />
                       <span className="text-sm font-medium text-gray-800">{model.label}</span>
-                      {/* {model.restricted && (
+                      {model.restricted && (
                         <Crown className="w-4 h-4 text-yellow-500 absolute top-2 right-2" />
-                      )} */}
+                      )}
                     </label>
                   ))}
                 </div>
@@ -907,18 +939,52 @@ const Jobs = () => {
               )}
 
               {/* === Blog Options === */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-0">
                 {[
-                  { label: "Add FAQ", name: "includeFaqs" },
-                  { label: "Add Competitive Research", name: "includeCompetitorResearch" },
-                  { label: "Add InterLinks", name: "includeInterlinks" },
-                  { label: "WordPress Automatic Posting", name: "wordpressPosting" },
+                  {
+                    label: "Add FAQ",
+                    name: "includeFaqs",
+                    desc: "Include frequently asked questions at the end of the blog.",
+                  },
+                  {
+                    label: "Add Competitive Research",
+                    name: "includeCompetitorResearch",
+                    desc: "Analyze competitors to improve blog quality.",
+                  },
+                  {
+                    label: "Add InterLinks",
+                    name: "includeInterlinks",
+                    desc: "Add internal links between your blogs for better SEO.",
+                  },
+                  {
+                    label: "WordPress Automatic Posting",
+                    name: "wordpressPosting",
+                    desc: "Automatically post the blog to your connected WordPress site.",
+                  },
                   ...(newJob.options.wordpressPosting
-                    ? [{ label: "Table of Content", name: "includeTableOfContents" }]
+                    ? [
+                        {
+                          label: "Table of Content",
+                          name: "includeTableOfContents",
+                          desc: "Display a table of contents for easier navigation.",
+                        },
+                      ]
                     : []),
-                ].map(({ label, name }) => (
-                  <div key={name} className="flex items-center justify-between py-2">
-                    <span className="text-sm font-medium text-gray-700">{label}</span>
+                  ...(newJob.options.includeCompetitorResearch
+                    ? [
+                        {
+                          label: "Show Outbound Links",
+                          name: "outboundLinks",
+                          desc: "Add outbound links to relevant competitor content.",
+                        },
+                      ]
+                    : []),
+                ].map(({ label, name, desc }) => (
+                  <div key={name} className="flex items-start justify-between py-2">
+                    <span className="text-sm font-medium text-gray-700">
+                      {label}
+                      <p className="text-xs text-gray-500">{desc}</p>
+                    </span>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input
                         type="checkbox"
@@ -932,153 +998,226 @@ const Jobs = () => {
                   </div>
                 ))}
               </div>
-            </div>
 
-            {/* === Scheduling Section === */}
-            <div className="space-y-6">
+              {/* === Brand Voice Section === */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Schedule Type
-                </label>
-                <Select
-                  value={newJob.schedule.type}
-                  onChange={(e) => {
-                    const type = e.target.value
-                    setNewJob({
-                      ...newJob,
-                      schedule: {
-                        ...newJob.schedule,
-                        type,
-                        daysOfWeek: type === "weekly" ? [] : newJob.schedule.daysOfWeek,
-                        daysOfMonth: type === "monthly" ? [] : newJob.schedule.daysOfMonth,
-                        customDates: type === "custom" ? [] : newJob.schedule.customDates,
-                      },
-                    })
-                    setErrors((prev) => ({
-                      ...prev,
-                      daysOfWeek: false,
-                      daysOfMonth: false,
-                      customDates: false,
-                    }))
-                  }}
-                  className="w-full"
-                >
-                  <Option value="daily">Daily</Option>
-                  <Option value="weekly">Weekly</Option>
-                  <Option value="monthly">Monthly</Option>
-                  <Option value="custom">Custom</Option>
-                </Select>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">Write with Brand Voice</span>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={newJob.options.isCheckedBrand}
+                      onChange={() => {
+                        setNewJob((prev) => ({
+                          ...prev,
+                          options: {
+                            ...prev.options,
+                            isCheckedBrand: !prev.options.isCheckedBrand,
+                            brandId: !prev.options.isCheckedBrand ? prev.options.brandId : null,
+                          },
+                        }))
+                        setErrors((prev) => ({ ...prev, brandId: false }))
+                      }}
+                      className="sr-only peer"
+                      aria-checked={newJob.options.isCheckedBrand}
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]" />
+                  </label>
+                </div>
+                {newJob.options.isCheckedBrand && (
+                  <div className="mt-3 p-4 rounded-md border border-gray-200 bg-gray-50">
+                    {loadingBrands ? (
+                      <div className="text-gray-500 text-sm">Loading brand voices...</div>
+                    ) : brandError ? (
+                      <div className="text-red-500 text-sm font-medium">{brandError}</div>
+                    ) : brands?.length > 0 ? (
+                      <div className="max-h-48 overflow-y-auto pr-1">
+                        <div className="grid gap-3">
+                          {brands.map((voice) => (
+                            <label
+                              key={voice._id}
+                              className={`flex items-start gap-2 p-3 rounded-md cursor-pointer ${
+                                newJob.options.brandId === voice._id
+                                  ? "bg-blue-100 border-blue-300"
+                                  : "bg-white border border-gray-200"
+                              } ${errors.brandId ? "border-red-500" : ""}`}
+                            >
+                              <input
+                                type="radio"
+                                name="selectedBrandVoice"
+                                value={voice._id}
+                                checked={newJob.options.brandId === voice._id}
+                                onChange={() => {
+                                  setNewJob((prev) => ({
+                                    ...prev,
+                                    options: { ...prev.options, brandId: voice._id },
+                                  }))
+                                  setErrors((prev) => ({ ...prev, brandId: false }))
+                                }}
+                                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-600"
+                              />
+                              <div className="flex-1">
+                                <div className="font-medium text-gray-700">{voice.nameOfVoice}</div>
+                                <p className="text-sm text-gray-600 mt-1">{voice.describeBrand}</p>
+                              </div>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-gray-500 text-sm italic">
+                        No brand voices available. Create one to get started.
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
-              {newJob.schedule.type === "weekly" && (
+              {/* === Scheduling Section === */}
+              <div className="space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Days of Week
+                    Schedule Type
                   </label>
-                  <div className="flex gap-2 flex-wrap">
-                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        className={`px-2 py-1 rounded ${
-                          newJob.schedule.daysOfWeek?.includes(i)
-                            ? "bg-[#1B6FC9] text-white"
-                            : "bg-gray-200 text-gray-700"
-                        } ${errors.daysOfWeek ? "border-2 border-red-500" : ""}`}
-                        onClick={() => {
-                          setNewJob((prev) => {
-                            const daysOfWeek = prev.schedule.daysOfWeek?.includes(i)
-                              ? prev.schedule.daysOfWeek.filter((day) => day !== i)
-                              : [...(prev.schedule.daysOfWeek || []), i]
-                            return { ...prev, schedule: { ...prev.schedule, daysOfWeek } }
+                  <Select
+                    value={newJob.schedule.type}
+                    onChange={(value) => {
+                      setNewJob({
+                        ...newJob,
+                        schedule: {
+                          ...newJob.schedule,
+                          type: value,
+                          daysOfWeek: value === "weekly" ? [] : newJob.schedule.daysOfWeek,
+                          daysOfMonth: value === "monthly" ? [] : newJob.schedule.daysOfMonth,
+                          customDates: value === "custom" ? [] : newJob.schedule.customDates,
+                        },
+                      })
+                      setErrors((prev) => ({
+                        ...prev,
+                        daysOfWeek: false,
+                        daysOfMonth: false,
+                        customDates: false,
+                      }))
+                    }}
+                    className="w-full"
+                  >
+                    <Option value="daily">Daily</Option>
+                    <Option value="weekly">Weekly</Option>
+                    <Option value="monthly">Monthly</Option>
+                    <Option value="custom">Custom</Option>
+                  </Select>
+                </div>
+
+                {newJob.schedule.type === "weekly" && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Select Days of Week
+                    </label>
+                    <div className="flex gap-2 flex-wrap">
+                      {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          className={`px-2 py-1 rounded ${
+                            newJob.schedule.daysOfWeek?.includes(i)
+                              ? "bg-[#1B6FC9] text-white"
+                              : "bg-gray-200 text-gray-700"
+                          } ${errors.daysOfWeek ? "border-2 border-red-500" : ""}`}
+                          onClick={() => {
+                            setNewJob((prev) => {
+                              const daysOfWeek = prev.schedule.daysOfWeek?.includes(i)
+                                ? prev.schedule.daysOfWeek.filter((day) => day !== i)
+                                : [...(prev.schedule.daysOfWeek || []), i]
+                              return { ...prev, schedule: { ...prev.schedule, daysOfWeek } }
+                            })
+                            setErrors((prev) => ({ ...prev, daysOfWeek: false }))
+                          }}
+                        >
+                          {d}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {newJob.schedule.type === "monthly" && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Select Dates of Month
+                    </label>
+                    <div className="flex gap-2 flex-wrap">
+                      {Array.from({ length: 31 }, (_, i) => i + 1).map((date) => (
+                        <button
+                          key={date}
+                          type="button"
+                          className={`px-2 py-1 rounded ${
+                            newJob.schedule.daysOfMonth?.includes(date)
+                              ? "bg-[#1B6FC9] text-white"
+                              : "bg-gray-200 text-gray-700"
+                          } ${errors.daysOfMonth ? "border-2 border-red-500" : ""}`}
+                          onClick={() => {
+                            setNewJob((prev) => {
+                              const daysOfMonth = prev.schedule.daysOfMonth?.includes(date)
+                                ? prev.schedule.daysOfMonth.filter((d) => d !== date)
+                                : [...(prev.schedule.daysOfMonth || []), date]
+                              return { ...prev, schedule: { ...prev.schedule, daysOfMonth } }
+                            })
+                            setErrors((prev) => ({ ...prev, daysOfMonth: false }))
+                          }}
+                        >
+                          {date}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {newJob.schedule.type === "custom" && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Select Dates
+                    </label>
+                    <div className={errors.customDates ? "border-2 border-red-500 rounded-lg" : ""}>
+                      <MultiDatePicker
+                        value={newJob.schedule.customDates}
+                        onChange={(dates) => {
+                          setNewJob({
+                            ...newJob,
+                            schedule: {
+                              ...newJob.schedule,
+                              customDates: dates,
+                              daysOfWeek: [],
+                              daysOfMonth: [],
+                            },
                           })
-                          setErrors((prev) => ({ ...prev, daysOfWeek: false }))
+                          setErrors((prev) => ({ ...prev, customDates: false }))
                         }}
-                      >
-                        {d}
-                      </button>
-                    ))}
+                        multiple
+                        format="YYYY-MM-DD"
+                        className="w-full"
+                        inputClass="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {newJob.schedule.type === "monthly" && (
+                {/* Number of Blogs */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Dates of Month
+                    Number of Blogs
                   </label>
-                  <div className="flex gap-2 flex-wrap">
-                    {Array.from({ length: 31 }, (_, i) => i + 1).map((date) => (
-                      <button
-                        key={date}
-                        type="button"
-                        className={`px-2 py-1 rounded ${
-                          newJob.schedule.daysOfMonth?.includes(date)
-                            ? "bg-[#1B6FC9] text-white"
-                            : "bg-gray-200 text-gray-700"
-                        } ${errors.daysOfMonth ? "border-2 border-red-500" : ""}`}
-                        onClick={() => {
-                          setNewJob((prev) => {
-                            const daysOfMonth = prev.schedule.daysOfMonth?.includes(date)
-                              ? prev.schedule.daysOfMonth.filter((d) => d !== date)
-                              : [...(prev.schedule.daysOfMonth || []), date]
-                            return { ...prev, schedule: { ...prev.schedule, daysOfMonth } }
-                          })
-                          setErrors((prev) => ({ ...prev, daysOfMonth: false }))
-                        }}
-                      >
-                        {date}
-                      </button>
-                    ))}
-                  </div>
+                  <input
+                    type="number"
+                    value={newJob.blogs.numberOfBlogs}
+                    onChange={handleNumberOfBlogsChange}
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                      errors.numberOfBlogs ? "border-red-500" : "border-gray-200"
+                    }`}
+                    placeholder="Enter the number of blogs"
+                    min="1"
+                    max={MAX_BLOGS}
+                  />
                 </div>
-              )}
-
-              {newJob.schedule.type === "custom" && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Dates
-                  </label>
-                  <div className={errors.customDates ? "border-2 border-red-500 rounded-lg" : ""}>
-                    <MultiDatePicker
-                      value={newJob.schedule.customDates}
-                      onChange={(dates) => {
-                        setNewJob({
-                          ...newJob,
-                          schedule: {
-                            ...newJob.schedule,
-                            customDates: dates,
-                            daysOfWeek: [],
-                            daysOfMonth: [],
-                          },
-                        })
-                        setErrors((prev) => ({ ...prev, customDates: false }))
-                      }}
-                      multiple
-                      format="YYYY-MM-DD"
-                      className="w-full"
-                      inputClass="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Number of Blogs */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Number of Blogs
-                </label>
-                <input
-                  type="number"
-                  value={newJob.blogs.numberOfBlogs}
-                  onChange={handleNumberOfBlogsChange}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                    errors.numberOfBlogs ? "border-red-500" : "border-gray-200"
-                  }`}
-                  placeholder="Enter the number of blogs"
-                  min="1"
-                  max={MAX_BLOGS}
-                />
               </div>
             </div>
           </motion.div>
@@ -1123,6 +1262,11 @@ const Jobs = () => {
       </button>
     ),
   ]
+
+  // Render UpgradeModal for free plan at the end to avoid hook inconsistency
+  if (userPlan === "free") {
+    return <UpgradeModal featureName="Content Agent" />
+  }
 
   return (
     <>
