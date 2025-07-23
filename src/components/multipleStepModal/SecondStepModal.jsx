@@ -29,8 +29,8 @@ const SecondStepModal = ({
     isCheckedGeneratedImages: data.isCheckedGeneratedImages || false,
     referenceLinks: data.referenceLinks || [],
     includeInterlinks: data.includeInterlinks || false,
-    outBoundLinks: data.outBoundLinks || false, // Use outBoundLinks as in original
-    // outBoundLinks: data.outBoundLinks || false, // Uncomment if you want to use outBoundLinks
+    addOutBoundLinks: data.addOutBoundLinks || false, // Use addOutBoundLinks as in original
+    // addOutBoundLinks: data.addOutBoundLinks || false, // Uncomment if you want to use addOutBoundLinks
   })
   const [localFormData, setLocalFormData] = useState({
     newLink: "",
@@ -478,15 +478,15 @@ const SecondStepModal = ({
                 <label className="relative inline-flex items-center cursor-pointer self-end">
                   <input
                     type="checkbox"
-                    checked={formData.outBoundLinks}
+                    checked={formData.addOutBoundLinks}
                     onChange={() => {
                       setFormData((prev) => ({
                         ...prev,
-                        outBoundLinks: !prev.outBoundLinks,
+                        addOutBoundLinks: !prev.addOutBoundLinks,
                       }))
                       setData((prev) => ({
                         ...prev,
-                        outBoundLinks: !prev.outBoundLinks,
+                        addOutBoundLinks: !prev.addOutBoundLinks,
                       }))
                     }}
                     className="sr-only peer"

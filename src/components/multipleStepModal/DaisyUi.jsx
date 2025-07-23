@@ -50,7 +50,7 @@ const MultiStepModal = ({ closeFnc }) => {
     aiModel: "gemini",
     includeTableOfContents: false,
     isCheckedGeneratedImages: true,
-    outboundLinks: false
+    addOutBoundLinks: false
   })
 
   const handleNext = () => {
@@ -892,8 +892,8 @@ const MultiStepModal = ({ closeFnc }) => {
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
                     type="checkbox"
-                    name="outboundLinks"
-                    checked={formData.outboundLinks}
+                    name="addOutBoundLinks"
+                    checked={formData.addOutBoundLinks}
                     onChange={handleCheckboxChange}
                     className="sr-only peer"
                   />

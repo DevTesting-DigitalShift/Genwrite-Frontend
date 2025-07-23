@@ -420,6 +420,7 @@ const SearchConsole = () => {
       dataIndex: "countryName",
       key: "countryName",
       render: (countryName, record) => <div>{`${countryName} (${record.countryCode})`}</div>,
+      render: (countryName, record) => <div>{`${countryName} (${record.countryCode})`}</div>,
     },
     {
       title: "Actions",
