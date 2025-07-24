@@ -1,4 +1,16 @@
-import { Activity, BarChart2Icon, BarChart3, Grid3X3, PenTool, Search, Sparkles, Target, TrendingUp, Users, Zap } from "lucide-react"
+import {
+  Activity,
+  BarChart2Icon,
+  BarChart3,
+  Grid3X3,
+  PenTool,
+  Search,
+  Sparkles,
+  Target,
+  TrendingUp,
+  Users,
+  Zap,
+} from "lucide-react"
 
 export const stats = [
   { label: "Total Projects", value: "24", change: "+12%", icon: <Target className="w-5 h-5" /> },
@@ -43,7 +55,7 @@ export const quickTools = [
   {
     id: 1,
     title: "Keyword Research",
-    content: "Do keyword magic ✨",
+    content: "Fill bold resizing vector create group inspect effect",
     icon: <Search className="w-8 h-8" />,
     color: "text-blue-600",
     bgColor: "bg-blue-50",
@@ -52,7 +64,7 @@ export const quickTools = [
   {
     id: 3,
     title: "Performance Monitoring",
-    content: "Track your site’s health.",
+    content: "Generate blogs, emails , product description etc",
     icon: <Activity className="w-8 h-8" />,
     color: "text-orange-600",
     bgColor: "bg-orange-50",
@@ -61,7 +73,7 @@ export const quickTools = [
   {
     id: 4,
     title: "Competitor Analysis",
-    content: "Spy like a pro 🔍",
+    content: "Analyze your competitors' content and strategies",
     icon: <Users className="w-8 h-8" />,
     color: "text-purple-600",
     bgColor: "bg-purple-50",
@@ -70,7 +82,7 @@ export const quickTools = [
   {
     id: 5,
     title: "Analytics",
-    content: "Track & visualize everything 📊",
+    content: "Visualize performance, unlock insights, and stay ahead",
     icon: <BarChart2Icon className="w-8 h-8" />,
     color: "text-green-600",
     bgColor: "bg-green-50",
