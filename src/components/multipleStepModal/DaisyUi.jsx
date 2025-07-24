@@ -1,14 +1,13 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import Carousel from "./Carousel"
-import { Info, Upload, X } from "lucide-react"
+import { Info, TriangleAlert, Upload, X } from "lucide-react"
 import { packages } from "@constants/templates"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { createMultiBlog } from "@store/slices/blogSlice"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { Modal, Select, Tooltip, message } from "antd"
-import { openUpgradePopup } from "@utils/UpgardePopUp"
 
 const MultiStepModal = ({ closeFnc }) => {
   const dispatch = useDispatch()
@@ -17,6 +16,7 @@ const MultiStepModal = ({ closeFnc }) => {
   const user = useSelector((state) => state.auth.user)
   const userPlan = user?.subscription?.plan || user?.plan
   const [showAllTopics, setShowAllTopics] = useState(false)
+  const isAiImagesLimitReached = user?.usage?.aiImages >= user?.usageLimits?.aiImages
 
   const [currentStep, setCurrentStep] = useState(0)
   const [recentlyUploadedCount, setRecentlyUploadedCount] = useState(null)
@@ -52,6 +52,16 @@ const MultiStepModal = ({ closeFnc }) => {
     isCheckedGeneratedImages: true,
     addOutBoundLinks: false,
   })
+
+  useEffect(() => {
+    if (isAiImagesLimitReached && formData.isCheckedGeneratedImages) {
+      setFormData((prev) => ({
+        ...prev,
+        isCheckedGeneratedImages: false,
+        imageSource: "unsplash", // Default to unsplash when AI images are disabled
+      }))
+    }
+  }, [isAiImagesLimitReached, formData.isCheckedGeneratedImages])
 
   const handleNext = () => {
     if (currentStep === 0) {
@@ -381,7 +391,7 @@ const MultiStepModal = ({ closeFnc }) => {
     e.target.value = null
   }
 
-  const steps = ["Select Template's", "Add Details", "z"]
+  const steps = ["Select Template's", "Add Details", "Blog Options"]
 
   return (
     <Modal
@@ -452,7 +462,7 @@ const MultiStepModal = ({ closeFnc }) => {
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
                 Topics <span className="text-red-500">*</span>
-                <Tooltip title="Upload a .csv file in the format: `S.No., Keyword`">
+                <Tooltip title="Upload a .csv file in the format: `Keyword` as header">
                   <div className="cursor-pointer">
                     <Info size={16} className="text-blue-500" />
                   </div>
@@ -547,7 +557,7 @@ const MultiStepModal = ({ closeFnc }) => {
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
                     Keywords <span className="text-red-500">*</span>
-                    <Tooltip title="Upload a .csv file in the format: `S.No., Keyword`">
+                    <Tooltip title="Upload a .csv file in the format: `Keyword` as header">
                       <div className="cursor-pointer">
                         <Info size={16} className="text-blue-500" />
                       </div>
@@ -741,33 +751,64 @@ const MultiStepModal = ({ closeFnc }) => {
             <div className="flex justify-between items-center">
               <label className="block text-sm font-semibold text-gray-700 mb-2">Add Image</label>
               <div className="flex items-center">
-                <label htmlFor="add-image-toggle" className="relative inline-block w-12 h-6">
+                <label
+                  htmlFor="add-image-toggle"
+                  className={`relative inline-block w-12 h-6 ${
+                    isAiImagesLimitReached ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                >
                   <input
                     type="checkbox"
                     id="add-image-toggle"
                     className="sr-only peer"
-                    checked={formData?.isCheckedGeneratedImages}
+                    checked={formData.isCheckedGeneratedImages}
+                    disabled={isAiImagesLimitReached}
                     onChange={(e) => {
+                      if (isAiImagesLimitReached) {
+                        openUpgradePopup({ featureName: "AI-Generated Images", navigate })
+                        return
+                      }
                       const checked = e.target.checked
                       setFormData((prev) => ({
                         ...prev,
                         isCheckedGeneratedImages: checked,
-                      }))
-                      setData((prev) => ({
-                        ...prev,
-                        isCheckedGeneratedImages: checked,
+                        imageSource: checked ? prev.imageSource : "unsplash",
                       }))
                     }}
                   />
 
-                  <div className="w-12 h-6 bg-gray-300 rounded-full peer peer-checked:bg-[#1B6FC9] transition-all duration-300" />
-                  <div className="absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-300 peer-checked:translate-x-6" />
+                  <div
+                    className={`w-12 h-6 rounded-full transition-all duration-300 ${
+                      formData.isCheckedGeneratedImages && !isAiImagesLimitReached
+                        ? "bg-[#1B6FC9]"
+                        : "bg-gray-300"
+                    }`}
+                  />
+                  <div
+                    className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-300 ${
+                      formData.isCheckedGeneratedImages && !isAiImagesLimitReached
+                        ? "translate-x-6"
+                        : ""
+                    }`}
+                  />
                 </label>
+                {isAiImagesLimitReached && (
+                  <Tooltip
+                    title="You've reached your AI image generation limit. It'll reset in the next billing cycle."
+                    overlayInnerStyle={{
+                      backgroundColor: "#FEF9C3", // light yellow
+                      border: "1px solid #FACC15", // yellow-400 border
+                      color: "#78350F", // dark yellow text
+                    }}
+                  >
+                    <TriangleAlert className="text-yellow-400 ml-4" size={15} />
+                  </Tooltip>
+                )}
               </div>
             </div>
 
             {/* Select Image Source */}
-            {formData.isCheckedGeneratedImages && (
+            {formData.isCheckedGeneratedImages && !isAiImagesLimitReached && (
               <div className="mb-6">
                 <label className="block text-sm font-semibold text-gray-700 mb-3">
                   Image Source
@@ -938,7 +979,7 @@ const MultiStepModal = ({ closeFnc }) => {
                   <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]"></div>
                 </label>
               </div>
-            )}  
+            )}
             <div className="pt-4 border-t border-gray-200">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">

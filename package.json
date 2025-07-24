@@ -37,7 +37,7 @@
     "@tiptap/pm": "^2.11.7",
     "@tiptap/react": "^2.2.2",
     "@tiptap/starter-kit": "^2.2.2",
-    "antd": "^5.25.4",
+    "antd": "^5.26.6",
     "axios": "^1.8.4",
     "buffer": "^6.0.3",
     "chart.js": "^4.5.0",

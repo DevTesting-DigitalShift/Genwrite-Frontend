@@ -11,6 +11,7 @@ import {
   Pagination,
   DatePicker,
   message,
+  Tag,
 } from "antd";
 import {
   ArrowDownUp,
@@ -21,6 +22,7 @@ import {
   RotateCcw,
   Search,
   Trash2,
+  X,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useConfirmPopup } from "@/context/ConfirmPopupContext";
@@ -48,13 +50,14 @@ const MyProjects = () => {
   const [sortType, setSortType] = useState("createdAt");
   const [sortOrder, setSortOrder] = useState("desc");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [dateRange, setDateRange] = useState([null, null]); // For manual RangePicker selections
-  const [presetDateRange, setPresetDateRange] = useState([null, null]); // For preset selections
+  const [dateRange, setDateRange] = useState([null, null]);
+  const [presetDateRange, setPresetDateRange] = useState([null, null]);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [isMenuOpen, setMenuOpen] = useState(false);
   const [isFunnelMenuOpen, setFunnelMenuOpen] = useState(false);
   const [isCustomDatePickerOpen, setIsCustomDatePickerOpen] = useState(false);
+  const [activePresetLabel, setActivePresetLabel] = useState(""); // Track active preset label
   const navigate = useNavigate();
   const { handlePopup } = useConfirmPopup();
   const dispatch = useDispatch();
@@ -97,9 +100,72 @@ const MyProjects = () => {
     setStatusFilter("all");
     setDateRange([null, null]);
     setPresetDateRange([null, null]);
+    setActivePresetLabel("");
     setSearchTerm("");
     setDebouncedSearch("");
     setCurrentPage(1);
+  };
+
+  // Clear individual filters
+  const clearSort = () => {
+    setSortType("createdAt");
+    setSortOrder("desc");
+    setCurrentPage(1);
+  };
+
+  const clearStatusFilter = () => {
+    setStatusFilter("all");
+    setCurrentPage(1);
+  };
+
+  const clearDateFilter = () => {
+    setDateRange([null, null]);
+    setPresetDateRange([null, null]);
+    setActivePresetLabel("");
+    setCurrentPage(1);
+  };
+
+  const clearSearch = () => {
+    setSearchTerm("");
+    setDebouncedSearch("");
+    setCurrentPage(1);
+  };
+
+  // Check if filters are active
+  const isDefaultSort = sortType === "createdAt" && sortOrder === "desc";
+  const hasActiveFilters = 
+    !isDefaultSort || 
+    statusFilter !== "all" || 
+    dateRange[0] || 
+    presetDateRange[0] || 
+    debouncedSearch;
+
+  // Get current sort label
+  const getCurrentSortLabel = () => {
+    if (sortType === "title" && sortOrder === "asc") return "A-Z";
+    if (sortType === "title" && sortOrder === "desc") return "Z-A";
+    if (sortType === "createdAt" && sortOrder === "desc") return "Newest First";
+    if (sortType === "createdAt" && sortOrder === "asc") return "Oldest First";
+    return "Default";
+  };
+
+  // Get current status label
+  const getCurrentStatusLabel = () => {
+    switch (statusFilter) {
+      case "complete": return "Completed";
+      case "pending": return "Pending";
+      case "failed": return "Failed";
+      default: return "All";
+    }
+  };
+
+  // Get current date label
+  const getCurrentDateLabel = () => {
+    if (activePresetLabel) return activePresetLabel;
+    if (dateRange[0] && dateRange[1]) {
+      return `${moment(dateRange[0]).format("MMM DD")} - ${moment(dateRange[1]).format("MMM DD")}`;
+    }
+    return null;
   };
 
   // Debounce search input
@@ -174,7 +240,7 @@ const MyProjects = () => {
       } else {
         setItemsPerPage(6);
       }
-      setCurrentPage(1); // Reset to page 1 when itemsPerPage changes
+      setCurrentPage(1);
     };
 
     updateItemsPerPage();
@@ -319,7 +385,8 @@ const MyProjects = () => {
       value: [moment().subtract(7, "days"), moment()],
       onClick: () => {
         setPresetDateRange([moment().subtract(7, "days"), moment()]);
-        setDateRange([null, null]); // Ensure RangePicker remains empty
+        setDateRange([null, null]);
+        setActivePresetLabel("Last 7 Days");
         setCurrentPage(1);
         setIsCustomDatePickerOpen(false);
       },
@@ -329,7 +396,8 @@ const MyProjects = () => {
       value: [moment().subtract(30, "days"), moment()],
       onClick: () => {
         setPresetDateRange([moment().subtract(30, "days"), moment()]);
-        setDateRange([null, null]); // Ensure RangePicker remains empty
+        setDateRange([null, null]);
+        setActivePresetLabel("Last 30 Days");
         setCurrentPage(1);
         setIsCustomDatePickerOpen(false);
       },
@@ -339,7 +407,8 @@ const MyProjects = () => {
       value: [moment().subtract(3, "months"), moment()],
       onClick: () => {
         setPresetDateRange([moment().subtract(3, "months"), moment()]);
-        setDateRange([null, null]); // Ensure RangePicker remains empty
+        setDateRange([null, null]);
+        setActivePresetLabel("Last 3 Months");
         setCurrentPage(1);
         setIsCustomDatePickerOpen(false);
       },
@@ -349,7 +418,8 @@ const MyProjects = () => {
       value: [moment().subtract(6, "months"), moment()],
       onClick: () => {
         setPresetDateRange([moment().subtract(6, "months"), moment()]);
-        setDateRange([null, null]); // Ensure RangePicker remains empty
+        setDateRange([null, null]);
+        setActivePresetLabel("Last 6 Months");
         setCurrentPage(1);
         setIsCustomDatePickerOpen(false);
       },
@@ -359,7 +429,8 @@ const MyProjects = () => {
       value: [moment().startOf("year"), moment()],
       onClick: () => {
         setPresetDateRange([moment().startOf("year"), moment()]);
-        setDateRange([null, null]); // Ensure RangePicker remains empty
+        setDateRange([null, null]);
+        setActivePresetLabel("This Year");
         setCurrentPage(1);
         setIsCustomDatePickerOpen(false);
       },
@@ -402,6 +473,68 @@ const MyProjects = () => {
         </motion.div>
       </div>
 
+      {/* Active Filters Display */}
+      {/* {hasActiveFilters && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4"
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-medium text-blue-800 mr-2">Active Filters:</span>
+            
+            {!isDefaultSort && (
+              <Tag
+                closable
+                onClose={clearSort}
+                className="bg-blue-100 border-blue-300 text-blue-800 font-medium"
+              >
+                Sort: {getCurrentSortLabel()}
+              </Tag>
+            )}
+            
+            {statusFilter !== "all" && (
+              <Tag
+                closable
+                onClose={clearStatusFilter}
+                className="bg-green-100 border-green-300 text-green-800 font-medium"
+              >
+                Status: {getCurrentStatusLabel()}
+              </Tag>
+            )}
+            
+            {getCurrentDateLabel() && (
+              <Tag
+                closable
+                onClose={clearDateFilter}
+                className="bg-purple-100 border-purple-300 text-purple-800 font-medium"
+              >
+                Date: {getCurrentDateLabel()}
+              </Tag>
+            )}
+            
+            {debouncedSearch && (
+              <Tag
+                closable
+                onClose={clearSearch}
+                className="bg-orange-100 border-orange-300 text-orange-800 font-medium"
+              >
+                Search: "{debouncedSearch}"
+              </Tag>
+            )}
+            
+            <Button
+              type="link"
+              size="small"
+              onClick={resetFilters}
+              className="text-blue-600 hover:text-blue-800 p-0 h-auto font-medium"
+            >
+              Clear All
+            </Button>
+          </div>
+        </motion.div>
+      )} */}
+
       {/* Filter and Sort Bar */}
       <div className="flex flex-col sm:flex-row gap-4 bg-white p-4 rounded-lg mb-6">
         <div className="flex-1">
@@ -410,7 +543,9 @@ const MyProjects = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             prefix={<Search className="w-4 h-4 text-gray-500" />}
-            className="rounded-lg border-gray-300 shadow-sm"
+            className={`rounded-lg border-gray-300 shadow-sm ${
+              debouncedSearch ? 'border-orange-400 shadow-orange-100' : ''
+            }`}
             aria-label="Search blogs"
           />
         </div>
@@ -442,7 +577,9 @@ const MyProjects = () => {
                 type="default"
                 icon={<ArrowDownUp className="w-4 h-4" />}
                 onClick={toggleMenu}
-                className="p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100"
+                className={`p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100 ${
+                  !isDefaultSort ? 'border-blue-400 bg-blue-50 text-blue-600' : ''
+                }`}
                 aria-label="Open sort menu"
               >
                 Sort
@@ -477,7 +614,9 @@ const MyProjects = () => {
                 type="default"
                 icon={<Filter className="w-4 h-4" />}
                 onClick={toggleFunnelMenu}
-                className="p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100"
+                className={`p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100 ${
+                  statusFilter !== 'all' ? 'border-green-400 bg-green-50 text-green-600' : ''
+                }`}
                 aria-label="Open filter menu"
               >
                 Filter
@@ -514,7 +653,9 @@ const MyProjects = () => {
                 type="default"
                 icon={<Calendar className="w-4 h-4" />}
                 onClick={toggleCustomDateRangeMenu}
-                className="p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100"
+                className={`p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100 ${
+                  (dateRange[0] || presetDateRange[0]) ? 'border-purple-400 bg-purple-50 text-purple-600' : ''
+                }`}
                 aria-label="Open date preset menu"
               >
                 Custom Date
@@ -539,7 +680,9 @@ const MyProjects = () => {
               type="default"
               icon={<RotateCcw className="w-4 h-4" />}
               onClick={resetFilters}
-              className="p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100"
+              className={`p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100 ${
+                hasActiveFilters ? 'border-red-400 bg-red-50 text-red-600' : ''
+              }`}
               aria-label="Reset filters"
             >
               Reset
@@ -551,10 +694,13 @@ const MyProjects = () => {
             value={dateRange}
             onChange={(dates) => {
               setDateRange(dates);
-              setPresetDateRange([null, null]); // Clear preset when manual dates are selected
+              setPresetDateRange([null, null]);
+              setActivePresetLabel("");
               setCurrentPage(1);
             }}
-            className="w-full rounded-lg border-gray-300 shadow-sm"
+            className={`w-full rounded-lg border-gray-300 shadow-sm ${
+              (dateRange[0] || presetDateRange[0]) ? 'border-purple-400 shadow-purple-100' : ''
+            }`}
             format="YYYY-MM-DD"
             placeholder={["Start date", "End date"]}
             aria-label="Select date range"
@@ -603,14 +749,6 @@ const MyProjects = () => {
                     <span className="flex items-center justify-center gap-1 py-1 font-medium tracking-wide">
                       {isManualEditor ? (
                         <>
-                          {/* <img
-                            src="./Images/manual.png"
-                            alt="manual"
-                            width={20}
-                            height={20}
-                            loading="lazy"
-                            className="bg-white"
-                          /> */}
                           Manually Generated
                         </>
                       ) : (

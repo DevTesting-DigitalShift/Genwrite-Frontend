@@ -70,7 +70,7 @@ const router = createBrowserRouter([
       { path: "transactions", element: withSuspense(Transactions) },
       { path: "credit-logs", element: withSuspense(CreditLogsTable) },
       { path: "contact", element: withSuspense(ContactUs) },
-      { path: "search-console", element: withSuspense(SearchConsole) },
+      { path: "blog-performance", element: withSuspense(SearchConsole) },
       { path: "humanize-content", element: withSuspense(HumanizeContent) },
       { path: "blog-editor", element: withSuspense(ManualBlog) },
       { path: "blog-editor/:id", element: withSuspense(ManualBlog) },

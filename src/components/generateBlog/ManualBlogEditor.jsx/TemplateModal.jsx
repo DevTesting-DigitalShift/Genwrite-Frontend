@@ -26,6 +26,14 @@ const TemplateModal = ({
 
   const dispatch = useDispatch()
 
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add("backdrop-blur")
+    } else {
+      document.body.classList.remove("backdrop-blur")
+    }
+  }, [isOpen])
+
   const handleNext = () => {
     if (currentStep === 0 && !selectedTemplate) {
       setErrors((prev) => ({ ...prev, template: true }))
@@ -345,13 +353,7 @@ const TemplateModal = ({
                     onClick={() => setShowAllKeywords((prev) => !prev)}
                     className="text-xs font-medium text-blue-600 self-center cursor-pointer flex items-center gap-1"
                   >
-                    {showAllKeywords ? (
-                      <>Show less</>
-                    ) : (
-                      <>
-                        +{formData.keywords.length - 18} more
-                      </>
-                    )}
+                    {showAllKeywords ? <>Show less</> : <>+{formData.keywords.length - 18} more</>}
                   </span>
                 )}
               </div>

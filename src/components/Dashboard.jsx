@@ -131,9 +131,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (blogs?.data && Array.isArray(blogs.data)) {
-      const recent = blogs.data
-        .filter((b) => b.isArchived === false)
-        .slice(-3)
+      const recent = blogs.data.filter((b) => b.isArchived === false).slice(-3)
       setRecentBlogData(recent)
     } else {
       setRecentBlogData([])
@@ -263,6 +261,20 @@ const Dashboard = () => {
       )}
       {seoAnalysisModal && <SeoAnalysisModal closeFnc={() => setSeoAnalysisModal(false)} />}
 
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="mt-5 ml-10"
+      >
+        <h1 className="bg-clip-text bg-gradient-to-r font-bold from-blue-600 md:text-4xl text-3xl text-transparent to-purple-600">
+          Let's Begin <span className="ml-2 text-2xl text-yellow-400">✨</span>
+        </h1>
+        <p className="text-gray-600 text-lg mt-2">
+          Welcome back <b>{user?.name || "User"}</b>! Ready to create something amazing today?
+        </p>
+      </motion.div>
+
       <div className="min-h-screen bg-gray-50 p-6">
         {loading ? (
           <div className="space-y-8">
@@ -289,19 +301,6 @@ const Dashboard = () => {
           </div>
         ) : (
           <div className="space-y-8">
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              <h1 className="bg-clip-text bg-gradient-to-r font-bold from-blue-600 md:text-4xl text-3xl text-transparent to-purple-600">
-                Let's Begin <span className="ml-2 text-2xl text-yellow-400">✨</span>
-              </h1>
-              <p className="text-gray-600 text-lg mt-2">
-                Welcome back <b>{user?.name || "User"}</b>! Ready to create something amazing today?
-              </p>
-            </motion.div>
-
             <div className="grid lg:grid-cols-3 gap-4">
               <AnimatePresence>
                 {loading
@@ -335,40 +334,38 @@ const Dashboard = () => {
                 <h2 className="text-xl font-semibold text-gray-900">Quick Tools</h2>
               </div>
               <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
-               <AnimatePresence>
-  {loading
-    ? Array.from({ length: 4 }).map((_, idx) => <SkeletonGridCard key={idx} />)
-    : quickTools.map((item, index) => {
-        const functions = {}
+                <AnimatePresence>
+                  {loading
+                    ? Array.from({ length: 4 }).map((_, idx) => <SkeletonGridCard key={idx} />)
+                    : quickTools.map((item, index) => {
+                        const functions = {}
 
-        if (item.id === 1) {
-          functions.showKeywordResearch = () => setKeywordResearchModal(true)
-        } else if (item.id === 2) {
-          functions.showSeoAnalysis = () => setSeoAnalysisModal(true)
-        } else if (item.id === 3) {
-          functions.showPerformanceMonitoring = () => setPerformanceModal(true)
-        } else if (item.id === 4) {
-          functions.showCompetitiveAnalysis = () => showCompetitiveAnalysis()
-        }
+                        if (item.id === 1) {
+                          functions.showKeywordResearch = () => setKeywordResearchModal(true)
+                        } else if (item.id === 2) {
+                          functions.showSeoAnalysis = () => setSeoAnalysisModal(true)
+                        } else if (item.id === 3) {
+                          functions.showPerformanceMonitoring = () => setPerformanceModal(true)
+                        } else if (item.id === 4) {
+                          functions.showCompetitiveAnalysis = () => showCompetitiveAnalysis()
+                        }
 
-        return (
-          <QuickBox
-            key={index}
-            id={item.id}
-            icon={item.icon}
-            title={item.title}
-            content={item.content}
-            bgColor={item.bgColor}
-            hoverBg={item.hoverBg}
-            color={item.color}
-            navigate={item.navigate}
-            functions={functions}
-          />
-        )
-      })}
-</AnimatePresence>
-
-
+                        return (
+                          <QuickBox
+                            key={index}
+                            id={item.id}
+                            icon={item.icon}
+                            title={item.title}
+                            content={item.content}
+                            bgColor={item.bgColor}
+                            hoverBg={item.hoverBg}
+                            color={item.color}
+                            navigate={item.navigate}
+                            functions={functions}
+                          />
+                        )
+                      })}
+                </AnimatePresence>
               </div>
             </div>
 

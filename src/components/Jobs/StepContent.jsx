@@ -1,10 +1,10 @@
-import React from "react"
+import React, { useEffect } from "react"
 import { motion } from "framer-motion"
 import { Select, message, Tooltip } from "antd"
 import MultiDatePicker from "react-multi-date-picker"
 import Carousel from "@components/multipleStepModal/Carousel"
 import { packages } from "@constants/templates"
-import { Crown, Info, Plus, Upload, X } from "lucide-react"
+import { Crown, Info, Plus, TriangleAlert, Upload, X } from "lucide-react"
 import { useSelector } from "react-redux"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
 
@@ -31,6 +31,17 @@ const StepContent = ({
   const tones = ["Professional", "Casual", "Friendly", "Formal", "Technical"]
   const wordLengths = [500, 1000, 1500, 2000, 3000]
   const MAX_BLOGS = 100
+  const isAiImagesLimitReached = user?.usage?.aiImages >= user?.usageLimits?.aiImages
+
+  useEffect(() => {
+    if (isAiImagesLimitReached && formData.isCheckedGeneratedImages) {
+      setFormData((prev) => ({
+        ...prev,
+        isCheckedGeneratedImages: false,
+        imageSource: "unsplash", // Default to unsplash when AI images are disabled
+      }))
+    }
+  }, [isAiImagesLimitReached, formData.isCheckedGeneratedImages])
 
   const imageSources = [
     {
@@ -297,7 +308,7 @@ const StepContent = ({
             <div>
               <label className="text-sm font-medium text-gray-700 mb-2 flex gap-2 items-center">
                 Topics
-                <Tooltip title="Upload a .csv file in the format: `S.No., Keyword`">
+                <Tooltip title="Upload a .csv file in the format: `Keyword` as header">
                   <Info size={16} className="text-blue-500 cursor-pointer" />
                 </Tooltip>
               </label>
@@ -461,49 +472,112 @@ const StepContent = ({
                 ))}
               </div>
             </div>
-            <div className="mb-6">
-              <label className="block text-sm font-semibold text-gray-700 mb-3">Image Source</label>
-              <div className="flex gap-4 flex-wrap">
-                {imageSources.map((source) => (
-                  <label
-                    key={source.id}
-                    htmlFor={source.id}
-                    className={`border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150 ${
-                      newJob.blogs.imageSource === source.value
-                        ? "border-blue-600 bg-blue-50"
-                        : "border-gray-300"
-                    } hover:shadow-sm w-full max-w-[220px] relative`}
-                    onClick={(e) => {
-                      if (source.restricted) {
-                        e.preventDefault()
-                        openUpgradePopup({ featureName: source.featureName, navigate })
+            <div className="flex justify-between items-center">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Add Image</label>
+              <div className="flex items-center">
+                <label
+                  htmlFor="add-image-toggle"
+                  className={`relative inline-block w-12 h-6 ${
+                    isAiImagesLimitReached ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    id="add-image-toggle"
+                    className="sr-only peer"
+                    checked={newJob.blogs.isCheckedGeneratedImages}
+                    disabled={isAiImagesLimitReached}
+                    onChange={(e) => {
+                      if (isAiImagesLimitReached) {
+                        openUpgradePopup({ featureName: "AI-Generated Images", navigate })
+                        return
                       }
+                      const checked = e.target.checked
+                      setNewJob((prev) => ({
+                        ...prev,
+                        blogs: {
+                          ...prev.blogs,
+                          isCheckedGeneratedImages: checked,
+                        },
+                      }))
+                    }}
+                  />
+                  <div
+                    className={`w-12 h-6 rounded-full transition-all duration-300 ${
+                      newJob.blogs.isCheckedGeneratedImages && !isAiImagesLimitReached
+                        ? "bg-[#1B6FC9]"
+                        : "bg-gray-300"
+                    }`}
+                  />
+                  <div
+                    className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-300 ${
+                      newJob.blogs.isCheckedGeneratedImages && !isAiImagesLimitReached
+                        ? "translate-x-6"
+                        : ""
+                    }`}
+                  />
+                </label>
+                {isAiImagesLimitReached && (
+                  <Tooltip
+                    title="You've reached your AI image generation limit. It'll reset in the next billing cycle."
+                    overlayInnerStyle={{
+                      backgroundColor: "#FEF9C3", // light yellow
+                      border: "1px solid #FACC15", // yellow-400 border
+                      color: "#78350F", // dark yellow text
                     }}
                   >
-                    <input
-                      type="radio"
-                      id={source.id}
-                      name="imageSource"
-                      value={source.value}
-                      checked={newJob.blogs.imageSource === source.value}
-                      onChange={() => {
-                        if (!source.restricted) {
-                          setNewJob({
-                            ...newJob,
-                            blogs: { ...newJob.blogs, imageSource: source.value },
-                          })
-                        }
-                      }}
-                      className="hidden"
-                    />
-                    <span className="text-sm font-medium text-gray-800">{source.label}</span>
-                    {source.restricted && (
-                      <Crown className="w-4 h-4 text-yellow-500 absolute top-2 right-2" />
-                    )}
-                  </label>
-                ))}
+                    <TriangleAlert className="text-yellow-400 ml-4" size={15} />
+                  </Tooltip>
+                )}
               </div>
             </div>
+            {newJob.blogs.isCheckedGeneratedImages && !isAiImagesLimitReached && (
+              <div className="mb-6">
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  Image Source
+                </label>
+                <div className="flex gap-4 flex-wrap">
+                  {imageSources.map((source) => (
+                    <label
+                      key={source.id}
+                      htmlFor={source.id}
+                      className={`border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150 ${
+                        newJob.blogs.imageSource === source.value
+                          ? "border-blue-600 bg-blue-50"
+                          : "border-gray-300"
+                      } hover:shadow-sm w-full max-w-[220px] relative`}
+                      onClick={(e) => {
+                        if (source.restricted) {
+                          e.preventDefault()
+                          openUpgradePopup({ featureName: source.featureName, navigate })
+                        }
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        id={source.id}
+                        name="imageSource"
+                        value={source.value}
+                        checked={newJob.blogs.imageSource === source.value}
+                        onChange={() => {
+                          if (!source.restricted) {
+                            setNewJob({
+                              ...newJob,
+                              blogs: { ...newJob.blogs, imageSource: source.value },
+                            })
+                          }
+                        }}
+                        className="hidden"
+                      />
+                      <span className="text-sm font-medium text-gray-800">{source.label}</span>
+                      {source.restricted && (
+                        <Crown className="w-4 h-4 text-yellow-500 absolute top-2 right-2" />
+                      )}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </motion.div>
       )

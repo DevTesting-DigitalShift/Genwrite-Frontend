@@ -159,7 +159,7 @@ const SearchConsole = () => {
           try {
             await dispatch(fetchVerifiedSites()).unwrap()
             message.success("Google Search Console connected successfully!")
-            navigate("/search-console", { replace: true })
+            navigate("/blog-performance", { replace: true })
             fetchAnalyticsData()
           } catch (err) {
             const errorMessage = err.message || err.error || "Failed to verify GSC connection"
@@ -508,7 +508,7 @@ const SearchConsole = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/50 p-5">
       <Helmet>
-        <title>Blog Search Console | GenWrite</title>
+        <title>Blog Performance | GenWrite</title>
       </Helmet>
       <div className="space-y-6">
         {/* Header */}
@@ -520,7 +520,7 @@ const SearchConsole = () => {
               transition={{ delay: 0.2 }}
               className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
             >
-              Search Console
+              Blog Performance
             </motion.h1>
             <p className="text-gray-600">Monitor your blog performance and search analytics</p>
           </div>
