@@ -19,6 +19,7 @@ const initialJob = {
     aiModel: "gemini",
     brandId: null,
     useBrandVoice: false,
+    isCheckedGeneratedImages: true,
   },
   options: {
     wordpressPosting: false,

@@ -1,43 +1,44 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { motion } from "framer-motion";
-import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
-import { Helmet } from "react-helmet";
-import { Pagination } from "antd";
-import { FiPlus } from "react-icons/fi";
-import {
-  fetchJobs,
-  openJobModal,
-} from "@store/slices/jobSlice";
-import { fetchBrands } from "@store/slices/brandSlice";
-import { selectUser } from "@store/slices/authSlice";
-import SkeletonLoader from "@components/Projects/SkeletonLoader";
-import UpgradeModal from "@components/UpgradeModal";
-import { openUpgradePopup } from "@utils/UpgardePopUp";
-import JobModal from "@components/Jobs/JobModal";
-import JobCard from "@components/Jobs/JobCard";
+import React, { useState, useEffect, useMemo, useRef } from "react"
+import { motion } from "framer-motion"
+import { useDispatch, useSelector } from "react-redux"
+import { useNavigate } from "react-router-dom"
+import { Helmet } from "react-helmet"
+import { Pagination } from "antd"
+import { FiPlus } from "react-icons/fi"
+import { fetchJobs, openJobModal } from "@store/slices/jobSlice"
+import { fetchBrands } from "@store/slices/brandSlice"
+import { selectUser } from "@store/slices/authSlice"
+import SkeletonLoader from "@components/Projects/SkeletonLoader"
+import UpgradeModal from "@components/UpgradeModal"
+import { openUpgradePopup } from "@utils/UpgardePopUp"
+import JobModal from "@components/Jobs/JobModal"
+import JobCard from "@components/Jobs/JobCard"
+import { AlertTriangle } from "lucide-react"
 
-const PAGE_SIZE = 15;
+const PAGE_SIZE = 15
 
 const Jobs = () => {
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
-  const { jobs, loading: isLoading, showJobModal } = useSelector((state) => state.jobs);
-  const { selectedKeywords } = useSelector((state) => state.analysis);
-  const user = useSelector(selectUser);
-  const userPlan = (user?.plan || user?.subscription?.plan || "free").toLowerCase();
-  const [currentPage, setCurrentPage] = useState(1);
-  const [isUserLoaded, setIsUserLoaded] = useState(false);
+  const dispatch = useDispatch()
+  const navigate = useNavigate()
+  const { jobs, loading: isLoading, showJobModal } = useSelector((state) => state.jobs)
+  const { selectedKeywords } = useSelector((state) => state.analysis)
+  const user = useSelector(selectUser)
+  const userPlan = (user?.plan || user?.subscription?.plan || "free").toLowerCase()
+  const [currentPage, setCurrentPage] = useState(1)
+  const [showWarning, setShowWarning] = useState(false)
+  const [isUserLoaded, setIsUserLoaded] = useState(false)
+  const usage = user?.usage?.createdJobs
+  const usageLimit = user?.usageLimits?.createdJobs
 
   const JOB_LIMITS = {
     free: 0,
     basic: 1,
     pro: 5,
     enterprise: Infinity,
-  };
+  }
 
   const checkJobLimit = () => {
-    const limit = JOB_LIMITS[userPlan] || 0;
+    const limit = JOB_LIMITS[userPlan] || 0
     if (jobs.length >= limit) {
       message.error(
         `You have reached the job limit for your ${userPlan} plan (${limit} job${
@@ -47,46 +48,46 @@ const Jobs = () => {
             ? "Delete an existing job to create a new one."
             : "Please upgrade your plan to create more jobs."
         }`
-      );
+      )
       if (userPlan !== "basic") {
-        openUpgradePopup({ featureName: "Additional Jobs", navigate });
+        openUpgradePopup({ featureName: "Additional Jobs", navigate })
       }
-      return false;
+      return false
     }
-    return true;
-  };
+    return true
+  }
 
   const handleOpenJobModal = () => {
     if (!isUserLoaded) {
-      message.error("User data is still loading. Please try again.");
-      return;
+      message.error("User data is still loading. Please try again.")
+      return
     }
-    if (!checkJobLimit()) return;
-    dispatch(openJobModal());
-  };
+    if (!checkJobLimit()) return
+    dispatch(openJobModal())
+  }
 
   useEffect(() => {
-    dispatch(fetchJobs());
-    dispatch(fetchBrands());
-  }, [dispatch]);
+    dispatch(fetchJobs())
+    dispatch(fetchBrands())
+  }, [dispatch])
 
   useEffect(() => {
-    setIsUserLoaded(!!(user?.name || user?.credits));
-  }, [user]);
+    setIsUserLoaded(!!(user?.name || user?.credits))
+  }, [user])
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [currentPage]);
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }, [currentPage])
 
-  const totalPages = useMemo(() => Math.ceil(jobs.length / PAGE_SIZE), [jobs]);
+  const totalPages = useMemo(() => Math.ceil(jobs.length / PAGE_SIZE), [jobs])
 
   const paginatedJobs = useMemo(() => {
-    const startIndex = (currentPage - 1) * PAGE_SIZE;
-    return jobs.slice(startIndex, startIndex + PAGE_SIZE);
-  }, [jobs, currentPage]);
+    const startIndex = (currentPage - 1) * PAGE_SIZE
+    return jobs.slice(startIndex, startIndex + PAGE_SIZE)
+  }, [jobs, currentPage])
 
   if (userPlan === "free") {
-    return <UpgradeModal featureName="Content Agent" />;
+    return <UpgradeModal featureName="Content Agent" />
   }
 
   return (
@@ -96,16 +97,48 @@ const Jobs = () => {
       </Helmet>
       <div className="min-h-screen bg-gray-50 p-8">
         <div>
-          <div className="mb-8">
-            <motion.h1
-              initial={{ y: -20 }}
-              animate={{ y: 0 }}
-              className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
-            >
-              Jobs Automation
-            </motion.h1>
-            <p className="text-gray-600 mt-2">Manage your automated content generation jobs</p>
+          <div className="flex justify-between">
+            <div className="mb-8">
+              <motion.h1
+                initial={{ y: -20 }}
+                animate={{ y: 0 }}
+                className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
+              >
+                Jobs Automation
+              </motion.h1>
+              <p className="text-gray-600 mt-2">Manage your automated content generation jobs</p>
+            </div>
+            {usage === usageLimit && (
+              <button
+                onClick={() => setShowWarning((prev) => !prev)}
+                className="text-yellow-500 hover:text-yellow-600 transition"
+                title="View usage warning"
+              >
+                <AlertTriangle className="w-6 h-6" />
+              </button>
+            )}
           </div>
+
+          {showWarning && usage === usageLimit && (
+            <div className="flex items-start mb-10 gap-3 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg shadow-sm text-sm">
+              <div className="pt-1 text-yellow-500">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+
+              <div className="text-yellow-900">
+                <p className="font-semibold mb-1">Monthly Job Creation Limit Reached</p>
+                <p className="mb-1">
+                  You've created <span className="font-bold text-black">{usage}</span> out of{" "}
+                  <span className="font-bold text-black">{usageLimit}</span> allowed jobs this
+                  month. You can't create any more jobs until your next billing cycle.
+                </p>
+                <p className="text-red-400 text-xs font-semibold">
+                  Tip: Update your current job instead of deleting and recreating.
+                </p>
+              </div>
+            </div>
+          )}
+
           <motion.div
             whileHover={{ y: -2 }}
             className="w-full md:w-1/2 lg:w-1/3 h-48 p-6 bg-white rounded-xl shadow-sm hover:shadow-md cursor-pointer mb-8"
@@ -174,7 +207,7 @@ const Jobs = () => {
         />
       </div>
     </>
-  );
-};
+  )
+}
 
-export default Jobs;
+export default Jobs

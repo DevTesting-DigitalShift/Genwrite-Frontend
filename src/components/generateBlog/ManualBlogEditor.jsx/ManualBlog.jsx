@@ -33,10 +33,10 @@ import Image from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
 import { useNavigate, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { Tooltip, Modal, Spin, message, Input } from "antd";
+import { Tooltip, Modal, message, Input } from "antd";
 import Joyride, { STATUS } from "react-joyride";
 import Toolbar from "@components/Toolbar";
-import { createManualBlog, updateBlogById, fetchBlogById } from "@store/slices/blogSlice";
+import { createManualBlog, updateBlogById, fetchBlogById, clearSelectedBlog } from "@store/slices/blogSlice";
 import TemplateModal from "./TemplateModal";
 
 const ManualBlog = () => {
@@ -45,42 +45,34 @@ const ManualBlog = () => {
   const dispatch = useDispatch();
   const blog = useSelector((state) => state.blog.selectedBlog || {}); // Fetch blog from Redux store
 
-  // Initialize states with blog data if available
-  const [showTemplateModal, setShowTemplateModal] = useState(!blog._id); // Show modal only for new blogs
-  const [title, setTitle] = useState(blog.title || "");
-  const [topic, setTopic] = useState(blog.topic || "");
-  const [content, setContent] = useState(blog.content || "");
-  const [keywords, setKeywords] = useState(
-    blog.focusKeywords?.map((k, idx) => ({
-      id: `${Date.now()}-${idx}`,
-      text: k,
-      difficulty: "medium",
-      volume: 1000,
-      generated: false,
-    })) || []
-  );
+  // Initialize states
+  const [showTemplateModal, setShowTemplateModal] = useState(!id); // Show modal only for new blogs (no ID)
+  const [title, setTitle] = useState("");
+  const [topic, setTopic] = useState("");
+  const [content, setContent] = useState("");
+  const [keywords, setKeywords] = useState([]);
   const [newKeyword, setNewKeyword] = useState("");
   const [isGeneratingKeywords, setIsGeneratingKeywords] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [seoScore, setSeoScore] = useState(blog.seoScore || 0);
-  const [blogScore, setBlogScore] = useState(blog.blogScore || 0);
+  const [seoScore, setSeoScore] = useState(0);
+  const [blogScore, setBlogScore] = useState(0);
   const [runWalkthrough, setRunWalkthrough] = useState(false);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [imageUrl, setImageUrl] = useState("");
   const [imageAltText, setImageAltText] = useState("");
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [blogId, setBlogId] = useState(blog._id || "");
+  const [blogId, setBlogId] = useState("");
   const [formData, setFormData] = useState({
-    title: blog.title || "",
-    topic: blog.topic || "",
-    tone: blog.tone || "Informative",
-    focusKeywords: blog.focusKeywords || [],
-    keywords: blog.keywords || [],
-    userDefinedLength: blog.userDefinedLength || 1200,
+    title: "",
+    topic: "",
+    tone: "Informative",
+    focusKeywords: [],
+    keywords: [],
+    userDefinedLength: 1200,
     focusKeywordInput: "",
     keywordInput: "",
-    template: blog.template || "",
+    template: "",
   });
   const [errors, setErrors] = useState({
     title: false,
@@ -92,17 +84,50 @@ const ManualBlog = () => {
     template: false,
   });
 
-  // Fetch blog data when ID is provided
+  // Reset states and fetch blog data based on ID
   useEffect(() => {
     if (id) {
+      // Editing mode: Fetch blog data
       dispatch(fetchBlogById(id));
+      setShowTemplateModal(false);
+    } else {
+      // New blog mode: Clear Redux state and reset form
+      dispatch(clearSelectedBlog());
+      setShowTemplateModal(true);
+      setTitle("");
+      setTopic("");
+      setContent("");
+      setKeywords([]);
+      setSeoScore(0);
+      setBlogScore(0);
+      setBlogId("");
+      setFormData({
+        title: "",
+        topic: "",
+        tone: "Informative",
+        focusKeywords: [],
+        keywords: [],
+        userDefinedLength: 1200,
+        focusKeywordInput: "",
+        keywordInput: "",
+        template: "",
+      });
+      setErrors({
+        title: false,
+        topic: false,
+        tone: false,
+        focusKeywords: false,
+        keywords: false,
+        userDefinedLength: false,
+        template: false,
+      });
     }
   }, [id, dispatch]);
 
-  // Update states when blog data changes
+  // Update states when blog data is fetched
   useEffect(() => {
-    if (blog._id) {
-     setTitle(blog.title || "");
+    if (blog._id && id) {
+      setTitle(blog.title || "");
       setTopic(blog.topic || "");
       setContent(blog.content || "");
       setKeywords(
@@ -129,7 +154,7 @@ const ManualBlog = () => {
         template: blog.template || "",
       });
     }
-  }, [blog]);
+  }, [blog, id]);
 
   const finalKeywords = keywords.length > 0 ? keywords : [];
 
@@ -165,6 +190,7 @@ const ManualBlog = () => {
       const res = await dispatch(createManualBlog(blogData)).unwrap();
       setBlogId(res._id);
       setShowTemplateModal(false);
+      navigate(`/blog-editor/${res._id}`); // Navigate to edit mode after creation
     } catch (err) {
       console.error("Failed to create blog:", err);
       message.error(err?.message || "Failed to create blog");
@@ -213,7 +239,7 @@ const ManualBlog = () => {
         },
       }),
     ],
-    content: blog.content || "",
+    content: content, // Use content state instead of blog.content
     onUpdate: ({ editor }) => {
       setContent(editor.getHTML());
     },
@@ -262,10 +288,21 @@ const ManualBlog = () => {
 
     setKeywords((prev) => [...prev, ...newKeywordObjects]);
     setNewKeyword("");
+    setFormData((prev) => ({
+      ...prev,
+      focusKeywords: [...newKeywordObjects.slice(0, 3).map((k) => k.text), ...prev.focusKeywords],
+      keywords: [...newKeywordObjects.slice(3).map((k) => k.text), ...prev.keywords],
+    }));
   };
 
   const removeKeyword = (id) => {
+    const removedKeyword = keywords.find((k) => k.id === id);
     setKeywords(keywords.filter((k) => k.id !== id));
+    setFormData((prev) => ({
+      ...prev,
+      focusKeywords: prev.focusKeywords.filter((k) => k !== removedKeyword.text),
+      keywords: prev.keywords.filter((k) => k !== removedKeyword.text),
+    }));
   };
 
   const generateKeywords = async () => {
@@ -292,6 +329,11 @@ const ManualBlog = () => {
         }));
 
       setKeywords([...keywords, ...newKeywords]);
+      setFormData((prev) => ({
+        ...prev,
+        focusKeywords: [...newKeywords.slice(0, 3).map((k) => k.text), ...prev.focusKeywords],
+        keywords: [...newKeywords.slice(3).map((k) => k.text), ...prev.keywords],
+      }));
       setIsGeneratingKeywords(false);
     }, 2000);
   };
@@ -310,7 +352,7 @@ const ManualBlog = () => {
     try {
       const response = await dispatch(
         updateBlogById({
-          id: blogId,
+          id: blogId || id,
           title,
           content,
           published: blog.published || false,
@@ -325,6 +367,9 @@ const ManualBlog = () => {
         setTimeout(() => {
           setSaveSuccess(false);
         }, 1000);
+        if (!id && response._id) {
+          navigate(`/blog-editor/${response._id}`);
+        }
       }
     } catch (error) {
       console.error("Error updating the blog:", error);
@@ -431,11 +476,10 @@ const ManualBlog = () => {
       !formData.keywords ||
       formData.keywords.length === 0;
 
-    if (isEmpty && !blog._id) {
+    if (isEmpty && !id) {
       navigate("/blogs");
-    } else {
-      setShowTemplateModal(false);
     }
+    setShowTemplateModal(false);
   };
 
   const wordCount = getWordCount(content);
@@ -594,7 +638,7 @@ const ManualBlog = () => {
                   </div>
                   <div>
                     <h2 className="text-2xl font-bold text-gray-900">
-                      {blog._id ? "Edit Blog" : "Create New Blog"}
+                      {id ? "Edit Blog" : "Create New Blog"}
                     </h2>
                     <p className="text-gray-600 text-sm">Write and optimize your content</p>
                   </div>

@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Button, Modal, message } from "antd"
+import { Button, Modal, Select, message } from "antd"
 import { useSelector } from "react-redux"
 import { Plus, X } from "lucide-react"
 
@@ -110,6 +110,16 @@ const CategoriesModal = ({
     setCategoryError(false)
   }, [setIsCategoryModalOpen])
 
+  const handleCategoryChange = useCallback((value) => {
+    if (value.length > 1) {
+      message.error("Only one category can be selected.")
+      return
+    }
+    const newCategory = value.length > 0 ? value[0] : ""
+    setSelectedCategory(newCategory)
+    setCategoryError(false)
+  }, [])
+
   return (
     <Modal
       title="Select Category"
@@ -161,42 +171,11 @@ const CategoriesModal = ({
           )}
         </AnimatePresence>
 
-        {/* Custom Category Input */}
-        <div>
-          <h3 className="text-sm font-semibold text-gray-700 mb-2">Custom Category</h3>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={customCategory}
-              onChange={(e) => setCustomCategory(e.target.value)}
-              onKeyDown={handleCustomCategoryKeyDown}
-              placeholder="Enter custom category"
-              className="flex-1 px-4 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-              disabled={!!selectedCategory}
-              aria-label="Add custom category"
-            />
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={addCustomCategory}
-              disabled={!!selectedCategory}
-              className={`p-2.5 rounded-lg ${
-                selectedCategory
-                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  : "bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg"
-              }`}
-              aria-label="Add custom category"
-            >
-              <Plus className="w-4 h-4" />
-            </motion.button>
-          </div>
-        </div>
-
         {/* Auto-Generated Categories Section */}
         {!wordpressError && categories?.length > 0 && (
           <div>
             <h3 className="text-sm font-semibold text-gray-700 mb-2">Auto-Generated Categories</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-y-auto p-3 rounded-md border border-indigo-200 bg-indigo-50 max-h-40">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-y-auto p-3 rounded-md border border-indigo-200 bg-indigo-50 max-h-96">
               {categories.map((category) => (
                 <motion.div
                   key={category.id || category.name}
@@ -229,41 +208,29 @@ const CategoriesModal = ({
           </div>
         )}
 
-        {/* Popular Categories Section */}
+        {/* Category Selection */}
         <div>
-          <h3 className="text-sm font-semibold text-gray-700 mb-2">Popular Categories</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-y-auto p-3 rounded-md border border-gray-200 bg-gray-50 max-h-40">
-            {POPULAR_CATEGORIES.map((category) => (
-              <motion.div
-                key={category}
-                onClick={() => handleCategoryAdd(category)}
-                whileHover={{ scale: 1.02, backgroundColor: "#f3f4f6" }}
-                className={`flex items-center justify-between p-3 rounded-md bg-white border ${
-                  categoryError && !selectedCategory ? "border-red-500" : "border-gray-200"
-                } text-sm font-medium cursor-pointer transition-all duration-200 ${
-                  selectedCategory === category
-                    ? "bg-blue-100 border-blue-300"
-                    : selectedCategory
-                    ? "opacity-50 cursor-not-allowed"
-                    : ""
-                }`}
-                aria-label={`Select category ${category}`}
-              >
-                <span className="truncate">{category}</span>
-                {!selectedCategory && (
-                  <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    className="text-blue-600 hover:text-blue-700"
-                    aria-label={`Add category ${category}`}
-                  >
-                    <Plus size={16} />
-                  </motion.button>
-                )}
-              </motion.div>
-            ))}
-          </div>
-          {isCategoryModalOpen && categoryError && !selectedCategory && (
+          <h3 className="text-sm font-semibold text-gray-700 mb-2">Select or Add Category</h3>
+          <Select
+            mode="tags"
+            placeholder="Select or type a category"
+            value={selectedCategory ? [selectedCategory] : []}
+            onChange={handleCategoryChange}
+            className="w-full"
+            allowClear
+            showSearch
+            filterOption={(input, option) =>
+              option.label.toLowerCase().includes(input.toLowerCase())
+            }
+            options={POPULAR_CATEGORIES.map((category) => ({
+              value: category,
+              label: category,
+            }))}
+            dropdownStyle={{ borderRadius: "8px" }}
+            popupClassName="rounded-lg"
+            aria-label="Select or add a category"
+          />
+          {categoryError && !selectedCategory && (
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}

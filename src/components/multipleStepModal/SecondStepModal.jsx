@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { fetchBrands } from "@store/slices/brandSlice"
-import { message, Modal } from "antd"
+import { message, Modal, Tooltip } from "antd"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
-import { Crown, Plus, X } from "lucide-react"
+import { Crown, Plus, TriangleAlert, X } from "lucide-react"
 
 const SecondStepModal = ({
   handlePrevious,
@@ -18,6 +18,9 @@ const SecondStepModal = ({
   const { brands, loading: loadingBrands, error: brandError } = useSelector((state) => state.brand)
   const userPlan = user?.subscription?.plan || user?.plan || "free"
 
+  // Check if AI image usage limit is reached
+  const isAiImagesLimitReached = user?.usage?.aiImages >= user?.usageLimits?.aiImages
+
   const [formData, setFormData] = useState({
     isCheckedQuick: data.isCheckedQuick || false,
     isCheckedBrand: data.isCheckedBrand || false,
@@ -25,16 +28,30 @@ const SecondStepModal = ({
     brandId: data.brandId || null,
     isFAQEnabled: data.isFAQEnabled || false,
     imageSource: data.imageSource || "unsplash",
-    isCompetitiveResearchEnabled: data.isCompetitiveResearchEnabled || false,
     isCheckedGeneratedImages: data.isCheckedGeneratedImages || false,
     referenceLinks: data.referenceLinks || [],
     includeInterlinks: data.includeInterlinks || false,
-    addOutBoundLinks: data.addOutBoundLinks || false, // Use addOutBoundLinks as in original
-    // addOutBoundLinks: data.addOutBoundLinks || false, // Uncomment if you want to use addOutBoundLinks
+    addOutBoundLinks: data.addOutBoundLinks || false,
   })
   const [localFormData, setLocalFormData] = useState({
     newLink: "",
   })
+
+  // Reset isCheckedGeneratedImages if AI image limit is reached
+  useEffect(() => {
+    if (isAiImagesLimitReached && formData.isCheckedGeneratedImages) {
+      setFormData((prev) => ({
+        ...prev,
+        isCheckedGeneratedImages: false,
+        imageSource: "unsplash", // Default to unsplash when AI images are disabled
+      }))
+      setData((prev) => ({
+        ...prev,
+        isCheckedGeneratedImages: false,
+        imageSource: "unsplash",
+      }))
+    }
+  }, [isAiImagesLimitReached, formData.isCheckedGeneratedImages, setData])
 
   useEffect(() => {
     if (formData.isCheckedBrand) {
@@ -95,6 +112,10 @@ const SecondStepModal = ({
   }
 
   const handleImageSourceChange = (source) => {
+    if (source === "ai" && userPlan === "free") {
+      openUpgradePopup({ featureName: "AI-Generated Images", navigate })
+      return
+    }
     setFormData((prev) => ({
       ...prev,
       imageSource: source,
@@ -203,32 +224,69 @@ const SecondStepModal = ({
           <div className="flex justify-between items-center">
             <label className="block text-sm font-semibold text-gray-700 mb-2">Add Image</label>
             <div className="flex items-center">
-              <label htmlFor="add-image-toggle" className="relative inline-block w-12 h-6">
+              <label
+                htmlFor="add-image-toggle"
+                className={`relative inline-block w-12 h-6 ${
+                  isAiImagesLimitReached ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+              >
                 <input
                   type="checkbox"
                   id="add-image-toggle"
                   className="sr-only peer"
                   checked={formData.isCheckedGeneratedImages}
+                  disabled={isAiImagesLimitReached}
                   onChange={(e) => {
+                    if (isAiImagesLimitReached) {
+                      openUpgradePopup({ featureName: "AI-Generated Images", navigate })
+                      return
+                    }
                     const checked = e.target.checked
                     setFormData((prev) => ({
                       ...prev,
                       isCheckedGeneratedImages: checked,
+                      imageSource: checked ? prev.imageSource : "unsplash",
                     }))
                     setData((prev) => ({
                       ...prev,
                       isCheckedGeneratedImages: checked,
+                      imageSource: checked ? prev.imageSource : "unsplash",
+                      isUnsplashActive: !checked ? true : prev.isUnsplashActive,
                     }))
                   }}
                 />
-                <div className="w-12 h-6 bg-gray-300 rounded-full peer peer-checked:bg-[#1B6FC9] transition-all duration-300" />
-                <div className="absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-300 peer-checked:translate-x-6" />
+                <div
+                  className={`w-12 h-6 rounded-full transition-all duration-300 ${
+                    formData.isCheckedGeneratedImages && !isAiImagesLimitReached
+                      ? "bg-[#1B6FC9]"
+                      : "bg-gray-300"
+                  }`}
+                />
+                <div
+                  className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-300 ${
+                    formData.isCheckedGeneratedImages && !isAiImagesLimitReached
+                      ? "translate-x-6"
+                      : ""
+                  }`}
+                />
               </label>
+              {isAiImagesLimitReached && (
+                <Tooltip
+                  title="You've reached your AI image generation limit. It'll reset in the next billing cycle."
+                  overlayInnerStyle={{
+                    backgroundColor: "#FEF9C3", // light yellow
+                    border: "1px solid #FACC15", // yellow-400 border
+                    color: "#78350F", // dark yellow text
+                  }}
+                >
+                  <TriangleAlert className="text-yellow-400 ml-4" size={15} />
+                </Tooltip>
+              )}
             </div>
           </div>
 
-          {/* Image Source Selection - Only show if toggle is ON */}
-          {formData.isCheckedGeneratedImages && (
+          {/* Image Source Selection - Only show if toggle is ON and limit not reached */}
+          {formData.isCheckedGeneratedImages && !isAiImagesLimitReached && (
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-3">Image Source</label>
               <div className="flex gap-6 flex-wrap">
@@ -411,7 +469,7 @@ const SecondStepModal = ({
             </div>
 
             {/* Interlinks Toggle */}
-           <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center justify-between gap-4">
               <span className="text-sm font-medium text-gray-700">
                 Include Interlinks
                 <p className="text-xs text-gray-500">
@@ -439,7 +497,7 @@ const SecondStepModal = ({
             </div>
 
             {/* Competitive Research */}
-           <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center justify-between gap-4">
               <span className="text-sm font-medium text-gray-700">
                 Add Competitive Research
                 <p className="text-xs text-gray-500">
@@ -468,7 +526,7 @@ const SecondStepModal = ({
 
             {/* Outbound Links (Only if Competitive Research is enabled) */}
             {formData.isCompetitiveResearchEnabled && (
-             <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center justify-between gap-4">
                 <span className="text-sm font-medium text-gray-700">
                   Show Outbound Links
                   <p className="text-xs text-gray-500">
