@@ -71,9 +71,7 @@ const Dashboard = () => {
   const [modelData, setModelData] = useState({})
   const [recentBlogData, setRecentBlogData] = useState([])
   const [loading, setLoading] = useState(true)
-  const [pieChartIndex, setPieChartIndex] = useState(0)
-  const [lineChartIndex, setLineChartIndex] = useState(0)
-  const { blogs, blogStatus, loading: statusLoading, error } = useSelector((state) => state.blog)
+  const { blogs, error } = useSelector((state) => state.blog)
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const user = useSelector(selectUser)
@@ -142,121 +140,12 @@ const Dashboard = () => {
     }
   }, [blogs])
 
-  // Auto-scroll for charts
-  useEffect(() => {
-    if (!blogStatus?.stats) return
-    const pieInterval = setInterval(() => {
-      setPieChartIndex((prev) => (prev + 1) % 2)
-    }, 5000)
-    const lineInterval = setInterval(() => {
-      setLineChartIndex((prev) => (prev + 1) % 2)
-    }, 5000)
-    return () => {
-      clearInterval(pieInterval)
-      clearInterval(lineInterval)
-    }
-  }, [blogStatus])
-
   // Handle errors
   useEffect(() => {
     if (error) {
       message.error(error)
     }
   }, [error])
-
-  const stats = blogStatus?.stats || {}
-  const {
-    totalBlogs = 0,
-    postedBlogs = 0,
-    archivedBlogs = 0,
-    brandedBlogs = 0,
-    blogsByModel = {},
-    blogsByStatus = {},
-    imageSources = {},
-    templatesUsed = {},
-  } = stats
-
-  // Chart Data with validation
-  const pieCharts = [
-    {
-      title: "Blogs by Model",
-      data: {
-        labels: Object.keys(blogsByModel).length ? Object.keys(blogsByModel) : ["No Data"],
-        datasets: [
-          {
-            data: Object.keys(blogsByModel).length ? Object.values(blogsByModel) : [1],
-            backgroundColor: ["#3B82F6", "#10B981", "#F59E0B", "#6B7280"],
-            hoverOffset: 20,
-          },
-        ],
-      },
-    },
-    {
-      title: "Image Sources",
-      data: {
-        labels: Object.keys(imageSources).length ? Object.keys(imageSources) : ["No Data"],
-        datasets: [
-          {
-            data: Object.keys(imageSources).length ? Object.values(imageSources) : [1],
-            backgroundColor: ["#10B981", "#F59E0B"],
-            hoverOffset: 20,
-          },
-        ],
-      },
-    },
-  ]
-
-  const lineCharts = [
-    {
-      title: "Blogs by Status",
-      data: {
-        labels: Object.keys(blogsByStatus).length ? Object.keys(blogsByStatus) : ["No Data"],
-        datasets: [
-          {
-            label: "Blogs by Status",
-            data: Object.keys(blogsByStatus).length ? Object.values(blogsByStatus) : [0],
-            borderColor: "#3B82F6",
-            backgroundColor: "rgba(59, 130, 246, 0.1)",
-            tension: 0.4,
-            fill: true,
-          },
-        ],
-      },
-    },
-    {
-      title: "Templates Used",
-      data: {
-        labels: Object.keys(templatesUsed).length ? Object.keys(templatesUsed) : ["No Data"],
-        datasets: [
-          {
-            label: "Templates Used",
-            data: Object.keys(templatesUsed).length ? Object.values(templatesUsed) : [0],
-            borderColor: "#3B82F6",
-            backgroundColor: "rgba(59, 130, 246, 0.1)",
-            tension: 0.4,
-            fill: true,
-          },
-        ],
-      },
-    },
-  ]
-
-  const chartOptions = {
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { position: "bottom", labels: { font: { size: 12 }, padding: 20 } },
-      tooltip: { enabled: true },
-    },
-  }
-
-  const lineChartOptions = {
-    maintainAspectRatio: false,
-    plugins: { legend: { display: false }, tooltip: { enabled: true } },
-    scales: {
-      y: { beginAtZero: true, ticks: { stepSize: 1 } },
-      x: { ticks: { autoSkip: false, maxRotation: 45, minRotation: 45 } },
-    },
-  }
 
   const handleSubmit = async (updatedData) => {
     try {
@@ -375,7 +264,7 @@ const Dashboard = () => {
       {seoAnalysisModal && <SeoAnalysisModal closeFnc={() => setSeoAnalysisModal(false)} />}
 
       <div className="min-h-screen bg-gray-50 p-6">
-        {loading || statusLoading ? (
+        {loading ? (
           <div className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {Array.from({ length: 4 }).map((_, idx) => (
@@ -412,150 +301,6 @@ const Dashboard = () => {
                 Welcome back <b>{user?.name || "User"}</b>! Ready to create something amazing today?
               </p>
             </motion.div>
-
-            {/* Blog Statistics */}
-            <div>
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="mb-6"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
-                    <Sparkles className="w-4 h-4 text-white" />
-                  </div>
-                  <h2 className="text-xl font-semibold text-gray-900">Blog Statistics</h2>
-                </div>
-              </motion.div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                {[
-                  {
-                    title: "Total Blogs",
-                    value: totalBlogs,
-                    icon: <FileText className="w-5 h-5 text-white" />,
-                    iconBg: "bg-blue-500",
-                    cardBg: "bg-blue-50", // soft bg
-                    ringColor: "ring-blue-200",
-                  },
-                  {
-                    title: "Posted Blogs",
-                    value: postedBlogs,
-                    icon: <UploadCloud className="w-5 h-5 text-white" />,
-                    iconBg: "bg-green-500",
-                    cardBg: "bg-green-50",
-                    ringColor: "ring-green-200",
-                  },
-                  {
-                    title: "Archived Blogs",
-                    value: archivedBlogs,
-                    icon: <Archive className="w-5 h-5 text-white" />,
-                    iconBg: "bg-yellow-500",
-                    cardBg: "bg-yellow-50",
-                    ringColor: "ring-yellow-200",
-                  },
-                  {
-                    title: "Branded Blogs",
-                    value: brandedBlogs,
-                    icon: <BadgePercent className="w-5 h-5 text-white" />,
-                    iconBg: "bg-pink-500",
-                    cardBg: "bg-pink-50",
-                    ringColor: "ring-pink-200",
-                  },
-                ].map((item, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: index * 0.1 }}
-                    className={`
-        group relative ${item.cardBg} p-4 rounded-xl border border-gray-200
-        shadow-sm hover:shadow-md transition-all duration-300
-        hover:ring-1 hover:ring-offset-2 ${item.ringColor}
-      `}
-                  >
-                    <div className="relative z-10">
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-sm font-semibold text-gray-700">{item.title}</h3>
-                        <div className={`p-2 rounded-md ${item.iconBg} shadow-md`}>{item.icon}</div>
-                      </div>
-                      <p className="text-3xl font-bold text-gray-900">{item.value}</p>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-
-              {/* Charts */}
-              {blogStatus?.stats && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        {pieCharts[pieChartIndex].title}
-                      </h3>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => setPieChartIndex((prev) => (prev - 1 + 2) % 2)}
-                          className="p-1 hover:bg-gray-100 rounded"
-                          aria-label="Previous Pie Chart"
-                        >
-                          <ChevronLeft className="w-5 h-5 text-gray-600" />
-                        </button>
-                        <button
-                          onClick={() => setPieChartIndex((prev) => (prev + 1) % 2)}
-                          className="p-1 hover:bg-gray-100 rounded"
-                          aria-label="Next Pie Chart"
-                        >
-                          <ChevronRight className="w-5 h-5 text-gray-600" />
-                        </button>
-                      </div>
-                    </div>
-                    <motion.div
-                      key={pieChartIndex}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.5 }}
-                      className="h-64"
-                    >
-                      <Pie data={pieCharts[pieChartIndex].data} options={chartOptions} />
-                    </motion.div>
-                  </div>
-                  <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        {lineCharts[lineChartIndex].title}
-                      </h3>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => setLineChartIndex((prev) => (prev - 1 + 2) % 2)}
-                          className="p-1 hover:bg-gray-100 rounded"
-                          aria-label="Previous Line Chart"
-                        >
-                          <ChevronLeft className="w-5 h-5 text-gray-600" />
-                        </button>
-                        <button
-                          onClick={() => setLineChartIndex((prev) => (prev + 1) % 2)}
-                          className="p-1 hover:bg-gray-100 rounded"
-                          aria-label="Next Line Chart"
-                        >
-                          <ChevronRight className="w-5 h-5 text-gray-600" />
-                        </button>
-                      </div>
-                    </div>
-                    <motion.div
-                      key={lineChartIndex}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.5 }}
-                      className="h-64"
-                    >
-                      <Line data={lineCharts[lineChartIndex].data} options={lineChartOptions} />
-                    </motion.div>
-                  </div>
-                </div>
-              )}
-            </div>
 
             <div className="grid lg:grid-cols-3 gap-4">
               <AnimatePresence>

@@ -526,27 +526,6 @@ const SearchConsole = () => {
           </div>
           <div className="flex items-center gap-3">
             <Button
-              onClick={() => setDateRange("7d")}
-              type={dateRange === "7d" && !customDateRange[0] ? "primary" : "default"}
-              className="flex items-center gap-2"
-            >
-              Last 7 Days
-            </Button>
-            <Button
-              onClick={() => setDateRange("30d")}
-              type={dateRange === "30d" && !customDateRange[0] ? "primary" : "default"}
-              className="flex items-center gap-2"
-            >
-              Last 30 Days
-            </Button>
-            <Button
-              onClick={() => setDateRange("180d")}
-              type={dateRange === "180d" && !customDateRange[0] ? "primary" : "default"}
-              className="flex items-center gap-2"
-            >
-              Last 6 Months
-            </Button>
-            <Button
               icon={<Download className="w-4 h-4" />}
               onClick={handleExport}
               disabled={isLoading || sitesLoading}
@@ -641,7 +620,7 @@ const SearchConsole = () => {
               <Select
                 value={selectedCountry}
                 onChange={(value) => setSelectedCountry(value)}
-                className="w-2/3"
+                className="w-1/3"
                 placeholder="Select Country"
               >
                 {countries.map((country) => (
@@ -650,21 +629,28 @@ const SearchConsole = () => {
                   </Option>
                 ))}
               </Select>
-              <div className="flex items-center gap-2">
-                <RangePicker
-                  value={customDateRange}
-                  onChange={(dates) => setCustomDateRange(dates)}
-                  disabledDate={(current) => current && current > moment().endOf("day")}
-                  className="w-2/3"
-                />
-                <Button
-                  icon={<RotateCcw className="w-4 h-4" />}
-                  onClick={resetDateRange}
-                  className="flex items-center gap-2"
-                >
-                  Reset
-                </Button>
-              </div>
+              <RangePicker
+                value={customDateRange}
+                onChange={(dates) => setCustomDateRange(dates)}
+                disabledDate={(current) => current && current > moment().endOf("day")}
+                className="w-2/3"
+              />
+              <Select
+                value={customDateRange[0] ? "custom" : dateRange}
+                onChange={(value) => setDateRange(value)}
+                className="w-1/3"
+              >
+                <Option value="7d">Last 7 Days</Option>
+                <Option value="30d">Last 30 Days</Option>
+                <Option value="180d">Last 6 Months</Option>
+              </Select>
+              <Button
+                icon={<RotateCcw className="w-4 h-4" />}
+                onClick={resetDateRange}
+                className="flex items-center gap-2"
+              >
+                Reset
+              </Button>
             </div>
           </div>
         )}
