@@ -1,17 +1,17 @@
-import { useState, useMemo, useEffect, useCallback } from "react"
+import React, { useState, useMemo, useCallback, useEffect } from "react"
 import {
   Search,
   TrendingUp,
-  TrendingDown,
   Eye,
   MousePointer,
   BarChart3,
   ExternalLink,
   RefreshCw,
   LogIn,
-  Link,
   Download,
   RotateCcw,
+  X,
+  TrendingDown,
 } from "lucide-react"
 import { Helmet } from "react-helmet"
 import { motion } from "framer-motion"
@@ -23,7 +23,7 @@ import {
   fetchGscAnalytics,
   clearAnalytics,
 } from "@store/slices/gscSlice"
-import { message, Button, Table, Tag, Select, Input, Tooltip, DatePicker } from "antd"
+import { message, Button, Table, Tag, Select, Input, Tooltip, DatePicker, Switch } from "antd"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import Loading from "@components/Loading"
 import * as XLSX from "xlsx"
@@ -31,6 +31,7 @@ import { fetchAllBlogs } from "@store/slices/blogSlice"
 import { selectUser } from "@store/slices/authSlice"
 import UpgradeModal from "@components/UpgradeModal"
 import moment from "moment"
+import { FcGoogle } from "react-icons/fc"
 
 const { Option } = Select
 const { Search: AntSearch } = Input
@@ -43,17 +44,19 @@ const SearchConsole = () => {
   const [dateRange, setDateRange] = useState("30d")
   const [customDateRange, setCustomDateRange] = useState([null, null])
   const [selectedBlog, setSelectedBlog] = useState("all")
-  const [selectedCountry, setSelectedCountry] = useState("all")
+  const [selectedCountries, setSelectedCountries] = useState([])
+  const [includeCountry, setIncludeCountry] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [searchParams, setSearchParams] = useSearchParams()
+  const [blogData, setBlogData] = useState([])
 
   const dispatch = useDispatch()
   const user = useSelector(selectUser)
   const userPlan = (user?.plan || user?.subscription?.plan || "free").toLowerCase()
   const { blogs } = useSelector((state) => state.blog)
   const { analyticsData, loading: sitesLoading, error } = useSelector((state) => state.gsc)
-
   const navigate = useNavigate()
 
   // Fetch blogs on mount
@@ -90,55 +93,57 @@ const SearchConsole = () => {
   }, [dateRange, customDateRange])
 
   // Fetch analytics data
-  const fetchAnalyticsData = useCallback(async () => {
-    setIsLoading(true)
-    try {
-      const { from, to } = getDateRangeParams()
-      const params = {
-        from,
-        to,
-        page: currentPage,
-        limit: itemsPerPage,
+  const fetchAnalyticsData = useCallback(
+    async (search = "") => {
+      setIsLoading(true)
+      try {
+        const { from, to } = getDateRangeParams()
+        const params = {
+          from,
+          to,
+          includeCountry,
+          ...(search && { searchTerm: search }),
+          ...(selectedBlog !== "all" && { blogUrl: selectedBlog }),
+          ...(includeCountry &&
+            selectedCountries.length > 0 && {
+              countryCodes: selectedCountries,
+            }),
+        }
+        const data = await dispatch(fetchGscAnalytics(params)).unwrap()
+        setBlogData(
+          data.map((item, index) => ({
+            id: `${item.link}-${index}`,
+            url: item.link,
+            clicks: item.clicks,
+            impressions: item.impressions,
+            ctr: (item.ctr * 100).toFixed(2),
+            position: item.position.toFixed(1),
+            keywords: [item.key].map((k) => (k.length > 50 ? `${k.substring(0, 47)}...` : k)),
+            countryCode: item.countryCode || "N/A",
+            countryName: item.countryName || "N/A",
+            blogId: item.blogId,
+            blogTitle: item.blogTitle,
+          }))
+        )
+      } catch (err) {
+        const errorMessage = err.message || err.error || "Failed to fetch analytics data"
+        message.error(errorMessage)
+        console.error("Error fetching analytics data:", err)
+        setBlogData([])
+      } finally {
+        setIsLoading(false)
       }
-      if (selectedBlog !== "all") {
-        params.blogUrl = selectedBlog
-      }
-      if (selectedCountry !== "all") {
-        params.countryCode = selectedCountry
-      }
-      const data = await dispatch(fetchGscAnalytics(params)).unwrap()
-      setBlogData(
-        data.map((item, index) => ({
-          id: `${item.link}-${index}`,
-          url: item.link,
-          clicks: item.clicks,
-          impressions: item.impressions,
-          ctr: (item.ctr * 100).toFixed(2),
-          position: item.position.toFixed(1),
-          keywords: [item.key].map((k) => (k.length > 50 ? `${k.substring(0, 47)}...` : k)),
-          countryCode: item.countryCode,
-          countryName: item.countryName,
-          blogId: item.blogId,
-          blogTitle: item.blogTitle,
-        }))
-      )
-    } catch (err) {
-      const errorMessage = err.message || err.error || "Failed to fetch analytics data"
-      message.error(errorMessage)
-      console.error("Error fetching analytics data:", err)
-      setBlogData([])
-    } finally {
-      setIsLoading(false)
-    }
-  }, [
-    dispatch,
-    dateRange,
-    selectedBlog,
-    selectedCountry,
-    currentPage,
-    itemsPerPage,
-    getDateRangeParams,
-  ])
+    },
+    [
+      dispatch,
+      dateRange,
+      customDateRange,
+      selectedBlog,
+      selectedCountries,
+      includeCountry,
+      getDateRangeParams,
+    ]
+  )
 
   // Google Search Console authentication
   const connectGSC = useCallback(async () => {
@@ -157,10 +162,11 @@ const SearchConsole = () => {
         if (event.origin !== window.location.origin) return
         if (typeof event.data === "string" && event.data === "GSC Connected") {
           try {
+            setIsAuthenticated(true)
             await dispatch(fetchVerifiedSites()).unwrap()
             message.success("Google Search Console connected successfully!")
+            await fetchAnalyticsData()
             navigate("/blog-performance", { replace: true })
-            fetchAnalyticsData()
           } catch (err) {
             const errorMessage = err.message || err.error || "Failed to verify GSC connection"
             message.error(errorMessage)
@@ -179,56 +185,32 @@ const SearchConsole = () => {
       window.addEventListener("message", handleMessage)
 
       const checkPopupClosed = setInterval(() => {
-        if (popup.closed) {
+        if (popup.closed && !isAuthenticated) {
           clearInterval(checkPopupClosed)
           setIsConnecting(false)
           window.removeEventListener("message", handleMessage)
           message.warning("Authentication canceled")
         }
       }, 1000)
+
+      return () => {
+        window.removeEventListener("message", handleMessage)
+        clearInterval(checkPopupClosed)
+      }
     } catch (err) {
       const errorMessage = err.message || err.error || "Failed to initiate GSC connection"
       message.error(errorMessage)
       console.error("GSC auth error:", err)
       setIsConnecting(false)
     }
-  }, [dispatch, navigate, fetchAnalyticsData])
+  }, [dispatch, navigate, fetchAnalyticsData, isAuthenticated])
 
-  // Handle OAuth callback
+  // Clear search params
   useEffect(() => {
-    const code = searchParams.get("code")
-    const state = searchParams.get("state")
-    const error = searchParams.get("error")
-
-    if (error) {
-      message.error(`Authentication failed: ${error}`)
+    if (searchParams.get("code") || searchParams.get("state")) {
       setSearchParams({}, { replace: true })
-      setIsConnecting(false)
-      return
     }
-
-    if (code && state) {
-      const connect = async () => {
-        try {
-          setIsConnecting(true)
-          await dispatch(connectGscAccount({ code, state })).unwrap()
-          message.success("Google Search Console connected successfully!")
-          dispatch(fetchVerifiedSites())
-          setSearchParams({}, { replace: true })
-          fetchAnalyticsData()
-        } catch (err) {
-          const errorMessage = err.message || err.error || "Failed to connect GSC account"
-          message.error(errorMessage)
-          console.error("OAuth callback error:", err)
-        } finally {
-          setIsConnecting(false)
-        }
-      }
-      connect()
-    }
-  }, [searchParams, dispatch, setSearchParams, fetchAnalyticsData])
-
-  const [blogData, setBlogData] = useState([])
+  }, [searchParams, setSearchParams])
 
   useEffect(() => {
     if (user?.gsc) {
@@ -239,11 +221,37 @@ const SearchConsole = () => {
     }
   }, [fetchAnalyticsData, user, dispatch])
 
-  // Reset date range to default (30d)
-  const resetDateRange = useCallback(() => {
+  // Handle search trigger
+  const handleSearch = (value) => {
+    if (value.trim() !== "") {
+      setCurrentPage(1)
+      fetchAnalyticsData()
+    }
+  }
+
+  // Reset all filters
+  const resetAllFilters = () => {
+    setSearchTerm("")
+    setSelectedBlog("all")
+    setSelectedCountries([])
+    setIncludeCountry(true)
     setCustomDateRange([null, null])
     setDateRange("30d")
-  }, [])
+    setCurrentPage(1)
+    fetchAnalyticsData()
+  }
+
+  // Check if filters are active
+  const isDefaultDateRange = dateRange === "30d" && !customDateRange[0]
+  const hasActiveFilters =
+    searchTerm || selectedBlog !== "all" || selectedCountries.length > 0 || !isDefaultDateRange
+
+  // Get blog title from URL
+  const getBlogTitle = (blogUrl) => {
+    if (blogUrl === "all") return "All Blogs"
+    const blog = blogs.data?.find((b) => (b.url || b.title) === blogUrl)
+    return blog?.title || blogUrl
+  }
 
   // Export data as Excel
   const handleExport = useCallback(async () => {
@@ -260,9 +268,8 @@ const SearchConsole = () => {
         "Avg Position",
         "Blog Title",
         "URL",
-        "Country",
+        ...(includeCountry ? ["Country"] : []),
       ]
-
       const rows = blogData.map((blog) => ({
         Keywords: Array.isArray(blog.keywords) ? blog.keywords.join(", ") : blog.keywords,
         Clicks: blog.clicks,
@@ -270,10 +277,9 @@ const SearchConsole = () => {
         "CTR (%)": blog.ctr,
         "Avg Position": blog.position,
         URL: blog.url,
-        Country: blog.countryName,
         "Blog Title": blog.blogTitle,
+        ...(includeCountry ? { Country: blog.countryName } : {}),
       }))
-
       const worksheet = XLSX.utils.json_to_sheet(rows, { header: headers })
       const workbook = XLSX.utils.book_new()
       XLSX.utils.book_append_sheet(workbook, worksheet, "Search Console Data")
@@ -285,7 +291,7 @@ const SearchConsole = () => {
       message.error(errorMessage)
       console.error("Error exporting data:", err)
     }
-  }, [blogData])
+  }, [blogData, includeCountry])
 
   // Calculate totals for summary cards
   const totals = useMemo(() => {
@@ -309,34 +315,24 @@ const SearchConsole = () => {
   // Get unique countries for filter
   const countries = useMemo(() => {
     const countrySet = new Set(blogData.map((blog) => blog.countryCode).filter(Boolean))
-    return ["all", ...countrySet]
+    return [...countrySet]
   }, [blogData])
-
-  // Filtering logic for table
-  const filteredData = useMemo(() => {
-    return blogData.filter((blog) => {
-      if (!blog) return false
-      const matchesSearch =
-        (blog.url || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (blog.keywords || []).some((keyword) =>
-          (keyword || "").toLowerCase().includes(searchTerm.toLowerCase())
-        ) ||
-        (blog.blogTitle || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (blog.countryName || "").toLowerCase().includes(searchTerm.toLowerCase())
-      const matchesCountry = selectedCountry === "all" || blog.countryCode === selectedCountry
-      return matchesSearch && matchesCountry
-    })
-  }, [blogData, searchTerm, selectedCountry])
 
   // Get unique blog URLs for selection
   const blogUrls = useMemo(() => {
-    const urls = new Set(
-      blogs.data
-        ?.filter((blog) => blog.status === "complete" && blog.wordpress)
-        .map((blog) => blog.url || blog.title)
-    )
-    return ["all", ...urls]
-  }, [blogs])
+    const seen = new Set()
+    const uniqueTitles = []
+
+    for (const item of analyticsData) {
+      const title = item.blogTitle
+      if (!seen.has(title)) {
+        seen.add(title)
+        uniqueTitles.push(title)
+      }
+    }
+
+    return ["all", ...uniqueTitles]
+  }, [analyticsData])
 
   // Ant Design Table Columns
   const columns = [
@@ -345,6 +341,7 @@ const SearchConsole = () => {
       dataIndex: "blogTitle",
       key: "blogTitle",
       render: (blogTitle) => <div className="font-medium">{blogTitle}</div>,
+      sorter: (a, b) => a.blogTitle.localeCompare(b.blogTitle),
     },
     {
       title: "Keywords",
@@ -415,13 +412,29 @@ const SearchConsole = () => {
       ),
       align: "center",
     },
-    {
-      title: "Country",
-      dataIndex: "countryName",
-      key: "countryName",
-      render: (countryName, record) => <div>{`${countryName} (${record.countryCode})`}</div>,
-      render: (countryName, record) => <div>{`${countryName} (${record.countryCode})`}</div>,
-    },
+    ...(includeCountry
+      ? [
+          {
+            title: "Country",
+            dataIndex: "countryName",
+            key: "countryName",
+            render: (countryName, record) =>
+              countryName === "N/A" ? "N/A" : `${countryName} (${record.countryCode})`,
+            sorter: (a, b) => a.countryName.localeCompare(b.countryName),
+            filters: countries.map((country) => ({
+              text: country === "N/A" ? "N/A" : country,
+              value: country,
+            })),
+            onFilter: (value, record) => record.countryCode === value,
+            filterMultiple: true,
+            onFilterDropdownVisibleChange: (visible) => {
+              if (!visible && selectedCountries.length > 0) {
+                fetchAnalyticsData()
+              }
+            },
+          },
+        ]
+      : []),
     {
       title: "Actions",
       key: "actions",
@@ -463,8 +476,8 @@ const SearchConsole = () => {
           className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 max-w-md w-full text-center"
         >
           <div className="mb-6">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
-              <Link className="w-8 h-8 text-blue-600" />
+            <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto">
+              <FcGoogle size={40} />
             </div>
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Connect Google Search Console</h2>
@@ -598,59 +611,109 @@ const SearchConsole = () => {
         {/* Filters and Search */}
         {!isLoading && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3">
-            <div className="flex flex-col lg:flex-row gap-4">
-              <AntSearch
-                placeholder="Search by URL, keywords, or title..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                prefix={<Search className="w-5 h-5 text-gray-400 mr-2" />}
-              />
-              <Select
-                value={selectedBlog}
-                onChange={(value) => setSelectedBlog(value)}
-                className="w-2/3"
-                placeholder="Select Blog"
-              >
-                {blogUrls.map((url) => (
-                  <Option key={url} value={url}>
-                    {url === "all" ? "All Blogs" : url}
-                  </Option>
-                ))}
-              </Select>
-              <Select
-                value={selectedCountry}
-                onChange={(value) => setSelectedCountry(value)}
-                className="w-1/3"
-                placeholder="Select Country"
-              >
-                {countries.map((country) => (
-                  <Option key={country} value={country}>
-                    {country === "all" ? "All Countries" : country}
-                  </Option>
-                ))}
-              </Select>
-              <RangePicker
-                value={customDateRange}
-                onChange={(dates) => setCustomDateRange(dates)}
-                disabledDate={(current) => current && current > moment().endOf("day")}
-                className="w-2/3"
-              />
-              <Select
-                value={customDateRange[0] ? "custom" : dateRange}
-                onChange={(value) => setDateRange(value)}
-                className="w-1/3"
-              >
-                <Option value="7d">Last 7 Days</Option>
-                <Option value="30d">Last 30 Days</Option>
-                <Option value="180d">Last 6 Months</Option>
-              </Select>
-              <Button
-                icon={<RotateCcw className="w-4 h-4" />}
-                onClick={resetDateRange}
-                className="flex items-center gap-2"
-              >
-                Reset
-              </Button>
+            <div className="flex flex-col lg:flex-row gap-4 items-center">
+              {/* Search Input */}
+              <div className="flex-1 flex items-center gap-2">
+                <AntSearch
+                  placeholder="Search by URL, keywords, or title..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onSearch={handleSearch}
+                  enterButton={<Search className="w-5 h-5 text-white" />}
+                  suffix={
+                    searchTerm && (
+                      <span
+                        onClick={() => setSearchTerm("")}
+                        className="cursor-pointer text-gray-400 text-xs transition"
+                      >
+                        <X className="w-4 h-4" />
+                      </span>
+                    )
+                  }
+                  className={`w-full ${searchTerm ? "border-orange-400 shadow-orange-100" : ""}`}
+                />
+              </div>
+
+              {/* Blog Selector */}
+              <div className="flex-1">
+                <Select
+                  value={selectedBlog}
+                  onChange={(value) => {
+                    setSelectedBlog(value)
+                    setCurrentPage(1)
+                    fetchAnalyticsData()
+                  }}
+                  className="w-full"
+                  placeholder="Select Blog"
+                  suffixIcon={<span>Blog: {getBlogTitle(selectedBlog)}</span>}
+                >
+                  {blogUrls.map((url) => (
+                    <Option key={url} value={url}>
+                      {url === "all" ? "All Blogs" : url}
+                    </Option>
+                  ))}
+                </Select>
+              </div>
+
+              {/* Date Range Picker */}
+              <div className="flex-1">
+                <RangePicker
+                  value={customDateRange}
+                  onChange={(dates) => {
+                    setCustomDateRange(dates)
+                    setCurrentPage(1)
+                    fetchAnalyticsData()
+                  }}
+                  disabledDate={(current) => current && current > moment().endOf("day")}
+                  className="w-full"
+                  placeholder={["Start Date", "End Date"]}
+                />
+              </div>
+
+              {/* Date Selector */}
+              <div className="w-fit">
+                <Select
+                  value={customDateRange[0] ? "custom" : dateRange}
+                  onChange={(value) => {
+                    setDateRange(value)
+                    setCustomDateRange([null, null])
+                    setCurrentPage(1)
+                    fetchAnalyticsData()
+                  }}
+                >
+                  <Option value="7d">Last 7 Days</Option>
+                  <Option value="30d">Last 30 Days</Option>
+                  <Option value="180d">Last 6 Months</Option>
+                </Select>
+              </div>
+
+              {/* Country Switch */}
+              <div className="flex-2 flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-700">Include Country</label>
+                <Switch
+                  checked={includeCountry}
+                  onChange={(checked) => {
+                    setIncludeCountry(checked)
+                    if (!checked) setSelectedCountries([])
+                    setCurrentPage(1)
+                    fetchAnalyticsData()
+                  }}
+                  className={`w-fit ${includeCountry ? "bg-blue-600" : "bg-gray-200"}`}
+                />
+              </div>
+
+              {/* Reset Button */}
+              <div className="flex-2">
+                <Button
+                  icon={<RotateCcw className="w-4 h-4" />}
+                  onClick={resetAllFilters}
+                  className={`w-full flex items-center gap-2 ${
+                    hasActiveFilters ? "border-red-400 bg-red-50 text-red-600" : ""
+                  }`}
+                >
+                  Reset
+                </Button>
+              </div>
             </div>
           </div>
         )}
@@ -659,19 +722,25 @@ const SearchConsole = () => {
         {!isLoading && (
           <Table
             columns={columns}
-            dataSource={filteredData}
+            dataSource={blogData}
             rowKey="id"
             pagination={{
               current: currentPage,
               pageSize: itemsPerPage,
-              total: filteredData.length,
+              total: blogData.length,
               onChange: (page, pageSize) => {
                 setCurrentPage(page)
                 setItemsPerPage(pageSize)
+                fetchAnalyticsData()
               },
               pageSizeOptions: [10, 20, 50, 100],
               showSizeChanger: true,
               showTotal: (total) => `Total ${total} results`,
+            }}
+            onChange={(pagination, filters) => {
+              setSelectedCountries(filters.countryName || [])
+              setCurrentPage(pagination.current)
+              setItemsPerPage(pagination.pageSize)
             }}
             className="bg-white rounded-2xl shadow-sm border border-gray-100"
             locale={{
@@ -682,6 +751,22 @@ const SearchConsole = () => {
           />
         )}
       </div>
+
+      {/* Custom CSS for Select highlighting */}
+      <style jsx>{`
+        .ant-select-highlighted-green .ant-select-selector {
+          border-color: #10b981 !important;
+          box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1) !important;
+        }
+        .ant-select-highlighted-purple .ant-select-selector {
+          border-color: #8b5cf6 !important;
+          box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.1) !important;
+        }
+        .ant-select-highlighted-indigo .ant-select-selector {
+          border-color: #6366f1 !important;
+          box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1) !important;
+        }
+      `}</style>
     </div>
   )
 }

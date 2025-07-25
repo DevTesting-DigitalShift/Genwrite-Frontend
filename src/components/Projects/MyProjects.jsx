@@ -11,7 +11,6 @@ import {
   Pagination,
   DatePicker,
   message,
-  Tag,
 } from "antd";
 import {
   ArrowDownUp,
@@ -47,7 +46,7 @@ const MyProjects = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(15);
   const [loading, setLoading] = useState(false);
-  const [sortType, setSortType] = useState("createdAt");
+  const [sortType, setSortType] = useState("updatedAt");
   const [sortOrder, setSortOrder] = useState("desc");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateRange, setDateRange] = useState([null, null]);
@@ -57,7 +56,7 @@ const MyProjects = () => {
   const [isMenuOpen, setMenuOpen] = useState(false);
   const [isFunnelMenuOpen, setFunnelMenuOpen] = useState(false);
   const [isCustomDatePickerOpen, setIsCustomDatePickerOpen] = useState(false);
-  const [activePresetLabel, setActivePresetLabel] = useState(""); // Track active preset label
+  const [activePresetLabel, setActivePresetLabel] = useState("");
   const navigate = useNavigate();
   const { handlePopup } = useConfirmPopup();
   const dispatch = useDispatch();
@@ -69,33 +68,9 @@ const MyProjects = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [currentPage]);
 
-  // Toggle sort menu
-  const toggleMenu = () => {
-    setMenuOpen((prev) => {
-      if (!prev) setFunnelMenuOpen(false);
-      return !prev;
-    });
-  };
-
-  // Toggle filter menu
-  const toggleFunnelMenu = () => {
-    setFunnelMenuOpen((prev) => {
-      if (!prev) setMenuOpen(false);
-      return !prev;
-    });
-  };
-
-  // Toggle custom date picker menu
-  const toggleCustomDateRangeMenu = () => {
-    setIsCustomDatePickerOpen((prev) => {
-      if (!prev) setMenuOpen(false);
-      return !prev;
-    });
-  };
-
   // Reset filters
   const resetFilters = () => {
-    setSortType("createdAt");
+    setSortType("updatedAt");
     setSortOrder("desc");
     setStatusFilter("all");
     setDateRange([null, null]);
@@ -103,25 +78,6 @@ const MyProjects = () => {
     setActivePresetLabel("");
     setSearchTerm("");
     setDebouncedSearch("");
-    setCurrentPage(1);
-  };
-
-  // Clear individual filters
-  const clearSort = () => {
-    setSortType("createdAt");
-    setSortOrder("desc");
-    setCurrentPage(1);
-  };
-
-  const clearStatusFilter = () => {
-    setStatusFilter("all");
-    setCurrentPage(1);
-  };
-
-  const clearDateFilter = () => {
-    setDateRange([null, null]);
-    setPresetDateRange([null, null]);
-    setActivePresetLabel("");
     setCurrentPage(1);
   };
 
@@ -132,21 +88,15 @@ const MyProjects = () => {
   };
 
   // Check if filters are active
-  const isDefaultSort = sortType === "createdAt" && sortOrder === "desc";
-  const hasActiveFilters = 
-    !isDefaultSort || 
-    statusFilter !== "all" || 
-    dateRange[0] || 
-    presetDateRange[0] || 
-    debouncedSearch;
+  const isDefaultSort = sortType === "updatedAt" && sortOrder === "desc";
 
   // Get current sort label
   const getCurrentSortLabel = () => {
     if (sortType === "title" && sortOrder === "asc") return "A-Z";
     if (sortType === "title" && sortOrder === "desc") return "Z-A";
-    if (sortType === "createdAt" && sortOrder === "desc") return "Newest First";
-    if (sortType === "createdAt" && sortOrder === "asc") return "Oldest First";
-    return "Default";
+    if (sortType === "updatedAt" && sortOrder === "desc") return "Recently Updated";
+    if (sortType === "updatedAt" && sortOrder === "asc") return "Oldest Updated";
+    return "Recently Updated";
   };
 
   // Get current status label
@@ -165,16 +115,21 @@ const MyProjects = () => {
     if (dateRange[0] && dateRange[1]) {
       return `${moment(dateRange[0]).format("MMM DD")} - ${moment(dateRange[1]).format("MMM DD")}`;
     }
-    return null;
+    return "All Dates";
   };
 
-  // Debounce search input
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedSearch(searchTerm);
-    }, 400);
-    return () => clearTimeout(handler);
-  }, [searchTerm]);
+  // Handle search trigger
+  const handleSearch = () => {
+    setDebouncedSearch(searchTerm);
+    setCurrentPage(1);
+  };
+
+  // Handle key press for search
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter") {
+      handleSearch();
+    }
+  };
 
   // Fetch blogs with filters
   const fetchBlogs = useCallback(async () => {
@@ -317,20 +272,20 @@ const MyProjects = () => {
       },
     },
     {
-      label: "Created Date (Newest)",
+      label: "Recently Updated",
       icon: <FieldTimeOutlined />,
       onClick: () => {
-        setSortType("createdAt");
+        setSortType("updatedAt");
         setSortOrder("desc");
         setMenuOpen(false);
         setCurrentPage(1);
       },
     },
     {
-      label: "Created Date (Oldest)",
+      label: "Oldest Updated",
       icon: <ClockCircleOutlined />,
       onClick: () => {
-        setSortType("createdAt");
+        setSortType("updatedAt");
         setSortOrder("asc");
         setMenuOpen(false);
         setCurrentPage(1);
@@ -473,83 +428,26 @@ const MyProjects = () => {
         </motion.div>
       </div>
 
-      {/* Active Filters Display */}
-      {/* {hasActiveFilters && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4"
-        >
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-medium text-blue-800 mr-2">Active Filters:</span>
-            
-            {!isDefaultSort && (
-              <Tag
-                closable
-                onClose={clearSort}
-                className="bg-blue-100 border-blue-300 text-blue-800 font-medium"
-              >
-                Sort: {getCurrentSortLabel()}
-              </Tag>
-            )}
-            
-            {statusFilter !== "all" && (
-              <Tag
-                closable
-                onClose={clearStatusFilter}
-                className="bg-green-100 border-green-300 text-green-800 font-medium"
-              >
-                Status: {getCurrentStatusLabel()}
-              </Tag>
-            )}
-            
-            {getCurrentDateLabel() && (
-              <Tag
-                closable
-                onClose={clearDateFilter}
-                className="bg-purple-100 border-purple-300 text-purple-800 font-medium"
-              >
-                Date: {getCurrentDateLabel()}
-              </Tag>
-            )}
-            
-            {debouncedSearch && (
-              <Tag
-                closable
-                onClose={clearSearch}
-                className="bg-orange-100 border-orange-300 text-orange-800 font-medium"
-              >
-                Search: "{debouncedSearch}"
-              </Tag>
-            )}
-            
-            <Button
-              type="link"
-              size="small"
-              onClick={resetFilters}
-              className="text-blue-600 hover:text-blue-800 p-0 h-auto font-medium"
-            >
-              Clear All
-            </Button>
-          </div>
-        </motion.div>
-      )} */}
-
       {/* Filter and Sort Bar */}
       <div className="flex flex-col sm:flex-row gap-4 bg-white p-4 rounded-lg mb-6">
-        <div className="flex-1">
+        <div className="flex-1 flex items-center gap-2">
           <Input
             placeholder="Search blogs..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            prefix={<Search className="w-4 h-4 text-gray-500" />}
-            className={`rounded-lg border-gray-300 shadow-sm ${
-              debouncedSearch ? 'border-orange-400 shadow-orange-100' : ''
-            }`}
+            onKeyPress={handleKeyPress}
+            prefix={<Search className="w-4 h-4 text-gray-500 cursor-pointer" onClick={handleSearch} />}
+            suffix={searchTerm ? <X className="w-4 h-4 text-gray-500 cursor-pointer" onClick={clearSearch} /> : null}
+            className="rounded-lg border-gray-300 shadow-sm"
             aria-label="Search blogs"
           />
+          {debouncedSearch && (
+            <span className="text-sm font-medium text-gray-700">
+              Searching: "{debouncedSearch}"
+            </span>
+          )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
           <Popover
             open={isMenuOpen}
             onOpenChange={(visible) => setMenuOpen(visible)}
@@ -576,13 +474,12 @@ const MyProjects = () => {
               <Button
                 type="default"
                 icon={<ArrowDownUp className="w-4 h-4" />}
-                onClick={toggleMenu}
                 className={`p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100 ${
                   !isDefaultSort ? 'border-blue-400 bg-blue-50 text-blue-600' : ''
                 }`}
                 aria-label="Open sort menu"
               >
-                Sort
+                Sort: {getCurrentSortLabel()}
               </Button>
             </motion.div>
           </Popover>
@@ -613,13 +510,12 @@ const MyProjects = () => {
               <Button
                 type="default"
                 icon={<Filter className="w-4 h-4" />}
-                onClick={toggleFunnelMenu}
                 className={`p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100 ${
                   statusFilter !== 'all' ? 'border-green-400 bg-green-50 text-green-600' : ''
                 }`}
                 aria-label="Open filter menu"
               >
-                Filter
+                Filter: {getCurrentStatusLabel()}
               </Button>
             </motion.div>
           </Popover>
@@ -652,13 +548,12 @@ const MyProjects = () => {
               <Button
                 type="default"
                 icon={<Calendar className="w-4 h-4" />}
-                onClick={toggleCustomDateRangeMenu}
                 className={`p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100 ${
                   (dateRange[0] || presetDateRange[0]) ? 'border-purple-400 bg-purple-50 text-purple-600' : ''
                 }`}
                 aria-label="Open date preset menu"
               >
-                Custom Date
+                Date: {getCurrentDateLabel()}
               </Button>
             </motion.div>
           </Popover>
@@ -681,7 +576,9 @@ const MyProjects = () => {
               icon={<RotateCcw className="w-4 h-4" />}
               onClick={resetFilters}
               className={`p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100 ${
-                hasActiveFilters ? 'border-red-400 bg-red-50 text-red-600' : ''
+                (debouncedSearch || !isDefaultSort || statusFilter !== 'all' || dateRange[0] || presetDateRange[0])
+                  ? 'border-red-400 bg-red-50 text-red-600'
+                  : ''
               }`}
               aria-label="Reset filters"
             >
