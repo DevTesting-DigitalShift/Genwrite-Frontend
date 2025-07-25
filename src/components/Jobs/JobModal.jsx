@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Modal, message } from "antd";
-import { closeJobModal, createJobThunk, updateJobThunk } from "@store/slices/jobSlice";
+import { closeJobModal, createJobThunk, fetchJobs, updateJobThunk } from "@store/slices/jobSlice";
 import { clearSelectedKeywords } from "@store/slices/analysisSlice";
 import StepContent from "./StepContent";
 

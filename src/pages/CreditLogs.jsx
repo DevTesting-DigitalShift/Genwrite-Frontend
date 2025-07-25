@@ -37,8 +37,17 @@ const CreditLogsTable = () => {
       debounce((value) => {
         setSearchText(value);
         setPagination((prev) => ({ ...prev, current: 1 }));
+        dispatch(
+          getCreditLogs({
+            page: 1,
+            limit: pagination.pageSize,
+            search: value,
+            purpose: purposeFilter,
+            ...getDateRangeParams(dateRange),
+          })
+        );
       }, 500),
-    []
+    [dispatch, pagination.pageSize, purposeFilter, dateRange]
   );
 
   // Calculate date range for backend fetch
@@ -70,29 +79,12 @@ const CreditLogsTable = () => {
     const params = {
       page: pagination.current,
       limit: pagination.pageSize,
+      search: searchText,
+      purpose: purposeFilter,
       ...getDateRangeParams(dateRange),
     };
     dispatch(getCreditLogs(params));
-  }, [dispatch, dateRange, pagination.current, pagination.pageSize]);
-
-  // Frontend filtering
-  const filteredLogs = useMemo(() => {
-    let result = logs;
-
-    // Filter by searchText (case-insensitive on metadata.title)
-    if (searchText) {
-      result = result.filter((log) =>
-        log.metadata?.title?.toLowerCase().includes(searchText.toLowerCase())
-      );
-    }
-
-    // Filter by purposeFilter
-    if (purposeFilter.length > 0) {
-      result = result.filter((log) => purposeFilter.includes(log.purpose));
-    }
-
-    return result;
-  }, [logs, searchText, purposeFilter]);
+  }, [dispatch, pagination.current, pagination.pageSize, dateRange, searchText, purposeFilter]);
 
   const purposeColorMap = {
     BLOG_GENERATION: "bg-blue-100 text-blue-700",
@@ -153,7 +145,22 @@ const CreditLogsTable = () => {
           text: purpose.toLowerCase().replace(/_/g, " "),
           value: purpose,
         })),
+        filterMultiple: true,
         onFilter: (value, record) => record.purpose === value,
+        onFilterDropdownVisibleChange: (visible) => {
+          if (!visible) {
+            setPagination((prev) => ({ ...prev, current: 1 }));
+            dispatch(
+              getCreditLogs({
+                page: 1,
+                limit: pagination.pageSize,
+                search: searchText,
+                purpose: purposeFilter,
+                ...getDateRangeParams(dateRange),
+              })
+            );
+          }
+        },
         render: (purpose) => {
           const colorClass = purposeColorMap[purpose] || "bg-gray-100 text-gray-700";
           const label = purpose?.toLowerCase().replace(/_/g, " ") || "-";
@@ -184,7 +191,7 @@ const CreditLogsTable = () => {
         render: (credits) => <span className="text-sm font-medium text-gray-800">{credits}</span>,
       },
     ],
-    [purposeColorMap]
+    [purposeColorMap, dispatch, pagination.pageSize, searchText, purposeFilter, dateRange]
   );
 
   // WebSocket for real-time updates
@@ -193,12 +200,13 @@ const CreditLogsTable = () => {
     if (!socket) return;
 
     const handleCreditLogUpdate = (newLog) => {
-      // Only refetch if on the first page to avoid disrupting user navigation
       if (pagination.current === 1) {
         dispatch(
           getCreditLogs({
             page: 1,
             limit: pagination.pageSize,
+            search: searchText,
+            purpose: purposeFilter,
             ...getDateRangeParams(dateRange),
           })
         );
@@ -210,7 +218,7 @@ const CreditLogsTable = () => {
     return () => {
       socket.off("credit-log", handleCreditLogUpdate);
     };
-  }, [dispatch, dateRange, pagination.pageSize, pagination.current]);
+  }, [dispatch, dateRange, pagination.pageSize, pagination.current, searchText, purposeFilter]);
 
   return (
     <AnimatePresence>
@@ -240,6 +248,15 @@ const CreditLogsTable = () => {
               onChange={(value) => {
                 setDateRange(value);
                 setPagination((prev) => ({ ...prev, current: 1 }));
+                dispatch(
+                  getCreditLogs({
+                    page: 1,
+                    limit: pagination.pageSize,
+                    search: searchText,
+                    purpose: purposeFilter,
+                    ...getDateRangeParams(value),
+                  })
+                );
               }}
               className="w-full sm:w-48 rounded-lg"
               popupClassName="rounded-lg"
@@ -251,9 +268,18 @@ const CreditLogsTable = () => {
             </Select>
             <Select
               value={pagination.pageSize}
-              onChange={(value) =>
-                setPagination((prev) => ({ ...prev, pageSize: value, current: 1 }))
-              }
+              onChange={(value) => {
+                setPagination((prev) => ({ ...prev, pageSize: value, current: 1 }));
+                dispatch(
+                  getCreditLogs({
+                    page: 1,
+                    limit: value,
+                    search: searchText,
+                    purpose: purposeFilter,
+                    ...getDateRangeParams(dateRange),
+                  })
+                );
+              }}
               options={pageSizeOptions.map((size) => ({
                 label: `${size} / page`,
                 value: size,
@@ -266,18 +292,27 @@ const CreditLogsTable = () => {
         </div>
 
         <Table
-          dataSource={filteredLogs}
+          dataSource={logs}
           columns={columns}
           loading={loading}
           rowKey="_id"
           pagination={{
             current: pagination.current,
             pageSize: pagination.pageSize,
-            total: totalLogs, // Use backend totalLogs for pagination
+            total: totalLogs,
             showSizeChanger: false,
             showTotal: (total) => `Total ${total} logs`,
             onChange: (page, pageSize) => {
               setPagination({ current: page, pageSize });
+              dispatch(
+                getCreditLogs({
+                  page,
+                  limit: pageSize,
+                  search: searchText,
+                  purpose: purposeFilter,
+                  ...getDateRangeParams(dateRange),
+                })
+              );
             },
           }}
           className="rounded-xl overflow-hidden"
@@ -288,8 +323,12 @@ const CreditLogsTable = () => {
             emptyText: loading ? (
               <Spin tip="Loading logs..." />
             ) : (
-              <Empty description={searchText || purposeFilter.length > 0 ? "No logs match the filters" : "No logs found"} />
+              <Empty description={searchText || purposeFilter.length > 0 ? "No logs match the filters" : "No Logs Found"} />
             ),
+          }}
+          onChange={(pagination, filters) => {
+            setPurposeFilter(filters.purpose || []);
+            setPagination({ current: pagination.current, pageSize: pagination.pageSize });
           }}
         />
       </motion.div>
