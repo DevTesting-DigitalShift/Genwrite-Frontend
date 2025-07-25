@@ -1,1 +1,0 @@
-import{j as e,O as s}from"./index-DLrJUxXB.js";import"./chunk-tiptap-Diw-eXXG.js";const l=()=>e.jsx("div",{className:"flex flex-col min-h-screen bg-gradient-to-br from-blue-600 to-purple-700",children:e.jsx("main",{className:"flex-1",children:e.jsx(s,{})})});export{l as default};

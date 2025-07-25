@@ -1,3 +1,4 @@
+// @components/Jobs/JobCard.jsx
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useDispatch } from "react-redux";
@@ -36,10 +37,10 @@ const JobCard = ({ job, setCurrentPage, paginatedJobs }) => {
       return;
     }
     if (job.status === "active") {
-      message.error("Stop the job before editing.");
+      message.warning("Please pause the job before editing.");
       return;
     }
-    dispatch(openJobModal());
+    dispatch(openJobModal(job)); // Pass the job object
   };
 
   return (

@@ -69,7 +69,17 @@ export default function ToolboxPage() {
   const analyzeKeywords = async () => {
     dispatch(analyzeKeywordsThunk(keywords));
     setCurrentPage(1);
-    setSelectedRowKeys([]); // Reset selection on new analysis
+    setSelectedRowKeys([]);
+  };
+
+  // Deselect a keyword from the selected keywords display
+  const deselectKeyword = (index) => {
+    setSelectedRowKeys(selectedRowKeys.filter((key) => key !== index));
+  };
+
+  // Clear all selected keywords
+  const clearSelectedKeywords = () => {
+    setSelectedRowKeys([]);
   };
 
   // Function to download selected keywords as CSV
@@ -84,16 +94,37 @@ export default function ToolboxPage() {
       return;
     }
 
+    // Debug: Log selected indices and keywords
+    console.log("Selected Row Keys:", selectedRowKeys);
+    console.log("Keyword Analysis Result Length:", keywordAnalysisResult.length);
+
     // Filter selected keywords based on selectedRowKeys
     const selectedKeywords = keywordAnalysisResult.filter((_, idx) =>
       selectedRowKeys.includes(idx)
     );
 
-    // Create CSV content with only the keyword column
-    const headers = ["keyword"];
+    console.log("Selected Keywords for Export:", selectedKeywords);
+
+    if (selectedKeywords.length === 0) {
+      message.error("No valid keywords selected for export.");
+      return;
+    }
+
+    // Create CSV content with all columns
+    // const headers = ["keyword", "monthly_searches", "competition", "avg_cpc", "low_bid", "high_bid"];
+     const headers = ["keyword"];
     const csvContent = [
       headers.join(","),
-      ...selectedKeywords.map((kw) => `"${kw.keyword.replace(/"/g, '""')}"`),
+      ...selectedKeywords.map((kw) =>
+        [
+          `${kw.keyword.replace(/"/g, '""')}`,
+          // kw.avgMonthlySearches,
+          // kw.compression,
+          // kw.avgCpc ? kw.avgCpc.toFixed(2) : "N/A",
+          // kw.lowBid ? kw.lowBid.toFixed(2) : "N/A",
+          // kw.highBid ? kw.highBid.toFixed(2) : "N/A",
+        ].join(",")
+      ),
     ].join("\n");
 
     // Create a Blob and trigger download
@@ -173,6 +204,7 @@ export default function ToolboxPage() {
   const rowSelection = {
     selectedRowKeys,
     onChange: (newSelectedRowKeys) => {
+      console.log("Selected Row Keys on Change:", newSelectedRowKeys);
       setSelectedRowKeys(newSelectedRowKeys);
     },
     getCheckboxProps: (record) => ({
@@ -193,17 +225,22 @@ export default function ToolboxPage() {
       highBid: kw.highBid,
     })) || [];
 
+  // Get selected keywords for display
+  const selectedKeywordsDisplay = keywordAnalysisResult
+    ? selectedRowKeys.map((idx) => keywordAnalysisResult[idx]?.keyword).filter(Boolean)
+    : [];
+
   // Handle pagination size change
   const handlePageSizeChange = (current, size) => {
     setPageSize(size);
     setCurrentPage(1);
-    setSelectedRowKeys([]); // Reset selection when page size changes
+    // Removed setSelectedRowKeys([]) to preserve selections
   };
 
   // Handle page change
   const handlePageChange = (page) => {
     setCurrentPage(page);
-    setSelectedRowKeys([]); // Reset selection when page changes
+    // Removed setSelectedRowKeys([]) to preserve selections
   };
 
   const cardItems = [
@@ -434,6 +471,45 @@ export default function ToolboxPage() {
                         Array.isArray(keywordAnalysisResult) &&
                         keywordAnalysisResult.length > 0 && (
                           <div className="mt-6">
+                            {/* Display Selected Keywords */}
+                            {selectedKeywordsDisplay.length > 0 && (
+                              <div className="mb-4">
+                                <div className="flex justify-between items-center mb-2">
+                                  <p className="text-gray-700 font-medium">
+                                    Selected Keywords ({selectedKeywordsDisplay.length}):
+                                  </p>
+                                  <Button
+                                    type="link"
+                                    onClick={clearSelectedKeywords}
+                                    className="text-red-600"
+                                    disabled={selectedKeywordsDisplay.length === 0}
+                                  >
+                                    Clear All
+                                  </Button>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                  {selectedKeywordsDisplay.map((keyword, index) => (
+                                    <motion.div
+                                      key={selectedRowKeys[index]}
+                                      initial={{ opacity: 0, scale: 0.8 }}
+                                      animate={{ opacity: 1, scale: 1 }}
+                                      exit={{ opacity: 0, scale: 0.8 }}
+                                      className="bg-green-100 text-green-800 px-3 py-1 rounded-full flex items-center"
+                                    >
+                                      <span>{keyword}</span>
+                                      <motion.div
+                                        whileHover={{ scale: 1.2 }}
+                                        whileTap={{ scale: 0.8 }}
+                                        className="ml-2 cursor-pointer"
+                                        onClick={() => deselectKeyword(selectedRowKeys[index])}
+                                      >
+                                        <CloseOutlined className="text-green-800 text-xs" />
+                                      </motion.div>
+                                    </motion.div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                             <Table
                               rowSelection={rowSelection}
                               columns={columns}
