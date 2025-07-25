@@ -467,6 +467,29 @@ const ContactUs = () => {
                 })}
               </div>
             </div>
+
+            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-gradient-to-r from-green-400 to-blue-500 rounded-xl flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-white" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900">Your Feedback Matters</h3>
+              </div>
+
+              {/* <p className="text-gray-600 mb-6">
+                Help us improve by sharing your experience. It only takes a minute!
+              </p> */}
+
+              <a
+                href="https://docs.google.com/forms/d/e/1FAIpQLScIdA2aVtugx-zMGON8LJKD4IRWtLZqiiurw-jU6wRYfOv7EA/viewform?usp=sharing&ouid=117159793210831255816" // replace this with your actual Google Form link
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center w-full justify-center gap-2 px-5 py-3 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-medium rounded-lg shadow-md hover:from-purple-600 hover:to-indigo-700 transition-all"
+              >
+                <Sparkles className="w-4 h-4 text-white" />
+                Give Feedback
+              </a>
+            </div>
           </div>
         </div>
         {/* <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden mt-10">
