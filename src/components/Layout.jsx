@@ -68,7 +68,7 @@ const LayoutWithSidebarAndHeader = () => {
   const Menus = [
     { title: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
     { title: "My Projects", icon: FileText, path: "/blogs" },
-    { title: "Search Console", icon: TrendingUp, path: "/search-console" },
+    { title: "Blog Performance", icon: TrendingUp, path: "/blog-performance" },
     { title: "Content Agent", icon: Briefcase, path: "/jobs" },
     { title: "Toolbox", icon: Box, path: "/toolbox" },
     { title: "Integrations", icon: Plug, path: "/integrations" },
@@ -129,7 +129,7 @@ const LayoutWithSidebarAndHeader = () => {
       title: "Upgrade Required",
       description: (
         <>
-          <span>Search Console is only available for Pro and Enterprise users.</span>
+          <span>Blog Performance is only available for Pro and Enterprise users.</span>
           <br />
           <span>Upgrade your plan to unlock this feature.</span>
         </>
@@ -192,7 +192,7 @@ const LayoutWithSidebarAndHeader = () => {
             const isActive = location.pathname.startsWith(Menu.path)
             const Icon = Menu.icon
 
-            const isSearchConsole = Menu.title === "Search Console"
+            const isSearchConsole = Menu.title === "Blog Performance"
             const isContentAgent = Menu.title === "Content Agent"
             const isPro = ["pro", "enterprise"].includes(user?.subscription?.plan)
             const isFreeUser = user?.plan === "free" || user?.subscription?.plan === "free"
@@ -222,10 +222,10 @@ const LayoutWithSidebarAndHeader = () => {
                   </button>
                 )}
 
-                {/* Optional: existing logic for Search Console & Pro users */}
+                {/* Optional: existing logic for Blog Performance & Pro users */}
                 {isSearchConsole && !isPro && sidebarOpen && (
                   <button
-                    onClick={() => handleUpgradePopup({ featureName: "Search Console" })}
+                    onClick={() => handleUpgradePopup({ featureName: "Blog Performance" })}
                     className="p-1 bg-yellow-500 text-white rounded-md transition-all duration-200 hover:scale-105"
                   >
                     <Crown className="w-4 h-4" />

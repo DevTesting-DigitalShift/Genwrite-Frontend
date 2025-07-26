@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
-import { X, Tag, Tags } from "lucide-react"
-import { useDispatch, useSelector } from "react-redux"
+import { Tag, Tags } from "lucide-react"
+import { useDispatch } from "react-redux"
 import { Modal, Select, Table, Tooltip, message } from "antd"
 import { InfoCircleOutlined } from "@ant-design/icons"
-import { fetchAllBlogs, fetchBlogStats } from "@store/slices/blogSlice"
+import { fetchBlogStats } from "@store/slices/blogSlice"
 
 const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
   const [formData, setFormData] = useState({
@@ -24,9 +24,8 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
     setStats(null)
 
     try {
-      dispatch(fetchBlogStats(blog._id))
-        .unwrap()
-        .then(({ stats }) => setStats(stats))
+      const { stats } = await dispatch(fetchBlogStats(blog._id)).unwrap()
+      setStats(stats)
     } catch (error) {
       message.error("Failed to load blog performance stats.")
     }
@@ -524,7 +523,7 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
     }
 
     return () => {
-      document.body.style.overflow = "auto" // Cleanup on unmount
+      document.body.style.overflow = "auto" 
     }
   }, [visible])
 

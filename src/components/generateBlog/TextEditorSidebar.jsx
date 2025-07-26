@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState, useCallback } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import {
   X,
   Plus,
@@ -12,37 +12,17 @@ import {
   Target,
   Crown,
   SlidersHorizontal,
-} from "lucide-react";
-import { getEstimatedCost } from "@utils/getEstimatedCost";
-import { useConfirmPopup } from "@/context/ConfirmPopupContext";
-import { useNavigate } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
-import { Button, Modal, Tooltip, message } from "antd";
-import { fetchProofreadingSuggestions } from "@store/slices/blogSlice";
-import { fetchCompetitiveAnalysisThunk } from "@store/slices/analysisSlice";
-import { openUpgradePopup } from "@utils/UpgardePopUp";
-import { getCategoriesThunk } from "@store/slices/otherSlice";
-
-// Popular WordPress categories (limited to 15 for relevance)
-const POPULAR_CATEGORIES = [
-  "Blogging",
-  "Technology",
-  "Lifestyle",
-  "Travel",
-  "Food & Drink",
-  "Health & Wellness",
-  "Fashion",
-  "Business",
-  "Education",
-  "Entertainment",
-  "Photography",
-  "Fitness",
-  "Marketing",
-  "Finance",
-  "DIY & Crafts",
-];
-
-const AUTO_GENERATED_CATEGORIES = ["AI Trends", "Wellness Tips", "Investment", "Online Learning"];
+} from "lucide-react"
+import { getEstimatedCost } from "@utils/getEstimatedCost"
+import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import { useNavigate } from "react-router-dom"
+import { useDispatch, useSelector } from "react-redux"
+import { Button, Modal, Tooltip, message } from "antd"
+import { fetchProofreadingSuggestions } from "@store/slices/blogSlice"
+import { fetchCompetitiveAnalysisThunk } from "@store/slices/analysisSlice"
+import { openUpgradePopup } from "@utils/UpgardePopUp"
+import { getCategoriesThunk } from "@store/slices/otherSlice"
+import CategoriesModal from "@components/CategoriesModal"
 
 const TextEditorSidebar = ({
   blog,
@@ -57,50 +37,39 @@ const TextEditorSidebar = ({
   posted,
   isPosting,
   formData,
-  setFormData,
 }) => {
-  const [newKeyword, setNewKeyword] = useState("");
-  const [customCategory, setCustomCategory] = useState("");
-  const [isAnalyzingProofreading, setIsAnalyzingProofreading] = useState(false);
-  const [competitiveAnalysisResults, setCompetitiveAnalysisResults] = useState(null);
-  const [shouldRunCompetitive, setShouldRunCompetitive] = useState(false);
-  const [seoScore, setSeoScore] = useState();
-  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
-  const [errors, setErrors] = useState({ categories: false });
-  const user = useSelector((state) => state.auth.user);
-  const userPlan = user?.plan ?? user?.subscription?.plan;
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
-  const { handlePopup } = useConfirmPopup();
-  const { loading: isAnalyzingCompetitive } = useSelector((state) => state.analysis);
-  const [open, setOpen] = useState(false);
-  const { categories, error: wordpressError } = useSelector((state) => state.wordpress);
+  const [newKeyword, setNewKeyword] = useState("")
+  const [isAnalyzingProofreading, setIsAnalyzingProofreading] = useState(false)
+  const [competitiveAnalysisResults, setCompetitiveAnalysisResults] = useState(null)
+  const [shouldRunCompetitive, setShouldRunCompetitive] = useState(false)
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
+  const user = useSelector((state) => state.auth.user)
+  const userPlan = user?.plan ?? user?.subscription?.plan
+  const navigate = useNavigate()
+  const dispatch = useDispatch()
+  const { handlePopup } = useConfirmPopup()
+  const { loading: isAnalyzingCompetitive } = useSelector((state) => state.analysis)
+  const [open, setOpen] = useState(false)
+  const { analysisResult } = useSelector((state) => state.analysis)
+  const blogId = blog?._id
+  const result = analysisResult?.[blogId]
 
   useEffect(() => {
-    dispatch(getCategoriesThunk()).unwrap().catch((error) => {
-      console.error("Failed to fetch categories:", {
-        error: error.message,
-        status: error.status,
-        response: error.response,
-      });
-      // message.error("Failed to load categories. Please try again.");
-    });
-  }, [dispatch]);
+    dispatch(getCategoriesThunk()).unwrap()
+  }, [dispatch])
 
-  // Log categories for debugging
   useEffect(() => {
-    console.log("Categories from Redux:", categories);
-    console.log("WordPress error:", wordpressError);
-  }, [categories, wordpressError]);
+    setCompetitiveAnalysisResults(null)
+  }, [blog?._id])
 
   const fetchCompetitiveAnalysis = useCallback(async () => {
     if (!blog || !blog.title || !blog.content) {
-      message.error("Blog data is incomplete for analysis.");
-      return;
+      message.error("Blog title or content is missing for analysis.")
+      return
     }
 
     const validKeywords =
-      keywords && keywords.length > 0 ? keywords : blog?.focusKeywords || blog.keywords;
+      keywords && keywords.length > 0 ? keywords : blog?.focusKeywords || blog.keywords
 
     try {
       const resultAction = await dispatch(
@@ -110,132 +79,151 @@ const TextEditorSidebar = ({
           content: blog.content,
           keywords: validKeywords,
         })
-      ).unwrap();
+      ).unwrap()
 
-      setSeoScore(resultAction?.blogScore);
-      setCompetitiveAnalysisResults(resultAction);
-      message.success("Competitive analysis completed successfully!");
+      setCompetitiveAnalysisResults(resultAction)
     } catch (err) {
       console.error("Failed to fetch competitive analysis:", {
         error: err.message,
         status: err.status,
         response: err.response,
-      });
-      message.error("Failed to perform competitive analysis.");
+      })
+      message.error("Failed to perform competitive analysis.")
     }
-  }, [blog, keywords, dispatch]);
+  }, [blog, keywords, dispatch])
 
   useEffect(() => {
     if (shouldRunCompetitive) {
-      fetchCompetitiveAnalysis();
-      setShouldRunCompetitive(false);
+      fetchCompetitiveAnalysis()
+      setShouldRunCompetitive(false)
     }
-  }, [shouldRunCompetitive, fetchCompetitiveAnalysis]);
+  }, [shouldRunCompetitive, fetchCompetitiveAnalysis])
 
   useEffect(() => {
     if (blog?.seoScore || blog?.generatedMetadata?.competitorsAnalysis) {
       setCompetitiveAnalysisResults({
         blogScore: blog.seoScore,
         ...blog?.generatedMetadata?.competitorsAnalysis,
-      });
+      })
     }
-  }, [blog]);
+  }, [blog])
 
   const removeKeyword = useCallback(
     (keyword) => {
-      setKeywords((prev) => prev.filter((k) => k !== keyword));
+      setKeywords((prev) => prev.filter((k) => k !== keyword))
     },
     [setKeywords]
-  );
+  )
 
   const addKeywords = useCallback(() => {
     if (newKeyword.trim()) {
       const keywordsToAdd = newKeyword
         .split(",")
         .map((k) => k.trim())
-        .filter((k) => k && !keywords.includes(k));
+        .filter((k) => k && !keywords.includes(k))
       if (keywordsToAdd.length > 0) {
-        setKeywords((prev) => [...prev, ...keywordsToAdd]);
-        setNewKeyword("");
-        message.success("Keywords added successfully!");
+        setKeywords((prev) => [...prev, ...keywordsToAdd])
+        setNewKeyword("")
+        message.success("Keywords added successfully!")
       }
     }
-  }, [newKeyword, keywords, setKeywords]);
+  }, [newKeyword, keywords, setKeywords])
 
   const handleKeyDown = useCallback(
     (e) => {
       if (e.key === "Enter") {
-        e.preventDefault();
-        addKeywords();
+        e.preventDefault()
+        addKeywords()
       }
     },
     [addKeywords]
-  );
+  )
 
   const handleProofreadingClick = useCallback(async () => {
     if (!blog || !blog.content) {
-      message.error("Blog content is required for proofreading.");
-      return;
+      message.error("Blog content is required for proofreading.")
+      return
     }
 
     if (isAnalyzingCompetitive) {
       message.error(
         "Please wait for Competitive Analysis to complete before starting Proofreading."
-      );
-      return;
+      )
+      return
     }
 
-    setIsAnalyzingProofreading(true);
+    setIsAnalyzingProofreading(true)
     try {
       const result = await dispatch(
         fetchProofreadingSuggestions({
           id: blog._id,
         })
-      ).unwrap();
-      setProofreadingResults(result);
-      message.success("Proofreading suggestions loaded successfully!");
+      ).unwrap()
+      setProofreadingResults(result)
+      message.success("Proofreading suggestions loaded successfully!")
     } catch (error) {
       console.error("Error fetching proofreading suggestions:", {
         error: error.message,
         status: error.status,
         response: error.response,
-      });
-      message.error("Failed to fetch proofreading suggestions.");
+      })
+      message.error("Failed to fetch proofreading suggestions.")
     } finally {
-      setIsAnalyzingProofreading(false);
+      setIsAnalyzingProofreading(false)
     }
-  }, [blog, dispatch, isAnalyzingCompetitive, setProofreadingResults]);
+  }, [blog, dispatch, isAnalyzingCompetitive, setProofreadingResults])
 
   const handleApplyAllSuggestions = useCallback(() => {
     if (proofreadingResults.length === 0) {
-      message.info("No suggestions available to apply.");
-      return;
+      message.info("No suggestions available to apply.")
+      return
     }
 
     proofreadingResults.forEach((suggestion) => {
-      handleReplace(suggestion.original, suggestion.change);
-    });
-    setProofreadingResults([]);
-    message.success("All proofreading suggestions applied successfully!");
-  }, [proofreadingResults, handleReplace, setProofreadingResults]);
+      handleReplace(suggestion.original, suggestion.change)
+    })
+    setProofreadingResults([])
+    message.success("All proofreading suggestions applied successfully!")
+  }, [proofreadingResults, handleReplace, setProofreadingResults])
 
   const handleAnalyzing = useCallback(() => {
     if (["free", "basic"].includes(userPlan?.toLowerCase?.())) {
-      handlePopup({
+      return handlePopup({
         title: "Upgrade Required",
         description: "Competitor Analysis is only available for Pro and Enterprise users.",
         confirmText: "Buy Now",
         cancelText: "Cancel",
         onConfirm: () => navigate("/pricing"),
-      });
-    } else {
-      handlePopup({
-        title: "Competitive Analysis",
-        description: `Do you really want to run competitive analysis?\nIt will cost 10 credits.`,
-        onConfirm: () => setShouldRunCompetitive(true),
-      });
+      })
     }
-  }, [userPlan, handlePopup, navigate]);
+
+    const seoScore = blog?.seoScore
+    const competitors = blog?.generatedMetadata?.competitors
+    const hasScore = typeof seoScore === "number" && seoScore >= 0
+    const hasCompetitors = Array.isArray(competitors) && competitors.length > 0
+    const hasAnalysis = !!competitiveAnalysisResults
+
+    // Case 1: No data at all — show initial modal
+    if (!hasScore && !hasCompetitors && !hasAnalysis) {
+      return handlePopup({
+        title: "Competitive Analysis",
+        description: "Do you really want to run competitive analysis? It will cost 10 credits.",
+        confirmText: "Run",
+        cancelText: "Cancel",
+        onConfirm: () => fetchCompetitiveAnalysis(),
+      })
+    }
+
+    // Case 2: Any data present — prompt to run again
+    return handlePopup({
+      title: "Run Competitive Analysis Again?",
+      description:
+        "You have already performed a competitive analysis for this blog. Would you like to run it again? This will cost 10 credits.",
+      confirmText: "Run",
+      cancelText: "Cancel",
+      onConfirm: () => fetchCompetitiveAnalysis(),
+    })
+  }, [userPlan, blog, handlePopup, navigate, competitiveAnalysisResults, fetchCompetitiveAnalysis])
 
   const handleProofreadingBlog = useCallback(() => {
     if (["free", "basic"].includes(userPlan?.toLowerCase?.())) {
@@ -245,7 +233,7 @@ const TextEditorSidebar = ({
         confirmText: "Buy Now",
         cancelText: "Cancel",
         onConfirm: () => navigate("/pricing"),
-      });
+      })
     } else {
       handlePopup({
         title: "AI Proofreading",
@@ -253,9 +241,9 @@ const TextEditorSidebar = ({
           "blog.proofread"
         )} credits.`,
         onConfirm: handleProofreadingClick,
-      });
+      })
     }
-  }, [userPlan, handlePopup, navigate, handleProofreadingClick]);
+  }, [userPlan, handlePopup, navigate, handleProofreadingClick])
 
   const handleKeywordRewrite = useCallback(() => {
     handlePopup({
@@ -263,103 +251,39 @@ const TextEditorSidebar = ({
       description:
         "Do you want to rewrite the entire content with added keywords? You can rewrite only 3 times.",
       onConfirm: handleSave,
-    });
-  }, [handlePopup, handleSave]);
-
-  const handleCategoryAdd = useCallback(
-    (category) => {
-      setFormData((prev) => ({
-        ...prev,
-        categories: [...(prev.categories || []), category].filter(
-          (c, i, arr) => c && arr.indexOf(c) === i
-        ),
-      }));
-      setErrors({ categories: false });
-    },
-    [setFormData]
-  );
-
-  const handleCategoryRemove = useCallback(
-    (category) => {
-      setFormData((prev) => ({
-        ...prev,
-        categories: (prev.categories || []).filter((c) => c !== category),
-      }));
-    },
-    [setFormData]
-  );
-
-  const addCustomCategory = useCallback(() => {
-    if (customCategory.trim()) {
-      if ((formData.categories || []).includes(customCategory.trim())) {
-        message.error("Category already added.");
-        return;
-      }
-      setFormData((prev) => ({
-        ...prev,
-        categories: [...(prev.categories || []), customCategory.trim()].filter(
-          (c, i, arr) => c && arr.indexOf(c) === i
-        ),
-      }));
-      setCustomCategory("");
-      setErrors({ categories: false });
-      message.success("Custom category added successfully!");
-    }
-  }, [customCategory, formData.categories]);
-
-  const handleCustomCategoryKeyDown = useCallback(
-    (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        addCustomCategory();
-      }
-    },
-    [addCustomCategory]
-  );
-
-  const handlePostClick = useCallback(() => {
-    setIsCategoryModalOpen(true);
-  }, []);
-
-  const handleCategorySubmit = useCallback(() => {
-    if (!formData.categories || formData.categories.length === 0) {
-      setErrors({ categories: true });
-      message.error("Please select at least one category.");
-      return;
-    }
-    try {
-      console.log("Posting blog with payload:", { ...formData, blogId: blog._id });
-      onPost({ ...formData, categories: formData.categories });
-      setIsCategoryModalOpen(false);
-      setFormData((prev) => ({ ...prev, categories: [], includeTableOfContents: false }));
-      setErrors({ categories: false });
-      message.success("Blog posted successfully!");
-    } catch (error) {
-      console.error("Failed to post blog:", {
-        error: error.message,
-        status: error.status,
-        response: error.response,
-      });
-      message.error("Failed to post blog. Please try again.");
-    }
-  }, [formData, onPost, blog]);
+    })
+  }, [handlePopup, handleSave])
 
   const getScoreColor = useCallback((score) => {
-    if (score >= 80) return "bg-green-100 text-green-700";
-    if (score >= 60) return "bg-yellow-100 text-yellow-700";
-    return "bg-red-100 text-red-700";
-  }, []);
+    if (score >= 80) return "bg-green-100 text-green-700"
+    if (score >= 60) return "bg-yellow-100 text-yellow-700"
+    return "bg-red-100 text-red-700"
+  }, [])
 
-  const handleCheckboxChange = useCallback(
-    (e) => {
-      const { name, checked } = e.target;
-      setFormData((prev) => ({
-        ...prev,
-        [name]: checked,
-      }));
+  const handleCategorySubmit = useCallback(
+    ({ category, includeTableOfContents }) => {
+      try {
+        console.log("Posting with data:", {
+          ...formData,
+          categories: category,
+          includeTableOfContents,
+        })
+        onPost({ ...formData, categories: category, includeTableOfContents })
+      } catch (error) {
+        console.error("Failed to post blog:", {
+          error: error.message,
+          status: error.status,
+          response: error.response,
+        })
+        message.error("Failed to post blog. Please try again.")
+      }
     },
-    [setFormData]
-  );
+    [formData, onPost]
+  )
+
+  const handlePostClick = useCallback(() => {
+    setIsCategoryModalOpen(true)
+  }, [])
 
   const FeatureCard = ({ title, description, isPro, isLoading, onClick, buttonText }) => (
     <motion.div
@@ -396,7 +320,7 @@ const TextEditorSidebar = ({
         {isLoading ? "Processing..." : buttonText}
       </motion.button>
     </motion.div>
-  );
+  )
 
   return (
     <>
@@ -451,9 +375,9 @@ const TextEditorSidebar = ({
                     whileTap={{ scale: 0.95 }}
                     onClick={() => {
                       if (["free"].includes(userPlan?.toLowerCase?.())) {
-                        openUpgradePopup({ featureName: "Keyword Optimization", navigate });
+                        openUpgradePopup({ featureName: "Keyword Optimization", navigate })
                       } else {
-                        handleKeywordRewrite();
+                        handleKeywordRewrite()
                       }
                     }}
                     className={`flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-opacity-80 transition-colors text-sm font-medium
@@ -542,15 +466,15 @@ const TextEditorSidebar = ({
                 className="bg-gray-50 rounded-xl p-4"
               >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                  <span className="text-sm font-bold text-gray-700 flex items-center gap-1">
                     Content Score
                   </span>
                   <span
-                    className={`px-2 py-1 rounded-full text-xs font-bold ${getScoreColor(
+                    className={`px-2 py-1 rounded-full text-lg font-bold ${getScoreColor(
                       blog?.blogScore || 0
                     )}`}
                   >
-                    {blog?.blogScore || 0}/100
+                    {blog?.blogScore || 0} <span className="text-xs">/100</span>
                   </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
@@ -575,31 +499,48 @@ const TextEditorSidebar = ({
                 transition={{ duration: 0.3, delay: 0.1 }}
                 className="bg-gray-50 rounded-xl p-4"
               >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                <div
+                  className={`mb-2 ${
+                    result?.insights?.blogScore || blog?.seoScore
+                      ? "flex items-center justify-between"
+                      : ""
+                  }`}
+                >
+                  <span className="text-sm font-bold text-gray-700 flex items-center gap-1">
                     SEO Score
                   </span>
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs font-bold ${getScoreColor(
-                      seoScore || blog?.seoScore || 0
-                    )}`}
-                  >
-                    {seoScore || blog?.seoScore || 0}/100
-                  </span>
+
+                  {result?.insights?.blogScore || blog?.seoScore ? (
+                    <span
+                      className={`px-2 py-1 rounded-full text-lg font-bold ${getScoreColor(
+                        result?.insights?.blogScore || blog?.seoScore
+                      )}`}
+                    >
+                      {result?.insights?.blogScore || blog?.seoScore}{" "}
+                      <span className="text-xs">/100</span>
+                    </span>
+                  ) : (
+                    <span className="text-sm font-semibold text-gray-500 italic mt-1 block">
+                      Run the Competitive Analysis to get score
+                    </span>
+                  )}
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <motion.div
-                    animate={{ width: `${seoScore || blog?.seoScore || 0}%` }}
-                    transition={{ duration: 0.5 }}
-                    className={`h-2 rounded-full ${
-                      (seoScore || blog?.seoScore || 0) >= 80
-                        ? "bg-green-500"
-                        : (seoScore || blog?.seoScore || 0) >= 60
-                        ? "bg-yellow-500"
-                        : "bg-red-500"
-                    }`}
-                  />
-                </div>
+
+                {result?.insights?.blogScore || blog?.seoScore ? (
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <motion.div
+                      animate={{ width: `${result?.insights?.blogScore || blog?.seoScore}%` }}
+                      transition={{ duration: 0.5 }}
+                      className={`h-2 rounded-full ${
+                        (result?.insights?.blogScore || blog?.seoScore) >= 80
+                          ? "bg-green-500"
+                          : (result?.insights?.blogScore || blog?.seoScore) >= 60
+                          ? "bg-yellow-500"
+                          : "bg-red-500"
+                      }`}
+                    />
+                  </div>
+                ) : null}
               </motion.div>
             </div>
           </div>
@@ -636,7 +577,7 @@ const TextEditorSidebar = ({
           {competitiveAnalysisResults && (
             <div className="space-y-4">
               <h3 className="font-semibold text-gray-900">Analysis Results</h3>
-              {blog?.generatedMetadata?.competitors?.length > 0 && (
+              {(result?.competitors || blog?.generatedMetadata?.competitors)?.length > 0 && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -645,21 +586,20 @@ const TextEditorSidebar = ({
                 >
                   <span className="text-sm font-medium text-gray-900">Competitors Links:</span>
                   <ul className="list-disc mt-2 list-inside space-y-1 text-sm text-gray-700">
-                    {blog.generatedMetadata.competitors.map((item, index) => (
-                      <li
-                        key={index}
-                        className="hover:underline hover:text-blue-500 transition"
-                      >
-                        <a
-                          href={item.link || item.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600"
-                        >
-                          {item.title}
-                        </a>
-                      </li>
-                    ))}
+                    {(result?.competitors || blog.generatedMetadata.competitors)?.map(
+                      (item, index) => (
+                        <li key={index} className="hover:underline hover:text-blue-500 transition">
+                          <a
+                            href={item.link || item.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600"
+                          >
+                            {item.title}
+                          </a>
+                        </li>
+                      )
+                    )}
                   </ul>
                 </motion.div>
               )}
@@ -745,9 +685,7 @@ const TextEditorSidebar = ({
                             <div className="space-y-2">
                               <div className="flex items-center gap-2">
                                 <AlertCircle className="w-4 h-4 text-orange-500" />
-                                <span className="text-sm font-medium text-gray-900">
-                                  Original:
-                                </span>
+                                <span className="text-sm font-medium text-gray-900">Original:</span>
                               </div>
                               <p className="text-sm text-gray-600 bg-red-50 p-2 rounded">
                                 {suggestion.original}
@@ -815,210 +753,16 @@ const TextEditorSidebar = ({
       </motion.div>
 
       {/* Category Selection Modal */}
-      <Modal
-        title="Select Categories"
-        open={isCategoryModalOpen}
-        onCancel={() => {
-          setIsCategoryModalOpen(false);
-          setFormData((prev) => ({ ...prev, categories: [], includeTableOfContents: false }));
-          setErrors({ categories: false });
-          setCustomCategory("");
-        }}
-        footer={
-          <div className="flex justify-end gap-3">
-            <Button
-              onClick={() => {
-                setIsCategoryModalOpen(false);
-                setFormData((prev) => ({
-                  ...prev,
-                  categories: [],
-                  includeTableOfContents: false,
-                }));
-                setErrors({ categories: false });
-                setCustomCategory("");
-              }}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              aria-label="Cancel category selection"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="primary"
-              onClick={handleCategorySubmit}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              aria-label="Confirm category selection"
-            >
-              Confirm
-            </Button>
-          </div>
-        }
-        centered
-        width={600}
-      >
-        <div className="p-3 space-y-4">
-          {/* Selected Categories Chips */}
-          {(formData.categories || []).length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="flex flex-wrap gap-2 mb-3 items-center"
-            >
-              {formData.categories.map((category, index) => (
-                <motion.div
-                  key={category}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  transition={{ duration: 0.2, delay: index * 0.1 }}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-blue-500 text-white rounded-full text-sm"
-                >
-                  <span className="truncate max-w-[150px]">{category}</span>
-                  <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => handleCategoryRemove(category)}
-                    className="text-white hover:text-gray-200"
-                    aria-label={`Remove category ${category}`}
-                  >
-                    <X size={15} />
-                  </motion.button>
-                </motion.div>
-              ))}
-            </motion.div>
-          )}
-
-          {/* Custom Category Input */}
-          <div>
-            <h3 className="text-sm font-semibold text-gray-700 mb-2">Custom Category</h3>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={customCategory}
-                onChange={(e) => setCustomCategory(e.target.value)}
-                onKeyDown={handleCustomCategoryKeyDown}
-                placeholder="Enter custom category"
-                className="flex-1 px-4 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                aria-label="Add custom category"
-              />
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={addCustomCategory}
-                className="bg-blue-600 text-white p-2.5 rounded-lg hover:bg-blue-700 hover:shadow-lg"
-                aria-label="Add custom category"
-              >
-                <Plus className="w-4 h-4" />
-              </motion.button>
-            </div>
-          </div>
-
-          {/* Auto-Generated Categories Section */}
-          {!wordpressError && (
-            <div>
-              <h3 className="text-sm font-semibold text-gray-700 mb-2">
-                Auto-Generated Categories
-              </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-y-auto p-3 rounded-md border border-indigo-200 bg-indigo-50 max-h-40">
-                {(categories || []).map((category) => (
-                  <motion.div
-                    key={category.id || category.name}
-                    onClick={() => handleCategoryAdd(category.name)}
-                    whileHover={{ scale: 1.02, backgroundColor: "#e0e7ff" }}
-                    className={`flex items-center justify-between p-3 rounded-md bg-white border ${
-                      errors.categories && !formData.categories?.length
-                        ? "border-red-500"
-                        : "border-indigo-200"
-                    } text-sm font-medium cursor-pointer transition-all duration-200 ${
-                      formData.categories?.includes(category.name)
-                        ? "bg-indigo-100 border-indigo-400"
-                        : ""
-                    }`}
-                  >
-                    <span className="truncate">{category.name}</span>
-                    {!formData.categories?.includes(category.name) && (
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        className="text-indigo-600 hover:text-indigo-700"
-                        aria-label={`Add category ${category.name}`}
-                      >
-                        <Plus size={16} />
-                      </motion.button>
-                    )}
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Popular Categories Section */}
-          <div>
-            <h3 className="text-sm font-semibold text-gray-700 mb-2">Popular Categories</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-y-auto p-3 rounded-md border border-gray-200 bg-gray-50 max-h-40">
-              {POPULAR_CATEGORIES.map((category) => (
-                <motion.div
-                  key={category}
-                  onClick={() => handleCategoryAdd(category)}
-                  whileHover={{ scale: 1.02, backgroundColor: "#f3f4f6" }}
-                  className={`flex items-center justify-between p-3 rounded-md bg-white border ${
-                    errors.categories && !formData.categories?.length
-                      ? "border-red-500"
-                      : "border-gray-200"
-                  } text-sm font-medium cursor-pointer transition-all duration-200 ${
-                    formData.categories?.includes(category)
-                      ? "bg-blue-100 border-blue-300"
-                      : ""
-                  }`}
-                  aria-label={`Select category ${category}`}
-                >
-                  <span className="truncate">{category}</span>
-                  {!formData.categories?.includes(category) && (
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      className="text-blue-600 hover:text-blue-700"
-                      aria-label={`Add category ${category}`}
-                    >
-                      <Plus size={16} />
-                    </motion.button>
-                  )}
-                </motion.div>
-              ))}
-            </div>
-            {isCategoryModalOpen && errors.categories && !formData.categories?.length && (
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="mt-2 text-sm text-red-500"
-              >
-                Please select at least one category
-              </motion.p>
-            )}
-          </div>
-
-          {/* Table of Contents Toggle */}
-          <div className="flex items-center justify-between py-2">
-            <span className="text-sm font-medium text-gray-700">
-              Include Table of Contents
-              <p className="text-xs text-gray-500">Generate a table of contents for each blog.</p>
-            </span>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                name="includeTableOfContents"
-                checked={formData.includeTableOfContents}
-                onChange={handleCheckboxChange}
-                className="sr-only peer"
-                aria-label="Toggle table of contents"
-              />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-            </label>
-          </div>
-        </div>
-      </Modal>
+      <CategoriesModal
+        isCategoryModalOpen={isCategoryModalOpen}
+        setIsCategoryModalOpen={setIsCategoryModalOpen}
+        onSubmit={handleCategorySubmit}
+        initialCategory={formData.category}
+        initialIncludeTableOfContents={formData.includeTableOfContents}
+      />
     </>
-  );
-};
+  )
+}
 
 const FeatureSettingsModal = ({ features }) => {
   return (
@@ -1030,7 +774,7 @@ const FeatureSettingsModal = ({ features }) => {
     >
       <div className="grid grid-cols-1 gap-2">
         {Object.entries(features || {}).map(([key, value]) => {
-          const isEnabled = Boolean(value);
+          const isEnabled = Boolean(value)
           return (
             <motion.div
               key={key}
@@ -1049,11 +793,11 @@ const FeatureSettingsModal = ({ features }) => {
                 {isEnabled ? "Enabled" : "Disabled"}
               </span>
             </motion.div>
-          );
+          )
         })}
       </div>
     </motion.div>
-  );
-};
+  )
+}
 
-export default TextEditorSidebar;
+export default TextEditorSidebar

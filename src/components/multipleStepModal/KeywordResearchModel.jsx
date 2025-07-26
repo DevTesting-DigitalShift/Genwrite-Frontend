@@ -1,40 +1,40 @@
-import { useEffect, useState } from "react"
-import { motion } from "framer-motion"
-import { X } from "lucide-react"
-import { Button, Card, Input, Table, Tag, Modal } from "antd"
-import { CloseOutlined } from "@ant-design/icons"
-import { useDispatch, useSelector } from "react-redux"
+import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import { CloseOutlined } from "@ant-design/icons";
+import { Button, Input, Table, Tag, Modal, Switch } from "antd";
+import { useDispatch, useSelector } from "react-redux";
 import {
   analyzeKeywordsThunk,
   clearKeywordAnalysis,
   setSelectedKeywords,
-} from "@store/slices/analysisSlice"
+} from "@store/slices/analysisSlice";
 
 const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, visible }) => {
-  const [newKeyword, setNewKeyword] = useState("")
-  const [keywords, setKeywords] = useState([])
-  const [currentPage, setCurrentPage] = useState(1)
+  const [newKeyword, setNewKeyword] = useState("");
+  const [keywords, setKeywords] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showSelectedOnly, setShowSelectedOnly] = useState(false);
 
-  const dispatch = useDispatch()
-
+  const dispatch = useDispatch();
   const {
     keywordAnalysis: keywordAnalysisResult,
     loading: analyzing,
     selectedKeywords,
-  } = useSelector((state) => state.analysis)
+  } = useSelector((state) => state.analysis);
 
   useEffect(() => {
     if (keywords.length === 0) {
-      setCurrentPage(1)
+      setCurrentPage(1);
+      dispatch(clearKeywordAnalysis());
     }
-  }, [keywords, dispatch])
+  }, [keywords, dispatch]);
 
   const addKeyword = () => {
-    const input = newKeyword.trim()
-    if (!input) return
+    const input = newKeyword.trim();
+    if (!input) return;
 
-    const existing = keywords.map((k) => k.toLowerCase())
-    const seen = new Set()
+    const existing = keywords.map((k) => k.toLowerCase());
+    const seen = new Set();
 
     const newKeywords = input
       .split(",")
@@ -45,69 +45,90 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
           !existing.includes(k.toLowerCase()) &&
           !seen.has(k.toLowerCase()) &&
           seen.add(k.toLowerCase())
-      )
+      );
 
     if (newKeywords.length > 0) {
-      setKeywords([...keywords, ...newKeywords])
-      setNewKeyword("")
+      setKeywords([...keywords, ...newKeywords]);
+      setNewKeyword("");
     }
-  }
+  };
 
   const removeKeyword = (index) => {
-    const updatedKeywords = keywords.filter((_, i) => i !== index)
-    setKeywords(updatedKeywords)
+    const keywordToRemove = keywords[index];
+    const updatedKeywords = keywords.filter((_, i) => i !== index);
+    setKeywords(updatedKeywords);
     if (updatedKeywords.length === 0) {
-      dispatch(clearKeywordAnalysis())
-      setCurrentPage(1)
+      dispatch(clearKingdomAnalysis());
+      setCurrentPage(1);
     }
-  }
+    // Remove from selectedKeywords if present
+    if (selectedKeywords?.allKeywords?.includes(keywordToRemove)) {
+      const updatedSelectedKeywords = selectedKeywords.allKeywords.filter(
+        (kw) => kw !== keywordToRemove
+      );
+      dispatch(
+        setSelectedKeywords({
+          focusKeywords: updatedSelectedKeywords.slice(0, 3),
+          keywords: updatedSelectedKeywords,
+          allKeywords: updatedSelectedKeywords,
+        })
+      );
+    }
+  };
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter") {
-      e.preventDefault()
-      addKeyword()
+      e.preventDefault();
+      addKeyword();
     }
-  }
+  };
 
   const analyzeKeywords = () => {
     if (keywords.length > 0) {
-      dispatch(analyzeKeywordsThunk(keywords))
-      setCurrentPage(1)
+      dispatch(analyzeKeywordsThunk(keywords));
+      setCurrentPage(1);
     }
-  }
+  };
 
   const getAutoSelectedKeywords = () => {
-    const byCompetition = { LOW: [], MEDIUM: [], HIGH: [] }
+    const byCompetition = { LOW: [], MEDIUM: [], HIGH: [] };
     keywordAnalysisResult?.forEach((kw) => {
       if (byCompetition[kw.competition]) {
         byCompetition[kw.competition].push({
           keyword: kw.keyword,
           competition_index: kw.competition_index,
-        })
+        });
       }
-    })
+    });
 
     const sortedLow = byCompetition.LOW.sort(
       (a, b) => a.competition_index - b.competition_index
-    ).slice(0, 2)
+    ).slice(0, 2);
     const sortedMedium = byCompetition.MEDIUM.sort(
       (a, b) => a.competition_index - b.competition_index
-    ).slice(0, 2)
+    ).slice(0, 2);
     const sortedHigh = byCompetition.HIGH.sort(
       (a, b) => a.competition_index - b.competition_index
-    ).slice(0, 2)
+    ).slice(0, 2);
 
     return [
       ...sortedLow.map((item) => item.keyword),
       ...sortedMedium.map((item) => item.keyword),
       ...sortedHigh.map((item) => item.keyword),
-    ]
-  }
+    ];
+  };
 
-  const confirmAutoKeywords = (type) => {
-    const autoKeywords = getAutoSelectedKeywords()
+  const showAutoKeywords = () => {
+    const autoKeywords = getAutoSelectedKeywords();
+    if (!autoKeywords.length || !keywordAnalysisResult?.length) {
+      Modal.error({
+        title: "No Auto-Selected Keywords",
+        content: "No keywords available to auto-select. Please analyze keywords first.",
+      });
+      return;
+    }
 
-    const modal = Modal.info({
+    Modal.info({
       icon: null,
       title: (
         <div className="flex justify-between items-center">
@@ -124,7 +145,7 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
               </li>
             ))}
           </ul>
-          <p className="mt-3">Do you want to proceed with these?</p>
+          <p className="mt-3">Do you want to add these too?</p>
         </div>
       ),
       okText: "Accept",
@@ -132,54 +153,63 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
       closable: true,
       onOk() {
         const finalKeywords = [
-          ...(selectedKeywords?.focusKeywords || []),
-          ...autoKeywords.filter((kw) => !selectedKeywords?.focusKeywords?.includes(kw)),
-        ].slice(0, 6)
-        proceedWithSelectedKeywords(finalKeywords, type)
+          ...(selectedKeywords?.allKeywords || []),
+          ...autoKeywords.filter((kw) => !selectedKeywords?.allKeywords?.includes(kw)),
+        ].slice(0, 6); // Limit to 6 keywords
+        dispatch(
+          setSelectedKeywords({
+            focusKeywords: finalKeywords.slice(0, 3),
+            keywords: finalKeywords,
+            allKeywords: finalKeywords,
+          })
+        );
       },
       onCancel() {
-        const finalKeywords = selectedKeywords?.focusKeywords || []
-        proceedWithSelectedKeywords(finalKeywords, type)
+        // Keep existing selected keywords
+        const finalKeywords = selectedKeywords?.allKeywords || [];
+        dispatch(
+          setSelectedKeywords({
+            focusKeywords: finalKeywords.slice(0, 3),
+            keywords: finalKeywords,
+            allKeywords: finalKeywords,
+          })
+        );
       },
       okButtonProps: { className: "bg-blue-600 text-white" },
-    })
-  }
+    });
+  };
 
-  const handleCreateBlog = () => {
-    confirmAutoKeywords("blog")
-  }
-
-  const handleCreateJob = () => {
-    confirmAutoKeywords("job")
-  }
-
-  const proceedWithSelectedKeywords = async (finalSelectedKeywords, type) => {
-    // Split into focusKeywords (first 3) and keywords (remaining)
-    const focusKeywords = finalSelectedKeywords.slice(0, 3)
-    const keywords = finalSelectedKeywords.slice(3)
-
+  const proceedWithSelectedKeywords = async (type) => {
+    const finalKeywords = selectedKeywords?.allKeywords || [];
     await dispatch(
       setSelectedKeywords({
-        focusKeywords,
-        allKeywords: finalSelectedKeywords,
-        keywords,
+        focusKeywords: finalKeywords.slice(0, 3),
+        keywords: finalKeywords,
+        allKeywords: finalKeywords,
       })
-    )
+    );
 
-    // Wait briefly to ensure Redux state updates
     setTimeout(() => {
       if (type === "blog") {
         openSecondStepModal({
-          focusKeywords,
-          keywords,
-          allKeywords: finalSelectedKeywords,
-        })
+          focusKeywords: finalKeywords.slice(0, 3),
+          keywords: finalKeywords,
+          allKeywords: finalKeywords,
+        });
       } else {
-        openJobModal()
+        openJobModal();
       }
-      closeFnc()
-    }, 100)
-  }
+      closeFnc();
+    }, 100);
+  };
+
+  const handleCreateBlog = () => {
+    proceedWithSelectedKeywords("blog");
+  };
+
+  const handleCreateJob = () => {
+    proceedWithSelectedKeywords("job");
+  };
 
   const columns = [
     {
@@ -224,7 +254,7 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
       sorter: (a, b) => a.competition_index - b.competition_index,
       render: (value) => (value ? value : "-"),
     },
-  ]
+  ];
 
   const tableData =
     keywordAnalysisResult?.map((kw, idx) => ({
@@ -236,29 +266,35 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
       avgCpc: kw.avgCpc,
       lowBid: kw.lowBid,
       highBid: kw.highBid,
-    })) || []
+    })) || [];
 
-  const handlePageChange = (page) => setCurrentPage(page)
+  const filteredTableData = showSelectedOnly
+    ? tableData.filter((row) => selectedKeywords?.allKeywords?.includes(row.keyword))
+    : tableData;
 
-  // Modified cleanup to avoid resetting selectedKeywords
+  const handlePageChange = (page) => setCurrentPage(page);
+
   useEffect(() => {
     return () => {
-      setKeywords([])
-      setNewKeyword("")
-      setCurrentPage(1)
-    }
-  }, [dispatch])
+      setKeywords([]);
+      setNewKeyword("");
+      setCurrentPage(1);
+      setShowSelectedOnly(false);
+    };
+  }, []);
 
   useEffect(() => {
-    if (open) {
-      document.body.style.overflow = "hidden"
+    if (visible) {
+      document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = "auto"
+      document.body.style.overflow = "auto";
     }
     return () => {
-      document.body.style.overflow = "auto"
-    }
-  }, [open])
+      document.body.style.overflow = "auto";
+    };
+  }, [visible]);
+
+  const hasSelectedKeywords = selectedKeywords?.allKeywords?.length > 0;
 
   return (
     <Modal
@@ -266,36 +302,55 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
       onCancel={closeFnc}
       closable={true}
       footer={[
-        <>
-          <div className="flex justify-end gap-3 pt-2 border-gray-100">
-            <motion.button
-              onClick={handleCreateBlog}
-              className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              disabled={!keywordAnalysisResult || analyzing || keywords.length === 0}
-            >
-              Create Blog
-            </motion.button>
-            <motion.button
-              onClick={handleCreateJob}
-              className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              disabled={!keywordAnalysisResult || analyzing || keywords.length === 0}
-            >
-              Create New Job
-            </motion.button>
-            <motion.button
-              onClick={closeFnc}
-              className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-            >
-              Close
-            </motion.button>
-          </div>
-        </>,
+        <div className="flex justify-end gap-3 pt-2 border-gray-100">
+          <motion.button
+            onClick={showAutoKeywords}
+            className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            disabled={analyzing || !keywordAnalysisResult?.length}
+            style={{
+              opacity: analyzing || !keywordAnalysisResult?.length ? 0.5 : 1,
+              cursor: analyzing || !keywordAnalysisResult?.length ? "not-allowed" : "pointer",
+            }}
+          >
+            Show Auto-Selected Keywords
+          </motion.button>
+          <motion.button
+            onClick={handleCreateBlog}
+            className={`px-5 py-2.5 text-sm font-medium rounded-lg ${
+              hasSelectedKeywords
+                ? "text-gray-700 bg-gray-100 hover:bg-gray-200"
+                : "text-gray-400 bg-gray-200 cursor-not-allowed"
+            }`}
+            whileHover={{ scale: hasSelectedKeywords ? 1.03 : 1 }}
+            whileTap={{ scale: hasSelectedKeywords ? 0.97 : 1 }}
+            disabled={!hasSelectedKeywords}
+          >
+            Create Blog
+          </motion.button>
+          <motion.button
+            onClick={handleCreateJob}
+            className={`px-5 py-2.5 text-sm font-medium rounded-lg ${
+              hasSelectedKeywords
+                ? "text-gray-700 bg-gray-100 hover:bg-gray-200"
+                : "text-gray-400 bg-gray-200 cursor-not-allowed"
+            }`}
+            whileHover={{ scale: hasSelectedKeywords ? 1.03 : 1 }}
+            whileTap={{ scale: hasSelectedKeywords ? 0.97 : 1 }}
+            disabled={!hasSelectedKeywords}
+          >
+            Create New Job
+          </motion.button>
+          <motion.button
+            onClick={closeFnc}
+            className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+          >
+            Close
+          </motion.button>
+        </div>,
       ]}
       width={1000}
       centered
@@ -329,7 +384,7 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
               animate={{ opacity: 1 }}
               className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full flex items-center"
             >
-              <span>{keyword}</span>
+              <span className="capitalize">{keyword}</span>
               <motion.div
                 whileHover={{ scale: 1.2 }}
                 whileTap={{ scale: 0.8 }}
@@ -354,45 +409,51 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
           </Button>
         </motion.div>
 
-        {keywords.length > 0 &&
-          !analyzing &&
-          keywordAnalysisResult &&
-          Array.isArray(keywordAnalysisResult) &&
-          keywordAnalysisResult.length > 0 && (
-            <div className="mt-6">
-              <Table
-                columns={columns}
-                dataSource={tableData}
-                pagination={{
-                  current: currentPage,
-                  pageSize: 4,
-                  showSizeChanger: false,
-                  onChange: handlePageChange,
-                  total: tableData.length,
-                }}
-                rowSelection={{
-                  selectedRowKeys: selectedKeywords?.focusKeywords || [],
-                  onChange: (selected) => {
-                    dispatch(
-                      setSelectedKeywords({
-                        focusKeywords: selected,
-                        allKeywords: selected,
-                        keywords: selected.slice(3), // Update keywords for remaining
-                      })
-                    )
-                  },
-                  getCheckboxProps: (record) => ({
-                    name: record.keyword,
-                  }),
-                }}
-                rowKey={(record) => record.keyword}
-                scroll={{ x: true }}
+        {!analyzing && keywordAnalysisResult?.length > 0 && (
+          <div className="mt-6">
+            <div className="flex items-center mb-4">
+              <Switch
+                checked={showSelectedOnly}
+                onChange={(checked) => setShowSelectedOnly(checked)}
+                disabled={!hasSelectedKeywords}
               />
+              <span className="ml-2 text-gray-600">
+                Show Selected Keywords Only
+              </span>
             </div>
-          )}
+            <Table
+              columns={columns}
+              dataSource={filteredTableData}
+              pagination={{
+                current: currentPage,
+                pageSize: 4,
+                showSizeChanger: false,
+                onChange: handlePageChange,
+                total: filteredTableData.length,
+              }}
+              rowSelection={{
+                selectedRowKeys: selectedKeywords?.allKeywords || [],
+                onChange: (selected) => {
+                  dispatch(
+                    setSelectedKeywords({
+                      focusKeywords: selected.slice(0, 3),
+                      keywords: selected,
+                      allKeywords: selected,
+                    })
+                  );
+                },
+                getCheckboxProps: (record) => ({
+                  name: record.keyword,
+                }),
+              }}
+              rowKey={(record) => record.keyword}
+              scroll={{ x: true }}
+            />
+          </div>
+        )}
       </div>
     </Modal>
-  )
-}
+  );
+};
 
-export default KeywordResearchModel
+export default KeywordResearchModel;

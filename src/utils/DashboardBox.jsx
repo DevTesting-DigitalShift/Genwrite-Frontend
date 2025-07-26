@@ -82,10 +82,22 @@ export const DashboardBox = ({ title, content, id, functions, icon, gradient }) 
   )
 }
 
-export const QuickBox = ({ icon, title, content, id, functions, bgColor, hoverBg, color }) => {
+export const QuickBox = ({
+  icon,
+  title,
+  content,
+  id,
+  functions,
+  bgColor,
+  hoverBg,
+  color,
+  navigate: navigateTo, // NEW PROP
+}) => {
+  const navigate = useNavigate()
   const user = useSelector((state) => state.auth.user)
   const userPlan = user?.plan ?? user?.subscription?.plan
   const { handlePopup } = useConfirmPopup()
+
   const showPopup = () => {
     handlePopup({
       title: "Upgrade Required",
@@ -95,7 +107,13 @@ export const QuickBox = ({ icon, title, content, id, functions, bgColor, hoverBg
       onConfirm: () => navigate("/pricing"),
     })
   }
+
   const handleClick = () => {
+    if (navigateTo) {
+      navigate(navigateTo)
+      return
+    }
+
     if (id === 4 && functions?.showCompetitiveAnalysis) {
       if (["free", "basic"].includes(userPlan?.toLowerCase())) {
         showPopup()

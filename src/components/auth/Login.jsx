@@ -103,18 +103,6 @@ const Auth = ({ path }) => {
     },
   })
 
-  const validatePassword = (password) => {
-    const errors = []
-
-    if (password.length < 8) errors.push("at least 8 characters")
-    if (!/[A-Z]/.test(password)) errors.push("one uppercase letter")
-    if (!/[a-z]/.test(password)) errors.push("one lowercase letter")
-    if (!/[0-9]/.test(password)) errors.push("one number")
-    if (!/[!@#$%^&*()_+[\]{};':\"\\|,.<>/?]/.test(password)) errors.push("one special character")
-
-    return errors
-  }
-
   // Handle form submission
   const handleSubmit = useCallback(
     async (e) => {
@@ -560,6 +548,31 @@ const Auth = ({ path }) => {
           </motion.div>
         </div>
       </div>
+      <footer className="w-full bg-white border-t border-gray-300 py-6 px-4 text-sm text-gray-700 relative">
+        <p className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 whitespace-nowrap">
+          &copy; {new Date().getFullYear()} <strong>GenWrite</strong>. All rights reserved.
+        </p>
+
+        <div className="flex justify-end">
+          <div className="flex gap-3 text-blue-500">
+            <a
+              href="/terms-and-conditions"
+              target="_blank"
+              className="transition hover:text-blue-700 hover:underline"
+            >
+              Terms of Service
+            </a>
+            <span className="text-gray-400">|</span>
+            <a
+              href="/privacy-policy"
+              target="_blank"
+              className="transition hover:text-blue-700 hover:underline"
+            >
+              Privacy Policy
+            </a>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }

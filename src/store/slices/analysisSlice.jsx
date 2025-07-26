@@ -6,6 +6,7 @@ import { message } from "antd"
 export const fetchCompetitiveAnalysisThunk = createAsyncThunk(
   "analysis/fetchCompetitive",
   async ({ blogId, title, content, keywords }, { rejectWithValue }) => {
+    console.log("Thunk triggered with blogId:", blogId) // ✅ confirm this
     try {
       const data = await runCompetitiveAnalysis({ blogId, title, content, keywords })
       message.success("Competitive analysis completed successfully!")
@@ -51,13 +52,16 @@ const analysisSlice = createSlice({
     suggestions: [],
     loading: false,
     analyzing: false,
-    result: null,
+    analysisResult: {},
     error: null,
     selectedKeywords: [],
   },
   reducers: {
-    clearAnalysis: (state) => {
-      state.result = null
+    clearAnalysis: (state, action) => {
+      const blogId = action.payload
+      if (blogId && state.analysisResult[blogId]) {
+        delete state.analysisResult[blogId]
+      }
       state.error = null
     },
     setSelectedKeywords: (state, action) => {
@@ -81,8 +85,11 @@ const analysisSlice = createSlice({
         state.error = null
       })
       .addCase(fetchCompetitiveAnalysisThunk.fulfilled, (state, action) => {
+        const blogId = action.meta?.arg?.blogId
+        if (blogId) {
+          state.analysisResult[blogId] = action.payload
+        }
         state.loading = false
-        state.result = action.payload
       })
       .addCase(fetchCompetitiveAnalysisThunk.rejected, (state, action) => {
         state.loading = false
@@ -117,6 +124,11 @@ const analysisSlice = createSlice({
   },
 })
 
-export const { clearAnalysis, clearKeywordAnalysis, setSelectedKeywords, clearSuggestions, clearSelectedKeywords } =
-  analysisSlice.actions
+export const {
+  clearAnalysis,
+  clearKeywordAnalysis,
+  setSelectedKeywords,
+  clearSuggestions,
+  clearSelectedKeywords,
+} = analysisSlice.actions
 export default analysisSlice.reducer

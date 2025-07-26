@@ -54,7 +54,6 @@ const ToolBox = () => {
     }
   }, [blog])
 
-  const blogToDisplay = blog
 
   const handleReplace = (original, change) => {
     if (typeof original !== "string" || typeof change !== "string") {
@@ -71,58 +70,65 @@ const ToolBox = () => {
     setProofreadingResults((prev) => prev.filter((s) => s.original !== original))
   }
 
-  const handlePostToWordPress = async () => {
+  const handlePostToWordPress = async (postData) => {
     setIsPosting(true)
-    if (!blogToDisplay?.title) {
+    console.log("Attempting to post to WordPress:", {
+      blogId: blog?._id,
+      title: blog?.title,
+      content: editorContent,
+      category: postData.categories,
+      includeTableOfContents: postData.includeTableOfContents,
+    })
+
+    if (!blog?.title) {
       message.error("Blog title is missing.")
+      setIsPosting(false)
       return
     }
 
-    const previewContainer = document.querySelector(".markdown-body")
-    const content = previewContainer?.innerHTML || editorContent
-
-    if (!content || content.trim() === "" || content === "<p></p>" || content === "<p><br></p>") {
+    if (
+      !editorContent ||
+      editorContent.trim() === "" ||
+      editorContent === "<p></p>" ||
+      editorContent === "<p><br></p>"
+    ) {
       message.error("Editor content is empty. Please add some content before posting.")
+      setIsPosting(false)
       return
     }
 
-    const postData = {
-      blogId: blogToDisplay._id,
-      includeTableOfContents: formData.includeTableOfContents,
-      categories: formData.category,
+    if (!postData.categories) {
+      message.error("Please select a category.")
+      setIsPosting(false)
+      return
     }
 
     const key = "wordpress-posting"
 
-    message.loading({
-      content: "Posting to WordPress...",
-      key,
-      duration: 0, // Don't auto-close
-    })
-
     try {
-      const response = await axiosInstance.post("/wordpress/post", postData)
+      const response = await axiosInstance.post("/wordpress/post", {
+        blogId: blog._id,
+        title: blog.title,
+        content: editorContent,
+        categories: postData.categories, // Single string
+        includeTableOfContents: postData.includeTableOfContents,
+      })
 
+      console.log("Post response:", response.data)
       setIsPosted(response?.data)
-
-      if (response?.data) {
-        setIsPosting(false)
-      }
-
       message.success({
         content: "Blog posted successfully!",
         key,
         duration: 3,
       })
     } catch (error) {
-      console.error(error.response.data.message)
+      console.error("Failed to post to WordPress:", error)
       let errorMessage = "Failed to post to WordPress"
       if (error?.response?.data?.message) {
         errorMessage = error.response.data.message
       }
-
       message.error({
-        content: `${errorMessage}`,
+        content: errorMessage,
         key,
         duration: 5,
       })
@@ -146,8 +152,8 @@ const ToolBox = () => {
       )
       const res = await sendRetryLines(blog._id)
       if (res.data) {
-        setSaveContent(res.data) // Store the response content
-        setSaveModalOpen(true) // Show the modal
+        setSaveContent(res.data)
+        setSaveModalOpen(true)
         message.success("Review the suggested content.")
       } else {
         message.error("No content received from retry.")
@@ -164,7 +170,7 @@ const ToolBox = () => {
 
   const handleAcceptSave = () => {
     if (saveContent) {
-      setEditorContent(saveContent) // Replace entire editor content
+      setEditorContent(saveContent)
       message.success("Content updated successfully!")
     }
     setSaveModalOpen(false)
@@ -181,6 +187,7 @@ const ToolBox = () => {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 },
   }
+
   return (
     <>
       <Helmet>
@@ -206,8 +213,7 @@ const ToolBox = () => {
               </>,
             ]}
             onCancel={handleRejectSave}
-            width={700} // Equivalent to max-w-2xl
-            // bodyStyle={{ height: "85vh", overflow: "auto" }}
+            width={700}
             className="rounded-lg"
           >
             <Title level={3} style={{ marginBottom: "16px" }}>
@@ -290,7 +296,7 @@ const ToolBox = () => {
                     <TextEditor
                       keywords={keywords}
                       setKeywords={setKeywords}
-                      blog={blogToDisplay}
+                      blog={blog}
                       activeTab={activeTab}
                       proofreadingResults={proofreadingResults}
                       handleReplace={handleReplace}
@@ -302,7 +308,7 @@ const ToolBox = () => {
                 </motion.div>
               </AnimatePresence>
               <TextEditorSidebar
-                blog={blogToDisplay}
+                blog={blog}
                 keywords={keywords}
                 setKeywords={setKeywords}
                 onPost={handlePostToWordPress}

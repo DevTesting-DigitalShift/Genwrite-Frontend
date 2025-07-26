@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import Modal from "../utils/Modal"
 import SelectTemplateModal from "./multipleStepModal/SelectTemplateModal"
 import FirstStepModal from "./multipleStepModal/FirstStepModal"
@@ -6,7 +6,7 @@ import SecondStepModal from "./multipleStepModal/SecondStepModal"
 import { letsBegin, quickTools } from "./dashData/dash"
 import { DashboardBox, QuickBox, Blogs } from "../utils/DashboardBox"
 import { useDispatch, useSelector } from "react-redux"
-import { createNewBlog, fetchAllBlogs } from "@store/slices/blogSlice"
+import { createNewBlog, fetchAllBlogs, fetchBlogStatus } from "@store/slices/blogSlice"
 import { useNavigate } from "react-router-dom"
 import MultiStepModal from "./multipleStepModal/DaisyUi"
 import DaisyUIModal from "./DaisyUIModal"
@@ -15,17 +15,49 @@ import CompetitiveAnalysisModal from "./multipleStepModal/CompetitiveAnalysisMod
 import PerformanceMonitoringModal from "./multipleStepModal/PerformanceMonitoringModal"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
-import { AnimatePresence } from "framer-motion"
+import { AnimatePresence, motion } from "framer-motion"
 import { loadAuthenticatedUser, selectUser } from "@store/slices/authSlice"
-import { Clock, Sparkles } from "lucide-react"
+import {
+  Clock,
+  Sparkles,
+  ChevronLeft,
+  ChevronRight,
+  FileText,
+  UploadCloud,
+  Archive,
+  BadgePercent,
+  ThumbsUp, // Added for feedback button
+} from "lucide-react"
 import { Helmet } from "react-helmet"
 import SeoAnalysisModal from "./multipleStepModal/SeoAnalysisModal"
 import KeywordResearchModel from "./multipleStepModal/KeywordResearchModel"
 import { SkeletonDashboardCard, SkeletonGridCard } from "./Projects/SkeletonLoader"
 import { openJobModal } from "@store/slices/jobSlice"
 import { message } from "antd"
-import { motion } from "framer-motion"
 import { clearKeywordAnalysis, clearSelectedKeywords } from "@store/slices/analysisSlice"
+import {
+  Chart as ChartJS,
+  ArcElement,
+  LineElement,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js"
+import { Pie, Line } from "react-chartjs-2"
+
+ChartJS.register(
+  ArcElement,
+  LineElement,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  Title,
+  Tooltip,
+  Legend
+)
 
 const Dashboard = () => {
   const [isModalVisible, setIsModalVisible] = useState(false)
@@ -40,8 +72,7 @@ const Dashboard = () => {
   const [modelData, setModelData] = useState({})
   const [recentBlogData, setRecentBlogData] = useState([])
   const [loading, setLoading] = useState(true)
-  const { blogs } = useSelector((state) => state.blog)
-
+  const { blogs, error } = useSelector((state) => state.blog)
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const user = useSelector(selectUser)
@@ -70,13 +101,13 @@ const Dashboard = () => {
     navigate("/jobs")
   }
 
+  // Initialize data and fetch
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false)
-    }, 1200)
-
+    dispatch(fetchBlogStatus())
+    dispatch(fetchAllBlogs())
+    const timer = setTimeout(() => setLoading(false), 1200)
     return () => clearTimeout(timer)
-  }, [])
+  }, [dispatch])
 
   useEffect(() => {
     const initUser = async () => {
@@ -85,7 +116,6 @@ const Dashboard = () => {
         navigate("/login")
         return
       }
-
       try {
         const result = await dispatch(loadAuthenticatedUser())
         if (loadAuthenticatedUser.rejected.match(result)) {
@@ -94,34 +124,32 @@ const Dashboard = () => {
         }
       } catch (error) {
         console.error("User init failed:", error)
+        message.error("Failed to load user data.")
       }
     }
-
     initUser()
   }, [dispatch, navigate])
 
   useEffect(() => {
-    dispatch(fetchAllBlogs())
-  }, [])
-
-  useEffect(() => {
     if (blogs?.data && Array.isArray(blogs.data)) {
-      const recent = blogs.data
-        .filter((b) => b.status === "complete" && b.isArchived === false)
-        .slice(-3)
+      const recent = blogs.data.filter((b) => b.isArchived === false).slice(-3)
       setRecentBlogData(recent)
     } else {
-      setRecentBlogData([]) // fallback in case blogs.data is not ready
+      setRecentBlogData([])
     }
   }, [blogs])
+
+  // Handle errors
+  useEffect(() => {
+    if (error) {
+      message.error(error)
+    }
+  }, [error])
 
   const handleSubmit = async (updatedData) => {
     try {
       const totalCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
-
-      // Calculate blog + image cost based on AI model
-      const estimatedBlogCost = getEstimatedCost("blog.single", modelData.aiModel)
-
+      const estimatedBlogCost = getEstimatedCost("blog.single", modelData.aiModel || "default")
       handlePopup({
         title: "Confirm Blog Creation",
         description: (
@@ -139,7 +167,6 @@ const Dashboard = () => {
             handlePopup(false)
             return
           }
-
           dispatch(createNewBlog({ blogData: updatedData, navigate }))
           setIsModalVisible(false)
           setCurrentStep(0)
@@ -148,6 +175,7 @@ const Dashboard = () => {
       dispatch(clearSelectedKeywords())
     } catch (error) {
       console.error("Error submitting form:", error)
+      message.error("Failed to create blog.")
     }
   }
 
@@ -228,133 +256,180 @@ const Dashboard = () => {
             dispatch(clearKeywordAnalysis())
           }}
           openSecondStepModal={openSecondStepModal}
-          openJobModal={openSecondStepJobModal} // Pass the job modal opener
+          openJobModal={openSecondStepJobModal}
           visible={keywordResearchModal}
         />
       )}
       {seoAnalysisModal && <SeoAnalysisModal closeFnc={() => setSeoAnalysisModal(false)} />}
 
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/50 p-6">
-        <div className="space-y-8">
-          <div className="gap-6">
-            <div>
-              <motion.h1
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.2 }}
-                className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
-              >
-                Let's Begin
-                <span className="ml-2 text-2xl text-yellow-400">✨</span>
-              </motion.h1>
-              <p className="text-gray-600 text-lg mt-2">
-                Welcome back <b>{user?.name}</b>! Ready to create something amazing today?
-              </p>
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="mt-5 ml-10"
+      >
+        <h1 className="bg-clip-text bg-gradient-to-r font-bold from-blue-600 md:text-4xl text-3xl text-transparent to-purple-600">
+          Let's Begin <span className="ml-2 text-2xl text-yellow-400">✨</span>
+        </h1>
+        <p className="text-gray-600 text-lg mt-2">
+          Welcome back <b>{user?.name || "User"}</b>! Ready to create something amazing today?
+        </p>
+      </motion.div>
+
+      <div className="min-h-screen bg-gray-50 p-6 relative">
+        {loading ? (
+          <div className="space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {Array.from({ length: 4 }).map((_, idx) => (
+                <SkeletonDashboardCard key={idx} />
+              ))}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {Array.from({ length: 2 }).map((_, idx) => (
+                <SkeletonGridCard key={idx} />
+              ))}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Array.from({ length: 3 }).map((_, idx) => (
+                <SkeletonDashboardCard key={idx} />
+              ))}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Array.from({ length: 3 }).map((_, idx) => (
+                <SkeletonGridCard key={idx} />
+              ))}
             </div>
           </div>
-
-          <div className="grid lg:grid-cols-3 gap-6">
-            <AnimatePresence>
-              {loading
-                ? Array.from({ length: 3 }).map((_, idx) => <SkeletonDashboardCard key={idx} />)
-                : letsBegin.map((item, index) => (
-                    <DashboardBox
-                      key={index}
-                      icon={item.icon}
-                      title={item.title}
-                      content={item.content}
-                      id={item.id}
-                      gradient={item.hoverGradient}
-                      functions={{
-                        showModal,
-                        setModelData,
-                        showDaisy,
-                        showMultiStepModal,
-                        showQuickBlogModal,
-                        showCompetitiveAnalysis,
-                      }}
-                    />
-                  ))}
-            </AnimatePresence>
-          </div>
-
-          <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-white" />
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900">Quick Tools</h2>
-            </div>
-            <div className="grid gap-6 sm:grid-cols-1 md:grid-cols- lg:grid-cols-3">
+        ) : (
+          <div className="space-y-8">
+            <div className="grid lg:grid-cols-3 gap-4">
               <AnimatePresence>
                 {loading
-                  ? Array.from({ length: 3 }).map((_, idx) => <SkeletonGridCard key={idx} />)
-                  : quickTools.map((item, index) => (
-                      <QuickBox
+                  ? Array.from({ length: 3 }).map((_, idx) => <SkeletonDashboardCard key={idx} />)
+                  : letsBegin.map((item, index) => (
+                      <DashboardBox
                         key={index}
-                        imageUrl={item.imageUrl}
+                        icon={item.icon}
                         title={item.title}
                         content={item.content}
                         id={item.id}
-                        color={item.color}
-                        icon={item.icon}
-                        bgColor={item.bgColor}
-                        hoverBg={item.hoverBg}
+                        gradient={item.hoverGradient}
                         functions={{
-                          ...(item.id === 3
-                            ? { showPerformanceMonitoring: () => setPerformanceModal(true) }
-                            : {}),
-                          ...(item.id === 2
-                            ? { showSeoAnalysis: () => setSeoAnalysisModal(true) }
-                            : {}),
-                          ...(item.id === 1
-                            ? { showKeywordResearch: () => setKeywordResearchModal(true) }
-                            : {}),
-                          ...(item.id === 4 ? { showCompetitiveAnalysis } : {}),
+                          showModal,
+                          setModelData,
+                          showDaisy,
+                          showMultiStepModal,
+                          showQuickBlogModal,
+                          showCompetitiveAnalysis,
                         }}
                       />
                     ))}
               </AnimatePresence>
             </div>
-          </div>
 
-          {recentBlogData.length > 0 && (
-            <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 mt-10">
-              <div className="mb-8 flex justify-between items-center">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 flex items-center justify-center">
-                    <Clock className="w-5 h-5 text-white" />
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-900">Recent Projects</h2>
+            <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
+                  <Sparkles className="w-4 h-4 text-white" />
                 </div>
+                <h2 className="text-xl font-semibold text-gray-900">Quick Tools</h2>
               </div>
-              <div>
+              <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
                 <AnimatePresence>
                   {loading
-                    ? Array.from({ length: 3 }).map((_, idx) => <SkeletonGridCard key={idx} />)
-                    : recentBlogData.map((item, index) => (
-                        <Blogs
-                          key={index}
-                          title={item.title}
-                          content={item.content}
-                          tags={item.focusKeywords}
-                          item={item}
-                          time={item.updatedAt}
-                        />
-                      ))}
+                    ? Array.from({ length: 4 }).map((_, idx) => <SkeletonGridCard key={idx} />)
+                    : quickTools.map((item, index) => {
+                        const functions = {}
+
+                        if (item.id === 1) {
+                          functions.showKeywordResearch = () => setKeywordResearchModal(true)
+                        } else if (item.id === 2) {
+                          functions.showSeoAnalysis = () => setSeoAnalysisModal(true)
+                        } else if (item.id === 3) {
+                          functions.showPerformanceMonitoring = () => setPerformanceModal(true)
+                        } else if (item.id === 4) {
+                          functions.showCompetitiveAnalysis = () => showCompetitiveAnalysis()
+                        }
+
+                        return (
+                          <QuickBox
+                            key={index}
+                            id={item.id}
+                            icon={item.icon}
+                            title={item.title}
+                            content={item.content}
+                            bgColor={item.bgColor}
+                            hoverBg={item.hoverBg}
+                            color={item.color}
+                            navigate={item.navigate}
+                            functions={functions}
+                          />
+                        )
+                      })}
                 </AnimatePresence>
-                <div className="mt-6 text-center">
-                  <button
-                    className="px-6 py-3 text-blue-600 hover:text-blue-700 font-medium hover:bg-blue-50 rounded-lg transition-colors"
-                    onClick={() => navigate("/blogs")}
-                  >
-                    View All Projects
-                  </button>
-                </div>
               </div>
             </div>
-          )}
-        </div>
+
+            {recentBlogData.length > 0 && (
+              <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100 mt-6">
+                <div className="mb-6 flex justify-between items-center">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center">
+                      <Clock className="w-4 h-4 text-white" />
+                    </div>
+                    <h2 className="text-xl font-semibold text-gray-900">Recent Projects</h2>
+                  </div>
+                </div>
+                <div>
+                  <AnimatePresence>
+                    {loading
+                      ? Array.from({ length: 3 }).map((_, idx) => <SkeletonGridCard key={idx} />)
+                      : recentBlogData.map((item, index) => (
+                          <Blogs
+                            key={index}
+                            title={item.title}
+                            content={item.content}
+                            tags={item.focusKeywords}
+                            item={item}
+                            time={item.updatedAt}
+                          />
+                        ))}
+                  </AnimatePresence>
+                  <div className="mt-6 text-center">
+                    <button
+                      className="px-6 py-2 text-blue-600 hover:text-blue-700 font-medium hover:bg-blue-50 rounded-lg transition-colors"
+                      onClick={() => navigate("/blogs")}
+                    >
+                      View All Projects
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Feedback Button */}
+        <a
+          href="https://docs.google.com/forms/d/e/1FAIpQLScIdA2aVtugx-zMGON8LJKD4IRWtLZqiiurw-jU6wRYfOv7EA/viewform?usp=sharing&ouid=117159793210831255816
+"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="fixed right-0 bottom-28 z-50"
+        >
+          <button
+            className="fixed right-[-30px] bottom-28 bg-blue-600 text-white px-4 py-2 rounded-lg rotate-90 flex items-center gap-2 hover:bg-blue-700 transition-all duration-300 shadow-md z-50"
+            style={{
+              // transformOrigin: "bottom right",
+              backfaceVisibility: "hidden", // Helps with blurry text sometimes
+              WebkitFontSmoothing: "antialiased", // Fix for Safari
+              MozOsxFontSmoothing: "grayscale", // Fix for Firefox
+            }}
+            aria-label="Provide feedback"
+          >
+            Feedback
+          </button>
+        </a>
       </div>
     </>
   )

@@ -31,6 +31,7 @@ const PrivacyPolicy = lazy(() => import("@pages/Privacy"))
 const HumanizeContent = lazy(() => import("@pages/HumanizeContent"))
 const ManualBlog = lazy(() => import("@components/generateBlog/ManualBlogEditor.jsx/ManualBlog"))
 const CancellationPage = lazy(() => import("@pages/CancellationPage"))
+const AnalyticsPage = lazy(() => import("@components/AnalyticsPage"))
 
 /**
  * Wraps a component in React.Suspense with fallback support.
@@ -69,10 +70,12 @@ const router = createBrowserRouter([
       { path: "transactions", element: withSuspense(Transactions) },
       { path: "credit-logs", element: withSuspense(CreditLogsTable) },
       { path: "contact", element: withSuspense(ContactUs) },
-      { path: "search-console", element: withSuspense(SearchConsole) },
+      { path: "blog-performance", element: withSuspense(SearchConsole) },
       { path: "humanize-content", element: withSuspense(HumanizeContent) },
       { path: "blog-editor", element: withSuspense(ManualBlog) },
+      { path: "blog-editor/:id", element: withSuspense(ManualBlog) },
       { path: "cancel-subscription", element: withSuspense(CancellationPage) },
+      { path: "analytics", element: withSuspense(AnalyticsPage) },
       {
         path: "payment",
         children: [
