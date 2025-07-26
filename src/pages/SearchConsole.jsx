@@ -32,6 +32,7 @@ import { selectUser } from "@store/slices/authSlice"
 import UpgradeModal from "@components/UpgradeModal"
 import moment from "moment"
 import { FcGoogle } from "react-icons/fc"
+import Fuse from "fuse.js"
 
 const { Option } = Select
 const { Search: AntSearch } = Input
@@ -49,7 +50,6 @@ const countryCodeToName = {
   JPN: "Japan",
   CHN: "China",
   BRA: "Brazil",
-  // Add more mappings as needed
   "N/A": "Unknown",
 }
 
@@ -59,7 +59,7 @@ const SearchConsole = () => {
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [dateRange, setDateRange] = useState("30d")
   const [customDateRange, setCustomDateRange] = useState([null, null])
-  const [selectedBlog, setSelectedBlog] = useState("all")
+  const [selectedBlogTitle, setSelectedBlogTitle] = useState("all")
   const [selectedCountries, setSelectedCountries] = useState([])
   const [includeCountry, setIncludeCountry] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -108,54 +108,53 @@ const SearchConsole = () => {
     return { from, to }
   }, [dateRange, customDateRange])
 
-  // Fetch analytics data
-  const fetchAnalyticsData = useCallback(
-    async (search = searchTerm) => {
-      setIsLoading(true)
-      try {
-        const { from, to } = getDateRangeParams()
-        const params = {
-          from,
-          to,
-          includeCountry,
-          ...(search && { searchTerm: search }),
-          // ...(selectedBlog !== "all" && { blogUrl: selectedBlog }),
-        }
-        const data = await dispatch(fetchGscAnalytics(params)).unwrap()
-        setBlogData(
-          data.map((item, index) => ({
-            id: `${item.link}-${index}`,
-            url: item.link,
-            clicks: item.clicks,
-            impressions: item.impressions,
-            ctr: (item.ctr * 100).toFixed(2),
-            position: item.position.toFixed(1),
-            keywords: [item.key].map((k) => (k.length > 50 ? `${k.substring(0, 47)}...` : k)),
-            countryCode: item.countryCode || "N/A",
-            countryName: item.countryName || "Unknown",
-            blogId: item.blogId,
-            blogTitle: item.blogTitle,
-          }))
-        )
-      } catch (err) {
-        const errorMessage = err.message || err.error || "Failed to fetch analytics data"
-        message.error(errorMessage)
-        console.error("Error fetching analytics data:", err)
-        setBlogData([])
-      } finally {
-        setIsLoading(false)
-      }
+  // Get blogUrl from blogTitle
+  const getBlogUrlFromTitle = useCallback(
+    (title) => {
+      if (title === "all") return null
+      const blog = blogs.data?.find((b) => b.title === title)
+      return blog?.url || null
     },
-    [dispatch, dateRange, customDateRange, includeCountry, searchTerm]
+    [blogs.data]
   )
 
-  // Frontend filtering for countries
-  const filteredBlogData = useMemo(() => {
-    if (!includeCountry || selectedCountries.length === 0) {
-      return blogData
+  // Fetch analytics data
+  const fetchAnalyticsData = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const { from, to } = getDateRangeParams()
+      const blogUrl = getBlogUrlFromTitle(selectedBlogTitle)
+      const params = {
+        from,
+        to,
+        includeCountry,
+        ...(blogUrl && { blogUrl }), // Send blogUrl instead of blogTitle
+      }
+      const data = await dispatch(fetchGscAnalytics(params)).unwrap()
+      setBlogData(
+        data.map((item, index) => ({
+          id: `${item.link}-${index}`,
+          url: item.link,
+          clicks: item.clicks,
+          impressions: item.impressions,
+          ctr: (item.ctr * 100).toFixed(2),
+          position: item.position.toFixed(1),
+          keywords: [item.key].map((k) => (k.length > 50 ? `${k.substring(0, 47)}...` : k)),
+          countryCode: item.countryCode || "N/A",
+          countryName: countryCodeToName[item.countryCode] || item.countryName || "Unknown",
+          blogId: item.blogId,
+          blogTitle: item.blogTitle,
+        }))
+      )
+    } catch (err) {
+      const errorMessage = err.message || err.error || "Failed to fetch analytics data"
+      // message.error(errorMessage)
+      console.error("Error fetching analytics data:", err)
+      setBlogData([])
+    } finally {
+      setIsLoading(false)
     }
-    return blogData.filter((blog) => selectedCountries.includes(blog.countryCode))
-  }, [blogData, selectedCountries, includeCountry])
+  }, [dispatch, dateRange, customDateRange, includeCountry, selectedBlogTitle, getBlogUrlFromTitle])
 
   // Google Search Console authentication
   const connectGSC = useCallback(async () => {
@@ -233,43 +232,89 @@ const SearchConsole = () => {
     }
   }, [fetchAnalyticsData, user, dispatch])
 
-  // Handle search trigger
-  const handleSearch = (value) => {
-    if (value.trim() !== searchTerm) {
-      setSearchTerm(value)
-      setCurrentPage(1)
-      fetchAnalyticsData(value)
+  // Fuse.js setup
+  const fuse = useMemo(() => {
+    return new Fuse(blogData, {
+      keys: [
+        { name: "url", weight: 0.4 },
+        { name: "keywords", weight: 0.4 },
+        { name: "blogTitle", weight: 0.2 },
+      ],
+      threshold: 0.3, // Adjust for fuzzy matching sensitivity
+      includeScore: true,
+      shouldSort: true,
+    })
+  }, [blogData])
+
+  // Client-side filtered and searched data
+  const filteredBlogData = useMemo(() => {
+    let result = blogData
+
+    // Apply fuzzy search with Fuse.js
+    if (searchTerm?.trim()) {
+      result = fuse.search(searchTerm).map(({ item }) => item)
     }
+
+    // Apply country filter
+    if (includeCountry && selectedCountries.length > 0) {
+      result = result.filter((blog) => selectedCountries.includes(blog.countryCode))
+    }
+
+    // Apply blog title filter
+    if (selectedBlogTitle !== "all") {
+      result = result.filter((blog) => blog.blogTitle === selectedBlogTitle)
+    }
+
+    return result
+  }, [blogData, searchTerm, selectedCountries, includeCountry, selectedBlogTitle, fuse])
+
+  // Get current page for the data for export
+  const currentPageData = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    return filteredBlogData.slice(startIndex, endIndex)
+  }, [filteredBlogData, currentPage, itemsPerPage])
+
+  // Handle search trigger (client-side only)
+  const handleSearch = (value) => {
+    setSearchTerm(value)
+    setCurrentPage(1)
   }
 
   // Reset all filters
   const resetAllFilters = () => {
     setSearchTerm("")
-    setSelectedBlog("all")
+    setSelectedBlogTitle("all")
     setSelectedCountries([])
     setIncludeCountry(false)
     setCustomDateRange([null, null])
     setDateRange("30d")
     setCurrentPage(1)
-    fetchAnalyticsData("")
+    fetchAnalyticsData()
   }
 
   // Check if filters are active
   const isDefaultDateRange = dateRange === "30d" && !customDateRange[0]
   const hasActiveFilters =
-    searchTerm || selectedBlog !== "all" || selectedCountries.length > 0 || !isDefaultDateRange
+    !!searchTerm ||
+    selectedBlogTitle !== "all" ||
+    selectedCountries.length > 0 ||
+    !isDefaultDateRange
 
-  // Get blog title from URL
-  const getBlogTitle = (blogUrl) => {
-    if (blogUrl === "all") return "All Blogs"
-    const blog = blogs.data?.find((b) => (b.url || b.title) === blogUrl)
-    return blog?.title || blogUrl
-  }
+  // Get blog title for display
+  const getBlogTitle = useCallback(
+    (blogTitle) => {
+      if (blogTitle === "all") return "All Blogs"
+      const blog = blogs?.data?.find((b) => b.url || b.title === blogTitle)
+      return blog?.title || blogTitle
+    },
+    [blogs]
+  )
 
   // Export data as Excel
   const handleExport = useCallback(async () => {
-    if (!blogData.length) {
-      message.warning("No data to export")
+    if (!currentPageData.length) {
+      message.warning("No data available to export")
       return
     }
     try {
@@ -283,11 +328,11 @@ const SearchConsole = () => {
         "URL",
         ...(includeCountry ? ["Country"] : []),
       ]
-      const rows = filteredBlogData.map((blog) => ({
+      const rows = currentPageData.map((blog) => ({
         Keywords: Array.isArray(blog.keywords) ? blog.keywords.join(", ") : blog.keywords,
         Clicks: blog.clicks,
         Impressions: blog.impressions,
-        "CTR (%)": blog.ctr,
+        "CTR %": blog.ctr,
         "Avg Position": blog.position,
         URL: blog.url,
         "Blog Title": blog.blogTitle,
@@ -298,31 +343,33 @@ const SearchConsole = () => {
       XLSX.utils.book_append_sheet(workbook, worksheet, "Search Console Data")
       const fileName = `search_console_data_${new Date().toISOString().split("T")[0]}.xlsx`
       XLSX.writeFile(workbook, fileName)
-      message.success("Data exported successfully")
+      // message.success("Data exported successfully");
     } catch (err) {
       const errorMessage = err.message || err.error || "Failed to export data"
       message.error(errorMessage)
       console.error("Error exporting data:", err)
     }
-  }, [blogData, includeCountry])
+  }, [currentPageData, includeCountry])
 
   // Calculate totals for summary cards
   const totals = useMemo(() => {
-    return blogData.reduce(
-      (acc, blog) => ({
-        clicks: acc.clicks + Number(blog.clicks || 0),
-        impressions: acc.impressions + Number(blog.impressions || 0),
-        avgCtr:
-          blogData.length > 0
-            ? blogData.reduce((sum, b) => sum + Number(b.ctr || 0), 0) / blogData.length
-            : 0,
-        avgPosition:
-          blogData.length > 0
-            ? blogData.reduce((sum, b) => sum + Number(b.position || 0), 0) / blogData.length
-            : 0,
-      }),
-      { clicks: 0, impressions: 0, avgCtr: 0, avgPosition: 0 }
-    )
+    const totalClicks = blogData.reduce((sum, blog) => sum + Number(blog.clicks || 0), 0)
+    const totalImpressions = blogData.reduce((sum, blog) => sum + Number(blog.impressions || 0), 0)
+    const avgCtr =
+      blogData.length > 0
+        ? blogData.reduce((sum, blog) => sum + Number(blog.ctr || 0), 0) / blogData.length
+        : 0
+    const avgPosition =
+      blogData.length > 0
+        ? blogData.reduce((sum, blog) => sum + Number(blog.position || 0), 0) / blogData.length
+        : 0
+
+    return {
+      clicks: totalClicks,
+      impressions: totalImpressions,
+      avgCtr,
+      avgPosition,
+    }
   }, [blogData])
 
   // Get unique countries for filter
@@ -341,8 +388,8 @@ const SearchConsole = () => {
     }))
   }, [blogData])
 
-  // Get unique blog URLs for selection
-  const blogUrls = useMemo(() => {
+  // Get unique blog titles for selection
+  const blogTitles = useMemo(() => {
     const seen = new Set()
     const uniqueTitles = []
     for (const item of analyticsData) {
@@ -371,7 +418,7 @@ const SearchConsole = () => {
       render: (keywords) => (
         <div className="flex flex-wrap gap-1 max-w-xs">
           {keywords.slice(0, 3).map((keyword, idx) => (
-            <Tooltip key={idx} title={keyword.length > 50 ? keyword : null}>
+            <Tooltip key={idx} title={keyword}>
               <Tag color="blue" className="text-sm">
                 {keyword}
               </Tag>
@@ -441,7 +488,7 @@ const SearchConsole = () => {
             title: "Country",
             dataIndex: "countryName",
             key: "countryName",
-            render: (countryName) => countryName || "Unknown",
+            render: (countryName) => countryName || "-",
             sorter: (a, b) => a.countryName.localeCompare(b.countryName),
             filters: countries,
             filterMultiple: true,
@@ -533,7 +580,7 @@ const SearchConsole = () => {
 
   // Main UI with data
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/50 p-5">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-transparent p-5">
       <Helmet>
         <title>Blog Performance | GenWrite</title>
       </Helmet>
@@ -646,6 +693,26 @@ const SearchConsole = () => {
                   }
                   className={`w-full ${searchTerm ? "border-orange-400 shadow-orange-100" : ""}`}
                 />
+              </div>
+
+              {/* Blog Selector */}
+              <div className="flex-1">
+                <Select
+                  value={selectedBlogTitle}
+                  onChange={(value) => {
+                    setSelectedBlogTitle(value)
+                    setCurrentPage(1)
+                    fetchAnalyticsData()
+                  }}
+                  className="w-full"
+                  placeholder="Select Blog"
+                >
+                  {blogTitles.map((title) => (
+                    <Option key={title} value={title}>
+                      {title === "all" ? "All Blogs" : title}
+                    </Option>
+                  ))}
+                </Select>
               </div>
 
               {/* Date Selector */}
