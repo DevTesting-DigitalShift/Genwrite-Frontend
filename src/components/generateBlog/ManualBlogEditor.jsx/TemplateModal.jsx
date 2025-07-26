@@ -26,6 +26,11 @@ const TemplateModal = ({
 
   const dispatch = useDispatch()
 
+  useEffect(() => {
+    if (isOpen) document.body.classList.add("backdrop-blur")
+    else document.body.classList.remove("backdrop-blur")
+  }, [isOpen])
+
   const handleNext = () => {
     if (currentStep === 0 && !selectedTemplate) {
       setErrors((prev) => ({ ...prev, template: true }))
@@ -36,13 +41,9 @@ const TemplateModal = ({
     setCurrentStep(1)
   }
 
-  const handlePrev = () => {
-    setCurrentStep(0)
-  }
+  const handlePrev = () => setCurrentStep(0)
 
-  const handleClose = () => {
-    closeFnc()
-  }
+  const handleClose = () => closeFnc()
 
   const handlePackageSelect = (index) => {
     setSelectedTemplate(packages[index].name)
@@ -77,10 +78,7 @@ const TemplateModal = ({
     }
 
     const existingSet = new Set(formData[type].map((k) => k.trim().toLowerCase()))
-    const newKeywords = inputValue
-      .split(",")
-      .map((k) => k.trim())
-      .filter((k) => k && !existingSet.has(k.toLowerCase()))
+    const newKeywords = inputValue.split(",").map((k) => k.trim()).filter((k) => k && !existingSet.has(k.toLowerCase()))
 
     if (newKeywords.length === 0) {
       setErrors((prev) => ({ ...prev, [type]: true }))
@@ -198,18 +196,12 @@ const TemplateModal = ({
               {packages.map((pkg, index) => (
                 <div
                   key={index}
-                  className={`cursor-pointer transition-all duration-200 ${
-                    selectedTemplate === pkg.name ? "border-gray-300 border-2 rounded-lg" : ""
-                  }`}
+                  className={`cursor-pointer transition-all duration-200 ${selectedTemplate === pkg.name ? "border-gray-300 border-2 rounded-lg" : ""}`}
                   onClick={() => handlePackageSelect(index)}
                 >
                   <div className="bg-white rounded-lg overflow-hidden shadow-sm">
                     <div className="relative">
-                      <img
-                        src={pkg.imgSrc || "/placeholder.svg"}
-                        alt={pkg.name}
-                        className="w-full h-full object-cover"
-                      />
+                      <img src={pkg.imgSrc || "/placeholder.svg"} alt={pkg.name} className="w-full h-full object-cover" />
                     </div>
                     <div className="p-2 mt-2">
                       <h3 className="font-medium text-gray-900 mb-1">{pkg.name}</h3>
@@ -219,32 +211,24 @@ const TemplateModal = ({
                 </div>
               ))}
             </Carousel>
-            {errors.template && (
-              <p className="text-red-500 text-sm mt-2">Please select a template.</p>
-            )}
+            {errors.template && <p className="text-red-500 text-sm mt-2">Please select a template.</p>}
           </div>
         )}
         {currentStep === 1 && (
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Topic <span className="text-red-500">*</span>
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Topic <span className="text-red-500">*</span></label>
               <Input
                 value={formData.topic}
                 onChange={(e) => handleInputChange(e, "topic")}
                 placeholder="Enter blog topic..."
-                className={`w-full px-3 py-2 border ${
-                  errors.topic ? "border-red-500" : "border-gray-200"
-                } rounded-md text-sm focus:ring-2 focus:ring-blue-600`}
+                className={`w-full px-3 py-2 border ${errors.topic ? "border-red-500" : "border-gray-200"} rounded-md text-sm focus:ring-2 focus:ring-blue-600`}
                 aria-label="Blog topic"
               />
               {errors.topic && <p className="text-red-500 text-sm mt-1">Topic cannot be empty.</p>}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Tone <span className="text-red-500">*</span>
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Tone <span className="text-red-500">*</span></label>
               <Select
                 value={formData.tone}
                 onChange={handleSelectChange}
@@ -260,18 +244,14 @@ const TemplateModal = ({
               {errors.tone && <p className="text-red-500 text-sm mt-1">Tone cannot be empty.</p>}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Focus Keywords (max 3) <span className="text-red-500">*</span>
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Focus Keywords (max 3) <span className="text-red-500">*</span></label>
               <div className="flex gap-2">
                 <Input
                   value={formData.focusKeywordInput}
                   onChange={(e) => handleKeywordInputChange(e, "focusKeywords")}
                   onKeyDown={(e) => handleKeyPress(e, "focusKeywords")}
                   placeholder="Enter focus keywords, separated by commas"
-                  className={`flex-1 px-3 py-2 border ${
-                    errors.focusKeywords ? "border-red-500" : "border-gray-200"
-                  } rounded-md text-sm focus:ring-2 focus:ring-blue-600`}
+                  className={`flex-1 px-3 py-2 border ${errors.focusKeywords ? "border-red-500" : "border-gray-200"} rounded-md text-sm focus:ring-2 focus:ring-blue-600`}
                   aria-label="Focus keywords"
                 />
                 <button
@@ -301,18 +281,14 @@ const TemplateModal = ({
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Keywords <span className="text-red-500">*</span>
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Keywords <span className="text-red-500">*</span></label>
               <div className="flex gap-2">
                 <Input
                   value={formData.keywordInput}
                   onChange={(e) => handleKeywordInputChange(e, "keywords")}
                   onKeyDown={(e) => handleKeyPress(e, "keywords")}
                   placeholder="Enter secondary keywords, separated by commas"
-                  className={`flex-1 px-3 py-2 border ${
-                    errors.keywords ? "border-red-500" : "border-gray-200"
-                  } rounded-md text-sm focus:ring-2 focus:ring-blue-600`}
+                  className={`flex-1 px-3 py-2 border ${errors.keywords ? "border-red-500" : "border-gray-200"} rounded-md text-sm focus:ring-2 focus:ring-blue-600`}
                   aria-label="Secondary keywords"
                 />
                 <button
@@ -339,35 +315,24 @@ const TemplateModal = ({
                     </button>
                   </span>
                 ))}
-
                 {formData.keywords.length > 18 && (
                   <span
                     onClick={() => setShowAllKeywords((prev) => !prev)}
                     className="text-xs font-medium text-blue-600 self-center cursor-pointer flex items-center gap-1"
                   >
-                    {showAllKeywords ? (
-                      <>Show less</>
-                    ) : (
-                      <>
-                        +{formData.keywords.length - 18} more
-                      </>
-                    )}
+                    {showAllKeywords ? <>Show less</> : <>+{formData.keywords.length - 18} more</>}
                   </span>
                 )}
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Title <span className="text-red-500">*</span>
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Title <span className="text-red-500">*</span></label>
               <div className="flex gap-4">
                 <Input
                   value={formData.title}
                   onChange={(e) => handleInputChange(e, "title")}
                   placeholder="Enter blog title..."
-                  className={`w-full px-3 flex-1 py-2 border ${
-                    errors.title ? "border-red-500" : "border-gray-200"
-                  } rounded-md text-sm focus:ring-2 focus:ring-blue-600`}
+                  className={`w-full px-3 flex-1 py-2 border ${errors.title ? "border-red-500" : "border-gray-200"} rounded-md text-sm focus:ring-2 focus:ring-blue-600`}
                   aria-label="Blog title"
                 />
                 {!hasGeneratedTitles && (
@@ -377,11 +342,7 @@ const TemplateModal = ({
                     className="px-4 py-2 bg-gradient-to-r from-[#1B6FC9] to-[#4C9FE8] text-white rounded-lg hover:from-[#1B6FC9]/90 hover:to-[#4C9FE8]/90 flex items-center"
                     aria-label="Generate titles"
                   >
-                    {isGeneratingTitles ? (
-                      <Spin size="small" />
-                    ) : (
-                      <Sparkles size={16} className="mr-2" />
-                    )}
+                    {isGeneratingTitles ? <Spin size="small" /> : <Sparkles size={16} className="mr-2" />}
                     Generate Titles
                   </button>
                 )}
@@ -394,14 +355,9 @@ const TemplateModal = ({
                       <div key={index} className="relative group">
                         <button
                           type="button"
-                          onClick={() => {
-                            setFormData((prev) => ({ ...prev, title: generatedTitle }))
-                            setErrors((prev) => ({ ...prev, title: false }))
-                          }}
+                          onClick={() => { setFormData((prev) => ({ ...prev, title: generatedTitle })); setErrors((prev) => ({ ...prev, title: false })) }}
                           className={`px-3 py-1 rounded-full text-sm border transition truncate max-w-[200px] sm:max-w-[300px] ${
-                            isSelected
-                              ? "bg-[#1B6FC9] text-white border-[#1B6FC9]"
-                              : "bg-gray-100 text-gray-700 border-gray-300 opacity-60 hover:opacity-100 hover:bg-gray-200"
+                            isSelected ? "bg-[#1B6FC9] text-white border-[#1B6FC9]" : "bg-gray-100 text-gray-700 border-gray-300 opacity-60 hover:opacity-100 hover:bg-gray-200"
                           }`}
                           aria-label={`Select title: ${generatedTitle}`}
                         >
@@ -414,9 +370,7 @@ const TemplateModal = ({
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Choose length of Blog <span className="text-red-500">*</span>
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Choose length of Blog <span className="text-red-500">*</span></label>
               <input
                 type="range"
                 min="500"
@@ -424,22 +378,11 @@ const TemplateModal = ({
                 value={formData.userDefinedLength ?? 1000}
                 onChange={(e) => handleInputChange(e, "userDefinedLength")}
                 placeholder="Enter desired word count..."
-                className="w-full h-1 rounded-lg appearance-none cursor-pointer 
-                    [&::-webkit-slider-thumb]:appearance-none 
-                    [&::-webkit-slider-thumb]:h-4 
-                    [&::-webkit-slider-thumb]:w-4 
-                    [&::-webkit-slider-thumb]:rounded-full 
-                    [&::-webkit-slider-thumb]:bg-[#1B6FC9]"
-                style={{
-                  background: `linear-gradient(to right, #1B6FC9 ${
-                    ((formData?.userDefinedLength ?? 1000) - 500) / 45
-                  }%, #e5e7eb 0%)`,
-                }}
+                className="w-full h-1 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#1B6FC9]"
+                style={{ background: `linear-gradient(to right, #1B6FC9 ${((formData?.userDefinedLength ?? 1000) - 500) / 45}%, #e5e7eb 0%)` }}
                 aria-label="Desired word count"
               />
-              <span className="mt-2 text-sm text-gray-600 block">
-                {formData?.userDefinedLength ?? 1000} words
-              </span>
+              <span className="mt-2 text-sm text-gray-600 block">{formData?.userDefinedLength ?? 1000} words</span>
             </div>
           </div>
         )}

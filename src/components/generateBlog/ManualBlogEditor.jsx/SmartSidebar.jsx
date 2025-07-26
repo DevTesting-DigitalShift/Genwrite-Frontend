@@ -11,8 +11,8 @@ import {
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 
-const SmartSidebar = ({ isExpanded, onToggle, wordCount, readTime, title, content }) => {
-  const [activeToolId, setActiveToolId] = useState(null) // Null means no panel is open
+const SmartSidebar = ({ isExpanded, onToggle, wordCount, readTime, title, content, keywords, addKeyword, removeKeyword, generateKeywords, isGeneratingKeywords, newKeyword, setNewKeyword, seoScore, blogScore, getScoreColor }) => {
+  const [activeToolId, setActiveToolId] = useState(null)
 
   const tools = [
     {
@@ -59,33 +59,20 @@ const SmartSidebar = ({ isExpanded, onToggle, wordCount, readTime, title, conten
     },
   ]
 
-  const handleToggleTool = (toolId) => {
-    // Toggle: open if closed, close if open, close others
-    setActiveToolId(activeToolId === toolId ? null : toolId)
-  }
+  const handleToggleTool = (toolId) => setActiveToolId(activeToolId === toolId ? null : toolId)
 
   return (
     <div
-      className={`relative bg-white border-r border-gray-200 transition-all duration-300 ease-in-out shadow-lg ${
-        isExpanded ? "w-[400px]" : "w-20"
-      }`}
+      className={`relative bg-white border-r border-gray-200 transition-all duration-300 ease-in-out shadow-lg ${isExpanded ? "w-[400px]" : "w-20"}`}
     >
-      {/* Toggle Button */}
       <button
         onClick={onToggle}
         className="absolute -left-3 top-6 z-10 w-6 h-6 bg-white border border-gray-200 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors duration-200 shadow-md"
         title={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
       >
-        {isExpanded ? (
-          <ChevronRight className="w-3 h-3 text-gray-600" />
-        ) : (
-          <ChevronLeft className="w-3 h-3 text-gray-600" />
-        )}
+        {isExpanded ? <ChevronRight className="w-3 h-3 text-gray-600" /> : <ChevronLeft className="w-3 h-3 text-gray-600" />}
       </button>
-
-      {/* Sidebar Content */}
       <div className="h-full flex flex-col">
-        {/* Tools Navigation */}
         <div className="flex-1 py-6 overflow-y-auto">
           <div className="space-y-1 px-3">
             {tools.map((tool) => {
@@ -98,11 +85,7 @@ const SmartSidebar = ({ isExpanded, onToggle, wordCount, readTime, title, conten
                     onClick={() => tool.isActive && handleToggleTool(tool.id)}
                     disabled={!tool.isActive}
                     className={`w-full flex items-center px-3 py-2.5 rounded-lg transition-all duration-200 ${
-                      isActive
-                        ? "bg-blue-50 text-blue-600"
-                        : tool.isActive
-                        ? "hover:bg-gray-50"
-                        : "cursor-not-allowed opacity-50"
+                      isActive ? "bg-blue-50 text-blue-600" : tool.isActive ? "hover:bg-gray-50" : "cursor-not-allowed opacity-50"
                     }`}
                   >
                     <Icon className={`w-5 h-5 ${isExpanded ? "mr-3" : ""}`} />
@@ -110,20 +93,12 @@ const SmartSidebar = ({ isExpanded, onToggle, wordCount, readTime, title, conten
                       <div className="flex-1 text-left">
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-medium">{tool.name}</span>
-                          {tool.isPro && (
-                            <span className="text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white px-1.5 py-0.5 rounded-full">
-                              Pro
-                            </span>
-                          )}
+                          {tool.isPro && <span className="text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white px-1.5 py-0.5 rounded-full">Pro</span>}
                         </div>
-                        {!tool.isActive && (
-                          <span className="text-xs text-gray-500">Coming soon</span>
-                        )}
+                        {!tool.isActive && <span className="text-xs text-gray-500">Coming soon</span>}
                       </div>
                     )}
                   </button>
-
-                  {/* Tooltip for collapsed state */}
                   {!isExpanded && (
                     <div className="absolute left-full ml-2 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-20">
                       <div className="bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
@@ -132,8 +107,6 @@ const SmartSidebar = ({ isExpanded, onToggle, wordCount, readTime, title, conten
                       </div>
                     </div>
                   )}
-
-                  {/* Accordion Panel */}
                   {isExpanded && (
                     <AnimatePresence>
                       {isActive && (
@@ -150,6 +123,16 @@ const SmartSidebar = ({ isExpanded, onToggle, wordCount, readTime, title, conten
                               readTime={readTime}
                               title={title}
                               content={content}
+                              keywords={keywords}
+                              addKeyword={addKeyword}
+                              removeKeyword={removeKeyword}
+                              generateKeywords={generateKeywords}
+                              isGeneratingKeywords={isGeneratingKeywords}
+                              newKeyword={newKeyword}
+                              setNewKeyword={setNewKeyword}
+                              seoScore={seoScore}
+                              blogScore={blogScore}
+                              getScoreColor={getScoreColor}
                             />
                           </div>
                         </motion.div>
@@ -166,7 +149,6 @@ const SmartSidebar = ({ isExpanded, onToggle, wordCount, readTime, title, conten
   )
 }
 
-// Panel Components
 const OverviewPanel = ({ wordCount, readTime, title }) => (
   <div className="space-y-6">
     <div className="grid grid-cols-2 gap-4 mb-6">
@@ -185,9 +167,7 @@ const OverviewPanel = ({ wordCount, readTime, title }) => (
         <div className="mt-1 flex items-center">
           <div className="flex-1 bg-gray-200 rounded-full h-2">
             <div
-              className={`h-2 rounded-full transition-all duration-300 ${
-                title.length <= 60 ? "bg-green-500" : "bg-red-500"
-              }`}
+              className={`h-2 rounded-full transition-all duration-300 ${title.length <= 60 ? "bg-green-500" : "bg-red-500"}`}
               style={{ width: `${Math.min((title.length / 60) * 100, 100)}%` }}
             />
           </div>
@@ -235,76 +215,55 @@ const AIAssistantPanel = () => (
   </div>
 )
 
-const SEOPanel = () => {
-  const [keywords, setKeywords] = useState(["react", "blog", "editor"])
-  const [newKeyword, setNewKeyword] = useState("")
-
-  const addKeyword = () => {
-    if (newKeyword.trim() && !keywords.includes(newKeyword.trim())) {
-      setKeywords([...keywords, newKeyword.trim()])
-      setNewKeyword("")
-    }
-  }
-
-  const removeKeyword = (keyword) => {
-    setKeywords(keywords.filter((k) => k !== keyword))
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="space-y-4">
-        <div className="bg-white p-4 rounded-lg border border-gray-200">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-bold text-gray-700">Blog Score</span>
-            <span className="text-2xl font-bold text-green-600">85</span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div className="h-2 bg-green-500 rounded-full" style={{ width: "85%" }} />
-          </div>
+const SEOPanel = ({ seoScore, blogScore, getScoreColor }) => (
+  <div className="space-y-6">
+    <div className="space-y-4">
+      <div className="bg-white p-4 rounded-lg border border-gray-200">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-bold text-gray-700">Blog Score</span>
+          <span className={`px-2 py-1 rounded-full text-xs font-bold ${getScoreColor(blogScore)}`}>{blogScore}/100</span>
         </div>
-        <div className="bg-white p-4 rounded-lg border border-gray-200">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-bold text-gray-700">SEO Score</span>
-            <span className="text-2xl font-bold text-green-600">85</span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div className="h-2 bg-green-500 rounded-full" style={{ width: "85%" }} />
-          </div>
+        <div className="w-full bg-gray-200 rounded-full h-2">
+          <div
+            className={`h-2 rounded-full transition-all duration-500 ${blogScore >= 80 ? "bg-green-500" : blogScore >= 60 ? "bg-yellow-500" : "bg-red-500"}`}
+            style={{ width: `${blogScore}%` }}
+          />
+        </div>
+      </div>
+      <div className="bg-white p-4 rounded-lg border border-gray-200">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-bold text-gray-700">SEO Score</span>
+          <span className={`px-2 py-1 rounded-full text-xs font-bold ${getScoreColor(seoScore)}`}>{seoScore}/100</span>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-2">
+          <div
+            className={`h-2 rounded-full transition-all duration-500 ${seoScore >= 80 ? "bg-green-500" : seoScore >= 60 ? "bg-yellow-500" : "bg-red-500"}`}
+            style={{ width: `${seoScore}%` }}
+          />
         </div>
       </div>
     </div>
-  )
-}
+  </div>
+)
 
-const TagsPanel = () => {
-  const [tags, setTags] = useState(["Technology", "Tutorial", "React"])
-  const [newTag, setNewTag] = useState("")
-
-  const addTag = () => {
-    if (newTag.trim() && !tags.includes(newTag.trim())) {
-      setTags([...tags, newTag.trim()])
-      setNewTag("")
-    }
-  }
-
-  const removeTag = (tag) => {
-    setTags(tags.filter((t) => t !== tag))
-  }
+const TagsPanel = ({ keywords, addKeyword, removeKeyword, generateKeywords, isGeneratingKeywords, newKeyword, setNewKeyword }) => {
+  const addTag = addKeyword
+  const removeTag = removeKeyword
 
   return (
     <div className="space-y-6">
       <div className="space-y-4">
         <div>
-          <label className="text-sm font-medium text-gray-700 mb-2 block">Tags</label>
+          <label className="text-sm font-medium text-gray-700 mb-2 block">Keywords</label>
           <div className="flex flex-wrap gap-2 mb-2">
-            {tags.map((tag) => (
+            {keywords.map((keyword) => (
               <span
-                key={tag}
+                key={keyword.id}
                 className="inline-flex items-center px-3 py-1 bg-purple-100 text-purple-800 text-sm rounded-full"
               >
-                {tag}
+                {keyword.text}
                 <button
-                  onClick={() => removeTag(tag)}
+                  onClick={() => removeTag(keyword.id)}
                   className="ml-2 text-purple-600 hover:text-purple-800"
                 >
                   ×
@@ -315,10 +274,10 @@ const TagsPanel = () => {
           <div className="flex space-x-2">
             <input
               type="text"
-              value={newTag}
-              onChange={(e) => setNewTag(e.target.value)}
+              value={newKeyword}
+              onChange={(e) => setNewKeyword(e.target.value)}
               onKeyPress={(e) => e.key === "Enter" && addTag()}
-              placeholder="Add tag"
+              placeholder="Add keyword"
               className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
             />
             <button
@@ -328,15 +287,17 @@ const TagsPanel = () => {
               Add
             </button>
           </div>
-        </div>
-        <div>
-          <label className="text-sm font-medium text-gray-700 mb-2 block">Category</label>
-          <select className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
-            <option>Technology</option>
-            <option>Tutorial</option>
-            <option>News</option>
-            <option>Option</option>
-          </select>
+          <div className="mt-4">
+            <button
+              onClick={generateKeywords}
+              disabled={isGeneratingKeywords}
+              className="flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm font-medium disabled:opacity-50"
+              aria-label="Generate keyword suggestions"
+            >
+              {isGeneratingKeywords ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+              Optimize
+            </button>
+          </div>
         </div>
       </div>
     </div>
