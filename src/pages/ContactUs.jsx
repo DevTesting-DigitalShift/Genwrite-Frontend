@@ -137,7 +137,7 @@ const ContactUs = () => {
       country: "United States",
     },
     phone: "+1 (555) 123-4567",
-    email: "hello@genwrite.com",
+    email: "support@genwrite.co",
     workingHours: {
       weekdays: "Monday - Friday: 9:00 AM - 6:00 PM PST",
       weekend: "Saturday - Sunday: Closed",
@@ -415,7 +415,7 @@ const ContactUs = () => {
                     <h4 className="font-semibold text-gray-900 mb-1">Email</h4>
                     <a
                       href={`mailto:${companyInfo.email}`}
-                      className="text-gray-600 hover:text-blue-600 transition-colors"
+                      className="text-gray-600 hover:text-blue-600 transition-colors "
                     >
                       {companyInfo.email}
                     </a>
