@@ -147,7 +147,7 @@ const HumanizeContent = () => {
                 <Sparkles className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Content Processor</h1>
+                <h1 className="text-3xl font-bold text-gray-900">Humanize Content</h1>
                 <p className="text-gray-600">Transform your content with AI-powered processing</p>
               </div>
             </div>

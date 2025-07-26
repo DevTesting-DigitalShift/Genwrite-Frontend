@@ -1,27 +1,27 @@
-import { Table, Tag, Input, Select, Spin, Empty } from "antd";
-import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useState, useMemo } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { SearchOutlined } from "@ant-design/icons";
-import { Helmet } from "react-helmet";
-import dayjs from "dayjs";
-import { getCreditLogs } from "@store/slices/creditLogSlice";
-import { debounce } from "lodash";
-import { getSocket } from "@utils/socket";
+import { Table, Tag, Input, Select, Spin, Empty } from "antd"
+import { motion, AnimatePresence } from "framer-motion"
+import { useEffect, useState, useMemo } from "react"
+import { useDispatch, useSelector } from "react-redux"
+import { SearchOutlined } from "@ant-design/icons"
+import { Helmet } from "react-helmet"
+import dayjs from "dayjs"
+import { getCreditLogs } from "@store/slices/creditLogSlice"
+import { debounce } from "lodash"
+import { getSocket } from "@utils/socket"
 
-const { Option } = Select;
+const { Option } = Select
 
 const CreditLogsTable = () => {
-  const dispatch = useDispatch();
-  const { logs, loading, totalLogs } = useSelector((state) => state.creditLogs);
+  const dispatch = useDispatch()
+  const { logs, loading } = useSelector((state) => state.creditLogs)
 
   // Local State
-  const [searchText, setSearchText] = useState("");
-  const [dateRange, setDateRange] = useState("24h");
-  const [purposeFilter, setPurposeFilter] = useState([]);
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 10 });
+  const [searchText, setSearchText] = useState("")
+  const [dateRange, setDateRange] = useState("24h")
+  const [purposeFilter, setPurposeFilter] = useState([])
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 10 })
 
-  const pageSizeOptions = [10, 20, 50, 100];
+  const pageSizeOptions = [10, 20, 50, 100]
   const purposeOptions = [
     "BLOG_GENERATION",
     "QUICK_BLOG_GENERATION",
@@ -29,70 +29,62 @@ const CreditLogsTable = () => {
     "COMPETITOR_ANALYSIS",
     "SUBSCRIPTION_PAYMENT",
     "OTHER",
-  ];
+  ]
 
   // Debounced search
   const debouncedSearch = useMemo(
     () =>
       debounce((value) => {
-        setSearchText(value);
-        setPagination((prev) => ({ ...prev, current: 1 }));
+        setSearchText(value)
+        setPagination((prev) => ({ ...prev, current: 1 }))
+        dispatch(
+          getCreditLogs({
+            page: 1,
+            limit: -1,
+            search: value,
+            purpose: purposeFilter,
+            ...getDateRangeParams(dateRange),
+          })
+        )
       }, 500),
-    []
-  );
+    [dispatch, purposeFilter, dateRange]
+  )
 
   // Calculate date range for backend fetch
   const getDateRangeParams = (range) => {
-    const now = dayjs();
+    const now = dayjs()
     switch (range) {
       case "24h":
         return {
           start: now.subtract(24, "hours").startOf("hour").toISOString(),
           end: now.endOf("hour").toISOString(),
-        };
+        }
       case "7d":
         return {
           start: now.subtract(7, "days").startOf("day").toISOString(),
           end: now.endOf("day").toISOString(),
-        };
+        }
       case "30d":
         return {
           start: now.subtract(30, "days").startOf("day").toISOString(),
           end: now.endOf("day").toISOString(),
-        };
+        }
       default:
-        return {};
+        return {}
     }
-  };
+  }
 
   // Fetch Logs from backend
   useEffect(() => {
     const params = {
-      page: pagination.current,
-      limit: pagination.pageSize,
+      page: 1,
+      limit: -1,
+      search: searchText,
+      purpose: purposeFilter,
       ...getDateRangeParams(dateRange),
-    };
-    dispatch(getCreditLogs(params));
-  }, [dispatch, dateRange, pagination.current, pagination.pageSize]);
-
-  // Frontend filtering
-  const filteredLogs = useMemo(() => {
-    let result = logs;
-
-    // Filter by searchText (case-insensitive on metadata.title)
-    if (searchText) {
-      result = result.filter((log) =>
-        log.metadata?.title?.toLowerCase().includes(searchText.toLowerCase())
-      );
     }
-
-    // Filter by purposeFilter
-    if (purposeFilter.length > 0) {
-      result = result.filter((log) => purposeFilter.includes(log.purpose));
-    }
-
-    return result;
-  }, [logs, searchText, purposeFilter]);
+    dispatch(getCreditLogs(params))
+  }, [dispatch, dateRange, searchText, purposeFilter])
 
   const purposeColorMap = {
     BLOG_GENERATION: "bg-blue-100 text-blue-700",
@@ -101,7 +93,7 @@ const CreditLogsTable = () => {
     COMPETITOR_ANALYSIS: "bg-yellow-100 text-yellow-800",
     SUBSCRIPTION_PAYMENT: "bg-purple-100 text-purple-700",
     OTHER: "bg-gray-100 text-gray-700",
-  };
+  }
 
   // Table Columns
   const columns = useMemo(
@@ -153,17 +145,32 @@ const CreditLogsTable = () => {
           text: purpose.toLowerCase().replace(/_/g, " "),
           value: purpose,
         })),
+        filterMultiple: true,
         onFilter: (value, record) => record.purpose === value,
+        onFilterDropdownVisibleChange: (visible) => {
+          if (!visible) {
+            setPagination((prev) => ({ ...prev, current: 1 }))
+            dispatch(
+              getCreditLogs({
+                page: 1,
+                limit: -1,
+                search: searchText,
+                purpose: purposeFilter,
+                ...getDateRangeParams(dateRange),
+              })
+            )
+          }
+        },
         render: (purpose) => {
-          const colorClass = purposeColorMap[purpose] || "bg-gray-100 text-gray-700";
-          const label = purpose?.toLowerCase().replace(/_/g, " ") || "-";
+          const colorClass = purposeColorMap[purpose] || "bg-gray-100 text-gray-700"
+          const label = purpose?.toLowerCase().replace(/_/g, " ") || "-"
           return (
             <span
               className={`inline-block px-2 py-1 rounded-full text-xs font-semibold capitalize ${colorClass}`}
             >
               {label}
             </span>
-          );
+          )
         },
       },
       {
@@ -184,33 +191,39 @@ const CreditLogsTable = () => {
         render: (credits) => <span className="text-sm font-medium text-gray-800">{credits}</span>,
       },
     ],
-    [purposeColorMap]
-  );
+    [purposeColorMap, dispatch, searchText, purposeFilter, dateRange]
+  )
 
   // WebSocket for real-time updates
   useEffect(() => {
-    const socket = getSocket();
-    if (!socket) return;
+    const socket = getSocket()
+    if (!socket) return
 
     const handleCreditLogUpdate = (newLog) => {
-      // Only refetch if on the first page to avoid disrupting user navigation
-      if (pagination.current === 1) {
-        dispatch(
-          getCreditLogs({
-            page: 1,
-            limit: pagination.pageSize,
-            ...getDateRangeParams(dateRange),
-          })
-        );
-      }
-    };
+      dispatch(
+        getCreditLogs({
+          page: 1,
+          limit: -1,
+          search: searchText,
+          purpose: purposeFilter,
+          ...getDateRangeParams(dateRange),
+        })
+      )
+    }
 
-    socket.on("credit-log", handleCreditLogUpdate);
+    socket.on("credit-log", handleCreditLogUpdate)
 
     return () => {
-      socket.off("credit-log", handleCreditLogUpdate);
-    };
-  }, [dispatch, dateRange, pagination.pageSize, pagination.current]);
+      socket.off("credit-log", handleCreditLogUpdate)
+    }
+  }, [dispatch, dateRange, searchText, purposeFilter])
+
+  // Paginate data client-side
+  const paginatedData = useMemo(() => {
+    const startIndex = (pagination.current - 1) * pagination.pageSize
+    const endIndex = startIndex + pagination.pageSize
+    return logs.slice(startIndex, endIndex)
+  }, [logs, pagination.current, pagination.pageSize])
 
   return (
     <AnimatePresence>
@@ -238,8 +251,17 @@ const CreditLogsTable = () => {
             <Select
               value={dateRange}
               onChange={(value) => {
-                setDateRange(value);
-                setPagination((prev) => ({ ...prev, current: 1 }));
+                setDateRange(value)
+                setPagination((prev) => ({ ...prev, current: 1 }))
+                dispatch(
+                  getCreditLogs({
+                    page: 1,
+                    limit: -1,
+                    search: searchText,
+                    purpose: purposeFilter,
+                    ...getDateRangeParams(value),
+                  })
+                )
               }}
               className="w-full sm:w-48 rounded-lg"
               popupClassName="rounded-lg"
@@ -251,9 +273,9 @@ const CreditLogsTable = () => {
             </Select>
             <Select
               value={pagination.pageSize}
-              onChange={(value) =>
+              onChange={(value) => {
                 setPagination((prev) => ({ ...prev, pageSize: value, current: 1 }))
-              }
+              }}
               options={pageSizeOptions.map((size) => ({
                 label: `${size} / page`,
                 value: size,
@@ -265,36 +287,71 @@ const CreditLogsTable = () => {
           </div>
         </div>
 
+        <style>
+          {`
+            .ant-table-thead {
+              position: sticky;
+              top: 0;
+              z-index: 10;
+              background: #fafafa;
+            }
+            .ant-table-thead > tr > th {
+              background: #fafafa !important;
+            }
+          `}
+        </style>
         <Table
-          dataSource={filteredLogs}
+          dataSource={paginatedData}
           columns={columns}
           loading={loading}
           rowKey="_id"
           pagination={{
             current: pagination.current,
             pageSize: pagination.pageSize,
-            total: totalLogs, // Use backend totalLogs for pagination
+            total: logs.length,
             showSizeChanger: false,
             showTotal: (total) => `Total ${total} logs`,
-            onChange: (page, pageSize) => {
-              setPagination({ current: page, pageSize });
+            onChange: (page) => {
+              setPagination((prev) => ({ ...prev, current: page }))
             },
           }}
           className="rounded-xl overflow-hidden"
           rowClassName="hover:bg-gray-50 transition-colors duration-200"
           bordered={false}
-          scroll={{ x: "max-content" }}
           locale={{
             emptyText: loading ? (
               <Spin tip="Loading logs..." />
             ) : (
-              <Empty description={searchText || purposeFilter.length > 0 ? "No logs match the filters" : "No logs found"} />
+              <Empty
+                description={
+                  searchText || purposeFilter.length > 0
+                    ? "No logs match the filters"
+                    : "No Logs Found"
+                }
+              />
             ),
+          }}
+          // onChange={(pagination, filters) => {
+          //   setPurposeFilter(filters.purpose || [])
+          //   setPagination((prev) => ({ ...prev, current: 1 }))
+          // }}
+          onChange={(paginationInfo, filters, sorter, extra) => {
+            // Detect if filters have changed
+            const newPurposeFilter = filters.purpose || []
+
+            // Only reset to page 1 if purpose filters changed
+            setPurposeFilter(newPurposeFilter)
+
+            // Update pagination without resetting to page 1 unless filters changed
+            setPagination({
+              current: paginationInfo.current,
+              pageSize: paginationInfo.pageSize,
+            })
           }}
         />
       </motion.div>
     </AnimatePresence>
-  );
-};
+  )
+}
 
-export default CreditLogsTable;
+export default CreditLogsTable

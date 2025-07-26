@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useLayoutEffect } from "react"
+import React, { useState, useEffect, useRef, useLayoutEffect, useMemo, useCallback } from "react"
 import { useEditor, EditorContent, BubbleMenu } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 import Link from "@tiptap/extension-link"
@@ -42,7 +42,7 @@ import { ProofreadingDecoration } from "@/extensions/ProofreadingDecoration"
 import { useProofreadingUI } from "@components/generateBlog/useProofreadingUI"
 import { sendRetryLines } from "@api/blogApi"
 import { Helmet } from "react-helmet"
-import { Select, Tooltip, message } from "antd"
+import { Select, Tooltip, message, Modal, Input } from "antd"
 import Loading from "@components/Loading"
 
 const FONT_OPTIONS = [
@@ -66,6 +66,7 @@ const TextEditor = ({
   const [showPreview, setShowPreview] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [editorReady, setEditorReady] = useState(false)
+  const [isEditorLoading, setIsEditorLoading] = useState(false) // New state for editor loading
   const [selectedFont, setSelectedFont] = useState(FONT_OPTIONS[0].value)
   const [selectionPosition, setSelectionPosition] = useState(null)
   const [showModelDropdown, setShowModelDropdown] = useState(false)
@@ -73,8 +74,10 @@ const TextEditor = ({
   const [isRetrying, setIsRetrying] = useState(false)
   const [retryContent, setRetryContent] = useState(null)
   const [originalContent, setOriginalContent] = useState(null)
-  const [selectionRange, setSelectionRange] = useState({ from: 0, to: 0 }) // New state for selection positions
+  const [selectionRange, setSelectionRange] = useState({ from: 0, to: 0 })
   const [retryModalOpen, setRetryModalOpen] = useState(false)
+  const [linkModalOpen, setLinkModalOpen] = useState(false)
+  const [linkUrl, setLinkUrl] = useState("")
   const [bubblePos, setBubblePos] = useState({ top: 0, left: 0 })
   const htmlEditorRef = useRef(null)
   const mdEditorRef = useRef(null)
@@ -93,6 +96,20 @@ const TextEditor = ({
 
   const safeContent = content ?? ""
 
+  // Memoize initial content
+  const initialContent = useMemo(() => {
+    return safeContent ? marked.parse(safeContent, { gfm: true }) : "<p></p>"
+  }, [safeContent])
+
+  // Handle tab switch loading
+  useEffect(() => {
+    setIsEditorLoading(true)
+    const timer = setTimeout(() => {
+      setIsEditorLoading(false)
+    }, 1500) // 1.5 seconds loading
+    return () => clearTimeout(timer)
+  }, [activeTab])
+
   // Show message for failed blog status
   useEffect(() => {
     if (blog?.status === "failed" && !hasShownToast.current) {
@@ -101,7 +118,7 @@ const TextEditor = ({
     }
   }, [blog?.status])
 
-  // Add custom styles for suggestions and fonts
+  // Add custom styles
   useEffect(() => {
     const style = document.createElement("style")
     style.innerHTML = `
@@ -135,6 +152,20 @@ const TextEditor = ({
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         z-index: 1000;
         max-width: 300px;
+      }
+      .editor-container {
+        transition: none; /* Prevent width flickering */
+        width: 100% !important;
+        min-width: 100% !important;
+      }
+      .editor-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: calc(100vh - 300px);
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
       }
     `
     document.head.appendChild(style)
@@ -179,7 +210,7 @@ const TextEditor = ({
           suggestions: proofreadingResults,
         }),
       ],
-      content: safeContent ? marked.parse(safeContent, { gfm: true }) : "<p></p>",
+      content: initialContent,
       onUpdate: ({ editor }) => {
         const turndownService = new TurndownService({
           strongDelimiter: "**",
@@ -189,16 +220,16 @@ const TextEditor = ({
       },
       editorProps: {
         attributes: {
-          class: `prose max-w-none focus:outline-none p-4 min-h-[400px] opacity-100 ${selectedFont} blog-content`,
+          class: `prose max-w-none focus:outline-none p-4 min-h-[400px] opacity-100 ${selectedFont} blog-content editor-container`,
         },
       },
     },
-    [activeTab, selectedFont]
+    [selectedFont, proofreadingResults]
   )
 
   const { activeSpan, bubbleRef, applyChange, rejectChange } = useProofreadingUI(normalEditor)
 
-  // Update bubble menu position for proofreading
+  // Update bubble menu position
   useLayoutEffect(() => {
     if (activeSpan instanceof HTMLElement && bubbleRef.current) {
       const spanRect = activeSpan.getBoundingClientRect()
@@ -274,6 +305,32 @@ const TextEditor = ({
       return
     }
     action()
+  }
+
+  const handleAddLink = () => {
+    if (!normalEditor || normalEditor.state.selection.empty) {
+      message.error("Please select some text to link.")
+      return
+    }
+    safeEditorAction(() => {
+      setLinkUrl("")
+      setLinkModalOpen(true)
+    })
+  }
+
+  const handleConfirmLink = () => {
+    if (!linkUrl || !/^(https?:\/\/)/i.test(linkUrl)) {
+      message.error("Please enter a valid URL.")
+      return
+    }
+    normalEditor
+      .chain()
+      .focus()
+      .setLink({ href: linkUrl, target: "_blank", rel: "noopener noreferrer" })
+      .run()
+    setLinkModalOpen(false)
+    setLinkUrl("")
+    message.success("Link added successfully!")
   }
 
   const handleSave = async () => {
@@ -373,11 +430,10 @@ const TextEditor = ({
       selectedText = textarea.value.substring(from, to)
     }
     setOriginalContent(selectedText)
-    setSelectionRange({ from, to }) // Store selection positions
+    setSelectionRange({ from, to })
     const payload = {
       contentPart: selectedText.trim(),
     }
-    // Removed normalEditor.commands.setTextSelection(0) to preserve selection
     if (normalEditor) {
       normalEditor.commands.blur()
     }
@@ -405,7 +461,7 @@ const TextEditor = ({
       normalEditor
         .chain()
         .focus()
-        .deleteRange({ from: selectionRange.from, to: selectionRange.to }) // Use stored positions
+        .deleteRange({ from: selectionRange.from, to: selectionRange.to })
         .insertContentAt(selectionRange.from, parsedContent)
         .setTextSelection({
           from: selectionRange.from,
@@ -503,19 +559,19 @@ const TextEditor = ({
   const FontDropdown = () => (
     <Select
       value={selectedFont}
-      onChange={(e) => {
+      onChange={(value) => {
         if (userPlan === "free" || userPlan === "basic") {
           showUpgradePopup()
           return
         }
-        setSelectedFont(e.target.value)
+        setSelectedFont(value)
       }}
       className="w-28"
     >
       {FONT_OPTIONS.map((font) => (
-        <Option key={font.value} value={font.value}>
+        <Select.Option key={font.value} value={font.value}>
           {font.label}
-        </Option>
+        </Select.Option>
       ))}
     </Select>
   )
@@ -727,24 +783,19 @@ const TextEditor = ({
   )
 
   const renderContentArea = () => {
-    if (!editorReady) {
+    // Show loading state when editor is loading
+    if (isEditorLoading || !editorReady || blog?.status === "pending") {
       return (
-        <div className="h-[calc(100vh-200px)] p-4 flex items-center justify-center">
+        <div className="editor-loading">
           <Loading />
         </div>
       )
     }
-    if (blog?.status === "pending") {
-      return (
-        <div className="h-[calc(100vh-200px)] p-4 flex items-center justify-center">
-          <Loading />
-        </div>
-      )
-    }
+
     if (showPreview && (activeTab === "markdown" || activeTab === "html")) {
       return (
         <div
-          className={`h-[calc(100vh-200px)] p-6 border rounded-md overflow-y-auto bg-white ${selectedFont}`}
+          className={`h-[calc(100vh-300px)] p-6 border rounded-md overflow-y-auto bg-white ${selectedFont} editor-container`}
         >
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
@@ -897,7 +948,7 @@ const TextEditor = ({
     switch (activeTab) {
       case "normal":
         return (
-          <div className="h-[calc(100vh-300px)] overflow-y-auto bg-white border rounded-lg">
+          <div className="h-[calc(100vh-300px)] overflow-y-auto bg-white border rounded-lg editor-container">
             {normalEditor && (
               <BubbleMenu
                 editor={normalEditor}
@@ -940,6 +991,11 @@ const TextEditor = ({
                     <Heading2 className="w-5 h-5" />
                   </button>
                 </Tooltip>
+                <Tooltip title="Link" placement="top">
+                  <button onClick={handleAddLink}>
+                    <LinkIcon className="w-5 h-5" />
+                  </button>
+                </Tooltip>
                 <Tooltip title="Rewrite" placement="top">
                   <button onClick={handleRewrite}>
                     <RotateCcw className="w-4 h-4" />
@@ -956,7 +1012,6 @@ const TextEditor = ({
                   position: "absolute",
                   top: bubblePos.top,
                   left: bubblePos.left,
-                  zIndex: 50,
                 }}
               >
                 <div style={{ marginBottom: 4 }}>
@@ -968,18 +1023,34 @@ const TextEditor = ({
                 </button>
               </div>
             )}
+            <Modal
+              title="Add Link"
+              open={linkModalOpen}
+              onOk={handleConfirmLink}
+              onCancel={() => setLinkModalOpen(false)}
+              okText="Add"
+              cancelText="Cancel"
+              centered
+            >
+              <Input
+                value={linkUrl}
+                onChange={(e) => setLinkUrl(e.target.value)}
+                placeholder="Enter URL (e.g., https://example.com)"
+                onPressEnter={handleConfirmLink}
+              />
+            </Modal>
           </div>
         )
       case "markdown":
         return (
-          <div className="h-[calc(100vh-300px)] overflow-y-auto bg-white border rounded-lg relative">
+          <div className="h-[calc(100vh-300px)] overflow-y-auto bg-white border rounded-lg relative editor-container">
             <textarea
               ref={mdEditorRef}
               value={safeContent}
               onChange={(e) => setContent(e.target.value)}
               onMouseUp={handleTextSelection}
               onKeyUp={handleTextSelection}
-              className={`w-full h-full p-4 text-sm focus:outline-none resize-none bg-white ${selectedFont}`}
+              className={`w-full h-full p-4 text-sm focus:outline-none resize-none bg-white ${selectedFont} editor-container`}
               placeholder="Enter Markdown here..."
             />
             <FloatingToolbar editorRef={mdEditorRef} mode="markdown" />
@@ -987,7 +1058,7 @@ const TextEditor = ({
         )
       case "html":
         return (
-          <div className="h-[calc(100vh-300px)] overflow-y-auto bg-white border rounded-lg relative">
+          <div className="h-[calc(100vh-300px)] overflow-y-auto bg-white border rounded-lg relative editor-container">
             <textarea
               ref={htmlEditorRef}
               value={safeContent ? marked.parse(safeContent).replace(/>(\s*)</g, ">\n<") : ""}
@@ -999,7 +1070,7 @@ const TextEditor = ({
               }}
               onMouseUp={handleTextSelection}
               onKeyUp={handleTextSelection}
-              className="w-full h-full font-mono text-sm p-4 focus:outline-none resize-none bg-white text-black"
+              className="w-full h-full font-mono text-sm p-4 focus:outline-none resize-none bg-white text-black editor-container"
               placeholder="<h1>HTML Title</h1>\n<p>Paragraph with <a href='https://example.com'>link</a></p>\n<img src='image.jpg' alt='description' />"
               style={{ whiteSpace: "pre-wrap" }}
             />
@@ -1012,7 +1083,7 @@ const TextEditor = ({
   }
 
   return (
-    <div className="flex-grow p-4 relative -top-16">
+    <div className="flex-grow p-4 relative -top-16 min-w-full editor-container">
       {retryModalOpen && (
         <motion.div
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"

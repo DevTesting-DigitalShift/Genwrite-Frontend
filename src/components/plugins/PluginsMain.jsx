@@ -1,27 +1,68 @@
-import { useState } from "react"
-import DifferentPlugins from "./DifferentPlugins"
-import Modal from "react-modal"
-import { CiGlobe } from "react-icons/ci"
-import { ImGithub } from "react-icons/im"
-import { RiCloseLine } from "react-icons/ri"
-import { pluginsData } from "@constants/pluginsData"
-import { motion } from "framer-motion"
-import { Helmet } from "react-helmet"
+import { useState, useEffect, useMemo } from "react";
+import DifferentPlugins from "./DifferentPlugins";
+import Modal from "react-modal";
+import { CiGlobe } from "react-icons/ci";
+import { ImGithub } from "react-icons/im";
+import { RiCloseLine } from "react-icons/ri";
+import { pluginsData } from "@constants/pluginsData";
+import { motion } from "framer-motion";
+import { Helmet } from "react-helmet";
+import axiosInstance from "@api/index";
 
-Modal.setAppElement("#root")
+Modal.setAppElement("#root");
 
 const PluginsMain = () => {
-  const [selectedPlugin, setSelectedPlugin] = useState(null)
-  const [wordpressStatus, setWordpressStatus] = useState()
-  const plugins = pluginsData(setWordpressStatus)
+  const [selectedPlugin, setSelectedPlugin] = useState(null);
+  const [wordpressStatus, setWordpressStatus] = useState({});
+  // Memoize plugins to prevent new array creation on each render
+  const plugins = useMemo(() => pluginsData(setWordpressStatus), []);
+
+  // Check connection status for each plugin on mount, only if not already checked
+  useEffect(() => {
+    const checkAllPlugins = async () => {
+      for (const plugin of plugins) {
+        // Skip if status is already set
+        if (wordpressStatus[plugin.id]?.success) continue;
+
+        try {
+          const res = await axiosInstance.get("/wordpress/check");
+          setWordpressStatus((prev) => ({
+            ...prev,
+            [plugin.id]: {
+              status: res.data.status,
+              message: res.data.message,
+              success: res.data.success,
+            },
+          }));
+        } catch (err) {
+          console.error(`Error checking plugin ${plugin.pluginName}:`, err);
+          setWordpressStatus((prev) => ({
+            ...prev,
+            [plugin.id]: {
+              status: err.response?.status || "error",
+              message:
+                err.response?.status === 400
+                  ? "No wordpress link found. Add wordpress link into your profile."
+                  : err.response?.status === 502
+                  ? "Wordpress connection failed, check plugin is installed & active"
+                  : "Wordpress Connection Error",
+              success: false,
+            },
+          }));
+        }
+      }
+    };
+
+    checkAllPlugins();
+  }, [plugins, wordpressStatus]); // Include wordpressStatus to allow re-checking if status changes
 
   const handlePluginClick = (plugin) => {
-    setSelectedPlugin(plugin)
-  }
+    setSelectedPlugin(plugin);
+  };
 
   const closeModal = () => {
-    setSelectedPlugin(null)
-  }
+    setSelectedPlugin(null);
+  };
 
   return (
     <div className="p-5">
@@ -46,9 +87,9 @@ const PluginsMain = () => {
       </motion.p>
 
       <div className="flex flex-col space-y-4">
-        {plugins.map((item, index) => (
+        {plugins.map((item) => (
           <DifferentPlugins
-            key={index}
+            key={item.id}
             pluginImage={item.pluginImage}
             pluginName={item.pluginName}
             pluginTitle={item.pluginTitle}
@@ -57,7 +98,7 @@ const PluginsMain = () => {
             pluginLink={item.pluginLink}
             onClick={() => handlePluginClick(item)}
             onCheck={item.onCheck}
-            wordpressStatus={wordpressStatus}
+            wordpressStatus={wordpressStatus[item.id]}
           />
         ))}
       </div>
@@ -132,7 +173,7 @@ const PluginsMain = () => {
         </Modal>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default PluginsMain
+export default PluginsMain;

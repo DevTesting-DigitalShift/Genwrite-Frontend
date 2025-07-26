@@ -367,7 +367,7 @@ const BrandVoice = () => {
           <div>
             <label htmlFor="keywords" className="text-sm font-medium text-gray-700 flex gap-2 mb-1">
               Keywords <span className="text-red-500">*</span>
-              <Tooltip title="Enter keywords or upload a .csv file with format: S.No., Keyword">
+              <Tooltip title="Upload a .csv file in the format: `Keyword` as header">
                 <span className="cursor-pointer">
                   <Info size={16} className="text-blue-500" />
                 </span>

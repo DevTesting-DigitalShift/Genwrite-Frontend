@@ -1,41 +1,42 @@
-import React, { useEffect, useState } from "react"
-import { useNavigate } from "react-router-dom"
-import { Card, Tabs, Input, Button, Table, Tag, message } from "antd"
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Card, Tabs, Input, Button, Table, Tag, message } from "antd";
 import {
   SearchOutlined,
   ThunderboltOutlined,
   GlobalOutlined,
   CloseOutlined,
-} from "@ant-design/icons"
-import { motion } from "framer-motion"
-import CompetitiveAnalysisModal from "../multipleStepModal/CompetitiveAnalysisModal"
-import { useDispatch, useSelector } from "react-redux"
-import { analyzeKeywordsThunk, clearKeywordAnalysis } from "@store/slices/analysisSlice"
-import { Helmet } from "react-helmet"
-import { ImMagicWand } from "react-icons/im"
-import { Keyboard, WholeWord } from "lucide-react"
+  DownloadOutlined,
+} from "@ant-design/icons";
+import { motion } from "framer-motion";
+import CompetitiveAnalysisModal from "../multipleStepModal/CompetitiveAnalysisModal";
+import { useDispatch, useSelector } from "react-redux";
+import { analyzeKeywordsThunk, clearKeywordAnalysis } from "@store/slices/analysisSlice";
+import { Helmet } from "react-helmet";
+import { ImMagicWand } from "react-icons/im";
+import { Keyboard, WholeWord } from "lucide-react";
 
 export default function ToolboxPage() {
-  const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState("content")
-  const [keywords, setKeywords] = useState([])
-  const [newKeyword, setNewKeyword] = useState("")
-  const [competitiveAnalysisModalOpen, setCompetitiveAnalysisModalOpen] = useState(false)
-  const [pageSize, setPageSize] = useState(10) // State for page size
-  const [currentPage, setCurrentPage] = useState(1) // State for current page
-  const { blogs } = useSelector((state) => state.blog)
-
-  const dispatch = useDispatch()
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("content");
+  const [keywords, setKeywords] = useState([]);
+  const [newKeyword, setNewKeyword] = useState("");
+  const [competitiveAnalysisModalOpen, setCompetitiveAnalysisModalOpen] = useState(false);
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+  const { blogs } = useSelector((state) => state.blog);
+  const dispatch = useDispatch();
   const { keywordAnalysis: keywordAnalysisResult, loading: analyzing } = useSelector(
     (state) => state.analysis
-  )
+  );
 
   const addKeyword = () => {
-    const input = newKeyword.trim()
-    if (!input) return
+    const input = newKeyword.trim();
+    if (!input) return;
 
-    const existing = keywords.map((k) => k.toLowerCase())
-    const seen = new Set()
+    const existing = keywords.map((k) => k.toLowerCase());
+    const seen = new Set();
 
     const newKeywords = input
       .split(",")
@@ -46,29 +47,98 @@ export default function ToolboxPage() {
           !existing.includes(k.toLowerCase()) &&
           !seen.has(k.toLowerCase()) &&
           seen.add(k.toLowerCase())
-      )
+      );
 
     if (newKeywords.length > 0) {
-      setKeywords([...keywords, ...newKeywords])
-      setNewKeyword("") // clear input
+      setKeywords([...keywords, ...newKeywords]);
+      setNewKeyword("");
     }
-  }
+  };
 
   const removeKeyword = (index) => {
-    setKeywords(keywords.filter((_, i) => i !== index))
-  }
+    setKeywords(keywords.filter((_, i) => i !== index));
+  };
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter") {
-      e.preventDefault()
-      addKeyword()
+      e.preventDefault();
+      addKeyword();
     }
-  }
+  };
 
   const analyzeKeywords = async () => {
-    dispatch(analyzeKeywordsThunk(keywords))
-    setCurrentPage(1) // Reset to first page on new analysis
-  }
+    dispatch(analyzeKeywordsThunk(keywords));
+    setCurrentPage(1);
+    setSelectedRowKeys([]);
+  };
+
+  // Deselect a keyword from the selected keywords display
+  const deselectKeyword = (index) => {
+    setSelectedRowKeys(selectedRowKeys.filter((key) => key !== index));
+  };
+
+  // Clear all selected keywords
+  const clearSelectedKeywords = () => {
+    setSelectedRowKeys([]);
+  };
+
+  // Function to download selected keywords as CSV
+  const downloadAsCSV = () => {
+    if (!keywordAnalysisResult || !Array.isArray(keywordAnalysisResult) || keywordAnalysisResult.length === 0) {
+      message.error("No keyword analysis results available to download.");
+      return;
+    }
+
+    if (selectedRowKeys.length === 0) {
+      message.error("Please select at least one keyword to download.");
+      return;
+    }
+
+    // Debug: Log selected indices and keywords
+    console.log("Selected Row Keys:", selectedRowKeys);
+    console.log("Keyword Analysis Result Length:", keywordAnalysisResult.length);
+
+    // Filter selected keywords based on selectedRowKeys
+    const selectedKeywords = keywordAnalysisResult.filter((_, idx) =>
+      selectedRowKeys.includes(idx)
+    );
+
+    console.log("Selected Keywords for Export:", selectedKeywords);
+
+    if (selectedKeywords.length === 0) {
+      message.error("No valid keywords selected for export.");
+      return;
+    }
+
+    // Create CSV content with all columns
+    // const headers = ["keyword", "monthly_searches", "competition", "avg_cpc", "low_bid", "high_bid"];
+     const headers = ["keyword"];
+    const csvContent = [
+      headers.join(","),
+      ...selectedKeywords.map((kw) =>
+        [
+          `${kw.keyword.replace(/"/g, '""')}`,
+          // kw.avgMonthlySearches,
+          // kw.compression,
+          // kw.avgCpc ? kw.avgCpc.toFixed(2) : "N/A",
+          // kw.lowBid ? kw.lowBid.toFixed(2) : "N/A",
+          // kw.highBid ? kw.highBid.toFixed(2) : "N/A",
+        ].join(",")
+      ),
+    ].join("\n");
+
+    // Create a Blob and trigger download
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "selected_keywords.csv");
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   // Table columns for keyword analysis results
   const columns = [
@@ -128,7 +198,19 @@ export default function ToolboxPage() {
       sorter: (a, b) => a.highBid - b.highBid,
       render: (value) => (value ? value.toFixed(2) : "N/A"),
     },
-  ]
+  ];
+
+  // Table row selection configuration
+  const rowSelection = {
+    selectedRowKeys,
+    onChange: (newSelectedRowKeys) => {
+      console.log("Selected Row Keys on Change:", newSelectedRowKeys);
+      setSelectedRowKeys(newSelectedRowKeys);
+    },
+    getCheckboxProps: (record) => ({
+      name: record.keyword,
+    }),
+  };
 
   // Prepare table data from keywordAnalysisResult
   const tableData =
@@ -141,18 +223,25 @@ export default function ToolboxPage() {
       avgCpc: kw.avgCpc,
       lowBid: kw.lowBid,
       highBid: kw.highBid,
-    })) || []
+    })) || [];
+
+  // Get selected keywords for display
+  const selectedKeywordsDisplay = keywordAnalysisResult
+    ? selectedRowKeys.map((idx) => keywordAnalysisResult[idx]?.keyword).filter(Boolean)
+    : [];
 
   // Handle pagination size change
   const handlePageSizeChange = (current, size) => {
-    setPageSize(size)
-    setCurrentPage(1) // Reset to first page when page size changes
-  }
+    setPageSize(size);
+    setCurrentPage(1);
+    // Removed setSelectedRowKeys([]) to preserve selections
+  };
 
   // Handle page change
   const handlePageChange = (page) => {
-    setCurrentPage(page)
-  }
+    setCurrentPage(page);
+    // Removed setSelectedRowKeys([]) to preserve selections
+  };
 
   const cardItems = [
     {
@@ -166,7 +255,7 @@ export default function ToolboxPage() {
     },
     {
       key: "humanize-content",
-      title: "Content Processor",
+      title: "Humanize Content",
       icon: <ImMagicWand className="text-blue-500" />,
       description:
         "Transform AI-generated text into natural, human-sounding content while preserving intent and clarity.",
@@ -183,13 +272,13 @@ export default function ToolboxPage() {
       actionText: "Start Analysis",
       color: "from-rose-500 to-pink-600",
     },
-  ]
+  ];
 
   useEffect(() => {
     return () => {
-      dispatch(clearKeywordAnalysis())
-    }
-  }, [])
+      dispatch(clearKeywordAnalysis());
+    };
+  }, [dispatch]);
 
   return (
     <>
@@ -207,7 +296,7 @@ export default function ToolboxPage() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, duration: 0.4 }}
-          className="flex flex-col md:flex-row появ justify-between items-start md:items-center gap-4 mb-8"
+          className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8"
         >
           <div>
             <motion.h1
@@ -349,22 +438,80 @@ export default function ToolboxPage() {
                           </motion.div>
                         ))}
                       </div>
-                      <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                        <Button
-                          block
-                          type="primary"
-                          onClick={analyzeKeywords}
-                          loading={analyzing}
-                          disabled={keywords.length === 0}
-                        >
-                          Analyze Keywords
-                        </Button>
-                      </motion.div>
+                      <div className="flex gap-2 mb-6">
+                        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                          <Button
+                            block
+                            type="primary"
+                            onClick={analyzeKeywords}
+                            loading={analyzing}
+                            disabled={keywords.length === 0}
+                          >
+                            Analyze Keywords
+                          </Button>
+                        </motion.div>
+                        {keywordAnalysisResult &&
+                          Array.isArray(keywordAnalysisResult) &&
+                          keywordAnalysisResult.length > 0 && (
+                            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                              <Button
+                                type="default"
+                                icon={<DownloadOutlined />}
+                                onClick={downloadAsCSV}
+                                disabled={selectedRowKeys.length === 0}
+                                className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                                aria-label="Download selected keywords as CSV"
+                              >
+                                Download as CSV
+                              </Button>
+                            </motion.div>
+                          )}
+                      </div>
                       {keywordAnalysisResult &&
                         Array.isArray(keywordAnalysisResult) &&
                         keywordAnalysisResult.length > 0 && (
                           <div className="mt-6">
+                            {/* Display Selected Keywords */}
+                            {selectedKeywordsDisplay.length > 0 && (
+                              <div className="mb-4">
+                                <div className="flex justify-between items-center mb-2">
+                                  <p className="text-gray-700 font-medium">
+                                    Selected Keywords ({selectedKeywordsDisplay.length}):
+                                  </p>
+                                  <Button
+                                    type="link"
+                                    onClick={clearSelectedKeywords}
+                                    className="text-red-600"
+                                    disabled={selectedKeywordsDisplay.length === 0}
+                                  >
+                                    Clear All
+                                  </Button>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                  {selectedKeywordsDisplay.map((keyword, index) => (
+                                    <motion.div
+                                      key={selectedRowKeys[index]}
+                                      initial={{ opacity: 0, scale: 0.8 }}
+                                      animate={{ opacity: 1, scale: 1 }}
+                                      exit={{ opacity: 0, scale: 0.8 }}
+                                      className="bg-green-100 text-green-800 px-3 py-1 rounded-full flex items-center"
+                                    >
+                                      <span>{keyword}</span>
+                                      <motion.div
+                                        whileHover={{ scale: 1.2 }}
+                                        whileTap={{ scale: 0.8 }}
+                                        className="ml-2 cursor-pointer"
+                                        onClick={() => deselectKeyword(selectedRowKeys[index])}
+                                      >
+                                        <CloseOutlined className="text-green-800 text-xs" />
+                                      </motion.div>
+                                    </motion.div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                             <Table
+                              rowSelection={rowSelection}
                               columns={columns}
                               dataSource={tableData}
                               pagination={{
@@ -422,7 +569,7 @@ export default function ToolboxPage() {
         )}
       </motion.div>
     </>
-  )
+  );
 }
 
 function AnimatedCard({ item }) {
@@ -464,5 +611,5 @@ function AnimatedCard({ item }) {
         )}
       </Card>
     </motion.div>
-  )
+  );
 }
