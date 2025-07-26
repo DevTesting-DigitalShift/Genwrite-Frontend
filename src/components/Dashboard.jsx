@@ -26,6 +26,7 @@ import {
   UploadCloud,
   Archive,
   BadgePercent,
+  ThumbsUp, // Added for feedback button
 } from "lucide-react"
 import { Helmet } from "react-helmet"
 import SeoAnalysisModal from "./multipleStepModal/SeoAnalysisModal"
@@ -275,7 +276,7 @@ const Dashboard = () => {
         </p>
       </motion.div>
 
-      <div className="min-h-screen bg-gray-50 p-6">
+      <div className="min-h-screen bg-gray-50 p-6 relative">
         {loading ? (
           <div className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -407,6 +408,28 @@ const Dashboard = () => {
             )}
           </div>
         )}
+
+        {/* Feedback Button */}
+        <a
+          href="https://docs.google.com/forms/d/e/1FAIpQLScIdA2aVtugx-zMGON8LJKD4IRWtLZqiiurw-jU6wRYfOv7EA/viewform?usp=sharing&ouid=117159793210831255816
+"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="fixed right-0 bottom-28 z-50"
+        >
+          <button
+            className="fixed right-[-30px] bottom-28 bg-blue-600 text-white px-4 py-2 rounded-lg rotate-90 flex items-center gap-2 hover:bg-blue-700 transition-all duration-300 shadow-md z-50"
+            style={{
+              // transformOrigin: "bottom right",
+              backfaceVisibility: "hidden", // Helps with blurry text sometimes
+              WebkitFontSmoothing: "antialiased", // Fix for Safari
+              MozOsxFontSmoothing: "grayscale", // Fix for Firefox
+            }}
+            aria-label="Provide feedback"
+          >
+            Feedback
+          </button>
+        </a>
       </div>
     </>
   )

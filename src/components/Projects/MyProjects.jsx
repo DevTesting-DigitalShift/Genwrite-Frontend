@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from "react"
-import { Link, useNavigate } from "react-router-dom"
-import SkeletonLoader from "./SkeletonLoader"
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import SkeletonLoader from "./SkeletonLoader";
 import {
   Badge,
   Button,
@@ -11,7 +11,7 @@ import {
   Pagination,
   DatePicker,
   message,
-} from "antd"
+} from "antd";
 import {
   ArrowDownUp,
   Calendar,
@@ -22,9 +22,9 @@ import {
   Search,
   Trash2,
   X,
-} from "lucide-react"
-import { motion } from "framer-motion"
-import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+} from "lucide-react";
+import { motion } from "framer-motion";
+import { useConfirmPopup } from "@/context/ConfirmPopupContext";
 import {
   CheckCircleOutlined,
   SortAscendingOutlined,
@@ -33,116 +33,101 @@ import {
   SortDescendingOutlined,
   FieldTimeOutlined,
   ClockCircleOutlined,
-} from "@ant-design/icons"
-import { Helmet } from "react-helmet"
-import { useDispatch } from "react-redux"
-import { archiveBlog, fetchAllBlogs, retryBlog } from "@store/slices/blogSlice"
-import moment from "moment"
+} from "@ant-design/icons";
+import { Helmet } from "react-helmet";
+import { useDispatch } from "react-redux";
+import { archiveBlog, fetchAllBlogs, retryBlog } from "@store/slices/blogSlice";
+import moment from "moment";
+import Fuse from "fuse.js";
 
-const { RangePicker } = DatePicker
+const { RangePicker } = DatePicker;
 
 const MyProjects = () => {
-  const [filteredBlogs, setFilteredBlogs] = useState([])
-  const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(15)
-  const [loading, setLoading] = useState(false)
-  const [sortType, setSortType] = useState("updatedAt")
-  const [sortOrder, setSortOrder] = useState("desc")
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [dateRange, setDateRange] = useState([null, null])
-  const [presetDateRange, setPresetDateRange] = useState([null, null])
-  const [searchTerm, setSearchTerm] = useState("")
-  const [debouncedSearch, setDebouncedSearch] = useState("")
-  const [isMenuOpen, setMenuOpen] = useState(false)
-  const [isFunnelMenuOpen, setFunnelMenuOpen] = useState(false)
-  const [isCustomDatePickerOpen, setIsCustomDatePickerOpen] = useState(false)
-  const [activePresetLabel, setActivePresetLabel] = useState("")
-  const navigate = useNavigate()
-  const { handlePopup } = useConfirmPopup()
-  const dispatch = useDispatch()
-  const TRUNCATE_LENGTH = 120
-  const [totalBlogs, setTotalBlogs] = useState(0)
+  const [filteredBlogs, setFilteredBlogs] = useState([]);
+  const [allBlogs, setAllBlogs] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(15);
+  const [loading, setLoading] = useState(false);
+  const [sortType, setSortType] = useState("updatedAt");
+  const [sortOrder, setSortOrder] = useState("desc");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [dateRange, setDateRange] = useState([null, null]);
+  const [presetDateRange, setPresetDateRange] = useState([null, null]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isMenuOpen, setMenuOpen] = useState(false);
+  const [isFunnelMenuOpen, setFunnelMenuOpen] = useState(false);
+  const [isCustomDatePickerOpen, setIsCustomDatePickerOpen] = useState(false);
+  const [activePresetLabel, setActivePresetLabel] = useState("");
+  const navigate = useNavigate();
+  const { handlePopup } = useConfirmPopup();
+  const dispatch = useDispatch();
+  const TRUNCATE_LENGTH = 120;
+  const [totalBlogs, setTotalBlogs] = useState(0);
 
   // Scroll to top on page change
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" })
-  }, [currentPage])
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [currentPage]);
 
   // Reset filters
   const resetFilters = () => {
-    setSortType("updatedAt")
-    setSortOrder("desc")
-    setStatusFilter("all")
-    setDateRange([null, null])
-    setPresetDateRange([null, null])
-    setActivePresetLabel("")
-    setSearchTerm("")
-    setDebouncedSearch("")
-    setCurrentPage(1)
-  }
+    setSortType("updatedAt");
+    setSortOrder("desc");
+    setStatusFilter("all");
+    setDateRange([null, null]);
+    setPresetDateRange([null, null]);
+    setActivePresetLabel("");
+    setSearchTerm("");
+    setCurrentPage(1);
+  };
 
   const clearSearch = () => {
-    setSearchTerm("")
-    setDebouncedSearch("")
-    setCurrentPage(1)
-  }
+    setSearchTerm("");
+    setCurrentPage(1);
+  };
 
   // Check if filters are active
-  const isDefaultSort = sortType === "updatedAt" && sortOrder === "desc"
+  const isDefaultSort = sortType === "updatedAt" && sortOrder === "desc";
+  const hasActiveFilters =
+    searchTerm || !isDefaultSort || statusFilter !== "all" || dateRange[0] || presetDateRange[0];
 
   // Get current sort label
   const getCurrentSortLabel = () => {
-    if (sortType === "title" && sortOrder === "asc") return "A-Z"
-    if (sortType === "title" && sortOrder === "desc") return "Z-A"
-    if (sortType === "updatedAt" && sortOrder === "desc") return "Recently Updated"
-    if (sortType === "updatedAt" && sortOrder === "asc") return "Oldest Updated"
-    return "Recently Updated"
-  }
+    if (sortType === "title" && sortOrder === "asc") return "A-Z";
+    if (sortType === "title" && sortOrder === "desc") return "Z-A";
+    if (sortType === "updatedAt" && sortOrder === "desc") return "Recently Updated";
+    if (sortType === "updatedAt" && sortOrder === "asc") return "Oldest Updated";
+    return "Recently Updated";
+  };
 
   // Get current status label
   const getCurrentStatusLabel = () => {
     switch (statusFilter) {
       case "complete":
-        return "Completed"
+        return "Completed";
       case "pending":
-        return "Pending"
+        return "Pending";
       case "failed":
-        return "Failed"
+        return "Failed";
       default:
-        return "All"
+        return "All";
     }
-  }
+  };
 
   // Get current date label
   const getCurrentDateLabel = () => {
-    if (activePresetLabel) return activePresetLabel
+    if (activePresetLabel) return activePresetLabel;
     if (dateRange[0] && dateRange[1]) {
-      return `${moment(dateRange[0]).format("MMM DD")} - ${moment(dateRange[1]).format("MMM DD")}`
+      return `${moment(dateRange[0]).format("MMM DD")} - ${moment(dateRange[1]).format("MMM DD")}`;
     }
-    return "All Dates"
-  }
+    return "All Dates";
+  };
 
-  // Handle search trigger
-  const handleSearch = () => {
-    setDebouncedSearch(searchTerm)
-    setCurrentPage(1)
-  }
-
-  // Handle key press for search
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter") {
-      handleSearch()
-    }
-  }
-
-  // Fetch blogs with filters
+  // Fetch blogs when date range changes
   const fetchBlogs = useCallback(async () => {
-    setLoading(true)
+    setLoading(true);
     try {
       const queryParams = {
-        sort: sortType && sortOrder ? `${sortType}:${sortOrder}` : undefined,
-        status: statusFilter !== "all" ? statusFilter : undefined,
-        q: debouncedSearch || undefined,
         start: dateRange[0]
           ? moment(dateRange[0]).toISOString()
           : presetDateRange[0]
@@ -153,94 +138,162 @@ const MyProjects = () => {
           : presetDateRange[1]
           ? moment(presetDateRange[1]).toISOString()
           : undefined,
-        page: currentPage,
-        limit: itemsPerPage,
         isArchived: "",
-      }
-      const response = await dispatch(fetchAllBlogs(queryParams)).unwrap()
-      setFilteredBlogs(response.data || [])
-      setTotalBlogs(response.totalItems || 0)
+      };
+      const response = await dispatch(fetchAllBlogs(queryParams)).unwrap();
+      setAllBlogs(response.data || []);
+      setTotalBlogs(response.totalItems || 0);
     } catch (error) {
       console.error("Failed to fetch blogs:", {
         error: error.message,
         status: error.status,
         response: error.response,
-      })
-      message.error("Failed to load blogs. Please try again.")
+      });
+      message.error("Failed to load blogs. Please try again.");
+      setAllBlogs([]);
+      setTotalBlogs(0);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
+  }, [dispatch, dateRange, presetDateRange]);
+
+  // Fuse.js setup
+  const fuse = useMemo(() => {
+    return new Fuse(allBlogs, {
+      keys: [
+        { name: "title", weight: 0.5 },
+        { name: "content", weight: 0.3 },
+        { name: "focusKeywords", weight: 0.2 },
+      ],
+      threshold: 0.3,
+      includeScore: true,
+      shouldSort: true,
+    });
+  }, [allBlogs]);
+
+  // Client-side filtered and searched data
+  const filteredBlogsData = useMemo(() => {
+    let result = allBlogs;
+
+    // Apply fuzzy search with Fuse.js
+    if (searchTerm.trim()) {
+      result = fuse.search(searchTerm).map(({ item }) => item);
+    }
+
+    // Apply status filter
+    if (statusFilter !== "all") {
+      result = result.filter((blog) => blog.status === statusFilter);
+    }
+
+    // Apply date range filter
+    if (dateRange[0] && dateRange[1]) {
+      result = result.filter((blog) =>
+        moment(blog.updatedAt).isBetween(dateRange[0], dateRange[1], "day", "[]")
+      );
+    } else if (presetDateRange[0] && presetDateRange[1]) {
+      result = result.filter((blog) =>
+        moment(blog.updatedAt).isBetween(presetDateRange[0], presetDateRange[1], "day", "[]")
+      );
+    }
+
+    // Apply sorting
+    const sortedResult = [...result];
+    if (sortType === "title") {
+      sortedResult.sort((a, b) =>
+        sortOrder === "asc" ? a.title.localeCompare(b.title) : b.title.localeCompare(a.title)
+      );
+    } else if (sortType === "updatedAt") {
+      sortedResult.sort((a, b) =>
+        sortOrder === "asc"
+          ? new Date(a.updatedAt) - new Date(b.updatedAt)
+          : new Date(b.updatedAt) - new Date(a.updatedAt)
+      );
+    }
+
+    // Update total blogs for pagination
+    setTotalBlogs(sortedResult.length);
+
+    // Apply pagination
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return sortedResult.slice(startIndex, endIndex); // Fixed: Return sortedResult
   }, [
-    dispatch,
-    sortType,
-    sortOrder,
+    allBlogs,
+    searchTerm,
     statusFilter,
-    debouncedSearch,
     dateRange,
     presetDateRange,
+    sortType,
+    sortOrder,
     currentPage,
     itemsPerPage,
-  ])
+    fuse,
+  ]);
 
-  // Fetch blogs when filters or page change
+  // Update filteredBlogs when filteredBlogsData changes
   useEffect(() => {
-    fetchBlogs()
-  }, [fetchBlogs])
+    setFilteredBlogs(filteredBlogsData);
+  }, [filteredBlogsData]);
+
+  // Fetch blogs when date range changes
+  useEffect(() => {
+    fetchBlogs();
+  }, [fetchBlogs]);
 
   // Responsive items per page
   useEffect(() => {
     const updateItemsPerPage = () => {
       if (window.innerWidth >= 1024) {
-        setItemsPerPage(15)
+        setItemsPerPage(15);
       } else if (window.innerWidth >= 768) {
-        setItemsPerPage(12)
+        setItemsPerPage(12);
       } else {
-        setItemsPerPage(6)
+        setItemsPerPage(6);
       }
-      setCurrentPage(1)
-    }
+      setCurrentPage(1);
+    };
 
-    updateItemsPerPage()
-    window.addEventListener("resize", updateItemsPerPage)
-    return () => window.removeEventListener("resize", updateItemsPerPage)
-  }, [])
+    updateItemsPerPage();
+    window.addEventListener("resize", updateItemsPerPage);
+    return () => window.removeEventListener("resize", updateItemsPerPage);
+  }, []);
 
   // Handle blog click
   const handleBlogClick = (blog) => {
-    navigate(`/toolbox/${blog._id}`)
-  }
+    navigate(`/toolbox/${blog._id}`);
+  };
 
   const handleManualBlogClick = (blog) => {
-    navigate(`/blog-editor/${blog._id}`)
-  }
+    navigate(`/blog-editor/${blog._id}`);
+  };
 
   // Handle retry
   const handleRetry = async (id) => {
     try {
-      await dispatch(retryBlog({ id })).unwrap()
-      await fetchBlogs()
+      await dispatch(retryBlog({ id })).unwrap();
+      await fetchBlogs();
     } catch (error) {
-      console.error("Failed to retry blog:", error)
-      message.error("Failed to retry blog. Please try again.")
+      console.error("Failed to retry blog:", error);
+      message.error("Failed to retry blog.");
     }
-  }
+  };
 
   // Handle archive
   const handleArchive = async (id) => {
     try {
-      await dispatch(archiveBlog(id)).unwrap()
-      await fetchBlogs()
+      await dispatch(archiveBlog(id)).unwrap();
+      await fetchBlogs();
     } catch (error) {
-      console.error("Failed to archive blog:", error)
-      message.error("Failed to archive blog. Please try again.")
+      console.error("Failed to archive blog:", error);
+      message.error("Failed to archive blog.");
     }
-  }
+  };
 
   // Truncate content
   const truncateContent = (content, length = TRUNCATE_LENGTH) => {
-    if (!content) return ""
-    return content.length > length ? content.substring(0, length) + "..." : content
-  }
+    if (!content) return "";
+    return content.length > length ? content.substring(0, length) + "..." : content;
+  };
 
   // Strip markdown
   const stripMarkdown = (text) => {
@@ -248,8 +301,8 @@ const MyProjects = () => {
       ?.replace(/<[^>]*>/g, "")
       ?.replace(/[\\*#=_~`>\-]+/g, "")
       ?.replace(/\s{2,}/g, " ")
-      ?.trim()
-  }
+      ?.trim();
+  };
 
   // Menu options for sorting
   const menuOptions = [
@@ -257,43 +310,43 @@ const MyProjects = () => {
       label: "A-Z (Ascending)",
       icon: <SortAscendingOutlined />,
       onClick: () => {
-        setSortType("title")
-        setSortOrder("asc")
-        setMenuOpen(false)
-        setCurrentPage(1)
+        setSortType("title");
+        setSortOrder("asc");
+        setMenuOpen(false);
+        setCurrentPage(1);
       },
     },
     {
       label: "Z-A (Descending)",
       icon: <SortDescendingOutlined />,
       onClick: () => {
-        setSortType("title")
-        setSortOrder("desc")
-        setMenuOpen(false)
-        setCurrentPage(1)
+        setSortType("title");
+        setSortOrder("desc");
+        setMenuOpen(false);
+        setCurrentPage(1);
       },
     },
     {
       label: "Recently Updated",
       icon: <FieldTimeOutlined />,
       onClick: () => {
-        setSortType("updatedAt")
-        setSortOrder("desc")
-        setMenuOpen(false)
-        setCurrentPage(1)
+        setSortType("updatedAt");
+        setSortOrder("desc");
+        setMenuOpen(false);
+        setCurrentPage(1);
       },
     },
     {
       label: "Oldest Updated",
       icon: <ClockCircleOutlined />,
       onClick: () => {
-        setSortType("updatedAt")
-        setSortOrder("asc")
-        setMenuOpen(false)
-        setCurrentPage(1)
+        setSortType("updatedAt");
+        setSortOrder("asc");
+        setMenuOpen(false);
+        setCurrentPage(1);
       },
     },
-  ]
+  ];
 
   // Filter options
   const funnelMenuOptions = [
@@ -301,39 +354,39 @@ const MyProjects = () => {
       label: "All Statuses",
       icon: <CheckCircleOutlined />,
       onClick: () => {
-        setStatusFilter("all")
-        setFunnelMenuOpen(false)
-        setCurrentPage(1)
+        setStatusFilter("all");
+        setFunnelMenuOpen(false);
+        setCurrentPage(1);
       },
     },
     {
       label: "Status: Completed",
       icon: <CheckCircleOutlined />,
       onClick: () => {
-        setStatusFilter("complete")
-        setFunnelMenuOpen(false)
-        setCurrentPage(1)
+        setStatusFilter("complete");
+        setFunnelMenuOpen(false);
+        setCurrentPage(1);
       },
     },
     {
       label: "Status: Pending",
       icon: <HourglassOutlined />,
       onClick: () => {
-        setStatusFilter("pending")
-        setFunnelMenuOpen(false)
-        setCurrentPage(1)
+        setStatusFilter("pending");
+        setFunnelMenuOpen(false);
+        setCurrentPage(1);
       },
     },
     {
       label: "Status: Failed",
       icon: <CloseCircleOutlined />,
       onClick: () => {
-        setStatusFilter("failed")
-        setFunnelMenuOpen(false)
-        setCurrentPage(1)
+        setStatusFilter("failed");
+        setFunnelMenuOpen(false);
+        setCurrentPage(1);
       },
     },
-  ]
+  ];
 
   // Date range presets
   const datePresets = [
@@ -341,58 +394,58 @@ const MyProjects = () => {
       label: "Last 7 Days",
       value: [moment().subtract(7, "days"), moment()],
       onClick: () => {
-        setPresetDateRange([moment().subtract(7, "days"), moment()])
-        setDateRange([null, null])
-        setActivePresetLabel("Last 7 Days")
-        setCurrentPage(1)
-        setIsCustomDatePickerOpen(false)
+        setPresetDateRange([moment().subtract(7, "days"), moment()]);
+        setDateRange([null, null]);
+        setActivePresetLabel("Last 7 Days");
+        setCurrentPage(1);
+        setIsCustomDatePickerOpen(false);
       },
     },
     {
       label: "Last 30 Days",
       value: [moment().subtract(30, "days"), moment()],
       onClick: () => {
-        setPresetDateRange([moment().subtract(30, "days"), moment()])
-        setDateRange([null, null])
-        setActivePresetLabel("Last 30 Days")
-        setCurrentPage(1)
-        setIsCustomDatePickerOpen(false)
+        setPresetDateRange([moment().subtract(30, "days"), moment()]);
+        setDateRange([null, null]);
+        setActivePresetLabel("Last 30 Days");
+        setCurrentPage(1);
+        setIsCustomDatePickerOpen(false);
       },
     },
     {
       label: "Last 3 Months",
       value: [moment().subtract(3, "months"), moment()],
       onClick: () => {
-        setPresetDateRange([moment().subtract(3, "months"), moment()])
-        setDateRange([null, null])
-        setActivePresetLabel("Last 3 Months")
-        setCurrentPage(1)
-        setIsCustomDatePickerOpen(false)
+        setPresetDateRange([moment().subtract(3, "months"), moment()]);
+        setDateRange([null, null]);
+        setActivePresetLabel("Last 3 Months");
+        setCurrentPage(1);
+        setIsCustomDatePickerOpen(false);
       },
     },
     {
       label: "Last 6 Months",
       value: [moment().subtract(6, "months"), moment()],
       onClick: () => {
-        setPresetDateRange([moment().subtract(6, "months"), moment()])
-        setDateRange([null, null])
-        setActivePresetLabel("Last 6 Months")
-        setCurrentPage(1)
-        setIsCustomDatePickerOpen(false)
+        setPresetDateRange([moment().subtract(6, "months"), moment()]);
+        setDateRange([null, null]);
+        setActivePresetLabel("Last 6 Months");
+        setCurrentPage(1);
+        setIsCustomDatePickerOpen(false);
       },
     },
     {
       label: "This Year",
       value: [moment().startOf("year"), moment()],
       onClick: () => {
-        setPresetDateRange([moment().startOf("year"), moment()])
-        setDateRange([null, null])
-        setActivePresetLabel("This Year")
-        setCurrentPage(1)
-        setIsCustomDatePickerOpen(false)
+        setPresetDateRange([moment().startOf("year"), moment()]);
+        setDateRange([null, null]);
+        setActivePresetLabel("This Year");
+        setCurrentPage(1);
+        setIsCustomDatePickerOpen(false);
       },
     },
-  ]
+  ];
 
   return (
     <div className="p-5">
@@ -436,11 +489,11 @@ const MyProjects = () => {
           <Input
             placeholder="Search blogs..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            onKeyPress={handleKeyPress}
-            prefix={
-              <Search className="w-4 h-4 text-gray-500 cursor-pointer" onClick={handleSearch} />
-            }
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
+            }}
+            prefix={<Search className="w-4 h-4 text-gray-500" />}
             suffix={
               searchTerm ? (
                 <X className="w-4 h-4 text-gray-500 cursor-pointer" onClick={clearSearch} />
@@ -449,11 +502,6 @@ const MyProjects = () => {
             className="rounded-lg border-gray-300 shadow-sm"
             aria-label="Search blogs"
           />
-          {debouncedSearch && (
-            <span className="text-sm font-medium text-gray-700">
-              Searching: "{debouncedSearch}"
-            </span>
-          )}
         </div>
         <div className="flex gap-2 items-center">
           <Popover
@@ -586,13 +634,7 @@ const MyProjects = () => {
               icon={<RotateCcw className="w-4 h-4" />}
               onClick={resetFilters}
               className={`p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100 ${
-                debouncedSearch ||
-                !isDefaultSort ||
-                statusFilter !== "all" ||
-                dateRange[0] ||
-                presetDateRange[0]
-                  ? "border-red-400 bg-red-50 text-red-600"
-                  : ""
+                hasActiveFilters ? "border-red-400 bg-red-50 text-red-600" : ""
               }`}
               aria-label="Reset filters"
             >
@@ -604,10 +646,10 @@ const MyProjects = () => {
           <RangePicker
             value={dateRange}
             onChange={(dates) => {
-              setDateRange(dates)
-              setPresetDateRange([null, null])
-              setActivePresetLabel("")
-              setCurrentPage(1)
+              setDateRange(dates);
+              setPresetDateRange([null, null]);
+              setActivePresetLabel("");
+              setCurrentPage(1);
             }}
             className={`w-full rounded-lg border-gray-300 shadow-sm ${
               dateRange[0] || presetDateRange[0] ? "border-purple-400 shadow-purple-100" : ""
@@ -640,7 +682,7 @@ const MyProjects = () => {
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 place-items-center p-2">
             {filteredBlogs.map((blog) => {
-              const isManualEditor = blog.isManuallyEdited === true
+              const isManualEditor = blog.isManuallyEdited === true;
               const {
                 _id,
                 title,
@@ -652,8 +694,8 @@ const MyProjects = () => {
                 updatedAt,
                 wordpress,
                 agendaJob,
-              } = blog
-              const isGemini = /gemini/gi.test(aiModel)
+              } = blog;
+              const isGemini = /gemini/gi.test(aiModel);
               return (
                 <Badge.Ribbon
                   key={_id}
@@ -754,7 +796,7 @@ const MyProjects = () => {
                           className="cursor-pointer"
                           onClick={() => {
                             if (status === "complete" || status === "failed") {
-                              handleBlogClick(blog)
+                              handleBlogClick(blog);
                             }
                           }}
                           role="button"
@@ -823,7 +865,7 @@ const MyProjects = () => {
                             ),
                             confirmText: "Delete",
                             onConfirm: () => {
-                              handleArchive(_id)
+                              handleArchive(_id);
                             },
                             confirmProps: {
                               type: "text",
@@ -858,20 +900,20 @@ const MyProjects = () => {
                     </div>
                   </div>
                 </Badge.Ribbon>
-              )
+              );
             })}
           </div>
-          {totalBlogs > 15 && (
+          {totalBlogs > itemsPerPage && (
             <div className="flex justify-center mt-8">
               <Pagination
                 current={currentPage}
                 total={totalBlogs}
                 pageSize={itemsPerPage}
                 onChange={(page, pageSize) => {
-                  setCurrentPage(page)
+                  setCurrentPage(page);
                   if (pageSize !== itemsPerPage) {
-                    setItemsPerPage(pageSize)
-                    setCurrentPage(1)
+                    setItemsPerPage(pageSize);
+                    setCurrentPage(1);
                   }
                 }}
                 showTotal={(total) => `Total ${total} blogs`}
@@ -885,7 +927,7 @@ const MyProjects = () => {
         </>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default MyProjects
+export default MyProjects;

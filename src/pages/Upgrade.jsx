@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import axiosInstance from "@api/index"
 import { loadStripe } from "@stripe/stripe-js"
-import { Check, Coins, Crown, Mail, Shield, Star, Zap, X } from "lucide-react"
+import { Check, Coins, Crown, Mail, Shield, Star, X, Zap } from "lucide-react"
 import { Helmet } from "react-helmet"
 import { SkeletonCard } from "@components/Projects/SkeletonLoader"
 import { message } from "antd"
@@ -152,7 +152,8 @@ const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
               </div>
               <span
                 className={`text-sm ${
-                  feature === "Everything in Basic, additionally:"
+                  feature === "Everything in Basic, additionally:" ||
+                  feature === "Everything in Pro, additionally:"
                     ? "text-blue-600 font-bold"
                     : "text-gray-700 font-medium"
                 }`}
@@ -195,124 +196,221 @@ const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
 }
 
 const ComparisonTable = ({ plans, billingPeriod }) => {
-  // Collect all features across plans
-  const rawFeatures = plans.flatMap((plan) => plan.features)
-  const featureCounts = rawFeatures.reduce((acc, feature) => {
-    acc[feature] = (acc[feature] || 0) + 1
-    return acc
-  }, {})
+  // Define feature categories and features inspired by Canva and tailored for GenWrite
+  const featureCategories = [
+    {
+      name: "General Features",
+      features: [
+        {
+          name: "Blog generation (single, quick, multiple)",
+          available: ["basic", "pro", "enterprise", "credits"],
+        },
+        { name: "Keyword research", available: ["basic", "pro", "enterprise", "credits"] },
+        { name: "Performance monitoring", available: ["basic", "pro", "enterprise", "credits"] },
+        {
+          name: "Automatic WordPress posting",
+          available: ["basic", "pro", "enterprise", "credits"],
+        },
+        { name: "Custom templates", available: ["pro", "enterprise"] },
+        { name: "Advanced export options (PDF, CSV, JSON)", available: ["pro", "enterprise"] },
+        { name: "Custom dimensions for designs", available: ["pro", "enterprise"] },
+        { name: "Bulk content creation", available: ["pro", "enterprise"] },
+      ],
+    },
+    {
+      name: "AI Features",
+      features: [
+        { name: "Humanize pasted content", available: ["basic", "pro", "enterprise", "credits"] },
+        { name: "Retry blog generation", available: ["pro", "enterprise", "credits"] },
+        { name: "Regenerate content", available: ["pro", "enterprise", "credits"] },
+        { name: "Rewrite blog", available: ["pro", "enterprise", "credits"] },
+        { name: "Proofreading", available: ["pro", "enterprise", "credits"] },
+        { name: "SEO optimization", available: ["pro", "enterprise"] },
+        { name: "AI content suggestions", available: ["pro", "enterprise"] },
+        // { name: "Text-to-image generation", available: ["pro", "enterprise"] },
+        { name: "Custom AI models", available: ["enterprise"] },
+        {
+          name: "AI usage credits",
+          available: ["basic", "pro", "enterprise", "credits"],
+          details: {
+            basic: billingPeriod === "annual" ? "12,000/year" : "1,000/month",
+            pro: billingPeriod === "annual" ? "54,000/year" : "4,500/month",
+            enterprise: "Unlimited",
+            credits: "Custom",
+          },
+        },
+      ],
+    },
+    // {
+    //   name: "Collaboration & Workflow",
+    //   features: [
+    //     { name: "Jobs scheduling", available: ["pro", "enterprise"] },
+    //     { name: "Real-time collaboration", available: ["pro", "enterprise"] },
+    //     { name: "Commenting and feedback", available: ["pro", "enterprise"] },
+    //     { name: "Approval workflows", available: ["enterprise"] },
+    //     { name: "Team asset library", available: ["enterprise"] },
+    //     { name: "Role-based access control", available: ["enterprise"] },
+    //   ],
+    // },
+    {
+      name: "Analytics & Insights",
+      features: [
+        { name: "Competitor analysis", available: ["pro", "enterprise"] },
+        { name: "Basic content analytics", available: ["basic", "pro", "enterprise", "credits"] },
+        { name: "Advanced content insights", available: ["pro", "enterprise"] },
+        // { name: "Performance reports", available: ["enterprise"] },
+      ],
+    },
+    // {
+    //   name: "Integrations & Security",
+    //   features: [
+    //     {
+    //       name: "Third-party integrations (e.g., Google Drive, Slack)",
+    //       available: ["pro", "enterprise"],
+    //     },
+    //     { name: "Custom integrations via API", available: ["enterprise"] },
+    //     { name: "Single sign-on (SSO)", available: ["enterprise"] },
+    //     { name: "Multi-factor authentication (MFA)", available: ["enterprise"] },
+    //     { name: "ISO 27001 certification", available: ["enterprise"] },
+    //     { name: "SOC 2 Type II compliance", available: ["enterprise"] },
+    //   ],
+    // },
+    {
+      name: "Support & Training",
+      features: [
+        { name: "Email support", available: ["basic", "pro", "enterprise", "credits"] },
+        { name: "Priority support", available: ["pro", "enterprise"] },
+        { name: "Dedicated support manager", available: ["enterprise"] },
+        { name: "Training & onboarding", available: ["enterprise"] },
+        // { name: "SLA guarantee", available: ["enterprise"] },
+        { name: "Early access to beta tools", available: ["enterprise"] },
+      ],
+    },
+    // {
+    //   name: "Storage",
+    //   features: [
+    //     {
+    //       name: "Cloud storage",
+    //       available: ["basic", "pro", "enterprise", "credits"],
+    //       details: {
+    //         basic: "5GB",
+    //         pro: "100GB",
+    //         enterprise: "1TB",
+    //         credits: "Based on usage",
+    //       },
+    //     },
+    //   ],
+    // },
+  ]
 
-  // Identify common features (present in all plans)
-  const commonFeatures = Object.entries(featureCounts)
-    .filter(([_, count]) => count === plans.length)
-    .map(([feature]) => feature)
-
-  // Identify features unique to higher-tier plans (not in Basic Plan)
-  const basicPlan = plans.find((plan) => plan.tier === "basic")
-  const uniqueFeatures = plans
-    .filter((plan) => plan.tier !== "basic")
-    .flatMap((plan) => plan.features)
-    .filter((feature) => !basicPlan.features.includes(feature))
-    .filter((value, index, self) => self.indexOf(value) === index) // Remove duplicates
-    .sort()
-
-  // Select 3-4 unique features (or all if fewer than 3)
-  const selectedUniqueFeatures = uniqueFeatures.slice(0, Math.min(4, uniqueFeatures.length))
-
-  // Combine common features with selected unique features
-  const allFeatures = [...commonFeatures, ...selectedUniqueFeatures].sort()
-
-  // Map features to their availability in each plan
-  const featureAvailability = allFeatures.map((feature) => ({
-    feature,
-    plans: plans.map((plan) => ({
-      name: plan.name,
-      tier: plan.tier,
-      hasFeature: plan.features.includes(feature),
-    })),
-  }))
+  // Compute monthly cost for annual billing
+  const getMonthlyCost = (plan) => {
+    if (plan.tier === "enterprise") return "Custom"
+    if (plan.tier === "credits") return "Pay-as-you-go"
+    if (billingPeriod === "monthly") return `$${plan.priceMonthly}/month`
+    // For annual, calculate equivalent monthly cost
+    const monthlyEquivalent = (plan.priceAnnual / 12).toFixed(2)
+    return `$${monthlyEquivalent}/month, charged annually`
+  }
 
   return (
-    <div className="mt-32 bg-white rounded-2xl shadow-lg overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr>
-              <th className="p-4 text-left text-gray-900 font-semibold bg-gray-50 border-b border-gray-200 w-1/4">
-                Feature
-              </th>
-              {plans.map((plan) => (
-                <th
-                  key={plan.name}
-                  className={`p-4 text-center font-semibold ${
-                    plan.tier === "basic"
-                      ? "text-gray-600"
-                      : plan.tier === "pro"
-                      ? "text-blue-600"
-                      : plan.tier === "enterprise"
-                      ? "text-purple-600"
-                      : "text-emerald-600"
-                  } bg-gray-50 border-b border-gray-200`}
-                >
-                  {plan.name}
-                  {plan.name !== "Credit Pack" && (
-                    <div className="text-sm mt-1">
-                      {typeof plan[billingPeriod === "annual" ? "priceAnnual" : "priceMonthly"] ===
-                      "string"
-                        ? plan[billingPeriod === "annual" ? "priceAnnual" : "priceMonthly"]
-                        : `$${
-                            plan[billingPeriod === "annual" ? "priceAnnual" : "priceMonthly"]
-                          }/${billingPeriod}`}
-                    </div>
-                  )}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {featureAvailability.map(({ feature, plans }, index) => (
-              <tr
-                key={feature}
-                className={`${
-                  index % 2 === 0 ? "bg-white" : "bg-gray-50"
-                } hover:bg-gray-100 transition-all duration-200`}
-              >
-                <td className="p-4 text-gray-700 font-medium border-b border-gray-200">
-                  {feature}
-                </td>
+    <div className="mt-20 bg-white rounded-2xl shadow-lg overflow-hidden">
+      <div className="px-6 py-8 sm:px-10">
+        <h2 className="text-3xl font-bold text-gray-900 text-center mb-6">Compare Plans</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-gray-50 sticky top-0 z-10">
+                <th className="p-6 text-left text-gray-900 font-semibold w-1/3"></th>
                 {plans.map((plan) => (
-                  <td key={plan.name} className="p-4 text-center border-b border-gray-200">
-                    {plan.hasFeature ? (
-                      <Check
-                        className={`w-5 h-5 mx-auto ${
-                          plan.tier === "basic"
-                            ? "text-gray-600"
-                            : plan.tier === "pro"
-                            ? "text-blue-600"
-                            : plan.tier === "enterprise"
-                            ? "text-purple-600"
-                            : "text-emerald-600"
-                        }`}
-                      />
-                    ) : (
-                      <X
-                        className={`w-5 h-5 mx-auto ${
-                          plan.tier === "basic"
-                            ? "text-gray-600"
-                            : plan.tier === "pro"
-                            ? "text-blue-600"
-                            : plan.tier === "enterprise"
-                            ? "text-purple-600"
-                            : "text-emerald-600"
-                        }`}
-                      />
-                    )}
-                  </td>
+                  <th
+                    key={plan.name}
+                    className={`p-6 text-center font-semibold ${
+                      plan.tier === "basic"
+                        ? "text-gray-600"
+                        : plan.tier === "pro"
+                        ? "text-blue-600"
+                        : plan.tier === "enterprise"
+                        ? "text-purple-600"
+                        : "text-emerald-600"
+                    }`}
+                  >
+                    <div>{plan.name}</div>
+                    <div className="text-sm mt-1 text-gray-500">{getMonthlyCost(plan)}</div>
+                  </th>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {featureCategories.map((category, catIndex) => (
+                <React.Fragment key={category.name}>
+                  <tr className="bg-gray-100">
+                    <td colSpan={plans.length + 1} className="p-4 font-bold text-gray-800 text-lg">
+                      {category.name}
+                    </td>
+                  </tr>
+                  {category.features.map((feature, featIndex) => (
+                    <tr
+                      key={feature.name}
+                      className={`${
+                        (catIndex + featIndex) % 2 === 0 ? "bg-white" : "bg-gray-50"
+                      } hover:bg-gray-100 transition-all duration-200`}
+                    >
+                      <td className="p-4 text-gray-700 font-medium border-b border-gray-200">
+                        {feature.name}
+                      </td>
+                      {plans.map((plan) => (
+                        <td key={plan.name} className="p-4 text-center border-b border-gray-200">
+                          {feature.available.includes(plan.tier) ? (
+                            feature.details && feature.details[plan.tier] ? (
+                              <span
+                                className={`text-sm ${
+                                  plan.tier === "basic"
+                                    ? "text-gray-600"
+                                    : plan.tier === "pro"
+                                    ? "text-blue-600"
+                                    : plan.tier === "enterprise"
+                                    ? "text-purple-600"
+                                    : "text-emerald-600"
+                                }`}
+                              >
+                                {feature.details[plan.tier]}
+                              </span>
+                            ) : (
+                              <Check
+                                className={`w-5 h-5 mx-auto ${
+                                  plan.tier === "basic"
+                                    ? "text-gray-600"
+                                    : plan.tier === "pro"
+                                    ? "text-blue-600"
+                                    : plan.tier === "enterprise"
+                                    ? "text-purple-600"
+                                    : "text-emerald-600"
+                                }`}
+                              />
+                            )
+                          ) : (
+                            <X
+                              className={`w-5 h-5 mx-auto ${
+                                plan.tier === "basic"
+                                  ? "text-gray-600"
+                                  : plan.tier === "pro"
+                                  ? "text-blue-600"
+                                  : plan.tier === "enterprise"
+                                  ? "text-purple-600"
+                                  : "text-emerald-600"
+                              }`}
+                            />
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </React.Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )
@@ -320,14 +418,14 @@ const ComparisonTable = ({ plans, billingPeriod }) => {
 
 const Upgrade = () => {
   const [loading, setLoading] = useState(true)
-  const [billingPeriod, setBillingPeriod] = useState("monthly")
+  const [billingPeriod, setBillingPeriod] = useState("annual")
   const [showComparisonTable, setShowComparisonTable] = useState(true)
 
   const getPlans = (billingPeriod) => {
     return [
       {
         name: "Basic Plan",
-        priceMonthly: 20,
+        priceMonthly: 19,
         priceAnnual: 199,
         credits: 1000,
         description: "Perfect for individuals getting started with AI content creation.",
@@ -337,13 +435,11 @@ const Upgrade = () => {
           "Keyword research",
           "Performance monitoring",
           "Humanize pasted content",
-          "No data export",
-          "No blog rewrite",
-          "No regenerate & retry",
-          "No proofreading",
           "Email support",
           "Standard templates",
           "Automatic WordPress Posting",
+          "Basic content analytics",
+          // "5GB cloud storage",
         ],
         cta: "Get Started",
         type: "subscription",
@@ -353,9 +449,9 @@ const Upgrade = () => {
       },
       {
         name: "GenWrite Pro",
-        priceMonthly: 50,
+        priceMonthly: 49,
         priceAnnual: 499,
-        credits: 45000,
+        credits: 4500,
         description: "Advanced AI features with priority support for growing teams.",
         features: [
           "Everything in Basic, additionally:",
@@ -368,6 +464,17 @@ const Upgrade = () => {
           "Jobs scheduling",
           "Priority support",
           "Advanced export options",
+          "Custom templates",
+          "SEO optimization",
+          "AI content suggestions",
+          "Automatic WordPress Posting",
+          "Custom AI models & workflows",
+          // "Text-to-image generation",
+          // "Real-time collaboration",
+          // "Commenting and feedback",
+          // "Third-party integrations",
+          "Advanced content insights",
+          // "100GB cloud storage",
         ],
         cta: "Upgrade to Pro",
         type: "subscription",
@@ -382,16 +489,23 @@ const Upgrade = () => {
         credits: "Unlimited",
         description: "Tailored solutions with unlimited access and dedicated support.",
         features: [
+          "Everything in Pro, additionally:",
           "Flexible usage based on your needs",
-          "All Pro features included",
-          "Custom AI models & workflows",
           "Dedicated support manager",
           "Custom integrations",
-          "SSO & advanced security",
-          "Training & onboarding",
-          "SLA guarantee",
+          // "SSO & advanced security",
+          // "Training & onboarding",
+          // "SLA guarantee",
           "Early access to beta tools",
           "Automatic WordPress Posting",
+          "Approval workflows",
+          // "Team asset library",
+          // "Role-based access control",
+          // "Team performance reports",
+          // "ISO 27001 certification",
+          // "SOC 2 Type II compliance",
+          // "Multi-factor authentication (MFA)",
+          // "1TB cloud storage",
         ],
         cta: "Contact Sales",
         type: "subscription",
@@ -411,6 +525,13 @@ const Upgrade = () => {
           "Credits never expire",
           "All features unlocked based on usage",
           "Automatic WordPress Posting",
+          "Blog generation: single, quick, multiple",
+          "Keyword research",
+          "Performance monitoring",
+          "Humanize pasted content",
+          "Email support",
+          "Basic content analytics",
+          // "Cloud storage based on usage",
         ],
         cta: "Buy Credits",
         type: "credit_purchase",
