@@ -18,6 +18,7 @@ import { Chart as ChartJS, registerables } from "chart.js"
 import { Pie, Doughnut, Bar, Line } from "react-chartjs-2"
 import { fetchBlogStatus, fetchAllBlogs } from "@store/slices/blogSlice"
 import { selectUser } from "@store/slices/authSlice"
+import moment from "moment"
 
 ChartJS.register(...registerables)
 
@@ -85,12 +86,37 @@ const AnalyticsPage = () => {
   const dispatch = useDispatch()
   const { blogStatus, loading: statusLoading, error } = useSelector((state) => state.blog)
   const user = useSelector(selectUser)
-  const [selectedRange, setSelectedRange] = useState("30days")
+  const [selectedRange, setSelectedRange] = useState("7days")
 
   useEffect(() => {
-    dispatch(fetchBlogStatus())
-    dispatch(fetchAllBlogs())
-  }, [dispatch])
+    let params = null
+    const endDate = moment().endOf("day").toISOString()
+
+    switch (selectedRange) {
+      case "7days":
+        params = {
+          start: moment().subtract(6, "days").startOf("day").toISOString(),
+          end: endDate,
+        }
+        break
+      case "30days":
+        params = {
+          start: moment().subtract(29, "days").startOf("day").toISOString(),
+          end: endDate,
+        }
+        break
+      case "90days":
+        params = {
+          start: moment().subtract(89, "days").startOf("day").toISOString(),
+          end: endDate,
+        }
+        break
+      default:
+        params = {}
+    }
+    dispatch(fetchBlogStatus(params ?? {}))
+    // dispatch(fetchAllBlogs())
+  }, [dispatch, selectedRange])
 
   const stats = blogStatus?.stats || {}
   const {
@@ -310,14 +336,14 @@ const AnalyticsPage = () => {
 
   const handleRangeChange = (value) => {
     setSelectedRange(value)
-    dispatch(fetchBlogStatus())
-    dispatch(fetchAllBlogs())
-    message.success(`Data refreshed for ${value}`)
+    // dispatch(fetchBlogStatus())
+    // // dispatch(fetchAllBlogs())
+    // message.success(`Data refreshed for ${value}`)
   }
 
   const handleRetry = () => {
     dispatch(fetchBlogStatus())
-    dispatch(fetchAllBlogs())
+    // dispatch(fetchAllBlogs())
   }
 
   return (

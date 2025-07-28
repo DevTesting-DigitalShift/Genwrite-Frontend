@@ -103,7 +103,7 @@ const Dashboard = () => {
 
   // Initialize data and fetch
   useEffect(() => {
-    dispatch(fetchBlogStatus())
+    // dispatch(fetchBlogStatus())
     dispatch(fetchAllBlogs())
     const timer = setTimeout(() => setLoading(false), 1200)
     return () => clearTimeout(timer)
