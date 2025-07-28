@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import {
   ChevronLeft,
   ChevronRight,
@@ -10,9 +10,36 @@ import {
   Target,
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
+import { useDispatch, useSelector } from "react-redux"
+import { Button, Modal, message } from "antd"
+import { fetchCompetitiveAnalysisThunk } from "@store/slices/analysisSlice"
+import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import { useNavigate } from "react-router-dom"
 
-const SmartSidebar = ({ isExpanded, onToggle, wordCount, readTime, title, content, keywords, addKeyword, removeKeyword, generateKeywords, isGeneratingKeywords, newKeyword, setNewKeyword, seoScore, blogScore, getScoreColor }) => {
+const SmartSidebar = ({
+  isExpanded,
+  onToggle,
+  wordCount,
+  readTime,
+  title,
+  content,
+  keywords,
+  addKeyword,
+  removeKeyword,
+  generateKeywords,
+  isGeneratingKeywords,
+  newKeyword,
+  setNewKeyword,
+  seoScore,
+  blogScore,
+  getScoreColor,
+}) => {
   const [activeToolId, setActiveToolId] = useState(null)
+  const dispatch = useDispatch()
+  const { user } = useSelector((state) => state.auth)
+  const userPlan = user?.plan ?? user?.subscription?.plan
+  const { handlePopup } = useConfirmPopup()
+  const navigate = useNavigate()
 
   const tools = [
     {
@@ -59,19 +86,84 @@ const SmartSidebar = ({ isExpanded, onToggle, wordCount, readTime, title, conten
     },
   ]
 
-  const handleToggleTool = (toolId) => setActiveToolId(activeToolId === toolId ? null : toolId)
+  const handleToggleTool = (toolId) => {
+    setActiveToolId(activeToolId === toolId ? null : toolId)
+  }
+
+  const handleAnalyzing = useCallback(() => {
+    if (["free", "basic"].includes(userPlan?.toLowerCase())) {
+      return handlePopup({
+        title: "Upgrade Required",
+        description: "Competitor Analysis is only available for Pro and Enterprise users.",
+        confirmText: "Buy Now",
+        cancelText: "Cancel",
+        onConfirm: () => navigate("/pricing"),
+      })
+    }
+
+    const hasScore = typeof seoScore === "number" && seoScore >= 0
+    const hasAnalysis = false // Placeholder: Replace with actual competitiveAnalysisResults check if available
+
+    if (!hasScore && !hasAnalysis) {
+      return handlePopup({
+        title: "Competitive Analysis",
+        description: "Do you really want to run competitive analysis? It will cost 10 credits.",
+        confirmText: "Run",
+        cancelText: "Cancel",
+        onConfirm: fetchCompetitiveAnalysis,
+      })
+    }
+
+    return handlePopup({
+      title: "Run Competitive Analysis Again?",
+      description:
+        "You have already performed a competitive analysis for this blog. Would you like to run it again? This will cost 10 credits.",
+      confirmText: "Run",
+      cancelText: "Cancel",
+      onConfirm: fetchCompetitiveAnalysis,
+    })
+  }, [userPlan, seoScore, handlePopup, navigate])
+
+  const fetchCompetitiveAnalysis = useCallback(async () => {
+    try {
+      await dispatch(
+        fetchCompetitiveAnalysisThunk({ blogId: "someBlogId", title, content, keywords })
+      ).unwrap()
+      message.success("Competitive analysis started.")
+    } catch (err) {
+      message.error("Failed to start competitive analysis.")
+    }
+  }, [dispatch, title, content, keywords])
+
+  // const handlePopup = ({ title, description, confirmText, cancelText, onConfirm }) => {
+  //   Modal.confirm({
+  //     title,
+  //     content: description,
+  //     okText: confirmText,
+  //     cancelText,
+  //     onOk: onConfirm,
+  //     onCancel: () => {},
+  //   })
+  // }
 
   return (
     <div
-      className={`relative bg-white border-r border-gray-200 transition-all duration-300 ease-in-out shadow-lg ${isExpanded ? "w-[400px]" : "w-20"}`}
+      className={`relative bg-white border-r border-gray-200 transition-all duration-300 ease-in-out shadow-lg ${
+        isExpanded ? "w-[300px]" : "w-20"
+      }`}
     >
       <button
         onClick={onToggle}
         className="absolute -left-3 top-6 z-10 w-6 h-6 bg-white border border-gray-200 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors duration-200 shadow-md"
         title={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
       >
-        {isExpanded ? <ChevronRight className="w-3 h-3 text-gray-600" /> : <ChevronLeft className="w-3 h-3 text-gray-600" />}
+        {isExpanded ? (
+          <ChevronRight className="w-3 h-3 text-gray-600" />
+        ) : (
+          <ChevronLeft className="w-3 h-3 text-gray-600" />
+        )}
       </button>
+
       <div className="h-full flex flex-col">
         <div className="flex-1 py-6 overflow-y-auto">
           <div className="space-y-1 px-3">
@@ -85,7 +177,11 @@ const SmartSidebar = ({ isExpanded, onToggle, wordCount, readTime, title, conten
                     onClick={() => tool.isActive && handleToggleTool(tool.id)}
                     disabled={!tool.isActive}
                     className={`w-full flex items-center px-3 py-2.5 rounded-lg transition-all duration-200 ${
-                      isActive ? "bg-blue-50 text-blue-600" : tool.isActive ? "hover:bg-gray-50" : "cursor-not-allowed opacity-50"
+                      isActive
+                        ? "bg-blue-50 text-blue-600"
+                        : tool.isActive
+                        ? "hover:bg-gray-50"
+                        : "cursor-not-allowed opacity-50"
                     }`}
                   >
                     <Icon className={`w-5 h-5 ${isExpanded ? "mr-3" : ""}`} />
@@ -93,12 +189,19 @@ const SmartSidebar = ({ isExpanded, onToggle, wordCount, readTime, title, conten
                       <div className="flex-1 text-left">
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-medium">{tool.name}</span>
-                          {tool.isPro && <span className="text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white px-1.5 py-0.5 rounded-full">Pro</span>}
+                          {tool.isPro && (
+                            <span className="text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white px-1.5 py-0.5 rounded-full">
+                              Pro
+                            </span>
+                          )}
                         </div>
-                        {!tool.isActive && <span className="text-xs text-gray-500">Coming soon</span>}
+                        {!tool.isActive && (
+                          <span className="text-xs text-gray-500">Coming soon</span>
+                        )}
                       </div>
                     )}
                   </button>
+
                   {!isExpanded && (
                     <div className="absolute left-full ml-2 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-20">
                       <div className="bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
@@ -107,6 +210,7 @@ const SmartSidebar = ({ isExpanded, onToggle, wordCount, readTime, title, conten
                       </div>
                     </div>
                   )}
+
                   {isExpanded && (
                     <AnimatePresence>
                       {isActive && (
@@ -133,6 +237,7 @@ const SmartSidebar = ({ isExpanded, onToggle, wordCount, readTime, title, conten
                               seoScore={seoScore}
                               blogScore={blogScore}
                               getScoreColor={getScoreColor}
+                              handleAnalyzing={handleAnalyzing}
                             />
                           </div>
                         </motion.div>
@@ -149,6 +254,7 @@ const SmartSidebar = ({ isExpanded, onToggle, wordCount, readTime, title, conten
   )
 }
 
+// Panel Components
 const OverviewPanel = ({ wordCount, readTime, title }) => (
   <div className="space-y-6">
     <div className="grid grid-cols-2 gap-4 mb-6">
@@ -167,7 +273,9 @@ const OverviewPanel = ({ wordCount, readTime, title }) => (
         <div className="mt-1 flex items-center">
           <div className="flex-1 bg-gray-200 rounded-full h-2">
             <div
-              className={`h-2 rounded-full transition-all duration-300 ${title.length <= 60 ? "bg-green-500" : "bg-red-500"}`}
+              className={`h-2 rounded-full transition-all duration-300 ${
+                title.length <= 60 ? "bg-green-500" : "bg-red-500"
+              }`}
               style={{ width: `${Math.min((title.length / 60) * 100, 100)}%` }}
             />
           </div>
@@ -190,16 +298,25 @@ const OverviewPanel = ({ wordCount, readTime, title }) => (
   </div>
 )
 
-const AIAssistantPanel = () => (
+const AIAssistantPanel = ({ generateKeywords, isGeneratingKeywords, handleAnalyzing }) => (
   <div className="space-y-6">
     <div className="space-y-4">
-      <button className="w-full p-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all duration-200">
+      <button
+        onClick={generateKeywords}
+        disabled={isGeneratingKeywords}
+        className={`w-full p-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all duration-200 ${
+          isGeneratingKeywords ? "opacity-50 cursor-not-allowed" : ""
+        }`}
+      >
         <div className="flex items-center justify-center space-x-2">
           <Sparkles className="w-5 h-5" />
-          <span>Generate Title Ideas</span>
+          <span>{isGeneratingKeywords ? "Generating..." : "Generate Keywords"}</span>
         </div>
       </button>
-      <button className="w-full p-4 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg hover:from-blue-600 hover:to-cyan-600 transition-all duration-200">
+      <button
+        onClick={handleAnalyzing}
+        className="w-full p-4 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg hover:from-blue-600 hover:to-cyan-600 transition-all duration-200"
+      >
         <div className="flex items-center justify-center space-x-2">
           <Zap className="w-5 h-5" />
           <span>Run Competitive Analysis</span>
@@ -221,24 +338,24 @@ const SEOPanel = ({ seoScore, blogScore, getScoreColor }) => (
       <div className="bg-white p-4 rounded-lg border border-gray-200">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-bold text-gray-700">Blog Score</span>
-          <span className={`px-2 py-1 rounded-full text-xs font-bold ${getScoreColor(blogScore)}`}>{blogScore}/100</span>
+          <span className={`text-2xl font-bold ${getScoreColor(blogScore)}`}>{blogScore || 0}</span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
           <div
-            className={`h-2 rounded-full transition-all duration-500 ${blogScore >= 80 ? "bg-green-500" : blogScore >= 60 ? "bg-yellow-500" : "bg-red-500"}`}
-            style={{ width: `${blogScore}%` }}
+            className={`h-2 rounded-full ${getScoreColor(blogScore)}`}
+            style={{ width: `${Math.min(blogScore || 0, 100)}%` }}
           />
         </div>
       </div>
       <div className="bg-white p-4 rounded-lg border border-gray-200">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-bold text-gray-700">SEO Score</span>
-          <span className={`px-2 py-1 rounded-full text-xs font-bold ${getScoreColor(seoScore)}`}>{seoScore}/100</span>
+          <span className={`text-2xl font-bold ${getScoreColor(seoScore)}`}>{seoScore || 0}</span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
           <div
-            className={`h-2 rounded-full transition-all duration-500 ${seoScore >= 80 ? "bg-green-500" : seoScore >= 60 ? "bg-yellow-500" : "bg-red-500"}`}
-            style={{ width: `${seoScore}%` }}
+            className={`h-2 rounded-full ${getScoreColor(seoScore)}`}
+            style={{ width: `${Math.min(seoScore || 0, 100)}%` }}
           />
         </div>
       </div>
@@ -246,63 +363,56 @@ const SEOPanel = ({ seoScore, blogScore, getScoreColor }) => (
   </div>
 )
 
-const TagsPanel = ({ keywords, addKeyword, removeKeyword, generateKeywords, isGeneratingKeywords, newKeyword, setNewKeyword }) => {
-  const addTag = addKeyword
-  const removeTag = removeKeyword
-
-  return (
-    <div className="space-y-6">
-      <div className="space-y-4">
-        <div>
-          <label className="text-sm font-medium text-gray-700 mb-2 block">Keywords</label>
-          <div className="flex flex-wrap gap-2 mb-2">
-            {keywords.map((keyword) => (
-              <span
-                key={keyword.id}
-                className="inline-flex items-center px-3 py-1 bg-purple-100 text-purple-800 text-sm rounded-full"
+const TagsPanel = ({ keywords, addKeyword, removeKeyword, newKeyword, setNewKeyword }) => (
+  <div className="space-y-6">
+    <div className="space-y-4">
+      <div>
+        <label className="text-sm font-medium text-gray-700 mb-2 block">Keywords</label>
+        <div className="flex flex-wrap gap-2 mb-2">
+          {keywords.map((keyword) => (
+            <span
+              key={keyword.text}
+              className="inline-flex items-center px-3 py-1 bg-purple-100 text-purple-800 text-sm rounded-full"
+            >
+              {keyword.text}
+              <button
+                onClick={() => removeKeyword(keyword.text)}
+                className="ml-2 text-purple-600 hover:text-purple-800"
               >
-                {keyword.text}
-                <button
-                  onClick={() => removeTag(keyword.id)}
-                  className="ml-2 text-purple-600 hover:text-purple-800"
-                >
-                  ×
-                </button>
-              </span>
-            ))}
-          </div>
-          <div className="flex space-x-2">
-            <input
-              type="text"
-              value={newKeyword}
-              onChange={(e) => setNewKeyword(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && addTag()}
-              placeholder="Add keyword"
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-            />
-            <button
-              onClick={addTag}
-              className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors duration-200"
-            >
-              Add
-            </button>
-          </div>
-          <div className="mt-4">
-            <button
-              onClick={generateKeywords}
-              disabled={isGeneratingKeywords}
-              className="flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm font-medium disabled:opacity-50"
-              aria-label="Generate keyword suggestions"
-            >
-              {isGeneratingKeywords ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-              Optimize
-            </button>
-          </div>
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+        <div className="flex space-x-2">
+          <input
+            type="text"
+            value={newKeyword}
+            onChange={(e) => setNewKeyword(e.target.value)}
+            onKeyPress={(e) => e.key === "Enter" && addKeyword()}
+            placeholder="Add keyword"
+            className="flex-1 px-3 py-2 border border-gray-200 rounded-lg bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+          />
+          <Button
+            onClick={addKeyword}
+            className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors duration-200"
+          >
+            Add
+          </Button>
         </div>
       </div>
+      <div>
+        <label className="text-sm font-medium text-gray-700 mb-2 block">Category</label>
+        <select className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+          <option>Technology</option>
+          <option>Tutorial</option>
+          <option>News</option>
+          <option>Other</option>
+        </select>
+      </div>
     </div>
-  )
-}
+  </div>
+)
 
 const ContentEnhancementsPanel = () => {
   const enhancements = [

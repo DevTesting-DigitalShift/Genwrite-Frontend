@@ -12,17 +12,25 @@ import {
   Target,
   Crown,
   SlidersHorizontal,
+  Eye,
+  BarChart3,
+  FileText,
+  Lightbulb,
+  Minimize2,
+  Maximize2,
 } from "lucide-react"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useNavigate } from "react-router-dom"
 import { useDispatch, useSelector } from "react-redux"
-import { Button, Modal, Tooltip, message } from "antd"
+import { Button, Modal, Tooltip, message, Tabs, Badge, Collapse } from "antd"
 import { fetchProofreadingSuggestions } from "@store/slices/blogSlice"
 import { fetchCompetitiveAnalysisThunk } from "@store/slices/analysisSlice"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
 import { getCategoriesThunk } from "@store/slices/otherSlice"
 import CategoriesModal from "@components/CategoriesModal"
+
+const { Panel } = Collapse
 
 const TextEditorSidebar = ({
   blog,
@@ -43,6 +51,10 @@ const TextEditorSidebar = ({
   const [competitiveAnalysisResults, setCompetitiveAnalysisResults] = useState(null)
   const [shouldRunCompetitive, setShouldRunCompetitive] = useState(false)
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
+  const [isMinimized, setIsMinimized] = useState(false)
+  const [activeSection, setActiveSection] = useState("overview")
+  const [expandedPanels, setExpandedPanels] = useState(["1"])
+
   const user = useSelector((state) => state.auth.user)
   const userPlan = user?.plan ?? user?.subscription?.plan
   const navigate = useNavigate()
@@ -82,6 +94,7 @@ const TextEditorSidebar = ({
       ).unwrap()
 
       setCompetitiveAnalysisResults(resultAction)
+      setActiveSection("analysis")
     } catch (err) {
       console.error("Failed to fetch competitive analysis:", {
         error: err.message,
@@ -160,6 +173,7 @@ const TextEditorSidebar = ({
         })
       ).unwrap()
       setProofreadingResults(result)
+      setActiveSection("suggestions")
       message.success("Proofreading suggestions loaded successfully!")
     } catch (error) {
       console.error("Error fetching proofreading suggestions:", {
@@ -203,7 +217,6 @@ const TextEditorSidebar = ({
     const hasCompetitors = Array.isArray(competitors) && competitors.length > 0
     const hasAnalysis = !!competitiveAnalysisResults
 
-    // Case 1: No data at all — show initial modal
     if (!hasScore && !hasCompetitors && !hasAnalysis) {
       return handlePopup({
         title: "Competitive Analysis",
@@ -214,7 +227,6 @@ const TextEditorSidebar = ({
       })
     }
 
-    // Case 2: Any data present — prompt to run again
     return handlePopup({
       title: "Run Competitive Analysis Again?",
       description:
@@ -255,9 +267,9 @@ const TextEditorSidebar = ({
   }, [handlePopup, handleSave])
 
   const getScoreColor = useCallback((score) => {
-    if (score >= 80) return "bg-green-100 text-green-700"
-    if (score >= 60) return "bg-yellow-100 text-yellow-700"
-    return "bg-red-100 text-red-700"
+    if (score >= 80) return "bg-green-100 text-green-700 border-green-200"
+    if (score >= 60) return "bg-yellow-100 text-yellow-700 border-yellow-200"
+    return "bg-red-100 text-red-700 border-red-200"
   }, [])
 
   const handleCategorySubmit = useCallback(
@@ -285,42 +297,207 @@ const TextEditorSidebar = ({
     setIsCategoryModalOpen(true)
   }, [])
 
-  const FeatureCard = ({ title, description, isPro, isLoading, onClick, buttonText }) => (
+  const FeatureCard = ({
+    title,
+    description,
+    isPro,
+    isLoading,
+    onClick,
+    buttonText,
+    icon: Icon,
+  }) => (
     <motion.div
-      whileHover={{ scale: 1.02, boxShadow: "0 8px 16px rgba(0, 0, 0, 0.1)" }}
+      whileHover={{ scale: 1.02 }}
       transition={{ duration: 0.2 }}
-      className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-all duration-300"
+      className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-all duration-300"
     >
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div>
-            <h3 className="font-semibold text-gray-900">{title}</h3>
-            <p className="text-sm text-gray-600">{description}</p>
-          </div>
+      <div className="flex items-start gap-3 mb-3">
+        <div className="p-2 bg-blue-50 rounded-lg">
+          <Icon className="w-4 h-4 text-blue-600" />
         </div>
-        {isPro && (
-          <span className="flex items-center gap-1 text-xs font-semibold text-yellow-600 bg-yellow-50 px-2 py-1 rounded-full">
-            <Crown size={15} />
-            Pro
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="font-semibold text-gray-900">{title}</h3>
+            {isPro && (
+              <Badge
+                count={<Crown size={10} />}
+                style={{ backgroundColor: "#fbbf24" }}
+                size="small"
+              />
+            )}
+          </div>
+          <p className="text-sm text-gray-600">{description}</p>
+        </div>
+      </div>
+      <Button
+        onClick={onClick}
+        loading={isLoading}
+        disabled={isLoading}
+        type="primary"
+        className="w-full py-2 text-sm px-4 rounded-lg font-medium transition-all duration-200 bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg"
+        ghost={isPro}
+      >
+        {isLoading ? "Processing..." : buttonText}
+      </Button>
+    </motion.div>
+  )
+
+  const ScoreCard = ({ title, score, icon: Icon }) => (
+    <div className={`p-3 rounded-lg border ${getScoreColor(score || 0)}`}>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <Icon className="w-4 h-4" />
+          <span className="text-sm font-medium">{title}</span>
+        </div>
+        {typeof score === "number" && score > 0 && (
+          <span className="text-lg font-bold">
+            {score}
+            <span className="text-xs ml-1">/100</span>
           </span>
         )}
       </div>
-      <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={onClick}
-        disabled={isLoading}
-        className={`w-full py-2 text-sm px-4 rounded-lg font-medium transition-all duration-200 ${
-          isLoading
-            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-            : "bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg"
-        }`}
-        aria-label={buttonText}
-      >
-        {isLoading ? "Processing..." : buttonText}
-      </motion.button>
+      {(score || 0) === 0 ? (
+        <p className="text-xs text-gray-500 text-center p-2 bg-gray-50 rounded-lg">
+          Run Competitive Analysis to get SEO score
+        </p>
+      ) : (
+        <div className="w-full bg-white/50 rounded-full h-2">
+          <div
+            style={{ width: `${score}%`, transition: "width 0.5s ease" }} // use animate lib if needed
+            className={`h-2 rounded-full ${
+              score >= 80 ? "bg-green-500" : score >= 60 ? "bg-yellow-500" : "bg-red-500"
+            }`}
+          />
+        </div>
+      )}
+    </div>
+  )
+
+  const CompetitorsList = ({ competitors }) => (
+    <div className="space-y-2">
+      {competitors?.slice(0, 3).map((item, index) => (
+        <motion.div
+          key={index}
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: index * 0.1 }}
+          className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+        >
+          <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+            <span className="text-xs font-medium text-blue-600">{index + 1}</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-gray-900 truncate">{item.title}</p>
+            <a
+              href={item.link || item.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
+            >
+              View <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
+        </motion.div>
+      ))}
+      {competitors?.length > 3 && (
+        <p className="text-xs text-gray-500 text-center">
+          +{competitors.length - 3} more competitors
+        </p>
+      )}
+    </div>
+  )
+
+  const AnalysisInsights = ({ insights }) => (
+    <div className="space-y-3">
+      {Object.entries(insights || {})
+        .slice(0, 3)
+        .map(([key, value], index) => (
+          <motion.div
+            key={key}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.05 }}
+            className="p-3 bg-blue-50 rounded-lg border border-blue-100"
+          >
+            <div className="flex items-start gap-2">
+              <Lightbulb className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="font-medium text-blue-900 text-sm mb-1">
+                  {key.replace(/([A-Z])/g, " $1").trim()}
+                </p>
+                <p className="text-xs text-blue-700 leading-relaxed">
+                  {typeof value === "object" ? (
+                    <span>Multiple insights available</span>
+                  ) : (
+                    value?.toString().slice(0, 120) + (value?.toString().length > 120 ? "..." : "")
+                  )}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        ))}
+    </div>
+  )
+
+  const ProofreadingSuggestion = ({ suggestion, index, onApply }) => (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.05 }}
+      className="border border-gray-200 rounded-lg p-3 bg-white hover:shadow-sm transition-shadow"
+    >
+      <div className="space-y-3">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-orange-500" />
+            <span className="text-xs font-medium text-gray-700">Original</span>
+          </div>
+          <div className="p-2 bg-red-50 border border-red-100 rounded text-xs text-gray-700 leading-relaxed">
+            {suggestion.original}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 text-green-500" />
+            <span className="text-xs font-medium text-gray-700">Suggested</span>
+          </div>
+          <div className="p-2 bg-green-50 border border-green-100 rounded text-xs text-gray-700 leading-relaxed">
+            {suggestion.change}
+          </div>
+        </div>
+
+        <Button
+          size="small"
+          type="primary"
+          ghost
+          onClick={() => {
+            handleReplace(suggestion.original, suggestion.change)
+            onApply(index)
+          }}
+          className="w-full"
+        >
+          Apply This Change
+        </Button>
+      </div>
     </motion.div>
   )
+
+  if (isMinimized) {
+    return (
+      <motion.div
+        initial={{ x: "100%" }}
+        animate={{ x: "calc(100% - 60px)" }}
+        className="fixed top-1/2 right-0 transform -translate-y-1/2 z-50"
+      >
+        <Button
+          onClick={() => setIsMinimized(false)}
+          className="h-12 rounded-l-lg rounded-r-none border-r-0"
+          icon={<Maximize2 className="w-4 h-4" />}
+        />
+      </motion.div>
+    )
+  }
 
   return (
     <>
@@ -328,406 +505,346 @@ const TextEditorSidebar = ({
         initial={{ x: "100%" }}
         animate={{ x: 0 }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className="top-0 right-0 w-80 h-full bg-gradient-to-b from-gray-50 to-white border-l border-gray-200 shadow-xl overflow-y-auto z-50"
+        className="w-96 h-full bg-white border-gray-200 shadow-xl flex flex-col"
       >
         {/* Header */}
-        <div className="p-6 border-b border-gray-200 bg-white">
-          <div className="flex items-center justify-between">
+        <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50">
+          <div className="flex items-center justify-between mb-2">
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Content Analysis</h2>
-              <p className="text-sm text-gray-600">Optimize your content for better performance</p>
+              <h2 className="text-lg font-bold text-gray-900">Content Analysis</h2>
+              <p className="text-xs text-gray-600">Optimize your content performance</p>
             </div>
-            <Tooltip title="Content Enhancements Summary">
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setOpen(true)}
-                className="text-blue-500 hover:text-blue-600"
-                aria-label="View content enhancements"
+            <div className="flex items-center gap-2">
+              <Tooltip title="Minimize sidebar" placement="left">
+                <Button
+                  size="small"
+                  icon={<Minimize2 className="w-4 h-4" />}
+                  onClick={() => setIsMinimized(true)}
+                />
+              </Tooltip>
+              <Tooltip title="Content settings">
+                <Button
+                  size="small"
+                  icon={<SlidersHorizontal className="w-4 h-4" />}
+                  onClick={() => setOpen(true)}
+                />
+              </Tooltip>
+            </div>
+          </div>
+
+          {/* Navigation Tabs */}
+          <div className="flex gap-1">
+            {[
+              { key: "overview", label: "Overview", icon: BarChart3 },
+              { key: "analysis", label: "Analysis", icon: TrendingUp },
+              {
+                key: "suggestions",
+                label: "Suggestions",
+                icon: Lightbulb,
+                badge: proofreadingResults.length,
+              },
+            ].map(({ key, label, icon: Icon, badge }) => (
+              <Button
+                key={key}
+                size="small"
+                type={activeSection === key ? "primary" : "text"}
+                onClick={() => setActiveSection(key)}
+                className={`flex items-center gap-1 ${
+                  activeSection === key ? "" : "text-gray-600"
+                }`}
               >
-                <SlidersHorizontal size={20} />
-              </motion.button>
-            </Tooltip>
-            <Modal
-              title="Content Enhancements Summary"
-              open={open}
-              onCancel={() => setOpen(false)}
-              footer={null}
-              centered
-            >
-              <FeatureSettingsModal features={blog?.options || {}} />
-            </Modal>
+                <Icon className="w-3 h-3" />
+                {label}
+                {badge > 0 && <Badge count={badge} size="small" />}
+              </Button>
+            ))}
           </div>
         </div>
 
-        <div className="p-6 pb-0 space-y-8 bg-white">
-          {/* Keywords Section */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Target className="w-5 h-5 text-blue-600" />
-                <h3 className="font-semibold text-gray-900">Keywords</h3>
-              </div>
-              {keywords.length > 0 && (
-                <Tooltip title="Rewrite Keywords">
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => {
-                      if (["free"].includes(userPlan?.toLowerCase?.())) {
-                        openUpgradePopup({ featureName: "Keyword Optimization", navigate })
-                      } else {
-                        handleKeywordRewrite()
-                      }
-                    }}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-opacity-80 transition-colors text-sm font-medium
-                    ${
-                      ["free"].includes(userPlan?.toLowerCase?.())
-                        ? "bg-yellow-50 text-yellow-600 hover:bg-yellow-100"
-                        : "bg-green-50 text-green-600 hover:bg-green-100"
-                    }`}
-                    aria-label="Optimize keywords"
-                  >
-                    {["free"].includes(userPlan?.toLowerCase?.()) ? (
-                      <Crown size={15} />
-                    ) : (
-                      <Sparkles className="w-4 h-4" />
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto">
+          <AnimatePresence mode="wait">
+            {activeSection === "overview" && (
+              <motion.div
+                key="overview"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="p-4 space-y-6"
+              >
+                {/* Keywords Section */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Target className="w-4 h-4 text-blue-600" />
+                      <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                        Keywords
+                      </h3>
+                      <Badge count={keywords.length} />
+                    </div>
+                    {keywords.length > 0 && (
+                      <button
+                        type="text"
+                        onClick={() => {
+                          if (["free"].includes(userPlan?.toLowerCase?.())) {
+                            openUpgradePopup({ featureName: "Keyword Optimization", navigate })
+                          } else {
+                            handleKeywordRewrite()
+                          }
+                        }}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-opacity-80 transition-colors text-sm font-medium
+                    bg-green-50 text-green-600 border-green-300 border hover:bg-green-100"
+                      >
+                        {["free"].includes(userPlan?.toLowerCase?.()) ? (
+                          <Crown className="w-3 h-3" />
+                        ) : (
+                          <Sparkles className="w-3 h-3" />
+                        )}
+                        Optimize
+                      </button>
                     )}
-                    Optimize
-                  </motion.button>
-                </Tooltip>
-              )}
-            </div>
+                  </div>
 
-            <div className="flex flex-wrap gap-2">
-              <AnimatePresence>
-                {keywords.map((keyword, index) => (
-                  <motion.div
-                    key={keyword}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.8 }}
-                    transition={{ duration: 0.2, delay: index * 0.1 }}
-                    className="flex items-center bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm px-3 py-1.5 rounded-full shadow-sm hover:shadow-md"
-                  >
-                    <span className="truncate max-w-[150px]">{keyword}</span>
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => removeKeyword(keyword)}
-                      className="ml-2 text-white hover:text-red-200"
-                      aria-label={`Remove keyword ${keyword}`}
-                    >
-                      <X className="w-3 h-3" />
-                    </motion.button>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </div>
+                  <div className="flex flex-wrap gap-2">
+                    <AnimatePresence>
+                      {keywords.map((keyword, index) => (
+                        <motion.div
+                          key={keyword}
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.8 }}
+                          className="flex items-center bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full border border-blue-200"
+                        >
+                          <span className="truncate max-w-[120px]">{keyword}</span>
+                          <button
+                            onClick={() => removeKeyword(keyword)}
+                            className="ml-1 text-blue-600 hover:text-blue-800"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </div>
 
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={newKeyword}
-                onChange={(e) => setNewKeyword(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Add keywords (comma-separated)"
-                className="flex-1 px-4 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                aria-label="Add new keywords"
-              />
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={addKeywords}
-                className="bg-blue-600 text-white p-2.5 rounded-lg hover:bg-blue-700 hover:shadow-lg"
-                aria-label="Add keywords"
-              >
-                <Plus className="w-4 h-4" />
-              </motion.button>
-            </div>
-            {keywords.length === 0 && (
-              <p className="text-sm text-gray-500 text-center">No keywords added yet</p>
-            )}
-          </div>
-
-          {/* Scores Section */}
-          <div className="space-y-4">
-            <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-blue-600" />
-              Performance Metrics
-            </h3>
-
-            <div className="space-y-4">
-              {/* Content Score */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-                className="bg-gray-50 rounded-xl p-4"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-bold text-gray-700 flex items-center gap-1">
-                    Content Score
-                  </span>
-                  <span
-                    className={`px-2 py-1 rounded-full text-lg font-bold ${getScoreColor(
-                      blog?.blogScore || 0
-                    )}`}
-                  >
-                    {blog?.blogScore || 0} <span className="text-xs">/100</span>
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <motion.div
-                    animate={{ width: `${blog?.blogScore || 0}%` }}
-                    transition={{ duration: 0.5 }}
-                    className={`h-2 rounded-full ${
-                      (blog?.blogScore || 0) >= 80
-                        ? "bg-green-500"
-                        : (blog?.blogScore || 0) >= 60
-                        ? "bg-yellow-500"
-                        : "bg-red-500"
-                    }`}
-                  />
-                </div>
-              </motion.div>
-
-              {/* SEO Score */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.1 }}
-                className="bg-gray-50 rounded-xl p-4"
-              >
-                <div
-                  className={`mb-2 ${
-                    result?.insights?.blogScore || blog?.seoScore
-                      ? "flex items-center justify-between"
-                      : ""
-                  }`}
-                >
-                  <span className="text-sm font-bold text-gray-700 flex items-center gap-1">
-                    SEO Score
-                  </span>
-
-                  {result?.insights?.blogScore || blog?.seoScore ? (
-                    <span
-                      className={`px-2 py-1 rounded-full text-lg font-bold ${getScoreColor(
-                        result?.insights?.blogScore || blog?.seoScore
-                      )}`}
-                    >
-                      {result?.insights?.blogScore || blog?.seoScore}{" "}
-                      <span className="text-xs">/100</span>
-                    </span>
-                  ) : (
-                    <span className="text-sm font-semibold text-gray-500 italic mt-1 block">
-                      Run the Competitive Analysis to get score
-                    </span>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newKeyword}
+                      onChange={(e) => setNewKeyword(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      placeholder="Add keywords..."
+                      className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <Button
+                      size="small"
+                      type="primary"
+                      onClick={addKeywords}
+                      icon={<Plus className="w-4 h-4" />}
+                    />
+                  </div>
+                  {keywords.length === 0 && (
+                    <p className="text-xs text-gray-500 text-center py-2">No keywords added yet</p>
                   )}
                 </div>
 
-                {result?.insights?.blogScore || blog?.seoScore ? (
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <motion.div
-                      animate={{ width: `${result?.insights?.blogScore || blog?.seoScore}%` }}
-                      transition={{ duration: 0.5 }}
-                      className={`h-2 rounded-full ${
-                        (result?.insights?.blogScore || blog?.seoScore) >= 80
-                          ? "bg-green-500"
-                          : (result?.insights?.blogScore || blog?.seoScore) >= 60
-                          ? "bg-yellow-500"
-                          : "bg-red-500"
-                      }`}
+                {/* Scores Section */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-blue-600" />
+                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                      Performance Metrics
+                    </h3>
+                  </div>
+
+                  <div className="space-y-3">
+                    <ScoreCard title="Content Score" score={blog?.blogScore} icon={FileText} />
+                    <ScoreCard
+                      title="SEO Score"
+                      score={result?.insights?.blogScore || blog?.seoScore}
+                      icon={TrendingUp}
                     />
                   </div>
-                ) : null}
-              </motion.div>
-            </div>
-          </div>
+                </div>
 
-          {/* Analysis Tools */}
-          <div className="space-y-4">
-            <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-              <Zap className="w-5 h-5 text-blue-600" />
-              AI Tools
-            </h3>
-
-            <FeatureCard
-              title="Competitive Analysis"
-              description="Analyze against competitors"
-              isPro={["free", "basic"].includes(userPlan?.toLowerCase?.())}
-              isLoading={isAnalyzingCompetitive}
-              onClick={handleAnalyzing}
-              buttonText={isAnalyzingCompetitive ? "Analyzing..." : "Run Competitive Analysis"}
-            />
-
-            {activeTab === "normal" && (
-              <FeatureCard
-                title="AI Proofreading"
-                description="Improve grammar and style"
-                isPro={["free", "basic"].includes(userPlan?.toLowerCase?.())}
-                isLoading={isAnalyzingProofreading}
-                onClick={handleProofreadingBlog}
-                buttonText="Proofread Content"
-              />
-            )}
-          </div>
-
-          {/* Analysis Results */}
-          {competitiveAnalysisResults && (
-            <div className="space-y-4">
-              <h3 className="font-semibold text-gray-900">Analysis Results</h3>
-              {(result?.competitors || blog?.generatedMetadata?.competitors)?.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="bg-white shadow-md p-3 rounded-lg border border-gray-200"
-                >
-                  <span className="text-sm font-medium text-gray-900">Competitors Links:</span>
-                  <ul className="list-disc mt-2 list-inside space-y-1 text-sm text-gray-700">
-                    {(result?.competitors || blog.generatedMetadata.competitors)?.map(
-                      (item, index) => (
-                        <li key={index} className="hover:underline hover:text-blue-500 transition">
-                          <a
-                            href={item.link || item.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600"
-                          >
-                            {item.title}
-                          </a>
-                        </li>
-                      )
-                    )}
-                  </ul>
-                </motion.div>
-              )}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.1 }}
-                className="bg-white rounded-xl shadow-sm border border-gray-100 p-5"
-              >
+                {/* AI Tools Section */}
                 <div className="space-y-3">
-                  {Object.entries(
-                    competitiveAnalysisResults?.insights?.analysis ||
-                      competitiveAnalysisResults?.analysis ||
-                      {}
-                  ).map(([key, value]) => (
-                    <div key={key} className="flex items-start gap-3">
-                      <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          {key.replace(/([A-Z])/g, " $1").trim()}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          {typeof value === "object" ? (
-                            <ul className="list-disc ml-5">
-                              {Object.entries(value).map(([subKey, subValue]) => (
-                                <li key={subKey}>
-                                  <strong>{subKey.replace(/([A-Z])/g, " $1").trim()}: </strong>
-                                  {subValue}
-                                </li>
-                              ))}
-                            </ul>
-                          ) : (
-                            value
-                          )}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-blue-600" />
+                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                      AI Tools
+                    </h3>
+                  </div>
+
+                  <div className="space-y-3">
+                    <FeatureCard
+                      title="Competitive Analysis"
+                      description="Compare with top competitors"
+                      isPro={["free", "basic"].includes(userPlan?.toLowerCase?.())}
+                      isLoading={isAnalyzingCompetitive}
+                      onClick={handleAnalyzing}
+                      buttonText="Run Analysis"
+                      icon={TrendingUp}
+                    />
+
+                    {activeTab === "normal" && (
+                      <FeatureCard
+                        title="AI Proofreading"
+                        description="Grammar and style improvements"
+                        isPro={["free", "basic"].includes(userPlan?.toLowerCase?.())}
+                        isLoading={isAnalyzingProofreading}
+                        onClick={handleProofreadingBlog}
+                        buttonText="Proofread Content"
+                        icon={FileText}
+                      />
+                    )}
+                  </div>
                 </div>
               </motion.div>
-            </div>
-          )}
+            )}
 
-          {/* Proofreading Results */}
-          {activeTab === "normal" && (
-            <div className="space-y-4">
-              {isAnalyzingProofreading ? (
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="text-sm text-gray-500 text-center"
-                >
-                  Loading Proofreading Results...
-                </motion.p>
-              ) : (
-                proofreadingResults.length > 0 && (
+            {activeSection === "analysis" && (
+              <motion.div
+                key="analysis"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="p-4 space-y-4"
+              >
+                {competitiveAnalysisResults || result ? (
+                  <Collapse defaultActiveKey={["1"]} ghost expandIconPosition="end">
+                    {(result?.competitors || blog?.generatedMetadata?.competitors)?.length > 0 && (
+                      <Panel
+                        header={
+                          <div className="flex items-center gap-2">
+                            <Eye className="w-4 h-4 text-blue-600" />
+                            <span className="font-medium">Top Competitors</span>
+                            <Badge
+                              count={
+                                (result?.competitors || blog?.generatedMetadata?.competitors)
+                                  ?.length
+                              }
+                            />
+                          </div>
+                        }
+                        key="1"
+                      >
+                        <CompetitorsList
+                          competitors={result?.competitors || blog?.generatedMetadata?.competitors}
+                        />
+                      </Panel>
+                    )}
+
+                    {(competitiveAnalysisResults?.insights?.analysis ||
+                      competitiveAnalysisResults?.analysis) && (
+                      <Panel
+                        header={
+                          <div className="flex items-center gap-2">
+                            <Lightbulb className="w-4 h-4 text-orange-500" />
+                            <span className="font-medium">Key Insights</span>
+                          </div>
+                        }
+                        key="2"
+                      >
+                        <AnalysisInsights
+                          insights={
+                            competitiveAnalysisResults?.insights?.analysis ||
+                            competitiveAnalysisResults?.analysis
+                          }
+                        />
+                      </Panel>
+                    )}
+                  </Collapse>
+                ) : (
+                  <div className="text-center py-8">
+                    <TrendingUp className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                    <p className="text-sm text-gray-600 mb-2">No analysis results yet</p>
+                    <p className="text-xs text-gray-500">
+                      Run competitive analysis to see insights
+                    </p>
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {activeSection === "suggestions" && (
+              <motion.div
+                key="suggestions"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="p-4 space-y-4"
+              >
+                {isAnalyzingProofreading ? (
+                  <div className="text-center py-8">
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                      className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-3"
+                    />
+                    <p className="text-sm text-gray-600">Analyzing content...</p>
+                  </div>
+                ) : proofreadingResults.length > 0 ? (
                   <>
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-semibold text-gray-900">Suggestions</h3>
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <Lightbulb className="w-4 h-4 text-orange-500" />
+                        <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                          Suggestions
+                        </h3>
+                        <Badge count={proofreadingResults.length} />
+                      </div>
+                      <Button
+                        size="small"
+                        type="primary"
                         onClick={handleApplyAllSuggestions}
-                        className="text-blue-600 text-sm hover:text-blue-700 font-medium"
                         disabled={proofreadingResults.length === 0}
-                        aria-label="Apply all proofreading suggestions"
+                        className="text-xs"
                       >
                         Apply All
-                      </motion.button>
+                      </Button>
                     </div>
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3 }}
-                      className="bg-white rounded-xl shadow-sm border border-gray-100 p-5"
-                    >
-                      <div className="space-y-4">
-                        {proofreadingResults.map((suggestion, index) => (
-                          <div
-                            key={index}
-                            className="border-b border-gray-100 pb-4 last:border-b-0"
-                          >
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-2">
-                                <AlertCircle className="w-4 h-4 text-orange-500" />
-                                <span className="text-sm font-medium text-gray-900">Original:</span>
-                              </div>
-                              <p className="text-sm text-gray-600 bg-red-50 p-2 rounded">
-                                {suggestion.original}
-                              </p>
-                              <div className="flex items-center gap-2">
-                                <CheckCircle className="w-4 h-4 text-green-500" />
-                                <span className="text-sm font-medium text-gray-900">
-                                  Suggested:
-                                </span>
-                              </div>
-                              <p className="text-sm text-gray-600 bg-green-50 p-2 rounded">
-                                {suggestion.change}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </motion.div>
+
+                    <div className="space-y-3 max-h-96 overflow-y-auto">
+                      {proofreadingResults.map((suggestion, index) => (
+                        <ProofreadingSuggestion
+                          key={index}
+                          suggestion={suggestion}
+                          index={index}
+                          onApply={(suggestionIndex) => {
+                            const newResults = proofreadingResults.filter(
+                              (_, i) => i !== suggestionIndex
+                            )
+                            setProofreadingResults(newResults)
+                          }}
+                        />
+                      ))}
+                    </div>
                   </>
-                )
-              )}
-            </div>
-          )}
+                ) : (
+                  <div className="text-center py-8">
+                    <FileText className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                    <p className="text-sm text-gray-600 mb-2">No suggestions available</p>
+                    <p className="text-xs text-gray-500">Run AI proofreading to get suggestions</p>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Footer - Post Button */}
-        <div className="p-6 border-t border-gray-200 bg-white">
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+        <div className="p-4 border-t border-gray-200 bg-gray-50">
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
             <Button
               type="primary"
-              htmlType="button"
+              size="large"
               onClick={handlePostClick}
               loading={isPosting}
               disabled={isPosting}
-              className={`w-full p-6 rounded-lg text-lg font-semibold text-white transition-all duration-200 ${
-                isPosting
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-gradient-to-r from-green-600 to-emerald-600 hover:shadow-lg"
-              }`}
-              aria-label={blog?.wordpress ? "Re-post blog" : "Post blog"}
+              className="w-full h-12 text-base font-semibold bg-gradient-to-r from-green-600 to-emerald-600 border-0 hover:shadow-lg"
             >
-              {isPosting ? "Posting..." : blog?.wordpress ? "Re-Post" : "Post"}
+              {isPosting ? "Posting..." : blog?.wordpress ? "Re-Post" : "Post Blog"}
             </Button>
           </motion.div>
 
@@ -752,6 +869,18 @@ const TextEditorSidebar = ({
         </div>
       </motion.div>
 
+      {/* Settings Modal */}
+      <Modal
+        title="Content Enhancement Settings"
+        open={open}
+        onCancel={() => setOpen(false)}
+        footer={null}
+        centered
+        width={480}
+      >
+        <FeatureSettingsModal features={blog?.options || {}} />
+      </Modal>
+
       {/* Category Selection Modal */}
       <CategoriesModal
         isCategoryModalOpen={isCategoryModalOpen}
@@ -770,31 +899,46 @@ const FeatureSettingsModal = ({ features }) => {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="mt-4 bg-white rounded-lg shadow-sm border-gray-100"
+      className="space-y-3"
     >
-      <div className="grid grid-cols-1 gap-2">
-        {Object.entries(features || {}).map(([key, value]) => {
-          const isEnabled = Boolean(value)
-          return (
-            <motion.div
-              key={key}
-              whileHover={{ backgroundColor: "#f3f4f6" }}
-              className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-sm transition-colors duration-150"
-              aria-label={`Feature: ${key.replace(/([A-Z])/g, " $1").trim()}, ${
-                isEnabled ? "Enabled" : "Disabled"
-              }`}
-            >
-              <span className="text-sm text-gray-700 capitalize">
-                {key.replace(/([A-Z])/g, " $1").trim()}
-              </span>
-              <span
-                className={`text-sm font-medium ${isEnabled ? "text-blue-600" : "text-gray-500"}`}
+      <div className="text-sm text-gray-600 mb-4">
+        Here are the content enhancement features currently applied to your blog:
+      </div>
+
+      <div className="grid grid-cols-1 gap-3">
+        {Object.entries(features || {}).length > 0 ? (
+          Object.entries(features).map(([key, value]) => {
+            const isEnabled = Boolean(value)
+            return (
+              <motion.div
+                key={key}
+                whileHover={{ backgroundColor: "#f8fafc" }}
+                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100 transition-colors duration-150"
               >
-                {isEnabled ? "Enabled" : "Disabled"}
-              </span>
-            </motion.div>
-          )
-        })}
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-2 h-2 rounded-full ${isEnabled ? "bg-green-500" : "bg-gray-400"}`}
+                  />
+                  <span className="text-sm font-medium text-gray-700 capitalize">
+                    {key.replace(/([A-Z])/g, " $1").trim()}
+                  </span>
+                </div>
+                <span
+                  className={`text-xs font-medium px-2 py-1 rounded-full ${
+                    isEnabled ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
+                  }`}
+                >
+                  {isEnabled ? "Enabled" : "Disabled"}
+                </span>
+              </motion.div>
+            )
+          })
+        ) : (
+          <div className="text-center py-6">
+            <SlidersHorizontal className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+            <p className="text-sm text-gray-500">No enhancement features configured</p>
+          </div>
+        )}
       </div>
     </motion.div>
   )
