@@ -1,40 +1,40 @@
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { CloseOutlined } from "@ant-design/icons";
-import { Button, Input, Table, Tag, Modal, Switch } from "antd";
-import { useDispatch, useSelector } from "react-redux";
+import { useEffect, useState } from "react"
+import { motion } from "framer-motion"
+import { CloseOutlined } from "@ant-design/icons"
+import { Button, Input, Table, Tag, Modal, Switch } from "antd"
+import { useDispatch, useSelector } from "react-redux"
 import {
   analyzeKeywordsThunk,
   clearKeywordAnalysis,
   setSelectedKeywords,
-} from "@store/slices/analysisSlice";
+} from "@store/slices/analysisSlice"
 
 const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, visible }) => {
-  const [newKeyword, setNewKeyword] = useState("");
-  const [keywords, setKeywords] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [showSelectedOnly, setShowSelectedOnly] = useState(false);
+  const [newKeyword, setNewKeyword] = useState("")
+  const [keywords, setKeywords] = useState([])
+  const [currentPage, setCurrentPage] = useState(1)
+  const [showSelectedOnly, setShowSelectedOnly] = useState(false)
 
-  const dispatch = useDispatch();
+  const dispatch = useDispatch()
   const {
     keywordAnalysis: keywordAnalysisResult,
     loading: analyzing,
     selectedKeywords,
-  } = useSelector((state) => state.analysis);
+  } = useSelector((state) => state.analysis)
 
   useEffect(() => {
     if (keywords.length === 0) {
-      setCurrentPage(1);
-      dispatch(clearKeywordAnalysis());
+      setCurrentPage(1)
+      dispatch(clearKeywordAnalysis())
     }
-  }, [keywords, dispatch]);
+  }, [keywords, dispatch])
 
   const addKeyword = () => {
-    const input = newKeyword.trim();
-    if (!input) return;
+    const input = newKeyword.trim()
+    if (!input) return
 
-    const existing = keywords.map((k) => k.toLowerCase());
-    const seen = new Set();
+    const existing = keywords.map((k) => k.toLowerCase())
+    const seen = new Set()
 
     const newKeywords = input
       .split(",")
@@ -45,87 +45,87 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
           !existing.includes(k.toLowerCase()) &&
           !seen.has(k.toLowerCase()) &&
           seen.add(k.toLowerCase())
-      );
+      )
 
     if (newKeywords.length > 0) {
-      setKeywords([...keywords, ...newKeywords]);
-      setNewKeyword("");
+      setKeywords([...keywords, ...newKeywords])
+      setNewKeyword("")
     }
-  };
+  }
 
   const removeKeyword = (index) => {
-    const keywordToRemove = keywords[index];
-    const updatedKeywords = keywords.filter((_, i) => i !== index);
-    setKeywords(updatedKeywords);
+    const keywordToRemove = keywords[index]
+    const updatedKeywords = keywords.filter((_, i) => i !== index)
+    setKeywords(updatedKeywords)
     if (updatedKeywords.length === 0) {
-      dispatch(clearKingdomAnalysis());
-      setCurrentPage(1);
+      dispatch(clearKingdomAnalysis())
+      setCurrentPage(1)
     }
     // Remove from selectedKeywords if present
     if (selectedKeywords?.allKeywords?.includes(keywordToRemove)) {
       const updatedSelectedKeywords = selectedKeywords.allKeywords.filter(
         (kw) => kw !== keywordToRemove
-      );
+      )
       dispatch(
         setSelectedKeywords({
           focusKeywords: updatedSelectedKeywords.slice(0, 3),
           keywords: updatedSelectedKeywords,
           allKeywords: updatedSelectedKeywords,
         })
-      );
+      )
     }
-  };
+  }
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter") {
-      e.preventDefault();
-      addKeyword();
+      e.preventDefault()
+      addKeyword()
     }
-  };
+  }
 
   const analyzeKeywords = () => {
     if (keywords.length > 0) {
-      dispatch(analyzeKeywordsThunk(keywords));
-      setCurrentPage(1);
+      dispatch(analyzeKeywordsThunk(keywords))
+      setCurrentPage(1)
     }
-  };
+  }
 
   const getAutoSelectedKeywords = () => {
-    const byCompetition = { LOW: [], MEDIUM: [], HIGH: [] };
+    const byCompetition = { LOW: [], MEDIUM: [], HIGH: [] }
     keywordAnalysisResult?.forEach((kw) => {
       if (byCompetition[kw.competition]) {
         byCompetition[kw.competition].push({
           keyword: kw.keyword,
           competition_index: kw.competition_index,
-        });
+        })
       }
-    });
+    })
 
     const sortedLow = byCompetition.LOW.sort(
       (a, b) => a.competition_index - b.competition_index
-    ).slice(0, 2);
+    ).slice(0, 2)
     const sortedMedium = byCompetition.MEDIUM.sort(
       (a, b) => a.competition_index - b.competition_index
-    ).slice(0, 2);
+    ).slice(0, 2)
     const sortedHigh = byCompetition.HIGH.sort(
       (a, b) => a.competition_index - b.competition_index
-    ).slice(0, 2);
+    ).slice(0, 2)
 
     return [
       ...sortedLow.map((item) => item.keyword),
       ...sortedMedium.map((item) => item.keyword),
       ...sortedHigh.map((item) => item.keyword),
-    ];
-  };
+    ]
+  }
 
   const showAutoKeywords = () => {
-    const autoKeywords = getAutoSelectedKeywords();
+    const autoKeywords = getAutoSelectedKeywords()
     if (!autoKeywords.length || !keywordAnalysisResult?.length) {
       Modal.error({
         title: "No Auto-Selected Keywords",
         content: "No keywords available to auto-select. Please analyze keywords first.",
-      });
-      return;
+      })
+      return
     }
 
     Modal.info({
@@ -155,61 +155,61 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
         const finalKeywords = [
           ...(selectedKeywords?.allKeywords || []),
           ...autoKeywords.filter((kw) => !selectedKeywords?.allKeywords?.includes(kw)),
-        ].slice(0, 6); // Limit to 6 keywords
+        ].slice(0, 6) // Limit to 6 keywords
         dispatch(
           setSelectedKeywords({
             focusKeywords: finalKeywords.slice(0, 3),
             keywords: finalKeywords,
             allKeywords: finalKeywords,
           })
-        );
+        )
       },
       onCancel() {
         // Keep existing selected keywords
-        const finalKeywords = selectedKeywords?.allKeywords || [];
+        const finalKeywords = selectedKeywords?.allKeywords || []
         dispatch(
           setSelectedKeywords({
             focusKeywords: finalKeywords.slice(0, 3),
             keywords: finalKeywords,
             allKeywords: finalKeywords,
           })
-        );
+        )
       },
       okButtonProps: { className: "bg-blue-600 text-white" },
-    });
-  };
+    })
+  }
 
   const proceedWithSelectedKeywords = async (type) => {
-    const finalKeywords = selectedKeywords?.allKeywords || [];
+    const finalKeywords = selectedKeywords?.allKeywords || []
     await dispatch(
       setSelectedKeywords({
         focusKeywords: finalKeywords.slice(0, 3),
-        keywords: finalKeywords,
+        keywords: finalKeywords.slice(3),
         allKeywords: finalKeywords,
       })
-    );
+    )
 
     setTimeout(() => {
       if (type === "blog") {
         openSecondStepModal({
           focusKeywords: finalKeywords.slice(0, 3),
-          keywords: finalKeywords,
+          keywords: finalKeywords.slice(3),
           allKeywords: finalKeywords,
-        });
+        })
       } else {
-        openJobModal();
+        openJobModal()
       }
-      closeFnc();
-    }, 100);
-  };
+      closeFnc()
+    }, 100)
+  }
 
   const handleCreateBlog = () => {
-    proceedWithSelectedKeywords("blog");
-  };
+    proceedWithSelectedKeywords("blog")
+  }
 
   const handleCreateJob = () => {
-    proceedWithSelectedKeywords("job");
-  };
+    proceedWithSelectedKeywords("job")
+  }
 
   const columns = [
     {
@@ -254,7 +254,7 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
       sorter: (a, b) => a.competition_index - b.competition_index,
       render: (value) => (value ? value : "-"),
     },
-  ];
+  ]
 
   const tableData =
     keywordAnalysisResult?.map((kw, idx) => ({
@@ -266,35 +266,35 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
       avgCpc: kw.avgCpc,
       lowBid: kw.lowBid,
       highBid: kw.highBid,
-    })) || [];
+    })) || []
 
   const filteredTableData = showSelectedOnly
     ? tableData.filter((row) => selectedKeywords?.allKeywords?.includes(row.keyword))
-    : tableData;
+    : tableData
 
-  const handlePageChange = (page) => setCurrentPage(page);
+  const handlePageChange = (page) => setCurrentPage(page)
 
   useEffect(() => {
     return () => {
-      setKeywords([]);
-      setNewKeyword("");
-      setCurrentPage(1);
-      setShowSelectedOnly(false);
-    };
-  }, []);
+      setKeywords([])
+      setNewKeyword("")
+      setCurrentPage(1)
+      setShowSelectedOnly(false)
+    }
+  }, [])
 
   useEffect(() => {
     if (visible) {
-      document.body.style.overflow = "hidden";
+      document.body.style.overflow = "hidden"
     } else {
-      document.body.style.overflow = "auto";
+      document.body.style.overflow = "auto"
     }
     return () => {
-      document.body.style.overflow = "auto";
-    };
-  }, [visible]);
+      document.body.style.overflow = "auto"
+    }
+  }, [visible])
 
-  const hasSelectedKeywords = selectedKeywords?.allKeywords?.length > 0;
+  const hasSelectedKeywords = selectedKeywords?.allKeywords?.length > 0
 
   return (
     <Modal
@@ -417,16 +417,14 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
                 onChange={(checked) => setShowSelectedOnly(checked)}
                 disabled={!hasSelectedKeywords}
               />
-              <span className="ml-2 text-gray-600">
-                Show Selected Keywords Only
-              </span>
+              <span className="ml-2 text-gray-600">Show Selected Keywords Only</span>
             </div>
             <Table
               columns={columns}
               dataSource={filteredTableData}
               pagination={{
                 current: currentPage,
-                pageSize: 4,
+                pageSize: 5,
                 showSizeChanger: false,
                 onChange: handlePageChange,
                 total: filteredTableData.length,
@@ -440,7 +438,7 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
                       keywords: selected,
                       allKeywords: selected,
                     })
-                  );
+                  )
                 },
                 getCheckboxProps: (record) => ({
                   name: record.keyword,
@@ -453,7 +451,7 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
         )}
       </div>
     </Modal>
-  );
-};
+  )
+}
 
-export default KeywordResearchModel;
+export default KeywordResearchModel

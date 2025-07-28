@@ -174,10 +174,9 @@ const SearchConsole = () => {
         if (typeof event.data === "string" && event.data === "GSC Connected") {
           try {
             setIsAuthenticated(true)
-            await dispatch(fetchVerifiedSites()).unwrap()
             message.success("Google Search Console connected successfully!")
             await fetchAnalyticsData()
-            navigate("/blog-performance", { replace: true })
+            navigate(0)
           } catch (err) {
             const errorMessage = err.message || err.error || "Failed to verify GSC connection"
             message.error(errorMessage)
@@ -200,7 +199,6 @@ const SearchConsole = () => {
           clearInterval(checkPopupClosed)
           setIsConnecting(false)
           window.removeEventListener("message", handleMessage)
-          message.warning("Authentication canceled")
         }
       }, 1000)
 
