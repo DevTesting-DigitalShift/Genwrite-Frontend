@@ -22,6 +22,9 @@ export default defineConfig({
   },
   build: {
     cssCodeSplit: true, // Split CSS into separate files based on entry points
+    cssMinify: "esbuild",
+    modulePreload: true,
+    minify: "esbuild",
     sourcemap: false, // Optional: useful for debugging
     rollupOptions: {
       output: {
@@ -31,7 +34,7 @@ export default defineConfig({
       },
     },
   },
-  // optimizeDeps: {
-  //   include: ["@tiptap/extension-font-family", "@tiptap/extension-history", "prismjs"],
-  // },
+  optimizeDeps: {
+    include: ["@tiptap/extension-font-family", "antd", "@tiptap/extension-history", "prismjs"],
+  },
 })
