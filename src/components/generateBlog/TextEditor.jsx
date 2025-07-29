@@ -24,6 +24,7 @@ import {
   AlignCenter,
   AlignRight,
   Link as LinkIcon,
+  Image as ImageIcon,
   Eye,
   EyeOff,
   Undo2,
@@ -41,6 +42,7 @@ import { ProofreadingDecoration } from "@/extensions/ProofreadingDecoration"
 import { useProofreadingUI } from "./useProofreadingUI"
 import Loading from "@components/Loading"
 import { ReloadOutlined } from "@ant-design/icons"
+import { sendRetryLines } from "@api/blogApi"
 
 // Configure marked for better HTML output
 marked.setOptions({
@@ -68,11 +70,13 @@ const TextEditor = ({
   handleReplace,
   isSavingKeyword,
 }) => {
-  console.log({ content })
   const [isEditorLoading, setIsEditorLoading] = useState(true)
   const [selectedFont, setSelectedFont] = useState(FONT_OPTIONS[0].value)
   const [linkModalOpen, setLinkModalOpen] = useState(false)
+  const [imageModalOpen, setImageModalOpen] = useState(false)
   const [linkUrl, setLinkUrl] = useState("")
+  const [imageUrl, setImageUrl] = useState("")
+  const [imageAlt, setImageAlt] = useState("")
   const [markdownPreview, setMarkdownPreview] = useState(false)
   const [editorReady, setEditorReady] = useState(false)
   const [selectionPosition, setSelectionPosition] = useState(null)
@@ -97,9 +101,7 @@ const TextEditor = ({
   // Helper function to convert markdown to HTML
   const markdownToHtml = useCallback((markdown) => {
     if (!markdown) return "<p></p>"
-
     try {
-      // Parse markdown to HTML using marked
       const html = marked.parse(markdown)
       return html
     } catch (error) {
@@ -111,19 +113,17 @@ const TextEditor = ({
   // Helper function to convert HTML to markdown
   const htmlToMarkdown = useCallback((html) => {
     if (!html) return ""
-
     try {
       const turndownService = new TurndownService({
         strongDelimiter: "**",
         emDelimiter: "*",
-        headingStyle: "atx", // Use # for headings
+        headingStyle: "atx",
         bulletListMarker: "-",
         codeDelimiter: "```",
         fence: "```",
         hr: "---",
       })
 
-      // Configure turndown rules for better conversion
       turndownService.addRule("heading", {
         filter: ["h1", "h2", "h3", "h4", "h5", "h6"],
         replacement: function (content, node) {
@@ -163,47 +163,51 @@ const TextEditor = ({
   }, [safeContent])
 
   const normalEditor = useEditor(
-    {
-      extensions: [
-        StarterKit.configure({
-          heading: { levels: [1, 2, 3] },
-          bold: {
-            HTMLAttributes: {
-              class: "font-bold",
-            },
-          },
-        }),
-        Link.configure({
-          HTMLAttributes: { class: "text-blue-600 underline" },
-        }),
-        Image.configure({
-          HTMLAttributes: {
-            class: "rounded-lg mx-auto my-4 max-w-[800px] w-full h-auto object-contain",
-            style: "display: block; margin: 2rem auto;",
-          },
-        }),
-        Underline,
-        TextAlign.configure({ types: ["heading", "paragraph"] }),
-        ProofreadingDecoration.configure({
-          suggestions: proofreadingResults,
-        }),
-      ],
-      content: initialContent,
-      onUpdate: ({ editor }) => {
-        const turndownService = new TurndownService({
-          strongDelimiter: "**",
-        })
-        const markdown = turndownService.turndown(editor.getHTML())
-        setContent(markdown)
-      },
-      editorProps: {
-        attributes: {
-          class: `prose max-w-none focus:outline-none p-4 min-h-[400px] opacity-100 ${selectedFont} blog-content editor-container`,
+  {
+    extensions: [
+      StarterKit.configure({
+        heading: { levels: [1, 2, 3] },
+        bold: { HTMLAttributes: { class: "font-bold" } },
+      }),
+      Link.configure({ HTMLAttributes: { class: "text-blue-600 underline" } }),
+      Image.configure({
+        HTMLAttributes: {
+          class: "rounded-lg mx-auto my-4 max-w-[800px] w-full h-auto object-contain",
+          style: "display: block; margin: 2rem auto;",
         },
+      }),
+      Underline,
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      ProofreadingDecoration.configure({
+        suggestions: proofreadingResults, // Ensure all suggestions are passed
+      }),
+    ],
+    content: initialContent,
+    onUpdate: ({ editor }) => {
+      const html = editor.getHTML();
+      const markdown = htmlToMarkdown(html);
+      if (markdown !== safeContent) {
+        setContent(markdown);
+        // Update proofreading suggestions to reflect current content
+        setProofreadingResults((prev) =>
+          prev.filter((suggestion) =>
+            markdown.includes(suggestion.original)
+          )
+        );
+      }
+    },
+    editorProps: {
+      attributes: {
+        class: `prose max-w-none focus:outline-none p-4 min-h-[400px] opacity-100 ${selectedFont} blog-content editor-container`,
       },
     },
-    [selectedFont, proofreadingResults]
-  )
+    onSelectionUpdate: ({ editor }) => {
+      const { from, to } = editor.state.selection;
+      setSelectionRange({ from, to });
+    },
+  },
+  [selectedFont, proofreadingResults, htmlToMarkdown, setContent]
+);
 
   const { activeSpan, bubbleRef, applyChange, rejectChange } = useProofreadingUI(normalEditor)
 
@@ -213,7 +217,7 @@ const TextEditor = ({
     const timer = setTimeout(() => {
       setIsEditorLoading(false)
       if (normalEditor && activeTab === "Normal") {
-        normalEditor.commands.focus("start")
+        normalEditor.commands.focus()
       }
     }, 300)
     return () => clearTimeout(timer)
@@ -256,24 +260,12 @@ const TextEditor = ({
       }
       .editor-container h1 {
         font-size: 1.5rem;
-        // font-weight: bold;
-        // margin: 1.5rem 0 1rem 0;
-        // line-height: 1.2;
-        // color: #1f2937;
       }
       .editor-container h2 {
         font-size: 1.25rem;
-        // font-weight: bold;
-        // margin: 1.25rem 0 0.75rem 0;
-        // line-height: 1.3;
-        // color: #374151;
       }
       .editor-container h3 {
         font-size: 1rem;
-        // font-weight: bold;
-        // margin: 1rem 0 0.5rem 0;
-        // line-height: 1.4;
-        // color: #4b5563;
       }
       .editor-container ul, .editor-container ol {
         margin: 1rem 0;
@@ -287,11 +279,8 @@ const TextEditor = ({
       }
       .editor-container li {
         margin: 0.5rem 0;
-        // line-height: 1.6;
       }
       .editor-container p {
-        // margin: 1rem 0;
-        // line-height: 1.7;
         color: #374151;
       }
       .editor-container strong {
@@ -341,7 +330,6 @@ const TextEditor = ({
       .code-textarea {
         font-family: 'SF Mono', monospace;
         font-size: 14px;
-        // line-height: 1.5;
         border: none;
         outline: none;
         resize: none;
@@ -383,17 +371,16 @@ const TextEditor = ({
     }
   }, [])
 
-  // Update editor content when safeContent changes
+  // Update editor content only when necessary
   useEffect(() => {
     if (normalEditor && activeTab === "Normal" && !normalEditor.isDestroyed) {
-      try {
-        const htmlContent = markdownToHtml(safeContent)
-        // Only update if content has actually changed
-        if (normalEditor.getHTML() !== htmlContent) {
-          normalEditor.commands.setContent(htmlContent, false)
-        }
-      } catch (error) {
-        console.warn("Failed to update editor content:", error)
+      const currentHtml = normalEditor.getHTML()
+      const newHtml = markdownToHtml(safeContent)
+      if (currentHtml !== newHtml) {
+        const { from, to } = normalEditor.state.selection
+        normalEditor.commands.setContent(newHtml, false)
+        // Restore cursor position
+        normalEditor.commands.setTextSelection({ from, to })
       }
     }
   }, [safeContent, activeTab, normalEditor, markdownToHtml])
@@ -432,14 +419,20 @@ const TextEditor = ({
 
   useEffect(() => {
     const initialContent = blog?.content ?? ""
-    setContent(initialContent)
-    if (normalEditor && !normalEditor.isDestroyed && activeTab === "normal") {
+    if (safeContent !== initialContent) {
+      setContent(initialContent)
+    }
+    if (normalEditor && !normalEditor.isDestroyed && activeTab === "Normal") {
       const htmlContent = initialContent ? marked.parse(initialContent, { gfm: true }) : "<p></p>"
-      normalEditor.commands.setContent(htmlContent)
+      if (normalEditor.getHTML() !== htmlContent) {
+        const { from, to } = normalEditor.state.selection
+        normalEditor.commands.setContent(htmlContent, false)
+        normalEditor.commands.setTextSelection({ from, to })
+      }
     }
   }, [blog, normalEditor, activeTab, setContent])
 
-  // Handle click outside for model dropdown
+  // Handle click outside for dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -498,6 +491,14 @@ const TextEditor = ({
     })
   }, [normalEditor, safeEditorAction])
 
+  const handleAddImage = useCallback(() => {
+    safeEditorAction(() => {
+      setImageUrl("")
+      setImageAlt("")
+      setImageModalOpen(true)
+    })
+  }, [safeEditorAction])
+
   const handleRegenerate = () => {
     if (userPlan === "free" || userPlan === "basic") {
       handlePopup({
@@ -552,6 +553,34 @@ const TextEditor = ({
     },
     [setContent]
   )
+
+  const handleConfirmImage = useCallback(() => {
+    if (!imageUrl || !/https?:\/\//i.test(imageUrl)) {
+      message.error("Enter a valid image URL.")
+      return
+    }
+    if (activeTab === "Normal" && normalEditor) {
+      const { from } = normalEditor.state.selection
+      normalEditor
+        .chain()
+        .focus()
+        .setImage({ src: imageUrl, alt: imageAlt })
+        .setTextSelection(from)
+        .run()
+      setImageModalOpen(false)
+      message.success("Image added.")
+    } else if (activeTab === "Markdown") {
+      const markdownImage = `![${imageAlt}](${imageUrl})`
+      insertText(markdownImage, "", mdEditorRef)
+      setImageModalOpen(false)
+      message.success("Image added.")
+    } else if (activeTab === "HTML") {
+      const htmlImage = `<img src="${imageUrl}" alt="${imageAlt}" />`
+      insertText(htmlImage, "", htmlEditorRef)
+      setImageModalOpen(false)
+      message.success("Image added.")
+    }
+  }, [imageUrl, imageAlt, normalEditor, activeTab, insertText])
 
   const handleTextSelection = useCallback((e) => {
     const textarea = e.target
@@ -674,7 +703,6 @@ const TextEditor = ({
     message.info("Retry content discarded.")
   }
 
-  // Rest of your component methods remain the same...
   const FloatingToolbar = ({ editorRef, mode }) => {
     if (!selectionPosition || !editorRef.current) return null
     const formatActions = {
@@ -691,6 +719,10 @@ const TextEditor = ({
           icon: <LinkIcon className="w-4 h-4" />,
           action: () => safeEditorAction(() => insertText("[", "](url)", editorRef)),
         },
+        {
+          icon: <ImageIcon className="w-4 h-4" />,
+          action: handleAddImage,
+        },
       ],
       HTML: [
         {
@@ -704,6 +736,10 @@ const TextEditor = ({
         {
           icon: <LinkIcon className="w-4 h-4" />,
           action: () => safeEditorAction(() => insertText('<a href="url">', "</a>", editorRef)),
+        },
+        {
+          icon: <ImageIcon className="w-4 h-4" />,
+          action: handleAddImage,
         },
       ],
     }
@@ -951,6 +987,16 @@ const TextEditor = ({
             <LinkIcon className="w-4 h-4" />
           </button>
         </Tooltip>
+        <Tooltip title="Image">
+          <button
+            onClick={handleAddImage}
+            className="p-2 rounded-md hover:bg-gray-100 transition-colors duration-150 flex items-center justify-center"
+            aria-label="Image"
+            type="button"
+          >
+            <ImageIcon className="w-4 h-4" />
+          </button>
+        </Tooltip>
         <Tooltip title="Undo">
           <button
             onClick={() => safeEditorAction(() => normalEditor?.chain().focus().undo().run())}
@@ -1030,7 +1076,6 @@ const TextEditor = ({
           </Select.Option>
         ))}
       </Select>
-      {/* Preview Toggle */}
       {(activeTab === "Markdown" || activeTab === "HTML") && (
         <>
           <div className="w-px h-6 bg-gray-200 mx-2" />
@@ -1062,7 +1107,9 @@ const TextEditor = ({
 
     if (markdownPreview && (activeTab === "Markdown" || activeTab === "HTML")) {
       return (
-        <div className={`p-8 rounded-lg rounded-t-none overflow-y-auto bg-white ${selectedFont}`}>
+        <div
+          className={`p-8 rounded-lg rounded-t-none overflow-y-auto h-screen bg-white ${selectedFont}`}
+        >
           <h1 className="text-3xl font-bold mb-6 text-gray-900">{title || "Untitled"}</h1>
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
@@ -1096,95 +1143,100 @@ const TextEditor = ({
               h3: ({ children }) => (
                 <h3 className="text-lg font-medium mt-4 mb-2 text-gray-700">{children}</h3>
               ),
-              p: ({ children }) => {
-                const textContent = React.Children.toArray(children)
-                  .map((child) => (typeof child === "string" ? child : ""))
-                  .join("")
-                return (
-                  <p className="mb-4 leading-relaxed text-gray-700">
-                    {React.Children.map(children, (child, index) => {
-                      if (typeof child === "string") {
-                        let remainingText = child
-                        let elements = []
-                        let keyIndex = 0
-                        while (remainingText.length > 0) {
-                          let matched = false
-                          for (const suggestion of proofreadingResults) {
-                            const regex = new RegExp(
-                              suggestion.original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
-                              "i"
-                            )
-                            const match = remainingText.match(regex)
-                            if (match && match.index === 0) {
-                              elements.push(
-                                <span
-                                  key={`${index}-${keyIndex++}`}
-                                  className="suggestion-highlight"
-                                  onMouseEnter={() => setHoveredSuggestion(suggestion)}
-                                  onMouseLeave={() => setHoveredSuggestion(null)}
-                                >
-                                  {match[0]}
-                                  {hoveredSuggestion === suggestion && (
-                                    <div
-                                      className="suggestion-tooltip"
-                                      style={{ top: "100%", left: 0 }}
-                                    >
-                                      <p className="text-sm mb-2">
-                                        <strong>Suggested:</strong> {suggestion.change}
-                                      </p>
-                                      <button
-                                        className="bg-blue-600 text-white px-2 py-1 rounded"
-                                        onClick={() =>
-                                          handleReplace(suggestion.original, suggestion.change)
-                                        }
-                                      >
-                                        Replace
-                                      </button>
-                                    </div>
-                                  )}
-                                </span>
-                              )
-                              remainingText = remainingText.slice(match[0].length)
-                              matched = true
-                              break
-                            }
+             p: ({ children }) => {
+  const textContent = React.Children.toArray(children)
+    .map((child) => (typeof child === "string" ? child : ""))
+    .join("");
+  return (
+    <p className="mb-4 leading-relaxed text-gray-700">
+      {React.Children.map(children, (child, index) => {
+        if (typeof child === "string") {
+          let remainingText = child;
+          let elements = [];
+          let keyIndex = 0;
+          // Sort suggestions by length (descending) to prioritize longer matches
+          const sortedSuggestions = [...proofreadingResults].sort(
+            (a, b) => b.original.length - a.original.length
+          );
+          while (remainingText.length > 0) {
+            let matched = false;
+            for (const suggestion of sortedSuggestions) {
+              const regex = new RegExp(
+                suggestion.original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+                "i" // Case-insensitive matching
+              );
+              const match = remainingText.match(regex);
+              if (match && match.index === 0) {
+                elements.push(
+                  <span
+                    key={`${index}-${keyIndex++}`}
+                    className="suggestion-highlight"
+                    onMouseEnter={() => setHoveredSuggestion(suggestion)}
+                    onMouseLeave={() => setHoveredSuggestion(null)}
+                  >
+                    {match[0]}
+                    {hoveredSuggestion === suggestion && (
+                      <div
+                        className="suggestion-tooltip"
+                        style={{ top: "100%", left: 0 }}
+                      >
+                        <p className="text-sm mb-2">
+                          <strong>Suggested:</strong> {suggestion.change}
+                        </p>
+                        <button
+                          className="bg-blue-600 text-white px-2 py-1 rounded"
+                          onClick={() =>
+                            handleReplace(suggestion.original, suggestion.change)
                           }
-                          if (!matched) {
-                            let minIndex = remainingText.length
-                            let nextMatchLength = 0
-                            for (const suggestion of proofreadingResults) {
-                              const regex = new RegExp(
-                                suggestion.original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
-                                "i"
-                              )
-                              const match = remainingText.match(regex)
-                              if (match && match.index < minIndex) {
-                                minIndex = match.index
-                                nextMatchLength = match[0].length
-                              }
-                            }
-                            if (minIndex === remainingText.length) {
-                              elements.push(
-                                <span key={`${index}-${keyIndex++}`}>{remainingText}</span>
-                              )
-                              remainingText = ""
-                            } else {
-                              elements.push(
-                                <span key={`${index}-${keyIndex++}`}>
-                                  {remainingText.slice(0, minIndex)}
-                                </span>
-                              )
-                              remainingText = remainingText.slice(minIndex)
-                            }
-                          }
-                        }
-                        return elements
-                      }
-                      return child
-                    })}
-                  </p>
-                )
-              },
+                        >
+                          Replace
+                        </button>
+                      </div>
+                    )}
+                  </span>
+                );
+                remainingText = remainingText.slice(match[0].length);
+                matched = true;
+                break;
+              }
+            }
+            if (!matched) {
+              // Find the next closest suggestion
+              let minIndex = remainingText.length;
+              let nextMatch = null;
+              for (const suggestion of sortedSuggestions) {
+                const regex = new RegExp(
+                  suggestion.original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+                  "i"
+                );
+                const match = remainingText.match(regex);
+                if (match && match.index < minIndex) {
+                  minIndex = match.index;
+                  nextMatch = match;
+                }
+              }
+              if (minIndex === remainingText.length) {
+                elements.push(
+                  <span key={`${index}-${keyIndex++}`}>{remainingText}</span>
+                );
+                remainingText = "";
+              } else {
+                elements.push(
+                  <span key={`${index}-${keyIndex++}`}>
+                    {remainingText.slice(0, minIndex)}
+                  </span>
+                );
+                remainingText = remainingText.slice(minIndex);
+              }
+            }
+          }
+          return elements;
+        }
+        return child;
+      })}
+    </p>
+  );
+},
               ul: ({ children }) => (
                 <ul className="list-disc list-inside mb-4 space-y-2 text-gray-700">{children}</ul>
               ),
@@ -1231,7 +1283,6 @@ const TextEditor = ({
                     onClick={() => {
                       safeEditorAction(() => {
                         normalEditor.chain().focus().toggleBold().run()
-                        normalEditor.commands.blur()
                       })
                     }}
                   >
@@ -1243,7 +1294,6 @@ const TextEditor = ({
                     onClick={() => {
                       safeEditorAction(() => {
                         normalEditor.chain().focus().toggleItalic().run()
-                        normalEditor.commands.blur()
                       })
                     }}
                   >
@@ -1255,7 +1305,6 @@ const TextEditor = ({
                     onClick={() => {
                       safeEditorAction(() => {
                         normalEditor.chain().focus().toggleHeading({ level: 2 }).run()
-                        normalEditor.commands.blur()
                       })
                     }}
                   >
@@ -1265,6 +1314,11 @@ const TextEditor = ({
                 <Tooltip title="Link" placement="top">
                   <button onClick={handleAddLink}>
                     <LinkIcon className="w-5 h-5" />
+                  </button>
+                </Tooltip>
+                <Tooltip title="Image" placement="top">
+                  <button onClick={handleAddImage}>
+                    <ImageIcon className="w-5 h-5" />
                   </button>
                 </Tooltip>
                 <Tooltip title="Rewrite" placement="top">
@@ -1439,15 +1493,6 @@ const TextEditor = ({
           </button>
         ))}
       </div>
-      {/* <div className="p-4 border bg-white border-gray-200">
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Enter blog title..."
-          className="w-full text-4xl font-bold bg-transparent border-none outline-none"
-          maxLength={200}
-        />
-      </div> */}
       {renderToolbar()}
       {renderContentArea()}
       <Modal
@@ -1467,6 +1512,32 @@ const TextEditor = ({
           prefix={<LinkIcon className="w-4 h-4 text-gray-400" />}
         />
         <p className="mt-2 text-xs text-gray-500">Include http:// or https://</p>
+      </Modal>
+      <Modal
+        title="Insert Image"
+        open={imageModalOpen}
+        onOk={handleConfirmImage}
+        onCancel={() => setImageModalOpen(false)}
+        okText="Insert Image"
+        cancelText="Cancel"
+        centered
+      >
+        <Input
+          value={imageUrl}
+          onChange={(e) => setImageUrl(e.target.value)}
+          placeholder="https://example.com/image.jpg"
+          className="w-full mt-4"
+          prefix={<ImageIcon className="w-4 h-4 text-gray-400" />}
+        />
+        <p className="mt-2 text-xs text-gray-500">Include http:// or https://</p>
+        <Input
+          value={imageAlt}
+          onChange={(e) => setImageAlt(e.target.value)}
+          placeholder="Image description"
+          className="w-full mt-4"
+          prefix={<ImageIcon className="w-4 h-4 text-gray-400" />}
+        />
+        <p className="mt-2 text-xs text-gray-500">Provide alt text for accessibility</p>
       </Modal>
     </motion.div>
   )
