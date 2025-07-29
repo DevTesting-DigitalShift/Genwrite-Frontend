@@ -29,6 +29,7 @@ import { fetchCompetitiveAnalysisThunk } from "@store/slices/analysisSlice"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
 import { getCategoriesThunk } from "@store/slices/otherSlice"
 import CategoriesModal from "@components/CategoriesModal"
+import Loading from "@components/Loading"
 
 const { Panel } = Collapse
 
@@ -53,8 +54,6 @@ const TextEditorSidebar = ({
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
   const [activeSection, setActiveSection] = useState("overview")
-  const [expandedPanels, setExpandedPanels] = useState(["1"])
-
   const user = useSelector((state) => state.auth.user)
   const userPlan = user?.plan ?? user?.subscription?.plan
   const navigate = useNavigate()
@@ -297,6 +296,10 @@ const TextEditorSidebar = ({
     setIsCategoryModalOpen(true)
   }, [])
 
+  if (isAnalyzingCompetitive) {
+    return <Loading />
+  }
+
   const FeatureCard = ({
     title,
     description,
@@ -503,7 +506,6 @@ const TextEditorSidebar = ({
             {suggestion.original}
           </div>
         </div>
-
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <CheckCircle className="w-4 h-4 text-green-500" />
@@ -513,14 +515,13 @@ const TextEditorSidebar = ({
             {suggestion.change}
           </div>
         </div>
-
         <Button
           size="small"
           type="primary"
           ghost
           onClick={() => {
             handleReplace(suggestion.original, suggestion.change)
-            onApply(index)
+            onApply(index) // Remove suggestion from sidebar
           }}
           className="w-full"
         >
@@ -552,7 +553,7 @@ const TextEditorSidebar = ({
         initial={{ x: "100%" }}
         animate={{ x: 0 }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className="w-96 bg-white border-gray-200 shadow-xl flex flex-col "
+        className="w-96 bg-white border-gray-200 shadow-xl flex flex-col"
       >
         {/* Header */}
         <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50">
@@ -609,7 +610,7 @@ const TextEditorSidebar = ({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 max-h-screen overflow-y-auto">
           <AnimatePresence mode="wait">
             {activeSection === "overview" && (
               <motion.div
@@ -918,7 +919,7 @@ const TextEditorSidebar = ({
 
       {/* Settings Modal */}
       <Modal
-        title="Content Enhancement Settings"
+        title="Content Enhancement Summary"
         open={open}
         onCancel={() => setOpen(false)}
         footer={null}
@@ -937,6 +938,20 @@ const TextEditorSidebar = ({
         initialIncludeTableOfContents={formData.includeTableOfContents}
       />
     </>
+  )
+}
+
+;(prevProps, nextProps) => {
+  // Only re-render if critical props change
+  return (
+    prevProps.blog?._id === nextProps.blog?._id &&
+    prevProps.activeTab === nextProps.activeTab &&
+    prevProps.proofreadingResults.length === nextProps.proofreadingResults.length &&
+    prevProps.isPosting === nextProps.isPosting &&
+    prevProps.posted?.link === nextProps.posted?.link &&
+    prevProps.formData.category === nextProps.formData.category &&
+    prevProps.formData.includeTableOfContents === nextProps.formData.includeTableOfContents &&
+    prevProps.title === nextProps.title
   )
 }
 

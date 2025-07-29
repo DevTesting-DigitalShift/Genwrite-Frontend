@@ -128,14 +128,12 @@ const ToolBox = () => {
       .filter((word) => word.length > 0).length
   }
 
-  /**
-   * Saves the blog content and optionally fetches retry suggestions.
-   */
   const handleSave = async () => {
     if (userPlan === "free" || userPlan === "basic") {
       showUpgradePopup()
       return
     }
+
     setIsSaving(true)
     try {
       const response = await dispatch(
@@ -151,7 +149,20 @@ const ToolBox = () => {
 
       if (response) {
         message.success("Blog updated successfully")
-        setTimeout(() => navigate("/blogs"), 1000)
+
+        // Show loading for 2 seconds
+        setIsLoading(true)
+
+        setTimeout(() => {
+          dispatch(fetchBlogById(id))
+            .unwrap()
+            // .then(() => message.success("Blog reloaded with latest data"))
+            // .catch(() => message.error("Failed to reload blog."))
+            .finally(() => setIsLoading(false))
+        }, 2000)
+
+        // Optionally navigate after reload (if required)
+        // setTimeout(() => navigate("/blogs"), 3000)
       }
 
       return response
@@ -198,9 +209,6 @@ const ToolBox = () => {
 
   const { Title } = Typography
 
-  /**
-   * Accepts suggested content from retry.
-   */
   const handleAcceptSave = () => {
     if (saveContent) {
       setEditorContent(saveContent)
@@ -210,9 +218,6 @@ const ToolBox = () => {
     setSaveContent(null)
   }
 
-  /**
-   * Rejects suggested content from retry.
-   */
   const handleRejectSave = () => {
     setSaveModalOpen(false)
     setSaveContent(null)
@@ -303,14 +308,14 @@ const ToolBox = () => {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button
+                  {/* <button
                     onClick={handlePreview}
                     className="px-4 py-2 bg-gradient-to-r from-[#1B6FC9] to-[#4C9FE8] text-white rounded-lg hover:from-[#1B6FC9]/90 hover:to-[#4C9FE8]/90 flex items-center"
                     aria-label="Preview blog"
                   >
                     <Eye size={16} className="mr-2" />
                     Preview
-                  </button>
+                  </button> */}
                   <button
                     onClick={handleSave}
                     className={`px-4 py-2 rounded-lg font-semibold flex items-center gap-2 transition-all duration-300 ${
