@@ -6,18 +6,15 @@ import axiosInstance from "../../api"
 import { fetchBlogById, updateBlogById } from "../../store/slices/blogSlice"
 import TextEditor from "../generateBlog/TextEditor"
 import TextEditorSidebar from "../generateBlog/TextEditorSidebar"
-import { Loader2, FileText, Eye, Save, CheckCircle, RefreshCw } from "lucide-react"
+import { Loader2, FileText, Eye, Save, RefreshCw } from "lucide-react"
 import { Helmet } from "react-helmet"
-import { sendRetryLines } from "@api/blogApi"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeRaw from "rehype-raw"
 import { Button, message, Modal, Typography } from "antd"
 import { htmlToText } from "html-to-text"
+import { sendRetryLines } from "@api/blogApi"
 
-/**
- * ToolBox component for editing and managing blog content.
- */
 const ToolBox = () => {
   const { id } = useParams()
   const dispatch = useDispatch()
@@ -35,7 +32,8 @@ const ToolBox = () => {
   const [isPosting, setIsPosting] = useState(false)
   const [formData, setFormData] = useState({ category: "", includeTableOfContents: false })
   const [showPreview, setShowPreview] = useState(false)
-  const [saveSuccess, setSaveSuccess] = useState(false)
+  const user = useSelector((state) => state.auth.user)
+  const userPlan = user?.plan ?? user?.subscription?.plan
 
   useEffect(() => {
     if (id) {
@@ -134,44 +132,66 @@ const ToolBox = () => {
    * Saves the blog content and optionally fetches retry suggestions.
    */
   const handleSave = async () => {
-    if (!editorTitle.trim() || !editorContent.trim()) {
-      message.error("Title and content cannot be empty.")
-      return
-    }
-    if (getWordCount(editorTitle) > 60) {
-      message.error("Title exceeds 60 words.")
+    if (userPlan === "free" || userPlan === "basic") {
+      showUpgradePopup()
       return
     }
     setIsSaving(true)
     try {
-      await dispatch(
+      const response = await dispatch(
         updateBlogById({
           id: blog._id,
-          title: editorTitle,
+          title: blog?.title,
           content: editorContent,
           published: blog?.published,
           focusKeywords: blog?.focusKeywords,
           keywords,
         })
-      ).unwrap()
-      const res = await sendRetryLines(blog._id)
-      if (res.data) {
-        setSaveContent(res.data)
-        setSaveModalOpen(true)
+      )
+
+      if (response) {
+        message.success("Blog updated successfully")
+        setTimeout(() => navigate("/blogs"), 1000)
       }
-      setSaveSuccess(true)
-      setTimeout(() => setSaveSuccess(false), 2000)
-      message.success("Blog saved successfully!")
+
+      return response
     } catch (error) {
+      console.error("Error updating the blog:", error)
       message.error("Failed to save blog.")
     } finally {
       setIsSaving(false)
     }
   }
 
-  /**
-   * Handles preview toggle.
-   */
+  const handleOptimizeSave = async () => {
+    setIsSaving(true)
+    try {
+      await dispatch(
+        updateBlogById({
+          id: blog._id,
+          title: blog?.title,
+          content: editorContent,
+          published: blog?.published,
+          focusKeywords: blog?.focusKeywords,
+          keywords,
+        })
+      )
+      const res = await sendRetryLines(blog._id)
+      if (res.data) {
+        setSaveContent(res.data)
+        setSaveModalOpen(true)
+        message.success("Review the suggested content.")
+      } else {
+        message.error("No content received from retry.")
+      }
+    } catch (error) {
+      console.error("Error updating the blog:", error)
+      message.error("Failed to save blog.")
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   const handlePreview = () => {
     setShowPreview((prev) => !prev)
   }
@@ -210,68 +230,6 @@ const ToolBox = () => {
         <title>Blog Editor | GenWrite</title>
       </Helmet>
       <div className="h-screen flex flex-col">
-        {/* Header */}
-        <header className="bg-white shadow-lg border-b mt-5 border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-                <FileText className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">
-                  {id ? "Edit Blog" : "Create New Blog"}
-                </h2>
-                <p className="text-gray-600 text-sm">Write and optimize your content</p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={handlePreview}
-                className="px-4 py-2 bg-gradient-to-r from-[#1B6FC9] to-[#4C9FE8] text-white rounded-lg hover:from-[#1B6FC9]/90 hover:to-[#4C9FE8]/90 flex items-center"
-                aria-label="Preview blog"
-              >
-                <Eye size={16} className="mr-2" />
-                Preview
-              </button>
-              <button
-                onClick={handleSave}
-                className={`px-4 py-2 rounded-lg font-semibold flex items-center gap-2 transition-all duration-300 ${
-                  isSaving ||
-                  !editorTitle.trim() ||
-                  !editorContent.trim() ||
-                  getWordCount(editorTitle) > 60
-                    ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                    : "bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg hover:scale-105"
-                }`}
-                disabled={
-                  isSaving ||
-                  !editorTitle.trim() ||
-                  !editorContent.trim() ||
-                  getWordCount(editorTitle) > 60
-                }
-                aria-label="Save blog"
-              >
-                {isSaving ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : saveSuccess ? (
-                  <>
-                    <CheckCircle className="w-4 h-4" />
-                    Saved!
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-4 h-4" />
-                    Save Blog
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </header>
-
         {/* Save Response Modal */}
         <Modal
           open={saveModalOpen}
@@ -328,40 +286,98 @@ const ToolBox = () => {
           </div>
         </Modal>
 
-        <div className="flex flex-grow ">
-          <AnimatePresence>
-            <motion.div
-              key={activeTab}
-              initial="hidden"
-              animate="visible"
-              exit="hidden"
-              variants={tabVariants}
-              transition={{ duration: 0.3 }}
-              className="flex-grow"
-            >
-              {isLoading ? (
-                <div className="flex justify-center items-center h-[calc(100vh-120px)]">
-                  <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
+        <div className="flex mt-5">
+          <div className="flex-1 flex flex-col">
+            {/* Header */}
+            <header className="bg-white shadow-lg border-b border-gray-200 p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">
+                      {id ? "Edit Blog" : "Create New Blog"}
+                    </h2>
+                    <p className="text-gray-600 text-sm">Write and optimize your content</p>
+                  </div>
                 </div>
-              ) : (
-                <TextEditor
-                  keywords={keywords}
-                  setKeywords={setKeywords}
-                  blog={blog}
-                  activeTab={activeTab}
-                  setActiveTab={setActiveTab}
-                  proofreadingResults={proofreadingResults}
-                  handleReplace={handleReplace}
-                  content={editorContent}
-                  setContent={setEditorContent}
-                  title={editorTitle}
-                  setTitle={setEditorTitle}
-                  isSavingKeyword={isSaving}
-                  showPreview={showPreview}
-                />
-              )}
-            </motion.div>
-          </AnimatePresence>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handlePreview}
+                    className="px-4 py-2 bg-gradient-to-r from-[#1B6FC9] to-[#4C9FE8] text-white rounded-lg hover:from-[#1B6FC9]/90 hover:to-[#4C9FE8]/90 flex items-center"
+                    aria-label="Preview blog"
+                  >
+                    <Eye size={16} className="mr-2" />
+                    Preview
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    className={`px-4 py-2 rounded-lg font-semibold flex items-center gap-2 transition-all duration-300 ${
+                      isSaving ||
+                      !editorTitle.trim() ||
+                      !editorContent.trim() ||
+                      getWordCount(editorTitle) > 60
+                        ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                        : "bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg hover:scale-105"
+                    }`}
+                    disabled={
+                      isSaving ||
+                      !editorTitle.trim() ||
+                      !editorContent.trim() ||
+                      getWordCount(editorTitle) > 60
+                    }
+                    aria-label="Save blog"
+                  >
+                    {isSaving ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4" />
+                        Save Blog
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </header>
+            <AnimatePresence>
+              <motion.div
+                key={activeTab}
+                initial="hidden"
+                animate="visible"
+                exit="hidden"
+                variants={tabVariants}
+                transition={{ duration: 0.3 }}
+                className="flex-grow"
+              >
+                {isLoading ? (
+                  <div className="flex justify-center items-center h-[calc(100vh-120px)]">
+                    <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
+                  </div>
+                ) : (
+                  <TextEditor
+                    keywords={keywords}
+                    setKeywords={setKeywords}
+                    blog={blog}
+                    activeTab={activeTab}
+                    setActiveTab={setActiveTab}
+                    proofreadingResults={proofreadingResults}
+                    handleReplace={handleReplace}
+                    content={editorContent}
+                    setContent={setEditorContent}
+                    title={editorTitle}
+                    setTitle={setEditorTitle}
+                    isSavingKeyword={isSaving}
+                    showPreview={showPreview}
+                  />
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </div>
           <TextEditorSidebar
             blog={blog}
             keywords={keywords}
@@ -371,7 +387,7 @@ const ToolBox = () => {
             handleReplace={handleReplace}
             proofreadingResults={proofreadingResults}
             setProofreadingResults={setProofreadingResults}
-            handleSave={handleSave}
+            handleSave={handleOptimizeSave}
             posted={isPosted}
             isPosting={isPosting}
             formData={formData}

@@ -70,6 +70,7 @@
     "react-slick": "^0.30.2",
     "react-use-measure": "^2.1.7",
     "rehype-raw": "^7.0.0",
+    "remark-breaks": "^4.0.0",
     "remark-gfm": "^4.0.1",
     "showdown": "^2.1.0",
     "slick-carousel": "^1.8.1",
