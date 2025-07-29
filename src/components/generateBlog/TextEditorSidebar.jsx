@@ -373,71 +373,118 @@ const TextEditorSidebar = ({
     </div>
   )
 
-  const CompetitorsList = ({ competitors }) => (
-    <div className="space-y-2">
-      {competitors?.slice(0, 3).map((item, index) => (
-        <motion.div
-          key={index}
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: index * 0.1 }}
-          className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-        >
-          <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
-            <span className="text-xs font-medium text-blue-600">{index + 1}</span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate">{item.title}</p>
-            <a
-              href={item.link || item.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
-            >
-              View <ExternalLink className="w-3 h-3" />
-            </a>
-          </div>
-        </motion.div>
-      ))}
-      {competitors?.length > 3 && (
-        <p className="text-xs text-gray-500 text-center">
-          +{competitors.length - 3} more competitors
-        </p>
-      )}
-    </div>
-  )
+  const CompetitorsList = ({ competitors }) => {
+    const [showAll, setShowAll] = useState(false)
+    const visibleCompetitors = showAll ? competitors : competitors?.slice(0, 5)
 
-  const AnalysisInsights = ({ insights }) => (
-    <div className="space-y-3">
-      {Object.entries(insights || {})
-        .slice(0, 3)
-        .map(([key, value], index) => (
+    return (
+      <div className="space-y-2 relative">
+        {/* Competitor Count Badge */}
+        {competitors?.length > 5 && (
+          <span className="absolute top-0 right-0 text-[10px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full">
+            {competitors.length}
+          </span>
+        )}
+
+        {visibleCompetitors?.map((item, index) => (
           <motion.div
-            key={key}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
+            key={index}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
             transition={{ delay: index * 0.05 }}
-            className="p-3 bg-blue-50 rounded-lg border border-blue-100"
+            className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
           >
-            <div className="flex items-start gap-2">
-              <Lightbulb className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-              <div className="flex-1">
-                <p className="font-medium text-blue-900 text-sm mb-1">
-                  {key.replace(/([A-Z])/g, " $1").trim()}
-                </p>
-                <p className="text-xs text-blue-700 leading-relaxed">
-                  {typeof value === "object" ? (
-                    <span>Multiple insights available</span>
-                  ) : (
-                    value?.toString().slice(0, 120) + (value?.toString().length > 120 ? "..." : "")
-                  )}
-                </p>
-              </div>
+            <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+              <span className="text-xs font-medium text-blue-600">{index + 1}</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">{item.title}</p>
+              <a
+                href={item.link || item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
+              >
+                View <ExternalLink className="w-3 h-3" />
+              </a>
             </div>
           </motion.div>
         ))}
-    </div>
-  )
+
+        {/* +n more link */}
+        {competitors?.length > 5 && !showAll && (
+          <button
+            onClick={() => setShowAll(true)}
+            className="text-xs text-blue-600 hover:text-blue-700 text-center w-full"
+          >
+            +{competitors.length - 5} more competitors
+          </button>
+        )}
+      </div>
+    )
+  }
+
+  const AnalysisInsights = ({ insights }) => {
+    const [showAll, setShowAll] = useState(false)
+    const [expandedIndexes, setExpandedIndexes] = useState(new Set())
+
+    const entries = Object.entries(insights || {})
+    const visibleEntries = showAll ? entries : entries.slice(0, 3)
+
+    const toggleExpanded = (index) => {
+      const updated = new Set(expandedIndexes)
+      updated.has(index) ? updated.delete(index) : updated.add(index)
+      setExpandedIndexes(updated)
+    }
+
+    return (
+      <div className="space-y-3">
+        {visibleEntries.map(([key, value], index) => {
+          const isExpanded = expandedIndexes.has(index)
+          const text = typeof value === "object" ? "Multiple insights available" : value?.toString()
+
+          const shouldTruncate = text?.length > 120 && !isExpanded
+          const displayText = shouldTruncate ? text.slice(0, 120) + "..." : text
+
+          return (
+            <motion.div
+              key={key}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+              className="p-3 bg-blue-50 rounded-lg border border-blue-100"
+            >
+              <div className="flex items-start gap-2">
+                <Lightbulb className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="font-medium text-blue-900 text-sm mb-1">
+                    {key.replace(/([A-Z])/g, " $1").trim()}
+                  </p>
+                  <p
+                    className="text-xs text-blue-700 leading-relaxed cursor-pointer select-none"
+                    onClick={() => toggleExpanded(index)}
+                  >
+                    {displayText}
+                    {shouldTruncate && <span className="text-blue-500 ml-1">(more)</span>}
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )
+        })}
+
+        {/* Toggle buttons */}
+        {entries.length > 5 && (
+          <button
+            onClick={() => setShowAll(!showAll)}
+            className="text-xs text-blue-600 hover:text-blue-700 text-center w-full"
+          >
+            {showAll ? "Show less" : `+${entries.length - 5} more insights`}
+          </button>
+        )}
+      </div>
+    )
+  }
 
   const ProofreadingSuggestion = ({ suggestion, index, onApply }) => (
     <motion.div
@@ -505,7 +552,7 @@ const TextEditorSidebar = ({
         initial={{ x: "100%" }}
         animate={{ x: 0 }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className="w-96 h-full bg-white border-gray-200 shadow-xl flex flex-col"
+        className="w-96 bg-white border-gray-200 shadow-xl flex flex-col "
       >
         {/* Header */}
         <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50">
@@ -533,7 +580,7 @@ const TextEditorSidebar = ({
           </div>
 
           {/* Navigation Tabs */}
-          <div className="flex gap-1">
+          <div className="flex gap-1 mt-6 mb-">
             {[
               { key: "overview", label: "Overview", icon: BarChart3 },
               { key: "analysis", label: "Analysis", icon: TrendingUp },
@@ -574,13 +621,13 @@ const TextEditorSidebar = ({
               >
                 {/* Keywords Section */}
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between mt-2">
                     <div className="flex items-center gap-2">
                       <Target className="w-4 h-4 text-blue-600" />
                       <h3 className="font-semibold text-gray-900 flex items-center gap-2">
                         Keywords
                       </h3>
-                      <Badge count={keywords.length} />
+                      {/* <Badge count={keywords.length} /> */}
                     </div>
                     {keywords.length > 0 && (
                       <button
@@ -650,7 +697,7 @@ const TextEditorSidebar = ({
 
                 {/* Scores Section */}
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 ">
                     <BarChart3 className="w-4 h-4 text-blue-600" />
                     <h3 className="font-semibold text-gray-900 flex items-center gap-2">
                       Performance Metrics
@@ -687,7 +734,7 @@ const TextEditorSidebar = ({
                       icon={TrendingUp}
                     />
 
-                    {activeTab === "normal" && (
+                    {activeTab === "Normal" && (
                       <FeatureCard
                         title="AI Proofreading"
                         description="Grammar and style improvements"
@@ -805,7 +852,7 @@ const TextEditorSidebar = ({
                       </Button>
                     </div>
 
-                    <div className="space-y-3 max-h-96 overflow-y-auto">
+                    <div className="space-y-3 max-h-screen overflow-y-auto">
                       {proofreadingResults.map((suggestion, index) => (
                         <ProofreadingSuggestion
                           key={index}
