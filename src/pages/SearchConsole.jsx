@@ -16,13 +16,7 @@ import {
 import { Helmet } from "react-helmet"
 import { motion } from "framer-motion"
 import { useDispatch, useSelector } from "react-redux"
-import {
-  fetchVerifiedSites,
-  connectGscAccount,
-  fetchGscAuthUrl,
-  fetchGscAnalytics,
-  clearAnalytics,
-} from "@store/slices/gscSlice"
+import { fetchGscAuthUrl, fetchGscAnalytics, clearAnalytics } from "@store/slices/gscSlice"
 import { message, Button, Table, Tag, Select, Input, Tooltip, DatePicker, Switch } from "antd"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import Loading from "@components/Loading"
@@ -597,14 +591,16 @@ const SearchConsole = () => {
             <p className="text-gray-600">Monitor your blog performance and search analytics</p>
           </div>
           <div className="flex items-center gap-3">
-            <Button
-              icon={<Download className="w-4 h-4" />}
-              onClick={handleExport}
-              disabled={isLoading || sitesLoading}
-              className="flex items-center gap-2 bg-green-600 text-white hover:bg-green-700"
-            >
-              Export
-            </Button>
+            {userPlan && (
+              <Button
+                icon={<Download className="w-4 h-4" />}
+                onClick={handleExport}
+                disabled={isLoading || sitesLoading}
+                className="flex items-center gap-2 bg-green-600 text-white hover:bg-green-700"
+              >
+                Export
+              </Button>
+            )}
             <Button
               icon={<RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />}
               onClick={() => fetchAnalyticsData()}
