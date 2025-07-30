@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -46,6 +47,7 @@ const TextEditorSidebar = ({
   posted,
   isPosting,
   formData,
+  editorContent, // Receive editorContent prop
 }) => {
   const [newKeyword, setNewKeyword] = useState("")
   const [isAnalyzingProofreading, setIsAnalyzingProofreading] = useState(false)
@@ -64,6 +66,16 @@ const TextEditorSidebar = ({
   const { analysisResult } = useSelector((state) => state.analysis)
   const blogId = blog?._id
   const result = analysisResult?.[blogId]
+
+  // Define getWordCount function
+  const getWordCount = (text) => {
+    return text
+      ? text
+          .trim()
+          .split(/\s+/)
+          .filter((word) => word.length > 0).length
+      : 0
+  }
 
   useEffect(() => {
     dispatch(getCategoriesThunk()).unwrap()
@@ -129,15 +141,15 @@ const TextEditorSidebar = ({
 
   const addKeywords = useCallback(() => {
     if (newKeyword.trim()) {
-      const keywordsToAdd = newKeyword
+      const newKeywordsArray = newKeyword
         .split(",")
-        .map((k) => k.trim())
-        .filter((k) => k && !keywords.includes(k))
-      if (keywordsToAdd.length > 0) {
-        setKeywords((prev) => [...prev, ...keywordsToAdd])
-        setNewKeyword("")
-        message.success("Keywords added successfully!")
+        .map((k) => k.trim().toLowerCase())
+        .filter((k) => k && !keywords.map((kw) => kw.toLowerCase()).includes(k))
+
+      if (newKeywordsArray.length > 0) {
+        setKeywords((prev) => [...prev, ...newKeywordsArray])
       }
+      setNewKeyword("")
     }
   }, [newKeyword, keywords, setKeywords])
 
@@ -366,7 +378,7 @@ const TextEditorSidebar = ({
       ) : (
         <div className="w-full bg-white/50 rounded-full h-2">
           <div
-            style={{ width: `${score}%`, transition: "width 0.5s ease" }} // use animate lib if needed
+            style={{ width: `${score}%`, transition: "width 0.5s ease" }}
             className={`h-2 rounded-full ${
               score >= 80 ? "bg-green-500" : score >= 60 ? "bg-yellow-500" : "bg-red-500"
             }`}
@@ -382,7 +394,6 @@ const TextEditorSidebar = ({
 
     return (
       <div className="space-y-2 relative">
-        {/* Competitor Count Badge */}
         {competitors?.length > 5 && (
           <span className="absolute top-0 right-0 text-[10px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full">
             {competitors.length}
@@ -414,7 +425,6 @@ const TextEditorSidebar = ({
           </motion.div>
         ))}
 
-        {/* +n more link */}
         {competitors?.length > 5 && !showAll && (
           <button
             onClick={() => setShowAll(true)}
@@ -476,7 +486,6 @@ const TextEditorSidebar = ({
           )
         })}
 
-        {/* Toggle buttons */}
         {entries.length > 5 && (
           <button
             onClick={() => setShowAll(!showAll)}
@@ -521,7 +530,7 @@ const TextEditorSidebar = ({
           ghost
           onClick={() => {
             handleReplace(suggestion.original, suggestion.change)
-            onApply(index) // Remove suggestion from sidebar
+            onApply(index)
           }}
           className="w-full"
         >
@@ -555,7 +564,6 @@ const TextEditorSidebar = ({
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
         className="w-96 bg-white border-gray-200 shadow-xl flex flex-col"
       >
-        {/* Header */}
         <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50">
           <div className="flex items-center justify-between mb-2">
             <div>
@@ -580,8 +588,7 @@ const TextEditorSidebar = ({
             </div>
           </div>
 
-          {/* Navigation Tabs */}
-          <div className="flex gap-1 mt-6 mb-">
+          <div className="flex gap-1 mt-6 mb-0">
             {[
               { key: "overview", label: "Overview", icon: BarChart3 },
               { key: "analysis", label: "Analysis", icon: TrendingUp },
@@ -609,7 +616,6 @@ const TextEditorSidebar = ({
           </div>
         </div>
 
-        {/* Content */}
         <div className="flex-1 max-h-screen overflow-y-auto">
           <AnimatePresence mode="wait">
             {activeSection === "overview" && (
@@ -620,7 +626,6 @@ const TextEditorSidebar = ({
                 exit={{ opacity: 0, x: -20 }}
                 className="p-4 space-y-6"
               >
-                {/* Keywords Section */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between mt-2">
                     <div className="flex items-center gap-2">
@@ -628,7 +633,6 @@ const TextEditorSidebar = ({
                       <h3 className="font-semibold text-gray-900 flex items-center gap-2">
                         Keywords
                       </h3>
-                      {/* <Badge count={keywords.length} /> */}
                     </div>
                     {keywords.length > 0 && (
                       <button
@@ -696,8 +700,7 @@ const TextEditorSidebar = ({
                   )}
                 </div>
 
-                {/* Scores Section */}
-                <div className="space-y-3">
+                <div className="space-y-7">
                   <div className="flex items-center gap-2 ">
                     <BarChart3 className="w-4 h-4 text-blue-600" />
                     <h3 className="font-semibold text-gray-900 flex items-center gap-2">
@@ -705,7 +708,18 @@ const TextEditorSidebar = ({
                     </h3>
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3 mt-4">
+                    <div className="bg-blue-50 rounded-lg p-3 text-center">
+                      <div className="text-lg font-bold text-blue-600">{getWordCount(editorContent)}</div>
+                      <div className="text-xs text-blue-600">Words</div>
+                    </div>
+                    <div className="bg-purple-50 rounded-lg p-3 text-center">
+                      <div className="text-lg font-bold text-purple-600">{keywords?.length}</div>
+                      <div className="text-xs text-purple-600">Keywords</div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-5">
                     <ScoreCard title="Content Score" score={blog?.blogScore} icon={FileText} />
                     <ScoreCard
                       title="SEO Score"
@@ -715,8 +729,7 @@ const TextEditorSidebar = ({
                   </div>
                 </div>
 
-                {/* AI Tools Section */}
-                <div className="space-y-3">
+                <div className="space-y-6">
                   <div className="flex items-center gap-2">
                     <Zap className="w-4 h-4 text-blue-600" />
                     <h3 className="font-semibold text-gray-900 flex items-center gap-2">
@@ -881,7 +894,6 @@ const TextEditorSidebar = ({
           </AnimatePresence>
         </div>
 
-        {/* Footer - Post Button */}
         <div className="p-4 border-t border-gray-200 bg-gray-50">
           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
             <Button
@@ -917,7 +929,6 @@ const TextEditorSidebar = ({
         </div>
       </motion.div>
 
-      {/* Settings Modal */}
       <Modal
         title="Content Enhancement Summary"
         open={open}
@@ -929,7 +940,6 @@ const TextEditorSidebar = ({
         <FeatureSettingsModal features={blog?.options || {}} />
       </Modal>
 
-      {/* Category Selection Modal */}
       <CategoriesModal
         isCategoryModalOpen={isCategoryModalOpen}
         setIsCategoryModalOpen={setIsCategoryModalOpen}
@@ -938,20 +948,6 @@ const TextEditorSidebar = ({
         initialIncludeTableOfContents={formData.includeTableOfContents}
       />
     </>
-  )
-}
-
-;(prevProps, nextProps) => {
-  // Only re-render if critical props change
-  return (
-    prevProps.blog?._id === nextProps.blog?._id &&
-    prevProps.activeTab === nextProps.activeTab &&
-    prevProps.proofreadingResults.length === nextProps.proofreadingResults.length &&
-    prevProps.isPosting === nextProps.isPosting &&
-    prevProps.posted?.link === nextProps.posted?.link &&
-    prevProps.formData.category === nextProps.formData.category &&
-    prevProps.formData.includeTableOfContents === nextProps.formData.includeTableOfContents &&
-    prevProps.title === nextProps.title
   )
 }
 

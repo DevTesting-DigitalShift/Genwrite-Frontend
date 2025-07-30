@@ -72,8 +72,8 @@ const router = createBrowserRouter([
       { path: "contact", element: withSuspense(ContactUs) },
       { path: "blog-performance", element: withSuspense(SearchConsole) },
       { path: "humanize-content", element: withSuspense(HumanizeContent) },
-      { path: "blog-editor", element: withSuspense(ManualBlog) },
-      { path: "blog-editor/:id", element: withSuspense(ManualBlog) },
+      { path: "blog-editor", element: withSuspense(ToolBox) },
+      { path: "blog-editor/:id", element: withSuspense(ToolBox) },
       { path: "cancel-subscription", element: withSuspense(CancellationPage) },
       { path: "analytics", element: withSuspense(AnalyticsPage) },
       {
