@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react"
-import { useParams } from "react-router-dom"
+import { useLocation, useNavigate, useParams } from "react-router-dom"
 import { useDispatch, useSelector } from "react-redux"
 import { motion, AnimatePresence } from "framer-motion"
 import axiosInstance from "../../api"
-import { fetchBlogById, updateBlogById } from "../../store/slices/blogSlice"
+import { createManualBlog, fetchBlogById, updateBlogById } from "../../store/slices/blogSlice"
 import TextEditor from "../generateBlog/TextEditor"
 import TextEditorSidebar from "../generateBlog/TextEditorSidebar"
 import { Loader2, FileText, Eye, Save, RefreshCw } from "lucide-react"
@@ -14,6 +14,7 @@ import rehypeRaw from "rehype-raw"
 import { Button, message, Modal, Typography } from "antd"
 import { htmlToText } from "html-to-text"
 import { sendRetryLines } from "@api/blogApi"
+import TemplateModal from "@components/generateBlog/ManualBlogEditor.jsx/TemplateModal"
 
 const ToolBox = () => {
   const { id } = useParams()
@@ -31,9 +32,32 @@ const ToolBox = () => {
   const [isPosted, setIsPosted] = useState(null)
   const [isPosting, setIsPosting] = useState(false)
   const [formData, setFormData] = useState({ category: "", includeTableOfContents: false })
-  const [showPreview, setShowPreview] = useState(false)
+  const [showTemplateModal, setShowTemplateModal] = useState(!id)
   const user = useSelector((state) => state.auth.user)
   const userPlan = user?.plan ?? user?.subscription?.plan
+  const navigate = useNavigate()
+  const location = useLocation()
+  const pathDetect = location.pathname === `/blog-editor/${blog?._id}`
+  const [templateFormData, setTemplateFormData] = useState({
+    title: "",
+    topic: "",
+    tone: "Informative",
+    focusKeywords: [],
+    keywords: [],
+    userDefinedLength: 1200,
+    focusKeywordInput: "",
+    keywordInput: "",
+    template: "",
+  })
+  const [errors, setErrors] = useState({
+    title: false,
+    topic: false,
+    tone: false,
+    focusKeywords: false,
+    keywords: false,
+    userDefinedLength: false,
+    template: false,
+  })
 
   useEffect(() => {
     if (id) {
@@ -64,15 +88,11 @@ const ToolBox = () => {
       setFormData({
         category: blog.category || "",
         includeTableOfContents: blog.includeTableOfContents || false,
+        title: blog.title || "",
       })
     }
   }, [blog])
 
-  /**
-   * Handles replacing text in the editor based on proofreading suggestions.
-   * @param {string} original - The original text to replace.
-   * @param {string} change - The suggested replacement text.
-   */
   const handleReplace = (original, change) => {
     if (typeof original !== "string" || typeof change !== "string") {
       message.error("Invalid suggestion format.")
@@ -83,10 +103,6 @@ const ToolBox = () => {
     setProofreadingResults((prev) => prev.filter((s) => s.original !== original))
   }
 
-  /**
-   * Posts the blog to WordPress.
-   * @param {object} postData - Data for posting (categories, includeTableOfContents).
-   */
   const handlePostToWordPress = async (postData) => {
     setIsPosting(true)
     if (!editorTitle) {
@@ -134,36 +150,32 @@ const ToolBox = () => {
       return
     }
 
+    if (!editorTitle.trim()) {
+      message.error("Blog title is required.")
+      return
+    }
+
     setIsSaving(true)
     try {
       const response = await dispatch(
         updateBlogById({
           id: blog._id,
-          title: blog?.title,
+          title: editorTitle,
           content: editorContent,
           published: blog?.published,
           focusKeywords: blog?.focusKeywords,
           keywords,
         })
-      )
+      ).unwrap()
 
-      if (response) {
-        message.success("Blog updated successfully")
+      message.success("Blog updated successfully")
 
-        // Show loading for 2 seconds
-        setIsLoading(true)
-
-        setTimeout(() => {
-          dispatch(fetchBlogById(id))
-            .unwrap()
-            // .then(() => message.success("Blog reloaded with latest data"))
-            // .catch(() => message.error("Failed to reload blog."))
-            .finally(() => setIsLoading(false))
-        }, 2000)
-
-        // Optionally navigate after reload (if required)
-        // setTimeout(() => navigate("/blogs"), 3000)
-      }
+      setIsLoading(true)
+      setTimeout(() => {
+        dispatch(fetchBlogById(id))
+          .unwrap()
+          .finally(() => setIsLoading(false))
+      }, 2000)
 
       return response
     } catch (error) {
@@ -180,13 +192,13 @@ const ToolBox = () => {
       await dispatch(
         updateBlogById({
           id: blog._id,
-          title: blog?.title,
+          title: editorTitle,
           content: editorContent,
           published: blog?.published,
           focusKeywords: blog?.focusKeywords,
           keywords,
         })
-      )
+      ).unwrap()
       const res = await sendRetryLines(blog._id)
       if (res.data) {
         setSaveContent(res.data)
@@ -201,10 +213,6 @@ const ToolBox = () => {
     } finally {
       setIsSaving(false)
     }
-  }
-
-  const handlePreview = () => {
-    setShowPreview((prev) => !prev)
   }
 
   const { Title } = Typography
@@ -229,13 +237,79 @@ const ToolBox = () => {
     visible: { opacity: 1, y: 0 },
   }
 
+  const handleTemplateModalClose = () => {
+    const isEmpty =
+      !templateFormData.title?.trim() ||
+      !templateFormData.topic?.trim() ||
+      !templateFormData.tone?.trim() ||
+      !templateFormData.template ||
+      !templateFormData.userDefinedLength ||
+      templateFormData.userDefinedLength <= 0 ||
+      !templateFormData.focusKeywords ||
+      templateFormData.focusKeywords.length === 0 ||
+      !templateFormData.keywords ||
+      templateFormData.keywords.length === 0
+
+    if (isEmpty && !id) navigate("/blogs")
+    setShowTemplateModal(false)
+  }
+
+  const handleSubmit = async () => {
+    const blogData = {
+      title: templateFormData.title?.trim(),
+      topic: templateFormData.topic?.trim(),
+      tone: templateFormData.tone?.trim(),
+      focusKeywords: templateFormData.focusKeywords,
+      keywords: templateFormData.keywords,
+      userDefinedLength: Number(templateFormData.userDefinedLength),
+      template: templateFormData.template,
+    }
+
+    const newErrors = {}
+    console.log({ newErrors })
+    if (!blogData.title) newErrors.title = true
+    if (!blogData.topic) newErrors.topic = true
+    if (!blogData.tone) newErrors.tone = true
+    if (!blogData.template) newErrors.template = true
+    if (!blogData.userDefinedLength || blogData.userDefinedLength <= 0)
+      newErrors.userDefinedLength = true
+    if (!blogData.focusKeywords || blogData.focusKeywords.length === 0)
+      newErrors.focusKeywords = true
+    if (!blogData.keywords || blogData.keywords.length === 0) newErrors.keywords = true
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors((prev) => ({ ...prev, ...newErrors }))
+      message.error("Please fill all required fields correctly.")
+      return
+    }
+
+    try {
+      const res = await dispatch(createManualBlog(blogData)).unwrap()
+      setBlogId(res._id)
+      setShowTemplateModal(false)
+      navigate(`/blog-editor/${res._id}`)
+    } catch (err) {
+      console.error("Failed to create blog:", err)
+      message.error(err?.message || "Failed to create blog")
+    }
+  }
+
+  const handleTitleChange = (e) => {
+    const newTitle = e.target.value
+    if (getWordCount(newTitle) <= 60) {
+      setEditorTitle(newTitle)
+      setFormData((prev) => ({ ...prev, title: newTitle }))
+    } else {
+      message.error("Title exceeds 60 words.")
+    }
+  }
+
   return (
     <>
       <Helmet>
         <title>Blog Editor | GenWrite</title>
       </Helmet>
-      <div className="h-screen flex flex-col">
-        {/* Save Response Modal */}
+      <div className={`h-screen flex flex-col ${showTemplateModal ? "blur-sm" : ""}`}>
         <Modal
           open={saveModalOpen}
           centered
@@ -293,7 +367,6 @@ const ToolBox = () => {
 
         <div className="flex mt-5">
           <div className="flex-1 flex flex-col">
-            {/* Header */}
             <header className="bg-white shadow-lg border-b border-gray-200 p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -308,14 +381,6 @@ const ToolBox = () => {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  {/* <button
-                    onClick={handlePreview}
-                    className="px-4 py-2 bg-gradient-to-r from-[#1B6FC9] to-[#4C9FE8] text-white rounded-lg hover:from-[#1B6FC9]/90 hover:to-[#4C9FE8]/90 flex items-center"
-                    aria-label="Preview blog"
-                  >
-                    <Eye size={16} className="mr-2" />
-                    Preview
-                  </button> */}
                   <button
                     onClick={handleSave}
                     className={`px-4 py-2 rounded-lg font-semibold flex items-center gap-2 transition-all duration-300 ${
@@ -348,6 +413,26 @@ const ToolBox = () => {
                   </button>
                 </div>
               </div>
+              <div className="mt-4">
+                <div className="flex gap-2 flex-col sm:flex-row">
+                  <input
+                    type="text"
+                    value={editorTitle}
+                    onChange={handleTitleChange}
+                    placeholder="Enter your blog title..."
+                    className={`flex-1 text-2xl sm:text-3xl font-bold text-gray-900 placeholder-gray-400 border-none outline-none resize-none ${
+                      getWordCount(editorTitle) > 60 ? "text-red-600" : ""
+                    }`}
+                    aria-label="Blog title"
+                  />
+                </div>
+                <div className="mt-2 text-sm text-gray-500">
+                  {getWordCount(editorTitle)}/60 words (optimal for SEO)
+                  {getWordCount(editorTitle) > 60 && (
+                    <span className="text-red-600 ml-2">Title exceeds 60 words</span>
+                  )}
+                </div>
+              </div>
             </header>
             <AnimatePresence>
               <motion.div
@@ -377,7 +462,6 @@ const ToolBox = () => {
                     title={editorTitle}
                     setTitle={setEditorTitle}
                     isSavingKeyword={isSaving}
-                    showPreview={showPreview}
                   />
                 )}
               </motion.div>
@@ -397,9 +481,20 @@ const ToolBox = () => {
             isPosting={isPosting}
             formData={formData}
             title={editorTitle}
+            editorContent={editorContent} // Pass editorContent to TextEditorSidebar
           />
         </div>
       </div>
+
+      <TemplateModal
+        closeFnc={handleTemplateModalClose}
+        isOpen={showTemplateModal}
+        handleSubmit={handleSubmit}
+        errors={errors}
+        setErrors={setErrors}
+        formData={templateFormData}
+        setFormData={setTemplateFormData}
+      />
     </>
   )
 }
