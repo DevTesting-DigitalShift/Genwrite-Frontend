@@ -31,9 +31,10 @@ import {
   Redo2,
   RotateCcw,
   Copy,
+  Trash2,
 } from "lucide-react"
 import { useSelector } from "react-redux"
-import { Input, Modal, Tooltip, message, Select } from "antd"
+import { Input, Modal, Tooltip, message, Select, Button } from "antd"
 import { marked } from "marked"
 import TurndownService from "turndown"
 import { useLocation, useNavigate } from "react-router-dom"
@@ -68,7 +69,7 @@ const TextEditor = ({
   title,
   proofreadingResults,
   handleReplace,
-  isSavingKeyword, 
+  isSavingKeyword,
 }) => {
   const [isEditorLoading, setIsEditorLoading] = useState(true)
   const [selectedFont, setSelectedFont] = useState(FONT_OPTIONS[0].value)
@@ -86,6 +87,8 @@ const TextEditor = ({
   const [selectionRange, setSelectionRange] = useState({ from: 0, to: 0 })
   const [retryModalOpen, setRetryModalOpen] = useState(false)
   const [hoveredSuggestion, setHoveredSuggestion] = useState(null)
+  const [unsavedChanges, setUnsavedChanges] = useState(false)
+  const [tabSwitchWarning, setTabSwitchWarning] = useState(null)
   const htmlEditorRef = useRef(null)
   const mdEditorRef = useRef(null)
   const dropdownRef = useRef(null)
@@ -98,7 +101,7 @@ const TextEditor = ({
   const location = useLocation()
   const pathDetect = location.pathname === `/blog-editor/${blog?._id}`
   const [editImageModalOpen, setEditImageModalOpen] = useState(false)
-  const [selectedImage, setSelectedImage] = useState(null) // { src, alt }
+  const [selectedImage, setSelectedImage] = useState(null)
 
   const safeContent = content ?? blog?.content ?? ""
 
@@ -183,7 +186,7 @@ const TextEditor = ({
         Underline,
         TextAlign.configure({ types: ["heading", "paragraph"] }),
         ProofreadingDecoration.configure({
-          suggestions: proofreadingResults, // Ensure all suggestions are passed
+          suggestions: proofreadingResults,
         }),
       ],
       content: initialContent,
@@ -192,10 +195,7 @@ const TextEditor = ({
         const markdown = htmlToMarkdown(html)
         if (markdown !== safeContent) {
           setContent(markdown)
-          // Update proofreading suggestions to reflect current content
-          // setProofreadingResults((prev) =>
-          //   prev.filter((suggestion) => markdown.includes(suggestion.original))
-          // )
+          setUnsavedChanges(true)
         }
       },
       editorProps: {
@@ -318,6 +318,7 @@ const TextEditor = ({
       .editor-container a {
         color: #2563eb;
         text-decoration: underline;
+        position: relative;
       }
       .editor-container a:hover {
         color: #1d4ed8;
@@ -330,11 +331,6 @@ const TextEditor = ({
         border-radius: 0.5rem;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
       }
-      // .ProseMirror:focus {
-      //   outline: none;
-      //   // border-color: #3b82f6;
-      //   // box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-      // }
       .editor-tab {
         padding: 0.75rem 1.5rem;
         font-weight: 500;
@@ -404,7 +400,6 @@ const TextEditor = ({
       if (currentHtml !== newHtml) {
         const { from, to } = normalEditor.state.selection
         normalEditor.commands.setContent(newHtml, false)
-        // Restore cursor position
         normalEditor.commands.setTextSelection({ from, to })
       }
     }
@@ -570,6 +565,7 @@ const TextEditor = ({
       const newText = `${before}${selectedText}${after}`
       const newValue = textarea.value.substring(0, start) + newText + textarea.value.substring(end)
       setContent(newValue)
+      setUnsavedChanges(true)
       requestAnimationFrame(() => {
         const newPosition = start + before.length + selectedText.length
         textarea.setSelectionRange(newPosition, newPosition)
@@ -718,6 +714,7 @@ const TextEditor = ({
     setRetryContent(null)
     setOriginalContent(null)
     setSelectionRange({ from: 0, to: 0 })
+    setUnsavedChanges(true)
   }
 
   const handleRejectRetry = () => {
@@ -732,9 +729,68 @@ const TextEditor = ({
     if (event.target.tagName === "IMG") {
       const { src, alt } = event.target
       setSelectedImage({ src, alt: alt || "" })
+      setImageAlt(alt || "")
       setEditImageModalOpen(true)
     }
   }, [])
+
+  const handleDeleteImage = useCallback(() => {
+    if (!selectedImage) return
+    if (activeTab === "Normal" && normalEditor) {
+      let deleted = false
+      normalEditor.state.doc.descendants((node, pos) => {
+        if (node.type.name === "image" && node.attrs.src === selectedImage.src) {
+          normalEditor
+            .chain()
+            .focus()
+            .deleteRange({ from: pos, to: pos + 1 })
+            .run()
+          deleted = true
+        }
+      })
+      if (deleted) {
+        message.success("Image deleted.")
+        setEditImageModalOpen(false)
+        setSelectedImage(null)
+        setImageAlt("")
+        setUnsavedChanges(true)
+      } else {
+        message.error("Failed to delete image.")
+      }
+    } else if (activeTab === "Markdown") {
+      const markdownImageRegex = new RegExp(
+        `!\\[${escapeRegExp(selectedImage.alt || "")}\\]\\(${escapeRegExp(selectedImage.src)}\\)`,
+        "g"
+      )
+      setContent((prev) => {
+        const newContent = prev.replace(markdownImageRegex, "")
+        setUnsavedChanges(true)
+        return newContent
+      })
+      message.success("Image deleted.")
+      setEditImageModalOpen(false)
+      setSelectedImage(null)
+      setImageAlt("")
+    } else if (activeTab === "HTML") {
+      const htmlImageRegex = new RegExp(
+        `<img\\s+src="${escapeRegExp(selectedImage.src)}"\\s+alt="${escapeRegExp(
+          selectedImage.alt || ""
+        )}"\\s*/>`,
+        "g"
+      )
+      setContent((prev) => {
+        const html = markdownToHtml(prev)
+        const updatedHtml = html.replace(htmlImageRegex, "")
+        const newContent = htmlToMarkdown(updatedHtml)
+        setUnsavedChanges(true)
+        return newContent
+      })
+      message.success("Image deleted.")
+      setEditImageModalOpen(false)
+      setSelectedImage(null)
+      setImageAlt("")
+    }
+  }, [selectedImage, normalEditor, activeTab, setContent, markdownToHtml, htmlToMarkdown])
 
   useEffect(() => {
     if (normalEditor && activeTab === "Normal") {
@@ -752,10 +808,8 @@ const TextEditor = ({
       return
     }
     if (activeTab === "Normal" && normalEditor) {
-      // Find the image node and update its alt attribute
-      const { state } = normalEditor
       let updated = false
-      state.doc.descendants((node, pos) => {
+      normalEditor.state.doc.descendants((node, pos) => {
         if (node.type.name === "image" && node.attrs.src === selectedImage.src) {
           normalEditor
             .chain()
@@ -771,6 +825,7 @@ const TextEditor = ({
         setEditImageModalOpen(false)
         setSelectedImage(null)
         setImageAlt("")
+        setUnsavedChanges(true)
       } else {
         message.error("Failed to update image alt text.")
       }
@@ -780,7 +835,11 @@ const TextEditor = ({
         "g"
       )
       const newMarkdownImage = `![${imageAlt}](${selectedImage.src})`
-      setContent((prev) => prev.replace(markdownImageRegex, newMarkdownImage))
+      setContent((prev) => {
+        const newContent = prev.replace(markdownImageRegex, newMarkdownImage)
+        setUnsavedChanges(true)
+        return newContent
+      })
       message.success("Image alt text updated.")
       setEditImageModalOpen(false)
       setSelectedImage(null)
@@ -796,7 +855,9 @@ const TextEditor = ({
       setContent((prev) => {
         const html = markdownToHtml(prev)
         const updatedHtml = html.replace(htmlImageRegex, newHtmlImage)
-        return htmlToMarkdown(updatedHtml)
+        const newContent = htmlToMarkdown(updatedHtml)
+        setUnsavedChanges(true)
+        return newContent
       })
       message.success("Image alt text updated.")
       setEditImageModalOpen(false)
@@ -809,6 +870,27 @@ const TextEditor = ({
   const escapeRegExp = (string) => {
     return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
   }
+
+  const handleTabSwitch = useCallback(
+    (tab) => {
+      if (unsavedChanges) {
+        setTabSwitchWarning(tab)
+      } else {
+        setActiveTab(tab)
+      }
+    },
+    [unsavedChanges, setActiveTab]
+  )
+
+  const handleConfirmTabSwitch = useCallback(() => {
+    setUnsavedChanges(false)
+    setActiveTab(tabSwitchWarning)
+    setTabSwitchWarning(null)
+  }, [tabSwitchWarning, setActiveTab])
+
+  const handleCancelTabSwitch = useCallback(() => {
+    setTabSwitchWarning(null)
+  }, [])
 
   const FloatingToolbar = ({ editorRef, mode }) => {
     if (!selectionPosition || !editorRef.current) return null
@@ -888,7 +970,6 @@ const TextEditor = ({
 
   const renderToolbar = () => (
     <div className="bg-white border-x border-gray-200 shadow-sm px-4 py-2 flex items-center">
-      {/* Headings */}
       <div className="flex gap-1">
         {[1, 2, 3].map((level) => (
           <Tooltip key={level} title={`Heading ${level}`}>
@@ -920,7 +1001,6 @@ const TextEditor = ({
         ))}
       </div>
       <div className="w-px h-6 bg-gray-200 mx-2" />
-      {/* Formatting */}
       <div className="flex gap-1">
         <Tooltip title="Bold">
           <button
@@ -996,7 +1076,6 @@ const TextEditor = ({
         </Tooltip>
       </div>
       <div className="w-px h-6 bg-gray-200 mx-2" />
-      {/* Alignment */}
       <div className="flex gap-1">
         {["left", "center", "right"].map((align) => (
           <Tooltip key={align} title={`Align ${align}`}>
@@ -1030,7 +1109,6 @@ const TextEditor = ({
         ))}
       </div>
       <div className="w-px h-6 bg-gray-200 mx-2" />
-      {/* Lists */}
       <div className="flex gap-1">
         <Tooltip title="Bullet List">
           <button
@@ -1082,7 +1160,6 @@ const TextEditor = ({
         </Tooltip>
       </div>
       <div className="w-px h-6 bg-gray-200 mx-2" />
-      {/* Actions */}
       <div className="flex gap-1">
         <Tooltip title="Link">
           <button
@@ -1170,7 +1247,6 @@ const TextEditor = ({
         </Tooltip>
       </div>
       <div className="w-px h-6 bg-gray-200 mx-2" />
-      {/* Font Picker */}
       <Select
         value={selectedFont}
         onChange={(value) => safeEditorAction(() => setSelectedFont(value))}
@@ -1223,14 +1299,16 @@ const TextEditor = ({
             rehypePlugins={[rehypeRaw]}
             components={{
               a: ({ href, children }) => (
-                <a
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:text-blue-800 underline"
-                >
-                  {children}
-                </a>
+                <Tooltip title={href} placement="top">
+                  <a
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline"
+                  >
+                    {children}
+                  </a>
+                </Tooltip>
               ),
               img: ({ src, alt }) => (
                 <img
@@ -1261,7 +1339,6 @@ const TextEditor = ({
                         let remainingText = child
                         let elements = []
                         let keyIndex = 0
-                        // Sort suggestions by length (descending) to prioritize longer matches
                         const sortedSuggestions = [...proofreadingResults].sort(
                           (a, b) => b.original.length - a.original.length
                         )
@@ -1270,7 +1347,7 @@ const TextEditor = ({
                           for (const suggestion of sortedSuggestions) {
                             const regex = new RegExp(
                               suggestion.original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
-                              "i" // Case-insensitive matching
+                              "i"
                             )
                             const match = remainingText.match(regex)
                             if (match && match.index === 0) {
@@ -1308,7 +1385,6 @@ const TextEditor = ({
                             }
                           }
                           if (!matched) {
-                            // Find the next closest suggestion
                             let minIndex = remainingText.length
                             let nextMatch = null
                             for (const suggestion of sortedSuggestions) {
@@ -1474,7 +1550,10 @@ const TextEditor = ({
             <textarea
               ref={mdEditorRef}
               value={safeContent}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={(e) => {
+                setContent(e.target.value)
+                setUnsavedChanges(true)
+              }}
               onMouseUp={handleTextSelection}
               onKeyUp={handleTextSelection}
               className={`w-full h-full p-4 text-sm focus:outline-none resize-none bg-white code-textarea ${selectedFont}`}
@@ -1493,6 +1572,7 @@ const TextEditor = ({
                 const text = e.target.value
                 const markdown = htmlToMarkdown(text)
                 setContent(markdown)
+                setUnsavedChanges(true)
               }}
               onMouseUp={handleTextSelection}
               onKeyUp={handleTextSelection}
@@ -1542,14 +1622,16 @@ const TextEditor = ({
                     className="prose"
                     components={{
                       a: ({ href, children }) => (
-                        <a
-                          href={href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline"
-                        >
-                          {children}
-                        </a>
+                        <Tooltip title={href} placement="top">
+                          <a
+                            href={href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline"
+                          >
+                            {children}
+                          </a>
+                        </Tooltip>
                       ),
                       strong: ({ children }) => <strong className="font-bold">{children}</strong>,
                     }}
@@ -1567,14 +1649,16 @@ const TextEditor = ({
                     className="prose"
                     components={{
                       a: ({ href, children }) => (
-                        <a
-                          href={href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline"
-                        >
-                          {children}
-                        </a>
+                        <Tooltip title={href} placement="top">
+                          <a
+                            href={href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline"
+                          >
+                            {children}
+                          </a>
+                        </Tooltip>
                       ),
                       strong: ({ children }) => <strong className="font-bold">{children}</strong>,
                     }}
@@ -1601,12 +1685,28 @@ const TextEditor = ({
           </div>
         </motion.div>
       )}
+      {tabSwitchWarning && (
+        <Modal
+          title="Unsaved Changes"
+          open={true}
+          onOk={handleConfirmTabSwitch}
+          onCancel={handleCancelTabSwitch}
+          okText="Continue without Saving"
+          cancelText="Cancel"
+          centered
+        >
+          <p className="text-sm text-gray-600">
+            You have unsaved changes. Switching tabs may cause you to lose your work. Are you sure
+            you want to continue?
+          </p>
+        </Modal>
+      )}
       {!pathDetect && (
         <div className="flex border-b bg-white shadow-sm">
           {["Normal", "Markdown", "HTML"].map((tab) => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab)}
+              onClick={() => handleTabSwitch(tab)}
               className={`editor-tab ${activeTab === tab ? "active" : ""}`}
             >
               {tab}
@@ -1645,6 +1745,29 @@ const TextEditor = ({
         }}
         okText="Update Alt Text"
         cancelText="Cancel"
+        footer={[
+          <Button
+            key="delete"
+            onClick={handleDeleteImage}
+            danger
+            icon={<Trash2 className="w-4 h-4" />}
+          >
+            Delete Image
+          </Button>,
+          <Button
+            key="cancel"
+            onClick={() => {
+              setEditImageModalOpen(false)
+              setSelectedImage(null)
+              setImageAlt("")
+            }}
+          >
+            Cancel
+          </Button>,
+          <Button key="ok" type="primary" onClick={handleConfirmEditImage}>
+            Update Alt Text
+          </Button>,
+        ]}
         centered
       >
         <Input

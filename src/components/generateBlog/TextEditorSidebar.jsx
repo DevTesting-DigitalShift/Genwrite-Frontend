@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -309,7 +308,11 @@ const TextEditorSidebar = ({
   }, [])
 
   if (isAnalyzingCompetitive) {
-    return <Loading />
+    return (
+      <div className="flex items-center">
+        <Loading message="Running Competitive Analysis" />
+      </div>
+    )
   }
 
   const FeatureCard = ({
@@ -364,7 +367,9 @@ const TextEditorSidebar = ({
           <Icon className="w-4 h-4" />
           <span className="text-sm font-medium">{title}</span>
         </div>
-        {typeof score === "number" && score > 0 && (
+        {console.log(typeof score === "number" && score > 0)}
+        {console.log(typeof score)}
+        {score > 0 && (
           <span className="text-lg font-bold">
             {score}
             <span className="text-xs ml-1">/100</span>
@@ -373,7 +378,7 @@ const TextEditorSidebar = ({
       </div>
       {(score || 0) === 0 ? (
         <p className="text-xs text-gray-500 text-center p-2 bg-gray-50 rounded-lg">
-          Run Competitive Analysis to get SEO score
+          Run Competitive Analysis to get score
         </p>
       ) : (
         <div className="w-full bg-white/50 rounded-full h-2">
@@ -545,13 +550,15 @@ const TextEditorSidebar = ({
       <motion.div
         initial={{ x: "100%" }}
         animate={{ x: "calc(100% - 60px)" }}
-        className="fixed top-1/2 right-0 transform -translate-y-1/2 z-50"
+        className="fixed top-[17.5rem] right-0 transform -translate-y-1/2 z-50"
       >
-        <Button
-          onClick={() => setIsMinimized(false)}
-          className="h-12 rounded-l-lg rounded-r-none border-r-0"
-          icon={<Maximize2 className="w-4 h-4" />}
-        />
+        <Tooltip title="Maximize Sidebar" placement="left">
+          <Button
+            onClick={() => setIsMinimized(false)}
+            className="h-12 rounded-lg"
+            icon={<Maximize2 className="w-4 h-4" />}
+          />
+        </Tooltip>
       </motion.div>
     )
   }
@@ -710,7 +717,9 @@ const TextEditorSidebar = ({
 
                   <div className="grid grid-cols-2 gap-3 mt-4">
                     <div className="bg-blue-50 rounded-lg p-3 text-center">
-                      <div className="text-lg font-bold text-blue-600">{getWordCount(editorContent)}</div>
+                      <div className="text-lg font-bold text-blue-600">
+                        {getWordCount(editorContent)}
+                      </div>
                       <div className="text-xs text-blue-600">Words</div>
                     </div>
                     <div className="bg-purple-50 rounded-lg p-3 text-center">

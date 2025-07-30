@@ -38,6 +38,7 @@ const ToolBox = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const pathDetect = location.pathname === `/blog-editor/${blog?._id}`
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false)
   const [templateFormData, setTemplateFormData] = useState({
     title: "",
     topic: "",
@@ -304,6 +305,24 @@ const ToolBox = () => {
     }
   }
 
+  const handlePreview = () => {
+    if (!editorContent.trim()) {
+      message.error("Please write some content to preview.")
+      return
+    }
+    setIsPreviewOpen(true)
+  }
+
+  const handlePreviewClose = () => setIsPreviewOpen(false)
+
+  const generatePreviewContent = () => {
+    if (!editorContent.trim())
+      return `<h1>${editorTitle || "Preview Title"}</h1><p>No content available for preview.</p>`
+    return `<div class="prose prose-lg"><h1>${
+      editorTitle || topic || "Your Blog Title"
+    }</h1>${editorContent}</div>`
+  }
+
   return (
     <>
       <Helmet>
@@ -365,6 +384,29 @@ const ToolBox = () => {
           </div>
         </Modal>
 
+        <Modal
+          title="Blog Preview"
+          open={isPreviewOpen}
+          onCancel={handlePreviewClose}
+          footer={[
+            <button
+              key="close"
+              onClick={handlePreviewClose}
+              className="px-4 py-2 bg-gray-400 text-white rounded-md hover:bg-gray-500 focus:outline-none focus:bg-gray-500"
+              aria-label="Close preview"
+            >
+              Close
+            </button>,
+          ]}
+          width={800}
+          centered
+        >
+          <div
+            className="prose prose-lg max-w-none p-4"
+            dangerouslySetInnerHTML={{ __html: generatePreviewContent() }}
+          />
+        </Modal>
+
         <div className="flex mt-5">
           <div className="flex-1 flex flex-col">
             <header className="bg-white shadow-lg border-b border-gray-200 p-6">
@@ -381,6 +423,16 @@ const ToolBox = () => {
                   </div>
                 </div>
                 <div className="flex gap-2">
+                  {pathDetect && (
+                    <button
+                      onClick={handlePreview}
+                      className="px-4 py-2 bg-gradient-to-r from-[#1B6FC9] to-[#4C9FE8] text-white rounded-lg hover:from-[#1B6FC9]/90 hover:to-[#4C9FE8]/90 flex items-center"
+                      aria-label="Preview blog"
+                    >
+                      <Eye size={16} className="mr-2" />
+                      Preview
+                    </button>
+                  )}
                   <button
                     onClick={handleSave}
                     className={`px-4 py-2 rounded-lg font-semibold flex items-center gap-2 transition-all duration-300 ${
