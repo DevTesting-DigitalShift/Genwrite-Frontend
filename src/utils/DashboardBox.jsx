@@ -201,8 +201,12 @@ export const Blogs = ({ title, content, tags, item, time }) => {
               {title}
             </h3>
 
-            <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full capitalize">
-              {item?.aiModel || "Gemini"}
+            <span
+              className={`px-2 py-1 text-xs font-medium rounded-full capitalize ${
+                item?.isManuallyEdited ? "bg-gray-100 text-gray-700" : "bg-blue-100 text-blue-700"
+              }`}
+            >
+              {item?.isManuallyEdited ? "Manually Generated" : item?.aiModel || "Gemini"}
             </span>
 
             <span

@@ -26,18 +26,23 @@ const TemplateModal = ({
 
   const dispatch = useDispatch()
 
-  useEffect(() => {
-    if (isOpen) document.body.classList.add("backdrop-blur")
-    else document.body.classList.remove("backdrop-blur")
-  }, [isOpen])
+  // useEffect(() => {
+  //   if (isOpen) document.body.classList.add("backdrop-blur")
+  //   else document.body.classList.remove("backdrop-blur")
+  // }, [isOpen])
 
   // Handle modal open/close scroll behavior
-  // useEffect(() => {
-  //   document.body.style.overflow = "hidden"
-  //   return () => {
-  //     document.body.style.overflow = "auto"
-  //   }
-  // }, [])
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden"
+    } else {
+      document.body.style.overflow = "auto"
+    }
+
+    return () => {
+      document.body.style.overflow = "auto"
+    }
+  }, [isOpen])
 
   const handleNext = () => {
     if (currentStep === 0 && !selectedTemplate) {
@@ -199,7 +204,7 @@ const TemplateModal = ({
             ]
       }
       width={800}
-      // centered
+      centered
     >
       <div className="p-2">
         {currentStep === 0 && (

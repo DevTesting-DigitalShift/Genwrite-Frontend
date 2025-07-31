@@ -21,10 +21,10 @@ import { getAllBlogs } from "@api/blogApi"
 import { deleteAllUserBlogs, restoreTrashedBlog } from "@store/slices/blogSlice"
 import { debounce } from "lodash"
 import moment from "moment"
+import { useNavigate } from "react-router-dom"
 
 const { Search: AntSearch } = Input
 const { Option } = Select
-const { RangePicker } = DatePicker
 
 const Trashcan = () => {
   const [trashedBlogs, setTrashedBlogs] = useState([])
@@ -39,7 +39,8 @@ const Trashcan = () => {
   const { handlePopup } = useConfirmPopup()
   const dispatch = useDispatch()
   const TRUNCATE_LENGTH = 85
-  const PAGE_SIZE_OPTIONS = [10, 15, 20, 50] // Must respect maxPerPage: 100
+  const PAGE_SIZE_OPTIONS = [10, 15, 20, 50]
+  const navigate = useNavigate()
 
   // Date range presets
   const datePresets = [
@@ -98,6 +99,14 @@ const Trashcan = () => {
     return content.length > length ? content.substring(0, length) + "..." : content
   }
 
+  const stripMarkdown = (text) => {
+    return text
+      ?.replace(/<[^>]*>/g, "")
+      ?.replace(/[\\*#=_~`>\-]+/g, "")
+      ?.replace(/\s{2,}/g, " ")
+      ?.trim()
+  }
+
   // Strip markdown
   const cleanText = (text) => {
     return (
@@ -142,7 +151,10 @@ const Trashcan = () => {
   // Handle blog click
   const handleBlogClick = (blog) => {
     message.info(`Clicked on blog: ${blog.title}`)
-    // Example: navigate(`/blog/${blog._id}`)
+  }
+
+  const handleManualBlogClick = (blog) => {
+    navigate(`/blog-editor/${blog._id}`)
   }
 
   return (
@@ -213,7 +225,7 @@ const Trashcan = () => {
           Restore valuable work or permanently delete clutter. Trashed items are deleted after 7
           days.
         </motion.p>
-        
+
         {/* Filters */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -277,6 +289,7 @@ const Trashcan = () => {
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 p-2"
             >
               {trashedBlogs.map((blog) => {
+                const isManualEditor = blog.isManuallyEdited === true
                 const {
                   _id,
                   title,
@@ -287,6 +300,7 @@ const Trashcan = () => {
                   focusKeywords,
                   wordpress,
                   archiveDate,
+                  agendaJob,
                 } = blog
                 const isGemini = /gemini/gi.test(aiModel)
                 return (
@@ -294,38 +308,52 @@ const Trashcan = () => {
                     key={_id}
                     text={
                       <span className="flex items-center justify-center gap-1 py-1 font-medium tracking-wide">
-                        <img
-                          src={`./Images/${
-                            isGemini ? "gemini" : aiModel === "claude" ? "claude" : "chatgpt"
-                          }.png`}
-                          alt=""
-                          width={20}
-                          height={20}
-                          loading="lazy"
-                          className="bg-white"
-                        />
-                        {isGemini
-                          ? "Gemini-1.5-flash"
-                          : aiModel === "claude"
-                          ? "Claude-3-Haiku"
-                          : "ChatGPT-4o-mini"}
+                        {isManualEditor ? (
+                          <>Manually Generated</>
+                        ) : (
+                          <>
+                            <img
+                              src={`./Images/${
+                                isGemini ? "gemini" : aiModel === "claude" ? "claude" : "chatgpt"
+                              }.png`}
+                              alt={
+                                isGemini ? "Gemini" : aiModel === "claude" ? "Claude" : "ChatGPT"
+                              }
+                              width={20}
+                              height={20}
+                              loading="lazy"
+                              className="bg-white"
+                            />
+                            {isGemini
+                              ? "Gemini-1.5-flash"
+                              : aiModel === "claude"
+                              ? "Claude-3-Haiku"
+                              : "ChatGPT-4o-mini"}
+                          </>
+                        )}
                       </span>
                     }
                     className="absolute top-0"
-                    color={isGemini ? "#4796E3" : aiModel === "claude" ? "#9368F8" : "#74AA9C"}
+                    color={
+                      isManualEditor
+                        ? "#9CA3AF"
+                        : isGemini
+                        ? "#4796E3"
+                        : aiModel === "claude"
+                        ? "#9368F8"
+                        : "#74AA9C"
+                    }
                   >
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3 }}
-                      className={`bg-white shadow-md hover:shadow-xl transition-all duration-300 rounded-xl p-4 min-h-[180px] min-w-[390px] relative border-2
-                        ${
-                          status === "failed"
-                            ? "border-red-500"
-                            : status === "complete"
-                            ? "border-green-500"
-                            : "border-yellow-500"
-                        }`}
+                    <div
+                      className={`bg-white shadow-md hover:shadow-xl transition-all duration-300 rounded-xl p-4 min-h-[180px] min-w-[390px] relative ${
+                        isManualEditor
+                          ? "border-gray-500"
+                          : status === "failed"
+                          ? "border-red-500"
+                          : status === "pending" || status === "in-progress"
+                          ? "border-yellow-500"
+                          : "border-green-500"
+                      } border-2`}
                       title={title}
                     >
                       <div className="text-xs font-semibold text-gray-400 mb-2 -mt-2">
@@ -333,34 +361,79 @@ const Trashcan = () => {
                           dateStyle: "medium",
                         })}
                       </div>
-                      <Tooltip
-                        color={
-                          status === "complete" ? "black" : status === "failed" ? "red" : "orange"
-                        }
-                        title={
-                          status === "complete"
-                            ? "Click to view blog"
-                            : "Cannot view incomplete blog"
-                        }
-                      >
+
+                      {isManualEditor ? (
                         <div
-                          className={`cursor-${status === "complete" ? "pointer" : "default"}`}
-                          onClick={() => {
-                            if (status === "complete") {
-                              handleBlogClick(blog)
-                            }
-                          }}
+                          className="cursor-pointer"
+                          onClick={() => handleManualBlogClick(blog)}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => e.key === "Enter" && navigate(`/blog-editor`)}
+                          aria-label={`View blog ${title}`}
                         >
                           <div className="flex flex-col gap-4 items-center justify-between mb-2">
                             <h3 className="text-lg capitalize font-semibold text-gray-900 !text-left max-w-76">
                               {title}
                             </h3>
                             <p className="text-sm text-gray-600 mb-4 line-clamp-3 break-all">
-                              {truncateContent(cleanText(content))}
+                              {truncateContent(stripMarkdown(content)) || ""}
                             </p>
                           </div>
                         </div>
-                      </Tooltip>
+                      ) : (
+                        <Tooltip
+                          title={
+                            status === "complete"
+                              ? title
+                              : status === "failed"
+                              ? "Blog generation failed"
+                              : status === "pending"
+                              ? `Pending Blog will be generated ${
+                                  agendaJob?.nextRunAt
+                                    ? "at " +
+                                      new Date(agendaJob.nextRunAt).toLocaleString("en-IN", {
+                                        dateStyle: "medium",
+                                        timeStyle: "short",
+                                      })
+                                    : "shortly"
+                                }`
+                              : `Blog generation is ${status}`
+                          }
+                          color={
+                            status === "complete"
+                              ? "green"
+                              : status === "failed"
+                              ? "red"
+                              : "#eab308"
+                          }
+                        >
+                          <div
+                            className="cursor-pointer"
+                            onClick={() => {
+                              if (status === "complete" || status === "failed") {
+                                handleBlogClick(blog)
+                              }
+                            }}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) =>
+                              e.key === "Enter" &&
+                              (status === "complete" || status === "failed") &&
+                              handleBlogClick(blog)
+                            }
+                            aria-label={`View blog ${title}`}
+                          >
+                            <div className="flex flex-col gap-4 items-center justify-between mb-2">
+                              <h3 className="text-lg capitalize font-semibold text-gray-900 !text-left max-w-76">
+                                {title}
+                              </h3>
+                              <p className="text-sm text-gray-600 mb-4 line-clamp-3 break-all">
+                                {truncateContent(stripMarkdown(content)) || ""}
+                              </p>
+                            </div>
+                          </div>
+                        </Tooltip>
+                      )}
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex flex-wrap gap-2">
                           {focusKeywords?.map((keyword, index) => (
@@ -407,7 +480,7 @@ const Trashcan = () => {
                           })}
                         </span>
                       </div>
-                    </motion.div>
+                    </div>
                   </Badge.Ribbon>
                 )
               })}

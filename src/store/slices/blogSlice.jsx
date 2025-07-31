@@ -249,7 +249,7 @@ export const createManualBlog = createAsyncThunk(
   async (blogData, { rejectWithValue }) => {
     try {
       const response = await createSimpleBlog(blogData)
-      return response.blog
+      return response
     } catch (error) {
       return rejectWithValue(error)
     }
@@ -429,7 +429,7 @@ const blogSlice = createSlice({
       })
       .addCase(createManualBlog.fulfilled, (state, action) => {
         state.loading = false
-        state.blogs.data.unshift(action.payload.blog) // or push depending on ordering
+        state.data = action.payload
       })
       .addCase(createManualBlog.rejected, (state, action) => {
         state.loading = false
@@ -472,5 +472,10 @@ const blogSlice = createSlice({
   },
 })
 
-export const { clearSelectedBlog, setProofreadingSuggestions, setIsAnalyzingProofreading, clearProofreadingSuggestions } = blogSlice.actions
+export const {
+  clearSelectedBlog,
+  setProofreadingSuggestions,
+  setIsAnalyzingProofreading,
+  clearProofreadingSuggestions,
+} = blogSlice.actions
 export default blogSlice.reducer

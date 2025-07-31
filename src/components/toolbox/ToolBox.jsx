@@ -285,7 +285,6 @@ const ToolBox = () => {
 
     try {
       const res = await dispatch(createManualBlog(blogData)).unwrap()
-      setBlogId(res._id)
       setShowTemplateModal(false)
       navigate(`/blog-editor/${res._id}`)
     } catch (err) {
@@ -406,9 +405,9 @@ const ToolBox = () => {
           />
         </Modal>
 
-        <div className="flex mt-5">
+        <div className="flex mt-5 pb-5">
           <div className="flex-1 flex flex-col">
-            <header className="bg-white shadow-lg border-b border-gray-200 p-6">
+            <header className="bg-white shadow-lg border rounded-tl-lg border-gray-200 p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
@@ -534,7 +533,7 @@ const ToolBox = () => {
             isPosting={isPosting}
             formData={formData}
             title={editorTitle}
-            editorContent={editorContent} // Pass editorContent to TextEditorSidebar
+            editorContent={editorContent} 
           />
         </div>
       </div>
