@@ -56,6 +56,7 @@ const SearchConsole = () => {
   const [selectedBlogTitle, setSelectedBlogTitle] = useState("all")
   const [selectedCountries, setSelectedCountries] = useState([])
   const [includeCountry, setIncludeCountry] = useState(false)
+  const [includeBlogTitle, setIncludeBlogTitle] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -252,6 +253,10 @@ const SearchConsole = () => {
       result = result.filter((blog) => selectedCountries.includes(blog.countryCode))
     }
 
+    if (includeBlogTitle && selectedBlogTitle !== "all") {
+      result = result.filter((blog) => blog.blogTitle === selectedBlogTitle)
+    }
+
     // Apply blog title filter
     if (selectedBlogTitle !== "all") {
       result = result.filter((blog) => blog.blogTitle === selectedBlogTitle)
@@ -279,6 +284,7 @@ const SearchConsole = () => {
     setSelectedBlogTitle("all")
     setSelectedCountries([])
     setIncludeCountry(false)
+    setIncludeBlogTitle(false)
     setCustomDateRange([null, null])
     setDateRange("30d")
     setCurrentPage(1)
@@ -293,16 +299,6 @@ const SearchConsole = () => {
     selectedCountries.length > 0 ||
     !isDefaultDateRange
 
-  // Get blog title for display
-  const getBlogTitle = useCallback(
-    (blogTitle) => {
-      if (blogTitle === "all") return "All Blogs"
-      const blog = blogs?.data?.find((b) => b.url || b.title === blogTitle)
-      return blog?.title || blogTitle
-    },
-    [blogs]
-  )
-
   // Export data as Excel
   const handleExport = useCallback(async () => {
     if (!currentPageData.length) {
@@ -316,8 +312,8 @@ const SearchConsole = () => {
         "Impressions",
         "CTR (%)",
         "Avg Position",
-        "Blog Title",
         "URL",
+        ...(includeBlogTitle ? ["Blog Title"] : []),
         ...(includeCountry ? ["Country"] : []),
       ]
       const rows = currentPageData.map((blog) => ({
@@ -327,7 +323,7 @@ const SearchConsole = () => {
         "CTR %": blog.ctr,
         "Avg Position": blog.position,
         URL: blog.url,
-        "Blog Title": blog.blogTitle,
+        ...(includeBlogTitle ? { "Blog Title": blog.blogTitle } : {}),
         ...(includeCountry ? { Country: blog.countryName } : {}),
       }))
       const worksheet = XLSX.utils.json_to_sheet(rows, { header: headers })
@@ -396,13 +392,17 @@ const SearchConsole = () => {
 
   // Ant Design Table Columns
   const columns = [
-    {
-      title: "Blog Title",
-      dataIndex: "blogTitle",
-      key: "blogTitle",
-      render: (blogTitle) => <div className="font-medium">{blogTitle}</div>,
-      sorter: (a, b) => a.blogTitle.localeCompare(b.blogTitle),
-    },
+    ...(includeBlogTitle
+      ? [
+          {
+            title: "Blog Title",
+            dataIndex: "blogTitle",
+            key: "blogTitle",
+            render: (blogTitle) => <div className="font-medium">{blogTitle}</div>,
+            sorter: (a, b) => a.blogTitle.localeCompare(b.blogTitle),
+          },
+        ]
+      : []),
     {
       title: "Keywords",
       dataIndex: "keywords",
@@ -570,6 +570,14 @@ const SearchConsole = () => {
     )
   }
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-300px)] bg-white border rounded-lg">
+        <Loading />
+      </div>
+    )
+  }
+
   // Main UI with data
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-transparent p-5">
@@ -603,7 +611,7 @@ const SearchConsole = () => {
             )}
             <Button
               icon={<RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />}
-              onClick={() => fetchAnalyticsData()}
+              onClick={fetchAnalyticsData}
               disabled={isLoading || sitesLoading}
               className="flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700"
             >
@@ -611,9 +619,6 @@ const SearchConsole = () => {
             </Button>
           </div>
         </div>
-
-        {/* Loading State */}
-        {isLoading && <Loading />}
 
         {/* Summary Cards */}
         {!isLoading && (
@@ -757,6 +762,17 @@ const SearchConsole = () => {
                     fetchAnalyticsData()
                   }}
                   className={`w-fit ${includeCountry ? "bg-blue-600" : "bg-gray-200"}`}
+                />
+              </div>
+
+              <div className="flex-2 flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-700">Blog Title</label>
+                <Switch
+                  checked={includeBlogTitle}
+                  onChange={(checked) => {
+                    setIncludeBlogTitle(checked)
+                  }}
+                  className={`w-fit ${includeBlogTitle ? "bg-blue-600" : "bg-gray-200"}`}
                 />
               </div>
 

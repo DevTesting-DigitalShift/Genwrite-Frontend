@@ -32,6 +32,7 @@ import {
   RotateCcw,
   Copy,
   Trash2,
+  Upload,
 } from "lucide-react"
 import { useSelector } from "react-redux"
 import { Input, Modal, Tooltip, message, Select, Button } from "antd"
@@ -89,6 +90,7 @@ const TextEditor = ({
   const [hoveredSuggestion, setHoveredSuggestion] = useState(null)
   const [unsavedChanges, setUnsavedChanges] = useState(false)
   const [tabSwitchWarning, setTabSwitchWarning] = useState(null)
+  const [htmlContent, setHtmlContent] = useState("")
   const htmlEditorRef = useRef(null)
   const mdEditorRef = useRef(null)
   const dropdownRef = useRef(null)
@@ -99,6 +101,7 @@ const TextEditor = ({
   const userPlan = user?.plan ?? user?.subscription?.plan
   const hasShownToast = useRef(false)
   const location = useLocation()
+  const fileInputRef = useRef(null) // Added for file input
   const pathDetect = location.pathname === `/blog-editor/${blog?._id}`
   const [editImageModalOpen, setEditImageModalOpen] = useState(false)
   const [selectedImage, setSelectedImage] = useState(null)
@@ -179,8 +182,8 @@ const TextEditor = ({
         Link.configure({ HTMLAttributes: { class: "text-blue-600 underline" } }),
         Image.configure({
           HTMLAttributes: {
-            class: "rounded-lg mx-auto my-4 max-w-[800px] w-full h-auto object-contain",
-            style: "display: block; margin: 2rem auto;",
+            class: "rounded-lg mx-auto w-3/4 h-auto object-contain",
+            style: "display: block;;",
           },
         }),
         Underline,
@@ -451,6 +454,12 @@ const TextEditor = ({
       }
     }
   }, [blog, normalEditor, activeTab, setContent])
+
+  useEffect(() => {
+    if (activeTab === "HTML") {
+      setHtmlContent(markdownToHtml(safeContent).replace(/>\s*</g, ">\n<"))
+    }
+  }, [safeContent, activeTab, markdownToHtml])
 
   // Handle click outside for dropdown
   useEffect(() => {
@@ -892,6 +901,40 @@ const TextEditor = ({
     setTabSwitchWarning(null)
   }, [])
 
+  const handleFileImport = useCallback(
+    (event) => {
+      const file = event.target.files[0]
+      if (!file) return
+
+      const isMarkdown = activeTab === "Markdown" && file.name.endsWith(".md")
+      const isHtml = activeTab === "HTML" && file.name.endsWith(".html")
+
+      if (!isMarkdown && !isHtml) {
+        message.error(`Please upload a ${activeTab === "Markdown" ? ".md" : ".html"} file.`)
+        return
+      }
+
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        let fileContent = e.target.result
+        // if (isHtml) {
+        //   setContent(fileContent) // Update htmlContent for HTML tab
+        //   fileContent = htmlToMarkdown(fileContent) // Convert to Markdown for setContent
+        // }
+        setContent(fileContent)
+        setUnsavedChanges(true)
+        message.success(`${file.name} imported successfully!`)
+      }
+      reader.onerror = () => {
+        message.error("Failed to read the file.")
+      }
+      reader.readAsText(file)
+
+      event.target.value = null
+    },
+    [activeTab, setContent, htmlToMarkdown]
+  )
+
   const FloatingToolbar = ({ editorRef, mode }) => {
     if (!selectionPosition || !editorRef.current) return null
     const formatActions = {
@@ -950,6 +993,10 @@ const TextEditor = ({
     )
   }
 
+  const isFullHtmlDocument = useCallback((text) => {
+    return text.trim().startsWith("<!DOCTYPE html>") || text.trim().startsWith("<html")
+  }, [])
+
   const handleRewrite = () => {
     if (userPlan === "free" || userPlan === "basic") {
       handlePopup({
@@ -967,7 +1014,6 @@ const TextEditor = ({
       })
     }
   }
-
   const renderToolbar = () => (
     <div className="bg-white border-x border-gray-200 shadow-sm px-4 py-2 flex items-center">
       <div className="flex gap-1">
@@ -1077,7 +1123,7 @@ const TextEditor = ({
       </div>
       <div className="w-px h-6 bg-gray-200 mx-2" />
       <div className="flex gap-1">
-        {["left", "center", "right"].map((align) => (
+        {["left", "center", " personally"].map((align) => (
           <Tooltip key={align} title={`Align ${align}`}>
             <button
               onClick={() =>
@@ -1224,7 +1270,7 @@ const TextEditor = ({
           <button
             onClick={() =>
               safeEditorAction(() => {
-                navigator.clipboard.writeText(safeContent)
+                navigator.clipboard.writeText(activeTab === "HTML" ? htmlContent : safeContent)
                 message.success("Content copied to clipboard!")
               })
             }
@@ -1245,7 +1291,28 @@ const TextEditor = ({
             <ReloadOutlined className="w-4 h-4" />
           </button>
         </Tooltip>
+        {(activeTab === "Markdown" || activeTab === "HTML") && (
+          <Tooltip title={`Import ${activeTab === "Markdown" ? ".md" : ".html"} File`}>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="p-2 rounded-md hover:bg-gray-100 transition-colors duration-150 flex items-center justify-center"
+              aria-label="Import File"
+              type="button"
+            >
+              <Upload className="w-4 h-4" />
+            </button>
+          </Tooltip>
+        )}
       </div>
+      {(activeTab === "Markdown" || activeTab === "HTML") && (
+        <input
+          type="file"
+          ref={fileInputRef}
+          style={{ display: "none" }}
+          accept={activeTab === "Markdown" ? ".md" : ".html"}
+          onChange={handleFileImport}
+        />
+      )}
       <div className="w-px h-6 bg-gray-200 mx-2" />
       <Select
         value={selectedFont}
@@ -1289,6 +1356,33 @@ const TextEditor = ({
     }
 
     if (markdownPreview && (activeTab === "Markdown" || activeTab === "HTML")) {
+      if (activeTab === "HTML" && isFullHtmlDocument(htmlContent)) {
+        // Render full HTML document in an iframe for HTML tab preview
+        const sanitizedHtml = DOMPurify.sanitize(htmlContent, {
+          USE_PROFILES: { html: true },
+          ADD_TAGS: ["style"],
+          ADD_ATTR: ["target"], // Allow target attribute for links
+        })
+        return (
+          <div
+            className={`p-8 rounded-lg rounded-t-none overflow-y-auto h-screen bg-white ${selectedFont}`}
+          >
+            <h1 className="text-3xl font-bold mb-6 text-gray-900">{title || "Untitled"}</h1>
+            <iframe
+              srcDoc={sanitizedHtml}
+              title="HTML Preview"
+              style={{
+                width: "100%",
+                height: "calc(100% - 60px)",
+                border: "none",
+                background: "white",
+              }}
+              sandbox="allow-same-origin"
+            />
+          </div>
+        )
+      }
+
       return (
         <div
           className={`p-8 rounded-lg rounded-t-none overflow-y-auto h-screen bg-white ${selectedFont}`}
@@ -1314,24 +1408,13 @@ const TextEditor = ({
                 <img
                   src={src}
                   alt={alt}
-                  className="rounded-lg mx-auto my-6 max-w-full h-auto shadow-sm"
+                  className="rounded-lg mx-auto my-3 w-3/4 h-auto shadow-sm"
                 />
               ),
-              h1: ({ children }) => (
-                <h1 className="text-2xl font-bold mt-8 mb-4 text-gray-900 border-b-2 border-blue-500 pb-2">
-                  {children}
-                </h1>
-              ),
-              h2: ({ children }) => (
-                <h2 className="text-xl font-semibold mt-6 mb-3 text-gray-800">{children}</h2>
-              ),
-              h3: ({ children }) => (
-                <h3 className="text-lg font-medium mt-4 mb-2 text-gray-700">{children}</h3>
-              ),
+              h1: ({ children }) => <h1 className="text-2xl font-bold">{children}</h1>,
+              h2: ({ children }) => <h2 className="text-xl font-semibold">{children}</h2>,
+              h3: ({ children }) => <h3 className="text-lg font-medium">{children}</h3>,
               p: ({ children }) => {
-                const textContent = React.Children.toArray(children)
-                  .map((child) => (typeof child === "string" ? child : ""))
-                  .join("")
                 return (
                   <p className="mb-4 leading-relaxed text-gray-700">
                     {React.Children.map(children, (child, index) => {
@@ -1567,11 +1650,14 @@ const TextEditor = ({
           <div className="h-screen">
             <textarea
               ref={htmlEditorRef}
-              value={safeContent ? markdownToHtml(safeContent).replace(/>\s*</g, ">\n<") : ""}
+              value={htmlContent}
               onChange={(e) => {
-                const text = e.target.value
-                const markdown = htmlToMarkdown(text)
-                setContent(markdown)
+                // const text = e.target.value
+                // setHtmlContent(text)
+                // const markdown = htmlToMarkdown(text)
+                // setContent(markdown)
+                // setUnsavedChanges(true)
+                setContent(e.target.value)
                 setUnsavedChanges(true)
               }}
               onMouseUp={handleTextSelection}

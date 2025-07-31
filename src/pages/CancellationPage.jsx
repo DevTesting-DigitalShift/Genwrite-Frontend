@@ -41,11 +41,6 @@ const CancellationPage = () => {
     }, 2000);
   };
 
-  const handleCancel = () => {
-    console.log('Processing cancellation...');
-    // In a real app, show a confirmation modal or redirect to a cancellation form
-  };
-
   if (showSuccess) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 flex items-center justify-center p-4">
@@ -202,7 +197,7 @@ const CancellationPage = () => {
           <motion.button
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.99 }}
-            onClick={handleCancel}
+            // onClick={handleCancel}
             disabled={isProcessing}
             className={`w-full mt-3 py-4 px-6 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl transition-all duration-300 hover:border-gray-400 hover:bg-gray-50 ${
               isProcessing ? 'opacity-50 cursor-not-allowed' : ''

@@ -279,8 +279,8 @@ const Dashboard = () => {
       <div className="min-h-screen bg-gray-50 p-6 relative">
         {loading ? (
           <div className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {Array.from({ length: 4 }).map((_, idx) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Array.from({ length: 3 }).map((_, idx) => (
                 <SkeletonDashboardCard key={idx} />
               ))}
             </div>

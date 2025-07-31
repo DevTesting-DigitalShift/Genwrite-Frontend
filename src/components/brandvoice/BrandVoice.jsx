@@ -2,13 +2,14 @@ import React, { useState, useEffect, useCallback, useMemo } from "react"
 import { motion } from "framer-motion"
 import { FaEdit, FaTimes } from "react-icons/fa"
 import { useDispatch, useSelector } from "react-redux"
-import { Info, Upload } from "lucide-react"
+import { Info, Loader2, Upload } from "lucide-react"
 import { Helmet } from "react-helmet"
 import { Modal, Tooltip, message } from "antd"
 import {
   createBrandVoiceThunk,
   deleteBrandVoiceThunk,
   fetchBrands,
+  fetchSiteInfo,
   updateBrandVoiceThunk,
 } from "@store/slices/brandSlice"
 
@@ -27,7 +28,8 @@ const BrandVoice = () => {
     _id: undefined,
   })
   const [errors, setErrors] = useState({})
-  const { brands } = useSelector((state) => state.brand)
+  const { brands, siteInfo } = useSelector((state) => state.brand)
+  const [lastScrapedUrl, setLastScrapedUrl] = useState("")
 
   useEffect(() => {
     dispatch(fetchBrands())
@@ -284,6 +286,49 @@ const BrandVoice = () => {
     )
   }, [formData.keywords, removeKeyword])
 
+  // New: Populate form with fetched siteInfo data
+  useEffect(() => {
+    if (siteInfo.data) {
+      setFormData((prev) => ({
+        ...prev,
+        nameOfVoice: siteInfo.data.nameOfVoice || prev.nameOfVoice,
+        describeBrand: siteInfo.data.describeBrand || prev.describeBrand,
+        keywords: siteInfo.data.keywords || prev.keywords,
+        postLink: siteInfo.data.postLink || prev.postLink,
+      }))
+      setErrors((prev) => ({
+        ...prev,
+        nameOfVoice: undefined,
+        describeBrand: undefined,
+        keywords: undefined,
+      }))
+      setLastScrapedUrl(formData.postLink) // Mark URL as scraped
+    }
+  }, [siteInfo.data, formData.postLink])
+
+  const handleFetchSiteInfo = useCallback(() => {
+    const url = formData.postLink.trim()
+
+    if (!url) {
+      setErrors((prev) => ({
+        ...prev,
+        postLink: "Post link is required to fetch site info.",
+      }))
+      return
+    }
+
+    try {
+      new URL(url) // this throws only on *syntax* issues like "hello.com"
+      dispatch(fetchSiteInfo(url))
+    } catch (err) {
+      console.error("❌ Invalid URL caught:", err)
+      setErrors((prev) => ({
+        ...prev,
+        postLink: "Please enter a valid URL (e.g., https://example.com).",
+      }))
+    }
+  }, [formData.postLink, dispatch])
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -312,21 +357,57 @@ const BrandVoice = () => {
           <div>
             <label htmlFor="postLink" className="text-sm font-medium text-gray-700 flex gap-2 mb-1">
               Post or Blog Link <span className="text-red-500">*</span>
+              <Tooltip
+                title="Add a link of your home page to fetch site info"
+                overlayInnerStyle={{
+                  backgroundColor: "#4169e1",
+                  color: "#fff",
+                  borderRadius: "8px",
+                  padding: "8px 12px",
+                  fontSize: "13px",
+                  maxWidth: "220px",
+                }}
+              >
+                <span className="cursor-pointer">
+                  <Info size={16} className="text-blue-500" />
+                </span>
+              </Tooltip>
             </label>
-            <motion.input
-              id="postLink"
-              type="url"
-              name="postLink"
-              value={formData.postLink}
-              onChange={handleInputChange}
-              placeholder="e.g., https://example.com/blog"
-              className={`w-full p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
-                errors.postLink ? "border-red-500" : "border-gray-300"
-              }`}
-              whileFocus={{ scale: 1.01 }}
-              aria-invalid={!!errors.postLink}
-              aria-describedby={errors.postLink ? "postLink-error" : undefined}
-            />
+            <div className="flex gap-2">
+              <motion.input
+                id="postLink"
+                type="url"
+                name="postLink"
+                value={formData.postLink}
+                onChange={handleInputChange}
+                placeholder="e.g., https://example.com/blog"
+                className={`flex-grow p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
+                  errors.postLink ? "border-red-500" : "border-gray-300"
+                }`}
+                whileFocus={{ scale: 1.01 }}
+                aria-invalid={!!errors.postLink}
+                aria-describedby={errors.postLink ? "postLink-error" : undefined}
+              />
+              <motion.button
+                className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-2 rounded-lg font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={handleFetchSiteInfo}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.98 }}
+                disabled={
+                  siteInfo.loading || (lastScrapedUrl === formData.postLink && formData.postLink)
+                }
+                aria-label="Fetch Site Info"
+              >
+                {siteInfo.loading ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="animate-spin w-4 h-4" />
+                    Fetching...
+                  </span>
+                ) : (
+                  "Fetch Site Info"
+                )}
+              </motion.button>
+            </div>
             {errors.postLink && (
               <p id="postLink-error" className="text-red-500 text-xs mt-1">
                 {errors.postLink}
@@ -367,7 +448,14 @@ const BrandVoice = () => {
           <div>
             <label htmlFor="keywords" className="text-sm font-medium text-gray-700 flex gap-2 mb-1">
               Keywords <span className="text-red-500">*</span>
-              <Tooltip title="Upload a .csv file in the format: `Keyword` as header">
+              <Tooltip title="Upload a .csv file in the format: `Keyword` as header" overlayInnerStyle={{
+                  backgroundColor: "#4169e1",
+                  color: "#fff",
+                  borderRadius: "8px",
+                  padding: "8px 12px",
+                  fontSize: "13px",
+                  maxWidth: "220px",
+                }}>
                 <span className="cursor-pointer">
                   <Info size={16} className="text-blue-500" />
                 </span>
@@ -422,7 +510,14 @@ const BrandVoice = () => {
               className="text-sm font-medium text-gray-700 flex gap-2 mb-1"
             >
               Sitemap URL <span className="text-red-500">*</span>
-              <Tooltip title="Paste the URL of your XML sitemap (e.g., https://example.com/sitemap.xml)">
+              <Tooltip title="Paste the URL of your XML sitemap (e.g., https://example.com/sitemap.xml)" overlayInnerStyle={{
+                  backgroundColor: "#4169e1",
+                  color: "#fff",
+                  borderRadius: "8px",
+                  padding: "8px 12px",
+                  fontSize: "13px",
+                  maxWidth: "320px",
+                }}>
                 <span className="cursor-pointer">
                   <Info size={16} className="text-blue-500" />
                 </span>

@@ -73,21 +73,21 @@ const JobCard = ({ job, setCurrentPage, paginatedJobs }) => {
       <div className="space-y-3 text-sm text-gray-600">
         <div className="flex items-center gap-2 capitalize">
           <FiCalendar className="w-4 h-4 text-blue-500" />
-          <span>Scheduling: {job.schedule.type}</span>
+          <span>Scheduling: {job?.schedule?.type}</span>
         </div>
         <div className="flex items-center gap-2 capitalize">
           <FiFileText className="w-4 h-4 text-purple-500" />
-          <span>Daily Blogs: {job.blogs.numberOfBlogs}</span>
+          <span>Daily Blogs: {job?.blogs?.numberOfBlogs}</span>
         </div>
         <div className="flex items-center gap-2 capitalize">
           <FiSettings className="w-4 h-4 text-green-500" />
-          <span>Model: {job.blogs.aiModel}</span>
+          <span>Model: {job?.blogs?.aiModel}</span>
         </div>
         <div className="flex items-center gap-2 capitalize">
           <FiCalendar className="w-4 h-4 text-red-500" />
-          <span>Status: {job.status}</span>
+          <span>Status: {job?.status}</span>
         </div>
-        {job.blogs.topics?.length > 0 && (
+        {job?.blogs?.topics?.length > 0 && (
           <div className="flex items-start gap-2">
             <FiFileText className="w-4 h-4 text-purple-500 mt-0.5" />
             <div className="flex flex-wrap gap-2">
@@ -113,12 +113,12 @@ const JobCard = ({ job, setCurrentPage, paginatedJobs }) => {
             </div>
           </div>
         )}
-        {job.blogs.keywords?.length > 0 && (
+        {job?.blogs?.keywords?.length > 0 && (
           <div className="flex items-start gap-2">
             <FiFileText className="w-4 h-4 text-indigo-500 mt-0.5" />
             <div className="flex flex-wrap gap-2">
               <span className="text-sm text-gray-700 font-medium">Keywords:</span>
-              {job.blogs.keywords.map((keyword, index) => (
+              {job?.blogs?.keywords?.map((keyword, index) => (
                 <span
                   key={index}
                   className="px-2 py-1 bg-indigo-100 text-indigo-600 rounded-md text-xs"
@@ -131,14 +131,14 @@ const JobCard = ({ job, setCurrentPage, paginatedJobs }) => {
         )}
         <div className="flex items-center gap-2">
           <FiFileText className="w-4 h-4 text-purple-500" />
-          <span>Generated Blogs: {(job.createdBlogs || []).length}</span>
+          <span>Generated Blogs: {(job?.createdBlogs || []).length}</span>
         </div>
-        {job.lastRun && (
+        {job?.lastRun && (
           <div className="flex items-center gap-2">
             <FiCalendar className="w-4 h-4 text-yellow-500" />
             <span>
               Last Run:{" "}
-              {new Date(job.lastRun).toLocaleString("en-IN", {
+              {new Date(job?.lastRun).toLocaleString("en-IN", {
                 dateStyle: "medium",
                 timeStyle: "short",
               })}
@@ -149,8 +149,8 @@ const JobCard = ({ job, setCurrentPage, paginatedJobs }) => {
           <FiCalendar className="w-4 h-4 text-yellow-500" />
           <span>
             Created:{" "}
-            {job.createdAt
-              ? new Date(job.createdAt).toLocaleString("en-IN", {
+            {job?.createdAt
+              ? new Date(job?.createdAt).toLocaleString("en-IN", {
                   dateStyle: "medium",
                   timeStyle: "short",
                 })

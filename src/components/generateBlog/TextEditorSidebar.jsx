@@ -18,18 +18,22 @@ import {
   Lightbulb,
   Minimize2,
   Maximize2,
+  Download,
 } from "lucide-react"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useNavigate } from "react-router-dom"
 import { useDispatch, useSelector } from "react-redux"
-import { Button, Modal, Tooltip, message, Tabs, Badge, Collapse } from "antd"
+import { Button, Modal, Tooltip, message, Tabs, Badge, Collapse, Dropdown, Menu } from "antd"
 import { fetchProofreadingSuggestions } from "@store/slices/blogSlice"
 import { fetchCompetitiveAnalysisThunk } from "@store/slices/analysisSlice"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
 import { getCategoriesThunk } from "@store/slices/otherSlice"
 import CategoriesModal from "@components/CategoriesModal"
 import Loading from "@components/Loading"
+import { marked } from "marked"
+// Import docx library (use CDN for browser compatibility)
+import * as docx from "docx"
 
 const { Panel } = Collapse
 
@@ -46,7 +50,7 @@ const TextEditorSidebar = ({
   posted,
   isPosting,
   formData,
-  editorContent, // Receive editorContent prop
+  editorContent,
 }) => {
   const [newKeyword, setNewKeyword] = useState("")
   const [isAnalyzingProofreading, setIsAnalyzingProofreading] = useState(false)
@@ -65,6 +69,14 @@ const TextEditorSidebar = ({
   const { analysisResult } = useSelector((state) => state.analysis)
   const blogId = blog?._id
   const result = analysisResult?.[blogId]
+
+  // Configure marked for HTML output and token parsing
+  marked.setOptions({
+    gfm: true,
+    breaks: true,
+    headerIds: false,
+    mangle: false,
+  })
 
   // Define getWordCount function
   const getWordCount = (text) => {
@@ -276,6 +288,261 @@ const TextEditorSidebar = ({
     })
   }, [handlePopup, handleSave])
 
+  const handleExport = useCallback(
+    async (type) => {
+      if (!editorContent) {
+        message.error("No content to export.")
+        return
+      }
+      const title = blog?.title || "Untitled Blog"
+      if (type === "markdown") {
+        const blob = new Blob([editorContent], { type: "text/markdown" })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement("a")
+        a.href = url
+        a.download = `${title}.md`
+        a.click()
+        URL.revokeObjectURL(url)
+        message.success("Markdown exported successfully!")
+      } else if (type === "html") {
+        const htmlContent = marked.parse(editorContent, { gfm: true })
+        const blob = new Blob([htmlContent], { type: "text/html" })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement("a")
+        a.href = url
+        a.download = `${title}.html`
+        a.click()
+        URL.revokeObjectURL(url)
+        message.success("HTML exported successfully!")
+      } else if (type === "docx") {
+        const { Document, Packer, Paragraph, HeadingLevel, TextRun, ImageRun, ExternalHyperlink } = docx
+
+        // Parse Markdown tokens
+        const tokens = marked.lexer(editorContent)
+        const elements = []
+
+        // Function to fetch image as ArrayBuffer
+        const fetchImage = async (url) => {
+          try {
+            const response = await fetch(url, { mode: 'cors' })
+            if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`)
+            const blob = await response.blob()
+            const arrayBuffer = await blob.arrayBuffer()
+            return arrayBuffer
+          } catch (error) {
+            console.error(`Error fetching image ${url}:`, error)
+            return null
+          }
+        }
+
+        // Process Markdown tokens
+        for (const token of tokens) {
+          if (token.type === "heading") {
+            elements.push(
+              new Paragraph({
+                text: token.text,
+                heading: token.depth <= 6 ? `Heading${token.depth}` : HeadingLevel.HEADING_6,
+                spacing: { after: 200 },
+              })
+            )
+          } else if (token.type === "paragraph") {
+            const runs = []
+            // Parse inline tokens from token.text or raw text
+            const inlineTokens = token.tokens || marked.lexer(token.text || token.raw).filter(t => t.type !== "space")
+            for (const inline of inlineTokens) {
+              if (inline.type === "text" || inline.type === "html") {
+                runs.push(new TextRun({ text: inline.text || inline.raw }))
+              } else if (inline.type === "strong") {
+                runs.push(new TextRun({ text: inline.text, bold: true }))
+              } else if (inline.type === "em") {
+                runs.push(new TextRun({ text: inline.text, italics: true }))
+              } else if (inline.type === "link") {
+                runs.push(
+                  new ExternalHyperlink({
+                    children: [new TextRun({ text: inline.text, style: "Hyperlink" })],
+                    link: inline.href,
+                  })
+                )
+              } else if (inline.type === "image") {
+                const imageData = await fetchImage(inline.href)
+                if (imageData) {
+                  elements.push(
+                    new Paragraph({
+                      children: [
+                        new ImageRun({
+                          data: imageData,
+                          transformation: {
+                            width: 600,
+                            height: 400,
+                          },
+                        }),
+                      ],
+                      spacing: { after: 200 },
+                    })
+                  )
+                } else {
+                  elements.push(
+                    new Paragraph({
+                      children: [new TextRun({ text: `[Image not available: ${inline.href}]`, italics: true })],
+                      spacing: { after: 200 },
+                    })
+                  )
+                }
+              } else {
+                // Handle unprocessed inline tokens
+                runs.push(new TextRun({ text: inline.raw || inline.text || "" }))
+              }
+            }
+            if (runs.length > 0) {
+              elements.push(
+                new Paragraph({
+                  children: runs,
+                  spacing: { after: 200 },
+                })
+              )
+            } else if (token.text) {
+              // Fallback for plain text in paragraph
+              elements.push(
+                new Paragraph({
+                  children: [new TextRun({ text: token.text })],
+                  spacing: { after: 200 },
+                })
+              )
+            }
+          } else if (token.type === "list") {
+            for (const item of token.items) {
+              const runs = []
+              const inlineTokens = item.tokens || marked.lexer(item.text || item.raw).filter(t => t.type !== "space")
+              for (const inline of inlineTokens) {
+                if (inline.type === "text" || inline.type === "html") {
+                  runs.push(new TextRun({ text: inline.text || inline.raw }))
+                } else if (inline.type === "strong") {
+                  runs.push(new TextRun({ text: inline.text, bold: true }))
+                } else if (inline.type === "em") {
+                  runs.push(new TextRun({ text: inline.text, italics: true }))
+                } else if (inline.type === "link") {
+                  runs.push(
+                    new ExternalHyperlink({
+                      children: [new TextRun({ text: inline.text, style: "Hyperlink" })],
+                      link: inline.href,
+                    })
+                  )
+                } else if (inline.type === "image") {
+                  const imageData = await fetchImage(inline.href)
+                  if (imageData) {
+                    elements.push(
+                      new Paragraph({
+                        children: [
+                          new ImageRun({
+                            data: imageData,
+                            transformation: {
+                              width: 600,
+                              height: 400,
+                            },
+                          }),
+                        ],
+                        bullet: { level: 0 },
+                        spacing: { after: 200 },
+                      })
+                    )
+                  } else {
+                    runs.push(new TextRun({ text: `[Image not available: ${inline.href}]`, italics: true }))
+                  }
+                } else {
+                  runs.push(new TextRun({ text: inline.raw || inline.text || "" }))
+                }
+              }
+              if (runs.length > 0) {
+                elements.push(
+                  new Paragraph({
+                    children: runs,
+                    bullet: { level: 0 },
+                    spacing: { after: 200 },
+                  })
+                )
+              } else if (item.text) {
+                // Fallback for plain text in list item
+                elements.push(
+                  new Paragraph({
+                    children: [new TextRun({ text: item.text })],
+                    bullet: { level: 0 },
+                    spacing: { after: 200 },
+                  })
+                )
+              }
+            }
+          } else if (token.type === "space") {
+            // Add empty paragraph for spacing
+            elements.push(
+              new Paragraph({
+                children: [new TextRun({ text: "" })],
+                spacing: { after: 200 },
+              })
+            )
+          } else {
+            // Handle unprocessed token types as plain text
+            if (token.text || token.raw) {
+              elements.push(
+                new Paragraph({
+                  children: [new TextRun({ text: token.text || token.raw })],
+                  spacing: { after: 200 },
+                })
+              )
+            }
+            console.warn("Unhandled token type:", token.type, token) // Debug: Log unhandled tokens
+          }
+        }
+
+        // Create DOCX document
+        const doc = new Document({
+          sections: [
+            {
+              properties: {},
+              children: [
+                new Paragraph({
+                  text: title,
+                  heading: HeadingLevel.TITLE,
+                  spacing: { after: 400 },
+                }),
+                ...elements,
+              ],
+            },
+          ],
+        })
+
+        // Generate and download DOCX
+        try {
+          const blob = await Packer.toBlob(doc)
+          const url = URL.createObjectURL(blob)
+          const a = document.createElement("a")
+          a.href = url
+          a.download = `${title}.docx`
+          a.click()
+          URL.revokeObjectURL(url)
+          message.success("DOCX exported successfully!")
+        } catch (error) {
+          console.error("Error generating DOCX:", error)
+          message.error("Failed to export DOCX.")
+        }
+      }
+    },
+    [editorContent, blog]
+  )
+
+  const exportMenu = (
+    <Menu>
+      <Menu.Item key="markdown" onClick={() => handleExport("markdown")}>
+        Export as Markdown
+      </Menu.Item>
+      <Menu.Item key="html" onClick={() => handleExport("html")}>
+        Export as HTML
+      </Menu.Item>
+      <Menu.Item key="docx" onClick={() => handleExport("docx")}>
+        Export as DOCX
+      </Menu.Item>
+    </Menu>
+  )
+
   const getScoreColor = useCallback((score) => {
     if (score >= 80) return "bg-green-100 text-green-700 border-green-200"
     if (score >= 60) return "bg-yellow-100 text-yellow-700 border-yellow-200"
@@ -285,11 +552,6 @@ const TextEditorSidebar = ({
   const handleCategorySubmit = useCallback(
     ({ category, includeTableOfContents }) => {
       try {
-        console.log("Posting with data:", {
-          ...formData,
-          categories: category,
-          includeTableOfContents,
-        })
         onPost({ ...formData, categories: category, includeTableOfContents })
       } catch (error) {
         console.error("Failed to post blog:", {
@@ -367,8 +629,6 @@ const TextEditorSidebar = ({
           <Icon className="w-4 h-4" />
           <span className="text-sm font-medium">{title}</span>
         </div>
-        {console.log(typeof score === "number" && score > 0)}
-        {console.log(typeof score)}
         {score > 0 && (
           <span className="text-lg font-bold">
             {score}
@@ -578,6 +838,14 @@ const TextEditorSidebar = ({
               <p className="text-xs text-gray-600">Optimize your content performance</p>
             </div>
             <div className="flex items-center gap-2">
+              <Tooltip title="Export Content" placement="left">
+                <Dropdown overlay={exportMenu} trigger={["click"]}>
+                  <Button
+                    size="small"
+                    icon={<Download className="w-4 h-4" />}
+                  />
+                </Dropdown>
+              </Tooltip>
               <Tooltip title="Minimize sidebar" placement="left">
                 <Button
                   size="small"
@@ -789,12 +1057,6 @@ const TextEditorSidebar = ({
                           <div className="flex items-center gap-2">
                             <Eye className="w-4 h-4 text-blue-600" />
                             <span className="font-medium">Top Competitors</span>
-                            <Badge
-                              count={
-                                (result?.competitors || blog?.generatedMetadata?.competitors)
-                                  ?.length
-                              }
-                            />
                           </div>
                         }
                         key="1"

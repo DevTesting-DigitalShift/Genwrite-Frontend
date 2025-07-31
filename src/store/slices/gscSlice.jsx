@@ -20,7 +20,6 @@ export const fetchGscAnalytics = createAsyncThunk(
   async (params, { rejectWithValue }) => {
     try {
       const data = await getGscAnalytics(params)
-      console.log({data})
       return data 
     } catch (error) {
       return rejectWithValue(error)
