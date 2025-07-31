@@ -21,7 +21,7 @@ const PrivateRoutesLayout = () => {
         <div className="flex-1 flex flex-col">
           {/* Header at the top */}
           <LayoutWithSidebarAndHeader />
-          <div className="flex-1 ml-20 mt-20 p-6 pt-4">
+          <div className="flex-1 ml-20 mt-20">
             <Tooltip title="Chatbot">
               <div
                 onClick={() => setChatOpen(true)}
