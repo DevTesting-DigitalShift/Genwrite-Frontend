@@ -21,6 +21,7 @@ const TemplateModal = ({
   const [generatedTitles, setGeneratedTitles] = useState([])
   const [hasGeneratedTitles, setHasGeneratedTitles] = useState(false)
   const [showAllKeywords, setShowAllKeywords] = useState(false)
+  
 
   const visibleKeywords = showAllKeywords ? formData.keywords : formData.keywords.slice(0, 18)
 
@@ -135,6 +136,7 @@ const TemplateModal = ({
           keywords: formData.focusKeywords,
           focusKeywords: formData.keywords,
           topic: formData.topic,
+          ...(hasGeneratedTitles && { oldTitles: generatedTitles }),
         })
       ).unwrap()
       setGeneratedTitles(result)
@@ -368,18 +370,29 @@ const TemplateModal = ({
                   <button
                     onClick={handleGenerateTitles}
                     disabled={isGeneratingTitles}
-                    className="px-4 py-2 bg-gradient-to-r from-[#1B6FC9] to-[#4C9FE8] text-white rounded-lg hover:from-[#1B6FC9]/90 hover:to-[#4C9FE8]/90 flex items-center"
-                    aria-label="Generate titles"
+                    className={`px-4 py-2 bg-gradient-to-r from-[#1B6FC9] to-[#4C9FE8] text-white rounded-lg flex items-center ${
+                      isGeneratingTitles
+                        ? "opacity-50 cursor-not-allowed"
+                        : "hover:from-[#1B6FC9]/90 hover:to-[#4C9FE8]/90"
+                    }`}
                   >
                     {isGeneratingTitles ? (
                       <Spin size="small" />
+                    ) : hasGeneratedTitles ? (
+                      <>
+                        <RefreshCw size={16} className="mr-2" />
+                        Generate More
+                      </>
                     ) : (
-                      <Sparkles size={16} className="mr-2" />
+                      <>
+                        <Sparkles size={16} className="mr-2" />
+                        Generate Titles
+                      </>
                     )}
-                    Generate Titles
                   </button>
                 )}
               </div>
+              {console.log({generatedTitles})}
               {generatedTitles.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-4">
                   {generatedTitles.map((generatedTitle, index) => {
