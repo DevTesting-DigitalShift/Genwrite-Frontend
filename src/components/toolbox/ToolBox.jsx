@@ -267,7 +267,6 @@ const ToolBox = () => {
     }
 
     const newErrors = {}
-    console.log({ newErrors })
     if (!blogData.title) newErrors.title = true
     if (!blogData.topic) newErrors.topic = true
     if (!blogData.tone) newErrors.tone = true

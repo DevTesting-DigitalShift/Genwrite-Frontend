@@ -94,10 +94,6 @@ export default function ToolboxPage() {
       return;
     }
 
-    // Debug: Log selected indices and keywords
-    console.log("Selected Row Keys:", selectedRowKeys);
-    console.log("Keyword Analysis Result Length:", keywordAnalysisResult.length);
-
     // Filter selected keywords based on selectedRowKeys
     const selectedKeywords = keywordAnalysisResult.filter((_, idx) =>
       selectedRowKeys.includes(idx)
@@ -202,7 +198,6 @@ export default function ToolboxPage() {
   const rowSelection = {
     selectedRowKeys,
     onChange: (newSelectedRowKeys) => {
-      console.log("Selected Row Keys on Change:", newSelectedRowKeys);
       setSelectedRowKeys(newSelectedRowKeys);
     },
     getCheckboxProps: (record) => ({

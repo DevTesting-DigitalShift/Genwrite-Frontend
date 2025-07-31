@@ -6,7 +6,6 @@ import { message } from "antd"
 export const fetchCompetitiveAnalysisThunk = createAsyncThunk(
   "analysis/fetchCompetitive",
   async ({ blogId, title, content, keywords }, { rejectWithValue }) => {
-    console.log("Thunk triggered with blogId:", blogId) // ✅ confirm this
     try {
       const data = await runCompetitiveAnalysis({ blogId, title, content, keywords })
       message.success("Competitive analysis completed successfully!")

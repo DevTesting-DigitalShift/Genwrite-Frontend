@@ -140,13 +140,13 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
         keywords: formData.keywords,
         focusKeywords: formData.focusKeywords,
         topic,
-        template: "default",
         ...(hasGeneratedTitles && { oldTitles: generatedTitles }), // Include oldTitles if generating more
       };
       const result = await dispatch(fetchGeneratedTitles(payload)).unwrap();
       setGeneratedTitles(result);
       setHasGeneratedTitles(true);
     } catch (error) {
+      console.error("Error generating titles:", error);
       message.error("Failed to generate titles. Please try again.");
     } finally {
       setLoadingTitles(false);

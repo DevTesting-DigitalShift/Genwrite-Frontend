@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit"
-import { createBrandVoice, updateBrandVoice, getBrands } from "@api/brandApi"
+import { createBrandVoice, updateBrandVoice, getBrands, getSiteInfo } from "@api/brandApi"
 import { deleteBrandVoice } from "@api/brandApi"
 import { message } from "antd"
 
@@ -22,7 +22,9 @@ export const createBrandVoiceThunk = createAsyncThunk(
       if (onSuccess) onSuccess(data)
       return data
     } catch (error) {
-      message.error(error?.response?.data?.details?.errors?.[0]?.msg || "Failed to save brand voice.")
+      message.error(
+        error?.response?.data?.details?.errors?.[0]?.msg || "Failed to save brand voice."
+      )
       return rejectWithValue(error.response?.data?.message || error.message)
     }
   }
@@ -59,6 +61,21 @@ export const deleteBrandVoiceThunk = createAsyncThunk(
   }
 )
 
+export const fetchSiteInfo = createAsyncThunk(
+  "siteInfo/fetch",
+  async (url, { rejectWithValue }) => {
+    try {
+      const data = await getSiteInfo(url)
+      message.success("Site info fetched successfully.")
+      return data
+    } catch (error) {
+      console.error("Error fetching site info:", error)
+      message.error(error?.response?.data?.message || "Failed to fetch site info.")
+      return rejectWithValue(error?.response?.data?.message || error.message)
+    }
+  }
+)
+
 const brandSlice = createSlice({
   name: "brand",
   initialState: {
@@ -66,7 +83,13 @@ const brandSlice = createSlice({
     selectedVoice: null,
     loading: false,
     error: null,
+    siteInfo: {
+      data: null,
+      loading: false,
+      error: null,
+    },
   },
+
   reducers: {
     setSelectedVoice: (state, action) => {
       state.selectedVoice = action.payload
@@ -90,7 +113,7 @@ const brandSlice = createSlice({
         state.brands = []
         state.error = action.payload
       })
-      
+
       .addCase(createBrandVoiceThunk.pending, (state) => {
         state.loading = true
         state.error = null
@@ -106,6 +129,19 @@ const brandSlice = createSlice({
         state.loading = false
         state.brands.push(action.payload)
         state.selectedVoice = action.payload
+      })
+
+      .addCase(fetchSiteInfo.pending, (state) => {
+        state.siteInfo.loading = true
+        state.siteInfo.error = null
+      })
+      .addCase(fetchSiteInfo.fulfilled, (state, action) => {
+        state.siteInfo.loading = false
+        state.siteInfo.data = action.payload
+      })
+      .addCase(fetchSiteInfo.rejected, (state, action) => {
+        state.siteInfo.loading = false
+        state.siteInfo.error = action.payload
       })
   },
 })

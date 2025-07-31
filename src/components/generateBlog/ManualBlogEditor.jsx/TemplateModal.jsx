@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { useDispatch } from "react-redux"
 import { Modal, Input, Select, message, Spin } from "antd"
-import { Plus, Sparkles, X } from "lucide-react"
+import { Plus, RefreshCcw, Sparkles, X } from "lucide-react"
 import Carousel from "@components/multipleStepModal/Carousel"
 import { packages } from "@constants/templates"
 import { fetchGeneratedTitles } from "@store/slices/blogSlice"
@@ -21,7 +21,6 @@ const TemplateModal = ({
   const [generatedTitles, setGeneratedTitles] = useState([])
   const [hasGeneratedTitles, setHasGeneratedTitles] = useState(false)
   const [showAllKeywords, setShowAllKeywords] = useState(false)
-  
 
   const visibleKeywords = showAllKeywords ? formData.keywords : formData.keywords.slice(0, 18)
 
@@ -31,6 +30,14 @@ const TemplateModal = ({
     if (isOpen) document.body.classList.add("backdrop-blur")
     else document.body.classList.remove("backdrop-blur")
   }, [isOpen])
+
+  // Handle modal open/close scroll behavior
+  // useEffect(() => {
+  //   document.body.style.overflow = "hidden"
+  //   return () => {
+  //     document.body.style.overflow = "auto"
+  //   }
+  // }, [])
 
   const handleNext = () => {
     if (currentStep === 0 && !selectedTemplate) {
@@ -192,7 +199,7 @@ const TemplateModal = ({
             ]
       }
       width={800}
-      centered
+      // centered
     >
       <div className="p-2">
         {currentStep === 0 && (
@@ -366,33 +373,31 @@ const TemplateModal = ({
                   } rounded-md text-sm focus:ring-2 focus:ring-blue-600`}
                   aria-label="Blog title"
                 />
-                {!hasGeneratedTitles && (
-                  <button
-                    onClick={handleGenerateTitles}
-                    disabled={isGeneratingTitles}
-                    className={`px-4 py-2 bg-gradient-to-r from-[#1B6FC9] to-[#4C9FE8] text-white rounded-lg flex items-center ${
-                      isGeneratingTitles
-                        ? "opacity-50 cursor-not-allowed"
-                        : "hover:from-[#1B6FC9]/90 hover:to-[#4C9FE8]/90"
-                    }`}
-                  >
-                    {isGeneratingTitles ? (
-                      <Spin size="small" />
-                    ) : hasGeneratedTitles ? (
-                      <>
-                        <RefreshCw size={16} className="mr-2" />
-                        Generate More
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles size={16} className="mr-2" />
-                        Generate Titles
-                      </>
-                    )}
-                  </button>
-                )}
+                {/* {!hasGeneratedTitles && ( */}
+                <button
+                  onClick={handleGenerateTitles}
+                  disabled={isGeneratingTitles}
+                  className={`px-4 py-2 bg-gradient-to-r from-[#1B6FC9] to-[#4C9FE8] text-white rounded-lg flex items-center ${
+                    isGeneratingTitles
+                      ? "opacity-50 cursor-not-allowed"
+                      : "hover:from-[#1B6FC9]/90 hover:to-[#4C9FE8]/90"
+                  }`}
+                >
+                  {isGeneratingTitles ? (
+                    <Spin size="small" />
+                  ) : hasGeneratedTitles ? (
+                    <>
+                      <RefreshCcw size={16} className="mr-2" />
+                      Generate More
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={16} className="mr-2" />
+                      Generate Titles
+                    </>
+                  )}
+                </button>
               </div>
-              {console.log({generatedTitles})}
               {generatedTitles.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-4">
                   {generatedTitles.map((generatedTitle, index) => {
