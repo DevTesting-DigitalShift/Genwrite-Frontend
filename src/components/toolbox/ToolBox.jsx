@@ -465,26 +465,28 @@ const ToolBox = () => {
                   </button>
                 </div>
               </div>
-              <div className="mt-4">
-                <div className="flex gap-2 flex-col sm:flex-row">
-                  <input
-                    type="text"
-                    value={editorTitle}
-                    onChange={handleTitleChange}
-                    placeholder="Enter your blog title..."
-                    className={`flex-1 text-2xl sm:text-3xl font-bold text-gray-900 placeholder-gray-400 border-none outline-none resize-none ${
-                      getWordCount(editorTitle) > 60 ? "text-red-600" : ""
-                    }`}
-                    aria-label="Blog title"
-                  />
+              {pathDetect && (
+                <div className="mt-4">
+                  <div className="flex gap-2 flex-col sm:flex-row">
+                    <input
+                      type="text"
+                      value={editorTitle}
+                      onChange={handleTitleChange}
+                      placeholder="Enter your blog title..."
+                      className={`flex-1 text-2xl sm:text-3xl font-bold text-gray-900 placeholder-gray-400 border-none outline-none resize-none ${
+                        getWordCount(editorTitle) > 60 ? "text-red-600" : ""
+                      }`}
+                      aria-label="Blog title"
+                    />
+                  </div>
+                  <div className="mt-2 text-sm text-gray-500">
+                    {getWordCount(editorTitle)}/60 words (optimal for SEO)
+                    {getWordCount(editorTitle) > 60 && (
+                      <span className="text-red-600 ml-2">Title exceeds 60 words</span>
+                    )}
+                  </div>
                 </div>
-                <div className="mt-2 text-sm text-gray-500">
-                  {getWordCount(editorTitle)}/60 words (optimal for SEO)
-                  {getWordCount(editorTitle) > 60 && (
-                    <span className="text-red-600 ml-2">Title exceeds 60 words</span>
-                  )}
-                </div>
-              </div>
+              )}
             </header>
             <AnimatePresence>
               <motion.div
