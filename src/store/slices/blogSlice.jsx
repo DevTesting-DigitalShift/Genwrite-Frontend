@@ -291,13 +291,19 @@ const blogSlice = createSlice({
     clearSelectedBlog: (state) => {
       state.selectedBlog = null
     },
+    setProofreadingSuggestions(state, action) {
+      state.proofreadingSuggestions = action.payload
+    },
+    setIsAnalyzingProofreading(state, action) {
+      state.isAnalyzingProofreading = action.payload
+    },
+    clearProofreadingSuggestions(state) {
+      state.proofreadingSuggestions = []
+    },
   },
   extraReducers: (builder) => {
     builder
-      // Fetch recent
-      // .addCase(fetchAllBlogs.pending, (state) => {
-      //   state.loading = true
-      // })
+
       .addCase(fetchAllBlogs.fulfilled, (state, action) => {
         // state.loading = false
         state.blogs = action.payload
@@ -466,5 +472,5 @@ const blogSlice = createSlice({
   },
 })
 
-export const { clearSelectedBlog } = blogSlice.actions
+export const { clearSelectedBlog, setProofreadingSuggestions, setIsAnalyzingProofreading, clearProofreadingSuggestions } = blogSlice.actions
 export default blogSlice.reducer

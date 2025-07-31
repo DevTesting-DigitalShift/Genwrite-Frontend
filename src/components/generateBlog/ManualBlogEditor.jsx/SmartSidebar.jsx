@@ -33,7 +33,7 @@ import Loading from "@components/Loading"
 
 const { Panel } = Collapse
 
-const TextEditorSidebar = ({
+const SmartSidebar = ({
   blog,
   keywords,
   setKeywords,
@@ -46,7 +46,6 @@ const TextEditorSidebar = ({
   posted,
   isPosting,
   formData,
-  editorContent, // Receive editorContent prop
 }) => {
   const [newKeyword, setNewKeyword] = useState("")
   const [isAnalyzingProofreading, setIsAnalyzingProofreading] = useState(false)
@@ -65,16 +64,6 @@ const TextEditorSidebar = ({
   const { analysisResult } = useSelector((state) => state.analysis)
   const blogId = blog?._id
   const result = analysisResult?.[blogId]
-
-  // Define getWordCount function
-  const getWordCount = (text) => {
-    return text
-      ? text
-          .trim()
-          .split(/\s+/)
-          .filter((word) => word.length > 0).length
-      : 0
-  }
 
   useEffect(() => {
     dispatch(getCategoriesThunk()).unwrap()
@@ -140,15 +129,15 @@ const TextEditorSidebar = ({
 
   const addKeywords = useCallback(() => {
     if (newKeyword.trim()) {
-      const newKeywordsArray = newKeyword
+      const keywordsToAdd = newKeyword
         .split(",")
-        .map((k) => k.trim().toLowerCase())
-        .filter((k) => k && !keywords.map((kw) => kw.toLowerCase()).includes(k))
-
-      if (newKeywordsArray.length > 0) {
-        setKeywords((prev) => [...prev, ...newKeywordsArray])
+        .map((k) => k.trim())
+        .filter((k) => k && !keywords.includes(k))
+      if (keywordsToAdd.length > 0) {
+        setKeywords((prev) => [...prev, ...keywordsToAdd])
+        setNewKeyword("")
+        message.success("Keywords added successfully!")
       }
-      setNewKeyword("")
     }
   }, [newKeyword, keywords, setKeywords])
 
@@ -308,11 +297,7 @@ const TextEditorSidebar = ({
   }, [])
 
   if (isAnalyzingCompetitive) {
-    return (
-      <div className="flex items-center">
-        <Loading message="Running Competitive Analysis" />
-      </div>
-    )
+    return <Loading />
   }
 
   const FeatureCard = ({
@@ -367,9 +352,7 @@ const TextEditorSidebar = ({
           <Icon className="w-4 h-4" />
           <span className="text-sm font-medium">{title}</span>
         </div>
-        {console.log(typeof score === "number" && score > 0)}
-        {console.log(typeof score)}
-        {score > 0 && (
+        {typeof score === "number" && score > 0 && (
           <span className="text-lg font-bold">
             {score}
             <span className="text-xs ml-1">/100</span>
@@ -378,12 +361,12 @@ const TextEditorSidebar = ({
       </div>
       {(score || 0) === 0 ? (
         <p className="text-xs text-gray-500 text-center p-2 bg-gray-50 rounded-lg">
-          Run Competitive Analysis to get score
+          Run Competitive Analysis to get SEO score
         </p>
       ) : (
         <div className="w-full bg-white/50 rounded-full h-2">
           <div
-            style={{ width: `${score}%`, transition: "width 0.5s ease" }}
+            style={{ width: `${score}%`, transition: "width 0.5s ease" }} // use animate lib if needed
             className={`h-2 rounded-full ${
               score >= 80 ? "bg-green-500" : score >= 60 ? "bg-yellow-500" : "bg-red-500"
             }`}
@@ -399,6 +382,7 @@ const TextEditorSidebar = ({
 
     return (
       <div className="space-y-2 relative">
+        {/* Competitor Count Badge */}
         {competitors?.length > 5 && (
           <span className="absolute top-0 right-0 text-[10px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full">
             {competitors.length}
@@ -430,6 +414,7 @@ const TextEditorSidebar = ({
           </motion.div>
         ))}
 
+        {/* +n more link */}
         {competitors?.length > 5 && !showAll && (
           <button
             onClick={() => setShowAll(true)}
@@ -491,6 +476,7 @@ const TextEditorSidebar = ({
           )
         })}
 
+        {/* Toggle buttons */}
         {entries.length > 5 && (
           <button
             onClick={() => setShowAll(!showAll)}
@@ -535,7 +521,7 @@ const TextEditorSidebar = ({
           ghost
           onClick={() => {
             handleReplace(suggestion.original, suggestion.change)
-            onApply(index)
+            onApply(index) // Remove suggestion from sidebar
           }}
           className="w-full"
         >
@@ -550,15 +536,13 @@ const TextEditorSidebar = ({
       <motion.div
         initial={{ x: "100%" }}
         animate={{ x: "calc(100% - 60px)" }}
-        className="fixed top-[17.5rem] right-0 transform -translate-y-1/2 z-50"
+        className="fixed top-1/2 right-0 transform -translate-y-1/2 z-50"
       >
-        <Tooltip title="Maximize Sidebar" placement="left">
-          <Button
-            onClick={() => setIsMinimized(false)}
-            className="h-12 rounded-lg"
-            icon={<Maximize2 className="w-4 h-4" />}
-          />
-        </Tooltip>
+        <Button
+          onClick={() => setIsMinimized(false)}
+          className="h-12 rounded-l-lg rounded-r-none border-r-0"
+          icon={<Maximize2 className="w-4 h-4" />}
+        />
       </motion.div>
     )
   }
@@ -571,6 +555,7 @@ const TextEditorSidebar = ({
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
         className="w-96 bg-white border-gray-200 shadow-xl flex flex-col"
       >
+        {/* Header */}
         <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50">
           <div className="flex items-center justify-between mb-2">
             <div>
@@ -595,7 +580,8 @@ const TextEditorSidebar = ({
             </div>
           </div>
 
-          <div className="flex gap-1 mt-6 mb-0">
+          {/* Navigation Tabs */}
+          <div className="flex gap-1 mt-6 mb-">
             {[
               { key: "overview", label: "Overview", icon: BarChart3 },
               { key: "analysis", label: "Analysis", icon: TrendingUp },
@@ -623,6 +609,7 @@ const TextEditorSidebar = ({
           </div>
         </div>
 
+        {/* Content */}
         <div className="flex-1 max-h-screen overflow-y-auto">
           <AnimatePresence mode="wait">
             {activeSection === "overview" && (
@@ -633,6 +620,7 @@ const TextEditorSidebar = ({
                 exit={{ opacity: 0, x: -20 }}
                 className="p-4 space-y-6"
               >
+                {/* Keywords Section */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between mt-2">
                     <div className="flex items-center gap-2">
@@ -640,6 +628,7 @@ const TextEditorSidebar = ({
                       <h3 className="font-semibold text-gray-900 flex items-center gap-2">
                         Keywords
                       </h3>
+                      {/* <Badge count={keywords.length} /> */}
                     </div>
                     {keywords.length > 0 && (
                       <button
@@ -707,7 +696,8 @@ const TextEditorSidebar = ({
                   )}
                 </div>
 
-                <div className="space-y-7">
+                {/* Scores Section */}
+                <div className="space-y-3">
                   <div className="flex items-center gap-2 ">
                     <BarChart3 className="w-4 h-4 text-blue-600" />
                     <h3 className="font-semibold text-gray-900 flex items-center gap-2">
@@ -715,20 +705,7 @@ const TextEditorSidebar = ({
                     </h3>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 mt-4">
-                    <div className="bg-blue-50 rounded-lg p-3 text-center">
-                      <div className="text-lg font-bold text-blue-600">
-                        {getWordCount(editorContent)}
-                      </div>
-                      <div className="text-xs text-blue-600">Words</div>
-                    </div>
-                    <div className="bg-purple-50 rounded-lg p-3 text-center">
-                      <div className="text-lg font-bold text-purple-600">{keywords?.length}</div>
-                      <div className="text-xs text-purple-600">Keywords</div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-5">
+                  <div className="space-y-3">
                     <ScoreCard title="Content Score" score={blog?.blogScore} icon={FileText} />
                     <ScoreCard
                       title="SEO Score"
@@ -738,7 +715,8 @@ const TextEditorSidebar = ({
                   </div>
                 </div>
 
-                <div className="space-y-6">
+                {/* AI Tools Section */}
+                <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <Zap className="w-4 h-4 text-blue-600" />
                     <h3 className="font-semibold text-gray-900 flex items-center gap-2">
@@ -903,6 +881,7 @@ const TextEditorSidebar = ({
           </AnimatePresence>
         </div>
 
+        {/* Footer - Post Button */}
         <div className="p-4 border-t border-gray-200 bg-gray-50">
           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
             <Button
@@ -938,6 +917,7 @@ const TextEditorSidebar = ({
         </div>
       </motion.div>
 
+      {/* Settings Modal */}
       <Modal
         title="Content Enhancement Summary"
         open={open}
@@ -949,6 +929,7 @@ const TextEditorSidebar = ({
         <FeatureSettingsModal features={blog?.options || {}} />
       </Modal>
 
+      {/* Category Selection Modal */}
       <CategoriesModal
         isCategoryModalOpen={isCategoryModalOpen}
         setIsCategoryModalOpen={setIsCategoryModalOpen}
@@ -957,6 +938,20 @@ const TextEditorSidebar = ({
         initialIncludeTableOfContents={formData.includeTableOfContents}
       />
     </>
+  )
+}
+
+;(prevProps, nextProps) => {
+  // Only re-render if critical props change
+  return (
+    prevProps.blog?._id === nextProps.blog?._id &&
+    prevProps.activeTab === nextProps.activeTab &&
+    prevProps.proofreadingResults.length === nextProps.proofreadingResults.length &&
+    prevProps.isPosting === nextProps.isPosting &&
+    prevProps.posted?.link === nextProps.posted?.link &&
+    prevProps.formData.category === nextProps.formData.category &&
+    prevProps.formData.includeTableOfContents === nextProps.formData.includeTableOfContents &&
+    prevProps.title === nextProps.title
   )
 }
 
@@ -1011,4 +1006,4 @@ const FeatureSettingsModal = ({ features }) => {
   )
 }
 
-export default TextEditorSidebar
+export default SmartSidebar

@@ -57,19 +57,6 @@ const SmallBottomBox = ({ id }) => {
 
   const menuItems = [
     {
-      key: "copy",
-      label: (
-        <span className="flex items-center gap-2">
-          <CopyOutlined />
-          Copy
-        </span>
-      ),
-      onClick: () => {
-        navigator.clipboard.writeText(JSON.stringify(id, null, 2))
-        message.success("Content copied to clipboard!")
-      },
-    },
-    {
       key: "regenerate",
       label: (
         <span className="flex items-center gap-2">

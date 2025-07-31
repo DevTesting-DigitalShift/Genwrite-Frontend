@@ -31,19 +31,18 @@ import {
   Redo2,
   RotateCcw,
   Copy,
-  Trash2,
 } from "lucide-react"
 import { useSelector } from "react-redux"
-import { Input, Modal, Tooltip, message, Select, Button } from "antd"
+import { Input, Modal, Tooltip, message, Select } from "antd"
 import { marked } from "marked"
 import TurndownService from "turndown"
-import { useLocation, useNavigate } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { ProofreadingDecoration } from "@/extensions/ProofreadingDecoration"
-import { useProofreadingUI } from "./useProofreadingUI"
 import Loading from "@components/Loading"
 import { ReloadOutlined } from "@ant-design/icons"
 import { sendRetryLines } from "@api/blogApi"
+import { useProofreadingUI } from "../useProofreadingUI"
 
 // Configure marked for better HTML output
 marked.setOptions({
@@ -60,7 +59,7 @@ const FONT_OPTIONS = [
   { label: "Comic Sans", value: "font-comic" },
 ]
 
-const TextEditor = ({
+const RichTextEditor = ({
   blog,
   activeTab,
   setActiveTab,
@@ -87,8 +86,6 @@ const TextEditor = ({
   const [selectionRange, setSelectionRange] = useState({ from: 0, to: 0 })
   const [retryModalOpen, setRetryModalOpen] = useState(false)
   const [hoveredSuggestion, setHoveredSuggestion] = useState(null)
-  const [unsavedChanges, setUnsavedChanges] = useState(false)
-  const [tabSwitchWarning, setTabSwitchWarning] = useState(null)
   const htmlEditorRef = useRef(null)
   const mdEditorRef = useRef(null)
   const dropdownRef = useRef(null)
@@ -98,10 +95,6 @@ const TextEditor = ({
   const user = useSelector((state) => state.auth.user)
   const userPlan = user?.plan ?? user?.subscription?.plan
   const hasShownToast = useRef(false)
-  const location = useLocation()
-  const pathDetect = location.pathname === `/blog-editor/${blog?._id}`
-  const [editImageModalOpen, setEditImageModalOpen] = useState(false)
-  const [selectedImage, setSelectedImage] = useState(null)
 
   const safeContent = content ?? blog?.content ?? ""
 
@@ -170,71 +163,53 @@ const TextEditor = ({
   }, [safeContent])
 
   const normalEditor = useEditor(
-    {
-      extensions: [
-        StarterKit.configure({
-          heading: { levels: [1, 2, 3] },
-          bold: { HTMLAttributes: { class: "font-bold" } },
-        }),
-        Link.configure({ HTMLAttributes: { class: "text-blue-600 underline" } }),
-        Image.configure({
-          HTMLAttributes: {
-            class: "rounded-lg mx-auto my-4 max-w-[800px] w-full h-auto object-contain",
-            style: "display: block; margin: 2rem auto;",
-          },
-        }),
-        Underline,
-        TextAlign.configure({ types: ["heading", "paragraph"] }),
-        ProofreadingDecoration.configure({
-          suggestions: proofreadingResults,
-        }),
-      ],
-      content: initialContent,
-      onUpdate: ({ editor }) => {
-        const html = editor.getHTML()
-        const markdown = htmlToMarkdown(html)
-        if (markdown !== safeContent) {
-          setContent(markdown)
-          setUnsavedChanges(true)
-        }
-      },
-      editorProps: {
-        attributes: {
-          class: `prose max-w-none focus:outline-none p-4 min-h-[400px] opacity-100 ${selectedFont} blog-content editor-container`,
+  {
+    extensions: [
+      StarterKit.configure({
+        heading: { levels: [1, 2, 3] },
+        bold: { HTMLAttributes: { class: "font-bold" } },
+      }),
+      Link.configure({ HTMLAttributes: { class: "text-blue-600 underline" } }),
+      Image.configure({
+        HTMLAttributes: {
+          class: "rounded-lg mx-auto my-4 max-w-[800px] w-full h-auto object-contain",
+          style: "display: block; margin: 2rem auto;",
         },
-      },
-      onSelectionUpdate: ({ editor }) => {
-        const { from, to } = editor.state.selection
-        setSelectionRange({ from, to })
+      }),
+      Underline,
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      ProofreadingDecoration.configure({
+        suggestions: proofreadingResults, // Ensure all suggestions are passed
+      }),
+    ],
+    content: initialContent,
+    onUpdate: ({ editor }) => {
+      const html = editor.getHTML();
+      const markdown = htmlToMarkdown(html);
+      if (markdown !== safeContent) {
+        setContent(markdown);
+        // Update proofreading suggestions to reflect current content
+        setProofreadingResults((prev) =>
+          prev.filter((suggestion) =>
+            markdown.includes(suggestion.original)
+          )
+        );
+      }
+    },
+    editorProps: {
+      attributes: {
+        class: `prose max-w-none focus:outline-none p-4 min-h-[400px] opacity-100 ${selectedFont} blog-content editor-container`,
       },
     },
-    [selectedFont, proofreadingResults, htmlToMarkdown, setContent]
-  )
+    onSelectionUpdate: ({ editor }) => {
+      const { from, to } = editor.state.selection;
+      setSelectionRange({ from, to });
+    },
+  },
+  [selectedFont, proofreadingResults, htmlToMarkdown, setContent]
+);
 
   const { activeSpan, bubbleRef, applyChange, rejectChange } = useProofreadingUI(normalEditor)
-
-  useEffect(() => {
-    const scrollToTop = () => {
-      if (activeTab === "Normal" && normalEditor) {
-        const editorElement = normalEditor.view.dom
-        if (editorElement) {
-          editorElement.scrollTop = 0
-        }
-      } else if (activeTab === "Markdown") {
-        const textarea = mdEditorRef.current
-        if (textarea) {
-          textarea.scrollTop = 0
-        }
-      } else if (activeTab === "HTML") {
-        const textarea = htmlEditorRef.current
-        if (textarea) {
-          textarea.scrollTop = 0
-        }
-      }
-    }
-
-    scrollToTop()
-  }, [activeTab, normalEditor])
 
   // Handle tab switch loading
   useEffect(() => {
@@ -318,7 +293,6 @@ const TextEditor = ({
       .editor-container a {
         color: #2563eb;
         text-decoration: underline;
-        position: relative;
       }
       .editor-container a:hover {
         color: #1d4ed8;
@@ -330,6 +304,11 @@ const TextEditor = ({
         height: auto;
         border-radius: 0.5rem;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      .ProseMirror:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
       }
       .editor-tab {
         padding: 0.75rem 1.5rem;
@@ -400,6 +379,7 @@ const TextEditor = ({
       if (currentHtml !== newHtml) {
         const { from, to } = normalEditor.state.selection
         normalEditor.commands.setContent(newHtml, false)
+        // Restore cursor position
         normalEditor.commands.setTextSelection({ from, to })
       }
     }
@@ -565,7 +545,6 @@ const TextEditor = ({
       const newText = `${before}${selectedText}${after}`
       const newValue = textarea.value.substring(0, start) + newText + textarea.value.substring(end)
       setContent(newValue)
-      setUnsavedChanges(true)
       requestAnimationFrame(() => {
         const newPosition = start + before.length + selectedText.length
         textarea.setSelectionRange(newPosition, newPosition)
@@ -714,7 +693,6 @@ const TextEditor = ({
     setRetryContent(null)
     setOriginalContent(null)
     setSelectionRange({ from: 0, to: 0 })
-    setUnsavedChanges(true)
   }
 
   const handleRejectRetry = () => {
@@ -724,173 +702,6 @@ const TextEditor = ({
     setSelectionRange({ from: 0, to: 0 })
     message.info("Retry content discarded.")
   }
-
-  const handleImageClick = useCallback((event) => {
-    if (event.target.tagName === "IMG") {
-      const { src, alt } = event.target
-      setSelectedImage({ src, alt: alt || "" })
-      setImageAlt(alt || "")
-      setEditImageModalOpen(true)
-    }
-  }, [])
-
-  const handleDeleteImage = useCallback(() => {
-    if (!selectedImage) return
-    if (activeTab === "Normal" && normalEditor) {
-      let deleted = false
-      normalEditor.state.doc.descendants((node, pos) => {
-        if (node.type.name === "image" && node.attrs.src === selectedImage.src) {
-          normalEditor
-            .chain()
-            .focus()
-            .deleteRange({ from: pos, to: pos + 1 })
-            .run()
-          deleted = true
-        }
-      })
-      if (deleted) {
-        message.success("Image deleted.")
-        setEditImageModalOpen(false)
-        setSelectedImage(null)
-        setImageAlt("")
-        setUnsavedChanges(true)
-      } else {
-        message.error("Failed to delete image.")
-      }
-    } else if (activeTab === "Markdown") {
-      const markdownImageRegex = new RegExp(
-        `!\\[${escapeRegExp(selectedImage.alt || "")}\\]\\(${escapeRegExp(selectedImage.src)}\\)`,
-        "g"
-      )
-      setContent((prev) => {
-        const newContent = prev.replace(markdownImageRegex, "")
-        setUnsavedChanges(true)
-        return newContent
-      })
-      message.success("Image deleted.")
-      setEditImageModalOpen(false)
-      setSelectedImage(null)
-      setImageAlt("")
-    } else if (activeTab === "HTML") {
-      const htmlImageRegex = new RegExp(
-        `<img\\s+src="${escapeRegExp(selectedImage.src)}"\\s+alt="${escapeRegExp(
-          selectedImage.alt || ""
-        )}"\\s*/>`,
-        "g"
-      )
-      setContent((prev) => {
-        const html = markdownToHtml(prev)
-        const updatedHtml = html.replace(htmlImageRegex, "")
-        const newContent = htmlToMarkdown(updatedHtml)
-        setUnsavedChanges(true)
-        return newContent
-      })
-      message.success("Image deleted.")
-      setEditImageModalOpen(false)
-      setSelectedImage(null)
-      setImageAlt("")
-    }
-  }, [selectedImage, normalEditor, activeTab, setContent, markdownToHtml, htmlToMarkdown])
-
-  useEffect(() => {
-    if (normalEditor && activeTab === "Normal") {
-      const editorElement = normalEditor.view.dom
-      editorElement.addEventListener("click", handleImageClick)
-      return () => {
-        editorElement.removeEventListener("click", handleImageClick)
-      }
-    }
-  }, [normalEditor, activeTab, handleImageClick])
-
-  const handleConfirmEditImage = useCallback(() => {
-    if (!selectedImage || !imageAlt) {
-      message.error("Alt text is required.")
-      return
-    }
-    if (activeTab === "Normal" && normalEditor) {
-      let updated = false
-      normalEditor.state.doc.descendants((node, pos) => {
-        if (node.type.name === "image" && node.attrs.src === selectedImage.src) {
-          normalEditor
-            .chain()
-            .focus()
-            .setNodeSelection(pos)
-            .setImage({ src: selectedImage.src, alt: imageAlt })
-            .run()
-          updated = true
-        }
-      })
-      if (updated) {
-        message.success("Image alt text updated.")
-        setEditImageModalOpen(false)
-        setSelectedImage(null)
-        setImageAlt("")
-        setUnsavedChanges(true)
-      } else {
-        message.error("Failed to update image alt text.")
-      }
-    } else if (activeTab === "Markdown") {
-      const markdownImageRegex = new RegExp(
-        `!\\[${escapeRegExp(selectedImage.alt || "")}\\]\\(${escapeRegExp(selectedImage.src)}\\)`,
-        "g"
-      )
-      const newMarkdownImage = `![${imageAlt}](${selectedImage.src})`
-      setContent((prev) => {
-        const newContent = prev.replace(markdownImageRegex, newMarkdownImage)
-        setUnsavedChanges(true)
-        return newContent
-      })
-      message.success("Image alt text updated.")
-      setEditImageModalOpen(false)
-      setSelectedImage(null)
-      setImageAlt("")
-    } else if (activeTab === "HTML") {
-      const htmlImageRegex = new RegExp(
-        `<img\\s+src="${escapeRegExp(selectedImage.src)}"\\s+alt="${escapeRegExp(
-          selectedImage.alt || ""
-        )}"\\s*/>`,
-        "g"
-      )
-      const newHtmlImage = `<img src="${selectedImage.src}" alt="${imageAlt}" />`
-      setContent((prev) => {
-        const html = markdownToHtml(prev)
-        const updatedHtml = html.replace(htmlImageRegex, newHtmlImage)
-        const newContent = htmlToMarkdown(updatedHtml)
-        setUnsavedChanges(true)
-        return newContent
-      })
-      message.success("Image alt text updated.")
-      setEditImageModalOpen(false)
-      setSelectedImage(null)
-      setImageAlt("")
-    }
-  }, [selectedImage, imageAlt, normalEditor, activeTab, setContent, markdownToHtml, htmlToMarkdown])
-
-  // Utility to escape special characters for regex
-  const escapeRegExp = (string) => {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-  }
-
-  const handleTabSwitch = useCallback(
-    (tab) => {
-      if (unsavedChanges) {
-        setTabSwitchWarning(tab)
-      } else {
-        setActiveTab(tab)
-      }
-    },
-    [unsavedChanges, setActiveTab]
-  )
-
-  const handleConfirmTabSwitch = useCallback(() => {
-    setUnsavedChanges(false)
-    setActiveTab(tabSwitchWarning)
-    setTabSwitchWarning(null)
-  }, [tabSwitchWarning, setActiveTab])
-
-  const handleCancelTabSwitch = useCallback(() => {
-    setTabSwitchWarning(null)
-  }, [])
 
   const FloatingToolbar = ({ editorRef, mode }) => {
     if (!selectionPosition || !editorRef.current) return null
@@ -970,6 +781,7 @@ const TextEditor = ({
 
   const renderToolbar = () => (
     <div className="bg-white border-x border-gray-200 shadow-sm px-4 py-2 flex items-center">
+      {/* Headings */}
       <div className="flex gap-1">
         {[1, 2, 3].map((level) => (
           <Tooltip key={level} title={`Heading ${level}`}>
@@ -1001,6 +813,7 @@ const TextEditor = ({
         ))}
       </div>
       <div className="w-px h-6 bg-gray-200 mx-2" />
+      {/* Formatting */}
       <div className="flex gap-1">
         <Tooltip title="Bold">
           <button
@@ -1076,6 +889,7 @@ const TextEditor = ({
         </Tooltip>
       </div>
       <div className="w-px h-6 bg-gray-200 mx-2" />
+      {/* Alignment */}
       <div className="flex gap-1">
         {["left", "center", "right"].map((align) => (
           <Tooltip key={align} title={`Align ${align}`}>
@@ -1109,6 +923,7 @@ const TextEditor = ({
         ))}
       </div>
       <div className="w-px h-6 bg-gray-200 mx-2" />
+      {/* Lists */}
       <div className="flex gap-1">
         <Tooltip title="Bullet List">
           <button
@@ -1160,6 +975,7 @@ const TextEditor = ({
         </Tooltip>
       </div>
       <div className="w-px h-6 bg-gray-200 mx-2" />
+      {/* Actions */}
       <div className="flex gap-1">
         <Tooltip title="Link">
           <button
@@ -1247,6 +1063,7 @@ const TextEditor = ({
         </Tooltip>
       </div>
       <div className="w-px h-6 bg-gray-200 mx-2" />
+      {/* Font Picker */}
       <Select
         value={selectedFont}
         onChange={(value) => safeEditorAction(() => setSelectedFont(value))}
@@ -1299,16 +1116,14 @@ const TextEditor = ({
             rehypePlugins={[rehypeRaw]}
             components={{
               a: ({ href, children }) => (
-                <Tooltip title={href} placement="top">
-                  <a
-                    href={href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline"
-                  >
-                    {children}
-                  </a>
-                </Tooltip>
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:text-blue-800 underline"
+                >
+                  {children}
+                </a>
               ),
               img: ({ src, alt }) => (
                 <img
@@ -1328,98 +1143,100 @@ const TextEditor = ({
               h3: ({ children }) => (
                 <h3 className="text-lg font-medium mt-4 mb-2 text-gray-700">{children}</h3>
               ),
-              p: ({ children }) => {
-                const textContent = React.Children.toArray(children)
-                  .map((child) => (typeof child === "string" ? child : ""))
-                  .join("")
-                return (
-                  <p className="mb-4 leading-relaxed text-gray-700">
-                    {React.Children.map(children, (child, index) => {
-                      if (typeof child === "string") {
-                        let remainingText = child
-                        let elements = []
-                        let keyIndex = 0
-                        const sortedSuggestions = [...proofreadingResults].sort(
-                          (a, b) => b.original.length - a.original.length
-                        )
-                        while (remainingText.length > 0) {
-                          let matched = false
-                          for (const suggestion of sortedSuggestions) {
-                            const regex = new RegExp(
-                              suggestion.original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
-                              "i"
-                            )
-                            const match = remainingText.match(regex)
-                            if (match && match.index === 0) {
-                              elements.push(
-                                <span
-                                  key={`${index}-${keyIndex++}`}
-                                  className="suggestion-highlight"
-                                  onMouseEnter={() => setHoveredSuggestion(suggestion)}
-                                  onMouseLeave={() => setHoveredSuggestion(null)}
-                                >
-                                  {match[0]}
-                                  {hoveredSuggestion === suggestion && (
-                                    <div
-                                      className="suggestion-tooltip"
-                                      style={{ top: "100%", left: 0 }}
-                                    >
-                                      <p className="text-sm mb-2">
-                                        <strong>Suggested:</strong> {suggestion.change}
-                                      </p>
-                                      <button
-                                        className="bg-blue-600 text-white px-2 py-1 rounded"
-                                        onClick={() =>
-                                          handleReplace(suggestion.original, suggestion.change)
-                                        }
-                                      >
-                                        Replace
-                                      </button>
-                                    </div>
-                                  )}
-                                </span>
-                              )
-                              remainingText = remainingText.slice(match[0].length)
-                              matched = true
-                              break
-                            }
+             p: ({ children }) => {
+  const textContent = React.Children.toArray(children)
+    .map((child) => (typeof child === "string" ? child : ""))
+    .join("");
+  return (
+    <p className="mb-4 leading-relaxed text-gray-700">
+      {React.Children.map(children, (child, index) => {
+        if (typeof child === "string") {
+          let remainingText = child;
+          let elements = [];
+          let keyIndex = 0;
+          // Sort suggestions by length (descending) to prioritize longer matches
+          const sortedSuggestions = [...proofreadingResults].sort(
+            (a, b) => b.original.length - a.original.length
+          );
+          while (remainingText.length > 0) {
+            let matched = false;
+            for (const suggestion of sortedSuggestions) {
+              const regex = new RegExp(
+                suggestion.original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+                "i" // Case-insensitive matching
+              );
+              const match = remainingText.match(regex);
+              if (match && match.index === 0) {
+                elements.push(
+                  <span
+                    key={`${index}-${keyIndex++}`}
+                    className="suggestion-highlight"
+                    onMouseEnter={() => setHoveredSuggestion(suggestion)}
+                    onMouseLeave={() => setHoveredSuggestion(null)}
+                  >
+                    {match[0]}
+                    {hoveredSuggestion === suggestion && (
+                      <div
+                        className="suggestion-tooltip"
+                        style={{ top: "100%", left: 0 }}
+                      >
+                        <p className="text-sm mb-2">
+                          <strong>Suggested:</strong> {suggestion.change}
+                        </p>
+                        <button
+                          className="bg-blue-600 text-white px-2 py-1 rounded"
+                          onClick={() =>
+                            handleReplace(suggestion.original, suggestion.change)
                           }
-                          if (!matched) {
-                            let minIndex = remainingText.length
-                            let nextMatch = null
-                            for (const suggestion of sortedSuggestions) {
-                              const regex = new RegExp(
-                                suggestion.original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
-                                "i"
-                              )
-                              const match = remainingText.match(regex)
-                              if (match && match.index < minIndex) {
-                                minIndex = match.index
-                                nextMatch = match
-                              }
-                            }
-                            if (minIndex === remainingText.length) {
-                              elements.push(
-                                <span key={`${index}-${keyIndex++}`}>{remainingText}</span>
-                              )
-                              remainingText = ""
-                            } else {
-                              elements.push(
-                                <span key={`${index}-${keyIndex++}`}>
-                                  {remainingText.slice(0, minIndex)}
-                                </span>
-                              )
-                              remainingText = remainingText.slice(minIndex)
-                            }
-                          }
-                        }
-                        return elements
-                      }
-                      return child
-                    })}
-                  </p>
-                )
-              },
+                        >
+                          Replace
+                        </button>
+                      </div>
+                    )}
+                  </span>
+                );
+                remainingText = remainingText.slice(match[0].length);
+                matched = true;
+                break;
+              }
+            }
+            if (!matched) {
+              // Find the next closest suggestion
+              let minIndex = remainingText.length;
+              let nextMatch = null;
+              for (const suggestion of sortedSuggestions) {
+                const regex = new RegExp(
+                  suggestion.original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+                  "i"
+                );
+                const match = remainingText.match(regex);
+                if (match && match.index < minIndex) {
+                  minIndex = match.index;
+                  nextMatch = match;
+                }
+              }
+              if (minIndex === remainingText.length) {
+                elements.push(
+                  <span key={`${index}-${keyIndex++}`}>{remainingText}</span>
+                );
+                remainingText = "";
+              } else {
+                elements.push(
+                  <span key={`${index}-${keyIndex++}`}>
+                    {remainingText.slice(0, minIndex)}
+                  </span>
+                );
+                remainingText = remainingText.slice(minIndex);
+              }
+            }
+          }
+          return elements;
+        }
+        return child;
+      })}
+    </p>
+  );
+},
               ul: ({ children }) => (
                 <ul className="list-disc list-inside mb-4 space-y-2 text-gray-700">{children}</ul>
               ),
@@ -1459,11 +1276,10 @@ const TextEditor = ({
               <BubbleMenu
                 editor={normalEditor}
                 tippyOptions={{ duration: 100 }}
-                className="flex gap-2 bg-white shadow-lg p-2 rounded-lg border border-gray-200"
+                className="flex gap-2 bg-white shadow-lg p-2 rounded border"
               >
                 <Tooltip title="Bold" placement="top">
                   <button
-                    className="p-2 rounded hover:bg-gray-200 text-gray-600"
                     onClick={() => {
                       safeEditorAction(() => {
                         normalEditor.chain().focus().toggleBold().run()
@@ -1475,7 +1291,6 @@ const TextEditor = ({
                 </Tooltip>
                 <Tooltip title="Italic" placement="top">
                   <button
-                    className="p-2 rounded hover:bg-gray-200 text-gray-600"
                     onClick={() => {
                       safeEditorAction(() => {
                         normalEditor.chain().focus().toggleItalic().run()
@@ -1487,7 +1302,6 @@ const TextEditor = ({
                 </Tooltip>
                 <Tooltip title="Heading" placement="top">
                   <button
-                    className="p-2 rounded hover:bg-gray-200 text-gray-600"
                     onClick={() => {
                       safeEditorAction(() => {
                         normalEditor.chain().focus().toggleHeading({ level: 2 }).run()
@@ -1498,26 +1312,17 @@ const TextEditor = ({
                   </button>
                 </Tooltip>
                 <Tooltip title="Link" placement="top">
-                  <button
-                    className="p-2 rounded hover:bg-gray-200 text-gray-600"
-                    onClick={handleAddLink}
-                  >
+                  <button onClick={handleAddLink}>
                     <LinkIcon className="w-5 h-5" />
                   </button>
                 </Tooltip>
                 <Tooltip title="Image" placement="top">
-                  <button
-                    className="p-2 rounded hover:bg-gray-200 text-gray-600"
-                    onClick={handleAddImage}
-                  >
+                  <button onClick={handleAddImage}>
                     <ImageIcon className="w-5 h-5" />
                   </button>
                 </Tooltip>
                 <Tooltip title="Rewrite" placement="top">
-                  <button
-                    className="p-2 rounded hover:bg-gray-200 text-gray-600"
-                    onClick={handleRewrite}
-                  >
+                  <button onClick={handleRewrite}>
                     <RotateCcw className="w-4 h-4" />
                   </button>
                 </Tooltip>
@@ -1550,10 +1355,7 @@ const TextEditor = ({
             <textarea
               ref={mdEditorRef}
               value={safeContent}
-              onChange={(e) => {
-                setContent(e.target.value)
-                setUnsavedChanges(true)
-              }}
+              onChange={(e) => setContent(e.target.value)}
               onMouseUp={handleTextSelection}
               onKeyUp={handleTextSelection}
               className={`w-full h-full p-4 text-sm focus:outline-none resize-none bg-white code-textarea ${selectedFont}`}
@@ -1572,7 +1374,6 @@ const TextEditor = ({
                 const text = e.target.value
                 const markdown = htmlToMarkdown(text)
                 setContent(markdown)
-                setUnsavedChanges(true)
               }}
               onMouseUp={handleTextSelection}
               onKeyUp={handleTextSelection}
@@ -1622,16 +1423,14 @@ const TextEditor = ({
                     className="prose"
                     components={{
                       a: ({ href, children }) => (
-                        <Tooltip title={href} placement="top">
-                          <a
-                            href={href}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline"
-                          >
-                            {children}
-                          </a>
-                        </Tooltip>
+                        <a
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline"
+                        >
+                          {children}
+                        </a>
                       ),
                       strong: ({ children }) => <strong className="font-bold">{children}</strong>,
                     }}
@@ -1649,16 +1448,14 @@ const TextEditor = ({
                     className="prose"
                     components={{
                       a: ({ href, children }) => (
-                        <Tooltip title={href} placement="top">
-                          <a
-                            href={href}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline"
-                          >
-                            {children}
-                          </a>
-                        </Tooltip>
+                        <a
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline"
+                        >
+                          {children}
+                        </a>
                       ),
                       strong: ({ children }) => <strong className="font-bold">{children}</strong>,
                     }}
@@ -1685,35 +1482,17 @@ const TextEditor = ({
           </div>
         </motion.div>
       )}
-      {tabSwitchWarning && (
-        <Modal
-          title="Unsaved Changes"
-          open={true}
-          onOk={handleConfirmTabSwitch}
-          onCancel={handleCancelTabSwitch}
-          okText="Continue without Saving"
-          cancelText="Cancel"
-          centered
-        >
-          <p className="text-sm text-gray-600">
-            You have unsaved changes. Switching tabs may cause you to lose your work. Are you sure
-            you want to continue?
-          </p>
-        </Modal>
-      )}
-      {!pathDetect && (
-        <div className="flex border-b bg-white shadow-sm">
-          {["Normal", "Markdown", "HTML"].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => handleTabSwitch(tab)}
-              className={`editor-tab ${activeTab === tab ? "active" : ""}`}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-      )}
+      <div className="flex border-b bg-white shadow-sm">
+        {["Normal", "Markdown", "HTML"].map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`editor-tab ${activeTab === tab ? "active" : ""}`}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
       {renderToolbar()}
       {renderContentArea()}
       <Modal
@@ -1733,60 +1512,6 @@ const TextEditor = ({
           prefix={<LinkIcon className="w-4 h-4 text-gray-400" />}
         />
         <p className="mt-2 text-xs text-gray-500">Include http:// or https://</p>
-      </Modal>
-      <Modal
-        title="Edit Image Alt Text"
-        open={editImageModalOpen}
-        onOk={handleConfirmEditImage}
-        onCancel={() => {
-          setEditImageModalOpen(false)
-          setSelectedImage(null)
-          setImageAlt("")
-        }}
-        okText="Update Alt Text"
-        cancelText="Cancel"
-        footer={[
-          <Button
-            key="delete"
-            onClick={handleDeleteImage}
-            danger
-            icon={<Trash2 className="w-4 h-4" />}
-          >
-            Delete Image
-          </Button>,
-          <Button
-            key="cancel"
-            onClick={() => {
-              setEditImageModalOpen(false)
-              setSelectedImage(null)
-              setImageAlt("")
-            }}
-          >
-            Cancel
-          </Button>,
-          <Button key="ok" type="primary" onClick={handleConfirmEditImage}>
-            Update Alt Text
-          </Button>,
-        ]}
-        centered
-      >
-        <Input
-          value={imageAlt}
-          onChange={(e) => setImageAlt(e.target.value)}
-          placeholder="Image description"
-          className="w-full mt-4"
-          prefix={<ImageIcon className="w-4 h-4 text-gray-400" />}
-        />
-        <p className="mt-2 text-xs text-gray-500">Provide alt text for accessibility</p>
-        {selectedImage && (
-          <div className="mt-4">
-            <img
-              src={selectedImage.src}
-              alt={imageAlt || selectedImage.alt}
-              className="max-w-full h-auto rounded-lg"
-            />
-          </div>
-        )}
       </Modal>
       <Modal
         title="Insert Image"
@@ -1818,4 +1543,4 @@ const TextEditor = ({
   )
 }
 
-export default TextEditor
+export default RichTextEditor

@@ -21,17 +21,15 @@ const TemplateModal = ({
   const [generatedTitles, setGeneratedTitles] = useState([])
   const [hasGeneratedTitles, setHasGeneratedTitles] = useState(false)
   const [showAllKeywords, setShowAllKeywords] = useState(false)
+  
 
   const visibleKeywords = showAllKeywords ? formData.keywords : formData.keywords.slice(0, 18)
 
   const dispatch = useDispatch()
 
   useEffect(() => {
-    if (isOpen) {
-      document.body.classList.add("backdrop-blur")
-    } else {
-      document.body.classList.remove("backdrop-blur")
-    }
+    if (isOpen) document.body.classList.add("backdrop-blur")
+    else document.body.classList.remove("backdrop-blur")
   }, [isOpen])
 
   const handleNext = () => {
@@ -44,13 +42,9 @@ const TemplateModal = ({
     setCurrentStep(1)
   }
 
-  const handlePrev = () => {
-    setCurrentStep(0)
-  }
+  const handlePrev = () => setCurrentStep(0)
 
-  const handleClose = () => {
-    closeFnc()
-  }
+  const handleClose = () => closeFnc()
 
   const handlePackageSelect = (index) => {
     setSelectedTemplate(packages[index].name)
@@ -142,6 +136,7 @@ const TemplateModal = ({
           keywords: formData.focusKeywords,
           focusKeywords: formData.keywords,
           topic: formData.topic,
+          ...(hasGeneratedTitles && { oldTitles: generatedTitles }),
         })
       ).unwrap()
       setGeneratedTitles(result)
@@ -347,7 +342,6 @@ const TemplateModal = ({
                     </button>
                   </span>
                 ))}
-
                 {formData.keywords.length > 18 && (
                   <span
                     onClick={() => setShowAllKeywords((prev) => !prev)}
@@ -376,18 +370,29 @@ const TemplateModal = ({
                   <button
                     onClick={handleGenerateTitles}
                     disabled={isGeneratingTitles}
-                    className="px-4 py-2 bg-gradient-to-r from-[#1B6FC9] to-[#4C9FE8] text-white rounded-lg hover:from-[#1B6FC9]/90 hover:to-[#4C9FE8]/90 flex items-center"
-                    aria-label="Generate titles"
+                    className={`px-4 py-2 bg-gradient-to-r from-[#1B6FC9] to-[#4C9FE8] text-white rounded-lg flex items-center ${
+                      isGeneratingTitles
+                        ? "opacity-50 cursor-not-allowed"
+                        : "hover:from-[#1B6FC9]/90 hover:to-[#4C9FE8]/90"
+                    }`}
                   >
                     {isGeneratingTitles ? (
                       <Spin size="small" />
+                    ) : hasGeneratedTitles ? (
+                      <>
+                        <RefreshCw size={16} className="mr-2" />
+                        Generate More
+                      </>
                     ) : (
-                      <Sparkles size={16} className="mr-2" />
+                      <>
+                        <Sparkles size={16} className="mr-2" />
+                        Generate Titles
+                      </>
                     )}
-                    Generate Titles
                   </button>
                 )}
               </div>
+              {console.log({generatedTitles})}
               {generatedTitles.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-4">
                   {generatedTitles.map((generatedTitle, index) => {
@@ -426,12 +431,7 @@ const TemplateModal = ({
                 value={formData.userDefinedLength ?? 1000}
                 onChange={(e) => handleInputChange(e, "userDefinedLength")}
                 placeholder="Enter desired word count..."
-                className="w-full h-1 rounded-lg appearance-none cursor-pointer 
-                    [&::-webkit-slider-thumb]:appearance-none 
-                    [&::-webkit-slider-thumb]:h-4 
-                    [&::-webkit-slider-thumb]:w-4 
-                    [&::-webkit-slider-thumb]:rounded-full 
-                    [&::-webkit-slider-thumb]:bg-[#1B6FC9]"
+                className="w-full h-1 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#1B6FC9]"
                 style={{
                   background: `linear-gradient(to right, #1B6FC9 ${
                     ((formData?.userDefinedLength ?? 1000) - 500) / 45
