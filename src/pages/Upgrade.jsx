@@ -136,8 +136,13 @@ const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
                 )}
               </div>
               {billingPeriod === "annual" && typeof displayPrice === "number" && (
-                <div className="text-sm text-green-600 font-medium bg-green-50 px-3 py-1 rounded-full inline-block">
-                  Save ${(displayPrice / 0.833 - displayPrice).toFixed(0)}/year
+                <div className="space-y-1 mt-2">
+                  <div className="text-gray-500 text-sm font-medium">
+                    Billed annually at <strong>${plan.annualPrice}</strong>
+                  </div>
+                  <div className="text-green-600 text-sm font-medium bg-green-50 px-3 py-1 rounded-full inline-block">
+                    Save ${(plan.annualPrice / 0.833 - plan.annualPrice).toFixed(0)} per year
+                  </div>
                 </div>
               )}
             </div>
@@ -309,14 +314,14 @@ const ComparisonTable = ({ plans, billingPeriod }) => {
     if (plan.tier === "credits") return "Pay-as-you-go"
     if (billingPeriod === "monthly") return `$${plan.priceMonthly}/month`
     // For annual, calculate equivalent monthly cost
-    const monthlyEquivalent = (plan.priceAnnual / 12).toFixed(2)
+    const monthlyEquivalent = (plan.annualPrice / 12).toFixed(2)
     return `$${monthlyEquivalent}/month, charged annually`
   }
 
   return (
     <div className="mt-20 bg-white rounded-2xl shadow-lg overflow-hidden">
       <div className="px-6 py-8 sm:px-10">
-        <h2 className="text-3xl font-bold text-gray-900 text-center mb-6">Compare Plans</h2>
+        {/* <h2 className="text-3xl font-bold text-gray-900 text-center mb-6">Compare Plans</h2> */}
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
@@ -426,7 +431,8 @@ const Upgrade = () => {
       {
         name: "Basic Plan",
         priceMonthly: 19,
-        priceAnnual: 199,
+        priceAnnual: 16.58,
+        annualPrice: 199,
         credits: 1000,
         description: "Perfect for individuals getting started with AI content creation.",
         features: [
@@ -450,7 +456,8 @@ const Upgrade = () => {
       {
         name: "GenWrite Pro",
         priceMonthly: 49,
-        priceAnnual: 499,
+        priceAnnual: 41.58,
+        annualPrice: 499,
         credits: 4500,
         description: "Advanced AI features with priority support for growing teams.",
         features: [

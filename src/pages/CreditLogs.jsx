@@ -35,19 +35,17 @@ const CreditLogsTable = () => {
   const debouncedSearch = useMemo(
     () =>
       debounce((value) => {
-        setSearchText(value)
+        // setSearchText(value)
         setPagination((prev) => ({ ...prev, current: 1 }))
         dispatch(
           getCreditLogs({
             page: 1,
             limit: -1,
-            search: value,
-            purpose: purposeFilter,
             ...getDateRangeParams(dateRange),
           })
         )
       }, 500),
-    [dispatch, purposeFilter, dateRange]
+    [dispatch, dateRange]
   )
 
   // Calculate date range for backend fetch
@@ -79,12 +77,10 @@ const CreditLogsTable = () => {
     const params = {
       page: 1,
       limit: -1,
-      search: searchText,
-      purpose: purposeFilter,
       ...getDateRangeParams(dateRange),
     }
     dispatch(getCreditLogs(params))
-  }, [dispatch, dateRange, searchText, purposeFilter])
+  }, [dispatch, dateRange])
 
   const purposeColorMap = {
     BLOG_GENERATION: "bg-blue-100 text-blue-700",
@@ -147,20 +143,20 @@ const CreditLogsTable = () => {
         })),
         filterMultiple: true,
         onFilter: (value, record) => record.purpose === value,
-        onFilterDropdownVisibleChange: (visible) => {
-          if (!visible) {
-            setPagination((prev) => ({ ...prev, current: 1 }))
-            dispatch(
-              getCreditLogs({
-                page: 1,
-                limit: -1,
-                search: searchText,
-                purpose: purposeFilter,
-                ...getDateRangeParams(dateRange),
-              })
-            )
-          }
-        },
+        // onFilterDropdownVisibleChange: (visible) => {
+        //   if (!visible) {
+        //     setPagination((prev) => ({ ...prev, current: 1 }))
+        //     dispatch(
+        //       getCreditLogs({
+        //         page: 1,
+        //         limit: -1,
+        //         search: searchText,
+        //         purpose: purposeFilter,
+        //         ...getDateRangeParams(dateRange),
+        //       })
+        //     )
+        //   }
+        // },
         render: (purpose) => {
           const colorClass = purposeColorMap[purpose] || "bg-gray-100 text-gray-700"
           const label = purpose?.toLowerCase().replace(/_/g, " ") || "-"
@@ -241,13 +237,13 @@ const CreditLogsTable = () => {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
           <h2 className="text-2xl font-semibold text-gray-900">Credit Logs</h2>
           <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-            <Input
+            {/* <Input
               prefix={<SearchOutlined className="text-gray-400" />}
               placeholder="Search by blog title"
               onChange={(e) => debouncedSearch(e.target.value)}
               className="w-full sm:w-64 rounded-lg border-gray-300 hover:border-blue-400 transition-all"
               aria-label="Search credit logs by blog title"
-            />
+            /> */}
             <Select
               value={dateRange}
               onChange={(value) => {
@@ -257,8 +253,6 @@ const CreditLogsTable = () => {
                   getCreditLogs({
                     page: 1,
                     limit: -1,
-                    search: searchText,
-                    purpose: purposeFilter,
                     ...getDateRangeParams(value),
                   })
                 )

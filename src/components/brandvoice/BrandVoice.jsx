@@ -308,6 +308,32 @@ const BrandVoice = () => {
         </p>
 
         <div className="space-y-4">
+          {/* Post Link */}
+          <div>
+            <label htmlFor="postLink" className="text-sm font-medium text-gray-700 flex gap-2 mb-1">
+              Post or Blog Link <span className="text-red-500">*</span>
+            </label>
+            <motion.input
+              id="postLink"
+              type="url"
+              name="postLink"
+              value={formData.postLink}
+              onChange={handleInputChange}
+              placeholder="e.g., https://example.com/blog"
+              className={`w-full p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
+                errors.postLink ? "border-red-500" : "border-gray-300"
+              }`}
+              whileFocus={{ scale: 1.01 }}
+              aria-invalid={!!errors.postLink}
+              aria-describedby={errors.postLink ? "postLink-error" : undefined}
+            />
+            {errors.postLink && (
+              <p id="postLink-error" className="text-red-500 text-xs mt-1">
+                {errors.postLink}
+              </p>
+            )}
+          </div>
+
           {/* Name of Voice */}
           <div>
             <label
@@ -333,32 +359,6 @@ const BrandVoice = () => {
             {errors.nameOfVoice && (
               <p id="nameOfVoice-error" className="text-red-500 text-xs mt-1">
                 {errors.nameOfVoice}
-              </p>
-            )}
-          </div>
-
-          {/* Post Link */}
-          <div>
-            <label htmlFor="postLink" className="text-sm font-medium text-gray-700 flex gap-2 mb-1">
-              Post or Blog Link <span className="text-red-500">*</span>
-            </label>
-            <motion.input
-              id="postLink"
-              type="url"
-              name="postLink"
-              value={formData.postLink}
-              onChange={handleInputChange}
-              placeholder="e.g., https://example.com/blog"
-              className={`w-full p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
-                errors.postLink ? "border-red-500" : "border-gray-300"
-              }`}
-              whileFocus={{ scale: 1.01 }}
-              aria-invalid={!!errors.postLink}
-              aria-describedby={errors.postLink ? "postLink-error" : undefined}
-            />
-            {errors.postLink && (
-              <p id="postLink-error" className="text-red-500 text-xs mt-1">
-                {errors.postLink}
               </p>
             )}
           </div>

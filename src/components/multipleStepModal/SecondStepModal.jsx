@@ -32,6 +32,7 @@ const SecondStepModal = ({
     referenceLinks: data.referenceLinks || [],
     includeInterlinks: data.includeInterlinks || false,
     addOutBoundLinks: data.addOutBoundLinks || false,
+    addCTA: data.addCTA || true
   })
   const [localFormData, setLocalFormData] = useState({
     newLink: "",
@@ -435,6 +436,30 @@ const SecondStepModal = ({
                     No brand voices available. Create one to get started.
                   </div>
                 )}
+              </div>
+            )}
+
+            {formData.isCheckedBrand && (
+              <div className="flex items-center justify-between mt-3">
+                <span className="text-sm font-medium text-gray-700">Add CTA at the End</span>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.addCTA}
+                    onChange={() => {
+                      setNewJob((prev) => ({
+                        ...prev,
+                        blogs: {
+                          ...prev.blogs,
+                          addCTA: !prev.formData.addCTA,
+                        },
+                      }))
+                    }}
+                    className="sr-only peer"
+                    aria-checked={formData.addCTA}
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]" />
+                </label>
               </div>
             )}
           </div>

@@ -1,7 +1,9 @@
-import Loading from "@components/Loading";
-import { Link, Outlet } from "react-router-dom";
+import usePageTracking from "@/hooks/usePageTracking"
+import Loading from "@components/Loading"
+import { Link, Outlet } from "react-router-dom"
 
 const PublicRoutesLayout = () => {
+  usePageTracking()
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-600 to-purple-700">
       {/* Header */}
@@ -42,7 +44,7 @@ const PublicRoutesLayout = () => {
         </Link>
       </footer> */}
     </div>
-  );
-};
+  )
+}
 
-export default PublicRoutesLayout;
+export default PublicRoutesLayout

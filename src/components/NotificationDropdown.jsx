@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from "react"
-import { Badge, Dropdown, Card, List, Typography, Empty, message } from "antd"
+import { useState, useEffect, useMemo } from "react"
+import { Badge, Dropdown, Card, List, Typography, Empty, message, Menu, Spin } from "antd"
 import {
   BellFilled,
   BellOutlined,
@@ -15,17 +15,17 @@ const { Text } = Typography
 
 // Map notification types to icons
 const typeIconMap = {
-  BLOG_CREATED: <FileTextOutlined />,
-  BLOG_GENERATED: <FileTextOutlined />,
-  BLOG_TRASHED: <ReloadOutlined />,
-  BLOG_RESTORED: <CheckOutlined />,
-  BLOG_DELETED: <ReloadOutlined />,
-  BLOG_GENERATION_ERROR: <ReloadOutlined />,
-  JOB_STARTED: <ReloadOutlined />,
-  JOB_HALTED: <ReloadOutlined />,
-  JOB_COMPLETED: <CheckOutlined />,
-  JOB_FAILED_CREDITS: <ReloadOutlined />,
-  JOB_ERROR: <ReloadOutlined />,
+  BLOG_CREATED: FileTextOutlined,
+  BLOG_GENERATED: FileTextOutlined,
+  BLOG_TRASHED: ReloadOutlined,
+  BLOG_RESTORED: CheckOutlined,
+  BLOG_DELETED: ReloadOutlined,
+  BLOG_GENERATION_ERROR: ReloadOutlined,
+  JOB_STARTED: ReloadOutlined,
+  JOB_HALTED: ReloadOutlined,
+  JOB_COMPLETED: CheckOutlined,
+  JOB_FAILED_CREDITS: ReloadOutlined,
+  JOB_ERROR: ReloadOutlined,
 }
 
 // Format date using native Date methods
@@ -128,6 +128,41 @@ const NotificationDropdown = ({ notifications }) => {
     [localNotifications]
   )
 
+  const menuItems = useMemo(() => {
+    if (localNotifications.length === 0) {
+      return [
+        {
+          key: "empty",
+          label: <Empty description="No notifications available" />,
+        },
+      ]
+    }
+
+    return localNotifications.map((item, idx) => {
+      const MENUICON = typeIconMap[item.type] || BellOutlined
+      return {
+        key: idx,
+        label: (
+          <Menu.Item className="!bg-gray-50">
+            <div className="flex items-center gap-4">
+              <div className="text-xl text-blue-600 ml-2">
+                <MENUICON />
+              </div>
+              <div>
+                <Text strong={!item.read} className="block text-gray-800 text-sm">
+                  {item.message}
+                </Text>
+                <Text type="secondary" className="text-xs">
+                  {formatDate(item.createdAt)}
+                </Text>
+              </div>
+            </div>
+          </Menu.Item>
+        ),
+      }
+    })
+  }, [localNotifications])
+
   const unreadCount = localNotifications.filter((n) => !n.read).length
 
   return (
@@ -135,7 +170,11 @@ const NotificationDropdown = ({ notifications }) => {
       trigger={["click"]}
       open={open}
       onOpenChange={handleOpenChange}
-      overlay={content}
+      menu={{
+        items: menuItems,
+        className: "w-[30vw] h-[60vh] top-1 !pb-2",
+        title: "Notifications",
+      }}
       placement="bottomRight"
     >
       <Badge
@@ -157,7 +196,7 @@ const NotificationDropdown = ({ notifications }) => {
           alignItems: "center",
           justifyContent: "center",
           top: "2px",
-          right: "2px"
+          right: "2px",
         }}
       >
         <BellOutlined
