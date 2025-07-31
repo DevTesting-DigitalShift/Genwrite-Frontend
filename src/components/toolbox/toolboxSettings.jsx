@@ -103,8 +103,6 @@ export default function ToolboxPage() {
       selectedRowKeys.includes(idx)
     );
 
-    console.log("Selected Keywords for Export:", selectedKeywords);
-
     if (selectedKeywords.length === 0) {
       message.error("No valid keywords selected for export.");
       return;
