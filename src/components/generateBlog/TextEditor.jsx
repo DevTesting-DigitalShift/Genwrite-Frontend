@@ -1363,31 +1363,21 @@ const TextEditor = ({
           ADD_TAGS: ["style"],
           ADD_ATTR: ["target"], // Allow target attribute for links
         })
-        return (
+        return (  
           <div
-            className={`p-8 rounded-lg rounded-t-none overflow-y-auto h-screen bg-white ${selectedFont}`}
+            className={`p-8 rounded-lg rounded-t-none overflow-y-auto custom-scroll h-screen border border-gray-200 ${selectedFont}`}
           >
-            <h1 className="text-3xl font-bold mb-6 text-gray-900">{title || "Untitled"}</h1>
-            <iframe
-              srcDoc={sanitizedHtml}
-              title="HTML Preview"
-              style={{
-                width: "100%",
-                height: "calc(100% - 60px)",
-                border: "none",
-                background: "white",
-              }}
-              sandbox="allow-same-origin"
-            />
+            {/* <h1 className="text-3xl font-bold mb-6 text-gray-900">{title || "Untitled"}</h1> */}
+            <iframe srcDoc={sanitizedHtml} title="HTML Preview" sandbox="allow-same-origin" />
           </div>
         )
       }
 
       return (
         <div
-          className={`p-8 rounded-lg rounded-t-none overflow-y-auto h-screen bg-white ${selectedFont}`}
+          className={`p-8 rounded-lg rounded-t-none overflow-y-auto custom-scroll h-screen border border-gray-200 bg-white ${selectedFont}`}
         >
-          <h1 className="text-3xl font-bold mb-6 text-gray-900">{title || "Untitled"}</h1>
+          {/* <h1 className="text-3xl font-bold mb-6 text-gray-900">{title || "Untitled"}</h1> */}
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             rehypePlugins={[rehypeRaw]}
@@ -1537,7 +1527,7 @@ const TextEditor = ({
     return (
       <div className="bg-white border rounded-lg rounded-t-none shadow-sm">
         {activeTab === "Normal" && (
-          <div className="h-screen overflow-auto">
+          <div className="h-screen overflow-auto custom-scroll">
             {normalEditor && (
               <BubbleMenu
                 editor={normalEditor}
@@ -1639,7 +1629,7 @@ const TextEditor = ({
               }}
               onMouseUp={handleTextSelection}
               onKeyUp={handleTextSelection}
-              className={`w-full h-full p-4 text-sm focus:outline-none resize-none bg-white code-textarea ${selectedFont}`}
+              className={`w-full h-full p-4 text-sm focus:outline-none resize-none bg-white code-textarea custom-scroll ${selectedFont}`}
               placeholder="Enter Markdown here...\nUse # for headings, **bold**, *italic*, - for lists"
               style={{ whiteSpace: "pre-wrap", lineHeight: "1.5" }}
             />
@@ -1662,7 +1652,7 @@ const TextEditor = ({
               }}
               onMouseUp={handleTextSelection}
               onKeyUp={handleTextSelection}
-              className="w-full h-full font-mono text-sm p-4 focus:outline-none resize-none bg-white code-textarea"
+              className="w-full h-full font-mono text-sm p-4 focus:outline-none resize-none bg-white code-textarea custom-scroll"
               placeholder="<h1>HTML Title</h1>\n<p>Paragraph with <a href='https://example.com'>link</a></p>\n<img src='image.jpg' alt='description' />"
               style={{ whiteSpace: "pre-wrap", lineHeight: "1.5" }}
             />
@@ -1788,7 +1778,7 @@ const TextEditor = ({
         </Modal>
       )}
       {!pathDetect && (
-        <div className="flex border-b bg-white shadow-sm">
+        <div className="flex border-b bg-white shadow-sm border-x">
           {["Normal", "Markdown", "HTML"].map((tab) => (
             <button
               key={tab}

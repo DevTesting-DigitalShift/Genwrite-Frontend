@@ -132,7 +132,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (blogs?.data && Array.isArray(blogs.data)) {
-      const recent = blogs.data.filter((b) => b.isArchived === false).slice(-3)
+      const recent = blogs.data.filter((b) => b.isArchived === false).slice(0, 3)
       setRecentBlogData(recent)
     } else {
       setRecentBlogData([])

@@ -315,7 +315,8 @@ const TextEditorSidebar = ({
         URL.revokeObjectURL(url)
         message.success("HTML exported successfully!")
       } else if (type === "docx") {
-        const { Document, Packer, Paragraph, HeadingLevel, TextRun, ImageRun, ExternalHyperlink } = docx
+        const { Document, Packer, Paragraph, HeadingLevel, TextRun, ImageRun, ExternalHyperlink } =
+          docx
 
         // Parse Markdown tokens
         const tokens = marked.lexer(editorContent)
@@ -324,7 +325,7 @@ const TextEditorSidebar = ({
         // Function to fetch image as ArrayBuffer
         const fetchImage = async (url) => {
           try {
-            const response = await fetch(url, { mode: 'cors' })
+            const response = await fetch(url, { mode: "cors" })
             if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`)
             const blob = await response.blob()
             const arrayBuffer = await blob.arrayBuffer()
@@ -348,7 +349,9 @@ const TextEditorSidebar = ({
           } else if (token.type === "paragraph") {
             const runs = []
             // Parse inline tokens from token.text or raw text
-            const inlineTokens = token.tokens || marked.lexer(token.text || token.raw).filter(t => t.type !== "space")
+            const inlineTokens =
+              token.tokens ||
+              marked.lexer(token.text || token.raw).filter((t) => t.type !== "space")
             for (const inline of inlineTokens) {
               if (inline.type === "text" || inline.type === "html") {
                 runs.push(new TextRun({ text: inline.text || inline.raw }))
@@ -383,7 +386,12 @@ const TextEditorSidebar = ({
                 } else {
                   elements.push(
                     new Paragraph({
-                      children: [new TextRun({ text: `[Image not available: ${inline.href}]`, italics: true })],
+                      children: [
+                        new TextRun({
+                          text: `[Image not available: ${inline.href}]`,
+                          italics: true,
+                        }),
+                      ],
                       spacing: { after: 200 },
                     })
                   )
@@ -412,7 +420,8 @@ const TextEditorSidebar = ({
           } else if (token.type === "list") {
             for (const item of token.items) {
               const runs = []
-              const inlineTokens = item.tokens || marked.lexer(item.text || item.raw).filter(t => t.type !== "space")
+              const inlineTokens =
+                item.tokens || marked.lexer(item.text || item.raw).filter((t) => t.type !== "space")
               for (const inline of inlineTokens) {
                 if (inline.type === "text" || inline.type === "html") {
                   runs.push(new TextRun({ text: inline.text || inline.raw }))
@@ -446,7 +455,9 @@ const TextEditorSidebar = ({
                       })
                     )
                   } else {
-                    runs.push(new TextRun({ text: `[Image not available: ${inline.href}]`, italics: true }))
+                    runs.push(
+                      new TextRun({ text: `[Image not available: ${inline.href}]`, italics: true })
+                    )
                   }
                 } else {
                   runs.push(new TextRun({ text: inline.raw || inline.text || "" }))
@@ -829,23 +840,22 @@ const TextEditorSidebar = ({
         initial={{ x: "100%" }}
         animate={{ x: 0 }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className="w-96 bg-white border-gray-200 shadow-xl flex flex-col"
+        className="w-96 bg-white shadow-xl flex flex-col"
       >
-        <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50">
+        <div className="p-4 border border-l-0 bg-gradient-to-r rounded-tr-md from-blue-50 to-purple-50">
           <div className="flex items-center justify-between mb-2">
             <div>
-              <h2 className="text-lg font-bold text-gray-900">Content Analysis</h2>
+              <h2 className="text-lg font-bold">Content Analysis</h2>
               <p className="text-xs text-gray-600">Optimize your content performance</p>
             </div>
             <div className="flex items-center gap-2">
-              <Tooltip title="Export Content" placement="left">
-                <Dropdown overlay={exportMenu} trigger={["click"]}>
-                  <Button
-                    size="small"
-                    icon={<Download className="w-4 h-4" />}
-                  />
-                </Dropdown>
-              </Tooltip>
+              {!["free", "basic"].includes(userPlan?.toLowerCase?.()) && (
+                <Tooltip title="Export Content" placement="left">
+                  <Dropdown overlay={exportMenu} trigger={["click"]}>
+                    <Button size="small" icon={<Download className="w-4 h-4" />} />
+                  </Dropdown>
+                </Tooltip>
+              )}
               <Tooltip title="Minimize sidebar" placement="left">
                 <Button
                   size="small"
@@ -863,7 +873,7 @@ const TextEditorSidebar = ({
             </div>
           </div>
 
-          <div className="flex gap-1 mt-6 mb-0">
+          <div className="flex justify-between items-center mt-6 px-2">
             {[
               { key: "overview", label: "Overview", icon: BarChart3 },
               { key: "analysis", label: "Analysis", icon: TrendingUp },
@@ -874,24 +884,29 @@ const TextEditorSidebar = ({
                 badge: proofreadingResults.length,
               },
             ].map(({ key, label, icon: Icon, badge }) => (
-              <Button
+              <button
                 key={key}
-                size="small"
-                type={activeSection === key ? "primary" : "text"}
                 onClick={() => setActiveSection(key)}
-                className={`flex items-center gap-1 ${
-                  activeSection === key ? "" : "text-gray-600"
-                }`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-150
+        ${
+          activeSection === key
+            ? "bg-blue-600 text-white shadow-md"
+            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+        }`}
               >
-                <Icon className="w-3 h-3" />
+                <Icon className="w-4 h-4" />
                 {label}
-                {badge > 0 && <Badge count={badge} size="small" />}
-              </Button>
+                {badge > 0 && (
+                  <span className="ml-1 inline-flex items-center justify-center w-5 h-5 text-xs font-semibold text-white bg-red-500 rounded-full">
+                    {badge}
+                  </span>
+                )}
+              </button>
             ))}
           </div>
         </div>
 
-        <div className="flex-1 max-h-screen overflow-y-auto">
+        <div className="flex-1 max-h-screen overflow-y-auto custom-scroll border-r">
           <AnimatePresence mode="wait">
             {activeSection === "overview" && (
               <motion.div
@@ -1165,7 +1180,7 @@ const TextEditorSidebar = ({
           </AnimatePresence>
         </div>
 
-        <div className="p-4 border-t border-gray-200 bg-gray-50">
+        <div className="p-4 border border-l-0 rounded-br-md border-gray-200 bg-gray-50">
           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
             <Button
               type="primary"

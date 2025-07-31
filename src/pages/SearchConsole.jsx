@@ -9,8 +9,8 @@ import {
   RefreshCw,
   LogIn,
   Download,
-  RotateCcw,
-  X,
+  ChevronDown,
+  ChevronUp,
   TrendingDown,
 } from "lucide-react"
 import { Helmet } from "react-helmet"
@@ -56,12 +56,12 @@ const SearchConsole = () => {
   const [selectedBlogTitle, setSelectedBlogTitle] = useState("all")
   const [selectedCountries, setSelectedCountries] = useState([])
   const [includeCountry, setIncludeCountry] = useState(false)
-  const [includeBlogTitle, setIncludeBlogTitle] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [searchParams, setSearchParams] = useSearchParams()
   const [blogData, setBlogData] = useState([])
+  const [expandedRows, setExpandedRows] = useState([])
 
   const dispatch = useDispatch()
   const user = useSelector(selectUser)
@@ -123,7 +123,7 @@ const SearchConsole = () => {
         from,
         to,
         includeCountry,
-        ...(blogUrl && { blogUrl }), // Send blogUrl instead of blogTitle
+        ...(blogUrl && { blogUrl }),
       }
       const data = await dispatch(fetchGscAnalytics(params)).unwrap()
       setBlogData(
@@ -142,8 +142,6 @@ const SearchConsole = () => {
         }))
       )
     } catch (err) {
-      const errorMessage = err.message || err.error || "Failed to fetch analytics data"
-      // message.error(errorMessage)
       console.error("Error fetching analytics data:", err)
       setBlogData([])
     } finally {
@@ -173,8 +171,7 @@ const SearchConsole = () => {
             await fetchAnalyticsData()
             navigate(0)
           } catch (err) {
-            const errorMessage = err.message || err.error || "Failed to verify GSC connection"
-            message.error(errorMessage)
+            message.error(err.message || err.error || "Failed to verify GSC connection")
             console.error("GSC verification error:", err)
           } finally {
             setIsConnecting(false)
@@ -202,8 +199,7 @@ const SearchConsole = () => {
         clearInterval(checkPopupClosed)
       }
     } catch (err) {
-      const errorMessage = err.message || err.error || "Failed to initiate GSC connection"
-      message.error(errorMessage)
+      message.error(err.message || err.error || "Failed to initiate GSC connection")
       console.error("GSC auth error:", err)
       setIsConnecting(false)
     }
@@ -233,18 +229,69 @@ const SearchConsole = () => {
         { name: "keywords", weight: 0.4 },
         { name: "blogTitle", weight: 0.2 },
       ],
-      threshold: 0.3, // Adjust for fuzzy matching sensitivity
+      threshold: 0.3,
       includeScore: true,
       shouldSort: true,
     })
   }, [blogData])
 
+  // Group blog data by blogTitle and calculate averages
+  const groupedBlogData = useMemo(() => {
+    const grouped = blogData.reduce((acc, item) => {
+      const title = item.blogTitle || "Untitled"
+      if (!acc[title]) {
+        acc[title] = {
+          blogTitle: title,
+          url: item.url,
+          keywords: [],
+          clicks: [],
+          impressions: [],
+          ctr: [],
+          position: [],
+          countryCode: item.countryCode,
+          countryName: item.countryName,
+          blogId: item.blogId,
+        }
+      }
+      acc[title].keywords.push(...item.keywords)
+      acc[title].clicks.push(Number(item.clicks) || 0)
+      acc[title].impressions.push(Number(item.impressions) || 0)
+      acc[title].ctr.push(Number(item.ctr) || 0)
+      acc[title].position.push(Number(item.position) || 0)
+      return acc
+    }, {})
+
+    return Object.values(grouped).map((group, index) => ({
+      id: `${group.blogTitle}-${index}`,
+      blogTitle: group.blogTitle,
+      url: group.url,
+      keywords: [...new Set(group.keywords)], // Remove duplicates
+      clicks: group.clicks.length ? (group.clicks.reduce((sum, val) => sum + val, 0) / group.clicks.length).toFixed(0) : 0,
+      impressions: group.impressions.length ? (group.impressions.reduce((sum, val) => sum + val, 0) / group.impressions.length).toFixed(0) : 0,
+      ctr: group.ctr.length ? (group.ctr.reduce((sum, val) => sum + val, 0) / group.ctr.length).toFixed(2) : 0,
+      position: group.position.length ? (group.position.reduce((sum, val) => sum + val, 0) / group.position.length).toFixed(1) : 0,
+      countryCode: group.countryCode,
+      countryName: group.countryName,
+      blogId: group.blogId,
+    }))
+  }, [blogData])
+
   // Client-side filtered and searched data
   const filteredBlogData = useMemo(() => {
-    let result = blogData
+    let result = groupedBlogData
 
     // Apply fuzzy search with Fuse.js
     if (searchTerm?.trim()) {
+      const fuse = new Fuse(groupedBlogData, {
+        keys: [
+          { name: "url", weight: 0.4 },
+          { name: "keywords", weight: 0.4 },
+          { name: "blogTitle", weight: 0.2 },
+        ],
+        threshold: 0.3,
+        includeScore: true,
+        shouldSort: true,
+      })
       result = fuse.search(searchTerm).map(({ item }) => item)
     }
 
@@ -253,17 +300,13 @@ const SearchConsole = () => {
       result = result.filter((blog) => selectedCountries.includes(blog.countryCode))
     }
 
-    if (includeBlogTitle && selectedBlogTitle !== "all") {
-      result = result.filter((blog) => blog.blogTitle === selectedBlogTitle)
-    }
-
     // Apply blog title filter
     if (selectedBlogTitle !== "all") {
       result = result.filter((blog) => blog.blogTitle === selectedBlogTitle)
     }
 
     return result
-  }, [blogData, searchTerm, selectedCountries, includeCountry, selectedBlogTitle, fuse])
+  }, [groupedBlogData, searchTerm, selectedCountries, includeCountry, selectedBlogTitle])
 
   // Get current page for the data for export
   const currentPageData = useMemo(() => {
@@ -284,10 +327,10 @@ const SearchConsole = () => {
     setSelectedBlogTitle("all")
     setSelectedCountries([])
     setIncludeCountry(false)
-    setIncludeBlogTitle(false)
     setCustomDateRange([null, null])
     setDateRange("30d")
     setCurrentPage(1)
+    setExpandedRows([])
     fetchAnalyticsData()
   }
 
@@ -307,23 +350,23 @@ const SearchConsole = () => {
     }
     try {
       const headers = [
+        "Blog Title",
         "Keywords",
-        "Clicks",
-        "Impressions",
-        "CTR (%)",
+        "Avg Clicks",
+        "Avg Impressions",
+        "Avg CTR (%)",
         "Avg Position",
         "URL",
-        ...(includeBlogTitle ? ["Blog Title"] : []),
         ...(includeCountry ? ["Country"] : []),
       ]
       const rows = currentPageData.map((blog) => ({
-        Keywords: Array.isArray(blog.keywords) ? blog.keywords.join(", ") : blog.keywords,
-        Clicks: blog.clicks,
-        Impressions: blog.impressions,
-        "CTR %": blog.ctr,
+        "Blog Title": blog.blogTitle,
+        Keywords: blog.keywords.join(", "),
+        "Avg Clicks": blog.clicks,
+        "Avg Impressions": blog.impressions,
+        "Avg CTR %": blog.ctr,
         "Avg Position": blog.position,
         URL: blog.url,
-        ...(includeBlogTitle ? { "Blog Title": blog.blogTitle } : {}),
         ...(includeCountry ? { Country: blog.countryName } : {}),
       }))
       const worksheet = XLSX.utils.json_to_sheet(rows, { header: headers })
@@ -331,25 +374,23 @@ const SearchConsole = () => {
       XLSX.utils.book_append_sheet(workbook, worksheet, "Search Console Data")
       const fileName = `search_console_data_${new Date().toISOString().split("T")[0]}.xlsx`
       XLSX.writeFile(workbook, fileName)
-      // message.success("Data exported successfully");
     } catch (err) {
-      const errorMessage = err.message || err.error || "Failed to export data"
-      message.error(errorMessage)
+      message.error(err.message || err.error || "Failed to export data")
       console.error("Error exporting data:", err)
     }
   }, [currentPageData, includeCountry])
 
   // Calculate totals for summary cards
   const totals = useMemo(() => {
-    const totalClicks = blogData.reduce((sum, blog) => sum + Number(blog.clicks || 0), 0)
-    const totalImpressions = blogData.reduce((sum, blog) => sum + Number(blog.impressions || 0), 0)
+    const totalClicks = groupedBlogData.reduce((sum, blog) => sum + Number(blog.clicks || 0), 0)
+    const totalImpressions = groupedBlogData.reduce((sum, blog) => sum + Number(blog.impressions || 0), 0)
     const avgCtr =
-      blogData.length > 0
-        ? blogData.reduce((sum, blog) => sum + Number(blog.ctr || 0), 0) / blogData.length
+      groupedBlogData.length > 0
+        ? groupedBlogData.reduce((sum, blog) => sum + Number(blog.ctr || 0), 0) / groupedBlogData.length
         : 0
     const avgPosition =
-      blogData.length > 0
-        ? blogData.reduce((sum, blog) => sum + Number(blog.position || 0), 0) / blogData.length
+      groupedBlogData.length > 0
+        ? groupedBlogData.reduce((sum, blog) => sum + Number(blog.position || 0), 0) / groupedBlogData.length
         : 0
 
     return {
@@ -358,18 +399,16 @@ const SearchConsole = () => {
       avgCtr,
       avgPosition,
     }
-  }, [blogData])
+  }, [groupedBlogData])
 
   // Get unique countries for filter
   const countries = useMemo(() => {
     const countryMap = new Map()
-
     blogData.forEach((blog) => {
       if (blog.countryCode && blog.countryName) {
         countryMap.set(blog.countryCode, blog.countryName)
       }
     })
-
     return Array.from(countryMap.entries()).map(([code, name]) => ({
       value: code,
       text: name,
@@ -390,38 +429,53 @@ const SearchConsole = () => {
     return ["all", ...uniqueTitles]
   }, [analyticsData])
 
+  // Toggle expanded rows
+  const toggleRow = (id) => {
+    setExpandedRows((prev) =>
+      prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id]
+    )
+  }
+
   // Ant Design Table Columns
   const columns = [
-    ...(includeBlogTitle
-      ? [
-          {
-            title: "Blog Title",
-            dataIndex: "blogTitle",
-            key: "blogTitle",
-            render: (blogTitle) => <div className="font-medium">{blogTitle}</div>,
-            sorter: (a, b) => a.blogTitle.localeCompare(b.blogTitle),
-          },
-        ]
-      : []),
+    {
+      title: "Blog Title",
+      dataIndex: "blogTitle",
+      key: "blogTitle",
+      render: (blogTitle) => <div className="font-medium text-gray-900">{blogTitle}</div>,
+      sorter: (a, b) => a.blogTitle.localeCompare(b.blogTitle),
+    },
     {
       title: "Keywords",
       dataIndex: "keywords",
       key: "keywords",
-      render: (keywords) => (
+      render: (keywords, record) => (
         <div className="flex flex-wrap gap-1 max-w-xs">
-          {keywords.slice(0, 3).map((keyword, idx) => (
-            <Tooltip key={idx} title={keyword}>
-              <Tag color="blue" className="text-sm">
-                {keyword}
-              </Tag>
-            </Tooltip>
-          ))}
-          {keywords.length > 3 && <Tag color="default">+{keywords.length - 3} more</Tag>}
+          {expandedRows.includes(record.id)
+            ? keywords.map((keyword, idx) => (
+                <Tooltip key={idx} title={keyword}>
+                  <Tag color="blue" className="text-sm cursor-pointer">
+                    {keyword}
+                  </Tag>
+                </Tooltip>
+              ))
+            : keywords.slice(0, 3).map((keyword, idx) => (
+                <Tooltip key={idx} title={keyword}>
+                  <Tag color="blue" className="text-sm cursor-pointer">
+                    {keyword}
+                  </Tag>
+                </Tooltip>
+              ))}
+          {keywords.length > 3 && !expandedRows.includes(record.id) && (
+            <Tag color="default" className="text-sm">
+              +{keywords.length - 3} more
+            </Tag>
+          )}
         </div>
       ),
     },
     {
-      title: "Clicks",
+      title: "Avg Clicks",
       dataIndex: "clicks",
       key: "clicks",
       sorter: (a, b) => a.clicks - b.clicks,
@@ -431,7 +485,7 @@ const SearchConsole = () => {
       align: "center",
     },
     {
-      title: "Impressions",
+      title: "Avg Impressions",
       dataIndex: "impressions",
       key: "impressions",
       sorter: (a, b) => a.impressions - b.impressions,
@@ -443,7 +497,7 @@ const SearchConsole = () => {
       align: "center",
     },
     {
-      title: "CTR",
+      title: "Avg CTR",
       dataIndex: "ctr",
       key: "ctr",
       sorter: (a, b) => a.ctr - b.ctr,
@@ -493,6 +547,20 @@ const SearchConsole = () => {
       key: "actions",
       render: (_, record) => (
         <div className="flex items-center justify-center gap-2">
+          <Tooltip title="Toggle Keywords">
+            <Button
+              type="text"
+              icon={
+                expandedRows.includes(record.id) ? (
+                  <ChevronUp className="w-4 h-4" />
+                ) : (
+                  <ChevronDown className="w-4 h-4" />
+                )
+              }
+              onClick={() => toggleRow(record.id)}
+              title={expandedRows.includes(record.id) ? "Hide Keywords" : "Show Keywords"}
+            />
+          </Tooltip>
           <Tooltip title={record.url}>
             <Button
               type="text"
@@ -631,7 +699,7 @@ const SearchConsole = () => {
                 <TrendingUp className="w-5 h-5 text-green-500" />
               </div>
               <h3 className="text-2xl font-bold text-gray-900">{formatNumber(totals.clicks)}</h3>
-              <p className="text-gray-600 text-sm">Total Clicks</p>
+              <p className="text-gray-600 text-sm">Average Clicks</p>
             </div>
             <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
               <div className="flex items-center justify-between mb-4">
@@ -643,7 +711,7 @@ const SearchConsole = () => {
               <h3 className="text-2xl font-bold text-gray-900">
                 {formatNumber(totals.impressions)}
               </h3>
-              <p className="text-gray-600 text-sm">Total Impressions</p>
+              <p className="text-gray-600 text-sm">Average Impressions</p>
             </div>
             <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
               <div className="flex items-center justify-between mb-4">
@@ -765,21 +833,10 @@ const SearchConsole = () => {
                 />
               </div>
 
-              <div className="flex-2 flex items-center gap-2">
-                <label className="text-sm font-medium text-gray-700">Blog Title</label>
-                <Switch
-                  checked={includeBlogTitle}
-                  onChange={(checked) => {
-                    setIncludeBlogTitle(checked)
-                  }}
-                  className={`w-fit ${includeBlogTitle ? "bg-blue-600" : "bg-gray-200"}`}
-                />
-              </div>
-
               {/* Reset Button */}
               <div className="flex-2">
                 <Button
-                  icon={<RotateCcw className="w-4 h-4" />}
+                  icon={<RefreshCw className="w-4 h-4" />}
                   onClick={resetAllFilters}
                   className={`w-full flex items-center gap-2 ${
                     hasActiveFilters ? "border-red-400 bg-red-50 text-red-600" : ""
@@ -815,7 +872,7 @@ const SearchConsole = () => {
               setCurrentPage(pagination.current)
               setItemsPerPage(pagination.pageSize)
             }}
-            className="bg-white rounded-2xl shadow-sm border border-gray-100"
+            className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
             locale={{
               emptyText: error
                 ? `Error: ${error}. Please try refreshing or reconnecting GSC.`
@@ -825,7 +882,7 @@ const SearchConsole = () => {
         )}
       </div>
 
-      {/* Custom CSS for Select highlighting */}
+      {/* Custom CSS for Select highlighting and table styling */}
       <style jsx>{`
         .ant-select-highlighted-green .ant-select-selector {
           border-color: #10b981 !important;
@@ -838,6 +895,23 @@ const SearchConsole = () => {
         .ant-select-highlighted-indigo .ant-select-selector {
           border-color: #6366f1 !important;
           box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1) !important;
+        }
+        .ant-table-thead > tr > th {
+          background: #f8fafc;
+          font-weight: 600;
+          color: #1f2937;
+        }
+        .ant-table-row {
+          transition: background 0.2s;
+        }
+        .ant-table-row:hover {
+          background: #f1f5f9;
+        }
+        .ant-tag {
+          transition: all 0.2s;
+        }
+        .ant-tag:hover {
+          transform: scale(1.05);
         }
       `}</style>
     </div>
