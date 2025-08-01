@@ -32,6 +32,8 @@ import { getCategoriesThunk } from "@store/slices/otherSlice"
 import CategoriesModal from "@components/CategoriesModal"
 import Loading from "@components/Loading"
 import { marked } from "marked"
+import DOMPurify from "dompurify"
+import html2pdf from "html2pdf.js"
 // Import docx library (use CDN for browser compatibility)
 import * as docx from "docx"
 
@@ -540,6 +542,61 @@ const TextEditorSidebar = ({
     [editorContent, blog]
   )
 
+  const handleExportPDF = useCallback(() => {
+    if (!editorContent) {
+      message.error("No content to export.")
+      return
+    }
+
+    const title = blog?.title || "Untitled_Blog"
+    const rawHtml = marked(editorContent, { gfm: true })
+    const safeHtml = DOMPurify.sanitize(rawHtml)
+
+    const container = document.createElement("div")
+    container.innerHTML = safeHtml
+    container.style.padding = "20px"
+    container.style.fontFamily = "Arial, sans-serif"
+    container.style.lineHeight = "1.6"
+    container.style.maxWidth = "800px"
+    container.style.color = "#000"
+    container.style.backgroundColor = "#fff"
+
+    // ✅ Patch oklch color fallback
+    Array.from(container.querySelectorAll("*")).forEach((el) => {
+      const style = window.getComputedStyle(el)
+      if (style.color?.includes("oklch")) {
+        el.style.color = "#000"
+      }
+      if (style.backgroundColor?.includes("oklch")) {
+        el.style.backgroundColor = "#fff"
+      }
+    })
+
+    document.body.appendChild(container)
+
+    const opt = {
+      margin: 0.5,
+      filename: `${title}.pdf`,
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
+    }
+
+    html2pdf()
+      .set(opt)
+      .from(container)
+      .save()
+      .then(() => {
+        message.success("PDF exported successfully!")
+        document.body.removeChild(container)
+      })
+      .catch((err) => {
+        console.error("Error exporting PDF:", err)
+        message.error("Failed to export PDF.")
+        document.body.removeChild(container)
+      })
+  }, [editorContent, blog])
+
   const exportMenu = (
     <Menu>
       <Menu.Item key="markdown" onClick={() => handleExport("markdown")}>
@@ -548,7 +605,7 @@ const TextEditorSidebar = ({
       <Menu.Item key="html" onClick={() => handleExport("html")}>
         Export as HTML
       </Menu.Item>
-      <Menu.Item key="docx" onClick={() => handleExport("docx")}>
+      <Menu.Item key="docx" onClick={handleExportPDF}>
         Export as DOCX
       </Menu.Item>
     </Menu>

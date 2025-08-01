@@ -186,3 +186,13 @@ export const getBlogStatus = async (params = {}) => {
     throw new Error(error.response?.data?.message || "Failed to fetch blog status")
   }
 }
+
+export const getBlogs = async () => {
+  try {
+    const response = await axiosInstance.get("/blogs/all")
+    console.log({ response })
+    return response.data
+  } catch (error) {
+    throw new Error(error || "Failed to fetch blogs")
+  }
+}

@@ -325,10 +325,10 @@ const Trashcan = () => {
                               className="bg-white"
                             />
                             {isGemini
-                              ? "Gemini-1.5-flash"
+                              ? "Gemini 2.0 flash"
                               : aiModel === "claude"
-                              ? "Claude-3-Haiku"
-                              : "ChatGPT-4o-mini"}
+                              ? "Claude 4 sonnet"
+                              : "Gpt 4.1 nano"}
                           </>
                         )}
                       </span>

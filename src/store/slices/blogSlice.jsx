@@ -16,6 +16,7 @@ import {
   getGeneratedTitles,
   createSimpleBlog,
   getBlogStatus,
+  getBlogs,
 } from "@api/blogApi"
 import { message } from "antd"
 
@@ -166,8 +167,10 @@ export const retryBlog = createAsyncThunk(
     try {
       const result = await retryBlogById(id, payload)
       message.success(result?.message || "Blog regenerated successfully")
+      console.log("hit")
       return result
     } catch (error) {
+      console.log(error)
       message.error(error.message || "Something went wrong")
       return rejectWithValue(error.message || "Failed to retry blog")
     }
@@ -267,6 +270,15 @@ export const fetchBlogStatus = createAsyncThunk(
     }
   }
 )
+export const fetchBlogs = createAsyncThunk("blogs/fetchBlogs", async (_, { rejectWithValue }) => {
+  try {
+    const result = await getBlogs()
+    console.log({ result })
+    return result
+  } catch (error) {
+    return rejectWithValue(error?.message || "Something went wrong")
+  }
+})
 
 // ------------------------ Initial State ------------------------
 
@@ -280,6 +292,7 @@ const initialState = {
   blogStats: {},
   generatedTitles: [],
   blogStatus: null,
+  allBlogs: [],
 }
 
 // ------------------------ Slice ------------------------
@@ -444,6 +457,18 @@ const blogSlice = createSlice({
         state.blogStatus = action.payload // Add `blogStatus` in initialState
       })
       .addCase(fetchBlogStatus.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload
+      })
+
+      .addCase(fetchBlogs.pending, (state) => {
+        state.loading = true
+      })
+      .addCase(fetchBlogs.fulfilled, (state, action) => {
+        state.loading = false
+        state.allBlogs = action.payload || [] // Add `blogStatus` in initialState
+      })
+      .addCase(fetchBlogs.rejected, (state, action) => {
         state.loading = false
         state.error = action.payload
       })

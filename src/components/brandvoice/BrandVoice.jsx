@@ -1,177 +1,233 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react"
-import { motion } from "framer-motion"
-import { FaEdit, FaTimes } from "react-icons/fa"
-import { useDispatch, useSelector } from "react-redux"
-import { Info, Loader2, Upload } from "lucide-react"
-import { Helmet } from "react-helmet"
-import { Modal, Tooltip, message } from "antd"
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { motion } from "framer-motion";
+import { FaEdit, FaTimes } from "react-icons/fa";
+import { useDispatch, useSelector } from "react-redux";
+import { Info, Loader2, Upload } from "lucide-react";
+import { Helmet } from "react-helmet";
+import { Modal, Tooltip, message } from "antd";
 import {
   createBrandVoiceThunk,
   deleteBrandVoiceThunk,
   fetchBrands,
   fetchSiteInfo,
   updateBrandVoiceThunk,
-} from "@store/slices/brandSlice"
+  resetSiteInfo,
+} from "@store/slices/brandSlice";
 
 const BrandVoice = () => {
-  const user = useSelector((state) => state.auth.user)
-  const dispatch = useDispatch()
-  const [inputValue, setInputValue] = useState("")
-  const [isUploading, setIsUploading] = useState(false)
+  const user = useSelector((state) => state.auth.user);
+  const dispatch = useDispatch();
+  const [inputValue, setInputValue] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
   const [formData, setFormData] = useState({
     nameOfVoice: "",
     postLink: "",
     keywords: [],
     describeBrand: "",
-    sitemapUrl: "", // Added sitemapUrl to formData
+    sitemapUrl: "",
     selectedVoice: null,
     _id: undefined,
-  })
-  const [errors, setErrors] = useState({})
-  const { brands, siteInfo } = useSelector((state) => state.brand)
-  const [lastScrapedUrl, setLastScrapedUrl] = useState("")
+  });
+  const [errors, setErrors] = useState({});
+  const { brands, siteInfo } = useSelector((state) => state.brand);
+  const [lastScrapedUrl, setLastScrapedUrl] = useState("");
+  const [isFormReset, setIsFormReset] = useState(false); // New flag to track form reset
 
+  // Fetch brands on mount
   useEffect(() => {
-    dispatch(fetchBrands())
-  }, [dispatch])
+    dispatch(fetchBrands());
+  }, [dispatch]);
 
+  // Select first brand voice if none is selected
   useEffect(() => {
     if (brands.length > 0 && !formData.selectedVoice) {
-      setFormData((prev) => ({ ...prev, selectedVoice: brands[0] }))
+      setFormData((prev) => ({ ...prev, selectedVoice: brands[0] }));
     }
-  }, [brands])
+  }, [brands]);
+
+  // Reset form on mount and unmount (page change)
+  useEffect(() => {
+    if (!formData._id) {
+      resetForm();
+    }
+    return () => {
+      resetForm();
+      dispatch(resetSiteInfo()); // Clear siteInfo on unmount
+    };
+  }, [dispatch]);
+
+  // Populate form with fetched siteInfo data
+  useEffect(() => {
+    if (siteInfo.data && !isFormReset) {
+      setFormData((prev) => ({
+        ...prev,
+        nameOfVoice: siteInfo.data.nameOfVoice || prev.nameOfVoice,
+        describeBrand: siteInfo.data.describeBrand || prev.describeBrand,
+        keywords: siteInfo.data.keywords || prev.keywords,
+        postLink: siteInfo.data.postLink || prev.postLink,
+        sitemapUrl: siteInfo.data.sitemap || prev.sitemapUrl,
+      }));
+      setErrors((prev) => ({
+        ...prev,
+        nameOfVoice: undefined,
+        describeBrand: undefined,
+        keywords: undefined,
+        postLink: undefined,
+        sitemapUrl: undefined,
+      }));
+      setLastScrapedUrl(formData.postLink);
+    }
+    if (siteInfo.error) {
+      message.error("Failed to fetch site info. Please try a different URL.");
+    }
+  }, [siteInfo, formData.postLink, isFormReset]);
+
+  // Reset form function
+  const resetForm = useCallback(() => {
+    setFormData({
+      nameOfVoice: "",
+      postLink: "",
+      keywords: [],
+      describeBrand: "",
+      sitemapUrl: "",
+      selectedVoice: brands[0] || null,
+      _id: undefined,
+    });
+    setInputValue("");
+    setErrors({});
+    setLastScrapedUrl("");
+    setIsFormReset(true); // Set flag to prevent siteInfo repopulation
+  }, [brands]);
 
   // Validate form fields
   const validateForm = useCallback(() => {
-    const newErrors = {}
+    const newErrors = {};
     if (!formData.nameOfVoice.trim()) {
-      newErrors.nameOfVoice = "Name of Voice is required."
+      newErrors.nameOfVoice = "Name of Voice is required.";
     }
     if (!formData.postLink.trim()) {
-      newErrors.postLink = "Post link is required."
+      newErrors.postLink = "Post link is required.";
     } else {
       try {
-        new URL(formData.postLink)
+        new URL(formData.postLink);
       } catch {
-        newErrors.postLink = "Please enter a valid URL (e.g., https://example.com)."
+        newErrors.postLink = "Please enter a valid URL (e.g., https://example.com).";
       }
     }
     if (formData.keywords.length === 0) {
-      newErrors.keywords = "At least one keyword is required."
+      newErrors.keywords = "At least one keyword is required.";
     }
     if (!formData.describeBrand.trim()) {
-      newErrors.describeBrand = "Brand description is required."
+      newErrors.describeBrand = "Brand description is required.";
     }
     if (!formData.sitemapUrl.trim()) {
-      newErrors.sitemapUrl = "Sitemap URL is required."
+      newErrors.sitemapUrl = "Sitemap URL is required.";
     } else {
       try {
-        new URL(formData.sitemapUrl)
+        new URL(formData.sitemapUrl);
       } catch {
-        newErrors.sitemapUrl = "Please enter a valid URL (e.g., https://example.com/sitemap.xml)."
+        newErrors.sitemapUrl = "Please enter a valid URL (e.g., https://example.com/sitemap.xml).";
       }
     }
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }, [formData])
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  }, [formData]);
 
   // Handle form input changes
-  const handleInputChange = useCallback((e) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-    setErrors((prev) => ({ ...prev, [name]: undefined }))
-  }, [])
+  const handleInputChange = useCallback(
+    (e) => {
+      const { name, value } = e.target;
+      setFormData((prev) => ({ ...prev, [name]: value }));
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
+      if (name === "postLink" && value !== lastScrapedUrl) {
+        setLastScrapedUrl("");
+      }
+      setIsFormReset(false); // Allow siteInfo to populate if user edits
+    },
+    [lastScrapedUrl]
+  );
 
   // Handle keyword input
   const handleKeyDown = useCallback(
     (event) => {
       if (event.key === "Enter" && inputValue.trim()) {
-        event.preventDefault()
-
-        const existing = formData.keywords.map((k) => k.toLowerCase())
-        const seen = new Set()
-
+        event.preventDefault();
+        const existing = formData.keywords.map((k) => k.toLowerCase());
+        const seen = new Set();
         const newKeywords = inputValue
           .split(",")
           .map((k) => k.trim())
           .filter((k) => {
-            const lower = k.toLowerCase()
-            if (!k || existing.includes(lower) || seen.has(lower)) return false
-            seen.add(lower)
-            return true
-          })
-
-        if (newKeywords.length === 0) return
-
+            const lower = k.toLowerCase();
+            if (!k || existing.includes(lower) || seen.has(lower)) return false;
+            seen.add(lower);
+            return true;
+          });
+        if (newKeywords.length === 0) return;
         setFormData((prev) => ({
           ...prev,
           keywords: [...prev.keywords, ...newKeywords],
-        }))
-        setInputValue("")
-        setErrors((prev) => ({ ...prev, keywords: undefined }))
+        }));
+        setInputValue("");
+        setErrors((prev) => ({ ...prev, keywords: undefined }));
+        setIsFormReset(false);
       }
     },
     [inputValue, formData.keywords]
-  )
+  );
 
   // Remove keyword
   const removeKeyword = useCallback((keyword) => {
     setFormData((prev) => ({
       ...prev,
       keywords: prev.keywords.filter((k) => k !== keyword),
-    }))
-  }, [])
+    }));
+    setIsFormReset(false);
+  }, []);
 
   // Handle CSV file upload for keywords
   const handleFileChange = useCallback((event) => {
-    const file = event.target.files[0]
-    if (!file) return
-
-    // Check file extension
+    const file = event.target.files[0];
+    if (!file) return;
     if (!file.name.toLowerCase().endsWith(".csv")) {
-      message.error("Invalid file type. Please upload a .csv file.")
-      event.target.value = null // Reset input
-      return
+      message.error("Invalid file type. Please upload a .csv file.");
+      event.target.value = null;
+      return;
     }
-
-    // Check file size (20KB = 20 * 1024 bytes)
-    const maxSizeInBytes = 20 * 1024 // 20KB
+    const maxSizeInBytes = 20 * 1024;
     if (file.size > maxSizeInBytes) {
-      message.error("File size exceeds 20KB limit. Please upload a smaller file.")
-      event.target.value = null // Reset input
-      return
+      message.error("File size exceeds 20KB limit. Please upload a smaller file.");
+      event.target.value = null;
+      return;
     }
-
-    // Check file type
     if (file.type !== "text/csv") {
-      message.error("Please upload a valid CSV file.")
-      event.target.value = null // Reset input
-      return
+      message.error("Please upload a valid CSV file.");
+      event.target.value = null;
+      return;
     }
-
-    const reader = new FileReader()
+    const reader = new FileReader();
     reader.onload = (e) => {
-      const text = e.target.result
+      const text = e.target.result;
       const keywords = text
         .split(/,|\n|;/)
         .map((kw) => kw.trim())
-        .filter((kw) => kw.length > 0)
+        .filter((kw) => kw.length > 0);
       setFormData((prev) => ({
         ...prev,
         keywords: [...new Set([...prev.keywords, ...keywords])],
-      }))
-      setErrors((prev) => ({ ...prev, keywords: undefined }))
-    }
-    reader.onerror = () => message.error("Error reading CSV file.")
-    reader.readAsText(file)
-    event.target.value = null // Reset input
-  }, [])
+      }));
+      setErrors((prev) => ({ ...prev, keywords: undefined }));
+      setIsFormReset(false);
+    };
+    reader.onerror = () => message.error("Error reading CSV file.");
+    reader.readAsText(file);
+    event.target.value = null;
+  }, []);
 
   // Save or update brand voice
   const handleSave = useCallback(async () => {
-    if (!validateForm()) return
-
-    setIsUploading(true)
+    if (!validateForm()) return;
+    setIsUploading(true);
     const payload = {
       nameOfVoice: formData.nameOfVoice.trim(),
       postLink: formData.postLink.trim(),
@@ -179,35 +235,23 @@ const BrandVoice = () => {
       describeBrand: formData.describeBrand.trim(),
       sitemap: formData.sitemapUrl.trim(),
       userId: user?._id,
+    };
+    try {
+      if (formData._id) {
+        await dispatch(updateBrandVoiceThunk({ id: formData._id, payload })).unwrap();
+      } else {
+        await dispatch(createBrandVoiceThunk({ payload })).unwrap();
+      }
+      resetForm();
+      dispatch(fetchBrands());
+      dispatch(resetSiteInfo()); // Clear siteInfo after save
+    } catch (error) {
+      console.error("Error saving brand voice:", error);
+      message.error(formData._id ? "Failed to update brand voice." : "Failed to create brand voice.");
+    } finally {
+      setIsUploading(false);
     }
-
-    const resetForm = () => {
-      setFormData({
-        nameOfVoice: "",
-        postLink: "",
-        keywords: [],
-        describeBrand: "",
-        sitemapUrl: "", // Reset sitemapUrl
-        selectedVoice: null,
-        _id: undefined,
-      })
-      setInputValue("")
-      setErrors({})
-    }
-
-    const onSuccess = () => {
-      dispatch(fetchBrands())
-      resetForm()
-    }
-
-    if (formData._id) {
-      dispatch(updateBrandVoiceThunk({ id: formData._id, payload, onSuccess }))
-    } else {
-      dispatch(createBrandVoiceThunk({ payload, onSuccess }))
-    }
-
-    setIsUploading(false)
-  }, [formData, user, dispatch, validateForm])
+  }, [formData, user, dispatch, validateForm, resetForm]);
 
   // Edit brand voice
   const handleEdit = useCallback((brand) => {
@@ -216,12 +260,14 @@ const BrandVoice = () => {
       postLink: brand.postLink || "",
       keywords: Array.isArray(brand.keywords) ? brand.keywords : [],
       describeBrand: brand.describeBrand || "",
-      sitemapUrl: brand.sitemapUrl || "", // Load sitemapUrl
+      sitemapUrl: brand.sitemap || "",
       selectedVoice: brand,
       _id: brand._id,
-    })
-    setErrors({})
-  }, [])
+    });
+    setErrors({});
+    setLastScrapedUrl(brand.postLink || "");
+    setIsFormReset(false);
+  }, []);
 
   // Delete brand voice
   const handleDelete = useCallback(
@@ -234,22 +280,60 @@ const BrandVoice = () => {
         okButtonProps: { danger: true },
         onOk: () => {
           dispatch(deleteBrandVoiceThunk({ id: brand._id }))
+            .unwrap()
+            .then(() => {
+              if (formData.selectedVoice?._id === brand._id) {
+                resetForm();
+                dispatch(resetSiteInfo());
+              }
+            })
+            .catch(() => message.error("Failed to delete brand voice."));
         },
-      })
+      });
     },
-    [dispatch]
-  )
+    [dispatch, formData.selectedVoice, resetForm]
+  );
 
   // Select brand voice
   const handleSelect = useCallback((voice) => {
-    setFormData((prev) => ({ ...prev, selectedVoice: voice }))
-  }, [])
+    setFormData((prev) => ({ ...prev, selectedVoice: voice }));
+    setIsFormReset(false);
+  }, []);
+
+  // Fetch site info
+  const handleFetchSiteInfo = useCallback(() => {
+    const url = formData.postLink.trim();
+    if (!url) {
+      setErrors((prev) => ({
+        ...prev,
+        postLink: "Post link is required to fetch site info.",
+      }));
+      return;
+    }
+    if (url === lastScrapedUrl) {
+      message.info("This URL has already been fetched.");
+      return;
+    }
+    try {
+      new URL(url);
+      dispatch(fetchSiteInfo(url))
+        .unwrap()
+        .then(() => {
+          setIsFormReset(false); // Allow form population
+        })
+        .catch(() => message.error("Failed to fetch site info. Please try a different URL."));
+    } catch {
+      setErrors((prev) => ({
+        ...prev,
+        postLink: "Please enter a valid URL (e.g., https://example.com).",
+      }));
+    }
+  }, [formData.postLink, lastScrapedUrl, dispatch]);
 
   // Memoized keywords rendering
   const renderKeywords = useMemo(() => {
-    const latestKeywords = formData.keywords.slice(-3)
-    const remainingCount = formData.keywords.length - latestKeywords.length
-
+    const latestKeywords = formData.keywords.slice(-3);
+    const remainingCount = formData.keywords.length - latestKeywords.length;
     return (
       <>
         {remainingCount > 0 && (
@@ -275,59 +359,16 @@ const BrandVoice = () => {
             <FaTimes
               className="ml-1 cursor-pointer text-indigo-500 hover:text-indigo-700 transition-colors"
               onClick={(e) => {
-                e.stopPropagation()
-                removeKeyword(keyword)
+                e.stopPropagation();
+                removeKeyword(keyword);
               }}
               aria-label={`Remove ${keyword}`}
             />
           </motion.div>
         ))}
       </>
-    )
-  }, [formData.keywords, removeKeyword])
-
-  // New: Populate form with fetched siteInfo data
-  useEffect(() => {
-    if (siteInfo.data) {
-      setFormData((prev) => ({
-        ...prev,
-        nameOfVoice: siteInfo.data.nameOfVoice || prev.nameOfVoice,
-        describeBrand: siteInfo.data.describeBrand || prev.describeBrand,
-        keywords: siteInfo.data.keywords || prev.keywords,
-        postLink: siteInfo.data.postLink || prev.postLink,
-      }))
-      setErrors((prev) => ({
-        ...prev,
-        nameOfVoice: undefined,
-        describeBrand: undefined,
-        keywords: undefined,
-      }))
-      setLastScrapedUrl(formData.postLink) // Mark URL as scraped
-    }
-  }, [siteInfo.data, formData.postLink])
-
-  const handleFetchSiteInfo = useCallback(() => {
-    const url = formData.postLink.trim()
-
-    if (!url) {
-      setErrors((prev) => ({
-        ...prev,
-        postLink: "Post link is required to fetch site info.",
-      }))
-      return
-    }
-
-    try {
-      new URL(url) // this throws only on *syntax* issues like "hello.com"
-      dispatch(fetchSiteInfo(url))
-    } catch (err) {
-      console.error("❌ Invalid URL caught:", err)
-      setErrors((prev) => ({
-        ...prev,
-        postLink: "Please enter a valid URL (e.g., https://example.com).",
-      }))
-    }
-  }, [formData.postLink, dispatch])
+    );
+  }, [formData.keywords, removeKeyword]);
 
   return (
     <motion.div
@@ -393,9 +434,7 @@ const BrandVoice = () => {
                 onClick={handleFetchSiteInfo}
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.98 }}
-                disabled={
-                  siteInfo.loading || (lastScrapedUrl === formData.postLink && formData.postLink)
-                }
+                disabled={siteInfo.loading || (formData.postLink && formData.postLink === lastScrapedUrl)}
                 aria-label="Fetch Site Info"
               >
                 {siteInfo.loading ? (
@@ -448,14 +487,17 @@ const BrandVoice = () => {
           <div>
             <label htmlFor="keywords" className="text-sm font-medium text-gray-700 flex gap-2 mb-1">
               Keywords <span className="text-red-500">*</span>
-              <Tooltip title="Upload a .csv file in the format: `Keyword` as header" overlayInnerStyle={{
+              <Tooltip
+                title="Upload a .csv file in the format: `Keyword` as header"
+                overlayInnerStyle={{
                   backgroundColor: "#4169e1",
                   color: "#fff",
                   borderRadius: "8px",
                   padding: "8px 12px",
                   fontSize: "13px",
                   maxWidth: "220px",
-                }}>
+                }}
+              >
                 <span className="cursor-pointer">
                   <Info size={16} className="text-blue-500" />
                 </span>
@@ -510,14 +552,17 @@ const BrandVoice = () => {
               className="text-sm font-medium text-gray-700 flex gap-2 mb-1"
             >
               Sitemap URL <span className="text-red-500">*</span>
-              <Tooltip title="Paste the URL of your XML sitemap (e.g., https://example.com/sitemap.xml)" overlayInnerStyle={{
+              <Tooltip
+                title="Paste the URL of your XML sitemap (e.g., https://example.com/sitemap.xml)"
+                overlayInnerStyle={{
                   backgroundColor: "#4169e1",
                   color: "#fff",
                   borderRadius: "8px",
                   padding: "8px 12px",
                   fontSize: "13px",
                   maxWidth: "320px",
-                }}>
+                }}
+              >
                 <span className="cursor-pointer">
                   <Info size={16} className="text-blue-500" />
                 </span>
@@ -616,12 +661,12 @@ const BrandVoice = () => {
                 onSelect={() => handleSelect(item)}
                 isSelected={formData.selectedVoice?._id === item._id}
                 onEdit={(e) => {
-                  e.stopPropagation()
-                  handleEdit(item)
+                  e.stopPropagation();
+                  handleEdit(item);
                 }}
                 onDelete={(e) => {
-                  e.stopPropagation()
-                  handleDelete(item)
+                  e.stopPropagation();
+                  handleDelete(item);
                 }}
               />
             ))
@@ -633,10 +678,9 @@ const BrandVoice = () => {
         </div>
       </motion.div>
     </motion.div>
-  )
-}
+  );
+};
 
-// Updated YourVoicesComponent
 const YourVoicesComponent = ({
   id,
   brandName,
@@ -666,8 +710,8 @@ const YourVoicesComponent = ({
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault()
-          onSelect()
+          e.preventDefault();
+          onSelect();
         }
       }}
       aria-label={`Select ${brandName} brand voice`}
@@ -705,7 +749,7 @@ const YourVoicesComponent = ({
       </div>
       <p className="text-xs text-gray-600 mt-1 line-clamp-3">{brandVoice}</p>
     </motion.div>
-  )
-}
+  );
+};
 
-export default BrandVoice
+export default BrandVoice;

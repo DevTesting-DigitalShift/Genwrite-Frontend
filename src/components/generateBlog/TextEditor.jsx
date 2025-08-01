@@ -9,6 +9,7 @@ import { motion } from "framer-motion"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeRaw from "rehype-raw"
+import DOMPurify from "dompurify"
 import Prism from "prismjs"
 import "prismjs/themes/prism-tomorrow.css"
 import {
@@ -34,7 +35,7 @@ import {
   Trash2,
   Upload,
 } from "lucide-react"
-import { useSelector } from "react-redux"
+import { useDispatch, useSelector } from "react-redux"
 import { Input, Modal, Tooltip, message, Select, Button } from "antd"
 import { marked } from "marked"
 import TurndownService from "turndown"
@@ -45,6 +46,7 @@ import { useProofreadingUI } from "./useProofreadingUI"
 import Loading from "@components/Loading"
 import { ReloadOutlined } from "@ant-design/icons"
 import { sendRetryLines } from "@api/blogApi"
+import { retryBlog } from "@store/slices/blogSlice"
 
 // Configure marked for better HTML output
 marked.setOptions({
@@ -105,6 +107,7 @@ const TextEditor = ({
   const pathDetect = location.pathname === `/blog-editor/${blog?._id}`
   const [editImageModalOpen, setEditImageModalOpen] = useState(false)
   const [selectedImage, setSelectedImage] = useState(null)
+  const dispatch = useDispatch()
 
   const safeContent = content ?? blog?.content ?? ""
 
@@ -113,7 +116,10 @@ const TextEditor = ({
     if (!markdown) return "<p></p>"
     try {
       const html = marked.parse(markdown)
-      return html
+      const parser = new DOMParser()
+      const doc = parser.parseFromString(html, "text/html")
+      doc.querySelectorAll("script").forEach((script) => script.remove())
+      return doc.body.innerHTML
     } catch (error) {
       console.warn("Failed to parse markdown:", error)
       return `<p>${markdown}</p>`
@@ -124,6 +130,10 @@ const TextEditor = ({
   const htmlToMarkdown = useCallback((html) => {
     if (!html) return ""
     try {
+      const parser = new DOMParser()
+      const doc = parser.parseFromString(html, "text/html")
+      doc.querySelectorAll("script").forEach((script) => script.remove())
+      const cleanHtml = doc.body.innerHTML
       const turndownService = new TurndownService({
         strongDelimiter: "**",
         emDelimiter: "*",
@@ -541,7 +551,7 @@ const TextEditor = ({
       handlePopup({
         title: "Retry Blog Generation",
         description: `Are you sure you want to retry generating this blog?\nIt will be of 10 credits`,
-        onConfirm: handleRetry,
+        onConfirm: handleReGenerate,
       })
     }
   }
@@ -587,6 +597,10 @@ const TextEditor = ({
   const handleConfirmImage = useCallback(() => {
     if (!imageUrl || !/https?:\/\//i.test(imageUrl)) {
       message.error("Enter a valid image URL.")
+      return
+    }
+    if (imageUrl.includes("<script") || imageUrl.includes("</script")) {
+      message.error("Script tags are not allowed in image URLs.")
       return
     }
     if (activeTab === "Normal" && normalEditor) {
@@ -686,6 +700,29 @@ const TextEditor = ({
     }
   }
 
+  const handleReGenerate = async () => {
+    console.log("clicked")
+    console.log({ blog: blog._id })
+
+    if (!blog?._id) {
+      message.error("Blog ID is missing.")
+      return
+    }
+
+    const payload = {
+      createNew: true,
+    }
+
+    try {
+      await dispatch(retryBlog({ id: blog._id, payload }))
+      navigate("/blogs")
+      // navigate("/blogs")
+    } catch (error) {
+      console.error("Retry failed:", error)
+      message.error(error.message || "Retry failed.")
+    }
+  }
+
   const handleAcceptRetry = () => {
     if (!retryContent) return
     if (activeTab === "Normal" && normalEditor) {
@@ -738,10 +775,27 @@ const TextEditor = ({
     if (event.target.tagName === "IMG") {
       const { src, alt } = event.target
       setSelectedImage({ src, alt: alt || "" })
-      setImageAlt(alt || "")
+      setImageAlt(alt || "") // Set the existing alt text
       setEditImageModalOpen(true)
     }
   }, [])
+
+  useEffect(() => {
+    if (blog?.images?.length > 0) {
+      let updatedContent = safeContent
+      const imagePlaceholders = safeContent.match(/{Image:.*?}/g) || []
+      imagePlaceholders.forEach((placeholder, index) => {
+        const imageData = blog.images[index]
+        if (imageData?.url) {
+          updatedContent = updatedContent.replace(
+            placeholder,
+            `![${imageData.alt || "Image"}](${imageData.url})`
+          )
+        }
+      })
+      setContent(updatedContent)
+    }
+  }, [blog, safeContent, setContent])
 
   const handleDeleteImage = useCallback(() => {
     if (!selectedImage) return
@@ -901,6 +955,12 @@ const TextEditor = ({
     setTabSwitchWarning(null)
   }, [])
 
+  const hasScriptTag = (content) => {
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(content, "text/html")
+    return !!doc.querySelector("script")
+  }
+
   const handleFileImport = useCallback(
     (event) => {
       const file = event.target.files[0]
@@ -917,10 +977,12 @@ const TextEditor = ({
       const reader = new FileReader()
       reader.onload = (e) => {
         let fileContent = e.target.result
-        // if (isHtml) {
-        //   setContent(fileContent) // Update htmlContent for HTML tab
-        //   fileContent = htmlToMarkdown(fileContent) // Convert to Markdown for setContent
-        // }
+        if (isHtml && hasScriptTag(fileContent)) {
+          message.error(
+            "Script tags are not allowed in imported HTML content for security reasons."
+          )
+          return
+        }
         setContent(fileContent)
         setUnsavedChanges(true)
         message.success(`${file.name} imported successfully!`)
@@ -932,7 +994,7 @@ const TextEditor = ({
 
       event.target.value = null
     },
-    [activeTab, setContent, htmlToMarkdown]
+    [activeTab, setContent]
   )
 
   const FloatingToolbar = ({ editorRef, mode }) => {
@@ -1281,16 +1343,18 @@ const TextEditor = ({
             <Copy className="w-4 h-4" />
           </button>
         </Tooltip>
-        <Tooltip title="Regenerate Content">
-          <button
-            onClick={handleRegenerate}
-            className="p-2 rounded-md hover:bg-gray-100 transition-colors duration-150 flex items-center justify-center"
-            aria-label="Regenerate"
-            type="button"
-          >
-            <ReloadOutlined className="w-4 h-4" />
-          </button>
-        </Tooltip>
+        {!pathDetect && (
+          <Tooltip title="Regenerate Content">
+            <button
+              onClick={handleRegenerate}
+              className="p-2 rounded-md hover:bg-gray-100 transition-colors duration-150 flex items-center justify-center"
+              aria-label="Regenerate"
+              type="button"
+            >
+              <ReloadOutlined className="w-4 h-4" />
+            </button>
+          </Tooltip>
+        )}
         {(activeTab === "Markdown" || activeTab === "HTML") && (
           <Tooltip title={`Import ${activeTab === "Markdown" ? ".md" : ".html"} File`}>
             <button
@@ -1363,7 +1427,7 @@ const TextEditor = ({
           ADD_TAGS: ["style"],
           ADD_ATTR: ["target"], // Allow target attribute for links
         })
-        return (  
+        return (
           <div
             className={`p-8 rounded-lg rounded-t-none overflow-y-auto custom-scroll h-screen border border-gray-200 ${selectedFont}`}
           >

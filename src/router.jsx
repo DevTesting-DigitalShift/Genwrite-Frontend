@@ -29,7 +29,6 @@ const SearchConsole = lazy(() => import("@pages/SearchConsole"))
 const TermsAndConditions = lazy(() => import("@pages/TermsAndConditions"))
 const PrivacyPolicy = lazy(() => import("@pages/Privacy"))
 const HumanizeContent = lazy(() => import("@pages/HumanizeContent"))
-const ManualBlog = lazy(() => import("@components/generateBlog/ManualBlogEditor.jsx/ManualBlog"))
 const CancellationPage = lazy(() => import("@pages/CancellationPage"))
 const AnalyticsPage = lazy(() => import("@components/AnalyticsPage"))
 

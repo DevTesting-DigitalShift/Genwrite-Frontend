@@ -6,7 +6,7 @@ import SecondStepModal from "./multipleStepModal/SecondStepModal"
 import { letsBegin, quickTools } from "./dashData/dash"
 import { DashboardBox, QuickBox, Blogs } from "../utils/DashboardBox"
 import { useDispatch, useSelector } from "react-redux"
-import { createNewBlog, fetchAllBlogs, fetchBlogStatus } from "@store/slices/blogSlice"
+import { createNewBlog, fetchAllBlogs, fetchBlogs, fetchBlogStatus } from "@store/slices/blogSlice"
 import { useNavigate } from "react-router-dom"
 import MultiStepModal from "./multipleStepModal/DaisyUi"
 import DaisyUIModal from "./DaisyUIModal"
@@ -72,7 +72,7 @@ const Dashboard = () => {
   const [modelData, setModelData] = useState({})
   const [recentBlogData, setRecentBlogData] = useState([])
   const [loading, setLoading] = useState(true)
-  const { blogs, error } = useSelector((state) => state.blog)
+  const { blogs, error, allBlogs } = useSelector((state) => state.blog)
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const user = useSelector(selectUser)
@@ -100,6 +100,10 @@ const Dashboard = () => {
     dispatch(openJobModal())
     navigate("/jobs")
   }
+
+  useEffect(() => {
+    dispatch(fetchBlogs())
+  }, [])
 
   // Initialize data and fetch
   useEffect(() => {
@@ -239,12 +243,12 @@ const Dashboard = () => {
         <CompetitiveAnalysisModal
           closeFnc={hideCompetitiveAnalysis}
           open={showCompetitiveAnalysis}
-          blogs={blogs}
+          blogs={allBlogs}
         />
       )}
       {performanceModal && (
         <PerformanceMonitoringModal
-          allBlogs={blogs}
+          allBlogs={allBlogs}
           closeFnc={() => setPerformanceModal(false)}
           visible={() => setPerformanceModal(true)}
         />
