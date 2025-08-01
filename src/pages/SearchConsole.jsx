@@ -12,6 +12,7 @@ import {
   ChevronDown,
   ChevronUp,
   TrendingDown,
+  X,
 } from "lucide-react"
 import { Helmet } from "react-helmet"
 import { motion } from "framer-motion"
@@ -48,20 +49,24 @@ const countryCodeToName = {
 }
 
 const SearchConsole = () => {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(10)
-  const [dateRange, setDateRange] = useState("30d")
-  const [customDateRange, setCustomDateRange] = useState([null, null])
-  const [selectedBlogTitle, setSelectedBlogTitle] = useState("all")
-  const [selectedCountries, setSelectedCountries] = useState([])
-  const [includeCountry, setIncludeCountry] = useState(false)
+  const [searchTerm, setSearchTerm] = useState(() => sessionStorage.getItem("gscSearchTerm") || "")
+  const [currentPage, setCurrentPage] = useState(() => Number(sessionStorage.getItem("gscCurrentPage")) || 1)
+  const [itemsPerPage, setItemsPerPage] = useState(() => Number(sessionStorage.getItem("gscItemsPerPage")) || 10)
+  const [dateRange, setDateRange] = useState(() => sessionStorage.getItem("gscDateRange") || "30d")
+  const [customDateRange, setCustomDateRange] = useState([
+    sessionStorage.getItem("gscCustomDateRangeStart") ? moment(sessionStorage.getItem("gscCustomDateRangeStart")) : null,
+    sessionStorage.getItem("gscCustomDateRangeEnd") ? moment(sessionStorage.getItem("gscCustomDateRangeEnd")) : null,
+  ])
+  const [selectedBlogTitle, setSelectedBlogTitle] = useState(() => sessionStorage.getItem("gscSelectedBlogTitle") || "all")
+  const [selectedCountries, setSelectedCountries] = useState(() => JSON.parse(sessionStorage.getItem("gscSelectedCountries") || "[]"))
+  const [includeCountry, setIncludeCountry] = useState(() => sessionStorage.getItem("gscIncludeCountry") === "true")
   const [isLoading, setIsLoading] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [searchParams, setSearchParams] = useSearchParams()
   const [blogData, setBlogData] = useState([])
   const [expandedRows, setExpandedRows] = useState([])
+  const [connectErr, setConnectErr] = useState(null)
 
   const dispatch = useDispatch()
   const user = useSelector(selectUser)
@@ -70,10 +75,33 @@ const SearchConsole = () => {
   const { analyticsData, loading: sitesLoading, error } = useSelector((state) => state.gsc)
   const navigate = useNavigate()
 
+  // Persist filter states to sessionStorage
+  useEffect(() => {
+    sessionStorage.setItem("gscSearchTerm", searchTerm)
+    sessionStorage.setItem("gscCurrentPage", currentPage)
+    sessionStorage.setItem("gscItemsPerPage", itemsPerPage)
+    sessionStorage.setItem("gscDateRange", dateRange)
+    sessionStorage.setItem("gscCustomDateRangeStart", customDateRange[0] ? customDateRange[0].toISOString() : "")
+    sessionStorage.setItem("gscCustomDateRangeEnd", customDateRange[1] ? customDateRange[1].toISOString() : "")
+    sessionStorage.setItem("gscSelectedBlogTitle", selectedBlogTitle)
+    sessionStorage.setItem("gscSelectedCountries", JSON.stringify(selectedCountries))
+    sessionStorage.setItem("gscIncludeCountry", includeCountry.toString())
+  }, [searchTerm, currentPage, itemsPerPage, dateRange, customDateRange, selectedBlogTitle, selectedCountries, includeCountry])
+
   // Fetch blogs on mount
   useEffect(() => {
     dispatch(fetchAllBlogs())
   }, [dispatch])
+
+  // Utility to check for invalid_grant error
+  const isInvalidGrantError = (err) => {
+    if (!err) return false
+    if (typeof err === "string") return err.toLowerCase().includes("invalid_grant")
+    if (err.message) return err.message.toLowerCase().includes("invalid_grant")
+    if (err.error) return err.error.toLowerCase().includes("invalid_grant")
+    if (err.response?.data?.error) return err.response.data.error.toLowerCase().includes("invalid_grant")
+    return false
+  }
 
   // Calculate date range for API request
   const getDateRangeParams = useCallback(() => {
@@ -138,12 +166,18 @@ const SearchConsole = () => {
           countryCode: item.countryCode || "N/A",
           countryName: countryCodeToName[item.countryCode] || item.countryName || "Unknown",
           blogId: item.blogId,
-          blogTitle: item.blogTitle,
+          blogTitle: item.blogTitle || "Untitled",
         }))
       )
+      setConnectErr(null)
+      setIsAuthenticated(true)
     } catch (err) {
-      console.error("Error fetching analytics data:", err)
+      console.error("Error fetching analytics data:", JSON.stringify(err, null, 2))
+      setConnectErr(err)
       setBlogData([])
+      if (isInvalidGrantError(err)) {
+        setIsAuthenticated(false)
+      }
     } finally {
       setIsLoading(false)
     }
@@ -154,16 +188,30 @@ const SearchConsole = () => {
     try {
       setIsConnecting(true)
       const result = await dispatch(fetchGscAuthUrl()).unwrap()
+      console.log("Authentication URL:", result) // Debug: Check if prompt=select_account is present
       if (!result) {
         throw new Error("Failed to retrieve authentication URL")
       }
-      const popup = window.open(result, "GSC Connect", "width=600,height=600")
+
+      // Ensure the URL includes prompt=select_account to force account selection
+      let authUrl = result
+      if (!authUrl.includes("prompt=select_account")) {
+        const url = new URL(authUrl)
+        const params = new URLSearchParams(url.search)
+        params.set("prompt", "select_account")
+        url.search = params.toString()
+        authUrl = url.toString()
+        console.log("Modified Authentication URL:", authUrl) // Debug: Verify modification
+      }
+
+      const popup = window.open(authUrl, "GSC Connect", "width=600,height=600")
       if (!popup) {
         throw new Error("Popup blocked. Please allow popups and try again.")
       }
 
       const handleMessage = async (event) => {
         if (event.origin !== import.meta.env.VITE_BACKEND_URL) return
+        console.log("Received message from popup:", event.data)
         if (typeof event.data === "string" && event.data === "GSC Connected") {
           try {
             setIsAuthenticated(true)
@@ -172,7 +220,8 @@ const SearchConsole = () => {
             navigate(0)
           } catch (err) {
             message.error(err.message || err.error || "Failed to verify GSC connection")
-            console.error("GSC verification error:", err)
+            console.error("GSC verification error:", JSON.stringify(err, null, 2))
+            setConnectErr(err)
           } finally {
             setIsConnecting(false)
             window.removeEventListener("message", handleMessage)
@@ -180,6 +229,7 @@ const SearchConsole = () => {
         } else if (typeof event.data === "string") {
           message.error(event.data || "Authentication failed")
           setIsConnecting(false)
+          setConnectErr(event.data || "Authentication failed")
           window.removeEventListener("message", handleMessage)
         }
       }
@@ -190,6 +240,7 @@ const SearchConsole = () => {
         if (popup.closed && !isAuthenticated) {
           clearInterval(checkPopupClosed)
           setIsConnecting(false)
+          setConnectErr("Authentication window closed")
           window.removeEventListener("message", handleMessage)
         }
       }, 1000)
@@ -200,10 +251,11 @@ const SearchConsole = () => {
       }
     } catch (err) {
       message.error(err.message || err.error || "Failed to initiate GSC connection")
-      console.error("GSC auth error:", err)
+      console.error("GSC auth error:", JSON.stringify(err, null, 2))
+      setConnectErr(err)
       setIsConnecting(false)
     }
-  }, [dispatch, navigate, fetchAnalyticsData, isAuthenticated])
+  }, [dispatch, navigate, fetchAnalyticsData])
 
   // Clear search params
   useEffect(() => {
@@ -212,6 +264,7 @@ const SearchConsole = () => {
     }
   }, [searchParams, setSearchParams])
 
+  // Fetch analytics data when user.gsc changes or on mount
   useEffect(() => {
     if (user?.gsc) {
       fetchAnalyticsData()
@@ -221,21 +274,7 @@ const SearchConsole = () => {
     }
   }, [fetchAnalyticsData, user, dispatch])
 
-  // Fuse.js setup
-  const fuse = useMemo(() => {
-    return new Fuse(blogData, {
-      keys: [
-        { name: "url", weight: 0.4 },
-        { name: "keywords", weight: 0.4 },
-        { name: "blogTitle", weight: 0.2 },
-      ],
-      threshold: 0.3,
-      includeScore: true,
-      shouldSort: true,
-    })
-  }, [blogData])
-
-  // Group blog data by blogTitle and calculate averages
+  // Group blog data by blogTitle and calculate totals/averages
   const groupedBlogData = useMemo(() => {
     const grouped = blogData.reduce((acc, item) => {
       const title = item.blogTitle || "Untitled"
@@ -244,20 +283,32 @@ const SearchConsole = () => {
           blogTitle: title,
           url: item.url,
           keywords: [],
-          clicks: [],
-          impressions: [],
+          clicks: 0,
+          impressions: 0,
           ctr: [],
           position: [],
           countryCode: item.countryCode,
           countryName: item.countryName,
           blogId: item.blogId,
+          keywordDetails: [],
         }
       }
       acc[title].keywords.push(...item.keywords)
-      acc[title].clicks.push(Number(item.clicks) || 0)
-      acc[title].impressions.push(Number(item.impressions) || 0)
+      acc[title].clicks += Number(item.clicks) || 0
+      acc[title].impressions += Number(item.impressions) || 0
       acc[title].ctr.push(Number(item.ctr) || 0)
       acc[title].position.push(Number(item.position) || 0)
+      acc[title].keywordDetails.push({
+        id: item.id,
+        keyword: item.keywords[0],
+        clicks: item.clicks,
+        impressions: item.impressions,
+        ctr: item.ctr,
+        position: item.position,
+        url: item.url,
+        countryCode: item.countryCode,
+        countryName: item.countryName,
+      })
       return acc
     }, {})
 
@@ -266,27 +317,32 @@ const SearchConsole = () => {
       blogTitle: group.blogTitle,
       url: group.url,
       keywords: [...new Set(group.keywords)], // Remove duplicates
-      clicks: group.clicks.length ? (group.clicks.reduce((sum, val) => sum + val, 0) / group.clicks.length).toFixed(0) : 0,
-      impressions: group.impressions.length ? (group.impressions.reduce((sum, val) => sum + val, 0) / group.impressions.length).toFixed(0) : 0,
-      ctr: group.ctr.length ? (group.ctr.reduce((sum, val) => sum + val, 0) / group.ctr.length).toFixed(2) : 0,
-      position: group.position.length ? (group.position.reduce((sum, val) => sum + val, 0) / group.position.length).toFixed(1) : 0,
+      clicks: group.clicks,
+      impressions: group.impressions,
+      ctr: group.ctr.length
+        ? (group.ctr.reduce((sum, val) => sum + val, 0) / group.ctr.length).toFixed(2)
+        : 0,
+      position: group.position.length
+        ? (group.position.reduce((sum, val) => sum + val, 0) / group.position.length).toFixed(1)
+        : 0,
       countryCode: group.countryCode,
       countryName: group.countryName,
       blogId: group.blogId,
+      keywordDetails: group.keywordDetails,
     }))
   }, [blogData])
 
   // Client-side filtered and searched data
   const filteredBlogData = useMemo(() => {
-    let result = groupedBlogData
+    let result = selectedBlogTitle === "all" ? groupedBlogData : blogData.filter((item) => item.blogTitle === selectedBlogTitle)
 
     // Apply fuzzy search with Fuse.js
     if (searchTerm?.trim()) {
-      const fuse = new Fuse(groupedBlogData, {
+      const fuse = new Fuse(result, {
         keys: [
+          { name: selectedBlogTitle === "all" ? "blogTitle" : "keywords", weight: 0.4 },
           { name: "url", weight: 0.4 },
-          { name: "keywords", weight: 0.4 },
-          { name: "blogTitle", weight: 0.2 },
+          { name: selectedBlogTitle === "all" ? "keywords" : "blogTitle", weight: 0.2 },
         ],
         threshold: 0.3,
         includeScore: true,
@@ -297,16 +353,11 @@ const SearchConsole = () => {
 
     // Apply country filter
     if (includeCountry && selectedCountries.length > 0) {
-      result = result.filter((blog) => selectedCountries.includes(blog.countryCode))
-    }
-
-    // Apply blog title filter
-    if (selectedBlogTitle !== "all") {
-      result = result.filter((blog) => blog.blogTitle === selectedBlogTitle)
+      result = result.filter((item) => selectedCountries.includes(item.countryCode))
     }
 
     return result
-  }, [groupedBlogData, searchTerm, selectedCountries, includeCountry, selectedBlogTitle])
+  }, [groupedBlogData, blogData, searchTerm, selectedCountries, includeCountry, selectedBlogTitle])
 
   // Get current page for the data for export
   const currentPageData = useMemo(() => {
@@ -331,6 +382,16 @@ const SearchConsole = () => {
     setDateRange("30d")
     setCurrentPage(1)
     setExpandedRows([])
+    // Clear sessionStorage
+    sessionStorage.removeItem("gscSearchTerm")
+    sessionStorage.removeItem("gscCurrentPage")
+    sessionStorage.removeItem("gscItemsPerPage")
+    sessionStorage.removeItem("gscDateRange")
+    sessionStorage.removeItem("gscCustomDateRangeStart")
+    sessionStorage.removeItem("gscCustomDateRangeEnd")
+    sessionStorage.removeItem("gscSelectedBlogTitle")
+    sessionStorage.removeItem("gscSelectedCountries")
+    sessionStorage.removeItem("gscIncludeCountry")
     fetchAnalyticsData()
   }
 
@@ -349,26 +410,42 @@ const SearchConsole = () => {
       return
     }
     try {
-      const headers = [
+      const headers = selectedBlogTitle === "all" ? [
         "Blog Title",
         "Keywords",
-        "Avg Clicks",
-        "Avg Impressions",
+        "Total Clicks",
+        "Total Impressions",
         "Avg CTR (%)",
         "Avg Position",
         "URL",
         ...(includeCountry ? ["Country"] : []),
+      ] : [
+        "Keyword",
+        "Clicks",
+        "Impressions",
+        "CTR (%)",
+        "Position",
+        "URL",
+        ...(includeCountry ? ["Country"] : []),
       ]
-      const rows = currentPageData.map((blog) => ({
-        "Blog Title": blog.blogTitle,
-        Keywords: blog.keywords.join(", "),
-        "Avg Clicks": blog.clicks,
-        "Avg Impressions": blog.impressions,
-        "Avg CTR %": blog.ctr,
-        "Avg Position": blog.position,
-        URL: blog.url,
-        ...(includeCountry ? { Country: blog.countryName } : {}),
-      }))
+      const rows = currentPageData.map((item) => selectedBlogTitle === "all" ? {
+        "Blog Title": item.blogTitle,
+        Keywords: item.keywords.join(", "),
+        "Total Clicks": item.clicks,
+        "Total Impressions": item.impressions,
+        "Avg CTR %": item.ctr,
+        "Avg Position": item.position,
+        URL: item.url,
+        ...(includeCountry ? { Country: item.countryName } : {}),
+      } : {
+        Keyword: item.keywords[0],
+        Clicks: item.clicks,
+        Impressions: item.impressions,
+        "CTR %": item.ctr,
+        Position: item.position,
+        URL: item.url,
+        ...(includeCountry ? { Country: item.countryName } : {}),
+      })
       const worksheet = XLSX.utils.json_to_sheet(rows, { header: headers })
       const workbook = XLSX.utils.book_new()
       XLSX.utils.book_append_sheet(workbook, worksheet, "Search Console Data")
@@ -378,19 +455,24 @@ const SearchConsole = () => {
       message.error(err.message || err.error || "Failed to export data")
       console.error("Error exporting data:", err)
     }
-  }, [currentPageData, includeCountry])
+  }, [currentPageData, includeCountry, selectedBlogTitle])
 
   // Calculate totals for summary cards
   const totals = useMemo(() => {
-    const totalClicks = groupedBlogData.reduce((sum, blog) => sum + Number(blog.clicks || 0), 0)
-    const totalImpressions = groupedBlogData.reduce((sum, blog) => sum + Number(blog.impressions || 0), 0)
+    const totalClicks = filteredBlogData.reduce((sum, item) => sum + Number(item.clicks || 0), 0)
+    const totalImpressions = filteredBlogData.reduce(
+      (sum, item) => sum + Number(item.impressions || 0),
+      0
+    )
     const avgCtr =
-      groupedBlogData.length > 0
-        ? groupedBlogData.reduce((sum, blog) => sum + Number(blog.ctr || 0), 0) / groupedBlogData.length
+      filteredBlogData.length > 0
+        ? filteredBlogData.reduce((sum, item) => sum + Number(item.ctr || 0), 0) /
+          filteredBlogData.length
         : 0
     const avgPosition =
-      groupedBlogData.length > 0
-        ? groupedBlogData.reduce((sum, blog) => sum + Number(blog.position || 0), 0) / groupedBlogData.length
+      filteredBlogData.length > 0
+        ? filteredBlogData.reduce((sum, item) => sum + Number(item.position || 0), 0) /
+          filteredBlogData.length
         : 0
 
     return {
@@ -399,14 +481,14 @@ const SearchConsole = () => {
       avgCtr,
       avgPosition,
     }
-  }, [groupedBlogData])
+  }, [filteredBlogData])
 
   // Get unique countries for filter
   const countries = useMemo(() => {
     const countryMap = new Map()
-    blogData.forEach((blog) => {
-      if (blog.countryCode && blog.countryName) {
-        countryMap.set(blog.countryCode, blog.countryName)
+    blogData.forEach((item) => {
+      if (item.countryCode && item.countryName) {
+        countryMap.set(item.countryCode, item.countryName)
       }
     })
     return Array.from(countryMap.entries()).map(([code, name]) => ({
@@ -420,7 +502,7 @@ const SearchConsole = () => {
     const seen = new Set()
     const uniqueTitles = []
     for (const item of analyticsData) {
-      const title = item.blogTitle
+      const title = item.blogTitle || "Untitled"
       if (!seen.has(title)) {
         seen.add(title)
         uniqueTitles.push(title)
@@ -436,46 +518,22 @@ const SearchConsole = () => {
     )
   }
 
-  // Ant Design Table Columns
-  const columns = [
+  // Columns for the nested keyword table (in expandable rows)
+  const keywordColumns = [
     {
-      title: "Blog Title",
-      dataIndex: "blogTitle",
-      key: "blogTitle",
-      render: (blogTitle) => <div className="font-medium text-gray-900">{blogTitle}</div>,
-      sorter: (a, b) => a.blogTitle.localeCompare(b.blogTitle),
-    },
-    {
-      title: "Keywords",
-      dataIndex: "keywords",
-      key: "keywords",
-      render: (keywords, record) => (
-        <div className="flex flex-wrap gap-1 max-w-xs">
-          {expandedRows.includes(record.id)
-            ? keywords.map((keyword, idx) => (
-                <Tooltip key={idx} title={keyword}>
-                  <Tag color="blue" className="text-sm cursor-pointer">
-                    {keyword}
-                  </Tag>
-                </Tooltip>
-              ))
-            : keywords.slice(0, 3).map((keyword, idx) => (
-                <Tooltip key={idx} title={keyword}>
-                  <Tag color="blue" className="text-sm cursor-pointer">
-                    {keyword}
-                  </Tag>
-                </Tooltip>
-              ))}
-          {keywords.length > 3 && !expandedRows.includes(record.id) && (
-            <Tag color="default" className="text-sm">
-              +{keywords.length - 3} more
-            </Tag>
-          )}
-        </div>
+      title: "Keyword",
+      dataIndex: "keyword",
+      key: "keyword",
+      render: (keyword) => (
+        <Tooltip title={keyword}>
+          <Tag color="blue" className="text-sm cursor-pointer">
+            {keyword}
+          </Tag>
+        </Tooltip>
       ),
     },
     {
-      title: "Avg Clicks",
+      title: "Clicks",
       dataIndex: "clicks",
       key: "clicks",
       sorter: (a, b) => a.clicks - b.clicks,
@@ -485,7 +543,129 @@ const SearchConsole = () => {
       align: "center",
     },
     {
-      title: "Avg Impressions",
+      title: "Impressions",
+      dataIndex: "impressions",
+      key: "impressions",
+      sorter: (a, b) => a.impressions - b.impressions,
+      render: (impressions) => (
+        <div className="font-semibold text-gray-900">
+          {new Intl.NumberFormat().format(impressions)}
+        </div>
+      ),
+      align: "center",
+    },
+    {
+      title: "CTR",
+      dataIndex: "ctr",
+      key: "ctr",
+      sorter: (a, b) => a.ctr - b.ctr,
+      render: (ctr) => (
+        <div
+          className={`font-semibold ${
+            ctr >= 8 ? "text-green-600" : ctr >= 5 ? "text-yellow-600" : "text-red-600"
+          }`}
+        >
+          {ctr}%
+        </div>
+      ),
+      align: "center",
+    },
+    {
+      title: "Position",
+      dataIndex: "position",
+      key: "position",
+      sorter: (a, b) => a.position - b.position,
+      render: (position) => (
+        <div
+          className={`font-semibold ${
+            position <= 3 ? "text-green-600" : position <= 10 ? "text-yellow-600" : "text-red-600"
+          }`}
+        >
+          {position}
+        </div>
+      ),
+      align: "center",
+    },
+    ...(includeCountry
+      ? [
+          {
+            title: "Country",
+            dataIndex: "countryName",
+            key: "countryName",
+            render: (countryName) => countryName || "-",
+            sorter: (a, b) => a.countryName.localeCompare(b.countryName),
+            filters: countries,
+            filterMultiple: true,
+            onFilter: (value, record) => record.countryCode === value,
+          },
+        ]
+      : []),
+    {
+      title: "Actions",
+      key: "actions",
+      render: (_, record) => (
+        <div className="flex items-center justify-center gap-2">
+          <Tooltip title={record.url}>
+            <Button
+              type="text"
+              icon={<ExternalLink className="w-4 h-4" />}
+              onClick={() => window.open(record.url, "_blank")}
+              disabled={!record.url}
+              title="View Blog"
+            />
+          </Tooltip>
+        </div>
+      ),
+      align: "center",
+    },
+  ]
+
+  // Ant Design Table Columns for main table
+  const columns = selectedBlogTitle === "all" ? [
+    {
+      title: "Blog Title",
+      dataIndex: "blogTitle",
+      key: "blogTitle",
+      render: (blogTitle, record) => (
+        <div
+          className="font-medium text-blue-600 cursor-pointer hover:underline"
+          onClick={() => toggleRow(record.id)}
+        >
+          {blogTitle}
+        </div>
+      ),
+      sorter: (a, b) => a.blogTitle.localeCompare(b.blogTitle),
+    },
+    {
+      title: "Keywords",
+      dataIndex: "keywords",
+      key: "keywords",
+      render: (keywords, record) => (
+        <div className="flex flex-wrap gap-1 max-w-xs">
+          {keywords.length > 0 ? (
+            <Tag color="blue" className="text-sm">
+              +{keywords.length} keywords
+            </Tag>
+          ) : (
+            <Tag color="default" className="text-sm">
+              No keywords
+            </Tag>
+          )}
+        </div>
+      ),
+    },
+    {
+      title: "Total Clicks",
+      dataIndex: "clicks",
+      key: "clicks",
+      sorter: (a, b) => a.clicks - b.clicks,
+      render: (clicks) => (
+        <div className="font-semibold text-gray-900">{new Intl.NumberFormat().format(clicks)}</div>
+      ),
+      align: "center",
+    },
+    {
+      title: "Total Impressions",
       dataIndex: "impressions",
       key: "impressions",
       sorter: (a, b) => a.impressions - b.impressions,
@@ -574,6 +754,105 @@ const SearchConsole = () => {
       ),
       align: "center",
     },
+  ] : [
+    {
+      title: "Keyword",
+      dataIndex: "keywords",
+      key: "keywords",
+      render: (keywords) => (
+        <Tooltip title={keywords[0]}>
+          <Tag color="blue" className="text-sm cursor-pointer">
+            {keywords[0]}
+          </Tag>
+        </Tooltip>
+      ),
+    },
+    {
+      title: "Clicks",
+      dataIndex: "clicks",
+      key: "clicks",
+      sorter: (a, b) => a.clicks - b.clicks,
+      render: (clicks) => (
+        <div className="font-semibold text-gray-900">{new Intl.NumberFormat().format(clicks)}</div>
+      ),
+      align: "center",
+    },
+    {
+      title: "Impressions",
+      dataIndex: "impressions",
+      key: "impressions",
+      sorter: (a, b) => a.impressions - b.impressions,
+      render: (impressions) => (
+        <div className="font-semibold text-gray-900">
+          {new Intl.NumberFormat().format(impressions)}
+        </div>
+      ),
+      align: "center",
+    },
+    {
+      title: "CTR",
+      dataIndex: "ctr",
+      key: "ctr",
+      sorter: (a, b) => a.ctr - b.ctr,
+      render: (ctr) => (
+        <div
+          className={`font-semibold ${
+            ctr >= 8 ? "text-green-600" : ctr >= 5 ? "text-yellow-600" : "text-red-600"
+          }`}
+        >
+          {ctr}%
+        </div>
+      ),
+      align: "center",
+    },
+    {
+      title: "Position",
+      dataIndex: "position",
+      key: "position",
+      sorter: (a, b) => a.position - b.position,
+      render: (position) => (
+        <div
+          className={`font-semibold ${
+            position <= 3 ? "text-green-600" : position <= 10 ? "text-yellow-600" : "text-red-600"
+          }`}
+        >
+          {position}
+        </div>
+      ),
+      align: "center",
+    },
+    ...(includeCountry
+      ? [
+          {
+            title: "Country",
+            dataIndex: "countryName",
+            key: "countryName",
+            render: (countryName) => countryName || "-",
+            sorter: (a, b) => a.countryName.localeCompare(b.countryName),
+            filters: countries,
+            filterMultiple: true,
+            onFilter: (value, record) => record.countryCode === value,
+          },
+        ]
+      : []),
+    {
+      title: "Actions",
+      key: "actions",
+      render: (_, record) => (
+        <div className="flex items-center justify-center gap-2">
+          <Tooltip title={record.url}>
+            <Button
+              type="text"
+              icon={<ExternalLink className="w-4 h-4" />}
+              onClick={() => window.open(record.url, "_blank")}
+              disabled={!record.url}
+              title="View Blog"
+            />
+          </Tooltip>
+        </div>
+      ),
+      align: "center",
+    },
   ]
 
   // Format number helper
@@ -584,7 +863,8 @@ const SearchConsole = () => {
     return <UpgradeModal featureName={"Google Search Console"} />
   }
 
-  if (!user?.gsc && !error?.includes("No data found")) {
+  // Show reconnection UI for invalid_grant or if not authenticated
+  if (!isAuthenticated || isInvalidGrantError(connectErr)) {
     return (
       <div
         className="p-6 flex items-center justify-center"
@@ -601,14 +881,19 @@ const SearchConsole = () => {
               <FcGoogle size={40} />
             </div>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Connect Google Search Console</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">
+            {isInvalidGrantError(connectErr) ? "Reconnect Google Search Console" : "Connect Google Search Console"}
+          </h2>
           <p className="text-gray-600 text-sm mb-6">
-            Connect your Google Search Console account to monitor your blog performance, track
-            search analytics, and optimize your content for better visibility.
+            {isInvalidGrantError(connectErr)
+              ? "Your Google Search Console connection has expired or is invalid. Please reconnect to continue monitoring your blog performance."
+              : "Connect your Google Search Console account to monitor your blog performance, track search analytics, and optimize your content for better visibility."}
           </p>
-          {error && (
+          {connectErr && (
             <div className="bg-red-100 text-red-800 p-3 rounded-lg text-sm mb-4">
-              {error}
+              {isInvalidGrantError(connectErr)
+                ? "Invalid grant: Your authentication token is no longer valid."
+                : typeof connectErr === "string" ? connectErr : connectErr.message || connectErr.error || "An error occurred"}
               <div className="mt-2">
                 <Button type="link" onClick={connectGSC} disabled={isConnecting}>
                   Try Reconnecting
@@ -629,7 +914,7 @@ const SearchConsole = () => {
             ) : (
               <>
                 <LogIn className="w-5 h-5" />
-                Connect GSC
+                {isInvalidGrantError(connectErr) ? "Reconnect GSC" : "Connect GSC"}
               </>
             )}
           </button>
@@ -699,7 +984,7 @@ const SearchConsole = () => {
                 <TrendingUp className="w-5 h-5 text-green-500" />
               </div>
               <h3 className="text-2xl font-bold text-gray-900">{formatNumber(totals.clicks)}</h3>
-              <p className="text-gray-600 text-sm">Average Clicks</p>
+              <p className="text-gray-600 text-sm">{selectedBlogTitle === "all" ? "Total Clicks" : "Clicks"}</p>
             </div>
             <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
               <div className="flex items-center justify-between mb-4">
@@ -711,7 +996,7 @@ const SearchConsole = () => {
               <h3 className="text-2xl font-bold text-gray-900">
                 {formatNumber(totals.impressions)}
               </h3>
-              <p className="text-gray-600 text-sm">Average Impressions</p>
+              <p className="text-gray-600 text-sm">{selectedBlogTitle === "all" ? "Total Impressions" : "Impressions"}</p>
             </div>
             <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
               <div className="flex items-center justify-between mb-4">
@@ -769,6 +1054,7 @@ const SearchConsole = () => {
                   onChange={(value) => {
                     setSelectedBlogTitle(value)
                     setCurrentPage(1)
+                    setExpandedRows([])
                     fetchAnalyticsData()
                   }}
                   className="w-full"
@@ -790,6 +1076,7 @@ const SearchConsole = () => {
                     setDateRange(value)
                     setCustomDateRange([null, null])
                     setCurrentPage(1)
+                    setExpandedRows([])
                     fetchAnalyticsData()
                   }}
                   className="w-full"
@@ -809,6 +1096,7 @@ const SearchConsole = () => {
                     onChange={(dates) => {
                       setCustomDateRange(dates)
                       setCurrentPage(1)
+                      setExpandedRows([])
                       fetchAnalyticsData()
                     }}
                     disabledDate={(current) => current && current > moment().endOf("day")}
@@ -827,6 +1115,7 @@ const SearchConsole = () => {
                     setIncludeCountry(checked)
                     if (!checked) setSelectedCountries([])
                     setCurrentPage(1)
+                    setExpandedRows([])
                     fetchAnalyticsData()
                   }}
                   className={`w-fit ${includeCountry ? "bg-blue-600" : "bg-gray-200"}`}
@@ -867,6 +1156,19 @@ const SearchConsole = () => {
               showSizeChanger: true,
               showTotal: (total) => `Total ${total} results`,
             }}
+            expandable={selectedBlogTitle === "all" ? {
+              expandedRowKeys: expandedRows,
+              onExpand: (expanded, record) => toggleRow(record.id),
+              expandedRowRender: (record) => (
+                <Table
+                  columns={keywordColumns}
+                  dataSource={record.keywordDetails}
+                  rowKey="id"
+                  pagination={false}
+                  className="bg-gray-50 rounded-lg"
+                />
+              ),
+            } : undefined}
             onChange={(pagination, filters) => {
               setSelectedCountries(filters.countryName || [])
               setCurrentPage(pagination.current)

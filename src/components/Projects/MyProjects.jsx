@@ -48,21 +48,40 @@ const MyProjects = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(15);
   const [loading, setLoading] = useState(false);
-  const [sortType, setSortType] = useState("updatedAt");
-  const [sortOrder, setSortOrder] = useState("desc");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [dateRange, setDateRange] = useState([null, null]);
-  const [presetDateRange, setPresetDateRange] = useState([null, null]);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [sortType, setSortType] = useState(() => sessionStorage.getItem("sortType") || "updatedAt");
+  const [sortOrder, setSortOrder] = useState(() => sessionStorage.getItem("sortOrder") || "desc");
+  const [statusFilter, setStatusFilter] = useState(() => sessionStorage.getItem("statusFilter") || "all");
+  const [dateRange, setDateRange] = useState([
+    sessionStorage.getItem("dateRangeStart") ? moment(sessionStorage.getItem("dateRangeStart")) : null,
+    sessionStorage.getItem("dateRangeEnd") ? moment(sessionStorage.getItem("dateRangeEnd")) : null,
+  ]);
+  const [presetDateRange, setPresetDateRange] = useState([
+    sessionStorage.getItem("presetDateRangeStart") ? moment(sessionStorage.getItem("presetDateRangeStart")) : null,
+    sessionStorage.getItem("presetDateRangeEnd") ? moment(sessionStorage.getItem("presetDateRangeEnd")) : null,
+  ]);
+  const [searchTerm, setSearchTerm] = useState(() => sessionStorage.getItem("searchTerm") || "");
   const [isMenuOpen, setMenuOpen] = useState(false);
   const [isFunnelMenuOpen, setFunnelMenuOpen] = useState(false);
   const [isCustomDatePickerOpen, setIsCustomDatePickerOpen] = useState(false);
-  const [activePresetLabel, setActivePresetLabel] = useState("");
+  const [activePresetLabel, setActivePresetLabel] = useState(() => sessionStorage.getItem("activePresetLabel") || "");
   const navigate = useNavigate();
   const { handlePopup } = useConfirmPopup();
   const dispatch = useDispatch();
   const TRUNCATE_LENGTH = 120;
   const [totalBlogs, setTotalBlogs] = useState(0);
+
+  // Persist filter states to sessionStorage
+  useEffect(() => {
+    sessionStorage.setItem("sortType", sortType);
+    sessionStorage.setItem("sortOrder", sortOrder);
+    sessionStorage.setItem("statusFilter", statusFilter);
+    sessionStorage.setItem("searchTerm", searchTerm);
+    sessionStorage.setItem("activePresetLabel", activePresetLabel);
+    sessionStorage.setItem("dateRangeStart", dateRange[0] ? dateRange[0].toISOString() : "");
+    sessionStorage.setItem("dateRangeEnd", dateRange[1] ? dateRange[1].toISOString() : "");
+    sessionStorage.setItem("presetDateRangeStart", presetDateRange[0] ? presetDateRange[0].toISOString() : "");
+    sessionStorage.setItem("presetDateRangeEnd", presetDateRange[1] ? presetDateRange[1].toISOString() : "");
+  }, [sortType, sortOrder, statusFilter, searchTerm, dateRange, presetDateRange, activePresetLabel]);
 
   // Scroll to top on page change
   useEffect(() => {
@@ -79,6 +98,16 @@ const MyProjects = () => {
     setActivePresetLabel("");
     setSearchTerm("");
     setCurrentPage(1);
+    // Clear sessionStorage
+    sessionStorage.removeItem("sortType");
+    sessionStorage.removeItem("sortOrder");
+    sessionStorage.removeItem("statusFilter");
+    sessionStorage.removeItem("searchTerm");
+    sessionStorage.removeItem("activePresetLabel");
+    sessionStorage.removeItem("dateRangeStart");
+    sessionStorage.removeItem("dateRangeEnd");
+    sessionStorage.removeItem("presetDateRangeStart");
+    sessionStorage.removeItem("presetDateRangeEnd");
   };
 
   const clearSearch = () => {
@@ -216,7 +245,7 @@ const MyProjects = () => {
     // Apply pagination
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    return sortedResult.slice(startIndex, endIndex); // Fixed: Return sortedResult
+    return sortedResult.slice(startIndex, endIndex);
   }, [
     allBlogs,
     searchTerm,
@@ -716,10 +745,10 @@ const MyProjects = () => {
                             className="bg-white"
                           />
                           {isGemini
-                            ? "Gemini-1.5-flash"
+                            ? "Gemini 2.0 flash"
                             : aiModel === "claude"
-                            ? "Claude-3-Haiku"
-                            : "ChatGPT-4o-mini"}
+                            ? "Claude 4 sonnet"
+                            : "Gpt 4.1 nano"}
                         </>
                       )}
                     </span>

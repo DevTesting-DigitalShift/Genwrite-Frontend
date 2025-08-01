@@ -20,7 +20,7 @@ export const fetchGscAnalytics = createAsyncThunk(
   async (params, { rejectWithValue }) => {
     try {
       const data = await getGscAnalytics(params)
-      return data 
+      return data
     } catch (error) {
       return rejectWithValue(error)
     }
@@ -89,7 +89,7 @@ const gscSlice = createSlice({
       })
       .addCase(fetchGscAnalytics.rejected, (state, action) => {
         state.loading = false
-        state.error = action.payload
+        state.error = action
       })
       .addCase(connectGscAccount.pending, (state) => {
         state.loading = true

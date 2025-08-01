@@ -58,7 +58,6 @@ const NotificationDropdown = ({ notifications }) => {
   // Handle API errors
   useEffect(() => {
     if (error) {
-      message.error("Failed to mark notifications as read.")
       // Revert optimistic update if API fails
       setLocalNotifications(notifications)
     }

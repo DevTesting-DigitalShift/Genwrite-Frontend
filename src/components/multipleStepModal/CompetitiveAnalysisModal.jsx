@@ -8,6 +8,7 @@ import { useDispatch, useSelector } from "react-redux"
 import { fetchCompetitiveAnalysisThunk } from "@store/slices/analysisSlice"
 import { LoadingOutlined } from "@ant-design/icons"
 import Loading from "@components/Loading"
+import { fetchBlogById } from "@store/slices/blogSlice"
 
 const { Panel } = Collapse
 const { TabPane } = Tabs
@@ -22,6 +23,8 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
     selectedProject: null,
   })
   const [analysisResults, setAnalysisResults] = useState(null)
+  const [id, setId] = useState(null) // Initialize as null
+  const [isLoading, setIsLoading] = useState(false) // Add loading state
   const { handlePopup } = useConfirmPopup()
   const dispatch = useDispatch()
   const {
@@ -29,8 +32,11 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
     error: analysisError,
     loading: analysisLoading,
   } = useSelector((state) => state.analysis)
+  const { blog, loading: blogLoading, error: blogError } = useSelector((state) => state.blog)
 
-  // Handle API response or error
+  console.log("Blog State:", { blog, blogLoading, blogError })
+
+  // Handle API response or error for analysis
   useEffect(() => {
     if (!analysisLoading) {
       if (analysis) {
@@ -56,6 +62,8 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
         selectedProject: null,
       })
       setAnalysisResults(null)
+      setId(null) // Reset id when modal closes
+      setIsLoading(false)
     }
   }, [open])
 
@@ -79,19 +87,71 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
     }))
   }
 
-  const handleProjectSelect = (value) => {
-    const project = blogs.data.find((p) => p._id === value)
-    if (project) {
+  const handleProjectSelect = async (value) => {
+    const foundProject = blogs.find((p) => p._id === value)
+    console.log({ foundProject: foundProject ? foundProject._id : "Not found" })
+
+    if (foundProject) {
+      // Use existing blog data
       setFormData((prev) => ({
         ...prev,
-        title: project.title,
-        content: project.content,
-        keywords: project.focusKeywords || [],
-        selectedProject: project,
+        title: foundProject.title,
+        content: foundProject.content || "",
+        keywords: foundProject.focusKeywords || [],
+        selectedProject: foundProject,
         contentType: "markdown",
       }))
+      setId(foundProject._id) // Set ID for fetchBlogById
+    } else {
+      message.error("Project not found in blogs list.")
     }
   }
+
+  // Fetch blog data when id changes
+  useEffect(() => {
+    if (id) {
+      setIsLoading(true)
+      dispatch(fetchBlogById(id))
+        .unwrap()
+        .then((response) => {
+          console.log("Fetched Blog Data:", response)
+          if (response?._id) {
+            setFormData((prev) => ({
+              ...prev,
+              title: response.title,
+              content: response.content || "",
+              keywords: response.focusKeywords || [],
+              selectedProject: response,
+              contentType: "markdown",
+            }))
+          } else {
+            message.error("Blog details not found.")
+          }
+        })
+        .catch((error) => {
+          console.error("Failed to fetch blog by ID:", error)
+          message.error("Failed to fetch blog details.")
+        })
+        .finally(() => setIsLoading(false))
+    }
+  }, [id, dispatch])
+
+  // Sync formData with blog state
+  useEffect(() => {
+    if (!blogLoading && blog && formData.selectedProject?._id) {
+      setFormData((prev) => ({
+        ...prev,
+        title: blog.title,
+        content: blog.content || "",
+        keywords: blog.focusKeywords || [],
+        selectedProject: blog,
+        contentType: "markdown",
+      }))
+    } else if (!blogLoading && blogError) {
+      console.error("Blog fetch error:", blogError)
+      message.error("Failed to fetch blog details.")
+    }
+  }, [blog, blogLoading, blogError, formData.selectedProject?._id])
 
   const handleKeywordInputChange = (e) => {
     setFormData((prev) => ({ ...prev, keywordInput: e.target.value }))
@@ -165,7 +225,6 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
   // Parse competitor summary into paragraphs with bold text
   const parseSummary = (summary) => {
     if (!summary) return []
-    // Split by newlines, filter out empty strings, and process bold text
     return summary
       .split("\n")
       .filter((line) => line.trim() !== "")
@@ -220,7 +279,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
     )
   }, [analysisResults])
 
-  if (analysisLoading) {
+  if (analysisLoading || isLoading) {
     return (
       <div className="fixed inset-0 z-[9999] flex items-center justify-center">
         <Loading />
@@ -244,12 +303,12 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
           {!analysisResults && (
             <button
               onClick={handleSubmit}
-              className={`px-4 py-2 text-sm font-medium text-white bg-[#1B6FC9]  rounded-md hover:bg-[#1B6FC9]/90 transition ${
-                analysisLoading ? "opacity-50 cursor-not-allowed" : ""
+              className={`px-4 py-2 text-sm font-medium text-white bg-[#1B6FC9] rounded-md hover:bg-[#1B6FC9]/90 transition ${
+                analysisLoading || isLoading ? "opacity-50 cursor-not-allowed" : ""
               }`}
-              disabled={analysisLoading}
+              disabled={analysisLoading || isLoading}
             >
-              {analysisLoading ? (
+              {analysisLoading || isLoading ? (
                 <span className="flex items-center gap-2">
                   <LoadingOutlined />
                   Analyzing...
@@ -373,21 +432,21 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
                 Select Recent Project
               </label>
               <Select
+                showSearch
+                filterOption={(input, option) =>
+                  option?.children?.toLowerCase().includes(input.toLowerCase())
+                }
                 className="w-full rounded-md text-sm"
                 onChange={handleProjectSelect}
                 value={formData.selectedProject?._id || ""}
                 dropdownStyle={{ maxHeight: 200, overflowY: "auto" }}
               >
                 <Select.Option value="">Select a project</Select.Option>
-                {blogs?.data
-                  ?.filter(
-                    (project) => project.status === "complete" && project.isArchived === false
-                  )
-                  .map((project) => (
-                    <Select.Option key={project._id} value={project._id}>
-                      {project.title.charAt(0).toUpperCase() + project.title.slice(1)}
-                    </Select.Option>
-                  ))}
+                {blogs.map((project) => (
+                  <Select.Option key={project._id} value={project._id}>
+                    {project.title.charAt(0).toUpperCase() + project.title.slice(1)}
+                  </Select.Option>
+                ))}
               </Select>
             </div>
 
@@ -427,7 +486,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
                 />
                 <button
                   onClick={handleAddKeyword}
-                  className="px-4 py-2 bg-[#1B6FC9]  text-white rounded-md text-sm hover:bg-[#1B6FC9]/90 transition"
+                  className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm hover:bg-[#1B6FC9]/90 transition"
                 >
                   <Plus />
                 </button>

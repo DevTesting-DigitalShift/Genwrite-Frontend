@@ -523,7 +523,7 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
     }
 
     return () => {
-      document.body.style.overflow = "auto" 
+      document.body.style.overflow = "auto"
     }
   }, [visible])
 
@@ -570,22 +570,25 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
           <label className="block text-base font-semibold text-gray-700 mb-2">Select Blog</label>
           <div className="relative">
             <Select
+              showSearch
+              filterOption={(input, option) =>
+                option?.children?.toLowerCase().includes(input.toLowerCase())
+              }
               className="w-full"
               placeholder="Select Blog"
               onChange={(value) => {
-                const blog = allBlogs.data.find((b) => b._id === value)
+                const blog = allBlogs.find((b) => b._id === value)
+                console.log({ blog })
                 if (blog) handleBlogSelect(blog)
               }}
               value={formData.selectedBlog?._id || ""}
             >
               <Option value="">Select Blog</Option>
-              {allBlogs.data
-                ?.filter((b) => b.status === "complete" && b.isArchived === false)
-                .map((blog) => (
-                  <Option key={blog._id} value={blog._id} className="bg-gray-50">
-                    {blog.title}
-                  </Option>
-                ))}
+              {allBlogs?.map((blog) => (
+                <Option key={blog._id} value={blog._id} className="bg-gray-50">
+                  {blog.title}
+                </Option>
+              ))}
             </Select>
           </div>
         </motion.div>
