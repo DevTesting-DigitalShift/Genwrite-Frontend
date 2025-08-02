@@ -1,96 +1,95 @@
 // @components/Jobs/Jobs.jsx
-import React, { useState, useEffect, useMemo } from "react";
-import { motion } from "framer-motion";
-import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
-import { Helmet } from "react-helmet";
-import { Pagination } from "antd";
-import { FiPlus } from "react-icons/fi";
-import { fetchJobs, openJobModal } from "@store/slices/jobSlice";
-import { fetchBrands } from "@store/slices/brandSlice";
-import { selectUser } from "@store/slices/authSlice";
-import SkeletonLoader from "@components/Projects/SkeletonLoader";
-import UpgradeModal from "@components/UpgradeModal";
-import { openUpgradePopup } from "@utils/UpgardePopUp";
-import JobModal from "@components/Jobs/JobModal";
-import JobCard from "@components/Jobs/JobCard";
-import { AlertTriangle } from "lucide-react";
-import { message } from "antd";
+import React, { useState, useEffect, useMemo } from "react"
+import { motion } from "framer-motion"
+import { useDispatch, useSelector } from "react-redux"
+import { useNavigate } from "react-router-dom"
+import { Helmet } from "react-helmet"
+import { Pagination } from "antd"
+import { FiPlus } from "react-icons/fi"
+import { fetchJobs, openJobModal } from "@store/slices/jobSlice"
+import { fetchBrands } from "@store/slices/brandSlice"
+import { selectUser } from "@store/slices/authSlice"
+import SkeletonLoader from "@components/Projects/SkeletonLoader"
+import UpgradeModal from "@components/UpgradeModal"
+import { openUpgradePopup } from "@utils/UpgardePopUp"
+import JobModal from "@components/Jobs/JobModal"
+import JobCard from "@components/Jobs/JobCard"
+import { AlertTriangle } from "lucide-react"
+import { message } from "antd"
 
-const PAGE_SIZE = 15;
+const PAGE_SIZE = 15
 
 const Jobs = () => {
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
-  const { jobs, loading: isLoading, showJobModal } = useSelector((state) => state.jobs);
-  const { selectedKeywords } = useSelector((state) => state.analysis);
-  const user = useSelector(selectUser);
-  const userPlan = (user?.plan || user?.subscription?.plan || "free").toLowerCase();
-  const [currentPage, setCurrentPage] = useState(1);
-  const [showWarning, setShowWarning] = useState(false);
-  const [isUserLoaded, setIsUserLoaded] = useState(false);
-  const usage = user?.usage?.createdJobs;
-  const usageLimit = user?.usageLimits?.createdJobs;
+  const dispatch = useDispatch()
+  const navigate = useNavigate()
+  const { jobs, loading: isLoading, showJobModal } = useSelector((state) => state.jobs)
+  const { selectedKeywords } = useSelector((state) => state.analysis)
+  const user = useSelector(selectUser)
+  const userPlan = (user?.plan || user?.subscription?.plan || "free").toLowerCase()
+  const [currentPage, setCurrentPage] = useState(1)
+  const [showWarning, setShowWarning] = useState(false)
+  const [isUserLoaded, setIsUserLoaded] = useState(false)
+  const usage = user?.usage?.createdJobs
+  const usageLimit = user?.usageLimits?.createdJobs
 
   const JOB_LIMITS = {
-    free: 0,
+    free: 1,
     basic: 1,
     pro: 5,
     enterprise: Infinity,
-  };
+  }
 
   const checkJobLimit = () => {
-    const limit = JOB_LIMITS[userPlan] || 0;
+    const limit = JOB_LIMITS[userPlan] || 0
+    console.log(limit)
     if (usage >= limit) {
       message.error(
-        `You have reached the job limit for your ${userPlan} plan (${limit} job${
-          limit === 1 ? "" : "s"
-        }). ${
+        `You have reached the job limit for your content agent. ${
           userPlan === "basic"
             ? "Delete an existing job to create a new one."
             : "Please upgrade your plan to create more jobs."
         }`
-      );
-      if (userPlan !== "basic") {
-        openUpgradePopup({ featureName: "Additional Jobs", navigate });
-      }
-      return false;
+      )
+      // if (userPlan !== "basic") {
+      //   openUpgradePopup({ featureName: "Additional Jobs", navigate });
+      // }
+      return false
     }
-    return true;
-  };
+    return true
+  }
 
   const handleOpenJobModal = () => {
     if (!isUserLoaded) {
-      message.error("User data is still loading. Please try again.");
-      return;
+      message.error("User data is still loading. Please try again.")
+      return
     }
-    if (!checkJobLimit()) return;
-    dispatch(openJobModal(null)); // Pass null for new job
-  };
+    if (!checkJobLimit()) return
+    dispatch(openJobModal(null)) // Pass null for new job
+  }
 
   useEffect(() => {
-    dispatch(fetchJobs());
-    dispatch(fetchBrands());
-  }, [dispatch]);
+    dispatch(fetchJobs())
+    dispatch(fetchBrands())
+  }, [dispatch])
 
   useEffect(() => {
-    setIsUserLoaded(!!(user?.name || user?.credits));
-  }, [user]);
+    setIsUserLoaded(!!(user?.name || user?.credits))
+  }, [user])
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [currentPage]);
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }, [currentPage])
 
-  const totalPages = useMemo(() => Math.ceil(jobs.length / PAGE_SIZE), [jobs]);
+  const totalPages = useMemo(() => Math.ceil(jobs.length / PAGE_SIZE), [jobs])
 
   const paginatedJobs = useMemo(() => {
-    const startIndex = (currentPage - 1) * PAGE_SIZE;
-    return jobs.slice(startIndex, startIndex + PAGE_SIZE);
-  }, [jobs, currentPage]);
+    const startIndex = (currentPage - 1) * PAGE_SIZE
+    return jobs.slice(startIndex, startIndex + PAGE_SIZE)
+  }, [jobs, currentPage])
 
-  if (userPlan === "free") {
-    return <UpgradeModal featureName="Content Agent" />;
-  }
+  // if (userPlan === "free") {
+  //   return <UpgradeModal featureName="Content Agent" />;
+  // }
 
   return (
     <>
@@ -208,7 +207,7 @@ const Jobs = () => {
         />
       </div>
     </>
-  );
-};
+  )
+}
 
-export default Jobs;
+export default Jobs

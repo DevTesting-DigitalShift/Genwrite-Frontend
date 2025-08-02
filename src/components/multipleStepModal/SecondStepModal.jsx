@@ -175,13 +175,13 @@ const SecondStepModal = ({
                   id: "chatgpt",
                   label: "ChatGPT",
                   logo: "/Images/chatgpt.png",
-                  restricted: userPlan === "free",
+                  // restricted: userPlan === "free",
                 },
                 {
                   id: "claude",
                   label: "Claude",
                   logo: "/Images/claude.png",
-                  restricted: userPlan === "free" || userPlan === "basic",
+                  // restricted: userPlan === "free" || userPlan === "basic",
                 },
               ].map((model) => (
                 <label
