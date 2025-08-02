@@ -923,9 +923,9 @@ const SearchConsole = () => {
   const formatNumber = (num) => new Intl.NumberFormat().format(num)
 
   // Render UpgradeModal if user is on free or basic plan
-  if (userPlan === "free" || userPlan === "basic") {
-    return <UpgradeModal featureName={"Google Search Console"} />
-  }
+  // if (userPlan === "free" || userPlan === "basic") {
+  //   return <UpgradeModal featureName={"Google Search Console"} />
+  // }
 
   // Show reconnection UI only if not authenticated or invalid_grant error
   if (!isAuthenticated || isInvalidGrantError(connectErr)) {

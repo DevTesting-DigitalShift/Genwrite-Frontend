@@ -21,7 +21,6 @@ import { Tooltip, Dropdown, Avatar } from "antd"
 import { RiCoinsFill } from "react-icons/ri"
 import NotificationDropdown from "@components/NotificationDropdown"
 import GoProButton from "@components/GoProButton"
-import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { getSocket } from "@utils/socket"
 
 const LayoutWithSidebarAndHeader = () => {
@@ -31,7 +30,6 @@ const LayoutWithSidebarAndHeader = () => {
   const location = useLocation()
   const dispatch = useDispatch()
   const navigate = useNavigate()
-  const { handlePopup } = useConfirmPopup()
 
   const fetchCurrentUser = async () => {
     try {
@@ -124,27 +122,6 @@ const LayoutWithSidebarAndHeader = () => {
     items: [{ key: "login", danger: true, label: "Login", className: "!py-1.5 hover:bg-gray-100" }],
   }
 
-  const handleUpgradePopup = (fromContentAgent = false) => {
-    handlePopup({
-      title: "Upgrade Required",
-      description: (
-        <>
-          <span>Blog Performance is only available for Pro and Enterprise users.</span>
-          <br />
-          <span>Upgrade your plan to unlock this feature.</span>
-        </>
-      ),
-      confirmText: "Buy Now",
-      cancelText: "Cancel",
-      onConfirm: () => navigate("/pricing"),
-      onCancel: () => {
-        if (fromContentAgent) {
-          navigate(-1) // Navigate back to the previous page
-        }
-      },
-    })
-  }
-
   return (
     <div className={`${path.includes("signup") || path.includes("login") ? "hidden" : "flex"}`}>
       {/* Sidebar */}
@@ -192,8 +169,8 @@ const LayoutWithSidebarAndHeader = () => {
             const isActive = location.pathname.startsWith(Menu.path)
             const Icon = Menu.icon
 
-            const isSearchConsole = Menu.title === "Blog Performance"
-            const isContentAgent = Menu.title === "Content Agent"
+            const isSearchConsole = Menu.title === ""
+            const isContentAgent = Menu.title === ""
             const isPro = ["pro", "enterprise"].includes(user?.subscription?.plan)
             const isFreeUser = user?.plan === "free" || user?.subscription?.plan === "free"
 
@@ -214,20 +191,14 @@ const LayoutWithSidebarAndHeader = () => {
 
                 {/* 👇 Show upgrade icon only for "Content Agent" and free users */}
                 {isContentAgent && isFreeUser && sidebarOpen && (
-                  <button
-                    onClick={() => handleUpgradePopup({ featureName: "Content Agent" })}
-                    className="p-1 bg-yellow-500 text-white rounded-md transition-all duration-200 hover:scale-105"
-                  >
+                  <button className="p-1 bg-yellow-500 text-white rounded-md transition-all duration-200 hover:scale-105">
                     <Crown className="w-4 h-4" />
                   </button>
                 )}
 
                 {/* Optional: existing logic for Blog Performance & Pro users */}
                 {isSearchConsole && !isPro && sidebarOpen && (
-                  <button
-                    onClick={() => handleUpgradePopup({ featureName: "Blog Performance" })}
-                    className="p-1 bg-yellow-500 text-white rounded-md transition-all duration-200 hover:scale-105"
-                  >
+                  <button className="p-1 bg-yellow-500 text-white rounded-md transition-all duration-200 hover:scale-105">
                     <Crown className="w-4 h-4" />
                   </button>
                 )}
