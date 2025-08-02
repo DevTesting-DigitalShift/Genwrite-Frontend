@@ -1,33 +1,85 @@
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
-import { Tag, Tags } from "lucide-react"
+import { Tag } from "lucide-react"
 import { useDispatch } from "react-redux"
-import { Modal, Select, Table, Tooltip, message } from "antd"
-import { InfoCircleOutlined } from "@ant-design/icons"
-import { fetchBlogStats } from "@store/slices/blogSlice"
+import { Modal, Select, Table, Tooltip, message, Button } from "antd"
+import { InfoCircleOutlined, LoadingOutlined } from "@ant-design/icons"
+import { fetchBlogById, fetchBlogStats } from "@store/slices/blogSlice"
 
 const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
   const [formData, setFormData] = useState({
     selectedBlog: null,
     title: "",
     content: "",
+    keywords: [],
   })
   const [stats, setStats] = useState(null)
+  const [id, setId] = useState(null)
+  const [isLoading, setIsLoading] = useState(false)
   const dispatch = useDispatch()
 
-  const handleBlogSelect = async (blog) => {
-    setFormData({
-      selectedBlog: blog,
-      title: blog.title,
-      content: blog.content,
-    })
-    setStats(null)
+  // Fetch blog details when id changes
+  useEffect(() => {
+    if (id) {
+      setIsLoading(true)
+      dispatch(fetchBlogById(id))
+        .unwrap()
+        .then((response) => {
+          console.log("Fetched Blog Data:", response)
+          if (response?._id) {
+            setFormData((prev) => ({
+              ...prev,
+              title: response.title,
+              content: response.content || "",
+              keywords: response.focusKeywords || [],
+              selectedBlog: response,
+              contentType: "markdown",
+            }))
+          } else {
+            message.error("Blog details not found.")
+          }
+        })
+        .catch((error) => {
+          console.error("Failed to fetch blog by ID:", error)
+          message.error("Failed to fetch blog details.")
+        })
+        .finally(() => setIsLoading(false))
+    }
+  }, [id, dispatch])
 
+  // Handle blog selection
+  const handleBlogSelect = (value) => {
+    const blog = allBlogs.find((b) => b._id === value)
+    console.log({ blog })
+    if (blog) {
+      setId(blog._id)
+      setFormData({
+        selectedBlog: blog,
+        title: blog.title,
+        content: blog.content || "",
+        keywords: blog.focusKeywords || [],
+      })
+      setStats(null)
+    }
+  }
+
+  // Fetch performance stats on button click
+  const handleGetInsights = async () => {
+    if (!formData.selectedBlog?._id) return
+    if (formData.content.length < 500) {
+      message.warning("Your content is too short. This may affect performance analysis accuracy.")
+      return
+    }
+    setIsLoading(true)
     try {
-      const { stats } = await dispatch(fetchBlogStats(blog._id)).unwrap()
+      const { stats } = await dispatch(fetchBlogStats(formData.selectedBlog._id)).unwrap()
       setStats(stats)
+      message.success("Performance insights loaded successfully.")
     } catch (error) {
-      message.error("Failed to load blog performance stats.")
+      console.error("Failed to fetch blog stats:", error)
+      message.error("Failed to load performance stats.")
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -93,7 +145,7 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
 
   const StatsInfoBox = ({ stats }) => {
     if (!stats) return null
-    const { readabililty = {}, seo = {}, engagement = {}, metadata = {} } = stats
+    const { readability = {}, seo = {}, engagement = {}, metadata = {} } = stats
     const keywordDensity = seo?.keywordDensity || {}
 
     const shortTailCount = Object.keys(keywordDensity).filter(
@@ -343,7 +395,7 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
                 delay={0}
               />
               <StatCard
-                icon={<Tags className="w-5 h-5" />}
+                icon={<Tag className="w-5 h-5" />}
                 label="Long-Tail Keywords"
                 value={longTailCount}
                 color="border-blue-100"
@@ -406,10 +458,10 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <ScoreBox
-              score={readabililty?.fleschEase?.score || 0}
+              score={readability?.fleschEase?.score || 0}
               max={100}
               label="Flesch Ease"
-              level={readabililty?.fleschEase?.level || "-"}
+              level={readability?.fleschEase?.level || "-"}
               color="bg-teal-500"
             />
             <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
@@ -419,11 +471,11 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
                   <InfoTooltip type="smog" />
                 </span>
                 <span className="text-sm font-semibold text-gray-600">
-                  {readabililty?.smogIndex?.level || "-"}
+                  {readability?.smogIndex?.level || "-"}
                 </span>
               </div>
               <p className="text-2xl font-bold text-gray-800 mt-2">
-                {readabililty?.smogIndex?.score || 0} grade
+                {readability?.smogIndex?.score || 0} grade
               </p>
             </div>
             <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
@@ -432,11 +484,11 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
                   ARI <InfoTooltip type="ari" />
                 </span>
                 <span className="text-sm font-semibold text-gray-600">
-                  {readabililty?.ari?.level || "-"}
+                  {readability?.ari?.level || "-"}
                 </span>
               </div>
               <p className="text-2xl font-bold text-gray-800 mt-2">
-                {readabililty?.ari?.score || 0} grade
+                {readability?.ari?.score || 0} grade
               </p>
             </div>
             <StatCard
@@ -457,7 +509,7 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
                 </svg>
               }
               label="Reading Time"
-              value={readabililty?.readingTime || 0}
+              value={readability?.readingTime || 0}
               suffix=" min"
               color="border-teal-100"
               delay={0}
@@ -481,32 +533,32 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
                 </svg>
               }
               label="Word Count"
-              value={readabililty?.wordCount || 0}
+              value={readability?.wordCount || 0}
               color="border-amber-100"
               delay={1}
             />
             <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
               <p className="text-sm font-semibold text-gray-600">Sentence Count</p>
               <p className="text-2xl font-bold text-gray-800 mt-1">
-                {readabililty?.sentenceCount || 0}
+                {readability?.sentenceCount || 0}
               </p>
             </div>
             <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
               <p className="text-sm font-semibold text-gray-600">Avg Sentence Length</p>
               <p className="text-2xl font-bold text-gray-800 mt-1">
-                {readabililty?.avgSentenceLength || 0}
+                {readability?.avgSentenceLength || 0}
               </p>
             </div>
             <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
               <p className="text-sm font-semibold text-gray-600">Avg Word Length</p>
               <p className="text-2xl font-bold text-gray-800 mt-1">
-                {readabililty?.avgWordLength || 0}
+                {readability?.avgWordLength || 0}
               </p>
             </div>
             <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
               <p className="text-sm font-semibold text-gray-600">Syllables</p>
               <p className="text-2xl font-bold text-gray-800 mt-1">
-                {readabililty?.syllableCount || 0}
+                {readability?.syllableCount || 0}
               </p>
             </div>
           </div>
@@ -521,7 +573,6 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
     } else {
       document.body.style.overflow = "auto"
     }
-
     return () => {
       document.body.style.overflow = "auto"
     }
@@ -550,7 +601,7 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
               <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
             </svg>
           </div>
-          <h2 className="text-lg">Performance Dashboard</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Performance Dashboard</h2>
         </motion.div>
       }
       open={visible}
@@ -559,9 +610,9 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
       width={900}
       centered
       bodyStyle={{ maxHeight: "85vh", overflowY: "auto" }}
-      className="rounded-2xl shadow-2xl"
+      className="rounded-2xl shadow-lg"
     >
-      <div className="space-y-6 p-4">
+      <div className="space-y-6 p-6">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -576,47 +627,138 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
               }
               className="w-full"
               placeholder="Select Blog"
-              onChange={(value) => {
-                const blog = allBlogs.find((b) => b._id === value)
-                console.log({ blog })
-                if (blog) handleBlogSelect(blog)
-              }}
+              onChange={handleBlogSelect}
               value={formData.selectedBlog?._id || ""}
             >
-              <Option value="">Select Blog</Option>
+              <Select.Option value="">Select Blog</Select.Option>
               {allBlogs?.map((blog) => (
-                <Option key={blog._id} value={blog._id} className="bg-gray-50">
+                <Select.Option key={blog._id} value={blog._id} className="bg-gray-50">
                   {blog.title}
-                </Option>
+                </Select.Option>
               ))}
             </Select>
           </div>
         </motion.div>
-        {formData.selectedBlog && (
+        {!formData.selectedBlog && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="border border-gray-200 rounded-lg overflow-hidden shadow-sm"
+            className="text-center py-10 bg-gray-50 rounded-xl border border-gray-200 shadow-sm"
           >
-            <div className="p-4 bg-gray-50 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-700">Preview</h3>
-            </div>
-            <div className="p-5">
-              <h3 className="text-xl font-semibold text-gray-800 mb-2 truncate">
-                {formData.title}
-              </h3>
-              <p className="text-gray-600 text-sm line-clamp-3">
-                {(formData.content || "")
-                  .replace(/[#>*=_`~-]+/g, "")
-                  .replace(/\n+/g, " ")
-                  .replace(/\s+/g, " ")
-                  .trim()}
-              </p>
-            </div>
+            <p className="text-gray-600 text-lg">
+              Select a blog to view content and performance insights.
+            </p>
           </motion.div>
         )}
-        <StatsInfoBox stats={stats} />
+        {formData.selectedBlog && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="border border-gray-200 rounded-lg overflow-hidden shadow-sm"
+            >
+              <div className="p-4 bg-gray-50 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-700">Preview</h3>
+              </div>
+              <div className="p-5">
+                {/* <h3 className="text-xl font-semibold text-gray-800 mb-2 truncate">
+                  {formData.title}
+                </h3> */}
+                <div className="text-gray-700 max-h-40 overflow-y-auto whitespace-pre-wrap leading-relaxed p-2 rounded-md border border-gray-200">
+                  {formData.content
+                    .split("\n")
+                    .slice(0, 15)
+                    .map((line, index) => {
+                      if (line.startsWith("### ")) {
+                        return (
+                          <h3 key={index} className="text-lg font-semibold mt-2">
+                            {line
+                              .replace("### ", "")
+                              .replace(/[*_~>`]/g, "")
+                              .trim()}
+                          </h3>
+                        )
+                      } else if (line.startsWith("## ")) {
+                        return (
+                          <h2 key={index} className="text-xl font-semibold mt-2">
+                            {line
+                              .replace("## ", "")
+                              .replace(/[*_~>`]/g, "")
+                              .trim()}
+                          </h2>
+                        )
+                      } else if (line.startsWith("# ")) {
+                        return (
+                          <h1 key={index} className="text-2xl font-bold mt-2">
+                            {line
+                              .replace("# ", "")
+                              .replace(/[*_~>`]/g, "")
+                              .trim()}
+                          </h1>
+                        )
+                      } else {
+                        return (
+                          <p key={index} className="text-base mt-2">
+                            {line.replace(/[*_~>`]/g, "").trim()}
+                          </p>
+                        )
+                      }
+                    })}
+                </div>
+              </div>
+            </motion.div>
+            {formData.keywords.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="p-4 bg-gray-50 border border-gray-200 rounded-lg shadow-sm"
+              >
+                <h4 className="text-md font-semibold text-gray-700 mb-2">Keywords</h4>
+                <div className="flex flex-wrap gap-2">
+                  {formData.keywords.map((keyword, i) => (
+                    <motion.span
+                      key={keyword}
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.1 }}
+                      className="px-3 py-1 bg-blue-50 rounded-full text-sm text-blue-700 border border-blue-100 hover:bg-blue-100 transition-colors"
+                    >
+                      {keyword}
+                    </motion.span>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+            {!stats && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="text-center"
+              >
+                <Button
+                  type="primary"
+                  size="large"
+                  onClick={handleGetInsights}
+                  loading={isLoading}
+                  className="bg-blue-600 text-white hover:bg-blue-700 rounded-lg px-6 py-2 transition-all duration-200"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <span className="flex items-center gap-2">
+                      <LoadingOutlined /> Loading Insights...
+                    </span>
+                  ) : (
+                    "Get Performance Insights"
+                  )}
+                </Button>
+              </motion.div>
+            )}
+            {stats && <StatsInfoBox stats={stats} />}
+          </>
+        )}
       </div>
     </Modal>
   )

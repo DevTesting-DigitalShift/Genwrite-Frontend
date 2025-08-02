@@ -1309,25 +1309,27 @@ const TextEditor = ({
             <Redo2 className="w-4 h-4" />
           </button>
         </Tooltip>
-        <Tooltip title="Rewrite">
-          <button
-            onClick={() =>
-              safeEditorAction(() => {
-                handlePopup({
-                  title: "Rewrite Selected Lines",
-                  description:
-                    "Do you want to rewrite the selected lines? You can rewrite only 3 times.",
-                  onConfirm: handleRetry,
+        {!pathDetect && (
+          <Tooltip title="Rewrite">
+            <button
+              onClick={() =>
+                safeEditorAction(() => {
+                  handlePopup({
+                    title: "Rewrite Selected Lines",
+                    description:
+                      "Do you want to rewrite the selected lines? You can rewrite only 3 times.",
+                    onConfirm: handleRetry,
+                  })
                 })
-              })
-            }
-            className="p-2 rounded-md hover:bg-gray-100 transition-colors duration-150 flex items-center justify-center"
-            aria-label="Rewrite"
-            type="button"
-          >
-            <RotateCcw className="w-4 h-4" />
-          </button>
-        </Tooltip>
+              }
+              className="p-2 rounded-md hover:bg-gray-100 transition-colors duration-150 flex items-center justify-center"
+              aria-label="Rewrite"
+              type="button"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </button>
+          </Tooltip>
+        )}
         <Tooltip title="Copy">
           <button
             onClick={() =>
@@ -1650,14 +1652,16 @@ const TextEditor = ({
                     <ImageIcon className="w-5 h-5" />
                   </button>
                 </Tooltip>
-                <Tooltip title="Rewrite" placement="top">
-                  <button
-                    className="p-2 rounded hover:bg-gray-200 text-gray-600"
-                    onClick={handleRewrite}
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                  </button>
-                </Tooltip>
+                {!pathDetect && (
+                  <Tooltip title="Rewrite" placement="top">
+                    <button
+                      className="p-2 rounded hover:bg-gray-200 text-gray-600"
+                      onClick={handleRewrite}
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                    </button>
+                  </Tooltip>
+                )}
               </BubbleMenu>
             )}
             <EditorContent editor={normalEditor} />

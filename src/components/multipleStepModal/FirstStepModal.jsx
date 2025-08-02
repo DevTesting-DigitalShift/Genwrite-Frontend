@@ -1,25 +1,25 @@
-import { memo, useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { Plus, RefreshCw, Sparkles } from "lucide-react";
-import { message, Modal, Select, Spin, Tooltip } from "antd";
-import { fetchGeneratedTitles } from "@store/slices/blogSlice";
+import { memo, useEffect, useState } from "react"
+import { useDispatch, useSelector } from "react-redux"
+import { Plus, RefreshCw, Sparkles } from "lucide-react"
+import { message, Modal, Select, Spin, Tooltip } from "antd"
+import { fetchGeneratedTitles } from "@store/slices/blogSlice"
 
-const { Option } = Select;
+const { Option } = Select
 
 const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData }) => {
-  const [topic, setTopic] = useState(data?.topic || "");
-  const [hasGeneratedTitles, setHasGeneratedTitles] = useState(false);
-  const MAX_VISIBLE_KEYWORDS = 18; // Adjust as needed
-  const [showAllKeywords, setShowAllKeywords] = useState(false);
-  const { selectedKeywords } = useSelector((state) => state.analysis);
-  const dispatch = useDispatch();
+  const [topic, setTopic] = useState(data?.topic || "")
+  const [hasGeneratedTitles, setHasGeneratedTitles] = useState(false)
+  const MAX_VISIBLE_KEYWORDS = 18 // Adjust as needed
+  const [showAllKeywords, setShowAllKeywords] = useState(false)
+  const { selectedKeywords } = useSelector((state) => state.analysis)
+  const dispatch = useDispatch()
 
   const [formData, setFormData] = useState({
     focusKeywordInput: "",
     focusKeywords: selectedKeywords?.focusKeywords || [],
     keywordInput: "",
     keywords: selectedKeywords?.keywords || [],
-  });
+  })
 
   const [errors, setErrors] = useState({
     title: false,
@@ -29,10 +29,10 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
     focusKeywordInput: "",
     keyword: false,
     keywordInput: "",
-  });
+  })
 
-  const [generatedTitles, setGeneratedTitles] = useState([]);
-  const [loadingTitles, setLoadingTitles] = useState(false);
+  const [generatedTitles, setGeneratedTitles] = useState([])
+  const [loadingTitles, setLoadingTitles] = useState(false)
 
   // Sync formData with data prop changes
   useEffect(() => {
@@ -40,118 +40,118 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
       ...prev,
       focusKeywords: selectedKeywords?.focusKeywords || [],
       keywords: selectedKeywords?.keywords || [],
-    }));
-  }, [selectedKeywords]);
+    }))
+  }, [selectedKeywords])
 
   // Reset hasGeneratedTitles when modal opens
   useEffect(() => {
-    setHasGeneratedTitles(false);
-    setGeneratedTitles([]);
-  }, []);
+    setHasGeneratedTitles(false)
+    setGeneratedTitles([])
+  }, [])
 
   // Handle modal open/close scroll behavior
   useEffect(() => {
-    document.body.style.overflow = "hidden";
+    document.body.style.overflow = "hidden"
     return () => {
-      document.body.style.overflow = "auto";
-    };
-  }, []);
+      document.body.style.overflow = "auto"
+    }
+  }, [])
 
   const handleKeywordInputChange = (e) => {
-    setFormData((prev) => ({ ...prev, keywordInput: e.target.value }));
-  };
+    setFormData((prev) => ({ ...prev, keywordInput: e.target.value }))
+  }
 
   const handleAddKeyword = () => {
-    const inputValue = formData.keywordInput;
+    const inputValue = formData.keywordInput
     if (inputValue.trim() !== "") {
       const newKeywords = inputValue
         .split(",")
         .map((keyword) => keyword.trim())
-        .filter((keyword) => keyword !== "" && !formData.keywords.includes(keyword));
+        .filter((keyword) => keyword !== "" && !formData.keywords.includes(keyword))
 
       if (newKeywords.length > 0) {
         setFormData((prev) => ({
           ...prev,
           keywords: [...prev.keywords, ...newKeywords],
           keywordInput: "",
-        }));
+        }))
       }
     }
-  };
+  }
 
   const handleFocusKeywordInputChange = (e) => {
-    setFormData((prev) => ({ ...prev, focusKeywordInput: e.target.value }));
-  };
+    setFormData((prev) => ({ ...prev, focusKeywordInput: e.target.value }))
+  }
 
   const handleFocusAddKeyword = () => {
-    const inputValue = formData.focusKeywordInput;
+    const inputValue = formData.focusKeywordInput
     if (inputValue.trim() !== "") {
       const newKeywords = inputValue
         .split(",")
         .map((focusKeyword) => focusKeyword.trim())
         .filter(
           (focusKeyword) => focusKeyword !== "" && !formData.focusKeywords.includes(focusKeyword)
-        );
+        )
 
       if (newKeywords.length > 0) {
-        const updatedFocusKeywords = [...formData.focusKeywords, ...newKeywords].slice(0, 3); // Limit to 3
+        const updatedFocusKeywords = [...formData.focusKeywords, ...newKeywords].slice(0, 3) // Limit to 3
         setFormData((prev) => ({
           ...prev,
           focusKeywords: updatedFocusKeywords,
           focusKeywordInput: "",
-        }));
+        }))
       }
     }
-  };
+  }
 
   const handleRemoveKeyword = (index, type) => {
-    const updatedKeywords = [...formData[type]];
-    updatedKeywords.splice(index, 1);
+    const updatedKeywords = [...formData[type]]
+    updatedKeywords.splice(index, 1)
     setFormData((prev) => ({
       ...prev,
       [type]: updatedKeywords,
-    }));
-  };
+    }))
+  }
 
   const handleKeyPress = (e, type) => {
     if (e.key === "Enter") {
-      e.preventDefault();
+      e.preventDefault()
       if (type === "focusKeywords") {
-        handleFocusAddKeyword();
+        handleFocusAddKeyword()
       } else {
-        handleAddKeyword();
+        handleAddKeyword()
       }
     }
-  };
+  }
 
   const handleToneChange = (value) => {
-    setData((prev) => ({ ...prev, tone: value }));
-    setErrors((prev) => ({ ...prev, tone: false }));
-  };
-
+    setData((prev) => ({ ...prev, tone: value }))
+    setErrors((prev) => ({ ...prev, tone: false }))
+  }
   const handleGenerateTitles = async () => {
     if (!topic.trim() || formData.keywords.length === 0) {
-      message.error("Please enter a topic and at least one keyword before generating titles.");
-      return;
+      message.error("Please enter a topic and at least one keyword before generating titles.")
+      return
     }
-    setLoadingTitles(true);
+    setLoadingTitles(true)
     try {
       const payload = {
         keywords: formData.keywords,
         focusKeywords: formData.focusKeywords,
         topic,
+        template: data.selectedTemplate.name,
         ...(hasGeneratedTitles && { oldTitles: generatedTitles }), // Include oldTitles if generating more
-      };
-      const result = await dispatch(fetchGeneratedTitles(payload)).unwrap();
-      setGeneratedTitles(result);
-      setHasGeneratedTitles(true);
+      }
+      const result = await dispatch(fetchGeneratedTitles(payload)).unwrap()
+      setGeneratedTitles(result)
+      setHasGeneratedTitles(true)
     } catch (error) {
-      console.error("Error generating titles:", error);
-      message.error("Failed to generate titles. Please try again.");
+      console.error("Error generating titles:", error)
+      message.error("Failed to generate titles. Please try again.")
     } finally {
-      setLoadingTitles(false);
+      setLoadingTitles(false)
     }
-  };
+  }
 
   const handleNextClick = () => {
     const newErrors = {
@@ -160,13 +160,13 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
       tone: !data?.tone,
       focusKeyword: formData.focusKeywords.length === 0,
       keyword: formData.keywords.length === 0,
-    };
+    }
 
-    setErrors(newErrors);
+    setErrors(newErrors)
 
     if (Object.values(newErrors).some((error) => error)) {
-      message.error("Please fill in all required fields.");
-      return;
+      message.error("Please fill in all required fields.")
+      return
     }
 
     const updatedData = {
@@ -174,10 +174,10 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
       topic,
       focusKeywords: formData.focusKeywords,
       keywords: formData.keywords,
-    };
-    setData(updatedData);
-    handleNext();
-  };
+    }
+    setData(updatedData)
+    handleNext()
+  }
 
   useEffect(() => {
     if (data && !data.isCheckedGeneratedImages) {
@@ -185,9 +185,9 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
         ...prev,
         isCheckedGeneratedImages: true,
         isUnsplashActive: true,
-      }));
+      }))
     }
-  }, [data, setData]);
+  }, [data, setData])
 
   return (
     <Modal
@@ -230,8 +230,8 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
               placeholder="e.g., Tech Blog"
               value={topic}
               onChange={(e) => {
-                setTopic(e.target.value);
-                setErrors((prev) => ({ ...prev, topic: false }));
+                setTopic(e.target.value)
+                setErrors((prev) => ({ ...prev, topic: false }))
               }}
             />
           </div>
@@ -350,8 +350,8 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
                 placeholder="e.g., How to Create a Tech Blog"
                 value={data?.title || ""}
                 onChange={(e) => {
-                  setData((prev) => ({ ...prev, title: e.target.value }));
-                  setErrors((prev) => ({ ...prev, title: false }));
+                  setData((prev) => ({ ...prev, title: e.target.value }))
+                  setErrors((prev) => ({ ...prev, title: false }))
                 }}
               />
               <button
@@ -381,14 +381,14 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
             {generatedTitles.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-2 items-center">
                 {generatedTitles.map((title, index) => {
-                  const isSelected = data.title === title;
+                  const isSelected = data.title === title
                   return (
                     <div key={index} className="relative group">
                       <button
                         type="button"
                         onClick={() => {
-                          setData((prev) => ({ ...prev, title }));
-                          setErrors((prev) => ({ ...prev, title: false }));
+                          setData((prev) => ({ ...prev, title }))
+                          setErrors((prev) => ({ ...prev, title: false }))
                         }}
                         className={`px-3 py-1 rounded-full text-sm border transition w-full truncate
                           ${
@@ -400,7 +400,7 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
                         {title}
                       </button>
                     </div>
-                  );
+                  )
                 })}
               </div>
             )}
@@ -450,7 +450,7 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
                     setData((prev) => ({
                       ...prev,
                       userDefinedLength: parseInt(e.target.value, 10),
-                    }));
+                    }))
                   }}
                   style={{
                     background: `linear-gradient(to right, #1B6FC9 ${
@@ -484,7 +484,7 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
         </div>
       </div>
     </Modal>
-  );
-};
+  )
+}
 
-export default memo(FirstStepModal);
+export default memo(FirstStepModal)
