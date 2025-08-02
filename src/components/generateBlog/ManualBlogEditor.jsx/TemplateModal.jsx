@@ -31,8 +31,6 @@ const TemplateModal = ({
   //   else document.body.classList.remove("backdrop-blur")
   // }, [isOpen])
 
-  // Handle modal open/close scroll behavior
-  console.log({ selectedTemplate })
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden"
@@ -153,7 +151,6 @@ const TemplateModal = ({
           ...(hasGeneratedTitles && { oldTitles: generatedTitles }),
         })
       ).unwrap()
-      console.log({ result })
       setGeneratedTitles(result)
       setHasGeneratedTitles(true)
       message.success("Titles generated successfully!")

@@ -41,7 +41,6 @@ const Jobs = () => {
 
   const checkJobLimit = () => {
     const limit = JOB_LIMITS[userPlan] || 0
-    console.log(limit)
     if (usage >= limit) {
       message.error(
         `You have reached the job limit for your content agent. ${

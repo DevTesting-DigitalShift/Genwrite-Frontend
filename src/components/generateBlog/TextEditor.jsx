@@ -701,9 +701,6 @@ const TextEditor = ({
   }
 
   const handleReGenerate = async () => {
-    console.log("clicked")
-    console.log({ blog: blog._id })
-
     if (!blog?._id) {
       message.error("Blog ID is missing.")
       return

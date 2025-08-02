@@ -231,7 +231,6 @@ const SearchConsole = () => {
     try {
       setIsConnecting(true)
       const result = await dispatch(fetchGscAuthUrl()).unwrap()
-      console.log("Authentication URL:", result)
       if (!result) {
         throw new Error("Failed to retrieve authentication URL")
       }
@@ -243,7 +242,6 @@ const SearchConsole = () => {
         params.set("prompt", "select_account")
         url.search = params.toString()
         authUrl = url.toString()
-        console.log("Modified Authentication URL:", authUrl)
       }
 
       const popup = window.open(authUrl, "GSC Connect", "width=600,height=600")
@@ -253,7 +251,6 @@ const SearchConsole = () => {
 
       const handleMessage = async (event) => {
         if (event.origin !== import.meta.env.VITE_BACKEND_URL) return
-        console.log("Received message from popup:", event.data)
         if (typeof event.data === "string" && event.data === "GSC Connected") {
           try {
             setIsAuthenticated(true)
