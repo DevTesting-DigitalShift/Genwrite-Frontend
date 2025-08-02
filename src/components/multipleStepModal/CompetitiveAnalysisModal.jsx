@@ -280,21 +280,30 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
         }
         className="bg-white border border-gray-200 rounded-xl shadow-sm"
       >
-        <ul className="list-disc pl-5 space-y-3 text-sm text-gray-700">
+        <Collapse accordion>
           {formData.generatedMetadata.outboundLinks.map((link, index) => (
-            <li key={index}>
-              <a
-                href={link.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 hover:underline"
-              >
-                {link.title}
-              </a>
-              <p className="text-xs text-gray-500 mt-1">{link.snippet}</p>
-            </li>
+            <Panel
+              key={index}
+              header={
+                <div className="flex justify-between items-center w-full">
+                  <span className="text-sm font-medium text-gray-800">{link.title}</span>
+                  <span
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      window.open(link.link, "_blank")
+                    }}
+                    className="text-xs text-blue-600 hover:underline cursor-pointer"
+                  >
+                    Visit
+                  </span>
+                </div>
+              }
+              className="text-sm text-gray-700 leading-relaxed"
+            >
+              <p className=" text-gray-600">{link.snippet}</p>
+            </Panel>
           ))}
-        </ul>
+        </Collapse>
       </Card>
     )
   }, [formData?.generatedMetadata?.outboundLinks])
@@ -335,9 +344,12 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
           >
             <Collapse accordion>
               {Object.entries(analysis).map(([key, value], index) => {
-                const match = value.match(/^(\d+\/\d+)\s+—\s+(.*)$/)
+                // Match: "(number/number)" at end of string
+                const match = value.match(/\((\d+\/\d+)\)$/)
                 const score = match ? match[1] : null
-                const description = match ? match[2] : value
+                // Remove the score from the description
+                const description = value.replace(/\s*\(\d+\/\d+\)$/, "").trim()
+
                 return (
                   <Panel
                     key={key}
@@ -359,6 +371,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
               })}
             </Collapse>
           </Panel>
+
           <Panel
             header={<span className="font-semibold text-gray-800">Suggestions</span>}
             key="suggestions"
