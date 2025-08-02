@@ -605,9 +605,9 @@ const TextEditorSidebar = ({
       <Menu.Item key="html" onClick={() => handleExport("html")}>
         Export as HTML
       </Menu.Item>
-      <Menu.Item key="docx" onClick={handleExportPDF}>
+      {/* <Menu.Item key="docx" onClick={handleExportPDF}>
         Export as DOCX
-      </Menu.Item>
+      </Menu.Item> */}
     </Menu>
   )
 

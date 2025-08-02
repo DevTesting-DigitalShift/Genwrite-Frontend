@@ -32,6 +32,7 @@ const TemplateModal = ({
   // }, [isOpen])
 
   // Handle modal open/close scroll behavior
+  console.log({ selectedTemplate })
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden"
@@ -148,9 +149,11 @@ const TemplateModal = ({
           keywords: formData.focusKeywords,
           focusKeywords: formData.keywords,
           topic: formData.topic,
+          template: selectedTemplate,
           ...(hasGeneratedTitles && { oldTitles: generatedTitles }),
         })
       ).unwrap()
+      console.log({ result })
       setGeneratedTitles(result)
       setHasGeneratedTitles(true)
       message.success("Titles generated successfully!")

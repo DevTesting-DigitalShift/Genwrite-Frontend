@@ -50,19 +50,33 @@ const countryCodeToName = {
 
 const SearchConsole = () => {
   const [searchTerm, setSearchTerm] = useState(() => sessionStorage.getItem("gscSearchTerm") || "")
-  const [currentPage, setCurrentPage] = useState(() => Number(sessionStorage.getItem("gscCurrentPage")) || 1)
-  const [itemsPerPage, setItemsPerPage] = useState(() => Number(sessionStorage.getItem("gscItemsPerPage")) || 10)
+  const [currentPage, setCurrentPage] = useState(
+    () => Number(sessionStorage.getItem("gscCurrentPage")) || 1
+  )
+  const [itemsPerPage, setItemsPerPage] = useState(
+    () => Number(sessionStorage.getItem("gscItemsPerPage")) || 10
+  )
   const [dateRange, setDateRange] = useState(() => sessionStorage.getItem("gscDateRange") || "30d")
   const [customDateRange, setCustomDateRange] = useState([
-    sessionStorage.getItem("gscCustomDateRangeStart") ? moment(sessionStorage.getItem("gscCustomDateRangeStart")) : null,
-    sessionStorage.getItem("gscCustomDateRangeEnd") ? moment(sessionStorage.getItem("gscCustomDateRangeEnd")) : null,
+    sessionStorage.getItem("gscCustomDateRangeStart")
+      ? moment(sessionStorage.getItem("gscCustomDateRangeStart"))
+      : null,
+    sessionStorage.getItem("gscCustomDateRangeEnd")
+      ? moment(sessionStorage.getItem("gscCustomDateRangeEnd"))
+      : null,
   ])
-  const [selectedBlogTitle, setSelectedBlogTitle] = useState(() => sessionStorage.getItem("gscSelectedBlogTitle") || "all")
-  const [selectedCountries, setSelectedCountries] = useState(() => JSON.parse(sessionStorage.getItem("gscSelectedCountries") || "[]"))
-  const [includeCountry, setIncludeCountry] = useState(() => sessionStorage.getItem("gscIncludeCountry") === "true")
+  const [selectedBlogTitle, setSelectedBlogTitle] = useState(
+    () => sessionStorage.getItem("gscSelectedBlogTitle") || "all"
+  )
+  const [selectedCountries, setSelectedCountries] = useState(() =>
+    JSON.parse(sessionStorage.getItem("gscSelectedCountries") || "[]")
+  )
+  const [includeCountry, setIncludeCountry] = useState(
+    () => sessionStorage.getItem("gscIncludeCountry") === "true"
+  )
   const [isLoading, setIsLoading] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(!!useSelector(selectUser)?.gsc) // Initialize based on user.gsc
   const [searchParams, setSearchParams] = useSearchParams()
   const [blogData, setBlogData] = useState([])
   const [expandedRows, setExpandedRows] = useState([])
@@ -81,12 +95,27 @@ const SearchConsole = () => {
     sessionStorage.setItem("gscCurrentPage", currentPage)
     sessionStorage.setItem("gscItemsPerPage", itemsPerPage)
     sessionStorage.setItem("gscDateRange", dateRange)
-    sessionStorage.setItem("gscCustomDateRangeStart", customDateRange[0] ? customDateRange[0].toISOString() : "")
-    sessionStorage.setItem("gscCustomDateRangeEnd", customDateRange[1] ? customDateRange[1].toISOString() : "")
+    sessionStorage.setItem(
+      "gscCustomDateRangeStart",
+      customDateRange[0] ? customDateRange[0].toISOString() : ""
+    )
+    sessionStorage.setItem(
+      "gscCustomDateRangeEnd",
+      customDateRange[1] ? customDateRange[1].toISOString() : ""
+    )
     sessionStorage.setItem("gscSelectedBlogTitle", selectedBlogTitle)
     sessionStorage.setItem("gscSelectedCountries", JSON.stringify(selectedCountries))
     sessionStorage.setItem("gscIncludeCountry", includeCountry.toString())
-  }, [searchTerm, currentPage, itemsPerPage, dateRange, customDateRange, selectedBlogTitle, selectedCountries, includeCountry])
+  }, [
+    searchTerm,
+    currentPage,
+    itemsPerPage,
+    dateRange,
+    customDateRange,
+    selectedBlogTitle,
+    selectedCountries,
+    includeCountry,
+  ])
 
   // Fetch blogs on mount
   useEffect(() => {
@@ -99,7 +128,8 @@ const SearchConsole = () => {
     if (typeof err === "string") return err.toLowerCase().includes("invalid_grant")
     if (err.message) return err.message.toLowerCase().includes("invalid_grant")
     if (err.error) return err.error.toLowerCase().includes("invalid_grant")
-    if (err.response?.data?.error) return err.response.data.error.toLowerCase().includes("invalid_grant")
+    if (err.response?.data?.error)
+      return err.response.data.error.toLowerCase().includes("invalid_grant")
     return false
   }
 
@@ -143,6 +173,11 @@ const SearchConsole = () => {
 
   // Fetch analytics data
   const fetchAnalyticsData = useCallback(async () => {
+    if (!user?.gsc) {
+      setIsAuthenticated(false)
+      setIsLoading(false)
+      return
+    }
     setIsLoading(true)
     try {
       const { from, to } = getDateRangeParams()
@@ -181,19 +216,26 @@ const SearchConsole = () => {
     } finally {
       setIsLoading(false)
     }
-  }, [dispatch, dateRange, customDateRange, includeCountry, selectedBlogTitle, getBlogUrlFromTitle])
+  }, [
+    dispatch,
+    dateRange,
+    customDateRange,
+    includeCountry,
+    selectedBlogTitle,
+    getBlogUrlFromTitle,
+    user,
+  ])
 
   // Google Search Console authentication
   const connectGSC = useCallback(async () => {
     try {
       setIsConnecting(true)
       const result = await dispatch(fetchGscAuthUrl()).unwrap()
-      console.log("Authentication URL:", result) // Debug: Check if prompt=select_account is present
+      console.log("Authentication URL:", result)
       if (!result) {
         throw new Error("Failed to retrieve authentication URL")
       }
 
-      // Ensure the URL includes prompt=select_account to force account selection
       let authUrl = result
       if (!authUrl.includes("prompt=select_account")) {
         const url = new URL(authUrl)
@@ -201,7 +243,7 @@ const SearchConsole = () => {
         params.set("prompt", "select_account")
         url.search = params.toString()
         authUrl = url.toString()
-        console.log("Modified Authentication URL:", authUrl) // Debug: Verify modification
+        console.log("Modified Authentication URL:", authUrl)
       }
 
       const popup = window.open(authUrl, "GSC Connect", "width=600,height=600")
@@ -268,11 +310,11 @@ const SearchConsole = () => {
   useEffect(() => {
     if (user?.gsc) {
       fetchAnalyticsData()
+    } else {
+      setIsAuthenticated(false)
+      setIsLoading(false)
     }
-    return () => {
-      dispatch(clearAnalytics())
-    }
-  }, [fetchAnalyticsData, user, dispatch])
+  }, [fetchAnalyticsData, user])
 
   // Group blog data by blogTitle and calculate totals/averages
   const groupedBlogData = useMemo(() => {
@@ -316,7 +358,7 @@ const SearchConsole = () => {
       id: `${group.blogTitle}-${index}`,
       blogTitle: group.blogTitle,
       url: group.url,
-      keywords: [...new Set(group.keywords)], // Remove duplicates
+      keywords: [...new Set(group.keywords)],
       clicks: group.clicks,
       impressions: group.impressions,
       ctr: group.ctr.length
@@ -334,9 +376,11 @@ const SearchConsole = () => {
 
   // Client-side filtered and searched data
   const filteredBlogData = useMemo(() => {
-    let result = selectedBlogTitle === "all" ? groupedBlogData : blogData.filter((item) => item.blogTitle === selectedBlogTitle)
+    let result =
+      selectedBlogTitle === "all"
+        ? groupedBlogData
+        : blogData.filter((item) => item.blogTitle === selectedBlogTitle)
 
-    // Apply fuzzy search with Fuse.js
     if (searchTerm?.trim()) {
       const fuse = new Fuse(result, {
         keys: [
@@ -351,7 +395,6 @@ const SearchConsole = () => {
       result = fuse.search(searchTerm).map(({ item }) => item)
     }
 
-    // Apply country filter
     if (includeCountry && selectedCountries.length > 0) {
       result = result.filter((item) => selectedCountries.includes(item.countryCode))
     }
@@ -382,7 +425,6 @@ const SearchConsole = () => {
     setDateRange("30d")
     setCurrentPage(1)
     setExpandedRows([])
-    // Clear sessionStorage
     sessionStorage.removeItem("gscSearchTerm")
     sessionStorage.removeItem("gscCurrentPage")
     sessionStorage.removeItem("gscItemsPerPage")
@@ -410,42 +452,49 @@ const SearchConsole = () => {
       return
     }
     try {
-      const headers = selectedBlogTitle === "all" ? [
-        "Blog Title",
-        "Keywords",
-        "Total Clicks",
-        "Total Impressions",
-        "Avg CTR (%)",
-        "Avg Position",
-        "URL",
-        ...(includeCountry ? ["Country"] : []),
-      ] : [
-        "Keyword",
-        "Clicks",
-        "Impressions",
-        "CTR (%)",
-        "Position",
-        "URL",
-        ...(includeCountry ? ["Country"] : []),
-      ]
-      const rows = currentPageData.map((item) => selectedBlogTitle === "all" ? {
-        "Blog Title": item.blogTitle,
-        Keywords: item.keywords.join(", "),
-        "Total Clicks": item.clicks,
-        "Total Impressions": item.impressions,
-        "Avg CTR %": item.ctr,
-        "Avg Position": item.position,
-        URL: item.url,
-        ...(includeCountry ? { Country: item.countryName } : {}),
-      } : {
-        Keyword: item.keywords[0],
-        Clicks: item.clicks,
-        Impressions: item.impressions,
-        "CTR %": item.ctr,
-        Position: item.position,
-        URL: item.url,
-        ...(includeCountry ? { Country: item.countryName } : {}),
-      })
+      const headers =
+        selectedBlogTitle === "all"
+          ? [
+              "Blog Title",
+              "Keywords",
+              "Total Clicks",
+              "Total Impressions",
+              "Avg CTR (%)",
+              "Avg Position",
+              "URL",
+              ...(includeCountry ? ["Country"] : []),
+            ]
+          : [
+              "Keyword",
+              "Clicks",
+              "Impressions",
+              "CTR (%)",
+              "Position",
+              "URL",
+              ...(includeCountry ? ["Country"] : []),
+            ]
+      const rows = currentPageData.map((item) =>
+        selectedBlogTitle === "all"
+          ? {
+              "Blog Title": item.blogTitle,
+              Keywords: item.keywords.join(", "),
+              "Total Clicks": item.clicks,
+              "Total Impressions": item.impressions,
+              "Avg CTR (%)": item.ctr,
+              "Avg Position": item.position,
+              URL: item.url,
+              ...(includeCountry ? { Country: item.countryName } : {}),
+            }
+          : {
+              Keyword: item.keywords[0],
+              Clicks: item.clicks,
+              Impressions: item.impressions,
+              "CTR (%)": item.ctr,
+              Position: item.position,
+              URL: item.url,
+              ...(includeCountry ? { Country: item.countryName } : {}),
+            }
+      )
       const worksheet = XLSX.utils.json_to_sheet(rows, { header: headers })
       const workbook = XLSX.utils.book_new()
       XLSX.utils.book_append_sheet(workbook, worksheet, "Search Console Data")
@@ -621,239 +670,254 @@ const SearchConsole = () => {
   ]
 
   // Ant Design Table Columns for main table
-  const columns = selectedBlogTitle === "all" ? [
-    {
-      title: "Blog Title",
-      dataIndex: "blogTitle",
-      key: "blogTitle",
-      render: (blogTitle, record) => (
-        <div
-          className="font-medium text-blue-600 cursor-pointer hover:underline"
-          onClick={() => toggleRow(record.id)}
-        >
-          {blogTitle}
-        </div>
-      ),
-      sorter: (a, b) => a.blogTitle.localeCompare(b.blogTitle),
-    },
-    {
-      title: "Keywords",
-      dataIndex: "keywords",
-      key: "keywords",
-      render: (keywords, record) => (
-        <div className="flex flex-wrap gap-1 max-w-xs">
-          {keywords.length > 0 ? (
-            <Tag color="blue" className="text-sm">
-              +{keywords.length} keywords
-            </Tag>
-          ) : (
-            <Tag color="default" className="text-sm">
-              No keywords
-            </Tag>
-          )}
-        </div>
-      ),
-    },
-    {
-      title: "Total Clicks",
-      dataIndex: "clicks",
-      key: "clicks",
-      sorter: (a, b) => a.clicks - b.clicks,
-      render: (clicks) => (
-        <div className="font-semibold text-gray-900">{new Intl.NumberFormat().format(clicks)}</div>
-      ),
-      align: "center",
-    },
-    {
-      title: "Total Impressions",
-      dataIndex: "impressions",
-      key: "impressions",
-      sorter: (a, b) => a.impressions - b.impressions,
-      render: (impressions) => (
-        <div className="font-semibold text-gray-900">
-          {new Intl.NumberFormat().format(impressions)}
-        </div>
-      ),
-      align: "center",
-    },
-    {
-      title: "Avg CTR",
-      dataIndex: "ctr",
-      key: "ctr",
-      sorter: (a, b) => a.ctr - b.ctr,
-      render: (ctr) => (
-        <div
-          className={`font-semibold ${
-            ctr >= 8 ? "text-green-600" : ctr >= 5 ? "text-yellow-600" : "text-red-600"
-          }`}
-        >
-          {ctr}%
-        </div>
-      ),
-      align: "center",
-    },
-    {
-      title: "Avg Position",
-      dataIndex: "position",
-      key: "position",
-      sorter: (a, b) => a.position - b.position,
-      render: (position) => (
-        <div
-          className={`font-semibold ${
-            position <= 3 ? "text-green-600" : position <= 10 ? "text-yellow-600" : "text-red-600"
-          }`}
-        >
-          {position}
-        </div>
-      ),
-      align: "center",
-    },
-    ...(includeCountry
+  const columns =
+    selectedBlogTitle === "all"
       ? [
           {
-            title: "Country",
-            dataIndex: "countryName",
-            key: "countryName",
-            render: (countryName) => countryName || "-",
-            sorter: (a, b) => a.countryName.localeCompare(b.countryName),
-            filters: countries,
-            filterMultiple: true,
-            onFilter: (value, record) => record.countryCode === value,
+            title: "Blog Title",
+            dataIndex: "blogTitle",
+            key: "blogTitle",
+            render: (blogTitle, record) => (
+              <div
+                className="font-medium text-blue-600 cursor-pointer hover:underline"
+                onClick={() => toggleRow(record.id)}
+              >
+                {blogTitle}
+              </div>
+            ),
+            sorter: (a, b) => a.blogTitle.localeCompare(b.blogTitle),
           },
-        ]
-      : []),
-    {
-      title: "Actions",
-      key: "actions",
-      render: (_, record) => (
-        <div className="flex items-center justify-center gap-2">
-          <Tooltip title="Toggle Keywords">
-            <Button
-              type="text"
-              icon={
-                expandedRows.includes(record.id) ? (
-                  <ChevronUp className="w-4 h-4" />
+          {
+            title: "Keywords",
+            dataIndex: "keywords",
+            key: "keywords",
+            render: (keywords, record) => (
+              <div className="flex flex-wrap gap-1 max-w-xs">
+                {keywords.length > 0 ? (
+                  <Tag color="blue" className="text-sm">
+                    +{keywords.length} keywords
+                  </Tag>
                 ) : (
-                  <ChevronDown className="w-4 h-4" />
-                )
-              }
-              onClick={() => toggleRow(record.id)}
-              title={expandedRows.includes(record.id) ? "Hide Keywords" : "Show Keywords"}
-            />
-          </Tooltip>
-          <Tooltip title={record.url}>
-            <Button
-              type="text"
-              icon={<ExternalLink className="w-4 h-4" />}
-              onClick={() => window.open(record.url, "_blank")}
-              disabled={!record.url}
-              title="View Blog"
-            />
-          </Tooltip>
-        </div>
-      ),
-      align: "center",
-    },
-  ] : [
-    {
-      title: "Keyword",
-      dataIndex: "keywords",
-      key: "keywords",
-      render: (keywords) => (
-        <Tooltip title={keywords[0]}>
-          <Tag color="blue" className="text-sm cursor-pointer">
-            {keywords[0]}
-          </Tag>
-        </Tooltip>
-      ),
-    },
-    {
-      title: "Clicks",
-      dataIndex: "clicks",
-      key: "clicks",
-      sorter: (a, b) => a.clicks - b.clicks,
-      render: (clicks) => (
-        <div className="font-semibold text-gray-900">{new Intl.NumberFormat().format(clicks)}</div>
-      ),
-      align: "center",
-    },
-    {
-      title: "Impressions",
-      dataIndex: "impressions",
-      key: "impressions",
-      sorter: (a, b) => a.impressions - b.impressions,
-      render: (impressions) => (
-        <div className="font-semibold text-gray-900">
-          {new Intl.NumberFormat().format(impressions)}
-        </div>
-      ),
-      align: "center",
-    },
-    {
-      title: "CTR",
-      dataIndex: "ctr",
-      key: "ctr",
-      sorter: (a, b) => a.ctr - b.ctr,
-      render: (ctr) => (
-        <div
-          className={`font-semibold ${
-            ctr >= 8 ? "text-green-600" : ctr >= 5 ? "text-yellow-600" : "text-red-600"
-          }`}
-        >
-          {ctr}%
-        </div>
-      ),
-      align: "center",
-    },
-    {
-      title: "Position",
-      dataIndex: "position",
-      key: "position",
-      sorter: (a, b) => a.position - b.position,
-      render: (position) => (
-        <div
-          className={`font-semibold ${
-            position <= 3 ? "text-green-600" : position <= 10 ? "text-yellow-600" : "text-red-600"
-          }`}
-        >
-          {position}
-        </div>
-      ),
-      align: "center",
-    },
-    ...(includeCountry
-      ? [
+                  <Tag color="default" className="text-sm">
+                    No keywords
+                  </Tag>
+                )}
+              </div>
+            ),
+          },
           {
-            title: "Country",
-            dataIndex: "countryName",
-            key: "countryName",
-            render: (countryName) => countryName || "-",
-            sorter: (a, b) => a.countryName.localeCompare(b.countryName),
-            filters: countries,
-            filterMultiple: true,
-            onFilter: (value, record) => record.countryCode === value,
+            title: "Total Clicks",
+            dataIndex: "clicks",
+            key: "clicks",
+            sorter: (a, b) => a.clicks - b.clicks,
+            render: (clicks) => (
+              <div className="font-semibold text-gray-900">
+                {new Intl.NumberFormat().format(clicks)}
+              </div>
+            ),
+            align: "center",
+          },
+          {
+            title: "Total Impressions",
+            dataIndex: "impressions",
+            key: "impressions",
+            sorter: (a, b) => a.impressions - b.impressions,
+            render: (impressions) => (
+              <div className="font-semibold text-gray-900">
+                {new Intl.NumberFormat().format(impressions)}
+              </div>
+            ),
+            align: "center",
+          },
+          {
+            title: "Avg CTR",
+            dataIndex: "ctr",
+            key: "ctr",
+            sorter: (a, b) => a.ctr - b.ctr,
+            render: (ctr) => (
+              <div
+                className={`font-semibold ${
+                  ctr >= 8 ? "text-green-600" : ctr >= 5 ? "text-yellow-600" : "text-red-600"
+                }`}
+              >
+                {ctr}%
+              </div>
+            ),
+            align: "center",
+          },
+          {
+            title: "Avg Position",
+            dataIndex: "position",
+            key: "position",
+            sorter: (a, b) => a.position - b.position,
+            render: (position) => (
+              <div
+                className={`font-semibold ${
+                  position <= 3
+                    ? "text-green-600"
+                    : position <= 10
+                    ? "text-yellow-600"
+                    : "text-red-600"
+                }`}
+              >
+                {position}
+              </div>
+            ),
+            align: "center",
+          },
+          ...(includeCountry
+            ? [
+                {
+                  title: "Country",
+                  dataIndex: "countryName",
+                  key: "countryName",
+                  render: (countryName) => countryName || "-",
+                  sorter: (a, b) => a.countryName.localeCompare(b.countryName),
+                  filters: countries,
+                  filterMultiple: true,
+                  onFilter: (value, record) => record.countryCode === value,
+                },
+              ]
+            : []),
+          {
+            title: "Actions",
+            key: "actions",
+            render: (_, record) => (
+              <div className="flex items-center justify-center gap-2">
+                <Tooltip title="Toggle Keywords">
+                  <Button
+                    type="text"
+                    icon={
+                      expandedRows.includes(record.id) ? (
+                        <ChevronUp className="w-4 h-4" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4" />
+                      )
+                    }
+                    onClick={() => toggleRow(record.id)}
+                    title={expandedRows.includes(record.id) ? "Hide Keywords" : "Show Keywords"}
+                  />
+                </Tooltip>
+                <Tooltip title={record.url}>
+                  <Button
+                    type="text"
+                    icon={<ExternalLink className="w-4 h-4" />}
+                    onClick={() => window.open(record.url, "_blank")}
+                    disabled={!record.url}
+                    title="View Blog"
+                  />
+                </Tooltip>
+              </div>
+            ),
+            align: "center",
           },
         ]
-      : []),
-    {
-      title: "Actions",
-      key: "actions",
-      render: (_, record) => (
-        <div className="flex items-center justify-center gap-2">
-          <Tooltip title={record.url}>
-            <Button
-              type="text"
-              icon={<ExternalLink className="w-4 h-4" />}
-              onClick={() => window.open(record.url, "_blank")}
-              disabled={!record.url}
-              title="View Blog"
-            />
-          </Tooltip>
-        </div>
-      ),
-      align: "center",
-    },
-  ]
+      : [
+          {
+            title: "Keyword",
+            dataIndex: "keywords",
+            key: "keywords",
+            render: (keywords) => (
+              <Tooltip title={keywords[0]}>
+                <Tag color="blue" className="text-sm cursor-pointer">
+                  {keywords[0]}
+                </Tag>
+              </Tooltip>
+            ),
+          },
+          {
+            title: "Clicks",
+            dataIndex: "clicks",
+            key: "clicks",
+            sorter: (a, b) => a.clicks - b.clicks,
+            render: (clicks) => (
+              <div className="font-semibold text-gray-900">
+                {new Intl.NumberFormat().format(clicks)}
+              </div>
+            ),
+            align: "center",
+          },
+          {
+            title: "Impressions",
+            dataIndex: "impressions",
+            key: "impressions",
+            sorter: (a, b) => a.impressions - b.impressions,
+            render: (impressions) => (
+              <div className="font-semibold text-gray-900">
+                {new Intl.NumberFormat().format(impressions)}
+              </div>
+            ),
+            align: "center",
+          },
+          {
+            title: "CTR",
+            dataIndex: "ctr",
+            key: "ctr",
+            sorter: (a, b) => a.ctr - b.ctr,
+            render: (ctr) => (
+              <div
+                className={`font-semibold ${
+                  ctr >= 8 ? "text-green-600" : ctr >= 5 ? "text-yellow-600" : "text-red-600"
+                }`}
+              >
+                {ctr}%
+              </div>
+            ),
+            align: "center",
+          },
+          {
+            title: "Position",
+            dataIndex: "position",
+            key: "position",
+            sorter: (a, b) => a.position - b.position,
+            render: (position) => (
+              <div
+                className={`font-semibold ${
+                  position <= 3
+                    ? "text-green-600"
+                    : position <= 10
+                    ? "text-yellow-600"
+                    : "text-red-600"
+                }`}
+              >
+                {position}
+              </div>
+            ),
+            align: "center",
+          },
+          ...(includeCountry
+            ? [
+                {
+                  title: "Country",
+                  dataIndex: "countryName",
+                  key: "countryName",
+                  render: (countryName) => countryName || "-",
+                  sorter: (a, b) => a.countryName.localeCompare(b.countryName),
+                  filters: countries,
+                  filterMultiple: true,
+                  onFilter: (value, record) => record.countryCode === value,
+                },
+              ]
+            : []),
+          {
+            title: "Actions",
+            key: "actions",
+            render: (_, record) => (
+              <div className="flex items-center justify-center gap-2">
+                <Tooltip title={record.url}>
+                  <Button
+                    type="text"
+                    icon={<ExternalLink className="w-4 h-4" />}
+                    onClick={() => window.open(record.url, "_blank")}
+                    disabled={!record.url}
+                    title="View Blog"
+                  />
+                </Tooltip>
+              </div>
+            ),
+            align: "center",
+          },
+        ]
 
   // Format number helper
   const formatNumber = (num) => new Intl.NumberFormat().format(num)
@@ -863,7 +927,7 @@ const SearchConsole = () => {
     return <UpgradeModal featureName={"Google Search Console"} />
   }
 
-  // Show reconnection UI for invalid_grant or if not authenticated
+  // Show reconnection UI only if not authenticated or invalid_grant error
   if (!isAuthenticated || isInvalidGrantError(connectErr)) {
     return (
       <div
@@ -882,7 +946,9 @@ const SearchConsole = () => {
             </div>
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-4">
-            {isInvalidGrantError(connectErr) ? "Reconnect Google Search Console" : "Connect Google Search Console"}
+            {isInvalidGrantError(connectErr)
+              ? "Reconnect Google Search Console"
+              : "Connect Google Search Console"}
           </h2>
           <p className="text-gray-600 text-sm mb-6">
             {isInvalidGrantError(connectErr)
@@ -893,7 +959,9 @@ const SearchConsole = () => {
             <div className="bg-red-100 text-red-800 p-3 rounded-lg text-sm mb-4">
               {isInvalidGrantError(connectErr)
                 ? "Invalid grant: Your authentication token is no longer valid."
-                : typeof connectErr === "string" ? connectErr : connectErr.message || connectErr.error || "An error occurred"}
+                : typeof connectErr === "string"
+                ? connectErr
+                : connectErr.message || connectErr.error || "An error occurred"}
               <div className="mt-2">
                 <Button type="link" onClick={connectGSC} disabled={isConnecting}>
                   Try Reconnecting
@@ -931,14 +999,12 @@ const SearchConsole = () => {
     )
   }
 
-  // Main UI with data
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-transparent p-5">
       <Helmet>
         <title>Blog Performance | GenWrite</title>
       </Helmet>
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-5">
           <div>
             <motion.h1
@@ -973,218 +1039,203 @@ const SearchConsole = () => {
           </div>
         </div>
 
-        {/* Summary Cards */}
-        {!isLoading && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                  <MousePointer className="w-6 h-6 text-blue-600" />
-                </div>
-                <TrendingUp className="w-5 h-5 text-green-500" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                <MousePointer className="w-6 h-6 text-blue-600" />
               </div>
-              <h3 className="text-2xl font-bold text-gray-900">{formatNumber(totals.clicks)}</h3>
-              <p className="text-gray-600 text-sm">{selectedBlogTitle === "all" ? "Total Clicks" : "Clicks"}</p>
+              <TrendingUp className="w-5 h-5 text-green-500" />
             </div>
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                  <Eye className="w-6 h-6 text-purple-600" />
-                </div>
-                <TrendingUp className="w-5 h-5 text-green-500" />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900">
-                {formatNumber(totals.impressions)}
-              </h3>
-              <p className="text-gray-600 text-sm">{selectedBlogTitle === "all" ? "Total Impressions" : "Impressions"}</p>
-            </div>
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                  <BarChart3 className="w-6 h-6 text-green-600" />
-                </div>
-                <TrendingDown className="w-5 h-5 text-red-500" />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900">{totals.avgCtr.toFixed(2)}%</h3>
-              <p className="text-gray-600 text-sm">Average CTR</p>
-            </div>
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
-                  <TrendingUp className="w-6 h-6 text-orange-600" />
-                </div>
-                <TrendingUp className="w-5 h-5 text-green-500" />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900">{totals.avgPosition.toFixed(1)}</h3>
-              <p className="text-gray-600 text-sm">Average Position</p>
-            </div>
+            <h3 className="text-2xl font-bold text-gray-900">{formatNumber(totals.clicks)}</h3>
+            <p className="text-gray-600 text-sm">
+              {selectedBlogTitle === "all" ? "Total Clicks" : "Clicks"}
+            </p>
           </div>
-        )}
-
-        {/* Filters and Search */}
-        {!isLoading && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3">
-            <div className="flex flex-col lg:flex-row gap-4 items-center">
-              {/* Search Input */}
-              <div className="flex-1 flex items-center gap-2">
-                <AntSearch
-                  placeholder="Search by URL, keywords, or title..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onSearch={handleSearch}
-                  enterButton={<Search className="w-5 h-5 text-white" />}
-                  suffix={
-                    searchTerm && (
-                      <span
-                        onClick={() => handleSearch("")}
-                        className="cursor-pointer text-gray-400 text-xs transition"
-                      >
-                        <X className="w-4 h-4" />
-                      </span>
-                    )
-                  }
-                  className={`w-full ${searchTerm ? "border-orange-400 shadow-orange-100" : ""}`}
-                />
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                <Eye className="w-6 h-6 text-purple-600" />
               </div>
+              <TrendingUp className="w-5 h-5 text-green-500" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900">{formatNumber(totals.impressions)}</h3>
+            <p className="text-gray-600 text-sm">
+              {selectedBlogTitle === "all" ? "Total Impressions" : "Impressions"}
+            </p>
+          </div>
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                <BarChart3 className="w-6 h-6 text-green-600" />
+              </div>
+              <TrendingDown className="w-5 h-5 text-red-500" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900">{totals.avgCtr.toFixed(2)}%</h3>
+            <p className="text-gray-600 text-sm">Average CTR</p>
+          </div>
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-orange-600" />
+              </div>
+              <TrendingUp className="w-5 h-5 text-green-500" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900">{totals.avgPosition.toFixed(1)}</h3>
+            <p className="text-gray-600 text-sm">Average Position</p>
+          </div>
+        </div>
 
-              {/* Blog Selector */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3">
+          <div className="flex flex-col lg:flex-row gap-4 items-center">
+            <div className="flex-1 flex items-center gap-2">
+              <AntSearch
+                placeholder="Search by URL, keywords, or title..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onSearch={handleSearch}
+                enterButton={<Search className="w-5 h-5 text-white" />}
+                suffix={
+                  searchTerm && (
+                    <span
+                      onClick={() => handleSearch("")}
+                      className="cursor-pointer text-gray-400 text-xs transition"
+                    >
+                      <X className="w-4 h-4" />
+                    </span>
+                  )
+                }
+                className={`w-full ${searchTerm ? "border-orange-400 shadow-orange-100" : ""}`}
+              />
+            </div>
+            <div className="flex-1">
+              <Select
+                value={selectedBlogTitle}
+                onChange={(value) => {
+                  setSelectedBlogTitle(value)
+                  setCurrentPage(1)
+                  setExpandedRows([])
+                  fetchAnalyticsData()
+                }}
+                className="w-full"
+                placeholder="Select Blog"
+              >
+                {blogTitles.map((title) => (
+                  <Option key={title} value={title}>
+                    {title === "all" ? "All Blogs" : title}
+                  </Option>
+                ))}
+              </Select>
+            </div>
+            <div className="w-1/6">
+              <Select
+                value={customDateRange[0] ? "custom" : dateRange}
+                onChange={(value) => {
+                  setDateRange(value)
+                  setCustomDateRange([null, null])
+                  setCurrentPage(1)
+                  setExpandedRows([])
+                  fetchAnalyticsData()
+                }}
+                className="w-full"
+              >
+                <Option value="7d">Last 7 Days</Option>
+                <Option value="30d">Last 30 Days</Option>
+                <Option value="180d">Last 6 Months</Option>
+                <Option value="custom">Custom Range</Option>
+              </Select>
+            </div>
+            {dateRange === "custom" && (
               <div className="flex-1">
-                <Select
-                  value={selectedBlogTitle}
-                  onChange={(value) => {
-                    setSelectedBlogTitle(value)
+                <RangePicker
+                  value={customDateRange}
+                  onChange={(dates) => {
+                    setCustomDateRange(dates)
                     setCurrentPage(1)
                     setExpandedRows([])
                     fetchAnalyticsData()
                   }}
+                  disabledDate={(current) => current && current > moment().endOf("day")}
                   className="w-full"
-                  placeholder="Select Blog"
-                >
-                  {blogTitles.map((title) => (
-                    <Option key={title} value={title}>
-                      {title === "all" ? "All Blogs" : title}
-                    </Option>
-                  ))}
-                </Select>
-              </div>
-
-              {/* Date Selector */}
-              <div className="w-1/6">
-                <Select
-                  value={customDateRange[0] ? "custom" : dateRange}
-                  onChange={(value) => {
-                    setDateRange(value)
-                    setCustomDateRange([null, null])
-                    setCurrentPage(1)
-                    setExpandedRows([])
-                    fetchAnalyticsData()
-                  }}
-                  className="w-full"
-                >
-                  <Option value="7d">Last 7 Days</Option>
-                  <Option value="30d">Last 30 Days</Option>
-                  <Option value="180d">Last 6 Months</Option>
-                  <Option value="custom">Custom Range</Option>
-                </Select>
-              </div>
-
-              {/* Conditionally show RangePicker only for custom */}
-              {dateRange === "custom" && (
-                <div className="flex-1">
-                  <RangePicker
-                    value={customDateRange}
-                    onChange={(dates) => {
-                      setCustomDateRange(dates)
-                      setCurrentPage(1)
-                      setExpandedRows([])
-                      fetchAnalyticsData()
-                    }}
-                    disabledDate={(current) => current && current > moment().endOf("day")}
-                    className="w-full"
-                    placeholder={["Start Date", "End Date"]}
-                  />
-                </div>
-              )}
-
-              {/* Country Switch */}
-              <div className="flex-2 flex items-center gap-2">
-                <label className="text-sm font-medium text-gray-700">Include Country</label>
-                <Switch
-                  checked={includeCountry}
-                  onChange={(checked) => {
-                    setIncludeCountry(checked)
-                    if (!checked) setSelectedCountries([])
-                    setCurrentPage(1)
-                    setExpandedRows([])
-                    fetchAnalyticsData()
-                  }}
-                  className={`w-fit ${includeCountry ? "bg-blue-600" : "bg-gray-200"}`}
+                  placeholder={["Start Date", "End Date"]}
                 />
               </div>
-
-              {/* Reset Button */}
-              <div className="flex-2">
-                <Button
-                  icon={<RefreshCw className="w-4 h-4" />}
-                  onClick={resetAllFilters}
-                  className={`w-full flex items-center gap-2 ${
-                    hasActiveFilters ? "border-red-400 bg-red-50 text-red-600" : ""
-                  }`}
-                >
-                  Reset
-                </Button>
-              </div>
+            )}
+            <div className="flex-2 flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700">Include Country</label>
+              <Switch
+                checked={includeCountry}
+                onChange={(checked) => {
+                  setIncludeCountry(checked)
+                  if (!checked) setSelectedCountries([])
+                  setCurrentPage(1)
+                  setExpandedRows([])
+                  fetchAnalyticsData()
+                }}
+                className={`w-fit ${includeCountry ? "bg-blue-600" : "bg-gray-200"}`}
+              />
+            </div>
+            <div className="flex-2">
+              <Button
+                icon={<RefreshCw className="w-4 h-4" />}
+                onClick={resetAllFilters}
+                className={`w-full flex items-center gap-2 ${
+                  hasActiveFilters ? "border-red-400 bg-red-50 text-red-600" : ""
+                }`}
+              >
+                Reset
+              </Button>
             </div>
           </div>
-        )}
+        </div>
 
-        {/* Data Table */}
-        {!isLoading && (
-          <Table
-            columns={columns}
-            dataSource={filteredBlogData}
-            rowKey="id"
-            pagination={{
-              current: currentPage,
-              pageSize: itemsPerPage,
-              total: filteredBlogData.length,
-              onChange: (page, pageSize) => {
-                setCurrentPage(page)
-                setItemsPerPage(pageSize)
-              },
-              pageSizeOptions: [10, 20, 50, 100],
-              showSizeChanger: true,
-              showTotal: (total) => `Total ${total} results`,
-            }}
-            expandable={selectedBlogTitle === "all" ? {
-              expandedRowKeys: expandedRows,
-              onExpand: (expanded, record) => toggleRow(record.id),
-              expandedRowRender: (record) => (
-                <Table
-                  columns={keywordColumns}
-                  dataSource={record.keywordDetails}
-                  rowKey="id"
-                  pagination={false}
-                  className="bg-gray-50 rounded-lg"
-                />
-              ),
-            } : undefined}
-            onChange={(pagination, filters) => {
-              setSelectedCountries(filters.countryName || [])
-              setCurrentPage(pagination.current)
-              setItemsPerPage(pagination.pageSize)
-            }}
-            className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
-            locale={{
-              emptyText: error
-                ? `Error: ${error}. Please try refreshing or reconnecting GSC.`
-                : "No data available. Try adjusting your filters or refreshing the data.",
-            }}
-          />
-        )}
+        <Table
+          columns={columns}
+          dataSource={filteredBlogData}
+          rowKey="id"
+          pagination={{
+            current: currentPage,
+            pageSize: itemsPerPage,
+            total: filteredBlogData.length,
+            onChange: (page, pageSize) => {
+              setCurrentPage(page)
+              setItemsPerPage(pageSize)
+            },
+            pageSizeOptions: [10, 20, 50, 100],
+            showSizeChanger: true,
+            showTotal: (total) => `Total ${total} results`,
+          }}
+          expandable={
+            selectedBlogTitle === "all"
+              ? {
+                  expandedRowKeys: expandedRows,
+                  onExpand: (expanded, record) => toggleRow(record.id),
+                  expandedRowRender: (record) => (
+                    <Table
+                      columns={keywordColumns}
+                      dataSource={record.keywordDetails}
+                      rowKey="id"
+                      pagination={false}
+                      className="bg-gray-50 rounded-lg"
+                    />
+                  ),
+                }
+              : undefined
+          }
+          onChange={(pagination, filters) => {
+            setSelectedCountries(filters.countryName || [])
+            setCurrentPage(pagination.current)
+            setItemsPerPage(pagination.pageSize)
+          }}
+          className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
+          locale={{
+            emptyText: error
+              ? `Error: ${error}. Please try refreshing or reconnecting GSC.`
+              : "No data available. Try adjusting your filters or refreshing the data.",
+          }}
+        />
       </div>
 
-      {/* Custom CSS for Select highlighting and table styling */}
       <style jsx>{`
         .ant-select-highlighted-green .ant-select-selector {
           border-color: #10b981 !important;
