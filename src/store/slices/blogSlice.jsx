@@ -167,10 +167,8 @@ export const retryBlog = createAsyncThunk(
     try {
       const result = await retryBlogById(id, payload)
       message.success(result?.message || "Blog regenerated successfully")
-      console.log("hit")
       return result
     } catch (error) {
-      console.log(error)
       message.error(error.message || "Something went wrong")
       return rejectWithValue(error.message || "Failed to retry blog")
     }
@@ -273,7 +271,6 @@ export const fetchBlogStatus = createAsyncThunk(
 export const fetchBlogs = createAsyncThunk("blogs/fetchBlogs", async (_, { rejectWithValue }) => {
   try {
     const result = await getBlogs()
-    console.log({ result })
     return result
   } catch (error) {
     return rejectWithValue(error?.message || "Something went wrong")
