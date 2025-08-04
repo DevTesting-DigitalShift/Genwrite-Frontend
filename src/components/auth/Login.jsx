@@ -17,6 +17,7 @@ import { FcGoogle } from "react-icons/fc"
 import { Sparkles, Zap, PenTool, CheckCircle } from "lucide-react"
 import { Helmet } from "react-helmet"
 import { message } from "antd"
+import ReactGA from "react-ga4"
 
 const Auth = ({ path }) => {
   const [formData, setFormData] = useState({
@@ -32,6 +33,18 @@ const Auth = ({ path }) => {
 
   const dispatch = useDispatch()
   const navigate = useNavigate()
+
+  if (isSignup) {
+    ReactGA.event("sign_up", {
+      event: 'sign_up',
+      method: "email",
+    })
+  } else {
+    ReactGA.event("login", {
+       event: 'login',
+      method: "email",
+    })
+  }
 
   // Validate form fields
   const validateForm = useCallback(() => {
@@ -91,6 +104,10 @@ const Auth = ({ path }) => {
       dispatch(googleLogin(tokenResponse.access_token))
         .unwrap()
         .then((user) => {
+          ReactGA.event(isSignup ? "sign_up" : "login", {
+            event: isSignup ? 'sign_up' : 'login',
+            method: "google",
+          })
           message.success("Google login successful!")
           navigate("/dashboard", { replace: true })
         })

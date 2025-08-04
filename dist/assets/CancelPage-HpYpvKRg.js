@@ -1,0 +1,1 @@
+import{F as a,j as e,B as r}from"./index-BiN8l-P3.js";import{R as s}from"./index-fTYdwJ0y.js";import"./chunk-tiptap-DcNQbKmZ.js";function l(){const t=a();return e.jsx(s,{status:"error",title:"Payment Cancelled",subTitle:"You cancelled the payment. No changes were made.",extra:[e.jsx(r,{onClick:()=>t("/"),children:"Return to Dashboard"})]})}export{l as default};

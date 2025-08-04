@@ -6,6 +6,7 @@ import { Check, Coins, Crown, Mail, Shield, Star, X, Zap } from "lucide-react"
 import { Helmet } from "react-helmet"
 import { SkeletonCard } from "@components/Projects/SkeletonLoader"
 import { message } from "antd"
+import ReactGA from "react-ga4"
 
 const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
   const [customCredits, setCustomCredits] = useState(500)
@@ -181,6 +182,11 @@ const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
               )
             } else {
               onBuy(plan, plan.credits, billingPeriod)
+              dataLayer.push({
+                'event': 'contactSalesClick',
+                'planName': plan.name,
+                'billingPeriod': billingPeriod
+              });
             }
           }}
           className={`w-full py-4 px-6 rounded-lg font-semibold transition-all duration-300 hover:transform hover:scale-105 hover:shadow-lg ${
