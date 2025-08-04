@@ -46,7 +46,7 @@ export const letsBegin = [
     imageUrl: "./Images/createmultipleblog.png",
     title: "Create Multiple Blogs",
     icon: <Grid3X3 className="w-6 h-6" />,
-    content: "Ellipse draft overflow arrange pen",
+    content: "Generate multiple blogs using a variety of customizable templates.",
     hoverGradient: "from-emerald-600 to-emerald-700",
   },
 ]
@@ -55,7 +55,7 @@ export const quickTools = [
   {
     id: 1,
     title: "Keyword Research",
-    content: "Fill bold resizing vector create group inspect effect",
+    content: "Explore keywords, check stats, and power your blogs & jobs.",
     icon: <Search className="w-8 h-8" />,
     color: "text-blue-600",
     bgColor: "bg-blue-50",
@@ -64,7 +64,7 @@ export const quickTools = [
   {
     id: 3,
     title: "Performance Monitoring",
-    content: "Generate blogs, emails , product description etc",
+    content: "Monitor your blog's SEO, keywords, and competitor data easily.",
     icon: <Activity className="w-8 h-8" />,
     color: "text-orange-600",
     bgColor: "bg-orange-50",
@@ -73,7 +73,7 @@ export const quickTools = [
   {
     id: 4,
     title: "Competitor Analysis",
-    content: "Analyze your competitors' content and strategies",
+    content: "Analyze your competitors' content and strategies.",
     icon: <Users className="w-8 h-8" />,
     color: "text-purple-600",
     bgColor: "bg-purple-50",
