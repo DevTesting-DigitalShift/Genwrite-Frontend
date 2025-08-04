@@ -59,7 +59,6 @@ const QuickBlogModal = ({ closeFnc }) => {
 
   // Handle form submission
   const handleSubmit = () => {
-    const totalLinks = videoLinks.length + otherLinks.length
     const newErrors = {
       template: !formData.template,
       focusKeywords: formData.focusKeywords.length === 0,
@@ -72,6 +71,18 @@ const QuickBlogModal = ({ closeFnc }) => {
 
     if (Object.values(newErrors).some((error) => error)) {
       message.error("Please fill all required fields.")
+      return
+    }
+
+    // Additional validation for link limits
+    if (videoLinks.length > 3) {
+      setErrors((prev) => ({ ...prev, videoLinks: true }))
+      message.error("You can only add up to 3 video links.")
+      return
+    }
+    if (otherLinks.length > 3) {
+      setErrors((prev) => ({ ...prev, otherLinks: true }))
+      message.error("You can only add up to 3 other links.")
       return
     }
 
@@ -178,6 +189,7 @@ const QuickBlogModal = ({ closeFnc }) => {
     const input = formData[inputKey]?.trim()
     const existingLinks = isVideo ? videoLinks : otherLinks
     const setLinks = isVideo ? setVideoLinks : setOtherLinks
+    const maxLinks = 3 // Maximum links per type
 
     if (!input) {
       setErrors((prev) => ({ ...prev, [errorKey]: true }))
@@ -204,6 +216,7 @@ const QuickBlogModal = ({ closeFnc }) => {
           const videoDomains = ["youtube.com", "youtu.be", "vimeo.com"]
           if (!videoDomains.some((domain) => urlObj.hostname.includes(domain))) {
             setErrors((prev) => ({ ...prev, videoLinks: true }))
+            message.error("Please enter a valid video URL (e.g., YouTube, Vimeo).")
             continue
           }
         }
@@ -226,10 +239,9 @@ const QuickBlogModal = ({ closeFnc }) => {
       return
     }
 
-    const totalLinks = videoLinks.length + otherLinks.length + validNewLinks.length
-    if (totalLinks > 3) {
+    if (existingLinks.length + validNewLinks.length > maxLinks) {
       setErrors((prev) => ({ ...prev, [errorKey]: true }))
-      message.error("You can only add up to 3 links in total (video and other combined).")
+      message.error(`You can only add up to ${maxLinks} ${isVideo ? "video" : "other"} links.`)
       return
     }
 
@@ -462,7 +474,7 @@ const QuickBlogModal = ({ closeFnc }) => {
               </div>
               {errors.videoLinks && (
                 <p className="text-red-500 text-sm mt-1">
-                  Please add at least one valid video link.
+                  Please add at least one valid video link (up to 3 allowed).
                 </p>
               )}
               <div className="flex flex-wrap gap-2 mt-2">
@@ -532,7 +544,7 @@ const QuickBlogModal = ({ closeFnc }) => {
                   </div>
                   {errors.otherLinks && (
                     <p className="text-red-500 text-sm">
-                      Please add at least one valid other link.
+                      Please add at least one valid other link (up to 3 allowed).
                     </p>
                   )}
                   <div className="flex flex-wrap gap-2">
