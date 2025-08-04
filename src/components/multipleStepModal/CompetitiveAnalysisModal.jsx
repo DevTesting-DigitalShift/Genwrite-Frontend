@@ -235,7 +235,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
               <div>{parseSummary(competitor.content)}</div>
             ) : (
               <>
-                <p className="mb-2 font-medium">{competitor.snippet}</p>
+                <p className="mb-2 font-medium">{competitor.snippet || competitor.content}</p>
                 <div>{parseSummary(competitor.summary)}</div>
               </>
             )}
