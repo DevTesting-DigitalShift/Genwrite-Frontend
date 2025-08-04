@@ -471,10 +471,6 @@ const AnalyticsPage = () => {
                 </ChartCard>
               ))}
             </div>
-
-            <div className="mt-12 text-center text-sm text-gray-500">
-              <p>Last updated: {new Date().toLocaleString()}</p>
-            </div>
           </>
         )}
       </div>

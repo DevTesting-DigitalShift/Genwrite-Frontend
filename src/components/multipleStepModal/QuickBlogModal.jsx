@@ -6,33 +6,37 @@ import Carousel from "./Carousel"
 import { packages } from "@constants/templates"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
-import { message, Modal } from "antd"
+import { message, Modal, Switch } from "antd"
 import { Plus, X } from "lucide-react"
 
 const QuickBlogModal = ({ closeFnc }) => {
   const [currentStep, setCurrentStep] = useState(0)
   const [selectedPackage, setSelectedPackage] = useState(null)
-  const [inputs, setInputs] = useState([])
+  const [videoLinks, setVideoLinks] = useState([]) // Store video links
+  const [otherLinks, setOtherLinks] = useState([]) // Store other links
+  const [isOtherLinksEnabled, setIsOtherLinksEnabled] = useState(false) // Toggle for other links
   const [errors, setErrors] = useState({
     template: false,
     focusKeywords: false,
     keywords: false,
     videoLinks: false,
+    otherLinks: false,
   })
   const [formData, setFormData] = useState({
     template: null,
     keywords: [],
     focusKeywords: [],
-    videoLinks: [],
-    keywordInput: "",
-    focusKeywordInput: "",
     videoLinkInput: "",
+    otherLinkInput: "",
+    focusKeywordInput: "",
+    keywordInput: "",
   })
 
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
 
+  // Handle navigation to the next step
   const handleNext = () => {
     if (currentStep === 0 && !formData.template) {
       setErrors((prev) => ({ ...prev, template: true }))
@@ -43,42 +47,48 @@ const QuickBlogModal = ({ closeFnc }) => {
     setCurrentStep(currentStep + 1)
   }
 
+  // Handle navigation to the previous step
   const handlePrev = () => {
     setCurrentStep(currentStep - 1)
   }
 
+  // Handle modal close
   const handleClose = () => {
     closeFnc()
   }
 
+  // Handle form submission
   const handleSubmit = () => {
+    const totalLinks = videoLinks.length + otherLinks.length
     const newErrors = {
       template: !formData.template,
       focusKeywords: formData.focusKeywords.length === 0,
       keywords: formData.keywords.length === 0,
-      videoLinks: inputs.length === 0,
+      videoLinks: videoLinks.length === 0,
+      otherLinks: isOtherLinksEnabled && otherLinks.length === 0,
     }
 
     setErrors(newErrors)
 
     if (Object.values(newErrors).some((error) => error)) {
-      message.error("Please fill all the fields")
+      message.error("Please fill all required fields.")
       return
     }
 
     const finalData = {
       ...formData,
-      videoLinks: inputs,
+      videoLinks: [...videoLinks, ...otherLinks], // Merge video and other links
     }
+
     handlePopup({
       title: "Quick Blog Generation",
       description: (
         <>
           <span>
-            Quick blog generation is <b>{getEstimatedCost("blog.quick")} credits.</b>
+            Quick blog generation costs <b>{getEstimatedCost("blog.quick")} credits</b>.
           </span>
           <br />
-          <span>Are you sure ?</span>
+          <span>Are you sure you want to proceed?</span>
         </>
       ),
       onConfirm: () => {
@@ -88,24 +98,27 @@ const QuickBlogModal = ({ closeFnc }) => {
     })
   }
 
+  // Handle template selection
   const handlePackageSelect = (index) => {
     setSelectedPackage(index)
-    setFormData({
-      ...formData,
+    setFormData((prev) => ({
+      ...prev,
       template: packages[index].name,
-    })
+    }))
     setErrors((prev) => ({ ...prev, template: false }))
   }
 
+  // Handle keyword input changes
   const handleKeywordInputChange = (e, type) => {
     const key = type === "keywords" ? "keywordInput" : "focusKeywordInput"
-    setFormData((prevState) => ({
-      ...prevState,
+    setFormData((prev) => ({
+      ...prev,
       [key]: e.target.value,
     }))
     setErrors((prev) => ({ ...prev, [type]: false }))
   }
 
+  // Add keywords to the form data
   const handleAddKeyword = (type) => {
     const inputKey = type === "keywords" ? "keywordInput" : "focusKeywordInput"
     const inputValue = formData[inputKey].trim()
@@ -142,12 +155,14 @@ const QuickBlogModal = ({ closeFnc }) => {
     setErrors((prev) => ({ ...prev, [type]: false }))
   }
 
+  // Remove a keyword
   const handleRemoveKeyword = (index, type) => {
     const updatedKeywords = [...formData[type]]
     updatedKeywords.splice(index, 1)
     setFormData({ ...formData, [type]: updatedKeywords })
   }
 
+  // Handle Enter key for keywords
   const handleKeyPress = (e, type) => {
     if (e.key === "Enter") {
       e.preventDefault()
@@ -155,11 +170,18 @@ const QuickBlogModal = ({ closeFnc }) => {
     }
   }
 
-  const handleAddLink = () => {
-    const input = formData.videoLinkInput?.trim()
+  // Add links (video or other)
+  const handleAddLink = (type) => {
+    const isVideo = type === "video"
+    const inputKey = isVideo ? "videoLinkInput" : "otherLinkInput"
+    const errorKey = isVideo ? "videoLinks" : "otherLinks"
+    const input = formData[inputKey]?.trim()
+    const existingLinks = isVideo ? videoLinks : otherLinks
+    const setLinks = isVideo ? setVideoLinks : setOtherLinks
+
     if (!input) {
-      setErrors((prev) => ({ ...prev, videoLinks: true }))
-      message.error("Please enter at least one link.")
+      setErrors((prev) => ({ ...prev, [errorKey]: true }))
+      message.error(`Please enter at least one ${isVideo ? "video" : "other"} link.`)
       return
     }
 
@@ -178,46 +200,64 @@ const QuickBlogModal = ({ closeFnc }) => {
 
       try {
         const urlObj = new URL(validatedUrl)
-        if (!inputs.includes(validatedUrl) && !validNewLinks.includes(validatedUrl)) {
+        if (isVideo) {
+          const videoDomains = ["youtube.com", "youtu.be", "vimeo.com"]
+          if (!videoDomains.some((domain) => urlObj.hostname.includes(domain))) {
+            setErrors((prev) => ({ ...prev, videoLinks: true }))
+            continue
+          }
+        }
+        if (
+          !videoLinks.includes(validatedUrl) &&
+          !otherLinks.includes(validatedUrl) &&
+          !validNewLinks.includes(validatedUrl)
+        ) {
           validNewLinks.push(validatedUrl)
         }
       } catch {
-        // Invalid URL, skip it
+        setErrors((prev) => ({ ...prev, [errorKey]: true }))
+        message.error(`Invalid ${isVideo ? "video" : "other"} URL: ${rawLink}`)
       }
     }
 
     if (validNewLinks.length === 0) {
-      setErrors((prev) => ({ ...prev, videoLinks: true }))
-      message.error("No valid, unique URLs found.")
+      setErrors((prev) => ({ ...prev, [errorKey]: true }))
+      message.error(`No valid, unique ${isVideo ? "video" : "other"} URLs found.`)
       return
     }
 
-    const totalLinks = inputs.length + validNewLinks.length
+    const totalLinks = videoLinks.length + otherLinks.length + validNewLinks.length
     if (totalLinks > 3) {
-      setErrors((prev) => ({ ...prev, videoLinks: true }))
-      message.error("You can only add up to 3 links in total.")
+      setErrors((prev) => ({ ...prev, [errorKey]: true }))
+      message.error("You can only add up to 3 links in total (video and other combined).")
       return
     }
 
-    setInputs([...inputs, ...validNewLinks])
+    setLinks([...existingLinks, ...validNewLinks])
     setFormData((prev) => ({
       ...prev,
-      videoLinkInput: "",
+      [inputKey]: "",
     }))
-    setErrors((prev) => ({ ...prev, videoLinks: false }))
+    setErrors((prev) => ({ ...prev, [errorKey]: false }))
   }
 
-  const handleKeyDown = (e) => {
+  // Handle Enter key for links
+  const handleKeyDown = (e, type) => {
     if (e.key === "Enter") {
       e.preventDefault()
-      handleAddLink()
+      handleAddLink(type)
     }
   }
 
-  const handleRemoveLink = (index) => {
-    const updatedInputs = [...inputs]
-    updatedInputs.splice(index, 1)
-    setInputs(updatedInputs)
+  // Remove a link
+  const handleRemoveLink = (index, type) => {
+    const isVideo = type === "video"
+    const existingLinks = isVideo ? videoLinks : otherLinks
+    const setLinks = isVideo ? setVideoLinks : setOtherLinks
+    const updatedLinks = [...existingLinks]
+    updatedLinks.splice(index, 1)
+    setLinks(updatedLinks)
+    setErrors((prev) => ({ ...prev, [isVideo ? "videoLinks" : "otherLinks"]: false }))
   }
 
   return (
@@ -231,7 +271,8 @@ const QuickBlogModal = ({ closeFnc }) => {
               <button
                 key="next"
                 onClick={handleNext}
-                className="px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 ml-3"
+                className="px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 transition-colors"
+                aria-label="Next step"
               >
                 Next
               </button>,
@@ -240,14 +281,16 @@ const QuickBlogModal = ({ closeFnc }) => {
               <button
                 key="previous"
                 onClick={handlePrev}
-                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none"
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+                aria-label="Previous step"
               >
                 Previous
               </button>,
               <button
                 key="submit"
                 onClick={handleSubmit}
-                className="px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 ml-3"
+                className="px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 transition-colors ml-3"
+                aria-label="Submit quick blog"
               >
                 Submit
               </button>,
@@ -258,42 +301,47 @@ const QuickBlogModal = ({ closeFnc }) => {
       transitionName=""
       maskTransitionName=""
     >
-      <div className="p-4">
+      <div className="p-6 space-y-6">
         {currentStep === 0 && (
-          <div>
-            <div className="p-3">
-              <Carousel>
-                {packages.map((pkg, index) => (
-                  <div
-                    key={index}
-                    className={`cursor-pointer transition-all duration-200 ${
-                      formData.template === pkg.name ? "border-gray-300 border-2 rounded-md" : ""
-                    }`}
-                    onClick={() => handlePackageSelect(index)}
-                  >
-                    <div className="bg-white rounded-md overflow-hidden">
-                      <div className="relative">
-                        <img
-                          src={pkg.imgSrc || "/placeholder.svg"}
-                          alt={pkg.name}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div className="p-2 mt-2">
-                        <h3 className="font-medium text-gray-900 mb-1">{pkg.name}</h3>
-                        <p className="text-sm text-gray-500 line-clamp-2">{pkg.description}</p>
-                      </div>
+          <div className="p-3">
+            <Carousel>
+              {packages.map((pkg, index) => (
+                <div
+                  key={index}
+                  className={`cursor-pointer transition-all duration-200 ${
+                    formData.template === pkg.name ? "border-gray-300 border-2 rounded-md" : ""
+                  }`}
+                  onClick={() => handlePackageSelect(index)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === "Enter" && handlePackageSelect(index)}
+                  aria-label={`Select ${pkg.name} template`}
+                >
+                  <div className="bg-white rounded-md overflow-hidden">
+                    <div className="relative">
+                      <img
+                        src={pkg.imgSrc || "/placeholder.svg"}
+                        alt={pkg.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="p-2 mt-2">
+                      <h3 className="font-medium text-gray-900 mb-1">{pkg.name}</h3>
+                      <p className="text-sm text-gray-500 line-clamp-2">{pkg.description}</p>
                     </div>
                   </div>
-                ))}
-              </Carousel>
-            </div>
+                </div>
+              ))}
+            </Carousel>
+            {errors.template && (
+              <p className="text-red-500 text-sm mt-2">Please select a template.</p>
+            )}
           </div>
         )}
         {currentStep === 1 && (
-          <div className="space-y-6">
+          <div className="space-y-8">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Focus Keywords <span className="text-red-500">*</span>
               </label>
               <div className="flex gap-2">
@@ -306,14 +354,19 @@ const QuickBlogModal = ({ closeFnc }) => {
                     errors.focusKeywords ? "border-red-500" : "border-gray-200"
                   } rounded-md text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-600`}
                   placeholder="Enter focus keywords, separated by commas"
+                  aria-label="Focus keywords"
                 />
                 <button
                   onClick={() => handleAddKeyword("focusKeywords")}
-                  className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm flex items-center"
+                  className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm flex items-center hover:bg-[#1B6FC9]/90 transition-colors"
+                  aria-label="Add focus keywords"
                 >
                   <Plus size={16} />
                 </button>
               </div>
+              {errors.focusKeywords && (
+                <p className="text-red-500 text-sm mt-1">Please add at least one focus keyword.</p>
+              )}
               <div className="flex flex-wrap gap-2 mt-2">
                 {formData.focusKeywords.map((keyword, index) => (
                   <span
@@ -324,6 +377,7 @@ const QuickBlogModal = ({ closeFnc }) => {
                     <button
                       onClick={() => handleRemoveKeyword(index, "focusKeywords")}
                       className="ml-1 text-blue-400 hover:text-blue-600"
+                      aria-label={`Remove ${keyword}`}
                     >
                       <X size={16} />
                     </button>
@@ -333,7 +387,7 @@ const QuickBlogModal = ({ closeFnc }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Keywords <span className="text-red-500">*</span>
               </label>
               <div className="flex gap-2">
@@ -346,14 +400,21 @@ const QuickBlogModal = ({ closeFnc }) => {
                     errors.keywords ? "border-red-500" : "border-gray-200"
                   } rounded-md text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-600`}
                   placeholder="Enter secondary keywords, separated by commas"
+                  aria-label="Secondary keywords"
                 />
                 <button
                   onClick={() => handleAddKeyword("keywords")}
-                  className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm flex items-center"
+                  className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm flex items-center hover:bg-[#1B6FC9]/90 transition-colors"
+                  aria-label="Add secondary keywords"
                 >
                   <Plus size={16} />
                 </button>
               </div>
+              {errors.keywords && (
+                <p className="text-red-500 text-sm mt-1">
+                  Please add at least one secondary keyword.
+                </p>
+              )}
               <div className="flex flex-wrap gap-2 mt-2">
                 {formData.keywords.map((keyword, index) => (
                   <span
@@ -364,6 +425,7 @@ const QuickBlogModal = ({ closeFnc }) => {
                     <button
                       onClick={() => handleRemoveKeyword(index, "keywords")}
                       className="ml-1 text-blue-400 hover:text-blue-600"
+                      aria-label={`Remove ${keyword}`}
                     >
                       <X size={16} />
                     </button>
@@ -373,48 +435,125 @@ const QuickBlogModal = ({ closeFnc }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Add Links (max 3) <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Video Links (e.g., YouTube, Vimeo) <span className="text-red-500">*</span>
               </label>
               <div className="flex gap-2">
                 <input
                   type="text"
-                  value={formData.videoLinkInput || ""}
+                  value={formData.videoLinkInput}
                   onChange={(e) =>
-                    setFormData((prevState) => ({
-                      ...prevState,
-                      videoLinkInput: e.target.value,
-                    }))
+                    setFormData((prev) => ({ ...prev, videoLinkInput: e.target.value }))
                   }
-                  onKeyDown={handleKeyDown}
+                  onKeyDown={(e) => handleKeyDown(e, "video")}
                   className={`flex-1 px-3 py-2 border ${
                     errors.videoLinks ? "border-red-500" : "border-gray-200"
                   } rounded-md text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-600`}
-                  placeholder="Enter links, separated by commas"
+                  placeholder="Enter video links (e.g., YouTube, Vimeo), separated by commas"
+                  aria-label="Video links"
                 />
                 <button
-                  onClick={handleAddLink}
-                  className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm flex items-center"
+                  onClick={() => handleAddLink("video")}
+                  className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm flex items-center hover:bg-[#1B6FC9]/90 transition-colors"
+                  aria-label="Add video links"
                 >
                   <Plus size={16} />
                 </button>
               </div>
+              {errors.videoLinks && (
+                <p className="text-red-500 text-sm mt-1">
+                  Please add at least one valid video link.
+                </p>
+              )}
               <div className="flex flex-wrap gap-2 mt-2">
-                {inputs.map((input, index) => (
+                {videoLinks.map((link, index) => (
                   <span
                     key={index}
                     className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
                   >
-                    {input}
+                    {link}
                     <button
-                      onClick={() => handleRemoveLink(index)}
+                      onClick={() => handleRemoveLink(index, "video")}
                       className="ml-1 text-blue-400 hover:text-blue-600"
+                      aria-label={`Remove ${link}`}
                     >
                       <X size={16} />
                     </button>
                   </span>
                 ))}
               </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Other Links (e.g., articles, websites)
+                  {isOtherLinksEnabled && <span className="text-red-500">*</span>}
+                </label>
+                <div className="flex items-center gap-2">
+                  {/* <span className="text-sm text-gray-600">Enable Other Links</span> */}
+                  <Switch
+                    checked={isOtherLinksEnabled}
+                    onChange={(checked) => {
+                      setIsOtherLinksEnabled(checked)
+                      if (!checked) {
+                        setOtherLinks([]) // Clear other links when toggle is turned off
+                        setFormData((prev) => ({ ...prev, otherLinkInput: "" }))
+                        setErrors((prev) => ({ ...prev, otherLinks: false }))
+                      }
+                    }}
+                    aria-label="Toggle other links input"
+                  />
+                </div>
+              </div>
+              {isOtherLinksEnabled && (
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={formData.otherLinkInput}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, otherLinkInput: e.target.value }))
+                      }
+                      onKeyDown={(e) => handleKeyDown(e, "other")}
+                      className={`flex-1 px-3 py-2 border ${
+                        errors.otherLinks ? "border-red-500" : "border-gray-200"
+                      } rounded-md text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-600`}
+                      placeholder="Enter other links (e.g., articles, websites), separated by commas"
+                      aria-label="Other links"
+                    />
+                    <button
+                      onClick={() => handleAddLink("other")}
+                      className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm flex items-center hover:bg-[#1B6FC9]/90 transition-colors"
+                      aria-label="Add other links"
+                    >
+                      <Plus size={16} />
+                    </button>
+                  </div>
+                  {errors.otherLinks && (
+                    <p className="text-red-500 text-sm">
+                      Please add at least one valid other link.
+                    </p>
+                  )}
+                  <div className="flex flex-wrap gap-2">
+                    {otherLinks.map((link, index) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
+                      >
+                        {link}
+                        <button
+                          onClick={() => handleRemoveLink(index, "other")}
+                          className="ml-1 text-blue-400 hover:text-blue-600"
+                          aria-label={`Remove ${link}`}
+                        >
+                          <X size={16} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

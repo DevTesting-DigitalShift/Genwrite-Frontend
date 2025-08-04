@@ -35,7 +35,8 @@ import {
   ClockCircleOutlined,
 } from "@ant-design/icons";
 import { Helmet } from "react-helmet";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { selectUser } from "@store/slices/authSlice"; // Assuming you have this in your authSlice
 import { archiveBlog, fetchAllBlogs, retryBlog } from "@store/slices/blogSlice";
 import moment from "moment";
 import Fuse from "fuse.js";
@@ -43,45 +44,77 @@ import Fuse from "fuse.js";
 const { RangePicker } = DatePicker;
 
 const MyProjects = () => {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const user = useSelector(selectUser); // Get user data from Redux
+  const userId = user?.id || "guest"; // Use user ID or fallback to "guest" if not logged in
   const [filteredBlogs, setFilteredBlogs] = useState([]);
   const [allBlogs, setAllBlogs] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(15);
   const [loading, setLoading] = useState(false);
-  const [sortType, setSortType] = useState(() => sessionStorage.getItem("sortType") || "updatedAt");
-  const [sortOrder, setSortOrder] = useState(() => sessionStorage.getItem("sortOrder") || "desc");
-  const [statusFilter, setStatusFilter] = useState(() => sessionStorage.getItem("statusFilter") || "all");
+  const [sortType, setSortType] = useState(() =>
+    sessionStorage.getItem(`user_${userId}_sortType`) || "updatedAt"
+  );
+  const [sortOrder, setSortOrder] = useState(() =>
+    sessionStorage.getItem(`user_${userId}_sortOrder`) || "desc"
+  );
+  const [statusFilter, setStatusFilter] = useState(() =>
+    sessionStorage.getItem(`user_${userId}_statusFilter`) || "all"
+  );
   const [dateRange, setDateRange] = useState([
-    sessionStorage.getItem("dateRangeStart") ? moment(sessionStorage.getItem("dateRangeStart")) : null,
-    sessionStorage.getItem("dateRangeEnd") ? moment(sessionStorage.getItem("dateRangeEnd")) : null,
+    sessionStorage.getItem(`user_${userId}_dateRangeStart`)
+      ? moment(sessionStorage.getItem(`user_${userId}_dateRangeStart`))
+      : null,
+    sessionStorage.getItem(`user_${userId}_dateRangeEnd`)
+      ? moment(sessionStorage.getItem(`user_${userId}_dateRangeEnd`))
+      : null,
   ]);
   const [presetDateRange, setPresetDateRange] = useState([
-    sessionStorage.getItem("presetDateRangeStart") ? moment(sessionStorage.getItem("presetDateRangeStart")) : null,
-    sessionStorage.getItem("presetDateRangeEnd") ? moment(sessionStorage.getItem("presetDateRangeEnd")) : null,
+    sessionStorage.getItem(`user_${userId}_presetDateRangeStart`)
+      ? moment(sessionStorage.getItem(`user_${userId}_presetDateRangeStart`))
+      : null,
+    sessionStorage.getItem(`user_${userId}_presetDateRangeEnd`)
+      ? moment(sessionStorage.getItem(`user_${userId}_presetDateRangeEnd`))
+      : null,
   ]);
-  const [searchTerm, setSearchTerm] = useState(() => sessionStorage.getItem("searchTerm") || "");
+  const [searchTerm, setSearchTerm] = useState(() =>
+    sessionStorage.getItem(`user_${userId}_searchTerm`) || ""
+  );
   const [isMenuOpen, setMenuOpen] = useState(false);
   const [isFunnelMenuOpen, setFunnelMenuOpen] = useState(false);
   const [isCustomDatePickerOpen, setIsCustomDatePickerOpen] = useState(false);
-  const [activePresetLabel, setActivePresetLabel] = useState(() => sessionStorage.getItem("activePresetLabel") || "");
-  const navigate = useNavigate();
+  const [activePresetLabel, setActivePresetLabel] = useState(() =>
+    sessionStorage.getItem(`user_${userId}_activePresetLabel`) || ""
+  );
   const { handlePopup } = useConfirmPopup();
-  const dispatch = useDispatch();
   const TRUNCATE_LENGTH = 120;
   const [totalBlogs, setTotalBlogs] = useState(0);
 
-  // Persist filter states to sessionStorage
+  // Persist filter states to sessionStorage with user-specific keys
   useEffect(() => {
-    sessionStorage.setItem("sortType", sortType);
-    sessionStorage.setItem("sortOrder", sortOrder);
-    sessionStorage.setItem("statusFilter", statusFilter);
-    sessionStorage.setItem("searchTerm", searchTerm);
-    sessionStorage.setItem("activePresetLabel", activePresetLabel);
-    sessionStorage.setItem("dateRangeStart", dateRange[0] ? dateRange[0].toISOString() : "");
-    sessionStorage.setItem("dateRangeEnd", dateRange[1] ? dateRange[1].toISOString() : "");
-    sessionStorage.setItem("presetDateRangeStart", presetDateRange[0] ? presetDateRange[0].toISOString() : "");
-    sessionStorage.setItem("presetDateRangeEnd", presetDateRange[1] ? presetDateRange[1].toISOString() : "");
-  }, [sortType, sortOrder, statusFilter, searchTerm, dateRange, presetDateRange, activePresetLabel]);
+    sessionStorage.setItem(`user_${userId}_sortType`, sortType);
+    sessionStorage.setItem(`user_${userId}_sortOrder`, sortOrder);
+    sessionStorage.setItem(`user_${userId}_statusFilter`, statusFilter);
+    sessionStorage.setItem(`user_${userId}_searchTerm`, searchTerm);
+    sessionStorage.setItem(`user_${userId}_activePresetLabel`, activePresetLabel);
+    sessionStorage.setItem(
+      `user_${userId}_dateRangeStart`,
+      dateRange[0] ? dateRange[0].toISOString() : ""
+    );
+    sessionStorage.setItem(
+      `user_${userId}_dateRangeEnd`,
+      dateRange[1] ? dateRange[1].toISOString() : ""
+    );
+    sessionStorage.setItem(
+      `user_${userId}_presetDateRangeStart`,
+      presetDateRange[0] ? presetDateRange[0].toISOString() : ""
+    );
+    sessionStorage.setItem(
+      `user_${userId}_presetDateRangeEnd`,
+      presetDateRange[1] ? presetDateRange[1].toISOString() : ""
+    );
+  }, [userId, sortType, sortOrder, statusFilter, searchTerm, dateRange, presetDateRange, activePresetLabel]);
 
   // Scroll to top on page change
   useEffect(() => {
@@ -98,16 +131,16 @@ const MyProjects = () => {
     setActivePresetLabel("");
     setSearchTerm("");
     setCurrentPage(1);
-    // Clear sessionStorage
-    sessionStorage.removeItem("sortType");
-    sessionStorage.removeItem("sortOrder");
-    sessionStorage.removeItem("statusFilter");
-    sessionStorage.removeItem("searchTerm");
-    sessionStorage.removeItem("activePresetLabel");
-    sessionStorage.removeItem("dateRangeStart");
-    sessionStorage.removeItem("dateRangeEnd");
-    sessionStorage.removeItem("presetDateRangeStart");
-    sessionStorage.removeItem("presetDateRangeEnd");
+    // Clear sessionStorage for this user
+    sessionStorage.removeItem(`user_${userId}_sortType`);
+    sessionStorage.removeItem(`user_${userId}_sortOrder`);
+    sessionStorage.removeItem(`user_${userId}_statusFilter`);
+    sessionStorage.removeItem(`user_${userId}_searchTerm`);
+    sessionStorage.removeItem(`user_${userId}_activePresetLabel`);
+    sessionStorage.removeItem(`user_${userId}_dateRangeStart`);
+    sessionStorage.removeItem(`user_${userId}_dateRangeEnd`);
+    sessionStorage.removeItem(`user_${userId}_presetDateRangeStart`);
+    sessionStorage.removeItem(`user_${userId}_presetDateRangeEnd`);
   };
 
   const clearSearch = () => {
@@ -747,7 +780,7 @@ const MyProjects = () => {
                           {isGemini
                             ? "Gemini 2.0 flash"
                             : aiModel === "claude"
-                            ? "Claude 4 sonnet"
+                            ? "Claude 4 sonnet"
                             : "Gpt 4.1 nano"}
                         </>
                       )}

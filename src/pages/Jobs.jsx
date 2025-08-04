@@ -1,5 +1,4 @@
-// @components/Jobs/Jobs.jsx
-import React, { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { motion } from "framer-motion"
 import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
@@ -32,36 +31,32 @@ const Jobs = () => {
   const usage = user?.usage?.createdJobs
   const usageLimit = user?.usageLimits?.createdJobs
 
-  const JOB_LIMITS = {
-    free: 1,
-    basic: 1,
-    pro: 5,
-    enterprise: Infinity,
-  }
-
   const checkJobLimit = () => {
-    const limit = JOB_LIMITS[userPlan] || 0
-    if (usage >= limit) {
-      message.error(
-        `You have reached the job limit for your content agent. ${
-          userPlan === "basic"
-            ? "Delete an existing job to create a new one."
-            : "Please upgrade your plan to create more jobs."
-        }`
-      )
-      // if (userPlan !== "basic") {
-      //   openUpgradePopup({ featureName: "Additional Jobs", navigate });
-      // }
+    // if (!isUserLoaded) {
+    //   openUpgradePopup({
+    //     featureName: "Loading Error",
+    //     description: "User data is still loading. Please try again.",
+    //     navigate,
+    //   })
+    //   return false
+    // }
+
+    if (usage >= usageLimit) {
+      openUpgradePopup({
+        featureName: "Additional Jobs",
+        // description:
+        //   userPlan === "basic"
+        //     ? "Delete an existing job to create a new one."
+        //     : "Please upgrade your plan to create more jobs.",
+        navigate,
+      })
       return false
     }
+
     return true
   }
 
   const handleOpenJobModal = () => {
-    if (!isUserLoaded) {
-      message.error("User data is still loading. Please try again.")
-      return
-    }
     if (!checkJobLimit()) return
     dispatch(openJobModal(null)) // Pass null for new job
   }
@@ -86,9 +81,11 @@ const Jobs = () => {
     return jobs.slice(startIndex, startIndex + PAGE_SIZE)
   }, [jobs, currentPage])
 
-  // if (userPlan === "free") {
-  //   return <UpgradeModal featureName="Content Agent" />;
-  // }
+  if (userPlan === "free") {
+    return <UpgradeModal featureName="Content Agent" />
+  }
+
+  console.log(usage >= usageLimit, usage, usageLimit)
 
   return (
     <>

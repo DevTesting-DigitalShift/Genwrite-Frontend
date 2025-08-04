@@ -959,11 +959,11 @@ const SearchConsole = () => {
                 : typeof connectErr === "string"
                 ? connectErr
                 : connectErr.message || connectErr.error || "An error occurred"}
-              <div className="mt-2">
+              {/* <div className="mt-2">
                 <Button type="link" onClick={connectGSC} disabled={isConnecting}>
                   Try Reconnecting
                 </Button>
-              </div>
+              </div> */}
             </div>
           )}
           <button
