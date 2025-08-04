@@ -7,6 +7,7 @@ import { packages } from "@constants/templates"
 import { Crown, Info, Plus, TriangleAlert, Upload, X } from "lucide-react"
 import { useSelector } from "react-redux"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
+import { useNavigate } from "react-router-dom"
 
 const { Option } = Select
 
@@ -32,6 +33,7 @@ const StepContent = ({
   const wordLengths = [500, 1000, 1500, 2000, 3000]
   const MAX_BLOGS = 100
   const isAiImagesLimitReached = user?.usage?.aiImages >= user?.usageLimits?.aiImages
+  const navigate = useNavigate()
 
   useEffect(() => {
     if (isAiImagesLimitReached && formData.isCheckedGeneratedImages) {
@@ -56,6 +58,7 @@ const StepContent = ({
       value: "ai-generated",
       restricted: userPlan === "free",
       featureName: "AI-Generated Images",
+      isAiImagesLimitReached,
     },
   ]
 
@@ -475,23 +478,13 @@ const StepContent = ({
             <div className="flex justify-between items-center">
               <label className="block text-sm font-semibold text-gray-700 mb-2">Add Image</label>
               <div className="flex items-center">
-                <label
-                  htmlFor="add-image-toggle"
-                  className={`relative inline-block w-12 h-6 ${
-                    isAiImagesLimitReached ? "opacity-50 cursor-not-allowed" : ""
-                  }`}
-                >
+                <label htmlFor="add-image-toggle" className="relative inline-block w-12 h-6">
                   <input
                     type="checkbox"
                     id="add-image-toggle"
                     className="sr-only peer"
                     checked={newJob.blogs.isCheckedGeneratedImages}
-                    disabled={isAiImagesLimitReached}
                     onChange={(e) => {
-                      if (isAiImagesLimitReached) {
-                        openUpgradePopup({ featureName: "AI-Generated Images", navigate })
-                        return
-                      }
                       const checked = e.target.checked
                       setNewJob((prev) => ({
                         ...prev,
@@ -504,20 +497,16 @@ const StepContent = ({
                   />
                   <div
                     className={`w-12 h-6 rounded-full transition-all duration-300 ${
-                      newJob.blogs.isCheckedGeneratedImages && !isAiImagesLimitReached
-                        ? "bg-[#1B6FC9]"
-                        : "bg-gray-300"
+                      newJob.blogs.isCheckedGeneratedImages ? "bg-[#1B6FC9]" : "bg-gray-300"
                     }`}
                   />
                   <div
                     className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-300 ${
-                      newJob.blogs.isCheckedGeneratedImages && !isAiImagesLimitReached
-                        ? "translate-x-6"
-                        : ""
+                      newJob.blogs.isCheckedGeneratedImages ? "translate-x-6" : ""
                     }`}
                   />
                 </label>
-                {isAiImagesLimitReached && (
+                {newJob.blogs.isCheckedGeneratedImages && isAiImagesLimitReached && (
                   <Tooltip
                     title="You've reached your AI image generation limit. It'll reset in the next billing cycle."
                     overlayInnerStyle={{
@@ -531,50 +520,66 @@ const StepContent = ({
                 )}
               </div>
             </div>
-            {newJob.blogs.isCheckedGeneratedImages && !isAiImagesLimitReached && (
+            {newJob.blogs.isCheckedGeneratedImages && (
               <div className="mb-6">
                 <label className="block text-sm font-semibold text-gray-700 mb-3">
                   Image Source
                 </label>
                 <div className="flex gap-4 flex-wrap">
-                  {imageSources.map((source) => (
-                    <label
-                      key={source.id}
-                      htmlFor={source.id}
-                      className={`border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150 ${
-                        newJob.blogs.imageSource === source.value
-                          ? "border-blue-600 bg-blue-50"
-                          : "border-gray-300"
-                      } hover:shadow-sm w-full max-w-[220px] relative`}
-                      onClick={(e) => {
-                        if (source.restricted) {
-                          e.preventDefault()
-                          openUpgradePopup({ featureName: source.featureName, navigate })
-                        }
-                      }}
-                    >
-                      <input
-                        type="radio"
-                        id={source.id}
-                        name="imageSource"
-                        value={source.value}
-                        checked={newJob.blogs.imageSource === source.value}
-                        onChange={() => {
-                          if (!source.restricted) {
-                            setNewJob({
-                              ...newJob,
-                              blogs: { ...newJob.blogs, imageSource: source.value },
-                            })
+                  {imageSources.map((source) => {
+                    const isAiRestricted =
+                      source.value === "ai-generated" && source.isAiImagesLimitReached
+
+                    const isBlocked = source.restricted || isAiRestricted
+
+                    return (
+                      <label
+                        key={source.id}
+                        htmlFor={source.id}
+                        className={`border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150
+          ${
+            newJob.blogs.imageSource === source.value
+              ? "border-blue-600 bg-blue-50"
+              : "border-gray-300"
+          }
+          hover:shadow-sm w-full max-w-[220px] relative
+          ${isBlocked ? "opacity-50 cursor-not-allowed" : ""}
+        `}
+                        onClick={(e) => {
+                          if (isBlocked) {
+                            e.preventDefault()
+                            // openUpgradePopup({
+                            //   featureName: source.featureName || "AI-Generated Images",
+                            //   navigate,
+                            // })
                           }
                         }}
-                        className="hidden"
-                      />
-                      <span className="text-sm font-medium text-gray-800">{source.label}</span>
-                      {source.restricted && (
-                        <Crown className="w-4 h-4 text-yellow-500 absolute top-2 right-2" />
-                      )}
-                    </label>
-                  ))}
+                      >
+                        <input
+                          type="radio"
+                          id={source.id}
+                          name="imageSource"
+                          value={source.value}
+                          checked={newJob.blogs.imageSource === source.value}
+                          onChange={() => {
+                            if (!isBlocked) {
+                              setNewJob({
+                                ...newJob,
+                                blogs: { ...newJob.blogs, imageSource: source.value },
+                              })
+                            }
+                          }}
+                          className="hidden"
+                          disabled={isBlocked}
+                        />
+                        <span className="text-sm font-medium text-gray-800">{source.label}</span>
+
+                        {(source.restricted || isAiRestricted) && (
+                          <Crown className="w-4 h-4 text-yellow-500 absolute top-2 right-2" />
+                        )}
+                      </label>
+                    )
+                  })}
                 </div>
               </div>
             )}

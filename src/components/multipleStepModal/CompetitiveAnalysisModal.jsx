@@ -300,7 +300,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
               }
               className="text-sm text-gray-700 leading-relaxed"
             >
-              <p className=" text-gray-600">{link.snippet}</p>
+              <p className=" text-gray-600">{link.snippet || link.content}</p>
             </Panel>
           ))}
         </Collapse>

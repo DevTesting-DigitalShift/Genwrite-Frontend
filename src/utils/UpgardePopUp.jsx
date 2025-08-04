@@ -6,8 +6,9 @@ export const openUpgradePopup = ({ featureName = "", navigate, fromPage = false,
     content: (
       <>
         <p>
-          <strong>{featureName}</strong> is only available for Pro and Enterprise users.</p>
-        <p>Upgrade your plan to unlock this feature.</p>
+          <strong>{featureName}</strong> is only for subscribers.
+        </p>
+        <p>Upgrade your plan to unlock it.</p>
       </>
     ),
     okText: "Buy Now",
