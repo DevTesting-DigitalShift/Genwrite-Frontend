@@ -85,8 +85,6 @@ const Jobs = () => {
     return <UpgradeModal featureName="Content Agent" />
   }
 
-  console.log(usage >= usageLimit, usage, usageLimit)
-
   return (
     <>
       <Helmet>
