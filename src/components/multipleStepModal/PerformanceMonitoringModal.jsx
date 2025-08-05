@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react"
-import { motion } from "framer-motion"
-import { Tag, Tags } from "lucide-react"
-import { useDispatch } from "react-redux"
-import { Modal, Select, Table, Tooltip, message, Button } from "antd"
-import { InfoCircleOutlined, LoadingOutlined } from "@ant-design/icons"
-import { fetchBlogById, fetchBlogStats } from "@store/slices/blogSlice"
+import { useEffect, useState, useMemo } from "react";
+import { motion } from "framer-motion";
+import { Tag, Tags } from "lucide-react";
+import { useDispatch } from "react-redux";
+import { Modal, Select, Table, Tooltip, message, Button } from "antd";
+import { InfoCircleOutlined, LoadingOutlined } from "@ant-design/icons";
+import { fetchBlogById, fetchBlogStats } from "@store/slices/blogSlice";
 
 const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
   const [formData, setFormData] = useState({
@@ -12,16 +12,27 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
     title: "",
     content: "",
     keywords: [],
-  })
-  const [stats, setStats] = useState(null)
-  const [id, setId] = useState(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const dispatch = useDispatch()
+    focusKeywords: [],
+  });
+  const [stats, setStats] = useState(null);
+  const [id, setId] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const dispatch = useDispatch();
+
+  // Clean markdown for display
+  const cleanMarkdown = (text) => {
+    if (!text) return "";
+    return text
+      .replace(/#{1,3}\s/g, "") // Remove markdown headers
+      .replace(/[\*_~`]/g, "") // Remove markdown formatting (*, _, ~, `)
+      .replace(/\n+/g, "\n") // Normalize newlines
+      .trim();
+  };
 
   // Fetch blog details when id changes
   useEffect(() => {
     if (id) {
-      setIsLoading(true)
+      setIsLoading(true);
       dispatch(fetchBlogById(id))
         .unwrap()
         .then((response) => {
@@ -30,73 +41,79 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
               ...prev,
               title: response.title || "",
               content: response.content || "",
-              keywords: response.focusKeywords || [],
+              keywords: response.keywords || [],
+              focusKeywords: response.focusKeywords || [],
               selectedBlog: response,
               contentType: "markdown",
-            }))
+            }));
           } else {
-            message.error("Blog details not found.")
+            message.error("Blog details not found.");
           }
         })
         .catch((error) => {
-          console.error("Failed to fetch blog by ID:", error)
-          message.error("Failed to fetch blog details.")
+          console.error("Failed to fetch blog by ID:", error);
+          message.error("Failed to fetch blog details.");
         })
-        .finally(() => setIsLoading(false))
+        .finally(() => setIsLoading(false));
     }
-  }, [id, dispatch])
+  }, [id, dispatch]);
 
   // Handle blog selection
   const handleBlogSelect = (value) => {
-    const blog = allBlogs.find((b) => b._id === value)
+    const blog = allBlogs.find((b) => b._id === value);
     if (blog) {
-      setId(blog._id)
+      setId(blog._id);
       setFormData({
         selectedBlog: blog,
         title: blog.title || "",
         content: blog.content || "",
-        keywords: blog.focusKeywords || [],
-      })
-      setStats(null)
+        keywords: blog.keywords || [],
+        focusKeywords: blog.focusKeywords || [],
+      });
+      setStats(null);
     }
-  }
+  };
 
   // Fetch performance stats on button click
   const handleGetInsights = async () => {
     if (!formData.selectedBlog?._id) {
-      message.error("Please select a blog.")
-      return
+      message.error("Please select a blog.");
+      return;
     }
     if (formData.content.length < 500) {
-      message.warning("Your content is too short. This may affect performance analysis accuracy.")
-      return
+      message.warning("Your content is too short. This may affect performance analysis accuracy.");
+      return;
     }
-    setIsLoading(true)
+    setIsLoading(true);
     try {
-      const response = await dispatch(fetchBlogStats(formData.selectedBlog._id)).unwrap()
-      setStats(response.stats || response) // Handle case where stats is nested or not
-      message.success("Performance insights loaded successfully.")
+      const response = await dispatch(fetchBlogStats(formData.selectedBlog._id)).unwrap();
+      setStats(response.stats || response);
+      message.success("Performance insights loaded successfully.");
     } catch (error) {
-      console.error("Failed to fetch blog stats:", error)
-      message.error("Failed to load performance stats.")
+      console.error("Failed to fetch blog stats:", error);
+      message.error("Failed to load performance stats.");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
+
+  // Combine and deduplicate keywords and focusKeywords
+  const mergedKeywords = useMemo(() => {
+    return [...new Set([...formData.keywords, ...formData.focusKeywords])];
+  }, [formData.keywords, formData.focusKeywords]);
 
   const scoreInfo = {
-    flesch:
-      "📘 Flesch Reading Ease (0–100): Higher is easier to read. Aim for 60+ for general audiences.",
+    flesch: "📘 Flesch Reading Ease (0–100): Higher is easier to read. Aim for 60+ for general audiences.",
     smog: "📗 SMOG Index: Estimates education level needed to understand. Lower is better (ideal < 10).",
     ari: "📙 ARI (Automated Readability Index): Based on sentence and word length. Lower = easier.",
     seo: "📈 Blog Score: Evaluates keyword use, metadata, and structure. Aim for 80+ for strong SEO.",
-  }
+  };
 
   const InfoTooltip = ({ type = "seo" }) => (
     <Tooltip title={scoreInfo[type]} trigger={["hover", "click"]} placement="top">
       <InfoCircleOutlined className="ml-2 text-gray-500 hover:text-blue-500 cursor-pointer" />
     </Tooltip>
-  )
+  );
 
   const StatCard = ({ icon, label, value, color, delay = 0, suffix = "", description = "" }) => (
     <motion.div
@@ -117,7 +134,7 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
         </div>
       </div>
     </motion.div>
-  )
+  );
 
   const ScoreBox = ({ score, max, label, level, color }) => (
     <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
@@ -142,19 +159,19 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
         </div>
       </div>
     </div>
-  )
+  );
 
   const StatsInfoBox = ({ stats }) => {
-    if (!stats) return null
-    const { readabililty = {}, seo = {}, engagement = {}, metadata = {} } = stats
-    const keywordDensity = seo?.keywordDensity || {}
+    if (!stats) return null;
+    const { readabililty = {}, seo = {}, engagement = {}, metadata = {} } = stats;
+    const keywordDensity = seo?.keywordDensity || {};
 
     const shortTailCount = Object.keys(keywordDensity).filter(
       (keyword) => keyword.split(" ").length <= 2
-    ).length
+    ).length;
     const longTailCount = Object.keys(keywordDensity).filter(
       (keyword) => keyword.split(" ").length > 2
-    ).length
+    ).length;
 
     const dataSource = Object.entries(keywordDensity).map(
       ([keyword, { count, density }], index) => ({
@@ -164,7 +181,7 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
         density: density,
         animationDelay: index * 0.1,
       })
-    )
+    );
 
     const columns = [
       {
@@ -190,7 +207,7 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
         align: "center",
         width: "5ch",
       },
-    ]
+    ];
 
     return (
       <motion.div
@@ -242,7 +259,7 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
             </div>
           </div>
           {metadata?.generatedAt && (
-            <div className="mt-4 bg-gray-50 p-3 rounded-lg border normal-case border-gray-100">
+            <div className="mt-4 bg-gray-50 p-3 rounded-lg border border-gray-100">
               <p className="text-xs text-gray-500">Generated At</p>
               <p className="text-sm font-medium text-gray-800">
                 {new Date(metadata.generatedAt).toLocaleString("en-IN")}
@@ -362,12 +379,12 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
                   transition={{ delay: i * 0.1 }}
                   className="px-3 py-1 bg-blue-50 rounded-full text-sm text-blue-700 border border-blue-100 hover:bg-blue-100 transition-colors"
                 >
-                  {k}
+                  {cleanMarkdown(k)}
                 </motion.span>
               ))}
             </div>
           </div>
-          {seo?.keywords.length > 0 && (
+          {seo?.keywords?.length > 0 && (
             <div className="mt-4">
               <h5 className="text-sm font-semibold text-gray-700 mb-3">Other Keywords</h5>
               <div className="flex flex-wrap gap-2">
@@ -377,9 +394,9 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.1 }}
-                    className="px-3 py-2 bg-gray-100 rounded-full text-sm text-gray-700 border border-gray-200 hover:bg-gray-200 transition-colors"
+                    className="px-3 py-1 bg-gray-100 rounded-full text-sm text-gray-700 border border-gray-200 hover:bg-gray-200 transition-colors"
                   >
-                    {k}
+                    {cleanMarkdown(k)}
                   </motion.span>
                 ))}
               </div>
@@ -418,7 +435,7 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
                 components={{
                   body: {
                     row: ({ children, ...restProps }) => {
-                      const delay = dataSource[restProps["data-row-key"]]?.animationDelay || 0
+                      const delay = dataSource[restProps["data-row-key"]]?.animationDelay || 0;
                       return (
                         <motion.tr
                           {...restProps}
@@ -428,7 +445,7 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
                         >
                           {children}
                         </motion.tr>
-                      )
+                      );
                     },
                   },
                 }}
@@ -565,18 +582,19 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
           </div>
         </div>
       </motion.div>
-    )
-  }
+    );
+  };
+
   useEffect(() => {
     if (visible) {
-      document.body.style.overflow = "hidden"
+      document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = "auto"
+      document.body.style.overflow = "auto";
     }
     return () => {
-      document.body.style.overflow = "auto"
-    }
-  }, [visible])
+      document.body.style.overflow = "auto";
+    };
+  }, [visible]);
 
   return (
     <Modal
@@ -669,42 +687,33 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
                       if (line.startsWith("### ")) {
                         return (
                           <h3 key={index} className="text-lg font-semibold mt-2">
-                            {line
-                              .replace("### ", "")
-                              .replace(/[*_~>`]/g, "")
-                              .trim()}
+                            {cleanMarkdown(line.replace("### ", ""))}
                           </h3>
-                        )
+                        );
                       } else if (line.startsWith("## ")) {
                         return (
                           <h2 key={index} className="text-xl font-semibold mt-2">
-                            {line
-                              .replace("## ", "")
-                              .replace(/[*_~>`]/g, "")
-                              .trim()}
+                            {cleanMarkdown(line.replace("## ", ""))}
                           </h2>
-                        )
+                        );
                       } else if (line.startsWith("# ")) {
                         return (
                           <h1 key={index} className="text-2xl font-bold mt-2">
-                            {line
-                              .replace("# ", "")
-                              .replace(/[*_~>`]/g, "")
-                              .trim()}
+                            {cleanMarkdown(line.replace("# ", ""))}
                           </h1>
-                        )
+                        );
                       } else {
                         return (
                           <p key={index} className="text-base mt-2">
-                            {line.replace(/[*_~>`]/g, "").trim()}
+                            {cleanMarkdown(line)}
                           </p>
-                        )
+                        );
                       }
                     })}
                 </div>
               </div>
             </motion.div>
-            {formData.keywords?.length > 0 && (
+            {mergedKeywords.length > 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -713,7 +722,7 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
               >
                 <h4 className="text-md font-semibold text-gray-700 mb-2">Keywords</h4>
                 <div className="flex flex-wrap gap-2">
-                  {formData.keywords.map((keyword, i) => (
+                  {mergedKeywords.map((keyword, i) => (
                     <motion.span
                       key={keyword}
                       initial={{ opacity: 0, y: 5 }}
@@ -721,7 +730,7 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
                       transition={{ delay: i * 0.1 }}
                       className="px-3 py-1 bg-blue-50 rounded-full text-sm text-blue-700 border border-blue-100 hover:bg-blue-100 transition-colors"
                     >
-                      {keyword}
+                      {cleanMarkdown(keyword)}
                     </motion.span>
                   ))}
                 </div>
@@ -757,7 +766,7 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
         )}
       </div>
     </Modal>
-  )
-}
+  );
+};
 
-export default PerformanceMonitoringModal
+export default PerformanceMonitoringModal;

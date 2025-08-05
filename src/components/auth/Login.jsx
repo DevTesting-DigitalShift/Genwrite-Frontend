@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom"
 import { googleLogin, loginUser, signupUser } from "../../store/slices/authSlice"
 import { useGoogleLogin } from "@react-oauth/google"
 import { motion, AnimatePresence } from "framer-motion"
+import ReCAPTCHA from "react-google-recaptcha"
 import {
   FaEnvelope,
   FaLock,
@@ -30,18 +31,19 @@ const Auth = ({ path }) => {
   const [isSignup, setIsSignup] = useState(path === "signup")
   const [loading, setLoading] = useState(false)
   const [termsAccepted, setTermsAccepted] = useState(false)
+  const [recaptchaValue, setRecaptchaValue] = useState(null)
 
   const dispatch = useDispatch()
   const navigate = useNavigate()
 
   if (isSignup) {
     ReactGA.event("sign_up", {
-      event: 'sign_up',
+      event: "sign_up",
       method: "email",
     })
   } else {
     ReactGA.event("login", {
-       event: 'login',
+      event: "login",
       method: "email",
     })
   }
@@ -78,9 +80,13 @@ const Auth = ({ path }) => {
       newErrors.terms = "You must accept the Terms and Conditions."
     }
 
+    if (!recaptchaValue) {
+      newErrors.recaptcha = "Please complete the reCAPTCHA."
+    }
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
-  }, [formData, isSignup, termsAccepted])
+  }, [formData, isSignup, termsAccepted, recaptchaValue])
 
   // Handle input changes with debounced validation
   const handleInputChange = useCallback((e) => {
@@ -96,6 +102,11 @@ const Auth = ({ path }) => {
     setErrors((prev) => ({ ...prev, terms: undefined }))
   }, [])
 
+  const onRecaptchaChange = (value) => {
+    setRecaptchaValue(value)
+    setErrors((prev) => ({ ...prev, recaptcha: undefined }))
+  }
+
   // Handle Google
   const handleGoogleLogin = useGoogleLogin({
     flow: "implicit",
@@ -105,7 +116,7 @@ const Auth = ({ path }) => {
         .unwrap()
         .then((user) => {
           ReactGA.event(isSignup ? "sign_up" : "login", {
-            event: isSignup ? 'sign_up' : 'login',
+            event: isSignup ? "sign_up" : "login",
             method: "google",
           })
           message.success("Google login successful!")
@@ -132,8 +143,13 @@ const Auth = ({ path }) => {
 
       try {
         const action = isSignup
-          ? signupUser({ email: formData.email, password: formData.password, name: formData.name })
-          : loginUser({ email: formData.email, password: formData.password })
+          ? signupUser({
+              email: formData.email,
+              password: formData.password,
+              name: formData.name,
+              recaptchaValue,
+            })
+          : loginUser({ email: formData.email, password: formData.password, recaptchaValue })
 
         await dispatch(action).unwrap()
         message.success(isSignup ? "Signup successful!" : "Login successful!")
@@ -147,7 +163,7 @@ const Auth = ({ path }) => {
         setLoading(false)
       }
     },
-    [formData, isSignup, dispatch, navigate, validateForm]
+    [formData, isSignup, dispatch, navigate, validateForm, recaptchaValue]
   )
 
   // Update isSignup based on path
@@ -156,6 +172,7 @@ const Auth = ({ path }) => {
     setFormData({ email: "", password: "", name: "" })
     setErrors({})
     setTermsAccepted(false)
+    setRecaptchaValue(null)
   }, [path])
 
   const features = [
@@ -468,6 +485,26 @@ const Auth = ({ path }) => {
                     </AnimatePresence>
                   </div>
                 )}
+
+                <div className="flex justify-center">
+                  <ReCAPTCHA
+                    sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
+                    onChange={onRecaptchaChange}
+                  />
+                </div>
+                <AnimatePresence>
+                  {errors.recaptcha && (
+                    <motion.p
+                      initial={{ opacity: 0, y: -5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -5 }}
+                      className="text-red-600 text-xs text-center"
+                      id="recaptcha-error"
+                    >
+                      {errors.recaptcha}
+                    </motion.p>
+                  )}
+                </AnimatePresence>
 
                 {/* Forgot Password Link (Login Only) */}
                 {!isSignup && (
