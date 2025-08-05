@@ -24,7 +24,7 @@ import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useNavigate } from "react-router-dom"
 import { useDispatch, useSelector } from "react-redux"
-import { Button, Modal, Tooltip, message, Tabs, Badge, Collapse, Dropdown, Menu } from "antd"
+import { Button, Modal, Tooltip, message, Tabs, Badge, Collapse, Dropdown, Menu, Tag } from "antd"
 import { fetchProofreadingSuggestions } from "@store/slices/blogSlice"
 import { fetchCompetitiveAnalysisThunk } from "@store/slices/analysisSlice"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
@@ -745,14 +745,15 @@ const TextEditorSidebar = ({
               <span className="text-xs font-medium text-blue-600">{index + 1}</span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">{item.title}</p>
+              <p className="text-sm font-medium mb-1 text-gray-900 truncate">{item.title}</p>
               <a
                 href={item.link || item.url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
               >
-                View <ExternalLink className="w-3 h-3" />
+                {item.score && <Tag color="blue">{(item.score * 100).toFixed(2)}%</Tag>}
+                Visit <ExternalLink className="w-3 h-3" />
               </a>
             </div>
           </motion.div>
@@ -791,6 +792,8 @@ const TextEditorSidebar = ({
 
           const shouldTruncate = text?.length > 120 && !isExpanded
           const displayText = shouldTruncate ? text.slice(0, 120) + "..." : text
+          const match = value.match(/\((\d+\/\d+)\)$/)
+          const score = match ? match[1] : null
 
           return (
             <motion.div
@@ -803,9 +806,12 @@ const TextEditorSidebar = ({
               <div className="flex items-start gap-2">
                 <Lightbulb className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
                 <div className="flex-1">
-                  <p className="font-medium text-blue-900 text-sm mb-1">
-                    {key.replace(/([A-Z])/g, " $1").trim()}
-                  </p>
+                  <div className="flex justify-between">
+                    <p className="font-medium text-blue-900 text-sm mb-1">
+                      {key.replace(/([A-Z])/g, " $1").trim()}
+                    </p>
+                    <p> {score && <Tag color="blue">{score.replace("/", " / ")}</Tag>}</p>
+                  </div>
                   <p
                     className="text-xs text-blue-700 leading-relaxed cursor-pointer select-none"
                     onClick={() => toggleExpanded(index)}
