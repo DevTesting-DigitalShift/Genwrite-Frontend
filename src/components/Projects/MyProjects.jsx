@@ -36,23 +36,23 @@ import {
 } from "@ant-design/icons";
 import { Helmet } from "react-helmet";
 import { useDispatch, useSelector } from "react-redux";
-import { selectUser } from "@store/slices/authSlice"; // Assuming you have this in your authSlice
+import { selectUser } from "@store/slices/authSlice";
 import { archiveBlog, fetchAllBlogs, retryBlog } from "@store/slices/blogSlice";
 import moment from "moment";
 import Fuse from "fuse.js";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 const { RangePicker } = DatePicker;
 
 const MyProjects = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const user = useSelector(selectUser); // Get user data from Redux
-  const userId = user?.id || "guest"; // Use user ID or fallback to "guest" if not logged in
+  const queryClient = useQueryClient();
+  const user = useSelector(selectUser);
+  const userId = user?.id || "guest";
   const [filteredBlogs, setFilteredBlogs] = useState([]);
-  const [allBlogs, setAllBlogs] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(15);
-  const [loading, setLoading] = useState(false);
   const [sortType, setSortType] = useState(() =>
     sessionStorage.getItem(`user_${userId}_sortType`) || "updatedAt"
   );
@@ -91,7 +91,7 @@ const MyProjects = () => {
   const TRUNCATE_LENGTH = 120;
   const [totalBlogs, setTotalBlogs] = useState(0);
 
-  // Persist filter states to sessionStorage with user-specific keys
+  // Persist filter states to sessionStorage
   useEffect(() => {
     sessionStorage.setItem(`user_${userId}_sortType`, sortType);
     sessionStorage.setItem(`user_${userId}_sortOrder`, sortOrder);
@@ -122,7 +122,7 @@ const MyProjects = () => {
   }, [currentPage]);
 
   // Reset filters
-  const resetFilters = () => {
+  const resetFilters = useCallback(() => {
     setSortType("updatedAt");
     setSortOrder("desc");
     setStatusFilter("all");
@@ -131,7 +131,6 @@ const MyProjects = () => {
     setActivePresetLabel("");
     setSearchTerm("");
     setCurrentPage(1);
-    // Clear sessionStorage for this user
     sessionStorage.removeItem(`user_${userId}_sortType`);
     sessionStorage.removeItem(`user_${userId}_sortOrder`);
     sessionStorage.removeItem(`user_${userId}_statusFilter`);
@@ -141,29 +140,31 @@ const MyProjects = () => {
     sessionStorage.removeItem(`user_${userId}_dateRangeEnd`);
     sessionStorage.removeItem(`user_${userId}_presetDateRangeStart`);
     sessionStorage.removeItem(`user_${userId}_presetDateRangeEnd`);
-  };
+  }, [userId]);
 
-  const clearSearch = () => {
+  const clearSearch = useCallback(() => {
     setSearchTerm("");
     setCurrentPage(1);
-  };
+  }, []);
 
   // Check if filters are active
   const isDefaultSort = sortType === "updatedAt" && sortOrder === "desc";
-  const hasActiveFilters =
-    searchTerm || !isDefaultSort || statusFilter !== "all" || dateRange[0] || presetDateRange[0];
+  const hasActiveFilters = useMemo(
+    () => searchTerm || !isDefaultSort || statusFilter !== "all" || dateRange[0] || presetDateRange[0],
+    [searchTerm, isDefaultSort, statusFilter, dateRange, presetDateRange]
+  );
 
   // Get current sort label
-  const getCurrentSortLabel = () => {
+  const getCurrentSortLabel = useCallback(() => {
     if (sortType === "title" && sortOrder === "asc") return "A-Z";
     if (sortType === "title" && sortOrder === "desc") return "Z-A";
     if (sortType === "updatedAt" && sortOrder === "desc") return "Recently Updated";
     if (sortType === "updatedAt" && sortOrder === "asc") return "Oldest Updated";
     return "Recently Updated";
-  };
+  }, [sortType, sortOrder]);
 
   // Get current status label
-  const getCurrentStatusLabel = () => {
+  const getCurrentStatusLabel = useCallback(() => {
     switch (statusFilter) {
       case "complete":
         return "Completed";
@@ -174,50 +175,82 @@ const MyProjects = () => {
       default:
         return "All";
     }
-  };
+  }, [statusFilter]);
 
   // Get current date label
-  const getCurrentDateLabel = () => {
+  const getCurrentDateLabel = useCallback(() => {
     if (activePresetLabel) return activePresetLabel;
     if (dateRange[0] && dateRange[1]) {
       return `${moment(dateRange[0]).format("MMM DD")} - ${moment(dateRange[1]).format("MMM DD")}`;
     }
     return "All Dates";
-  };
+  }, [activePresetLabel, dateRange]);
 
-  // Fetch blogs when date range changes
-  const fetchBlogs = useCallback(async () => {
-    setLoading(true);
-    try {
-      const queryParams = {
-        start: dateRange[0]
-          ? moment(dateRange[0]).toISOString()
-          : presetDateRange[0]
-          ? moment(presetDateRange[0]).toISOString()
-          : undefined,
-        end: dateRange[1]
-          ? moment(dateRange[1]).toISOString()
-          : presetDateRange[1]
-          ? moment(presetDateRange[1]).toISOString()
-          : undefined,
-        isArchived: "",
-      };
-      const response = await dispatch(fetchAllBlogs(queryParams)).unwrap();
-      setAllBlogs(response.data || []);
-      setTotalBlogs(response.totalItems || 0);
-    } catch (error) {
+  // TanStack Query: Fetch blogs
+  const fetchBlogsQuery = useCallback(async () => {
+    const queryParams = {
+      start: dateRange[0]
+        ? moment(dateRange[0]).toISOString()
+        : presetDateRange[0]
+        ? moment(presetDateRange[0]).toISOString()
+        : undefined,
+      end: dateRange[1]
+        ? moment(dateRange[1]).toISOString()
+        : presetDateRange[1]
+        ? moment(presetDateRange[1]).toISOString()
+        : undefined,
+      isArchived: "",
+    };
+    const response = await dispatch(fetchAllBlogs(queryParams)).unwrap();
+    return response.data || [];
+  }, [dispatch, dateRange, presetDateRange]);
+
+  const { data: allBlogs = [], isLoading } = useQuery({
+    queryKey: [
+      "blogs",
+      dateRange[0]?.toISOString() ?? null,
+      dateRange[1]?.toISOString() ?? null,
+      presetDateRange[0]?.toISOString() ?? null,
+      presetDateRange[1]?.toISOString() ?? null,
+    ],
+    queryFn: fetchBlogsQuery,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    cacheTime: 15 * 60 * 1000, // 15 minutes
+    onError: (error) => {
       console.error("Failed to fetch blogs:", {
         error: error.message,
         status: error.status,
         response: error.response,
       });
       message.error("Failed to load blogs. Please try again.");
-      setAllBlogs([]);
-      setTotalBlogs(0);
-    } finally {
-      setLoading(false);
-    }
-  }, [dispatch, dateRange, presetDateRange]);
+    },
+  });
+
+  // TanStack Query: Retry mutation
+  const retryMutation = useMutation({
+    mutationFn: (id) => dispatch(retryBlog({ id })).unwrap(),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["blogs"]);
+      message.success("Blog retry initiated.");
+    },
+    onError: (error) => {
+      console.error("Failed to retry blog:", error);
+      message.error("Failed to retry blog.");
+    },
+  });
+
+  // TanStack Query: Archive mutation
+  const archiveMutation = useMutation({
+    mutationFn: (id) => dispatch(archiveBlog(id)).unwrap(),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["blogs"]);
+      message.success("Blog moved to trash.");
+    },
+    onError: (error) => {
+      console.error("Failed to archive blog:", error);
+      message.error("Failed to archive blog.");
+    },
+  });
 
   // Fuse.js setup
   const fuse = useMemo(() => {
@@ -272,13 +305,8 @@ const MyProjects = () => {
       );
     }
 
-    // Update total blogs for pagination
-    setTotalBlogs(sortedResult.length);
-
-    // Apply pagination
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return sortedResult.slice(startIndex, endIndex);
+    // Return both filtered blogs and total count
+    return { blogs: sortedResult.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage), total: sortedResult.length };
   }, [
     allBlogs,
     searchTerm,
@@ -292,15 +320,11 @@ const MyProjects = () => {
     fuse,
   ]);
 
-  // Update filteredBlogs when filteredBlogsData changes
+  // Update filteredBlogs and totalBlogs
   useEffect(() => {
-    setFilteredBlogs(filteredBlogsData);
+    setFilteredBlogs(filteredBlogsData.blogs);
+    setTotalBlogs(filteredBlogsData.total);
   }, [filteredBlogsData]);
-
-  // Fetch blogs when date range changes
-  useEffect(() => {
-    fetchBlogs();
-  }, [fetchBlogs]);
 
   // Responsive items per page
   useEffect(() => {
@@ -321,193 +345,190 @@ const MyProjects = () => {
   }, []);
 
   // Handle blog click
-  const handleBlogClick = (blog) => {
+  const handleBlogClick = useCallback((blog) => {
     navigate(`/toolbox/${blog._id}`);
-  };
+  }, [navigate]);
 
-  const handleManualBlogClick = (blog) => {
+  const handleManualBlogClick = useCallback((blog) => {
     navigate(`/blog-editor/${blog._id}`);
-  };
+  }, [navigate]);
 
   // Handle retry
-  const handleRetry = async (id) => {
-    try {
-      await dispatch(retryBlog({ id })).unwrap();
-      await fetchBlogs();
-    } catch (error) {
-      console.error("Failed to retry blog:", error);
-      message.error("Failed to retry blog.");
-    }
-  };
+  const handleRetry = useCallback((id) => {
+    retryMutation.mutate(id);
+  }, [retryMutation]);
 
   // Handle archive
-  const handleArchive = async (id) => {
-    try {
-      await dispatch(archiveBlog(id)).unwrap();
-      await fetchBlogs();
-    } catch (error) {
-      console.error("Failed to archive blog:", error);
-      message.error("Failed to archive blog.");
-    }
-  };
+  const handleArchive = useCallback((id) => {
+    archiveMutation.mutate(id);
+  }, [archiveMutation]);
 
   // Truncate content
-  const truncateContent = (content, length = TRUNCATE_LENGTH) => {
+  const truncateContent = useCallback((content, length = TRUNCATE_LENGTH) => {
     if (!content) return "";
     return content.length > length ? content.substring(0, length) + "..." : content;
-  };
+  }, []);
 
   // Strip markdown
-  const stripMarkdown = (text) => {
+  const stripMarkdown = useCallback((text) => {
     return text
       ?.replace(/<[^>]*>/g, "")
       ?.replace(/[\\*#=_~`>\-]+/g, "")
       ?.replace(/\s{2,}/g, " ")
       ?.trim();
-  };
+  }, []);
 
   // Menu options for sorting
-  const menuOptions = [
-    {
-      label: "A-Z (Ascending)",
-      icon: <SortAscendingOutlined />,
-      onClick: () => {
-        setSortType("title");
-        setSortOrder("asc");
-        setMenuOpen(false);
-        setCurrentPage(1);
+  const menuOptions = useMemo(
+    () => [
+      {
+        label: "A-Z (Ascending)",
+        icon: <SortAscendingOutlined />,
+        onClick: () => {
+          setSortType("title");
+          setSortOrder("asc");
+          setMenuOpen(false);
+          setCurrentPage(1);
+        },
       },
-    },
-    {
-      label: "Z-A (Descending)",
-      icon: <SortDescendingOutlined />,
-      onClick: () => {
-        setSortType("title");
-        setSortOrder("desc");
-        setMenuOpen(false);
-        setCurrentPage(1);
+      {
+        label: "Z-A (Descending)",
+        icon: <SortDescendingOutlined />,
+        onClick: () => {
+          setSortType("title");
+          setSortOrder("desc");
+          setMenuOpen(false);
+          setCurrentPage(1);
+        },
       },
-    },
-    {
-      label: "Recently Updated",
-      icon: <FieldTimeOutlined />,
-      onClick: () => {
-        setSortType("updatedAt");
-        setSortOrder("desc");
-        setMenuOpen(false);
-        setCurrentPage(1);
+      {
+        label: "Recently Updated",
+        icon: <FieldTimeOutlined />,
+        onClick: () => {
+          setSortType("updatedAt");
+          setSortOrder("desc");
+          setMenuOpen(false);
+          setCurrentPage(1);
+        },
       },
-    },
-    {
-      label: "Oldest Updated",
-      icon: <ClockCircleOutlined />,
-      onClick: () => {
-        setSortType("updatedAt");
-        setSortOrder("asc");
-        setMenuOpen(false);
-        setCurrentPage(1);
+      {
+        label: "Oldest Updated",
+        icon: <ClockCircleOutlined />,
+        onClick: () => {
+          setSortType("updatedAt");
+          setSortOrder("asc");
+          setMenuOpen(false);
+          setCurrentPage(1);
+        },
       },
-    },
-  ];
+    ],
+    []
+  );
 
   // Filter options
-  const funnelMenuOptions = [
-    {
-      label: "All Statuses",
-      icon: <CheckCircleOutlined />,
-      onClick: () => {
-        setStatusFilter("all");
-        setFunnelMenuOpen(false);
-        setCurrentPage(1);
+  const funnelMenuOptions = useMemo(
+    () => [
+      {
+        label: "All Statuses",
+        icon: <CheckCircleOutlined />,
+        onClick: () => {
+          setStatusFilter("all");
+          setFunnelMenuOpen(false);
+          setCurrentPage(1);
+        },
       },
-    },
-    {
-      label: "Status: Completed",
-      icon: <CheckCircleOutlined />,
-      onClick: () => {
-        setStatusFilter("complete");
-        setFunnelMenuOpen(false);
-        setCurrentPage(1);
+      {
+        label: "Status: Completed",
+        icon: <CheckCircleOutlined />,
+        onClick: () => {
+          setStatusFilter("complete");
+          setFunnelMenuOpen(false);
+          setCurrentPage(1);
+        },
       },
-    },
-    {
-      label: "Status: Pending",
-      icon: <HourglassOutlined />,
-      onClick: () => {
-        setStatusFilter("pending");
-        setFunnelMenuOpen(false);
-        setCurrentPage(1);
+      {
+        label: "Status: Pending",
+        icon: <HourglassOutlined />,
+        onClick: () => {
+          setStatusFilter("pending");
+          setFunnelMenuOpen(false);
+          setCurrentPage(1);
+        },
       },
-    },
-    {
-      label: "Status: Failed",
-      icon: <CloseCircleOutlined />,
-      onClick: () => {
-        setStatusFilter("failed");
-        setFunnelMenuOpen(false);
-        setCurrentPage(1);
+      {
+        label: "Status: Failed",
+        icon: <CloseCircleOutlined />,
+        onClick: () => {
+          setStatusFilter("failed");
+          setFunnelMenuOpen(false);
+          setCurrentPage(1);
+        },
       },
-    },
-  ];
+    ],
+    []
+  );
 
   // Date range presets
-  const datePresets = [
-    {
-      label: "Last 7 Days",
-      value: [moment().subtract(7, "days"), moment()],
-      onClick: () => {
-        setPresetDateRange([moment().subtract(7, "days"), moment()]);
-        setDateRange([null, null]);
-        setActivePresetLabel("Last 7 Days");
-        setCurrentPage(1);
-        setIsCustomDatePickerOpen(false);
+  const datePresets = useMemo(
+    () => [
+      {
+        label: "Last 7 Days",
+        value: [moment().subtract(7, "days"), moment()],
+        onClick: () => {
+          setPresetDateRange([moment().subtract(7, "days"), moment()]);
+          setDateRange([null, null]);
+          setActivePresetLabel("Last 7 Days");
+          setCurrentPage(1);
+          setIsCustomDatePickerOpen(false);
+        },
       },
-    },
-    {
-      label: "Last 30 Days",
-      value: [moment().subtract(30, "days"), moment()],
-      onClick: () => {
-        setPresetDateRange([moment().subtract(30, "days"), moment()]);
-        setDateRange([null, null]);
-        setActivePresetLabel("Last 30 Days");
-        setCurrentPage(1);
-        setIsCustomDatePickerOpen(false);
+      {
+        label: "Last 30 Days",
+        value: [moment().subtract(30, "days"), moment()],
+        onClick: () => {
+          setPresetDateRange([moment().subtract(30, "days"), moment()]);
+          setDateRange([null, null]);
+          setActivePresetLabel("Last 30 Days");
+          setCurrentPage(1);
+          setIsCustomDatePickerOpen(false);
+        },
       },
-    },
-    {
-      label: "Last 3 Months",
-      value: [moment().subtract(3, "months"), moment()],
-      onClick: () => {
-        setPresetDateRange([moment().subtract(3, "months"), moment()]);
-        setDateRange([null, null]);
-        setActivePresetLabel("Last 3 Months");
-        setCurrentPage(1);
-        setIsCustomDatePickerOpen(false);
+      {
+        label: "Last 3 Months",
+        value: [moment().subtract(3, "months"), moment()],
+        onClick: () => {
+          setPresetDateRange([moment().subtract(3, "months"), moment()]);
+          setDateRange([null, null]);
+          setActivePresetLabel("Last 3 Months");
+          setCurrentPage(1);
+          setIsCustomDatePickerOpen(false);
+        },
       },
-    },
-    {
-      label: "Last 6 Months",
-      value: [moment().subtract(6, "months"), moment()],
-      onClick: () => {
-        setPresetDateRange([moment().subtract(6, "months"), moment()]);
-        setDateRange([null, null]);
-        setActivePresetLabel("Last 6 Months");
-        setCurrentPage(1);
-        setIsCustomDatePickerOpen(false);
+      {
+        label: "Last 6 Months",
+        value: [moment().subtract(6, "months"), moment()],
+        onClick: () => {
+          setPresetDateRange([moment().subtract(6, "months"), moment()]);
+          setDateRange([null, null]);
+          setActivePresetLabel("Last 6 Months");
+          setCurrentPage(1);
+          setIsCustomDatePickerOpen(false);
+        },
       },
-    },
-    {
-      label: "This Year",
-      value: [moment().startOf("year"), moment()],
-      onClick: () => {
-        setPresetDateRange([moment().startOf("year"), moment()]);
-        setDateRange([null, null]);
-        setActivePresetLabel("This Year");
-        setCurrentPage(1);
-        setIsCustomDatePickerOpen(false);
+      {
+        label: "This Year",
+        value: [moment().startOf("year"), moment()],
+        onClick: () => {
+          setPresetDateRange([moment().startOf("year"), moment()]);
+          setDateRange([null, null]);
+          setActivePresetLabel("This Year");
+          setCurrentPage(1);
+          setIsCustomDatePickerOpen(false);
+        },
       },
-    },
-  ];
+    ],
+    []
+  );
 
   return (
     <div className="p-5">
@@ -682,7 +703,7 @@ const MyProjects = () => {
             <Button
               type="default"
               icon={<RefreshCcw className="w-4 h-4" />}
-              onClick={fetchBlogs}
+              onClick={() => queryClient.invalidateQueries(["blogs"])}
               className="p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100"
               aria-label="Refresh blogs"
             >
@@ -724,7 +745,7 @@ const MyProjects = () => {
         </div>
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {[...Array(itemsPerPage)].map((_, index) => (
             <div key={index} className="bg-white shadow-md rounded-xl p-4">
@@ -819,7 +840,7 @@ const MyProjects = () => {
                         onClick={() => handleManualBlogClick(blog)}
                         role="button"
                         tabIndex={0}
-                        onKeyDown={(e) => e.key === "Enter" && navigate(`/blog-editor`)}
+                        onKeyDown={(e) => e.key === "Enter" && handleManualBlogClick(blog)}
                         aria-label={`View blog ${title}`}
                       >
                         <div className="flex flex-col gap-4 items-center justify-between mb-2">
@@ -982,7 +1003,7 @@ const MyProjects = () => {
                 responsive={true}
                 showSizeChanger={false}
                 pageSizeOptions={["6", "12", "15"]}
-                disabled={loading}
+                disabled={isLoading}
               />
             </div>
           )}

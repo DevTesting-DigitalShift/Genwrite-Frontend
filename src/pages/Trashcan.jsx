@@ -7,7 +7,6 @@ import {
   Pagination,
   Input,
   Select,
-  DatePicker,
   message,
 } from "antd"
 import { RefreshCcw, Trash2, Search } from "lucide-react"
@@ -22,33 +21,25 @@ import { deleteAllUserBlogs, restoreTrashedBlog } from "@store/slices/blogSlice"
 import { debounce } from "lodash"
 import moment from "moment"
 import { useNavigate } from "react-router-dom"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 
 const { Search: AntSearch } = Input
 const { Option } = Select
 
 const Trashcan = () => {
-  const [trashedBlogs, setTrashedBlogs] = useState([])
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(15)
-  const [totalBlogs, setTotalBlogs] = useState(0)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [dateRange, setDateRange] = useState([null, null])
-  const [isLoading, setIsLoading] = useState(false)
 
   const { handlePopup } = useConfirmPopup()
   const dispatch = useDispatch()
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+
   const TRUNCATE_LENGTH = 85
   const PAGE_SIZE_OPTIONS = [10, 15, 20, 50]
-  const navigate = useNavigate()
-
-  // Date range presets
-  const datePresets = [
-    { label: "Last 7 Days", value: [moment().subtract(7, "days"), moment()] },
-    { label: "Last 30 Days", value: [moment().subtract(30, "days"), moment()] },
-    { label: "Last 3 Months", value: [moment().subtract(3, "months"), moment()] },
-    { label: "This Year", value: [moment().startOf("year"), moment()] },
-  ]
 
   // Debounced search handler
   const debouncedSearch = useCallback(
@@ -59,10 +50,10 @@ const Trashcan = () => {
     []
   )
 
-  // Fetch trashed blogs from backend
-  const fetchTrashedBlogs = useCallback(async () => {
-    setIsLoading(true)
-    try {
+  // Fetch trashed blogs using TanStack Query
+  const { data, isLoading } = useQuery({
+    queryKey: ["trashedBlogs", statusFilter, searchTerm, dateRange, currentPage, pageSize],
+    queryFn: async () => {
       const queryParams = {
         isArchived: true,
         status: statusFilter !== "all" ? statusFilter : undefined,
@@ -73,20 +64,45 @@ const Trashcan = () => {
         limit: pageSize,
       }
       const response = await getAllBlogs(queryParams)
-      setTrashedBlogs(response.data || [])
-      setTotalBlogs(response.totalItems || 0)
-    } catch (error) {
-      console.error("Failed to fetch trashed blogs:", error)
-      message.error("Failed to load trashed blogs. Please try again.")
-    } finally {
-      setIsLoading(false)
-    }
-  }, [statusFilter, searchTerm, dateRange, currentPage, pageSize])
+      return {
+        trashedBlogs: response.data || [],
+        totalBlogs: response.totalItems || 0,
+      }
+    },
+    keepPreviousData: true, // Keep previous data while fetching new data
+    staleTime: 5 * 60 * 1000, // Cache data for 5 minutes
+    cacheTime: 10 * 60 * 1000, // Keep cache for 10 minutes
+  })
 
-  // Fetch blogs on mount and when dependencies change
-  useEffect(() => {
-    fetchTrashedBlogs()
-  }, [fetchTrashedBlogs])
+  const trashedBlogs = data?.trashedBlogs || []
+  const totalBlogs = data?.totalBlogs || 0
+
+  // Mutation for restoring a blog
+  const restoreMutation = useMutation({
+    mutationFn: (id) => dispatch(restoreTrashedBlog(id)).unwrap(),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["trashedBlogs"])
+      message.success("Blog restored successfully")
+    },
+    onError: (error) => {
+      console.error("Failed to restore blog:", error)
+      message.error("Failed to restore blog. Please try again.")
+    },
+  })
+
+  // Mutation for bulk delete
+  const bulkDeleteMutation = useMutation({
+    mutationFn: () => dispatch(deleteAllUserBlogs()).unwrap(),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["trashedBlogs"])
+      setCurrentPage(1)
+      message.success("All trashed blogs deleted successfully")
+    },
+    onError: (error) => {
+      console.error("Failed to delete all blogs:", error)
+      message.error("Failed to delete all blogs. Please try again.")
+    },
+  })
 
   // Scroll to top on page change
   useEffect(() => {
@@ -99,6 +115,7 @@ const Trashcan = () => {
     return content.length > length ? content.substring(0, length) + "..." : content
   }
 
+  // Strip markdown
   const stripMarkdown = (text) => {
     return text
       ?.replace(/<[^>]*>/g, "")
@@ -107,44 +124,19 @@ const Trashcan = () => {
       ?.trim()
   }
 
-  // Strip markdown
-  const cleanText = (text) => {
-    return (
-      text
-        ?.replace(/[#=~`*_\-]+/g, "")
-        ?.replace(/\s{2,}/g, " ")
-        ?.trim() || ""
-    )
-  }
-
   // Handle restore
-  const handleRestore = async (id) => {
-    try {
-      await dispatch(restoreTrashedBlog(id)).unwrap()
-      fetchTrashedBlogs()
-    } catch (error) {
-      console.error("Failed to restore blog:", error)
-      message.error("Failed to restore blog. Please try again.")
-    }
+  const handleRestore = (id) => {
+    restoreMutation.mutate(id)
   }
 
   // Handle bulk delete
-  const handleBulkDelete = async () => {
-    try {
-      await dispatch(deleteAllUserBlogs()).unwrap()
-      setTrashedBlogs([])
-      setCurrentPage(1)
-      setTotalBlogs(0)
-    } catch (error) {
-      console.error("Failed to delete all blogs:", error)
-      message.error("Failed to delete all blogs. Please try again.")
-    }
+  const handleBulkDelete = () => {
+    bulkDeleteMutation.mutate()
   }
 
   // Handle refresh
-  const handleRefresh = async () => {
-    setCurrentPage(1)
-    await fetchTrashedBlogs()
+  const handleRefresh = () => {
+    queryClient.invalidateQueries(["trashedBlogs"])
     message.info("Blog list refreshed")
   }
 
@@ -153,6 +145,7 @@ const Trashcan = () => {
     message.info(`Clicked on blog: ${blog.title}`)
   }
 
+  // Handle manual blog click
   const handleManualBlogClick = (blog) => {
     navigate(`/blog-editor/${blog._id}`)
   }
@@ -239,7 +232,7 @@ const Trashcan = () => {
               onChange={(e) => debouncedSearch(e.target.value)}
               prefix={<Search className="w-5 h-5 text-gray-400 mr-2" />}
               allowClear
-              className="w-full  rounded-lg"
+              className="w-full rounded-lg"
               disabled={isLoading}
             />
             <Select
@@ -496,7 +489,7 @@ const Trashcan = () => {
                   current={currentPage}
                   pageSize={pageSize}
                   total={totalBlogs}
-                  pageSizeOptions={PAGE_SIZE_OPTIONS.filter((size) => size <= 100)} // Respect maxPerPage
+                  pageSizeOptions={PAGE_SIZE_OPTIONS.filter((size) => size <= 100)}
                   onChange={(page, newPageSize) => {
                     setCurrentPage(page)
                     if (newPageSize !== pageSize) {

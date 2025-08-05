@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react"
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import {
   Search,
   TrendingUp,
@@ -13,25 +13,24 @@ import {
   ChevronUp,
   TrendingDown,
   X,
-} from "lucide-react"
-import { Helmet } from "react-helmet"
-import { motion } from "framer-motion"
-import { useDispatch, useSelector } from "react-redux"
-import { fetchGscAuthUrl, fetchGscAnalytics, clearAnalytics } from "@store/slices/gscSlice"
-import { message, Button, Table, Tag, Select, Input, Tooltip, DatePicker, Switch } from "antd"
-import { useNavigate, useSearchParams } from "react-router-dom"
-import Loading from "@components/Loading"
-import * as XLSX from "xlsx"
-import { fetchAllBlogs } from "@store/slices/blogSlice"
-import { selectUser } from "@store/slices/authSlice"
-import UpgradeModal from "@components/UpgradeModal"
-import moment from "moment"
-import { FcGoogle } from "react-icons/fc"
-import Fuse from "fuse.js"
+} from "lucide-react";
+import { Helmet } from "react-helmet";
+import { motion } from "framer-motion";
+import { useSelector } from "react-redux";
+import { message, Button, Table, Tag, Select, Input, Tooltip, DatePicker, Switch } from "antd";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import Loading from "@components/Loading";
+import * as XLSX from "xlsx";
+import { selectUser } from "@store/slices/authSlice";
+import UpgradeModal from "@components/UpgradeModal";
+import moment from "moment";
+import { FcGoogle } from "react-icons/fc";
+import Fuse from "fuse.js";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-const { Option } = Select
-const { Search: AntSearch } = Input
-const { RangePicker } = DatePicker
+const { Option } = Select;
+const { Search: AntSearch } = Input;
+const { RangePicker } = DatePicker;
 
 // Country code to name mapping
 const countryCodeToName = {
@@ -46,17 +45,17 @@ const countryCodeToName = {
   CHN: "China",
   BRA: "Brazil",
   "N/A": "Unknown",
-}
+};
 
 const SearchConsole = () => {
-  const [searchTerm, setSearchTerm] = useState(() => sessionStorage.getItem("gscSearchTerm") || "")
+  const [searchTerm, setSearchTerm] = useState(() => sessionStorage.getItem("gscSearchTerm") || "");
   const [currentPage, setCurrentPage] = useState(
     () => Number(sessionStorage.getItem("gscCurrentPage")) || 1
-  )
+  );
   const [itemsPerPage, setItemsPerPage] = useState(
     () => Number(sessionStorage.getItem("gscItemsPerPage")) || 10
-  )
-  const [dateRange, setDateRange] = useState(() => sessionStorage.getItem("gscDateRange") || "30d")
+  );
+  const [dateRange, setDateRange] = useState(() => sessionStorage.getItem("gscDateRange") || "30d");
   const [customDateRange, setCustomDateRange] = useState([
     sessionStorage.getItem("gscCustomDateRangeStart")
       ? moment(sessionStorage.getItem("gscCustomDateRangeStart"))
@@ -64,48 +63,44 @@ const SearchConsole = () => {
     sessionStorage.getItem("gscCustomDateRangeEnd")
       ? moment(sessionStorage.getItem("gscCustomDateRangeEnd"))
       : null,
-  ])
+  ]);
   const [selectedBlogTitle, setSelectedBlogTitle] = useState(
     () => sessionStorage.getItem("gscSelectedBlogTitle") || "all"
-  )
+  );
   const [selectedCountries, setSelectedCountries] = useState(() =>
     JSON.parse(sessionStorage.getItem("gscSelectedCountries") || "[]")
-  )
+  );
   const [includeCountry, setIncludeCountry] = useState(
     () => sessionStorage.getItem("gscIncludeCountry") === "true"
-  )
-  const [isLoading, setIsLoading] = useState(false)
-  const [isConnecting, setIsConnecting] = useState(false)
-  const [isAuthenticated, setIsAuthenticated] = useState(!!useSelector(selectUser)?.gsc) // Initialize based on user.gsc
-  const [searchParams, setSearchParams] = useSearchParams()
-  const [blogData, setBlogData] = useState([])
-  const [expandedRows, setExpandedRows] = useState([])
-  const [connectErr, setConnectErr] = useState(null)
+  );
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(!!useSelector(selectUser)?.gsc);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [expandedRows, setExpandedRows] = useState([]);
+  const [connectErr, setConnectErr] = useState(null);
 
-  const dispatch = useDispatch()
-  const user = useSelector(selectUser)
-  const userPlan = (user?.plan || user?.subscription?.plan || "free").toLowerCase()
-  const { blogs } = useSelector((state) => state.blog)
-  const { analyticsData, loading: sitesLoading, error } = useSelector((state) => state.gsc)
-  const navigate = useNavigate()
+  const queryClient = useQueryClient();
+  const user = useSelector(selectUser);
+  const userPlan = (user?.plan || user?.subscription?.plan || "free").toLowerCase();
+  const navigate = useNavigate();
 
   // Persist filter states to sessionStorage
   useEffect(() => {
-    sessionStorage.setItem("gscSearchTerm", searchTerm)
-    sessionStorage.setItem("gscCurrentPage", currentPage)
-    sessionStorage.setItem("gscItemsPerPage", itemsPerPage)
-    sessionStorage.setItem("gscDateRange", dateRange)
+    sessionStorage.setItem("gscSearchTerm", searchTerm);
+    sessionStorage.setItem("gscCurrentPage", currentPage);
+    sessionStorage.setItem("gscItemsPerPage", itemsPerPage);
+    sessionStorage.setItem("gscDateRange", dateRange);
     sessionStorage.setItem(
       "gscCustomDateRangeStart",
       customDateRange[0] ? customDateRange[0].toISOString() : ""
-    )
+    );
     sessionStorage.setItem(
       "gscCustomDateRangeEnd",
       customDateRange[1] ? customDateRange[1].toISOString() : ""
-    )
-    sessionStorage.setItem("gscSelectedBlogTitle", selectedBlogTitle)
-    sessionStorage.setItem("gscSelectedCountries", JSON.stringify(selectedCountries))
-    sessionStorage.setItem("gscIncludeCountry", includeCountry.toString())
+    );
+    sessionStorage.setItem("gscSelectedBlogTitle", selectedBlogTitle);
+    sessionStorage.setItem("gscSelectedCountries", JSON.stringify(selectedCountries));
+    sessionStorage.setItem("gscIncludeCountry", includeCountry.toString());
   }, [
     searchTerm,
     currentPage,
@@ -115,208 +110,208 @@ const SearchConsole = () => {
     selectedBlogTitle,
     selectedCountries,
     includeCountry,
-  ])
-
-  // Fetch blogs on mount
-  useEffect(() => {
-    dispatch(fetchAllBlogs())
-  }, [dispatch])
+  ]);
 
   // Utility to check for invalid_grant error
   const isInvalidGrantError = (err) => {
-    if (!err) return false
-    if (typeof err === "string") return err.toLowerCase().includes("invalid_grant")
-    if (err.message) return err.message.toLowerCase().includes("invalid_grant")
-    if (err.error) return err.error.toLowerCase().includes("invalid_grant")
+    if (!err) return false;
+    if (typeof err === "string") return err.toLowerCase().includes("invalid_grant");
+    if (err.message) return err.message.toLowerCase().includes("invalid_grant");
+    if (err.error) return err.error.toLowerCase().includes("invalid_grant");
     if (err.response?.data?.error)
-      return err.response.data.error.toLowerCase().includes("invalid_grant")
-    return false
-  }
+      return err.response.data.error.toLowerCase().includes("invalid_grant");
+    return false;
+  };
+
+  // Fetch blogs using TanStack Query
+  const { data: blogs = { data: [] } } = useQuery({
+    queryKey: ["blogs"],
+    queryFn: async () => {
+      const response = await fetchAllBlogs(); // Assuming fetchAllBlogs is available globally or imported
+      return response.data || [];
+    },
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    cacheTime: 15 * 60 * 1000, // 15 minutes
+    onError: (error) => {
+      console.error("Failed to fetch blogs:", error);
+      message.error("Failed to load blogs. Please try again.");
+    },
+  });
 
   // Calculate date range for API request
   const getDateRangeParams = useCallback(() => {
-    let from, to
+    let from, to;
     if (customDateRange[0] && customDateRange[1]) {
-      from = customDateRange[0].startOf("day").toISOString().split("T")[0]
-      to = customDateRange[1].endOf("day").toISOString().split("T")[0]
+      from = customDateRange[0].startOf("day").toISOString().split("T")[0];
+      to = customDateRange[1].endOf("day").toISOString().split("T")[0];
     } else {
-      to = new Date()
-      from = new Date()
+      to = new Date();
+      from = new Date();
       switch (dateRange) {
         case "7d":
-          from.setDate(to.getDate() - 7)
-          break
+          from.setDate(to.getDate() - 7);
+          break;
         case "30d":
-          from.setDate(to.getDate() - 30)
-          break
+          from.setDate(to.getDate() - 30);
+          break;
         case "180d":
-          from.setDate(to.getDate() - 180)
-          break
+          from.setDate(to.getDate() - 180);
+          break;
         default:
-          from.setDate(to.getDate() - 30)
+          from.setDate(to.getDate() - 30);
       }
-      from = from.toISOString().split("T")[0]
-      to = to.toISOString().split("T")[0]
+      from = from.toISOString().split("T")[0];
+      to = to.toISOString().split("T")[0];
     }
-    return { from, to }
-  }, [dateRange, customDateRange])
+    return { from, to };
+  }, [dateRange, customDateRange]);
 
   // Get blogUrl from blogTitle
   const getBlogUrlFromTitle = useCallback(
     (title) => {
-      if (title === "all") return null
-      const blog = blogs.data?.find((b) => b.title === title)
-      return blog?.url || null
+      if (title === "all") return null;
+      const blog = blogs.data?.find((b) => b.title === title);
+      return blog?.url || null;
     },
     [blogs.data]
-  )
+  );
 
-  // Fetch analytics data
-  const fetchAnalyticsData = useCallback(async () => {
-    if (!user?.gsc) {
-      setIsAuthenticated(false)
-      setIsLoading(false)
-      return
-    }
-    setIsLoading(true)
-    try {
-      const { from, to } = getDateRangeParams()
-      const blogUrl = getBlogUrlFromTitle(selectedBlogTitle)
+  // Fetch analytics data using TanStack Query
+  const { data: blogData = [], isLoading } = useQuery({
+    queryKey: [
+      "gscAnalytics",
+      dateRange,
+      customDateRange[0]?.toISOString() ?? null,
+      customDateRange[1]?.toISOString() ?? null,
+      selectedBlogTitle,
+      includeCountry,
+    ],
+    queryFn: async () => {
+      if (!user?.gsc) {
+        setIsAuthenticated(false);
+        return [];
+      }
+      const { from, to } = getDateRangeParams();
+      const blogUrl = getBlogUrlFromTitle(selectedBlogTitle);
       const params = {
         from,
         to,
         includeCountry,
         ...(blogUrl && { blogUrl }),
+      };
+      const data = await fetchGscAnalytics(params).unwrap(); // Assuming fetchGscAnalytics is available globally or imported
+      return data.map((item, index) => ({
+        id: `${item.link}-${index}`,
+        url: item.link,
+        clicks: item.clicks,
+        impressions: item.impressions,
+        ctr: (item.ctr * 100).toFixed(2),
+        position: item.position.toFixed(1),
+        keywords: [item.key].map((k) => (k.length > 50 ? `${k.substring(0, 47)}...` : k)),
+        countryCode: item.countryCode || "N/A",
+        countryName: countryCodeToName[item.countryCode] || item.countryName || "Unknown",
+        blogId: item.blogId,
+        blogTitle: item.blogTitle || "Untitled",
+      }));
+    },
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    cacheTime: 15 * 60 * 1000, // 15 minutes
+    enabled: !!user?.gsc, // Only fetch if authenticated
+    onError: (error) => {
+      console.error("Error fetching analytics data:", JSON.stringify(error, null, 2));
+      setConnectErr(error);
+      if (isInvalidGrantError(error)) {
+        setIsAuthenticated(false);
       }
-      const data = await dispatch(fetchGscAnalytics(params)).unwrap()
-      setBlogData(
-        data.map((item, index) => ({
-          id: `${item.link}-${index}`,
-          url: item.link,
-          clicks: item.clicks,
-          impressions: item.impressions,
-          ctr: (item.ctr * 100).toFixed(2),
-          position: item.position.toFixed(1),
-          keywords: [item.key].map((k) => (k.length > 50 ? `${k.substring(0, 47)}...` : k)),
-          countryCode: item.countryCode || "N/A",
-          countryName: countryCodeToName[item.countryCode] || item.countryName || "Unknown",
-          blogId: item.blogId,
-          blogTitle: item.blogTitle || "Untitled",
-        }))
-      )
-      setConnectErr(null)
-      setIsAuthenticated(true)
-    } catch (err) {
-      console.error("Error fetching analytics data:", JSON.stringify(err, null, 2))
-      setConnectErr(err)
-      setBlogData([])
-      if (isInvalidGrantError(err)) {
-        setIsAuthenticated(false)
-      }
-    } finally {
-      setIsLoading(false)
-    }
-  }, [
-    dispatch,
-    dateRange,
-    customDateRange,
-    includeCountry,
-    selectedBlogTitle,
-    getBlogUrlFromTitle,
-    user,
-  ])
+      message.error("Failed to load analytics data. Please try again.");
+    },
+    onSuccess: () => {
+      setConnectErr(null);
+      setIsAuthenticated(true);
+    },
+  });
 
-  // Google Search Console authentication
-  const connectGSC = useCallback(async () => {
-    try {
-      setIsConnecting(true)
-      const result = await dispatch(fetchGscAuthUrl()).unwrap()
-      if (!result) {
-        throw new Error("Failed to retrieve authentication URL")
-      }
-
-      let authUrl = result
+  // Google Search Console authentication using TanStack Query mutation
+  const connectGscMutation = useMutation({
+    mutationFn: async () => {
+      let authUrl = await fetchGscAuthUrl().unwrap(); // Assuming fetchGscAuthUrl is available globally or imported
       if (!authUrl.includes("prompt=select_account")) {
-        const url = new URL(authUrl)
-        const params = new URLSearchParams(url.search)
-        params.set("prompt", "select_account")
-        url.search = params.toString()
-        authUrl = url.toString()
+        const url = new URL(authUrl);
+        const params = new URLSearchParams(url.search);
+        params.set("prompt", "select_account");
+        url.search = params.toString();
+        authUrl = url.toString();
       }
-
-      const popup = window.open(authUrl, "GSC Connect", "width=600,height=600")
+      return authUrl;
+    },
+    onMutate: () => {
+      setIsConnecting(true);
+    },
+    onSuccess: (authUrl) => {
+      const popup = window.open(authUrl, "GSC Connect", "width=600,height=600");
       if (!popup) {
-        throw new Error("Popup blocked. Please allow popups and try again.")
+        throw new Error("Popup blocked. Please allow popups and try again.");
       }
 
       const handleMessage = async (event) => {
-        if (event.origin !== import.meta.env.VITE_BACKEND_URL) return
+        if (event.origin !== import.meta.env.VITE_BACKEND_URL) return;
         if (typeof event.data === "string" && event.data === "GSC Connected") {
           try {
-            setIsAuthenticated(true)
-            message.success("Google Search Console connected successfully!")
-            await fetchAnalyticsData()
-            navigate(0)
+            setIsAuthenticated(true);
+            message.success("Google Search Console connected successfully!");
+            queryClient.invalidateQueries(["gscAnalytics"]);
+            navigate(0);
           } catch (err) {
-            message.error(err.message || err.error || "Failed to verify GSC connection")
-            console.error("GSC verification error:", JSON.stringify(err, null, 2))
-            setConnectErr(err)
+            message.error(err.message || err.error || "Failed to verify GSC connection");
+            console.error("GSC verification error:", JSON.stringify(err, null, 2));
+            setConnectErr(err);
           } finally {
-            setIsConnecting(false)
-            window.removeEventListener("message", handleMessage)
+            setIsConnecting(false);
+            window.removeEventListener("message", handleMessage);
           }
         } else if (typeof event.data === "string") {
-          message.error(event.data || "Authentication failed")
-          setIsConnecting(false)
-          setConnectErr(event.data || "Authentication failed")
-          window.removeEventListener("message", handleMessage)
+          message.error(event.data || "Authentication failed");
+          setConnectErr(event.data || "Authentication failed");
+          setIsConnecting(false);
+          window.removeEventListener("message", handleMessage);
         }
-      }
+      };
 
-      window.addEventListener("message", handleMessage)
+      window.addEventListener("message", handleMessage);
 
       const checkPopupClosed = setInterval(() => {
         if (popup.closed && !isAuthenticated) {
-          clearInterval(checkPopupClosed)
-          setIsConnecting(false)
-          setConnectErr("Authentication window closed")
-          window.removeEventListener("message", handleMessage)
+          clearInterval(checkPopupClosed);
+          setIsConnecting(false);
+          setConnectErr("Authentication window closed");
+          window.removeEventListener("message", handleMessage);
         }
-      }, 1000)
+      }, 1000);
 
       return () => {
-        window.removeEventListener("message", handleMessage)
-        clearInterval(checkPopupClosed)
-      }
-    } catch (err) {
-      message.error(err.message || err.error || "Failed to initiate GSC connection")
-      console.error("GSC auth error:", JSON.stringify(err, null, 2))
-      setConnectErr(err)
-      setIsConnecting(false)
-    }
-  }, [dispatch, navigate, fetchAnalyticsData])
+        window.removeEventListener("message", handleMessage);
+        clearInterval(checkPopupClosed);
+      };
+    },
+    onError: (error) => {
+      message.error(error.message || error.error || "Failed to initiate GSC connection");
+      console.error("GSC auth error:", JSON.stringify(error, null, 2));
+      setConnectErr(error);
+      setIsConnecting(false);
+    },
+  });
 
   // Clear search params
   useEffect(() => {
     if (searchParams.get("code") || searchParams.get("state")) {
-      setSearchParams({}, { replace: true })
+      setSearchParams({}, { replace: true });
     }
-  }, [searchParams, setSearchParams])
-
-  // Fetch analytics data when user.gsc changes or on mount
-  useEffect(() => {
-    if (user?.gsc) {
-      fetchAnalyticsData()
-    } else {
-      setIsAuthenticated(false)
-      setIsLoading(false)
-    }
-  }, [fetchAnalyticsData, user])
+  }, [searchParams, setSearchParams]);
 
   // Group blog data by blogTitle and calculate totals/averages
   const groupedBlogData = useMemo(() => {
     const grouped = blogData.reduce((acc, item) => {
-      const title = item.blogTitle || "Untitled"
+      const title = item.blogTitle || "Untitled";
       if (!acc[title]) {
         acc[title] = {
           blogTitle: title,
@@ -330,13 +325,13 @@ const SearchConsole = () => {
           countryName: item.countryName,
           blogId: item.blogId,
           keywordDetails: [],
-        }
+        };
       }
-      acc[title].keywords.push(...item.keywords)
-      acc[title].clicks += Number(item.clicks) || 0
-      acc[title].impressions += Number(item.impressions) || 0
-      acc[title].ctr.push(Number(item.ctr) || 0)
-      acc[title].position.push(Number(item.position) || 0)
+      acc[title].keywords.push(...item.keywords);
+      acc[title].clicks += Number(item.clicks) || 0;
+      acc[title].impressions += Number(item.impressions) || 0;
+      acc[title].ctr.push(Number(item.ctr) || 0);
+      acc[title].position.push(Number(item.position) || 0);
       acc[title].keywordDetails.push({
         id: item.id,
         keyword: item.keywords[0],
@@ -347,9 +342,9 @@ const SearchConsole = () => {
         url: item.url,
         countryCode: item.countryCode,
         countryName: item.countryName,
-      })
-      return acc
-    }, {})
+      });
+      return acc;
+    }, {});
 
     return Object.values(grouped).map((group, index) => ({
       id: `${group.blogTitle}-${index}`,
@@ -368,15 +363,15 @@ const SearchConsole = () => {
       countryName: group.countryName,
       blogId: group.blogId,
       keywordDetails: group.keywordDetails,
-    }))
-  }, [blogData])
+    }));
+  }, [blogData]);
 
   // Client-side filtered and searched data
   const filteredBlogData = useMemo(() => {
     let result =
       selectedBlogTitle === "all"
         ? groupedBlogData
-        : blogData.filter((item) => item.blogTitle === selectedBlogTitle)
+        : blogData.filter((item) => item.blogTitle === selectedBlogTitle);
 
     if (searchTerm?.trim()) {
       const fuse = new Fuse(result, {
@@ -388,65 +383,65 @@ const SearchConsole = () => {
         threshold: 0.3,
         includeScore: true,
         shouldSort: true,
-      })
-      result = fuse.search(searchTerm).map(({ item }) => item)
+      });
+      result = fuse.search(searchTerm).map(({ item }) => item);
     }
 
     if (includeCountry && selectedCountries.length > 0) {
-      result = result.filter((item) => selectedCountries.includes(item.countryCode))
+      result = result.filter((item) => selectedCountries.includes(item.countryCode));
     }
 
-    return result
-  }, [groupedBlogData, blogData, searchTerm, selectedCountries, includeCountry, selectedBlogTitle])
+    return result;
+  }, [groupedBlogData, blogData, searchTerm, selectedCountries, includeCountry, selectedBlogTitle]);
 
   // Get current page for the data for export
   const currentPageData = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage
-    const endIndex = startIndex + itemsPerPage
-    return filteredBlogData.slice(startIndex, endIndex)
-  }, [filteredBlogData, currentPage, itemsPerPage])
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredBlogData.slice(startIndex, endIndex);
+  }, [filteredBlogData, currentPage, itemsPerPage]);
 
   // Handle search trigger (client-side only)
   const handleSearch = (value) => {
-    setSearchTerm(value)
-    setCurrentPage(1)
-  }
+    setSearchTerm(value);
+    setCurrentPage(1);
+  };
 
   // Reset all filters
-  const resetAllFilters = () => {
-    setSearchTerm("")
-    setSelectedBlogTitle("all")
-    setSelectedCountries([])
-    setIncludeCountry(false)
-    setCustomDateRange([null, null])
-    setDateRange("30d")
-    setCurrentPage(1)
-    setExpandedRows([])
-    sessionStorage.removeItem("gscSearchTerm")
-    sessionStorage.removeItem("gscCurrentPage")
-    sessionStorage.removeItem("gscItemsPerPage")
-    sessionStorage.removeItem("gscDateRange")
-    sessionStorage.removeItem("gscCustomDateRangeStart")
-    sessionStorage.removeItem("gscCustomDateRangeEnd")
-    sessionStorage.removeItem("gscSelectedBlogTitle")
-    sessionStorage.removeItem("gscSelectedCountries")
-    sessionStorage.removeItem("gscIncludeCountry")
-    fetchAnalyticsData()
-  }
+  const resetAllFilters = useCallback(() => {
+    setSearchTerm("");
+    setSelectedBlogTitle("all");
+    setSelectedCountries([]);
+    setIncludeCountry(false);
+    setCustomDateRange([null, null]);
+    setDateRange("30d");
+    setCurrentPage(1);
+    setExpandedRows([]);
+    sessionStorage.removeItem("gscSearchTerm");
+    sessionStorage.removeItem("gscCurrentPage");
+    sessionStorage.removeItem("gscItemsPerPage");
+    sessionStorage.removeItem("gscDateRange");
+    sessionStorage.removeItem("gscCustomDateRangeStart");
+    sessionStorage.removeItem("gscCustomDateRangeEnd");
+    sessionStorage.removeItem("gscSelectedBlogTitle");
+    sessionStorage.removeItem("gscSelectedCountries");
+    sessionStorage.removeItem("gscIncludeCountry");
+    queryClient.invalidateQueries(["gscAnalytics"]);
+  }, [queryClient]);
 
   // Check if filters are active
-  const isDefaultDateRange = dateRange === "30d" && !customDateRange[0]
+  const isDefaultDateRange = dateRange === "30d" && !customDateRange[0];
   const hasActiveFilters =
     !!searchTerm ||
     selectedBlogTitle !== "all" ||
     selectedCountries.length > 0 ||
-    !isDefaultDateRange
+    !isDefaultDateRange;
 
   // Export data as Excel
   const handleExport = useCallback(async () => {
     if (!currentPageData.length) {
-      message.warning("No data available to export")
-      return
+      message.warning("No data available to export");
+      return;
     }
     try {
       const headers =
@@ -469,7 +464,7 @@ const SearchConsole = () => {
               "Position",
               "URL",
               ...(includeCountry ? ["Country"] : []),
-            ]
+            ];
       const rows = currentPageData.map((item) =>
         selectedBlogTitle === "all"
           ? {
@@ -491,78 +486,78 @@ const SearchConsole = () => {
               URL: item.url,
               ...(includeCountry ? { Country: item.countryName } : {}),
             }
-      )
-      const worksheet = XLSX.utils.json_to_sheet(rows, { header: headers })
-      const workbook = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Search Console Data")
-      const fileName = `search_console_data_${new Date().toISOString().split("T")[0]}.xlsx`
-      XLSX.writeFile(workbook, fileName)
+      );
+      const worksheet = XLSX.utils.json_to_sheet(rows, { header: headers });
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Search Console Data");
+      const fileName = `search_console_data_${new Date().toISOString().split("T")[0]}.xlsx`;
+      XLSX.writeFile(workbook, fileName);
     } catch (err) {
-      message.error(err.message || err.error || "Failed to export data")
-      console.error("Error exporting data:", err)
+      message.error(err.message || err.error || "Failed to export data");
+      console.error("Error exporting data:", err);
     }
-  }, [currentPageData, includeCountry, selectedBlogTitle])
+  }, [currentPageData, includeCountry, selectedBlogTitle]);
 
   // Calculate totals for summary cards
   const totals = useMemo(() => {
-    const totalClicks = filteredBlogData.reduce((sum, item) => sum + Number(item.clicks || 0), 0)
+    const totalClicks = filteredBlogData.reduce((sum, item) => sum + Number(item.clicks || 0), 0);
     const totalImpressions = filteredBlogData.reduce(
       (sum, item) => sum + Number(item.impressions || 0),
       0
-    )
+    );
     const avgCtr =
       filteredBlogData.length > 0
         ? filteredBlogData.reduce((sum, item) => sum + Number(item.ctr || 0), 0) /
           filteredBlogData.length
-        : 0
+        : 0;
     const avgPosition =
       filteredBlogData.length > 0
         ? filteredBlogData.reduce((sum, item) => sum + Number(item.position || 0), 0) /
           filteredBlogData.length
-        : 0
+        : 0;
 
     return {
       clicks: totalClicks,
       impressions: totalImpressions,
       avgCtr,
       avgPosition,
-    }
-  }, [filteredBlogData])
+    };
+  }, [filteredBlogData]);
 
   // Get unique countries for filter
   const countries = useMemo(() => {
-    const countryMap = new Map()
+    const countryMap = new Map();
     blogData.forEach((item) => {
       if (item.countryCode && item.countryName) {
-        countryMap.set(item.countryCode, item.countryName)
+        countryMap.set(item.countryCode, item.countryName);
       }
-    })
+    });
     return Array.from(countryMap.entries()).map(([code, name]) => ({
       value: code,
       text: name,
-    }))
-  }, [blogData])
+    }));
+  }, [blogData]);
 
   // Get unique blog titles for selection
   const blogTitles = useMemo(() => {
-    const seen = new Set()
-    const uniqueTitles = []
-    for (const item of analyticsData) {
-      const title = item.blogTitle || "Untitled"
+    const seen = new Set();
+    const uniqueTitles = [];
+    for (const item of blogData) {
+      const title = item.blogTitle || "Untitled";
       if (!seen.has(title)) {
-        seen.add(title)
-        uniqueTitles.push(title)
+        seen.add(title);
+        uniqueTitles.push(title);
       }
     }
-    return ["all", ...uniqueTitles]
-  }, [analyticsData])
+    return ["all", ...uniqueTitles];
+  }, [blogData]);
 
   // Toggle expanded rows
   const toggleRow = (id) => {
     setExpandedRows((prev) =>
       prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id]
-    )
-  }
+    );
+  };
 
   // Columns for the nested keyword table (in expandable rows)
   const keywordColumns = [
@@ -664,7 +659,7 @@ const SearchConsole = () => {
       ),
       align: "center",
     },
-  ]
+  ];
 
   // Ant Design Table Columns for main table
   const columns =
@@ -914,14 +909,14 @@ const SearchConsole = () => {
             ),
             align: "center",
           },
-        ]
+        ];
 
   // Format number helper
-  const formatNumber = (num) => new Intl.NumberFormat().format(num)
+  const formatNumber = (num) => new Intl.NumberFormat().format(num);
 
   // Render UpgradeModal if user is on free or basic plan
   // if (userPlan === "free" || userPlan === "basic") {
-  //   return <UpgradeModal featureName={"Google Search Console"} />
+  //   return <UpgradeModal featureName={"Google Search Console"} />;
   // }
 
   // Show reconnection UI only if not authenticated or invalid_grant error
@@ -959,15 +954,10 @@ const SearchConsole = () => {
                 : typeof connectErr === "string"
                 ? connectErr
                 : connectErr.message || connectErr.error || "An error occurred"}
-              {/* <div className="mt-2">
-                <Button type="link" onClick={connectGSC} disabled={isConnecting}>
-                  Try Reconnecting
-                </Button>
-              </div> */}
             </div>
           )}
           <button
-            onClick={connectGSC}
+            onClick={() => connectGscMutation.mutate()}
             disabled={isConnecting}
             className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed w-full"
           >
@@ -985,7 +975,7 @@ const SearchConsole = () => {
           </button>
         </motion.div>
       </div>
-    )
+    );
   }
 
   if (isLoading) {
@@ -993,7 +983,7 @@ const SearchConsole = () => {
       <div className="flex items-center justify-center h-[calc(100vh-300px)] bg-white border rounded-lg">
         <Loading />
       </div>
-    )
+    );
   }
 
   return (
@@ -1019,7 +1009,7 @@ const SearchConsole = () => {
               <Button
                 icon={<Download className="w-4 h-4" />}
                 onClick={handleExport}
-                disabled={isLoading || sitesLoading}
+                disabled={isLoading}
                 className="flex items-center gap-2 bg-green-600 text-white hover:bg-green-700"
               >
                 Export
@@ -1027,8 +1017,8 @@ const SearchConsole = () => {
             )}
             <Button
               icon={<RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />}
-              onClick={fetchAnalyticsData}
-              disabled={isLoading || sitesLoading}
+              onClick={() => queryClient.invalidateQueries(["gscAnalytics"])}
+              disabled={isLoading}
               className="flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700"
             >
               Refresh
@@ -1109,10 +1099,10 @@ const SearchConsole = () => {
               <Select
                 value={selectedBlogTitle}
                 onChange={(value) => {
-                  setSelectedBlogTitle(value)
-                  setCurrentPage(1)
-                  setExpandedRows([])
-                  fetchAnalyticsData()
+                  setSelectedBlogTitle(value);
+                  setCurrentPage(1);
+                  setExpandedRows([]);
+                  queryClient.invalidateQueries(["gscAnalytics"]);
                 }}
                 className="w-full"
                 placeholder="Select Blog"
@@ -1128,11 +1118,11 @@ const SearchConsole = () => {
               <Select
                 value={customDateRange[0] ? "custom" : dateRange}
                 onChange={(value) => {
-                  setDateRange(value)
-                  setCustomDateRange([null, null])
-                  setCurrentPage(1)
-                  setExpandedRows([])
-                  fetchAnalyticsData()
+                  setDateRange(value);
+                  setCustomDateRange([null, null]);
+                  setCurrentPage(1);
+                  setExpandedRows([]);
+                  queryClient.invalidateQueries(["gscAnalytics"]);
                 }}
                 className="w-full"
               >
@@ -1147,10 +1137,10 @@ const SearchConsole = () => {
                 <RangePicker
                   value={customDateRange}
                   onChange={(dates) => {
-                    setCustomDateRange(dates)
-                    setCurrentPage(1)
-                    setExpandedRows([])
-                    fetchAnalyticsData()
+                    setCustomDateRange(dates);
+                    setCurrentPage(1);
+                    setExpandedRows([]);
+                    queryClient.invalidateQueries(["gscAnalytics"]);
                   }}
                   disabledDate={(current) => current && current > moment().endOf("day")}
                   className="w-full"
@@ -1163,11 +1153,11 @@ const SearchConsole = () => {
               <Switch
                 checked={includeCountry}
                 onChange={(checked) => {
-                  setIncludeCountry(checked)
-                  if (!checked) setSelectedCountries([])
-                  setCurrentPage(1)
-                  setExpandedRows([])
-                  fetchAnalyticsData()
+                  setIncludeCountry(checked);
+                  if (!checked) setSelectedCountries([]);
+                  setCurrentPage(1);
+                  setExpandedRows([]);
+                  queryClient.invalidateQueries(["gscAnalytics"]);
                 }}
                 className={`w-fit ${includeCountry ? "bg-blue-600" : "bg-gray-200"}`}
               />
@@ -1195,8 +1185,8 @@ const SearchConsole = () => {
             pageSize: itemsPerPage,
             total: filteredBlogData.length,
             onChange: (page, pageSize) => {
-              setCurrentPage(page)
-              setItemsPerPage(pageSize)
+              setCurrentPage(page);
+              setItemsPerPage(pageSize);
             },
             pageSizeOptions: [10, 20, 50, 100],
             showSizeChanger: true,
@@ -1220,14 +1210,14 @@ const SearchConsole = () => {
               : undefined
           }
           onChange={(pagination, filters) => {
-            setSelectedCountries(filters.countryName || [])
-            setCurrentPage(pagination.current)
-            setItemsPerPage(pagination.pageSize)
+            setSelectedCountries(filters.countryName || []);
+            setCurrentPage(pagination.current);
+            setItemsPerPage(pagination.pageSize);
           }}
           className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
           locale={{
-            emptyText: error
-              ? `Error: ${error}. Please try refreshing or reconnecting GSC.`
+            emptyText: connectErr
+              ? `Error: ${connectErr.message || connectErr.error || "An error occurred"}. Please try refreshing or reconnecting GSC.`
               : "No data available. Try adjusting your filters or refreshing the data.",
           }}
         />
@@ -1265,7 +1255,7 @@ const SearchConsole = () => {
         }
       `}</style>
     </div>
-  )
-}
+  );
+};
 
-export default SearchConsole
+export default SearchConsole;
