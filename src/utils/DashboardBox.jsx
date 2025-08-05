@@ -237,11 +237,10 @@ export const Blogs = ({ title, content, tags, item, time }) => {
         {/* Right section: actions */}
         <div className="flex items-center gap-4 text-sm text-gray-500">
           <div className="flex items-center gap-1">
-            <Eye className="w-4 h-4" />
             <span>View</span>
+            <span>{moment(time).fromNow()}</span>
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </div>
-          <span>{moment(time).fromNow()}</span>
-          <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
         </div>
       </div>
     </div>
