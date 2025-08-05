@@ -36,18 +36,6 @@ const Auth = ({ path }) => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
 
-  if (isSignup) {
-    ReactGA.event("sign_up", {
-      event: "sign_up",
-      method: "email",
-    })
-  } else {
-    ReactGA.event("login", {
-      event: "login",
-      method: "email",
-    })
-  }
-
   // Validate form fields
   const validateForm = useCallback(() => {
     const newErrors = {}
@@ -116,7 +104,6 @@ const Auth = ({ path }) => {
         .unwrap()
         .then((user) => {
           ReactGA.event(isSignup ? "sign_up" : "login", {
-            event: isSignup ? "sign_up" : "login",
             method: "google",
           })
           message.success("Google login successful!")
@@ -152,6 +139,9 @@ const Auth = ({ path }) => {
           : loginUser({ email: formData.email, password: formData.password, recaptchaValue })
 
         await dispatch(action).unwrap()
+        ReactGA.event(isSignup ? "sign_up" : "login", {
+          method: "email",
+        })
         message.success(isSignup ? "Signup successful!" : "Login successful!")
         setTimeout(() => {
           navigate("/dashboard", { replace: true })
