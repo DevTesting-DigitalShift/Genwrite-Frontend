@@ -129,13 +129,13 @@ const Auth = ({ path }) => {
     },
   })
 
-  const handleGoogleLogin = () => {
-    if (!recaptchaValue) {
-      setErrors((prev) => ({ ...prev, recaptcha: "Please complete the reCAPTCHA." }))
-      return
-    }
-    googleLoginHandler()
-  }
+  // const handleGoogleLogin = () => {
+  //   if (!recaptchaValue) {
+  //     setErrors((prev) => ({ ...prev, recaptcha: "Please complete the reCAPTCHA." }))
+  //     return
+  //   }
+  //   googleLoginHandler()
+  // }
 
   // Handle form submission
   const handleSubmit = useCallback(
