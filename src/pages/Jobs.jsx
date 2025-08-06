@@ -15,6 +15,7 @@ import JobModal from "@components/Jobs/JobModal"
 import JobCard from "@components/Jobs/JobCard"
 import { AlertTriangle } from "lucide-react"
 import { message } from "antd"
+import { useQuery } from "@tanstack/react-query"
 
 const PAGE_SIZE = 15
 
@@ -22,6 +23,7 @@ const Jobs = () => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const { jobs, loading: isLoading, showJobModal } = useSelector((state) => state.jobs)
+  console.log({ jobs })
   const { selectedKeywords } = useSelector((state) => state.analysis)
   const user = useSelector(selectUser)
   const userPlan = (user?.plan || user?.subscription?.plan || "free").toLowerCase()
@@ -31,28 +33,34 @@ const Jobs = () => {
   const usage = user?.usage?.createdJobs
   const usageLimit = user?.usageLimits?.createdJobs
 
-  const checkJobLimit = () => {
-    // if (!isUserLoaded) {
-    //   openUpgradePopup({
-    //     featureName: "Loading Error",
-    //     description: "User data is still loading. Please try again.",
-    //     navigate,
-    //   })
-    //   return false
-    // }
+  // TanStack Query for fetching jobs
+  const { data: queryJobs, isLoading: queryLoading } = useQuery({
+    queryKey: ["jobs"],
+    queryFn: async () => {
+      const response = await dispatch(fetchJobs()).unwrap() // Dispatch and unwrap the payload
+      return response // Return the jobs data
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  })
 
+  // TanStack Query for fetching brands
+  const { data: queryBrands } = useQuery({
+    queryKey: ["brands"],
+    queryFn: async () => {
+      const response = await dispatch(fetchBrands()).unwrap() // Dispatch and unwrap the payload
+      return response // Return the brands data
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  })
+
+  const checkJobLimit = () => {
     if (usage >= usageLimit) {
       openUpgradePopup({
         featureName: "Additional Jobs",
-        // description:
-        //   userPlan === "basic"
-        //     ? "Delete an existing job to create a new one."
-        //     : "Please upgrade your plan to create more jobs.",
         navigate,
       })
       return false
     }
-
     return true
   }
 
@@ -60,11 +68,6 @@ const Jobs = () => {
     if (!checkJobLimit()) return
     dispatch(openJobModal(null)) // Pass null for new job
   }
-
-  useEffect(() => {
-    dispatch(fetchJobs())
-    dispatch(fetchBrands())
-  }, [dispatch])
 
   useEffect(() => {
     setIsUserLoaded(!!(user?.name || user?.credits))
@@ -154,7 +157,7 @@ const Jobs = () => {
             <h2 className="text-xl font-semibold text-gray-800 mb-6">Active Jobs</h2>
           )}
 
-          {isLoading ? (
+          {queryLoading || isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[...Array(PAGE_SIZE)].map((_, index) => (
                 <SkeletonLoader key={index} />

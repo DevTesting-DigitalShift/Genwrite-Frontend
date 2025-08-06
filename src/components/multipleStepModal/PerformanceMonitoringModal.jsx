@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { Tag, Tags } from "lucide-react"
 import { useDispatch } from "react-redux"
-import { Modal, Select, Table, Tooltip, message, Button } from "antd"
+import { Modal, Select, Table, Tooltip, message, Button, Empty } from "antd"
 import { InfoCircleOutlined, LoadingOutlined } from "@ant-design/icons"
 import { fetchBlogById, fetchBlogStats } from "@store/slices/blogSlice"
 
@@ -662,10 +662,9 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
                 <h3 className="text-lg font-semibold text-gray-700">Content Preview</h3>
               </div>
               <div>
-                <div className="text-gray-700 max-h-40 overflow-y-auto whitespace-pre-wrap leading-relaxed p-4 rounded-md">
-                  {formData.content
-                    .split("\n")
-                    .map((line, index) => {
+                <div className="text-gray-700 max-h-50 overflow-y-auto whitespace-pre-wrap leading-relaxed p-4 rounded-md">
+                  {formData?.content?.trim() ? (
+                    formData.content.split("\n").map((line, index) => {
                       if (line.startsWith("### ")) {
                         return (
                           <h3 key={index} className="text-lg font-semibold mt-2">
@@ -700,7 +699,10 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
                           </p>
                         )
                       }
-                    })}
+                    })
+                  ) : (
+                    <Empty description="No content available for this blog" />
+                  )}
                 </div>
               </div>
             </motion.div>

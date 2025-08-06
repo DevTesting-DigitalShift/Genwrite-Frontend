@@ -54,7 +54,7 @@ const PluginsMain = () => {
     };
 
     checkAllPlugins();
-  }, [plugins, wordpressStatus]); // Include wordpressStatus to allow re-checking if status changes
+  }, [plugins]); // Include wordpressStatus to allow re-checking if status changes
 
   const handlePluginClick = (plugin) => {
     setSelectedPlugin(plugin);

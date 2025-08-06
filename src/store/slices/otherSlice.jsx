@@ -27,7 +27,7 @@ export const postToWordPress = createAsyncThunk(
     )
 
     try {
-      const response = await axiosInstance.post("/wordpress/post", {
+      const response = await axiosInstance.post("/wordpress", {
         blogId,
         includeTableOfContents: true,
         content: processedContent,

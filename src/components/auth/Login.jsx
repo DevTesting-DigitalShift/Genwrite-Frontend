@@ -96,7 +96,7 @@ const Auth = ({ path }) => {
   }
 
   // Handle Google
-  const handleGoogleLogin = useGoogleLogin({
+  const googleLoginHandler = useGoogleLogin({
     flow: "implicit",
     redirect_uri: "https://genwrite-frontend-eight.vercel.app/login",
     onSuccess: async (tokenResponse) => {
@@ -117,6 +117,14 @@ const Auth = ({ path }) => {
       message.error("Google login initialization failed.")
     },
   })
+
+  const handleGoogleLogin = () => {
+    if (!recaptchaValue) {
+      setErrors((prev) => ({ ...prev, recaptcha: "Please complete the reCAPTCHA." }))
+      return
+    }
+    googleLoginHandler()
+  }
 
   // Handle form submission
   const handleSubmit = useCallback(

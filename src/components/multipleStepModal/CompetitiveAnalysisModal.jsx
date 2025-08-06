@@ -1,17 +1,30 @@
-import { useState, useEffect, useMemo } from "react";
-import { ExternalLink } from "lucide-react";
-import { useConfirmPopup } from "@/context/ConfirmPopupContext";
-import { getEstimatedCost } from "@utils/getEstimatedCost";
-import { Collapse, Card, Progress, Modal, Select, Tabs, Empty, Button, Tag, Input } from "antd";
-import { motion } from "framer-motion";
-import { useDispatch, useSelector } from "react-redux";
-import { fetchCompetitiveAnalysisThunk } from "@store/slices/analysisSlice";
-import { LoadingOutlined } from "@ant-design/icons";
-import Loading from "@components/Loading";
-import { fetchBlogById } from "@store/slices/blogSlice";
+import { useState, useEffect, useMemo } from "react"
+import { ExternalLink } from "lucide-react"
+import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import { getEstimatedCost } from "@utils/getEstimatedCost"
+import {
+  Collapse,
+  Card,
+  Progress,
+  Modal,
+  Select,
+  Tabs,
+  Empty,
+  Button,
+  Tag,
+  Input,
+  message,
+  Tooltip,
+} from "antd"
+import { motion } from "framer-motion"
+import { useDispatch, useSelector } from "react-redux"
+import { fetchCompetitiveAnalysisThunk } from "@store/slices/analysisSlice"
+import { LoadingOutlined } from "@ant-design/icons"
+import Loading from "@components/Loading"
+import { fetchBlogById } from "@store/slices/blogSlice"
 
-const { Panel } = Collapse;
-const { TabPane } = Tabs;
+const { Panel } = Collapse
+const { TabPane } = Tabs
 
 const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
   const [formData, setFormData] = useState({
@@ -22,23 +35,23 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
     contentType: "markdown",
     selectedProject: null,
     generatedMetadata: null,
-  });
-  const [analysisResults, setAnalysisResults] = useState(null);
-  const [id, setId] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState(null);
-  const [collapseKey, setCollapseKey] = useState(0); // Used to reset Collapse
-  const { handlePopup } = useConfirmPopup();
-  const dispatch = useDispatch();
-  const { analysis, loading: analysisLoading } = useSelector((state) => state.analysis);
-  const { blog, loading: blogLoading } = useSelector((state) => state.blog);
+  })
+  const [analysisResults, setAnalysisResults] = useState(null)
+  const [id, setId] = useState(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [activeTab, setActiveTab] = useState(null)
+  const [collapseKey, setCollapseKey] = useState(0) // Used to reset Collapse
+  const { handlePopup } = useConfirmPopup()
+  const dispatch = useDispatch()
+  const { analysis, loading: analysisLoading } = useSelector((state) => state.analysis)
+  const { blog, loading: blogLoading } = useSelector((state) => state.blog)
 
   // Handle analysis results
   useEffect(() => {
     if (!analysisLoading && analysis) {
-      setAnalysisResults(analysis);
+      setAnalysisResults(analysis)
     }
-  }, [analysis, analysisLoading]);
+  }, [analysis, analysisLoading])
 
   // Reset form and results when modal closes
   useEffect(() => {
@@ -51,31 +64,31 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
         contentType: "markdown",
         selectedProject: null,
         generatedMetadata: null,
-      });
-      setAnalysisResults(null);
-      setId(null);
-      setIsLoading(false);
-      setActiveTab(null);
-      setCollapseKey(0);
+      })
+      setAnalysisResults(null)
+      setId(null)
+      setIsLoading(false)
+      setActiveTab(null)
+      setCollapseKey(0)
     }
-  }, [open]);
+  }, [open])
 
   // Handle body scroll lock
   useEffect(() => {
     if (open) {
-      document.body.style.overflow = "hidden";
+      document.body.style.overflow = "hidden"
     } else {
-      document.body.style.overflow = "auto";
+      document.body.style.overflow = "auto"
     }
     return () => {
-      document.body.style.overflow = "auto";
-    };
-  }, [open]);
+      document.body.style.overflow = "auto"
+    }
+  }, [open])
 
   // Fetch blog data when id changes
   useEffect(() => {
     if (id) {
-      setIsLoading(true);
+      setIsLoading(true)
       dispatch(fetchBlogById(id))
         .unwrap()
         .then((response) => {
@@ -89,34 +102,34 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
               selectedProject: response,
               contentType: "markdown",
               generatedMetadata: response.generatedMetadata || null,
-            }));
+            }))
           }
         })
         .catch((error) => {
-          console.error("Failed to fetch blog by ID:", error);
+          console.error("Failed to fetch blog by ID:", error)
         })
-        .finally(() => setIsLoading(false));
+        .finally(() => setIsLoading(false))
     }
-  }, [id, dispatch]);
+  }, [id, dispatch])
 
   // Determine first available tab
   useEffect(() => {
-    const hasCompetitors = mergedCompetitors.length > 0;
-    const hasOutboundLinks = formData?.generatedMetadata?.outboundLinks?.length > 0;
-    const hasInternalLinks = formData?.generatedMetadata?.internalLinks?.length > 0;
-    const hasAnalysisResults = !!analysisResults;
-    const hasInitialAnalysis = !!formData?.generatedMetadata?.competitorsAnalysis;
+    const hasCompetitors = mergedCompetitors.length > 0
+    const hasOutboundLinks = formData?.generatedMetadata?.outboundLinks?.length > 0
+    const hasInternalLinks = formData?.generatedMetadata?.internalLinks?.length > 0
+    const hasAnalysisResults = !!analysisResults
+    const hasInitialAnalysis = !!formData?.generatedMetadata?.competitorsAnalysis
 
     if (hasAnalysisResults) {
-      setActiveTab("results");
+      setActiveTab("results")
     } else if (hasCompetitors) {
-      setActiveTab("competitors");
+      setActiveTab("competitors")
     } else if (hasOutboundLinks || hasInternalLinks) {
-      setActiveTab("links");
+      setActiveTab("links")
     } else if (hasInitialAnalysis) {
-      setActiveTab("initial-analysis");
+      setActiveTab("initial-analysis")
     } else {
-      setActiveTab(null);
+      setActiveTab(null)
     }
   }, [
     analysisResults,
@@ -124,12 +137,12 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
     formData?.generatedMetadata?.outboundLinks,
     formData?.generatedMetadata?.internalLinks,
     formData?.generatedMetadata?.competitorsAnalysis,
-  ]);
+  ])
 
   const handleProjectSelect = (value) => {
-    const foundProject = blogs.find((p) => p._id === value);
+    const foundProject = blogs.find((p) => p._id === value)
     if (foundProject) {
-      setId(foundProject._id);
+      setId(foundProject._id)
       setFormData((prev) => ({
         ...prev,
         title: foundProject.title,
@@ -139,16 +152,21 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
         selectedProject: foundProject,
         contentType: "markdown",
         generatedMetadata: null,
-      }));
-      setAnalysisResults(null);
-      setCollapseKey((prev) => prev + 1); // Reset Collapse
+      }))
+      setAnalysisResults(null)
+      setCollapseKey((prev) => prev + 1) // Reset Collapse
     }
-  };
+  }
 
   const handleSubmit = () => {
-    if (!formData.title.trim()) return;
-    if (!formData.content.trim()) return;
-    if (formData.keywords.length === 0 && formData.focusKeywords.length === 0) return;
+    if (!formData.title.trim()) return
+    if (!formData.content.trim()) return
+    if (formData.keywords.length === 0 && formData.focusKeywords.length === 0) return
+
+    if (formData.content.length < 500) {
+      message.warning("Your content is too short. This may affect competitive analysis accuracy.")
+      return
+    }
 
     handlePopup({
       title: "Analyze Competitors",
@@ -160,7 +178,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
         </p>
       ),
       onConfirm: async () => {
-        setIsLoading(true);
+        setIsLoading(true)
         try {
           const result = await dispatch(
             fetchCompetitiveAnalysisThunk({
@@ -170,28 +188,28 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
               contentType: formData.contentType,
               blogId: formData?.selectedProject?._id,
             })
-          ).unwrap();
-          setAnalysisResults(result);
+          ).unwrap()
+          setAnalysisResults(result)
         } catch (err) {
-          console.error("Error fetching analysis:", err);
+          console.error("Error fetching analysis:", err)
         } finally {
-          setIsLoading(false);
+          setIsLoading(false)
         }
       },
-    });
-  };
+    })
+  }
 
   const cleanMarkdown = (text) => {
-    if (!text) return "";
+    if (!text) return ""
     return text
       .replace(/#{1,3}\s/g, "") // Remove markdown headers
       .replace(/[\*_~`]/g, "") // Remove markdown formatting (*, _, ~, `)
       .replace(/\n+/g, "\n") // Normalize newlines
-      .trim();
-  };
+      .trim()
+  }
 
   const parseSummary = (text) => {
-    if (!text) return [];
+    if (!text) return []
     return cleanMarkdown(text)
       .split("\n")
       .filter((line) => line.trim() !== "")
@@ -203,11 +221,11 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
             }}
           />
         </p>
-      ));
-  };
+      ))
+  }
 
   const renderCompetitorsList = (competitors) => {
-    if (!competitors || competitors.length === 0) return null;
+    if (!competitors || competitors.length === 0) return null
     return (
       <Collapse key={collapseKey} accordion className="bg-white border border-gray-200 rounded-lg">
         {competitors.map((competitor, index) => (
@@ -219,9 +237,11 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
                   {cleanMarkdown(competitor.title)}
                 </span>
                 <div className="flex items-center gap-2">
-                  {competitor.score && (
-                    <Tag color="blue">{(competitor.score * 100).toFixed(2)}%</Tag>
-                  )}
+                  <Tooltip title="Relatable Score">
+                    {competitor.score && (
+                      <Tag color="blue">{(competitor.score * 100).toFixed(2)}%</Tag>
+                    )}
+                  </Tooltip>
                   <a
                     href={competitor?.link ?? competitor?.url}
                     target="_blank"
@@ -249,11 +269,11 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
           </Panel>
         ))}
       </Collapse>
-    );
-  };
+    )
+  }
 
   const renderOutboundLinksList = (links, title) => {
-    if (!links || links.length === 0) return null;
+    if (!links || links.length === 0) return null
     return (
       <Card
         title={
@@ -289,15 +309,20 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
                   <span className="text-sm font-medium text-gray-800">
                     {cleanMarkdown(link.title)}
                   </span>
-                  <a
-                    href={link.link || link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 text-sm hover:underline flex items-center gap-1"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    Visit <ExternalLink className="w-4 h-4" />
-                  </a>
+                  <div className="flex items-center gap-2">
+                    <Tooltip title="Relatable Score">
+                      {link.score && <Tag color="blue">{(link.score * 100).toFixed(2)}%</Tag>}
+                    </Tooltip>
+                    <a
+                      href={link.link || link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 text-sm hover:underline flex items-center gap-1"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Visit <ExternalLink className="w-4 h-4" />
+                    </a>
+                  </div>
                 </div>
               }
               className="text-sm text-gray-700 leading-relaxed"
@@ -308,12 +333,12 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
           ))}
         </Collapse>
       </Card>
-    );
-  };
+    )
+  }
 
   const renderCompetitorsAnalysis = (competitorsAnalysis) => {
-    if (!competitorsAnalysis) return null;
-    const { analysis, suggestions } = competitorsAnalysis;
+    if (!competitorsAnalysis) return null
+    const { analysis, suggestions } = competitorsAnalysis
     return (
       <Card
         title={
@@ -347,23 +372,25 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
           >
             <Collapse accordion>
               {Object.entries(analysis).map(([key, value], index) => {
-                const match = value.match(/\((\d+\/\d+)\)$/);
-                const score = match ? match[1] : null;
-                const description = cleanMarkdown(value.replace(/\s*\(\d+\/\d+\)$/, "").trim());
+                const match = value.match(/\((\d+\/\d+)\)$/)
+                const score = match ? match[1] : null
+                const description = cleanMarkdown(value.replace(/\s*\(\d+\/\d+\)$/, "").trim())
                 return (
                   <Panel
                     key={key}
                     header={
                       <div className="flex justify-between items-center w-full pr-2">
                         <span className="font-medium text-gray-800">{cleanMarkdown(key)}</span>
-                        {score && <Tag color="blue">{score.replace("/", " / ")}</Tag>}
+                        <Tooltip title="Relatable Score">
+                          {score && <Tag color="blue">{score.replace("/", " / ")}</Tag>}
+                        </Tooltip>
                       </div>
                     }
                     className="text-sm text-gray-700 leading-relaxed"
                   >
                     <p>{description}</p>
                   </Panel>
-                );
+                )
               })}
             </Collapse>
           </Panel>
@@ -391,42 +418,42 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
           </Panel>
         </Collapse>
       </Card>
-    );
-  };
+    )
+  }
 
   const mergedCompetitors = useMemo(() => {
-    const blogCompetitors = formData?.generatedMetadata?.competitors || [];
-    const analysisCompetitors = analysisResults?.competitors || [];
-    const uniqueCompetitors = [];
-    const seenUrls = new Set();
+    const blogCompetitors = formData?.generatedMetadata?.competitors || []
+    const analysisCompetitors = analysisResults?.competitors || []
+    const uniqueCompetitors = []
+    const seenUrls = new Set()
 
-    [...blogCompetitors, ...analysisCompetitors].forEach((competitor) => {
-      const url = competitor.url || competitor.link;
+    ;[...blogCompetitors, ...analysisCompetitors].forEach((competitor) => {
+      const url = competitor.url || competitor.link
       if (!seenUrls.has(url)) {
-        seenUrls.add(url);
-        uniqueCompetitors.push(competitor);
+        seenUrls.add(url)
+        uniqueCompetitors.push(competitor)
       }
-    });
+    })
 
-    return uniqueCompetitors;
-  }, [formData?.generatedMetadata?.competitors, analysisResults?.competitors]);
+    return uniqueCompetitors
+  }, [formData?.generatedMetadata?.competitors, analysisResults?.competitors])
 
   const mergedKeywords = useMemo(() => {
-    return [...new Set([...formData.keywords, ...formData.focusKeywords])]; // Combine and deduplicate
-  }, [formData.keywords, formData.focusKeywords]);
+    return [...new Set([...formData.keywords, ...formData.focusKeywords])] // Combine and deduplicate
+  }, [formData.keywords, formData.focusKeywords])
 
-  const hasCompetitors = mergedCompetitors.length > 0;
-  const hasOutboundLinks = formData?.generatedMetadata?.outboundLinks?.length > 0;
-  const hasInternalLinks = formData?.generatedMetadata?.internalLinks?.length > 0;
-  const hasAnalysisResults = !!analysisResults;
-  const hasInitialAnalysis = !!formData?.generatedMetadata?.competitorsAnalysis;
+  const hasCompetitors = mergedCompetitors.length > 0
+  const hasOutboundLinks = formData?.generatedMetadata?.outboundLinks?.length > 0
+  const hasInternalLinks = formData?.generatedMetadata?.internalLinks?.length > 0
+  const hasAnalysisResults = !!analysisResults
+  const hasInitialAnalysis = !!formData?.generatedMetadata?.competitorsAnalysis
 
   if (isLoading || blogLoading || analysisLoading) {
     return (
       <div className="fixed inset-0 z-[9999] flex items-center justify-center">
         <Loading />
       </div>
-    );
+    )
   }
 
   return (
@@ -498,9 +525,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Select Blog Post
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Select Blog Post</label>
           <Select
             showSearch
             filterOption={(input, option) =>
@@ -544,9 +569,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
                 </div>
                 {mergedKeywords.length > 0 && (
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-600 mb-1">
-                      Keywords
-                    </label>
+                    <label className="block text-sm font-medium text-gray-600 mb-1">Keywords</label>
                     <div className="flex flex-wrap gap-2">
                       {mergedKeywords.map((keyword, i) => (
                         <Tag
@@ -587,7 +610,8 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
                 </div>
                 <div className="p-4">
                   <p className="text-sm text-gray-600">
-                    <strong>Title:</strong> {cleanMarkdown(formData.generatedMetadata.seo_meta.title)}
+                    <strong>Title:</strong>{" "}
+                    {cleanMarkdown(formData.generatedMetadata.seo_meta.title)}
                   </p>
                   <p className="text-sm text-gray-600 mt-2">
                     <strong>Description:</strong>{" "}
@@ -609,7 +633,11 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
           </motion.div>
         )}
 
-        {(hasCompetitors || hasOutboundLinks || hasInternalLinks || hasAnalysisResults || hasInitialAnalysis) && (
+        {(hasCompetitors ||
+          hasOutboundLinks ||
+          hasInternalLinks ||
+          hasAnalysisResults ||
+          hasInitialAnalysis) && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -618,8 +646,8 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
             <Tabs
               activeKey={activeTab}
               onChange={(key) => {
-                setActiveTab(key);
-                setCollapseKey((prev) => prev + 1); // Reset Collapse when tab changes
+                setActiveTab(key)
+                setCollapseKey((prev) => prev + 1) // Reset Collapse when tab changes
               }}
               type="card"
             >
@@ -665,9 +693,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
                         trailColor="#e5e7eb"
                         size="large"
                       />
-                      <div className="text-gray-800 text-lg font-semibold mt-3">
-                        Blog SEO Score
-                      </div>
+                      <div className="text-gray-800 text-lg font-semibold mt-3">Blog SEO Score</div>
                     </motion.div>
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
@@ -757,8 +783,14 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
                   key="links"
                 >
                   <div className="space-y-6">
-                    {renderOutboundLinksList(formData?.generatedMetadata?.outboundLinks, "Outbound Links")}
-                    {renderOutboundLinksList(formData?.generatedMetadata?.internalLinks, "Internal Links")}
+                    {renderOutboundLinksList(
+                      formData?.generatedMetadata?.outboundLinks,
+                      "Outbound Links"
+                    )}
+                    {renderOutboundLinksList(
+                      formData?.generatedMetadata?.internalLinks,
+                      "Internal Links"
+                    )}
                   </div>
                 </TabPane>
               )}
@@ -794,7 +826,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
         )}
       </div>
     </Modal>
-  );
-};
+  )
+}
 
-export default CompetitiveAnalysisModal;
+export default CompetitiveAnalysisModal

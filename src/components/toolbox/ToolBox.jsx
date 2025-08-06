@@ -122,17 +122,22 @@ const ToolBox = () => {
       return
     }
     try {
-      const response = await axiosInstance.post("/wordpress/post", {
+      const requestData = {
         blogId: blog._id,
         title: editorTitle,
         content: editorContent,
         categories: postData.categories,
         includeTableOfContents: postData.includeTableOfContents,
-      })
+      }
+
+      const response = isPosted
+        ? await axiosInstance.put("/wordpress", requestData)
+        : await axiosInstance.post("/wordpress", requestData)
+
       setIsPosted(response?.data)
-      message.success("Blog posted successfully!")
+      message.success(`Blog ${isPosted ? "updated" : "posted"} successfully!`)
     } catch (error) {
-      message.error(error.response?.data?.message || "Failed to post to WordPress.")
+      message.error(error.response?.data?.message || `Failed to ${isPosted ? "update" : "post to"} WordPress.`)
     } finally {
       setIsPosting(false)
     }
