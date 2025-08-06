@@ -5,11 +5,11 @@ import ChatBox from "@components/generateBlog/ChatBox"
 import { useState } from "react"
 import { RiChatAiLine } from "react-icons/ri"
 import { Tooltip } from "antd"
-import usePageTracking from "@/hooks/usePageTracking"
+// import usePageTracking from "@/hooks/usePageTracking"
 
 const PrivateRoutesLayout = () => {
   // Retrieve token from local storage
-  usePageTracking()
+  // usePageTracking()
   const token = localStorage.getItem("token")
   const [chatOpen, setChatOpen] = useState(false)
   // Check if token exists
