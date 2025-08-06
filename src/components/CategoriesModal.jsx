@@ -70,17 +70,6 @@ const CategoriesModal = ({
     }
   }, [customCategory, selectedCategory])
 
-  // Handle Enter key for custom category input
-  const handleCustomCategoryKeyDown = useCallback(
-    (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault()
-        addCustomCategory()
-      }
-    },
-    [addCustomCategory]
-  )
-
   // Handle table of contents toggle
   const handleCheckboxChange = useCallback((e) => {
     setIncludeTableOfContents(e.target.checked)

@@ -20,7 +20,7 @@ import { useSelector } from "react-redux";
 import { message, Button, Table, Tag, Select, Input, Tooltip, DatePicker, Switch } from "antd";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Loading from "@components/Loading";
-import * as XLSX from "xlsx";
+import { utils, writeFile } from "sheetjs-style";
 import { selectUser } from "@store/slices/authSlice";
 import UpgradeModal from "@components/UpgradeModal";
 import moment from "moment";
@@ -487,11 +487,11 @@ const SearchConsole = () => {
               ...(includeCountry ? { Country: item.countryName } : {}),
             }
       );
-      const worksheet = XLSX.utils.json_to_sheet(rows, { header: headers });
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Search Console Data");
+      const worksheet = utils.json_to_sheet(rows, { header: headers });
+      const workbook = utils.book_new();
+      utils.book_append_sheet(workbook, worksheet, "Search Console Data");
       const fileName = `search_console_data_${new Date().toISOString().split("T")[0]}.xlsx`;
-      XLSX.writeFile(workbook, fileName);
+      writeFile(workbook, fileName);
     } catch (err) {
       message.error(err.message || err.error || "Failed to export data");
       console.error("Error exporting data:", err);

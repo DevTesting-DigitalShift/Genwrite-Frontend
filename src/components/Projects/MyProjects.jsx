@@ -50,71 +50,48 @@ const MyProjects = () => {
   const queryClient = useQueryClient();
   const user = useSelector(selectUser);
   const userId = user?.id || "guest";
+
+  // Initialize state from single sessionStorage object
+  const initialFilters = JSON.parse(sessionStorage.getItem(`user_${userId}_filters`)) || {};
   const [filteredBlogs, setFilteredBlogs] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(initialFilters.currentPage || 1);
   const [itemsPerPage, setItemsPerPage] = useState(15);
-  const [sortType, setSortType] = useState(() =>
-    sessionStorage.getItem(`user_${userId}_sortType`) || "updatedAt"
-  );
-  const [sortOrder, setSortOrder] = useState(() =>
-    sessionStorage.getItem(`user_${userId}_sortOrder`) || "desc"
-  );
-  const [statusFilter, setStatusFilter] = useState(() =>
-    sessionStorage.getItem(`user_${userId}_statusFilter`) || "all"
-  );
+  const [sortType, setSortType] = useState(initialFilters.sortType || "updatedAt");
+  const [sortOrder, setSortOrder] = useState(initialFilters.sortOrder || "desc");
+  const [statusFilter, setStatusFilter] = useState(initialFilters.statusFilter || "all");
   const [dateRange, setDateRange] = useState([
-    sessionStorage.getItem(`user_${userId}_dateRangeStart`)
-      ? moment(sessionStorage.getItem(`user_${userId}_dateRangeStart`))
-      : null,
-    sessionStorage.getItem(`user_${userId}_dateRangeEnd`)
-      ? moment(sessionStorage.getItem(`user_${userId}_dateRangeEnd`))
-      : null,
+    initialFilters.dateRangeStart ? moment(initialFilters.dateRangeStart) : null,
+    initialFilters.dateRangeEnd ? moment(initialFilters.dateRangeEnd) : null,
   ]);
   const [presetDateRange, setPresetDateRange] = useState([
-    sessionStorage.getItem(`user_${userId}_presetDateRangeStart`)
-      ? moment(sessionStorage.getItem(`user_${userId}_presetDateRangeStart`))
-      : null,
-    sessionStorage.getItem(`user_${userId}_presetDateRangeEnd`)
-      ? moment(sessionStorage.getItem(`user_${userId}_presetDateRangeEnd`))
-      : null,
+    initialFilters.presetDateRangeStart ? moment(initialFilters.presetDateRangeStart) : null,
+    initialFilters.presetDateRangeEnd ? moment(initialFilters.presetDateRangeEnd) : null,
   ]);
-  const [searchTerm, setSearchTerm] = useState(() =>
-    sessionStorage.getItem(`user_${userId}_searchTerm`) || ""
-  );
+  const [searchTerm, setSearchTerm] = useState(initialFilters.searchTerm || "");
   const [isMenuOpen, setMenuOpen] = useState(false);
   const [isFunnelMenuOpen, setFunnelMenuOpen] = useState(false);
   const [isCustomDatePickerOpen, setIsCustomDatePickerOpen] = useState(false);
-  const [activePresetLabel, setActivePresetLabel] = useState(() =>
-    sessionStorage.getItem(`user_${userId}_activePresetLabel`) || ""
-  );
+  const [activePresetLabel, setActivePresetLabel] = useState(initialFilters.activePresetLabel || "");
   const { handlePopup } = useConfirmPopup();
   const TRUNCATE_LENGTH = 120;
   const [totalBlogs, setTotalBlogs] = useState(0);
 
-  // Persist filter states to sessionStorage
+  // Persist all filters to single sessionStorage object
   useEffect(() => {
-    sessionStorage.setItem(`user_${userId}_sortType`, sortType);
-    sessionStorage.setItem(`user_${userId}_sortOrder`, sortOrder);
-    sessionStorage.setItem(`user_${userId}_statusFilter`, statusFilter);
-    sessionStorage.setItem(`user_${userId}_searchTerm`, searchTerm);
-    sessionStorage.setItem(`user_${userId}_activePresetLabel`, activePresetLabel);
-    sessionStorage.setItem(
-      `user_${userId}_dateRangeStart`,
-      dateRange[0] ? dateRange[0].toISOString() : ""
-    );
-    sessionStorage.setItem(
-      `user_${userId}_dateRangeEnd`,
-      dateRange[1] ? dateRange[1].toISOString() : ""
-    );
-    sessionStorage.setItem(
-      `user_${userId}_presetDateRangeStart`,
-      presetDateRange[0] ? presetDateRange[0].toISOString() : ""
-    );
-    sessionStorage.setItem(
-      `user_${userId}_presetDateRangeEnd`,
-      presetDateRange[1] ? presetDateRange[1].toISOString() : ""
-    );
-  }, [userId, sortType, sortOrder, statusFilter, searchTerm, dateRange, presetDateRange, activePresetLabel]);
+    const filters = {
+      sortType,
+      sortOrder,
+      statusFilter,
+      searchTerm,
+      activePresetLabel,
+      dateRangeStart: dateRange[0] ? dateRange[0].toISOString() : null,
+      dateRangeEnd: dateRange[1] ? dateRange[1].toISOString() : null,
+      presetDateRangeStart: presetDateRange[0] ? presetDateRange[0].toISOString() : null,
+      presetDateRangeEnd: presetDateRange[1] ? presetDateRange[1].toISOString() : null,
+      currentPage,
+    };
+    sessionStorage.setItem(`user_${userId}_filters`, JSON.stringify(filters));
+  }, [userId, sortType, sortOrder, statusFilter, searchTerm, dateRange, presetDateRange, activePresetLabel, currentPage]);
 
   // Scroll to top on page change
   useEffect(() => {
@@ -131,15 +108,7 @@ const MyProjects = () => {
     setActivePresetLabel("");
     setSearchTerm("");
     setCurrentPage(1);
-    sessionStorage.removeItem(`user_${userId}_sortType`);
-    sessionStorage.removeItem(`user_${userId}_sortOrder`);
-    sessionStorage.removeItem(`user_${userId}_statusFilter`);
-    sessionStorage.removeItem(`user_${userId}_searchTerm`);
-    sessionStorage.removeItem(`user_${userId}_activePresetLabel`);
-    sessionStorage.removeItem(`user_${userId}_dateRangeStart`);
-    sessionStorage.removeItem(`user_${userId}_dateRangeEnd`);
-    sessionStorage.removeItem(`user_${userId}_presetDateRangeStart`);
-    sessionStorage.removeItem(`user_${userId}_presetDateRangeEnd`);
+    sessionStorage.removeItem(`user_${userId}_filters`);
   }, [userId]);
 
   const clearSearch = useCallback(() => {
@@ -190,14 +159,14 @@ const MyProjects = () => {
   const fetchBlogsQuery = useCallback(async () => {
     const queryParams = {
       start: dateRange[0]
-        ? moment(dateRange[0]).toISOString()
+        ? moment(dateRange[0]).startOf("day").toISOString()
         : presetDateRange[0]
-        ? moment(presetDateRange[0]).toISOString()
+        ? moment(presetDateRange[0]).startOf("day").toISOString()
         : undefined,
       end: dateRange[1]
-        ? moment(dateRange[1]).toISOString()
+        ? moment(dateRange[1]).endOf("day").toISOString()
         : presetDateRange[1]
-        ? moment(presetDateRange[1]).toISOString()
+        ? moment(presetDateRange[1]).endOf("day").toISOString()
         : undefined,
       isArchived: "",
     };
@@ -283,11 +252,11 @@ const MyProjects = () => {
     // Apply date range filter
     if (dateRange[0] && dateRange[1]) {
       result = result.filter((blog) =>
-        moment(blog.updatedAt).isBetween(dateRange[0], dateRange[1], "day", "[]")
+        moment(blog.updatedAt).isBetween(moment(dateRange[0]).startOf("day"), moment(dateRange[1]).endOf("day"), null, "[]")
       );
     } else if (presetDateRange[0] && presetDateRange[1]) {
       result = result.filter((blog) =>
-        moment(blog.updatedAt).isBetween(presetDateRange[0], presetDateRange[1], "day", "[]")
+        moment(blog.updatedAt).isBetween(moment(presetDateRange[0]).startOf("day"), moment(presetDateRange[1]).endOf("day"), null, "[]")
       );
     }
 
@@ -473,9 +442,9 @@ const MyProjects = () => {
     () => [
       {
         label: "Last 7 Days",
-        value: [moment().subtract(7, "days"), moment()],
+        value: [moment().subtract(7, "days").startOf("day"), moment().endOf("day")],
         onClick: () => {
-          setPresetDateRange([moment().subtract(7, "days"), moment()]);
+          setPresetDateRange([moment().subtract(7, "days").startOf("day"), moment().endOf("day")]);
           setDateRange([null, null]);
           setActivePresetLabel("Last 7 Days");
           setCurrentPage(1);
@@ -484,9 +453,9 @@ const MyProjects = () => {
       },
       {
         label: "Last 30 Days",
-        value: [moment().subtract(30, "days"), moment()],
+        value: [moment().subtract(30, "days").startOf("day"), moment().endOf("day")],
         onClick: () => {
-          setPresetDateRange([moment().subtract(30, "days"), moment()]);
+          setPresetDateRange([moment().subtract(30, "days").startOf("day"), moment().endOf("day")]);
           setDateRange([null, null]);
           setActivePresetLabel("Last 30 Days");
           setCurrentPage(1);
@@ -495,9 +464,9 @@ const MyProjects = () => {
       },
       {
         label: "Last 3 Months",
-        value: [moment().subtract(3, "months"), moment()],
+        value: [moment().subtract(3, "months").startOf("day"), moment().endOf("day")],
         onClick: () => {
-          setPresetDateRange([moment().subtract(3, "months"), moment()]);
+          setPresetDateRange([moment().subtract(3, "months").startOf("day"), moment().endOf("day")]);
           setDateRange([null, null]);
           setActivePresetLabel("Last 3 Months");
           setCurrentPage(1);
@@ -506,9 +475,9 @@ const MyProjects = () => {
       },
       {
         label: "Last 6 Months",
-        value: [moment().subtract(6, "months"), moment()],
+        value: [moment().subtract(6, "months").startOf("day"), moment().endOf("day")],
         onClick: () => {
-          setPresetDateRange([moment().subtract(6, "months"), moment()]);
+          setPresetDateRange([moment().subtract(6, "months").startOf("day"), moment().endOf("day")]);
           setDateRange([null, null]);
           setActivePresetLabel("Last 6 Months");
           setCurrentPage(1);
@@ -517,9 +486,9 @@ const MyProjects = () => {
       },
       {
         label: "This Year",
-        value: [moment().startOf("year"), moment()],
+        value: [moment().startOf("year").startOf("day"), moment().endOf("day")],
         onClick: () => {
-          setPresetDateRange([moment().startOf("year"), moment()]);
+          setPresetDateRange([moment().startOf("year").startOf("day"), moment().endOf("day")]);
           setDateRange([null, null]);
           setActivePresetLabel("This Year");
           setCurrentPage(1);
@@ -729,7 +698,7 @@ const MyProjects = () => {
           <RangePicker
             value={dateRange}
             onChange={(dates) => {
-              setDateRange(dates);
+              setDateRange(dates ? [moment(dates[0]).startOf("day"), moment(dates[1]).endOf("day")] : [null, null]);
               setPresetDateRange([null, null]);
               setActivePresetLabel("");
               setCurrentPage(1);
@@ -740,7 +709,6 @@ const MyProjects = () => {
             format="YYYY-MM-DD"
             placeholder={["Start date", "End date"]}
             aria-label="Select date range"
-            disabledDate={(current) => current && current > moment().endOf("day")}
           />
         </div>
       </div>

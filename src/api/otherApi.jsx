@@ -2,7 +2,16 @@ import axiosInstance from "." // make sure this points to your configured Axios 
 
 // 🟠 WordPress APIs
 export const postToWordPressAPI = async ({ blogId, content, includeTableOfContents = true }) => {
-  const response = await axiosInstance.post("/wordpress/post", {
+  const response = await axiosInstance.post("/wordpress", {
+    blogId,
+    content,
+    includeTableOfContents,
+  })
+  return response.data
+}
+
+export const rePostToWordPressAPI = async ({ blogId, content, includeTableOfContents = true }) => {
+  const response = await axiosInstance.put("/wordpress", {
     blogId,
     content,
     includeTableOfContents,
