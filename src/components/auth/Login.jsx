@@ -18,7 +18,6 @@ import { FcGoogle } from "react-icons/fc"
 import { Sparkles, Zap, PenTool, CheckCircle } from "lucide-react"
 import { Helmet } from "react-helmet"
 import { message } from "antd"
-import ReactGA from "react-ga4"
 
 const Auth = ({ path }) => {
   const [formData, setFormData] = useState({
@@ -96,16 +95,27 @@ const Auth = ({ path }) => {
   }
 
   // Handle Google
-  const googleLoginHandler = useGoogleLogin({
+  const handleGoogleLoginClick = () => {
+    if (!recaptchaValue) {
+      message.error("Please verify captcha first.")
+      return
+    }
+    handleGoogleLogin()
+  }
+
+  const handleGoogleLogin = useGoogleLogin({
     flow: "implicit",
-    redirect_uri: "https://genwrite-frontend-eight.vercel.app/login",
+    redirect_uri: "https://app.genwrite.co/login",
     onSuccess: async (tokenResponse) => {
-      dispatch(googleLogin(tokenResponse.access_token))
+      if (!recaptchaValue) {
+        message.error("Please verify captcha first.")
+        return
+      }
+      dispatch(
+        googleLogin({ access_token: tokenResponse.access_token, captchaToken: recaptchaValue })
+      )
         .unwrap()
         .then((user) => {
-          ReactGA.event(isSignup ? "sign_up" : "login", {
-            method: "google",
-          })
           message.success("Google login successful!")
           navigate("/dashboard", { replace: true })
         })
@@ -115,6 +125,7 @@ const Auth = ({ path }) => {
     },
     onError: () => {
       message.error("Google login initialization failed.")
+      setRecaptchaValue(null)
     },
   })
 
@@ -142,21 +153,24 @@ const Auth = ({ path }) => {
               email: formData.email,
               password: formData.password,
               name: formData.name,
-              recaptchaValue,
+              captchaToken: recaptchaValue,
             })
-          : loginUser({ email: formData.email, password: formData.password, recaptchaValue })
+          : loginUser({
+              email: formData.email,
+              password: formData.password,
+              captchaToken: recaptchaValue,
+            })
 
         await dispatch(action).unwrap()
-        ReactGA.event(isSignup ? "sign_up" : "login", {
-          method: "email",
-        })
+
         message.success(isSignup ? "Signup successful!" : "Login successful!")
         setTimeout(() => {
           navigate("/dashboard", { replace: true })
         }, 100)
       } catch (err) {
-        message.error(err.data.message)
         console.error("Auth error:", err)
+        message.error(err.data?.message || err?.message)
+        setRecaptchaValue(null)
       } finally {
         setLoading(false)
       }
@@ -304,7 +318,7 @@ const Auth = ({ path }) => {
               <motion.button
                 whileHover={{ y: -2, scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={handleGoogleLogin}
+                onClick={handleGoogleLoginClick}
                 disabled={loading}
                 className="w-full flex items-center justify-center gap-3 py-4 px-6 bg-white border-2 border-gray-200 rounded-2xl text-gray-700 hover:border-gray-300 hover:shadow-lg transition-all duration-300 mb-6 font-medium disabled:opacity-50"
               >

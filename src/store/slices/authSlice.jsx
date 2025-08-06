@@ -27,16 +27,20 @@ const initialState = {
 // 🔐 Login
 export const loginUser = createAsyncThunk(
   "auth/loginUser",
-  async ({ email, password }, { rejectWithValue }) => {
+  async ({ email, password, captchaToken }, { rejectWithValue }) => {
     try {
-      const data = await login(email, password)
+      const data = await login({ email, password, captchaToken })
       if (data?.token) {
         saveToken(data.token)
         return { user: data.user, token: data.token }
       }
       return rejectWithValue("Invalid login response")
     } catch (err) {
-      return rejectWithValue(err.response)
+      return rejectWithValue({
+        status: err.response?.status,
+        data: err.response?.data,
+        message: err.message,
+      })
     }
   }
 )
@@ -44,9 +48,9 @@ export const loginUser = createAsyncThunk(
 // 📝 Signup
 export const signupUser = createAsyncThunk(
   "auth/signupUser",
-  async ({ email, password, name }, { rejectWithValue }) => {
+  async ({ email, password, name, captchaToken }, { rejectWithValue }) => {
     try {
-      const data = await signup(email, password, name)
+      const data = await signup({ email, password, name, captchaToken })
       if (data?.token) {
         saveToken(data.token)
         return { user: data.user, token: data.token }
@@ -117,9 +121,9 @@ export const resetPassword = createAsyncThunk(
 
 export const googleLogin = createAsyncThunk(
   "auth/googleLogin",
-  async (access_token, { rejectWithValue }) => {
+  async ({ access_token, captchaToken }, { rejectWithValue }) => {
     try {
-      const response = await loginWithGoogle(access_token)
+      const response = await loginWithGoogle({ access_token, captchaToken })
 
       if (!response.success || !response.token || !response.user) {
         return rejectWithValue("Invalid Google login response")

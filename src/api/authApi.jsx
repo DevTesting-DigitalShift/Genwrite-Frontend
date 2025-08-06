@@ -12,17 +12,13 @@ const retry = async (fn, retries = 3, delay = 1000) => {
   }
 }
 
-export const login = async (email, password) => {
-  const response = await axiosInstance.post("/auth/login", { email, password })
+export const login = async (reqBody) => {
+  const response = await axiosInstance.post("/auth/login", reqBody)
   return response.data
 }
 
-export const signup = async (email, password, name) => {
-  const response = await axiosInstance.post("/auth/register", {
-    email,
-    password,
-    name,
-  })
+export const signup = async (body) => {
+  const response = await axiosInstance.post("/auth/register", body)
   return response.data
 }
 
@@ -75,11 +71,9 @@ export const resetPasswordAPI = async (token, newPassword) => {
   return response.data
 }
 
-export const loginWithGoogle = async (access_token) => {
+export const loginWithGoogle = async (body) => {
   try {
-    const response = await axiosInstance.post("/auth/google-signin", {
-      access_token,
-    })
+    const response = await axiosInstance.post("/auth/google-signin", body)
     return response.data
   } catch (error) {
     throw new Error(error.response?.data?.message || "Google login failed")
