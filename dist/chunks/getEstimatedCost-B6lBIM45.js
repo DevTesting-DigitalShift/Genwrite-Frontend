@@ -1,0 +1,1 @@
+const s=Object.freeze({analysis:{competitors:10,keywords:1},blog:{quick:5,proofread:5,single:10},aiImages:10});function i(o,a="gemini"){const t=o.split(".");let e=t.length===1?s[o]:s[t[0]][t[1]];if(!e)throw new Error("Unknown Operation: No cost available");switch(a.toLowerCase()){case"chatgpt":e=Math.ceil(3*e);break;case"claude":e=Math.ceil(5*e);break}return e}export{i as g};
