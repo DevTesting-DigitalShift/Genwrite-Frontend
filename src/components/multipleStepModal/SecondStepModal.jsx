@@ -32,7 +32,7 @@ const SecondStepModal = ({
     referenceLinks: data.referenceLinks || [],
     includeInterlinks: data.includeInterlinks || false,
     addOutBoundLinks: data.addOutBoundLinks || false,
-    addCTA: data.addCTA || true
+    addCTA: data.addCTA || true,
   })
   const [localFormData, setLocalFormData] = useState({
     newLink: "",
@@ -113,10 +113,10 @@ const SecondStepModal = ({
   }
 
   const handleImageSourceChange = (source) => {
-    if (source === "ai" && userPlan === "free") {
-      openUpgradePopup({ featureName: "AI-Generated Images", navigate })
-      return
-    }
+    // if (source === "ai" && userPlan === "free") {
+    //   openUpgradePopup({ featureName: "AI-Generated Images", navigate })
+    //   return
+    // }
     setFormData((prev) => ({
       ...prev,
       imageSource: source,
@@ -311,9 +311,14 @@ const SecondStepModal = ({
                 </label>
                 <label
                   htmlFor="ai-generated"
-                  className={`border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150 ${
-                    formData.imageSource === "ai" ? "border-blue-600 bg-blue-50" : "border-gray-300"
-                  } hover:shadow-sm w-full max-w-[200px] relative`}
+                  // className={`border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150 ${
+                  //   formData.imageSource === "ai" ? "border-blue-600 bg-blue-50" : "border-gray-300"
+                  // } hover:shadow-sm w-full max-w-[200px] relative`}
+                  className={`border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150
+          ${formData.imageSource === "ai" ? "border-blue-600 bg-blue-50" : "border-gray-300"}
+          hover:shadow-sm w-full max-w-[220px] relative
+
+        `}
                   onClick={(e) => {
                     if (userPlan === "free") {
                       e.preventDefault()
@@ -328,6 +333,7 @@ const SecondStepModal = ({
                     checked={formData.imageSource === "ai"}
                     onChange={() => handleImageSourceChange("ai")}
                     className="hidden"
+                    disabled={userPlan === "free" || isAiImagesLimitReached}
                   />
                   <span className="text-sm font-medium text-gray-800">AI-Generated Images</span>
                   {userPlan === "free" && (
