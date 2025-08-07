@@ -25,12 +25,13 @@ const ErrorPage = lazy(() => import("@components/ErrorPage"))
 const SuccessPage = lazy(() => import("@pages/payment/SuccessPage"))
 const CancelPage = lazy(() => import("@pages/payment/CancelPage"))
 const ContactUs = lazy(() => import("@pages/ContactUs"))
-const SearchConsole = lazy(() => import("@pages/SearchConsole"))
+const SearchConsole = lazy(() => import("@pages/SearchConsole.jsx"))
 const TermsAndConditions = lazy(() => import("@pages/TermsAndConditions"))
 const PrivacyPolicy = lazy(() => import("@pages/Privacy"))
 const HumanizeContent = lazy(() => import("@pages/HumanizeContent"))
 const CancellationPage = lazy(() => import("@pages/CancellationPage"))
 const AnalyticsPage = lazy(() => import("@components/AnalyticsPage"))
+const OutlineEditor = lazy(() => import("@pages/OutlineEditor"))
 
 /**
  * Wraps a component in React.Suspense with fallback support.
@@ -71,6 +72,7 @@ const router = createBrowserRouter([
       { path: "contact", element: withSuspense(ContactUs) },
       { path: "blog-performance", element: withSuspense(SearchConsole) },
       { path: "humanize-content", element: withSuspense(HumanizeContent) },
+      { path: "outline", element: withSuspense(OutlineEditor) },
       { path: "blog-editor", element: withSuspense(ToolBox) },
       { path: "blog-editor/:id", element: withSuspense(ToolBox) },
       { path: "cancel-subscription", element: withSuspense(CancellationPage) },

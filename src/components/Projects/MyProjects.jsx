@@ -213,7 +213,6 @@ const MyProjects = () => {
     mutationFn: (id) => dispatch(archiveBlog(id)).unwrap(),
     onSuccess: () => {
       queryClient.invalidateQueries(["blogs"]);
-      message.success("Blog moved to trash.");
     },
     onError: (error) => {
       console.error("Failed to archive blog:", error);

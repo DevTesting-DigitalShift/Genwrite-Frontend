@@ -14,7 +14,6 @@ import { openUpgradePopup } from "@utils/UpgardePopUp"
 import JobModal from "@components/Jobs/JobModal"
 import JobCard from "@components/Jobs/JobCard"
 import { AlertTriangle } from "lucide-react"
-import { message } from "antd"
 import { useQuery } from "@tanstack/react-query"
 
 const PAGE_SIZE = 15
@@ -23,7 +22,6 @@ const Jobs = () => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const { jobs, loading: isLoading, showJobModal } = useSelector((state) => state.jobs)
-  console.log({ jobs })
   const { selectedKeywords } = useSelector((state) => state.analysis)
   const user = useSelector(selectUser)
   const userPlan = (user?.plan || user?.subscription?.plan || "free").toLowerCase()
@@ -52,6 +50,8 @@ const Jobs = () => {
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
   })
+
+  console.log(queryBrands)
 
   const checkJobLimit = () => {
     if (usage >= usageLimit) {
