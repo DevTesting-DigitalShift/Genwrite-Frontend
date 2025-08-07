@@ -39,7 +39,7 @@ export default defineConfig({
     cssCodeSplit: true,
     cssMinify: "esbuild",
     minify: "esbuild",
-    sourcemap: false,
+    sourcemap: true,
     // Increase chunk size warning limit
     chunkSizeWarningLimit: 1000,
     // Enable module preloading for better performance
@@ -71,14 +71,5 @@ export default defineConfig({
     exclude: [
       // Exclude these from pre-bundling if they cause issues
     ],
-  },
-  // Enable esbuild optimizations
-  esbuild: {
-    // Remove console.log in production
-    drop: process.env.NODE_ENV === "production" ? ["console", "debugger"] : [],
-    // Optimize for modern browsers
-    target: "es2015",
-    // Enable tree shaking
-    treeShaking: true,
   },
 })
