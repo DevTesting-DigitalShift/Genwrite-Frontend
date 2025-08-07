@@ -39,20 +39,20 @@ const SecondStepModal = ({
   })
 
   // Reset isCheckedGeneratedImages if AI image limit is reached
-  useEffect(() => {
-    if (isAiImagesLimitReached && formData.isCheckedGeneratedImages) {
-      setFormData((prev) => ({
-        ...prev,
-        isCheckedGeneratedImages: false,
-        imageSource: "unsplash", // Default to unsplash when AI images are disabled
-      }))
-      setData((prev) => ({
-        ...prev,
-        isCheckedGeneratedImages: false,
-        imageSource: "unsplash",
-      }))
-    }
-  }, [isAiImagesLimitReached, formData.isCheckedGeneratedImages, setData])
+  // useEffect(() => {
+  //   if (isAiImagesLimitReached && formData.isCheckedGeneratedImages) {
+  //     setFormData((prev) => ({
+  //       ...prev,
+  //       isCheckedGeneratedImages: false,
+  //       imageSource: "unsplash", // Default to unsplash when AI images are disabled
+  //     }))
+  //     setData((prev) => ({
+  //       ...prev,
+  //       isCheckedGeneratedImages: false,
+  //       imageSource: "unsplash",
+  //     }))
+  //   }
+  // }, [isAiImagesLimitReached, formData.isCheckedGeneratedImages, setData])
 
   useEffect(() => {
     if (formData.isCheckedBrand) {
@@ -175,13 +175,13 @@ const SecondStepModal = ({
                   id: "chatgpt",
                   label: "ChatGPT",
                   logo: "/Images/chatgpt.png",
-                  // restricted: userPlan === "free",
+                  
                 },
                 {
                   id: "claude",
                   label: "Claude",
                   logo: "/Images/claude.png",
-                  // restricted: userPlan === "free" || userPlan === "basic",
+                 
                 },
               ].map((model) => (
                 <label
@@ -227,21 +227,19 @@ const SecondStepModal = ({
             <div className="flex items-center">
               <label
                 htmlFor="add-image-toggle"
-                className={`relative inline-block w-12 h-6 ${
-                  isAiImagesLimitReached ? "opacity-50 cursor-not-allowed" : ""
-                }`}
+                className={`relative inline-block w-12 h-6`}
               >
                 <input
                   type="checkbox"
                   id="add-image-toggle"
                   className="sr-only peer"
                   checked={formData.isCheckedGeneratedImages}
-                  disabled={isAiImagesLimitReached}
+                  // disabled={isAiImagesLimitReached}
                   onChange={(e) => {
-                    if (isAiImagesLimitReached) {
-                      openUpgradePopup({ featureName: "AI-Generated Images", navigate })
-                      return
-                    }
+                    // if (isAiImagesLimitReached) {
+                    //   openUpgradePopup({ featureName: "AI-Generated Images", navigate })
+                    //   return
+                    // }
                     const checked = e.target.checked
                     setFormData((prev) => ({
                       ...prev,
@@ -258,36 +256,25 @@ const SecondStepModal = ({
                 />
                 <div
                   className={`w-12 h-6 rounded-full transition-all duration-300 ${
-                    formData.isCheckedGeneratedImages && !isAiImagesLimitReached
+                    formData.isCheckedGeneratedImages
                       ? "bg-[#1B6FC9]"
                       : "bg-gray-300"
                   }`}
                 />
                 <div
                   className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-300 ${
-                    formData.isCheckedGeneratedImages && !isAiImagesLimitReached
+                    formData.isCheckedGeneratedImages
                       ? "translate-x-6"
                       : ""
                   }`}
                 />
               </label>
-              {isAiImagesLimitReached && (
-                <Tooltip
-                  title="You've reached your AI image generation limit. It'll reset in the next billing cycle."
-                  overlayInnerStyle={{
-                    backgroundColor: "#FEF9C3", // light yellow
-                    border: "1px solid #FACC15", // yellow-400 border
-                    color: "#78350F", // dark yellow text
-                  }}
-                >
-                  <TriangleAlert className="text-yellow-400 ml-4" size={15} />
-                </Tooltip>
-              )}
+              
             </div>
           </div>
 
           {/* Image Source Selection - Only show if toggle is ON and limit not reached */}
-          {formData.isCheckedGeneratedImages && !isAiImagesLimitReached && (
+          {formData.isCheckedGeneratedImages && (
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-3">Image Source</label>
               <div className="flex gap-6 flex-wrap">
@@ -295,8 +282,8 @@ const SecondStepModal = ({
                   htmlFor="unsplash"
                   className={`border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150 ${
                     formData.imageSource === "unsplash"
-                      ? "border-blue-600 bg-blue-50"
-                      : "border-gray-300"
+                    ? "border-blue-600 bg-blue-50"
+                    : "border-gray-300"
                   } hover:shadow-sm w-full max-w-[200px]`}
                 >
                   <input
@@ -336,13 +323,24 @@ const SecondStepModal = ({
                     disabled={userPlan === "free" || isAiImagesLimitReached}
                   />
                   <span className="text-sm font-medium text-gray-800">AI-Generated Images</span>
-                  {userPlan === "free" && (
+                  {userPlan === "free" ? (
                     <Crown className="w-4 h-4 text-yellow-500 absolute top-2 right-2" />
-                  )}
+                  ): isAiImagesLimitReached && (
+                <Tooltip
+                  title="You've reached your AI image generation limit. It'll reset in the next billing cycle."
+                  overlayInnerStyle={{
+                    backgroundColor: "#FEF9C3", // light yellow
+                    border: "1px solid #FACC15", // yellow-400 border
+                    color: "#78350F", // dark yellow text
+                  }}
+                >
+                  <TriangleAlert className="text-yellow-400 ml-4" size={15} />
+                </Tooltip>
+              )}
                 </label>
               </div>
             </div>
-          )}
+            )}
 
           {/* Quick Summary Toggle */}
           <div className="flex items-center justify-between">
