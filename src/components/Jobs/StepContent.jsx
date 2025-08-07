@@ -8,6 +8,8 @@ import { Crown, Info, Plus, TriangleAlert, Upload, X } from "lucide-react"
 import { useSelector } from "react-redux"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
 import { useNavigate } from "react-router-dom"
+import { useQuery } from "@tanstack/react-query"
+import { fetchBrands } from "@store/slices/brandSlice"
 
 const { Option } = Select
 
@@ -28,7 +30,16 @@ const StepContent = ({
   user,
   userPlan,
 }) => {
-  const { brands, loading: loadingBrands, error: brandError } = useSelector((state) => state.brand)
+  const { loading: loadingBrands, error: brandError } = useSelector((state) => state.brand)
+  const { data: brands } = useQuery({
+    queryKey: ["brands"],
+    queryFn: async () => {
+      const response = await dispatch(fetchBrands()).unwrap()
+      return response
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  })
+
   const tones = ["Professional", "Casual", "Friendly", "Formal", "Technical"]
   const wordLengths = [500, 1000, 1500, 2000, 3000]
   const MAX_BLOGS = 100

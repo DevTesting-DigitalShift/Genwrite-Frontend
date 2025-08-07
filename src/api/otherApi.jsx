@@ -34,3 +34,8 @@ export const fetchCategories = async () => {
   const response = await axiosInstance.get("/wordpress/category")
   return response.data
 }
+
+export const createOutline = async (payload) => {
+  const response = await axiosInstance.post("/generate/outline", payload)
+  return response.data
+}

@@ -1,6 +1,7 @@
-import { fetchCategories } from "@api/otherApi"
+import { createOutline, fetchCategories } from "@api/otherApi"
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit"
 import { message } from "antd"
+import { data } from "react-router-dom"
 
 // Stripe
 export const createStripeSession = async (data) => {
@@ -60,9 +61,20 @@ export const getCategoriesThunk = createAsyncThunk(
   }
 )
 
+export const createOutlineThunk = createAsyncThunk("outline/create", async (payload, thunkAPI) => {
+  try {
+    const data = await createOutline(payload)
+    return data
+  } catch (error) {
+    console.error("Error in createOutline", error)
+    return thunkAPI.rejectWithValue(error.response?.data || error.message)
+  }
+})
+
 const wordpressSlice = createSlice({
   name: "wordpress",
   initialState: {
+    data: null,
     loading: false,
     error: null,
     success: false,
@@ -96,6 +108,19 @@ const wordpressSlice = createSlice({
       .addCase(getCategoriesThunk.rejected, (state, action) => {
         state.loading = false
         state.error = action.payload
+      })
+
+      .addCase(createOutlineThunk.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(createOutlineThunk.fulfilled, (state, action) => {
+        state.loading = false
+        state.data = action.payload
+      })
+      .addCase(createOutlineThunk.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload || "Something went wrong"
       })
   },
 })

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import { useDispatch, useSelector } from "react-redux"
+import { useQuery } from "@tanstack/react-query"
 import { fetchBrands } from "@store/slices/brandSlice"
 import { message, Modal, Tooltip } from "antd"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
@@ -15,7 +16,6 @@ const SecondStepModal = ({
 }) => {
   const dispatch = useDispatch()
   const { user } = useSelector((state) => state.auth)
-  const { brands, loading: loadingBrands, error: brandError } = useSelector((state) => state.brand)
   const userPlan = user?.subscription?.plan || user?.plan || "free"
 
   // Check if AI image usage limit is reached
@@ -38,27 +38,17 @@ const SecondStepModal = ({
     newLink: "",
   })
 
-  // Reset isCheckedGeneratedImages if AI image limit is reached
-  // useEffect(() => {
-  //   if (isAiImagesLimitReached && formData.isCheckedGeneratedImages) {
-  //     setFormData((prev) => ({
-  //       ...prev,
-  //       isCheckedGeneratedImages: false,
-  //       imageSource: "unsplash", // Default to unsplash when AI images are disabled
-  //     }))
-  //     setData((prev) => ({
-  //       ...prev,
-  //       isCheckedGeneratedImages: false,
-  //       imageSource: "unsplash",
-  //     }))
-  //   }
-  // }, [isAiImagesLimitReached, formData.isCheckedGeneratedImages, setData])
-
-  useEffect(() => {
-    if (formData.isCheckedBrand) {
-      dispatch(fetchBrands())
-    }
-  }, [formData.isCheckedBrand, dispatch])
+  const {
+    data: brands = [],
+    isLoading: loadingBrands,
+    error: brandError,
+  } = useQuery({
+    queryKey: ["brands"],
+    queryFn: fetchBrands,
+    enabled: formData.isCheckedBrand, // Only fetch if brand voice is checked
+    staleTime: 5 * 60 * 1000,
+    cacheTime: 10 * 60 * 1000,
+  })
 
   const handleAddLink = () => {
     const input = localFormData.newLink.trim()

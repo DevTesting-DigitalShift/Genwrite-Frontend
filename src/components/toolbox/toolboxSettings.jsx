@@ -1,42 +1,42 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Card, Tabs, Input, Button, Table, Tag, message } from "antd";
+import React, { useEffect, useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { Card, Tabs, Input, Button, Table, Tag, message } from "antd"
 import {
   SearchOutlined,
   ThunderboltOutlined,
   GlobalOutlined,
   CloseOutlined,
   DownloadOutlined,
-} from "@ant-design/icons";
-import { motion } from "framer-motion";
-import CompetitiveAnalysisModal from "../multipleStepModal/CompetitiveAnalysisModal";
-import { useDispatch, useSelector } from "react-redux";
-import { analyzeKeywordsThunk, clearKeywordAnalysis } from "@store/slices/analysisSlice";
-import { Helmet } from "react-helmet";
-import { ImMagicWand } from "react-icons/im";
-import { Keyboard, WholeWord } from "lucide-react";
+} from "@ant-design/icons"
+import { motion } from "framer-motion"
+import CompetitiveAnalysisModal from "../multipleStepModal/CompetitiveAnalysisModal"
+import { useDispatch, useSelector } from "react-redux"
+import { analyzeKeywordsThunk, clearKeywordAnalysis } from "@store/slices/analysisSlice"
+import { Helmet } from "react-helmet"
+import { ImMagicWand } from "react-icons/im"
+import { Keyboard, WholeWord, Workflow } from "lucide-react"
 
 export default function ToolboxPage() {
-  const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("content");
-  const [keywords, setKeywords] = useState([]);
-  const [newKeyword, setNewKeyword] = useState("");
-  const [competitiveAnalysisModalOpen, setCompetitiveAnalysisModalOpen] = useState(false);
-  const [pageSize, setPageSize] = useState(10);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
-  const { blogs } = useSelector((state) => state.blog);
-  const dispatch = useDispatch();
+  const navigate = useNavigate()
+  const [activeTab, setActiveTab] = useState("content")
+  const [keywords, setKeywords] = useState([])
+  const [newKeyword, setNewKeyword] = useState("")
+  const [competitiveAnalysisModalOpen, setCompetitiveAnalysisModalOpen] = useState(false)
+  const [pageSize, setPageSize] = useState(10)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [selectedRowKeys, setSelectedRowKeys] = useState([])
+  const { blogs } = useSelector((state) => state.blog)
+  const dispatch = useDispatch()
   const { keywordAnalysis: keywordAnalysisResult, loading: analyzing } = useSelector(
     (state) => state.analysis
-  );
+  )
 
   const addKeyword = () => {
-    const input = newKeyword.trim();
-    if (!input) return;
+    const input = newKeyword.trim()
+    if (!input) return
 
-    const existing = keywords.map((k) => k.toLowerCase());
-    const seen = new Set();
+    const existing = keywords.map((k) => k.toLowerCase())
+    const seen = new Set()
 
     const newKeywords = input
       .split(",")
@@ -47,66 +47,68 @@ export default function ToolboxPage() {
           !existing.includes(k.toLowerCase()) &&
           !seen.has(k.toLowerCase()) &&
           seen.add(k.toLowerCase())
-      );
+      )
 
     if (newKeywords.length > 0) {
-      setKeywords([...keywords, ...newKeywords]);
-      setNewKeyword("");
+      setKeywords([...keywords, ...newKeywords])
+      setNewKeyword("")
     }
-  };
+  }
 
   const removeKeyword = (index) => {
-    setKeywords(keywords.filter((_, i) => i !== index));
-  };
+    setKeywords(keywords.filter((_, i) => i !== index))
+  }
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter") {
-      e.preventDefault();
-      addKeyword();
+      e.preventDefault()
+      addKeyword()
     }
-  };
+  }
 
   const analyzeKeywords = async () => {
-    dispatch(analyzeKeywordsThunk(keywords));
-    setCurrentPage(1);
-    setSelectedRowKeys([]);
-  };
+    dispatch(analyzeKeywordsThunk(keywords))
+    setCurrentPage(1)
+    setSelectedRowKeys([])
+  }
 
   // Deselect a keyword from the selected keywords display
   const deselectKeyword = (index) => {
-    setSelectedRowKeys(selectedRowKeys.filter((key) => key !== index));
-  };
+    setSelectedRowKeys(selectedRowKeys.filter((key) => key !== index))
+  }
 
   // Clear all selected keywords
   const clearSelectedKeywords = () => {
-    setSelectedRowKeys([]);
-  };
+    setSelectedRowKeys([])
+  }
 
   // Function to download selected keywords as CSV
   const downloadAsCSV = () => {
-    if (!keywordAnalysisResult || !Array.isArray(keywordAnalysisResult) || keywordAnalysisResult.length === 0) {
-      message.error("No keyword analysis results available to download.");
-      return;
+    if (
+      !keywordAnalysisResult ||
+      !Array.isArray(keywordAnalysisResult) ||
+      keywordAnalysisResult.length === 0
+    ) {
+      message.error("No keyword analysis results available to download.")
+      return
     }
 
     if (selectedRowKeys.length === 0) {
-      message.error("Please select at least one keyword to download.");
-      return;
+      message.error("Please select at least one keyword to download.")
+      return
     }
 
     // Filter selected keywords based on selectedRowKeys
-    const selectedKeywords = keywordAnalysisResult.filter((_, idx) =>
-      selectedRowKeys.includes(idx)
-    );
+    const selectedKeywords = keywordAnalysisResult.filter((_, idx) => selectedRowKeys.includes(idx))
 
     if (selectedKeywords.length === 0) {
-      message.error("No valid keywords selected for export.");
-      return;
+      message.error("No valid keywords selected for export.")
+      return
     }
 
     // Create CSV content with all columns
     // const headers = ["keyword", "monthly_searches", "competition", "avg_cpc", "low_bid", "high_bid"];
-     const headers = ["keyword"];
+    const headers = ["keyword"]
     const csvContent = [
       headers.join(","),
       ...selectedKeywords.map((kw) =>
@@ -119,20 +121,20 @@ export default function ToolboxPage() {
           // kw.highBid ? kw.highBid.toFixed(2) : "N/A",
         ].join(",")
       ),
-    ].join("\n");
+    ].join("\n")
 
     // Create a Blob and trigger download
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", "selected_keywords.csv");
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.setAttribute("href", url)
+    link.setAttribute("download", "selected_keywords.csv")
+    link.style.visibility = "hidden"
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
 
   // Table columns for keyword analysis results
   const columns = [
@@ -192,18 +194,18 @@ export default function ToolboxPage() {
       sorter: (a, b) => a.highBid - b.highBid,
       render: (value) => (value ? value.toFixed(2) : "N/A"),
     },
-  ];
+  ]
 
   // Table row selection configuration
   const rowSelection = {
     selectedRowKeys,
     onChange: (newSelectedRowKeys) => {
-      setSelectedRowKeys(newSelectedRowKeys);
+      setSelectedRowKeys(newSelectedRowKeys)
     },
     getCheckboxProps: (record) => ({
       name: record.keyword,
     }),
-  };
+  }
 
   // Prepare table data from keywordAnalysisResult
   const tableData =
@@ -216,25 +218,25 @@ export default function ToolboxPage() {
       avgCpc: kw.avgCpc,
       lowBid: kw.lowBid,
       highBid: kw.highBid,
-    })) || [];
+    })) || []
 
   // Get selected keywords for display
   const selectedKeywordsDisplay = keywordAnalysisResult
     ? selectedRowKeys.map((idx) => keywordAnalysisResult[idx]?.keyword).filter(Boolean)
-    : [];
+    : []
 
   // Handle pagination size change
   const handlePageSizeChange = (current, size) => {
-    setPageSize(size);
-    setCurrentPage(1);
+    setPageSize(size)
+    setCurrentPage(1)
     // Removed setSelectedRowKeys([]) to preserve selections
-  };
+  }
 
   // Handle page change
   const handlePageChange = (page) => {
-    setCurrentPage(page);
+    setCurrentPage(page)
     // Removed setSelectedRowKeys([]) to preserve selections
-  };
+  }
 
   const cardItems = [
     {
@@ -257,6 +259,16 @@ export default function ToolboxPage() {
       color: "from-blue-500 to-indigo-600",
     },
     {
+      key: "outline",
+      title: "AI Outline",
+      icon: <Workflow  className="text-green-500" />, // from react-icons/bs
+      description:
+        "Craft high-impact blog outlines with SEO keywords, structure, and brand voice in seconds using AI.",
+      action: () => navigate("/outline"),
+      actionText: "Let's Outline",
+      color: "from-green-500 to-emerald-600",
+    },
+    {
       key: "competitor-analysis",
       title: "Competitor Analysis",
       icon: <GlobalOutlined className="text-purple-500" />,
@@ -265,13 +277,13 @@ export default function ToolboxPage() {
       actionText: "Start Analysis",
       color: "from-rose-500 to-pink-600",
     },
-  ];
+  ]
 
   useEffect(() => {
     return () => {
-      dispatch(clearKeywordAnalysis());
-    };
-  }, [dispatch]);
+      dispatch(clearKeywordAnalysis())
+    }
+  }, [dispatch])
 
   return (
     <>
@@ -338,7 +350,9 @@ export default function ToolboxPage() {
               children: (
                 <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-6 mt-6">
                   {cardItems
-                    .filter((item) => ["ai-writer", "humanize-content"].includes(item.key))
+                    .filter((item) =>
+                      ["ai-writer", "humanize-content", "outline"].includes(item.key)
+                    )
                     .map((item) => (
                       <AnimatedCard key={item.key} item={item} />
                     ))}
@@ -562,7 +576,7 @@ export default function ToolboxPage() {
         )}
       </motion.div>
     </>
-  );
+  )
 }
 
 function AnimatedCard({ item }) {
@@ -604,5 +618,5 @@ function AnimatedCard({ item }) {
         )}
       </Card>
     </motion.div>
-  );
+  )
 }
