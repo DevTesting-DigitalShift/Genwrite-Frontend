@@ -51,7 +51,7 @@ const Jobs = () => {
     staleTime: 1000 * 60 * 5, // 5 minutes
   })
 
-  console.log(queryBrands)
+  // console.log(queryBrands)
 
   const checkJobLimit = () => {
     if (usage >= usageLimit) {
