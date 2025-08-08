@@ -18,6 +18,7 @@ import {
 const BrandVoice = () => {
   const user = useSelector((state) => state.auth.user)
   const dispatch = useDispatch()
+  const queryClient = useQueryClient() // Added for cache management
   const [inputValue, setInputValue] = useState("")
   const [isUploading, setIsUploading] = useState(false)
   const [formData, setFormData] = useState({
@@ -32,7 +33,7 @@ const BrandVoice = () => {
   const [errors, setErrors] = useState({})
   const { siteInfo } = useSelector((state) => state.brand)
   const [lastScrapedUrl, setLastScrapedUrl] = useState("")
-  const [isFormReset, setIsFormReset] = useState(false) 
+  const [isFormReset, setIsFormReset] = useState(false)
   const {
     data: brands = [],
     isLoading,
@@ -40,13 +41,11 @@ const BrandVoice = () => {
   } = useQuery({
     queryKey: ["brands"],
     queryFn: fetchBrands,
-    staleTime: 5 * 60 * 1000, 
-    cacheTime: 10 * 60 * 1000, 
+    staleTime: 5 * 60 * 1000,
+    cacheTime: 10 * 60 * 1000,
   })
 
-  console.log({brands}, {isLoading}, {error})
-
-  
+  console.log({ brands }, { isLoading }, { error })
 
   // Reset form on mount and unmount (page change)
   useEffect(() => {
@@ -93,7 +92,7 @@ const BrandVoice = () => {
       keywords: [],
       describeBrand: "",
       sitemapUrl: "",
-      selectedVoice: (brands && brands.length > 0) ? brands[0] : null,
+      selectedVoice: brands && brands.length > 0 ? brands[0] : null,
       _id: undefined,
     })
     setInputValue("")
@@ -243,8 +242,7 @@ const BrandVoice = () => {
     // Check for duplicate postLink
     const isDuplicate = brands.some(
       (brand) =>
-        brand.postLink === payload.postLink &&
-        (formData._id ? brand._id !== formData._id : true)
+        brand.postLink === payload.postLink && (formData._id ? brand._id !== formData._id : true)
     )
 
     if (isDuplicate) {
@@ -270,7 +268,7 @@ const BrandVoice = () => {
     } finally {
       setIsUploading(false)
     }
-  }, [formData, user, dispatch, validateForm, resetForm, brands])
+  }, [formData, user, dispatch, validateForm, resetForm, brands, queryClient])
 
   // Edit brand voice
   const handleEdit = useCallback((brand) => {
@@ -297,21 +295,32 @@ const BrandVoice = () => {
         okText: "Delete",
         cancelText: "Cancel",
         okButtonProps: { danger: true },
-        onOk: () => {
-          dispatch(deleteBrandVoiceThunk({ id: brand._id }))
-            .unwrap()
-            .then(() => {
-              queryClient.invalidateQueries(["brands"])
-              if (formData.selectedVoice?._id === brand._id) {
-                resetForm()
-                dispatch(resetSiteInfo())
-              }
-            })
-            .catch(() => message.error("Failed to delete brand voice."))
+        onOk: async () => {
+          try {
+            // Optimistic update: Remove brand from cache immediately
+            queryClient.setQueryData(["brands"], (oldBrands = []) =>
+              oldBrands.filter((b) => b._id !== brand._id)
+            )
+
+            await dispatch(deleteBrandVoiceThunk({ id: brand._id })).unwrap()
+
+            // Invalidate query to refetch latest data
+            queryClient.invalidateQueries(["brands"])
+
+            // Reset form if deleted brand was selected
+            if (formData.selectedVoice?._id === brand._id) {
+              resetForm()
+              dispatch(resetSiteInfo())
+            }
+          } catch (error) {
+            console.error("Failed to delete brand voice:", error)
+            // Rollback optimistic update by invalidating query
+            queryClient.invalidateQueries(["brands"])
+          }
         },
       })
     },
-    [dispatch, formData.selectedVoice, resetForm]
+    [dispatch, formData.selectedVoice, resetForm, queryClient]
   )
 
   // Select brand voice
