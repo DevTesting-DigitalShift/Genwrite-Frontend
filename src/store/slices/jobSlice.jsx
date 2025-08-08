@@ -22,6 +22,13 @@ export const createJobThunk = createAsyncThunk(
     try {
       const data = await createJob(jobPayload)
       message.success("Job created successfully!")
+      pushToDataLayer({
+        event: "job_agent_creation",
+        event_status: "success",
+        user_id: user._id,
+        job_id: data._id,
+        job_ai:
+      })
       // GA4 Events
       // - ⁠purchase
       // - ⁠blog created
@@ -31,6 +38,12 @@ export const createJobThunk = createAsyncThunk(
       if (onSuccess) onSuccess()
       return data
     } catch (error) {
+      pushToDataLayer({
+        event: "job_agent_creation",
+        event_status: "fail",
+        user_id: user._id,
+        error_msg: error?.message || error?.response?.data?.message || "Job Creation Failed",
+      })
       message.error(error?.response?.data?.message || "Failed to create job. Please try again.")
       return rejectWithValue(error.response?.data?.message || error.message)
     }
@@ -124,20 +137,10 @@ const jobSlice = createSlice({
         const job = action.payload
         state.loading = false
         state.jobs.push(job) // Add new job to state
-        pushToDataLayer({
-          event: "job_agent_creation",
-          event_status: "success",
-          error_msg: action.payload,
-        })
       })
       .addCase(createJobThunk.rejected, (state, action) => {
         state.loading = false
         state.error = action.payload
-        pushToDataLayer({
-          event: "job_agent_creation",
-          event_status: "fail",
-          error_msg: action.payload,
-        })
       })
       .addCase(updateJobThunk.pending, (state) => {
         state.loading = true
