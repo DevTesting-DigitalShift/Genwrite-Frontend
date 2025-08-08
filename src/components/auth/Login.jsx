@@ -94,22 +94,11 @@ const Auth = ({ path }) => {
     setErrors((prev) => ({ ...prev, recaptcha: undefined }))
   }
 
-  // Handle Google
-  const handleGoogleLoginClick = () => {
-    handleGoogleLogin()
-  }
-
   const handleGoogleLogin = useGoogleLogin({
     flow: "implicit",
     redirect_uri: "https://app.genwrite.co/login",
     onSuccess: async (tokenResponse) => {
-      if (!recaptchaValue) {
-        message.error("Please verify captcha first.")
-        return
-      }
-      dispatch(
-        googleLogin({ access_token: tokenResponse.access_token, captchaToken: recaptchaValue })
-      )
+      dispatch(googleLogin({ access_token: tokenResponse.access_token }))
         .unwrap()
         .then((user) => {
           message.success("Google login successful!")
@@ -314,7 +303,7 @@ const Auth = ({ path }) => {
               <motion.button
                 whileHover={{ y: -2, scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={handleGoogleLoginClick}
+                onClick={handleGoogleLogin}
                 disabled={loading}
                 className="w-full flex items-center justify-center gap-3 py-4 px-6 bg-white border-2 border-gray-200 rounded-2xl text-gray-700 hover:border-gray-300 hover:shadow-lg transition-all duration-300 mb-6 font-medium disabled:opacity-50"
               >

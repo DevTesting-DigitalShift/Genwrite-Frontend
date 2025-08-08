@@ -171,7 +171,7 @@ const Dashboard = () => {
             handlePopup(false)
             return
           }
-          dispatch(createNewBlog({ blogData: updatedData, navigate }))
+          dispatch(createNewBlog({ blogData: updatedData, user, navigate }))
           setIsModalVisible(false)
           setCurrentStep(0)
         },
