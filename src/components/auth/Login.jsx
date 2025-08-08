@@ -96,10 +96,6 @@ const Auth = ({ path }) => {
 
   // Handle Google
   const handleGoogleLoginClick = () => {
-    if (!recaptchaValue) {
-      message.error("Please verify captcha first.")
-      return
-    }
     handleGoogleLogin()
   }
 
@@ -277,7 +273,7 @@ const Auth = ({ path }) => {
                 </div>
               </div>
               <p className="text-sm text-gray-600">
-                Get started with 500 free AI credits and explore all features risk-free.
+                Get started with 200 free AI credits and explore all features risk-free.
               </p>
             </div>
           </motion.div>

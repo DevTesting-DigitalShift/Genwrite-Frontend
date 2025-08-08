@@ -440,7 +440,7 @@ const Upgrade = () => {
     return [
       {
         name: "Basic Plan",
-        priceMonthly: 19,
+        priceMonthly: 20,
         priceAnnual: 16.58,
         annualPrice: 199,
         credits: 1000,
@@ -465,7 +465,7 @@ const Upgrade = () => {
       },
       {
         name: "GenWrite Pro",
-        priceMonthly: 49,
+        priceMonthly: 50,
         priceAnnual: 41.58,
         annualPrice: 499,
         credits: 4500,
@@ -589,6 +589,8 @@ const Upgrade = () => {
         success_url: `${window.location.origin}/payment/success`,
         cancel_url: `${window.location.origin}/payment/cancel`,
       });
+
+      console.log(data.sessionId)
 
       const result = await stripe.redirectToCheckout({ sessionId: data.sessionId });
       if (result?.error) throw result.error;

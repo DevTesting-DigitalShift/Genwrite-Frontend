@@ -1,13 +1,15 @@
 import Carousel from "@components/multipleStepModal/Carousel"
 import { packages } from "@constants/templates"
 import { createOutlineThunk } from "@store/slices/otherSlice"
-import { Empty, Input, message, Modal, Select } from "antd"
+import { Empty, Input, Select, Modal } from "antd"
 import { Bold, Italic, List, Plus, Sparkles, X } from "lucide-react"
 import React, { useState } from "react"
 import { useDispatch } from "react-redux"
 import { useQuery } from "@tanstack/react-query"
 import { fetchBrands } from "@store/slices/brandSlice"
 import { useNavigate } from "react-router-dom"
+
+const { Option } = Select
 
 const OutlineEditor = () => {
   const dispatch = useDispatch()
@@ -38,10 +40,10 @@ const OutlineEditor = () => {
     focusKeywords: false,
     keywords: false,
     template: false,
-    brandId: false,
     resources: false,
   })
   const [markdownContent, setMarkdownContent] = useState(null)
+
   const {
     data: brands = [],
     isLoading: loadingBrands,
@@ -67,19 +69,31 @@ const OutlineEditor = () => {
   }
 
   const handleNext = () => {
-    if (currentStep === 0 && !selectedTemplate) {
-      setErrors((prev) => ({ ...prev, template: true }))
-      return
+    let newErrors = {}
+
+    if (currentStep === 0) {
+      if (!selectedTemplate) {
+        newErrors.template = true
+        setErrors((prev) => ({ ...prev, ...newErrors }))
+        return
+      }
     }
+
     if (currentStep === 1) {
-      const newErrors = {}
-      if (!formData.title) newErrors.title = true
-      if (!formData.topic) newErrors.topic = true
-      if (!formData.tone) newErrors.tone = true
-      if (formData.focusKeywords.length === 0) newErrors.focusKeywords = true
-      if (formData.keywords.length === 0) newErrors.keywords = true
+      newErrors = {
+        title: !formData.title.trim(),
+        topic: !formData.topic.trim(),
+        tone: !formData.tone,
+        focusKeywords: formData.focusKeywords.length === 0,
+        keywords: formData.keywords.length === 0,
+      }
+      if (Object.values(newErrors).some((error) => error)) {
+        setErrors((prev) => ({ ...prev, ...newErrors }))
+        return
+      }
     }
-    setErrors((prev) => ({ ...prev, template: false }))
+
+    setErrors((prev) => ({ ...prev, ...newErrors, template: false }))
     setCurrentStep((prev) => prev + 1)
   }
 
@@ -121,7 +135,6 @@ const OutlineEditor = () => {
 
     if (!inputValue) {
       setErrors((prev) => ({ ...prev, [type]: true }))
-      message.error(`Please enter a ${type === "resources" ? "resource link" : "keyword"}.`)
       return
     }
 
@@ -133,23 +146,16 @@ const OutlineEditor = () => {
 
     if (newItems.length === 0) {
       setErrors((prev) => ({ ...prev, [type]: true }))
-      message.error(
-        `Please enter valid, non-duplicate ${
-          type === "resources" ? "links" : "keywords"
-        } separated by commas.`
-      )
       return
     }
 
     if (type === "focusKeywords" && formData[type].length + newItems.length > 3) {
       setErrors((prev) => ({ ...prev, [type]: true }))
-      message.error("You can only add up to 3 focus keywords.")
       return
     }
 
     if (type === "resources" && formData[type].length + newItems.length > 4) {
       setErrors((prev) => ({ ...prev, [type]: true }))
-      message.error("You can only add up to 4 resource links.")
       return
     }
 
@@ -162,6 +168,10 @@ const OutlineEditor = () => {
           return true
         }
       })
+      if (invalidUrls.length > 0) {
+        setErrors((prev) => ({ ...prev, [type]: true }))
+        return
+      }
     }
 
     setFormData((prev) => ({
@@ -187,7 +197,6 @@ const OutlineEditor = () => {
 
   const handleBrandSelect = (brandId) => {
     setFormData((prev) => ({ ...prev, brandId }))
-    setErrors((prev) => ({ ...prev, brandId: false }))
   }
 
   const handleSubmit = async () => {
@@ -211,20 +220,20 @@ const OutlineEditor = () => {
       resources: formData.resources,
     }
 
-    const newErrors = {}
-    if (!blogData.title) newErrors.title = true
-    if (!blogData.topic) newErrors.topic = true
-    if (!blogData.tone) newErrors.tone = true
-    if (!blogData.template) newErrors.template = true
-    if (!blogData.focusKeywords || blogData.focusKeywords.length === 0)
-      newErrors.focusKeywords = true
-    if (!blogData.keywords || blogData.keywords.length === 0) newErrors.keywords = true
+    const newErrors = {
+      title: !blogData.title,
+      topic: !blogData.topic,
+      tone: !blogData.tone,
+      template: !blogData.template,
+      focusKeywords: !blogData.focusKeywords || blogData.focusKeywords.length === 0,
+      keywords: !blogData.keywords || blogData.keywords.length === 0,
+    }
 
-    if (Object.keys(newErrors).length > 0) {
+    if (Object.values(newErrors).some((error) => error)) {
       setErrors((prev) => ({ ...prev, ...newErrors }))
-      message.error("Please fill all required fields correctly.")
+      setCurrentStep(1)
       setIsSubmitting(false)
-      throw new Error("Invalid Params")
+      return
     }
 
     try {
@@ -234,7 +243,6 @@ const OutlineEditor = () => {
     } catch (err) {
       console.error("Failed to create blog:", err)
       message.error(err?.message || "Failed to create blog")
-      throw new Error("Invalid Params")
     } finally {
       setIsSubmitting(false)
     }
@@ -276,6 +284,16 @@ const OutlineEditor = () => {
     }
 
     setMarkdownContent(newText)
+  }
+
+  const isImageUrl = (url) => {
+    const imageExtensions = [".png", ".jpg", ".jpeg", ".gif", ".webp"]
+    try {
+      const urlObj = new URL(url)
+      return imageExtensions.some((ext) => urlObj.pathname.toLowerCase().endsWith(ext))
+    } catch {
+      return false
+    }
   }
 
   const visibleKeywords = showAllKeywords ? formData.keywords : formData.keywords.slice(0, 18)
@@ -375,7 +393,7 @@ const OutlineEditor = () => {
                   <div
                     key={index}
                     className={`cursor-pointer transition-all duration-200 ${
-                      selectedTemplate === pkg.name ? "border-gray-300 border-2 rounded-lg" : ""
+                      selectedTemplate === pkg.name ? "border-blue-600 border-2 rounded-lg" : ""
                     }`}
                     onClick={() => handlePackageSelect(index)}
                   >
@@ -428,14 +446,15 @@ const OutlineEditor = () => {
                   onChange={handleSelectChange}
                   className={`w-full ${errors.tone ? "border-red-500" : ""}`}
                   aria-label="Blog tone"
+                  placeholder="Select tone"
                 >
-                  <Select.Option value="Informative">Informative</Select.Option>
-                  <Select.Option value="Casual">Casual</Select.Option>
-                  <Select.Option value="Professional">Professional</Select.Option>
-                  <Select.Option value="Persuasive">Persuasive</Select.Option>
-                  <Select.Option value="Humorous">Humorous</Select.Option>
+                  <Option value="Informative">Informative</Option>
+                  <Option value="Casual">Casual</Option>
+                  <Option value="Professional">Professional</Option>
+                  <Option value="Persuasive">Persuasive</Option>
+                  <Option value="Humorous">Humorous</Option>
                 </Select>
-                {errors.tone && <p className="text-red-500 text-sm mt-1">Tone cannot be empty.</p>}
+                {errors.tone && <p className="text-red-500 text-sm mt-1">Please select a tone.</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -479,7 +498,7 @@ const OutlineEditor = () => {
                 </div>
                 {errors.focusKeywords && (
                   <p className="text-red-500 text-sm mt-1">
-                    At least one focus keyword is required.
+                    At least one focus keyword is required (max 3).
                   </p>
                 )}
               </div>
@@ -600,7 +619,7 @@ const OutlineEditor = () => {
                               formData.brandId === voice._id
                                 ? "bg-blue-100 border-blue-300"
                                 : "bg-white border border-gray-200"
-                            } ${errors.brandId ? "border-red-500" : ""}`}
+                            }`}
                           >
                             <input
                               type="radio"
@@ -624,9 +643,6 @@ const OutlineEditor = () => {
                     </div>
                   )}
                 </div>
-                {errors.brandId && (
-                  <p className="text-red-500 text-sm mt-1">Please select a brand voice.</p>
-                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -653,23 +669,40 @@ const OutlineEditor = () => {
                 </div>
                 <div className="flex flex-wrap gap-2 mt-2">
                   {formData.resources.map((resource, index) => (
-                    <span
+                    <div
                       key={index}
                       className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
                     >
-                      {resource}
+                      {isImageUrl(resource) ? (
+                        <img
+                          src={resource}
+                          alt={`Resource ${index + 1}`}
+                          className="h-16 w-auto object-contain rounded mr-2 hover:opacity-80 transition-opacity"
+                        />
+                      ) : (
+                        <a
+                          href={resource}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-700 hover:underline mr-2 truncate max-w-[150px]"
+                        >
+                          {resource}
+                        </a>
+                      )}
                       <button
                         onClick={() => handleRemoveKeyword(index, "resources")}
                         className="ml-1 text-blue-400 hover:text-blue-600"
-                        aria-label={`Remove resource link ${resource}`}
+                        aria-label={`Remove resource ${resource}`}
                       >
                         <X size={16} />
                       </button>
-                    </span>
+                    </div>
                   ))}
                 </div>
                 {errors.resources && (
-                  <p className="text-red-500 text-sm mt-1">Please enter valid resource links.</p>
+                  <p className="text-red-500 text-sm mt-1">
+                    Please enter valid resource links (max 4).
+                  </p>
                 )}
               </div>
             </div>
@@ -750,7 +783,6 @@ const OutlineEditor = () => {
               <h3 className="text-lg font-semibold text-gray-700 mb-3 px-3 tracking-wide">
                 Edit Your Blog Outline
               </h3>
-
               <textarea
                 id="outline-editor"
                 value={markdownContent}
