@@ -67,9 +67,9 @@ const Auth = ({ path }) => {
       newErrors.terms = "You must accept the Terms and Conditions."
     }
 
-    if (!recaptchaValue) {
-      newErrors.recaptcha = "Please complete the reCAPTCHA."
-    }
+    // if (!recaptchaValue) {
+    //   newErrors.recaptcha = "Please complete the reCAPTCHA."
+    // }
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -96,10 +96,10 @@ const Auth = ({ path }) => {
 
   // Handle Google
   const handleGoogleLoginClick = () => {
-    if (!recaptchaValue) {
-      message.error("Please verify captcha first.")
-      return
-    }
+    // if (!recaptchaValue) {
+    //   message.error("Please verify captcha first.")
+    //   return
+    // }
     handleGoogleLogin()
   }
 
@@ -107,10 +107,10 @@ const Auth = ({ path }) => {
     flow: "implicit",
     redirect_uri: "https://app.genwrite.co/login",
     onSuccess: async (tokenResponse) => {
-      if (!recaptchaValue) {
-        message.error("Please verify captcha first.")
-        return
-      }
+      // if (!recaptchaValue) {
+      //   message.error("Please verify captcha first.")
+      //   return
+      // }
       dispatch(
         googleLogin({ access_token: tokenResponse.access_token, captchaToken: recaptchaValue })
       )
@@ -498,7 +498,7 @@ const Auth = ({ path }) => {
                   </div>
                 )}
 
-                <div className="flex justify-center">
+                {/* <div className="flex justify-center">
                   <ReCAPTCHA
                     sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
                     onChange={onRecaptchaChange}
@@ -516,7 +516,7 @@ const Auth = ({ path }) => {
                       {errors.recaptcha}
                     </motion.p>
                   )}
-                </AnimatePresence>
+                </AnimatePresence> */}
 
                 {/* Forgot Password Link (Login Only) */}
                 {!isSignup && (
