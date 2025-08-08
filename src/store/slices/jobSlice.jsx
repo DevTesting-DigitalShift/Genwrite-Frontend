@@ -18,17 +18,17 @@ export const fetchJobs = createAsyncThunk("jobs/fetchJobs", async (_, { rejectWi
 
 export const createJobThunk = createAsyncThunk(
   "jobs/createJob",
-  async ({ jobPayload, onSuccess }, { rejectWithValue }) => {
+  async ({ jobPayload, user, onSuccess }, { rejectWithValue }) => {
     try {
       const data = await createJob(jobPayload)
-      message.success("Job created successfully!")
+      console.log(data)
       pushToDataLayer({
         event: "job_agent_creation",
         event_status: "success",
         user_id: user._id,
         job_id: data._id,
-        job_ai:
       })
+      message.success("Job created successfully!")
       // GA4 Events
       // - ⁠purchase
       // - ⁠blog created
