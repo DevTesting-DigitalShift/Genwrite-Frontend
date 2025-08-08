@@ -1,1261 +1,802 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react";
-import {
-  Search,
-  TrendingUp,
-  Eye,
-  MousePointer,
-  BarChart3,
-  ExternalLink,
-  RefreshCw,
-  LogIn,
-  Download,
-  ChevronDown,
-  ChevronUp,
-  TrendingDown,
-  X,
-} from "lucide-react";
-import { Helmet } from "react-helmet";
-import { motion } from "framer-motion";
-import { useSelector } from "react-redux";
-import { message, Button, Table, Tag, Select, Input, Tooltip, DatePicker, Switch } from "antd";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import Loading from "@components/Loading";
-import { utils, writeFile } from "sheetjs-style";
-import { selectUser } from "@store/slices/authSlice";
-import UpgradeModal from "@components/UpgradeModal";
-import moment from "moment";
-import { FcGoogle } from "react-icons/fc";
-import Fuse from "fuse.js";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+ import React, { useState, useEffect, useCallback, useMemo } from "react";
+    import { createRoot } from "react-dom/client";
+    import { Helmet } from "react-helmet";
+    import { useDispatch, useSelector } from "react-redux";
+    import { fetchGscAuthUrl, fetchGscAnalytics, clearAnalytics } from "@store/slices/gscSlice";
+    import { selectUser } from "@store/slices/authSlice";
+    import { useQuery, useQueryClient } from "@tanstack/react-query";
+    import { Button, Table, message, Select, Input, DatePicker, Tabs, Card } from "antd";
+    import { RefreshCw, LogIn, Search, Link, Download } from "lucide-react";
+    import { FcGoogle } from "react-icons/fc";
+    import Fuse from "fuse.js";
+    import moment from "moment";
+    import * as ExcelJS from "exceljs";
+import { persistQueryClient } from "@tanstack/react-query-persist-client";
 
-const { Option } = Select;
-const { Search: AntSearch } = Input;
-const { RangePicker } = DatePicker;
+    const { Option } = Select;
+    const { Search: AntSearch } = Input;
+    const { RangePicker } = DatePicker;
+    const { TabPane } = Tabs;
 
-// Country code to name mapping
-const countryCodeToName = {
-  USA: "United States",
-  IND: "India",
-  GBR: "United Kingdom",
-  CAN: "Canada",
-  AUS: "Australia",
-  DEU: "Germany",
-  FRA: "France",
-  JPN: "Japan",
-  CHN: "China",
-  BRA: "Brazil",
-  "N/A": "Unknown",
-};
-
-const SearchConsole = () => {
-  const [searchTerm, setSearchTerm] = useState(() => sessionStorage.getItem("gscSearchTerm") || "");
-  const [currentPage, setCurrentPage] = useState(
-    () => Number(sessionStorage.getItem("gscCurrentPage")) || 1
-  );
-  const [itemsPerPage, setItemsPerPage] = useState(
-    () => Number(sessionStorage.getItem("gscItemsPerPage")) || 10
-  );
-  const [dateRange, setDateRange] = useState(() => sessionStorage.getItem("gscDateRange") || "30d");
-  const [customDateRange, setCustomDateRange] = useState([
-    sessionStorage.getItem("gscCustomDateRangeStart")
-      ? moment(sessionStorage.getItem("gscCustomDateRangeStart"))
-      : null,
-    sessionStorage.getItem("gscCustomDateRangeEnd")
-      ? moment(sessionStorage.getItem("gscCustomDateRangeEnd"))
-      : null,
-  ]);
-  const [selectedBlogTitle, setSelectedBlogTitle] = useState(
-    () => sessionStorage.getItem("gscSelectedBlogTitle") || "all"
-  );
-  const [selectedCountries, setSelectedCountries] = useState(() =>
-    JSON.parse(sessionStorage.getItem("gscSelectedCountries") || "[]")
-  );
-  const [includeCountry, setIncludeCountry] = useState(
-    () => sessionStorage.getItem("gscIncludeCountry") === "true"
-  );
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(!!useSelector(selectUser)?.gsc);
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [expandedRows, setExpandedRows] = useState([]);
-  const [connectErr, setConnectErr] = useState(null);
-
-  const queryClient = useQueryClient();
-  const user = useSelector(selectUser);
-  const userPlan = (user?.plan || user?.subscription?.plan || "free").toLowerCase();
-  const navigate = useNavigate();
-
-  // Persist filter states to sessionStorage
-  useEffect(() => {
-    sessionStorage.setItem("gscSearchTerm", searchTerm);
-    sessionStorage.setItem("gscCurrentPage", currentPage);
-    sessionStorage.setItem("gscItemsPerPage", itemsPerPage);
-    sessionStorage.setItem("gscDateRange", dateRange);
-    sessionStorage.setItem(
-      "gscCustomDateRangeStart",
-      customDateRange[0] ? customDateRange[0].toISOString() : ""
-    );
-    sessionStorage.setItem(
-      "gscCustomDateRangeEnd",
-      customDateRange[1] ? customDateRange[1].toISOString() : ""
-    );
-    sessionStorage.setItem("gscSelectedBlogTitle", selectedBlogTitle);
-    sessionStorage.setItem("gscSelectedCountries", JSON.stringify(selectedCountries));
-    sessionStorage.setItem("gscIncludeCountry", includeCountry.toString());
-  }, [
-    searchTerm,
-    currentPage,
-    itemsPerPage,
-    dateRange,
-    customDateRange,
-    selectedBlogTitle,
-    selectedCountries,
-    includeCountry,
-  ]);
-
-  // Utility to check for invalid_grant error
-  const isInvalidGrantError = (err) => {
-    if (!err) return false;
-    if (typeof err === "string") return err.toLowerCase().includes("invalid_grant");
-    if (err.message) return err.message.toLowerCase().includes("invalid_grant");
-    if (err.error) return err.error.toLowerCase().includes("invalid_grant");
-    if (err.response?.data?.error)
-      return err.response.data.error.toLowerCase().includes("invalid_grant");
-    return false;
-  };
-
-  // Fetch blogs using TanStack Query
-  const { data: blogs = { data: [] } } = useQuery({
-    queryKey: ["blogs"],
-    queryFn: async () => {
-      const response = await fetchAllBlogs(); // Assuming fetchAllBlogs is available globally or imported
-      return response.data || [];
-    },
-    staleTime: 10 * 60 * 1000, // 10 minutes
-    cacheTime: 15 * 60 * 1000, // 15 minutes
-    onError: (error) => {
-      console.error("Failed to fetch blogs:", error);
-      message.error("Failed to load blogs. Please try again.");
-    },
-  });
-
-  // Calculate date range for API request
-  const getDateRangeParams = useCallback(() => {
-    let from, to;
-    if (customDateRange[0] && customDateRange[1]) {
-      from = customDateRange[0].startOf("day").toISOString().split("T")[0];
-      to = customDateRange[1].endOf("day").toISOString().split("T")[0];
-    } else {
-      to = new Date();
-      from = new Date();
-      switch (dateRange) {
-        case "7d":
-          from.setDate(to.getDate() - 7);
-          break;
-        case "30d":
-          from.setDate(to.getDate() - 30);
-          break;
-        case "180d":
-          from.setDate(to.getDate() - 180);
-          break;
-        default:
-          from.setDate(to.getDate() - 30);
-      }
-      from = from.toISOString().split("T")[0];
-      to = to.toISOString().split("T")[0];
-    }
-    return { from, to };
-  }, [dateRange, customDateRange]);
-
-  // Get blogUrl from blogTitle
-  const getBlogUrlFromTitle = useCallback(
-    (title) => {
-      if (title === "all") return null;
-      const blog = blogs.data?.find((b) => b.title === title);
-      return blog?.url || null;
-    },
-    [blogs.data]
-  );
-
-  // Fetch analytics data using TanStack Query
-  const { data: blogData = [], isLoading } = useQuery({
-    queryKey: [
-      "gscAnalytics",
-      dateRange,
-      customDateRange[0]?.toISOString() ?? null,
-      customDateRange[1]?.toISOString() ?? null,
-      selectedBlogTitle,
-      includeCountry,
-    ],
-    queryFn: async () => {
-      if (!user?.gsc) {
-        setIsAuthenticated(false);
-        return [];
-      }
-      const { from, to } = getDateRangeParams();
-      const blogUrl = getBlogUrlFromTitle(selectedBlogTitle);
-      const params = {
-        from,
-        to,
-        includeCountry,
-        ...(blogUrl && { blogUrl }),
-      };
-      const data = await fetchGscAnalytics(params).unwrap(); // Assuming fetchGscAnalytics is available globally or imported
-      return data.map((item, index) => ({
-        id: `${item.link}-${index}`,
-        url: item.link,
-        clicks: item.clicks,
-        impressions: item.impressions,
-        ctr: (item.ctr * 100).toFixed(2),
-        position: item.position.toFixed(1),
-        keywords: [item.key].map((k) => (k.length > 50 ? `${k.substring(0, 47)}...` : k)),
-        countryCode: item.countryCode || "N/A",
-        countryName: countryCodeToName[item.countryCode] || item.countryName || "Unknown",
-        blogId: item.blogId,
-        blogTitle: item.blogTitle || "Untitled",
-      }));
-    },
-    staleTime: 10 * 60 * 1000, // 10 minutes
-    cacheTime: 15 * 60 * 1000, // 15 minutes
-    enabled: !!user?.gsc, // Only fetch if authenticated
-    onError: (error) => {
-      console.error("Error fetching analytics data:", JSON.stringify(error, null, 2));
-      setConnectErr(error);
-      if (isInvalidGrantError(error)) {
-        setIsAuthenticated(false);
-      }
-      message.error("Failed to load analytics data. Please try again.");
-    },
-    onSuccess: () => {
-      setConnectErr(null);
-      setIsAuthenticated(true);
-    },
-  });
-
-  // Google Search Console authentication using TanStack Query mutation
-  const connectGscMutation = useMutation({
-    mutationFn: async () => {
-      let authUrl = await fetchGscAuthUrl().unwrap(); // Assuming fetchGscAuthUrl is available globally or imported
-      if (!authUrl.includes("prompt=select_account")) {
-        const url = new URL(authUrl);
-        const params = new URLSearchParams(url.search);
-        params.set("prompt", "select_account");
-        url.search = params.toString();
-        authUrl = url.toString();
-      }
-      return authUrl;
-    },
-    onMutate: () => {
-      setIsConnecting(true);
-    },
-    onSuccess: (authUrl) => {
-      const popup = window.open(authUrl, "GSC Connect", "width=600,height=600");
-      if (!popup) {
-        throw new Error("Popup blocked. Please allow popups and try again.");
-      }
-
-      const handleMessage = async (event) => {
-        if (event.origin !== import.meta.env.VITE_BACKEND_URL) return;
-        if (typeof event.data === "string" && event.data === "GSC Connected") {
-          try {
-            setIsAuthenticated(true);
-            message.success("Google Search Console connected successfully!");
-            queryClient.invalidateQueries(["gscAnalytics"]);
-            navigate(0);
-          } catch (err) {
-            message.error(err.message || err.error || "Failed to verify GSC connection");
-            console.error("GSC verification error:", JSON.stringify(err, null, 2));
-            setConnectErr(err);
-          } finally {
-            setIsConnecting(false);
-            window.removeEventListener("message", handleMessage);
-          }
-        } else if (typeof event.data === "string") {
-          message.error(event.data || "Authentication failed");
-          setConnectErr(event.data || "Authentication failed");
-          setIsConnecting(false);
-          window.removeEventListener("message", handleMessage);
-        }
-      };
-
-      window.addEventListener("message", handleMessage);
-
-      const checkPopupClosed = setInterval(() => {
-        if (popup.closed && !isAuthenticated) {
-          clearInterval(checkPopupClosed);
-          setIsConnecting(false);
-          setConnectErr("Authentication window closed");
-          window.removeEventListener("message", handleMessage);
-        }
-      }, 1000);
-
-      return () => {
-        window.removeEventListener("message", handleMessage);
-        clearInterval(checkPopupClosed);
-      };
-    },
-    onError: (error) => {
-      message.error(error.message || error.error || "Failed to initiate GSC connection");
-      console.error("GSC auth error:", JSON.stringify(error, null, 2));
-      setConnectErr(error);
-      setIsConnecting(false);
-    },
-  });
-
-  // Clear search params
-  useEffect(() => {
-    if (searchParams.get("code") || searchParams.get("state")) {
-      setSearchParams({}, { replace: true });
-    }
-  }, [searchParams, setSearchParams]);
-
-  // Group blog data by blogTitle and calculate totals/averages
-  const groupedBlogData = useMemo(() => {
-    const grouped = blogData.reduce((acc, item) => {
-      const title = item.blogTitle || "Untitled";
-      if (!acc[title]) {
-        acc[title] = {
-          blogTitle: title,
-          url: item.url,
-          keywords: [],
-          clicks: 0,
-          impressions: 0,
-          ctr: [],
-          position: [],
-          countryCode: item.countryCode,
-          countryName: item.countryName,
-          blogId: item.blogId,
-          keywordDetails: [],
-        };
-      }
-      acc[title].keywords.push(...item.keywords);
-      acc[title].clicks += Number(item.clicks) || 0;
-      acc[title].impressions += Number(item.impressions) || 0;
-      acc[title].ctr.push(Number(item.ctr) || 0);
-      acc[title].position.push(Number(item.position) || 0);
-      acc[title].keywordDetails.push({
-        id: item.id,
-        keyword: item.keywords[0],
-        clicks: item.clicks,
-        impressions: item.impressions,
-        ctr: item.ctr,
-        position: item.position,
-        url: item.url,
-        countryCode: item.countryCode,
-        countryName: item.countryName,
-      });
-      return acc;
-    }, {});
-
-    return Object.values(grouped).map((group, index) => ({
-      id: `${group.blogTitle}-${index}`,
-      blogTitle: group.blogTitle,
-      url: group.url,
-      keywords: [...new Set(group.keywords)],
-      clicks: group.clicks,
-      impressions: group.impressions,
-      ctr: group.ctr.length
-        ? (group.ctr.reduce((sum, val) => sum + val, 0) / group.ctr.length).toFixed(2)
-        : 0,
-      position: group.position.length
-        ? (group.position.reduce((sum, val) => sum + val, 0) / group.position.length).toFixed(1)
-        : 0,
-      countryCode: group.countryCode,
-      countryName: group.countryName,
-      blogId: group.blogId,
-      keywordDetails: group.keywordDetails,
-    }));
-  }, [blogData]);
-
-  // Client-side filtered and searched data
-  const filteredBlogData = useMemo(() => {
-    let result =
-      selectedBlogTitle === "all"
-        ? groupedBlogData
-        : blogData.filter((item) => item.blogTitle === selectedBlogTitle);
-
-    if (searchTerm?.trim()) {
-      const fuse = new Fuse(result, {
-        keys: [
-          { name: selectedBlogTitle === "all" ? "blogTitle" : "keywords", weight: 0.4 },
-          { name: "url", weight: 0.4 },
-          { name: selectedBlogTitle === "all" ? "keywords" : "blogTitle", weight: 0.2 },
-        ],
-        threshold: 0.3,
-        includeScore: true,
-        shouldSort: true,
-      });
-      result = fuse.search(searchTerm).map(({ item }) => item);
-    }
-
-    if (includeCountry && selectedCountries.length > 0) {
-      result = result.filter((item) => selectedCountries.includes(item.countryCode));
-    }
-
-    return result;
-  }, [groupedBlogData, blogData, searchTerm, selectedCountries, includeCountry, selectedBlogTitle]);
-
-  // Get current page for the data for export
-  const currentPageData = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return filteredBlogData.slice(startIndex, endIndex);
-  }, [filteredBlogData, currentPage, itemsPerPage]);
-
-  // Handle search trigger (client-side only)
-  const handleSearch = (value) => {
-    setSearchTerm(value);
-    setCurrentPage(1);
-  };
-
-  // Reset all filters
-  const resetAllFilters = useCallback(() => {
-    setSearchTerm("");
-    setSelectedBlogTitle("all");
-    setSelectedCountries([]);
-    setIncludeCountry(false);
-    setCustomDateRange([null, null]);
-    setDateRange("30d");
-    setCurrentPage(1);
-    setExpandedRows([]);
-    sessionStorage.removeItem("gscSearchTerm");
-    sessionStorage.removeItem("gscCurrentPage");
-    sessionStorage.removeItem("gscItemsPerPage");
-    sessionStorage.removeItem("gscDateRange");
-    sessionStorage.removeItem("gscCustomDateRangeStart");
-    sessionStorage.removeItem("gscCustomDateRangeEnd");
-    sessionStorage.removeItem("gscSelectedBlogTitle");
-    sessionStorage.removeItem("gscSelectedCountries");
-    sessionStorage.removeItem("gscIncludeCountry");
-    queryClient.invalidateQueries(["gscAnalytics"]);
-  }, [queryClient]);
-
-  // Check if filters are active
-  const isDefaultDateRange = dateRange === "30d" && !customDateRange[0];
-  const hasActiveFilters =
-    !!searchTerm ||
-    selectedBlogTitle !== "all" ||
-    selectedCountries.length > 0 ||
-    !isDefaultDateRange;
-
-  // Export data as Excel
-  const handleExport = useCallback(async () => {
-    if (!currentPageData.length) {
-      message.warning("No data available to export");
-      return;
-    }
-    try {
-      const headers =
-        selectedBlogTitle === "all"
-          ? [
-              "Blog Title",
-              "Keywords",
-              "Total Clicks",
-              "Total Impressions",
-              "Avg CTR (%)",
-              "Avg Position",
-              "URL",
-              ...(includeCountry ? ["Country"] : []),
-            ]
-          : [
-              "Keyword",
-              "Clicks",
-              "Impressions",
-              "CTR (%)",
-              "Position",
-              "URL",
-              ...(includeCountry ? ["Country"] : []),
-            ];
-      const rows = currentPageData.map((item) =>
-        selectedBlogTitle === "all"
-          ? {
-              "Blog Title": item.blogTitle,
-              Keywords: item.keywords.join(", "),
-              "Total Clicks": item.clicks,
-              "Total Impressions": item.impressions,
-              "Avg CTR (%)": item.ctr,
-              "Avg Position": item.position,
-              URL: item.url,
-              ...(includeCountry ? { Country: item.countryName } : {}),
-            }
-          : {
-              Keyword: item.keywords[0],
-              Clicks: item.clicks,
-              Impressions: item.impressions,
-              "CTR (%)": item.ctr,
-              Position: item.position,
-              URL: item.url,
-              ...(includeCountry ? { Country: item.countryName } : {}),
-            }
-      );
-      const worksheet = utils.json_to_sheet(rows, { header: headers });
-      const workbook = utils.book_new();
-      utils.book_append_sheet(workbook, worksheet, "Search Console Data");
-      const fileName = `search_console_data_${new Date().toISOString().split("T")[0]}.xlsx`;
-      writeFile(workbook, fileName);
-    } catch (err) {
-      message.error(err.message || err.error || "Failed to export data");
-      console.error("Error exporting data:", err);
-    }
-  }, [currentPageData, includeCountry, selectedBlogTitle]);
-
-  // Calculate totals for summary cards
-  const totals = useMemo(() => {
-    const totalClicks = filteredBlogData.reduce((sum, item) => sum + Number(item.clicks || 0), 0);
-    const totalImpressions = filteredBlogData.reduce(
-      (sum, item) => sum + Number(item.impressions || 0),
-      0
-    );
-    const avgCtr =
-      filteredBlogData.length > 0
-        ? filteredBlogData.reduce((sum, item) => sum + Number(item.ctr || 0), 0) /
-          filteredBlogData.length
-        : 0;
-    const avgPosition =
-      filteredBlogData.length > 0
-        ? filteredBlogData.reduce((sum, item) => sum + Number(item.position || 0), 0) /
-          filteredBlogData.length
-        : 0;
-
-    return {
-      clicks: totalClicks,
-      impressions: totalImpressions,
-      avgCtr,
-      avgPosition,
+    // Configure TanStack Query persister for IndexedDB
+    const persister = {
+      storage: window.indexedDB,
+      key: "gsc-analytics-cache",
     };
-  }, [filteredBlogData]);
 
-  // Get unique countries for filter
-  const countries = useMemo(() => {
-    const countryMap = new Map();
-    blogData.forEach((item) => {
-      if (item.countryCode && item.countryName) {
-        countryMap.set(item.countryCode, item.countryName);
-      }
-    });
-    return Array.from(countryMap.entries()).map(([code, name]) => ({
-      value: code,
-      text: name,
-    }));
-  }, [blogData]);
+    // Configure Fuse.js for frontend search
+    const fuseOptions = {
+      keys: ["url", "query", "country", "blogTitle"],
+      threshold: 0.3,
+    };
 
-  // Get unique blog titles for selection
-  const blogTitles = useMemo(() => {
-    const seen = new Set();
-    const uniqueTitles = [];
-    for (const item of blogData) {
-      const title = item.blogTitle || "Untitled";
-      if (!seen.has(title)) {
-        seen.add(title);
-        uniqueTitles.push(title);
-      }
-    }
-    return ["all", ...uniqueTitles];
-  }, [blogData]);
+    const SearchConsole = () => {
+      const [isAuthenticated, setIsAuthenticated] = useState(false);
+      const [isConnecting, setIsConnecting] = useState(false);
+      const [error, setError] = useState(null);
+      const [activeTab, setActiveTab] = useState("page");
+      const [dateRange, setDateRange] = useState("7d");
+      const [customDateRange, setCustomDateRange] = useState([moment().subtract(6, "days"), moment()]);
+      const [filterType, setFilterType] = useState("search");
+      const [blogUrlFilter, setBlogUrlFilter] = useState("");
+      const [blogTitleFilter, setBlogTitleFilter] = useState(null);
+      const [countryFilter, setCountryFilter] = useState(null);
+      const [searchQuery, setSearchQuery] = useState("");
+      const [userCountry, setUserCountry] = useState(navigator.language.split("-")[1] || "US");
+      const [pageSize, setPageSize] = useState(10);
 
-  // Toggle expanded rows
-  const toggleRow = (id) => {
-    setExpandedRows((prev) =>
-      prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id]
-    );
-  };
+      const dispatch = useDispatch();
+      const queryClient = useQueryClient();
+      const user = useSelector(selectUser);
+      const { loading: sitesLoading } = useSelector((state) => state.gsc);
 
-  // Columns for the nested keyword table (in expandable rows)
-  const keywordColumns = [
-    {
-      title: "Keyword",
-      dataIndex: "keyword",
-      key: "keyword",
-      render: (keyword) => (
-        <Tooltip title={keyword}>
-          <Tag color="blue" className="text-sm cursor-pointer">
-            {keyword}
-          </Tag>
-        </Tooltip>
-      ),
-    },
-    {
-      title: "Clicks",
-      dataIndex: "clicks",
-      key: "clicks",
-      sorter: (a, b) => a.clicks - b.clicks,
-      render: (clicks) => (
-        <div className="font-semibold text-gray-900">{new Intl.NumberFormat().format(clicks)}</div>
-      ),
-      align: "center",
-    },
-    {
-      title: "Impressions",
-      dataIndex: "impressions",
-      key: "impressions",
-      sorter: (a, b) => a.impressions - b.impressions,
-      render: (impressions) => (
-        <div className="font-semibold text-gray-900">
-          {new Intl.NumberFormat().format(impressions)}
-        </div>
-      ),
-      align: "center",
-    },
-    {
-      title: "CTR",
-      dataIndex: "ctr",
-      key: "ctr",
-      sorter: (a, b) => a.ctr - b.ctr,
-      render: (ctr) => (
-        <div
-          className={`font-semibold ${
-            ctr >= 8 ? "text-green-600" : ctr >= 5 ? "text-yellow-600" : "text-red-600"
-          }`}
-        >
-          {ctr}%
-        </div>
-      ),
-      align: "center",
-    },
-    {
-      title: "Position",
-      dataIndex: "position",
-      key: "position",
-      sorter: (a, b) => a.position - b.position,
-      render: (position) => (
-        <div
-          className={`font-semibold ${
-            position <= 3 ? "text-green-600" : position <= 10 ? "text-yellow-600" : "text-red-600"
-          }`}
-        >
-          {position}
-        </div>
-      ),
-      align: "center",
-    },
-    ...(includeCountry
-      ? [
-          {
-            title: "Country",
-            dataIndex: "countryName",
-            key: "countryName",
-            render: (countryName) => countryName || "-",
-            sorter: (a, b) => a.countryName.localeCompare(b.countryName),
-            filters: countries,
-            filterMultiple: true,
-            onFilter: (value, record) => record.countryCode === value,
-          },
-        ]
-      : []),
-    {
-      title: "Actions",
-      key: "actions",
-      render: (_, record) => (
-        <div className="flex items-center justify-center gap-2">
-          <Tooltip title={record.url}>
-            <Button
-              type="text"
-              icon={<ExternalLink className="w-4 h-4" />}
-              onClick={() => window.open(record.url, "_blank")}
-              disabled={!record.url}
-              title="View Blog"
-            />
-          </Tooltip>
-        </div>
-      ),
-      align: "center",
-    },
-  ];
+      // Persist TanStack Query cache to IndexedDB
+      useEffect(() => {
+        persistQueryClient({
+          queryClient,
+          persister,
+          maxAge: 1000 * 60 * 60 * 24,
+        });
+      }, [queryClient]);
 
-  // Ant Design Table Columns for main table
-  const columns =
-    selectedBlogTitle === "all"
-      ? [
+      // Calculate date range for API request
+      const getDateRangeParams = useCallback(() => {
+        let from, to;
+        if (customDateRange[0] && customDateRange[1]) {
+          from = customDateRange[0].startOf("day").format("YYYY-MM-DD");
+          to = customDateRange[1].endOf("day").format("YYYY-MM-DD");
+        } else {
+          to = moment().endOf("day");
+          from = moment().startOf("day");
+          switch (dateRange) {
+            case "7d":
+              from = from.subtract(6, "days");
+              break;
+            case "30d":
+              from = from.subtract(29, "days");
+              break;
+            case "180d":
+              from = from.subtract(179, "days");
+              break;
+            default:
+              from = from.subtract(6, "days");
+          }
+          from = from.format("YYYY-MM-DD");
+          to = to.format("YYYY-MM-DD");
+        }
+        return { from, to };
+      }, [dateRange, customDateRange]);
+
+      // Determine dimensions
+      const getDimensions = useCallback(() => {
+        const dimensions = ["page"];
+        if (activeTab === "query") dimensions.push("query");
+        if (activeTab === "country") dimensions.push("country");
+        return dimensions;
+      }, [activeTab]);
+
+      // TanStack Query for fetching analytics data
+      const {
+        data: blogData = [],
+        isLoading,
+        refetch,
+      } = useQuery({
+        queryKey: [
+          "gscAnalytics",
+          activeTab,
+          dateRange,
+          customDateRange,
+          blogUrlFilter,
+          blogTitleFilter,
+          countryFilter,
+        ],
+        queryFn: async () => {
+          const dimensions = getDimensions();
+          const { from, to } = getDateRangeParams();
+          const params = {
+            from,
+            to,
+            query: JSON.stringify(dimensions),
+            ...(filterType === "blog" && blogUrlFilter && { blogUrl: blogUrlFilter }),
+            ...(blogTitleFilter && { blogTitle: blogTitleFilter }),
+            ...(countryFilter && activeTab === "country" && { country: countryFilter }),
+          };
+          const data = await dispatch(fetchGscAnalytics(params)).unwrap();
+          return data.map((item, index) => ({
+            id: `${item.page || item.query || item.country}-${index}`,
+            url: item.page || "N/A",
+            query: item.query || "N/A",
+            country: item.country || "N/A",
+            clicks: item.clicks || 0,
+            impressions: item.impressions || 0,
+            ctr: (item.ctr * 100).toFixed(2) || "0.00",
+            position: item.position?.toFixed(1) || "N/A",
+            blogTitle: item.blogTitle || "Untitled",
+            blogId: item.blogId || "N/A",
+          }));
+        },
+        enabled: isAuthenticated,
+        staleTime: 1000 * 60 * 5,
+        cacheTime: 1000 * 60 * 60,
+        retry: 1,
+        onError: (err) => {
+          setError(err.message || "Failed to fetch analytics data");
+          if (err?.message?.includes("invalid_grant")) {
+            setIsAuthenticated(false);
+            dispatch(clearAnalytics());
+            queryClient.clear();
+          }
+        },
+      });
+
+      // Extract unique countries and blog titles
+      const countries = useMemo(() => {
+        return [...new Set(blogData.map((item) => item.country).filter((c) => c !== "N/A"))];
+      }, [blogData]);
+
+      const blogTitles = useMemo(() => {
+        return [...new Set(blogData.map((item) => item.blogTitle).filter((t) => t !== "Untitled"))];
+      }, [blogData]);
+
+      // Check authentication status and update session storage
+      useEffect(() => {
+        if (user?.gsc) {
+          setIsAuthenticated(true);
+        } else {
+          setIsAuthenticated(false);
+          dispatch(clearAnalytics());
+          queryClient.clear();
+        }
+        sessionStorage.setItem(
+          "gscFilters",
+          JSON.stringify({
+            filterType,
+            blogUrlFilter,
+            blogTitleFilter,
+            countryFilter,
+            userCountry,
+          })
+        );
+      }, [user, dispatch, queryClient, filterType, blogUrlFilter, blogTitleFilter, countryFilter, userCountry]);
+
+      // Connect to Google Search Console
+      const connectGSC = useCallback(async () => {
+        try {
+          setIsConnecting(true);
+          const authUrl = await dispatch(fetchGscAuthUrl()).unwrap();
+          const popup = window.open(authUrl, "GSC Connect", "width=600,height=600");
+          if (!popup) {
+            throw new Error("Popup blocked. Please allow popups and try again.");
+          }
+
+          const expectedOrigin = new URL(import.meta.env.VITE_BACKEND_URL).origin;
+          const handleMessage = (event) => {
+            if (event.origin !== expectedOrigin) return;
+            const { status, message: msg } = event.data || {};
+            if (status === "success") {
+              setIsAuthenticated(true);
+              message.success("Google Search Console connected!");
+              window.location.reload();
+            } else if (status === "error") {
+              message.error(msg || "Authentication failed");
+              setError(msg || "Authentication failed");
+            }
+            window.removeEventListener("message", handleMessage);
+          };
+
+          window.addEventListener("message", handleMessage);
+          const popupCheck = setInterval(() => {
+            if (popup.closed) {
+              clearInterval(popupCheck);
+              window.removeEventListener("message", handleMessage);
+              if (!isAuthenticated) {
+                setError("Authentication window closed without completing.");
+                setIsConnecting(false);
+              }
+            }
+          }, 1000);
+        } catch (err) {
+          message.error(err.message || "Failed to connect to Google Search Console");
+          setError(err.message || "Connection failed");
+          setIsConnecting(false);
+        }
+      }, [dispatch, isAuthenticated]);
+
+      // Handle tab change
+      const handleTabChange = (key) => {
+        setActiveTab(key);
+        setCountryFilter("");
+        setSearchQuery("");
+      };
+
+      // Handle date range change
+      const handleDateRangeChange = (value) => {
+        setDateRange(value);
+        setCustomDateRange([null, null]); // Reset custom date range when selecting predefined range
+        refetch();
+      };
+
+      // Handle custom date range change
+      const handleCustomDateRangeChange = (dates) => {
+        if (dates && dates[0] && dates[1]) {
+          setCustomDateRange(dates);
+          setDateRange(""); // Clear predefined range when custom range is selected
+          refetch();
+        } else {
+          setError("Please select both start and end dates.");
+        }
+      };
+
+      // Handle filter type change
+      const handleFilterTypeChange = (value) => {
+        setFilterType(value);
+        setBlogUrlFilter("");
+        setBlogTitleFilter("");
+        setSearchQuery("");
+        refetch();
+      };
+
+      // Handle blog URL filter change
+      const handleBlogUrlChange = (value) => {
+        setBlogUrlFilter(value);
+        refetch();
+      };
+
+      // Handle blog title filter change
+      const handleBlogTitleChange = (value) => {
+        setBlogTitleFilter(value);
+        refetch();
+      };
+
+      // Handle country filter change
+      const handleCountryFilterChange = (value) => {
+        setCountryFilter(value);
+        refetch();
+      };
+
+      // Handle search query change
+      const handleSearch = (value) => {
+        setSearchQuery(value);
+      };
+
+      // Reset filters
+      const handleResetFilters = () => {
+        setFilterType("search");
+        setBlogUrlFilter("");
+        setBlogTitleFilter("");
+        setCountryFilter("");
+        setSearchQuery("");
+        setDateRange("7d");
+        setCustomDateRange([moment().subtract(6, "days"), moment()]);
+        refetch();
+      };
+
+      // Filter data with Fuse.js
+      const filteredData = useMemo(() => {
+        let result = blogData;
+        if (filterType === "blog" && blogUrlFilter) {
+          result = result.filter((item) => item.url === blogUrlFilter);
+        }
+        if (blogTitleFilter) {
+          result = result.filter((item) => item.blogTitle === blogTitleFilter);
+        }
+        if (countryFilter && activeTab === "country") {
+          result = result.filter((item) => item.country === countryFilter);
+        }
+        if (searchQuery && filterType === "search") {
+          const fuse = new Fuse(result, fuseOptions);
+          result = fuse.search(searchQuery).map(({ item }) => item);
+        }
+        return result;
+      }, [blogData, filterType, blogUrlFilter, blogTitleFilter, countryFilter, searchQuery, activeTab]);
+
+      // Calculate metrics for mini cards
+      const metrics = useMemo(() => {
+        const totalClicks = filteredData.reduce((sum, item) => sum + item.clicks, 0);
+        const totalImpressions = filteredData.reduce((sum, item) => sum + item.impressions, 0);
+        const avgCtr =
+          filteredData.length > 0
+            ? (
+                filteredData.reduce((sum, item) => sum + parseFloat(item.ctr), 0) / filteredData.length
+              ).toFixed(2)
+            : "0.00";
+        const avgPosition =
+          filteredData.length > 0
+            ? (
+                filteredData.reduce((sum, item) => sum + (parseFloat(item.position) || 0), 0) /
+                filteredData.length
+              ).toFixed(1)
+            : "N/A";
+        return { totalClicks, totalImpressions, avgCtr, avgPosition };
+      }, [filteredData]);
+
+      // Table columns
+      const getColumns = (tab) => {
+        const baseColumns = [
           {
             title: "Blog Title",
             dataIndex: "blogTitle",
             key: "blogTitle",
-            render: (blogTitle, record) => (
-              <div
-                className="font-medium text-blue-600 cursor-pointer hover:underline"
-                onClick={() => toggleRow(record.id)}
-              >
-                {blogTitle}
-              </div>
-            ),
             sorter: (a, b) => a.blogTitle.localeCompare(b.blogTitle),
+            width: 200,
+            render: (text) => <span className="font-medium text-gray-800">{text}</span>,
           },
           {
-            title: "Keywords",
-            dataIndex: "keywords",
-            key: "keywords",
-            render: (keywords, record) => (
-              <div className="flex flex-wrap gap-1 max-w-xs">
-                {keywords.length > 0 ? (
-                  <Tag color="blue" className="text-sm">
-                    +{keywords.length} keywords
-                  </Tag>
-                ) : (
-                  <Tag color="default" className="text-sm">
-                    No keywords
-                  </Tag>
+            title: tab === "page" ? "URL" : tab === "query" ? "Query" : "Country",
+            dataIndex: tab === "page" ? "url" : tab === "query" ? "query" : "country",
+            key: tab,
+            render: (text) => (
+              <div className="flex items-center">
+                <span className="text-gray-700">{text.length > 50 ? `${text.substring(0, 47)}...` : text}</span>
+                {tab === "page" && (
+                  <a href={text} target="_blank" rel="noopener noreferrer" className="ml-2">
+                    <Link className="w-4 h-4 text-blue-600 hover:text-blue-800" />
+                  </a>
                 )}
               </div>
             ),
-          },
-          {
-            title: "Total Clicks",
-            dataIndex: "clicks",
-            key: "clicks",
-            sorter: (a, b) => a.clicks - b.clicks,
-            render: (clicks) => (
-              <div className="font-semibold text-gray-900">
-                {new Intl.NumberFormat().format(clicks)}
-              </div>
-            ),
-            align: "center",
-          },
-          {
-            title: "Total Impressions",
-            dataIndex: "impressions",
-            key: "impressions",
-            sorter: (a, b) => a.impressions - b.impressions,
-            render: (impressions) => (
-              <div className="font-semibold text-gray-900">
-                {new Intl.NumberFormat().format(impressions)}
-              </div>
-            ),
-            align: "center",
-          },
-          {
-            title: "Avg CTR",
-            dataIndex: "ctr",
-            key: "ctr",
-            sorter: (a, b) => a.ctr - b.ctr,
-            render: (ctr) => (
-              <div
-                className={`font-semibold ${
-                  ctr >= 8 ? "text-green-600" : ctr >= 5 ? "text-yellow-600" : "text-red-600"
-                }`}
-              >
-                {ctr}%
-              </div>
-            ),
-            align: "center",
-          },
-          {
-            title: "Avg Position",
-            dataIndex: "position",
-            key: "position",
-            sorter: (a, b) => a.position - b.position,
-            render: (position) => (
-              <div
-                className={`font-semibold ${
-                  position <= 3
-                    ? "text-green-600"
-                    : position <= 10
-                    ? "text-yellow-600"
-                    : "text-red-600"
-                }`}
-              >
-                {position}
-              </div>
-            ),
-            align: "center",
-          },
-          ...(includeCountry
-            ? [
-                {
-                  title: "Country",
-                  dataIndex: "countryName",
-                  key: "countryName",
-                  render: (countryName) => countryName || "-",
-                  sorter: (a, b) => a.countryName.localeCompare(b.countryName),
-                  filters: countries,
-                  filterMultiple: true,
-                  onFilter: (value, record) => record.countryCode === value,
-                },
-              ]
-            : []),
-          {
-            title: "Actions",
-            key: "actions",
-            render: (_, record) => (
-              <div className="flex items-center justify-center gap-2">
-                <Tooltip title="Toggle Keywords">
-                  <Button
-                    type="text"
-                    icon={
-                      expandedRows.includes(record.id) ? (
-                        <ChevronUp className="w-4 h-4" />
-                      ) : (
-                        <ChevronDown className="w-4 h-4" />
-                      )
-                    }
-                    onClick={() => toggleRow(record.id)}
-                    title={expandedRows.includes(record.id) ? "Hide Keywords" : "Show Keywords"}
-                  />
-                </Tooltip>
-                <Tooltip title={record.url}>
-                  <Button
-                    type="text"
-                    icon={<ExternalLink className="w-4 h-4" />}
-                    onClick={() => window.open(record.url, "_blank")}
-                    disabled={!record.url}
-                    title="View Blog"
-                  />
-                </Tooltip>
-              </div>
-            ),
-            align: "center",
-          },
-        ]
-      : [
-          {
-            title: "Keyword",
-            dataIndex: "keywords",
-            key: "keywords",
-            render: (keywords) => (
-              <Tooltip title={keywords[0]}>
-                <Tag color="blue" className="text-sm cursor-pointer">
-                  {keywords[0]}
-                </Tag>
-              </Tooltip>
-            ),
+            sorter: (a, b) => a[tab].localeCompare(b[tab]),
+            width: 250,
           },
           {
             title: "Clicks",
             dataIndex: "clicks",
             key: "clicks",
             sorter: (a, b) => a.clicks - b.clicks,
-            render: (clicks) => (
-              <div className="font-semibold text-gray-900">
-                {new Intl.NumberFormat().format(clicks)}
-              </div>
-            ),
-            align: "center",
+            render: (clicks) => <span className="text-blue-600 font-semibold">{new Intl.NumberFormat().format(clicks)}</span>,
+            width: 100,
           },
           {
             title: "Impressions",
             dataIndex: "impressions",
             key: "impressions",
             sorter: (a, b) => a.impressions - b.impressions,
-            render: (impressions) => (
-              <div className="font-semibold text-gray-900">
-                {new Intl.NumberFormat().format(impressions)}
-              </div>
-            ),
-            align: "center",
+            render: (impressions) => <span className="text-blue-600 font-semibold">{new Intl.NumberFormat().format(impressions)}</span>,
+            width: 120,
           },
           {
-            title: "CTR",
+            title: "CTR (%)",
             dataIndex: "ctr",
             key: "ctr",
             sorter: (a, b) => a.ctr - b.ctr,
-            render: (ctr) => (
-              <div
-                className={`font-semibold ${
-                  ctr >= 8 ? "text-green-600" : ctr >= 5 ? "text-yellow-600" : "text-red-600"
-                }`}
-              >
-                {ctr}%
-              </div>
-            ),
-            align: "center",
+            render: (ctr) => <span className="text-gray-700">{`${ctr}%`}</span>,
+            width: 100,
           },
           {
             title: "Position",
             dataIndex: "position",
             key: "position",
             sorter: (a, b) => a.position - b.position,
-            render: (position) => (
-              <div
-                className={`font-semibold ${
-                  position <= 3
-                    ? "text-green-600"
-                    : position <= 10
-                    ? "text-yellow-600"
-                    : "text-red-600"
-                }`}
-              >
-                {position}
-              </div>
-            ),
-            align: "center",
-          },
-          ...(includeCountry
-            ? [
-                {
-                  title: "Country",
-                  dataIndex: "countryName",
-                  key: "countryName",
-                  render: (countryName) => countryName || "-",
-                  sorter: (a, b) => a.countryName.localeCompare(b.countryName),
-                  filters: countries,
-                  filterMultiple: true,
-                  onFilter: (value, record) => record.countryCode === value,
-                },
-              ]
-            : []),
-          {
-            title: "Actions",
-            key: "actions",
-            render: (_, record) => (
-              <div className="flex items-center justify-center gap-2">
-                <Tooltip title={record.url}>
-                  <Button
-                    type="text"
-                    icon={<ExternalLink className="w-4 h-4" />}
-                    onClick={() => window.open(record.url, "_blank")}
-                    disabled={!record.url}
-                    title="View Blog"
-                  />
-                </Tooltip>
-              </div>
-            ),
-            align: "center",
+            render: (position) => <span className="text-gray-700">{position}</span>,
+            width: 100,
           },
         ];
+        return baseColumns;
+      };
 
-  // Format number helper
-  const formatNumber = (num) => new Intl.NumberFormat().format(num);
+      // Export to Excel using ExcelJS
+      const handleExport = async () => {
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet("Search Performance");
+        worksheet.columns = [
+          { header: "Blog Title", key: "blogTitle", width: 30 },
+          {
+            header: activeTab === "page" ? "URL" : activeTab === "query" ? "Query" : "Country",
+            key: activeTab,
+            width: 50,
+          },
+          { header: "Clicks", key: "clicks", width: 15 },
+          { header: "Impressions", key: "impressions", width: 15 },
+          { header: "CTR (%)", key: "ctr", width: 10 },
+          { header: "Position", key: "position", width: 10 },
+        ];
 
-  // Render UpgradeModal if user is on free or basic plan
-  // if (userPlan === "free" || userPlan === "basic") {
-  //   return <UpgradeModal featureName={"Google Search Console"} />;
-  // }
+        filteredData.forEach((item) => {
+          worksheet.addRow({
+            blogTitle: item.blogTitle,
+            [activeTab]: item[activeTab],
+            clicks: item.clicks,
+            impressions: item.impressions,
+            ctr: `${item.ctr}%`,
+            position: item.position,
+          });
+        });
 
-  // Show reconnection UI only if not authenticated or invalid_grant error
-  if (!isAuthenticated || isInvalidGrantError(connectErr)) {
-    return (
-      <div
-        className="p-6 flex items-center justify-center"
-        style={{ minHeight: "calc(100vh - 250px)" }}
-      >
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 max-w-md w-full text-center"
-        >
-          <div className="mb-6">
-            <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto">
-              <FcGoogle size={40} />
-            </div>
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">
-            {isInvalidGrantError(connectErr)
-              ? "Reconnect Google Search Console"
-              : "Connect Google Search Console"}
-          </h2>
-          <p className="text-gray-600 text-sm mb-6">
-            {isInvalidGrantError(connectErr)
-              ? "Your Google Search Console connection has expired or is invalid. Please reconnect to continue monitoring your blog performance."
-              : "Connect your Google Search Console account to monitor your blog performance, track search analytics, and optimize your content for better visibility."}
-          </p>
-          {connectErr && (
-            <div className="bg-red-100 text-red-800 p-3 rounded-lg text-sm mb-4">
-              {isInvalidGrantError(connectErr)
-                ? "Invalid grant: Your authentication token is no longer valid."
-                : typeof connectErr === "string"
-                ? connectErr
-                : connectErr.message || connectErr.error || "An error occurred"}
-            </div>
-          )}
-          <button
-            onClick={() => connectGscMutation.mutate()}
-            disabled={isConnecting}
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed w-full"
-          >
-            {isConnecting ? (
-              <>
-                <RefreshCw className="w-5 h-5 animate-spin" />
-                Connecting...
-              </>
-            ) : (
-              <>
-                <LogIn className="w-5 h-5" />
-                {isInvalidGrantError(connectErr) ? "Reconnect GSC" : "Connect GSC"}
-              </>
-            )}
-          </button>
-        </motion.div>
-      </div>
-    );
-  }
+        worksheet.getRow(1).font = { bold: true };
+        worksheet.getRow(1).fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "F0F0F0" },
+        };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-[calc(100vh-300px)] bg-white border rounded-lg">
-        <Loading />
-      </div>
-    );
-  }
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], {
+          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `search_performance_${activeTab}_${moment().format("YYYYMMDD_HHmmss")}.xlsx`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+      };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-transparent p-5">
-      <Helmet>
-        <title>Blog Performance | GenWrite</title>
-      </Helmet>
-      <div className="space-y-6">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-5">
-          <div>
-            <motion.h1
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.2 }}
-              className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
-            >
-              Blog Performance
-            </motion.h1>
-            <p className="text-gray-600">Monitor your blog performance and search analytics</p>
-          </div>
-          <div className="flex items-center gap-3">
-            {userPlan && (
+      if (!isAuthenticated) {
+        return (
+          <div className="min-h-[calc(100vh-250px)] flex items-center justify-center p-6 bg-gray-50">
+            <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full text-center border border-gray-200">
+              <FcGoogle size={48} className="mx-auto mb-4" />
+              <h2 className="text-2xl font-bold mb-4 text-gray-900">Connect Google Search Console</h2>
+              <p className="text-gray-600 mb-6">
+                Link your Google Search Console account to view performance data.
+              </p>
+              {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm">{error}</div>}
               <Button
-                icon={<Download className="w-4 h-4" />}
-                onClick={handleExport}
-                disabled={isLoading}
-                className="flex items-center gap-2 bg-green-600 text-white hover:bg-green-700"
+                onClick={connectGSC}
+                disabled={isConnecting}
+                icon={<LogIn className="w-4 h-4 mr-2" />}
+                type="primary"
+                loading={isConnecting}
+                className="w-full bg-blue-600 hover:bg-blue-700 rounded-lg h-10 text-base font-medium"
               >
-                Export
+                {isConnecting ? "Connecting..." : "Connect GSC"}
               </Button>
-            )}
-            <Button
-              icon={<RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />}
-              onClick={() => queryClient.invalidateQueries(["gscAnalytics"])}
-              disabled={isLoading}
-              className="flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700"
-            >
-              Refresh
-            </Button>
+            </div>
           </div>
-        </div>
+        );
+      }
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                <MousePointer className="w-6 h-6 text-blue-600" />
+      return (
+        <div className="p-6 bg-gray-50 min-h-screen">
+          <Helmet>
+            <title>Search Performance | GenWrite</title>
+          </Helmet>
+          <div className="bg-white rounded-xl shadow-sm p-6 mb-6 border border-gray-200">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
+              <h1 className="text-2xl font-bold text-gray-900">Search Performance</h1>
+              <div className="flex gap-3 items-center">
+                <Button
+                  icon={<Download className="w-4 h-4 mr-2" />}
+                  onClick={handleExport}
+                  disabled={isLoading || sitesLoading}
+                  type="primary"
+                  className="bg-green-600 hover:bg-green-700 rounded-lg h-10 text-base font-medium"
+                >
+                  Export
+                </Button>
+                <Button
+                  icon={<RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />}
+                  onClick={() => refetch()}
+                  disabled={isLoading || sitesLoading}
+                  type="primary"
+                  className="bg-blue-600 hover:bg-blue-700 rounded-lg h-10 text-base font-medium"
+                >
+                  Refresh
+                </Button>
+                <Button
+                  onClick={handleResetFilters}
+                  type="default"
+                  className="bg-gray-100 hover:bg-gray-200 border-gray-300 rounded-lg h-10 text-base font-medium text-gray-700"
+                >
+                  Reset Filters
+                </Button>
               </div>
-              <TrendingUp className="w-5 h-5 text-green-500" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-900">{formatNumber(totals.clicks)}</h3>
-            <p className="text-gray-600 text-sm">
-              {selectedBlogTitle === "all" ? "Total Clicks" : "Clicks"}
-            </p>
-          </div>
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                <Eye className="w-6 h-6 text-purple-600" />
-              </div>
-              <TrendingUp className="w-5 h-5 text-green-500" />
-            </div>
-            <h3 className="text-2xl font-bold text-gray-900">{formatNumber(totals.impressions)}</h3>
-            <p className="text-gray-600 text-sm">
-              {selectedBlogTitle === "all" ? "Total Impressions" : "Impressions"}
-            </p>
-          </div>
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                <BarChart3 className="w-6 h-6 text-green-600" />
-              </div>
-              <TrendingDown className="w-5 h-5 text-red-500" />
-            </div>
-            <h3 className="text-2xl font-bold text-gray-900">{totals.avgCtr.toFixed(2)}%</h3>
-            <p className="text-gray-600 text-sm">Average CTR</p>
-          </div>
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-orange-600" />
-              </div>
-              <TrendingUp className="w-5 h-5 text-green-500" />
-            </div>
-            <h3 className="text-2xl font-bold text-gray-900">{totals.avgPosition.toFixed(1)}</h3>
-            <p className="text-gray-600 text-sm">Average Position</p>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3">
-          <div className="flex flex-col lg:flex-row gap-4 items-center">
-            <div className="flex-1 flex items-center gap-2">
-              <AntSearch
-                placeholder="Search by URL, keywords, or title..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onSearch={handleSearch}
-                enterButton={<Search className="w-5 h-5 text-white" />}
-                suffix={
-                  searchTerm && (
-                    <span
-                      onClick={() => handleSearch("")}
-                      className="cursor-pointer text-gray-400 text-xs transition"
-                    >
-                      <X className="w-4 h-4" />
-                    </span>
-                  )
-                }
-                className={`w-full ${searchTerm ? "border-orange-400 shadow-orange-100" : ""}`}
-              />
-            </div>
-            <div className="flex-1">
-              <Select
-                value={selectedBlogTitle}
-                onChange={(value) => {
-                  setSelectedBlogTitle(value);
-                  setCurrentPage(1);
-                  setExpandedRows([]);
-                  queryClient.invalidateQueries(["gscAnalytics"]);
-                }}
-                className="w-full"
-                placeholder="Select Blog"
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <Card
+                title={<span className="text-sm font-semibold text-gray-600">Total Clicks</span>}
+                className="rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
               >
-                {blogTitles.map((title) => (
-                  <Option key={title} value={title}>
-                    {title === "all" ? "All Blogs" : title}
-                  </Option>
-                ))}
-              </Select>
+                <p className="text-2xl font-bold text-blue-600">{new Intl.NumberFormat().format(metrics.totalClicks)}</p>
+              </Card>
+              <Card
+                title={<span className="text-sm font-semibold text-gray-600">Total Impressions</span>}
+                className="rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
+              >
+                <p className="text-2xl font-bold text-blue-600">{new Intl.NumberFormat().format(metrics.totalImpressions)}</p>
+              </Card>
+              <Card
+                title={<span className="text-sm font-semibold text-gray-600">Average CTR</span>}
+                className="rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
+              >
+                <p className="text-2xl font-bold text-blue-600">{metrics.avgCtr}%</p>
+              </Card>
+              <Card
+                title={<span className="text-sm font-semibold text-gray-600">Average Position</span>}
+                className="rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
+              >
+                <p className="text-2xl font-bold text-blue-600">{metrics.avgPosition}</p>
+              </Card>
             </div>
-            <div className="w-1/6">
+            <div className="flex flex-col sm:flex-row gap-3 flex-wrap items-center">
               <Select
-                value={customDateRange[0] ? "custom" : dateRange}
-                onChange={(value) => {
-                  setDateRange(value);
-                  setCustomDateRange([null, null]);
-                  setCurrentPage(1);
-                  setExpandedRows([]);
-                  queryClient.invalidateQueries(["gscAnalytics"]);
-                }}
-                className="w-full"
+                value={dateRange}
+                onChange={handleDateRangeChange}
+                className={`w-40 ${dateRange ? "border-blue-500" : ""}`}
+                placeholder="Select Date Range"
+                style={{ borderRadius: '8px' }}
               >
                 <Option value="7d">Last 7 Days</Option>
                 <Option value="30d">Last 30 Days</Option>
                 <Option value="180d">Last 6 Months</Option>
-                <Option value="custom">Custom Range</Option>
+              </Select>
+              <RangePicker
+                value={customDateRange}
+                onChange={handleCustomDateRangeChange}
+                disabledDate={(current) => current && current > moment().endOf("day")}
+                className={`w-60 ${customDateRange[0] && customDateRange[1] ? "border-blue-500" : ""}`}
+                placeholder={["Start Date", "End Date"]}
+                allowEmpty={[false, false]}
+                style={{ borderRadius: '8px' }}
+              />
+              <Select
+                value={filterType}
+                onChange={handleFilterTypeChange}
+                className={`w-40 ${filterType ? "border-blue-500" : ""}`}
+                placeholder="Filter Type"
+                style={{ borderRadius: '8px' }}
+              >
+                <Option value="search">Search</Option>
+                <Option value="blog">Blog URL</Option>
+              </Select>
+              {filterType === "blog" && (
+                <AntSearch
+                  value={blogUrlFilter}
+                  onChange={(e) => handleBlogUrlChange(e.target.value)}
+                  placeholder="Enter Blog URL..."
+                  enterButton={<Search className="w-4 h-4" />}
+                  className={`max-w-md ${blogUrlFilter ? "border-blue-500" : ""}`}
+                  style={{ borderRadius: '8px' }}
+                />
+              )}
+              {filterType === "search" && (
+                <AntSearch
+                  value={searchQuery}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  onSearch={handleSearch}
+                  placeholder="Search by URL, query, or country..."
+                  enterButton={<Search className="w-4 h-4" />}
+                  className={`max-w-md ${searchQuery ? "border-blue-500" : ""}`}
+                  style={{ borderRadius: '8px' }}
+                />
+              )}
+              <Select
+                value={blogTitleFilter}
+                onChange={handleBlogTitleChange}
+                className={`w-60 ${blogTitleFilter ? "border-blue-500" : ""}`}
+                placeholder="Select Blog Title"
+                allowClear
+                style={{ borderRadius: '8px' }}
+              >
+                {blogTitles.map((title) => (
+                  <Option key={title} value={title}>
+                    {title}
+                  </Option>
+                ))}
+              </Select>
+              {activeTab === "country" && (
+                <Select
+                  value={countryFilter}
+                  onChange={handleCountryFilterChange}
+                  className={`w-40 ${countryFilter ? "border-blue-500" : ""}`}
+                  placeholder="Select Country"
+                  allowClear
+                  style={{ borderRadius: '8px' }}
+                >
+                  {countries.map((country) => (
+                    <Option key={country} value={country}>
+                      {country}
+                    </Option>
+                  ))}
+                </Select>
+              )}
+              <Select
+                value={pageSize}
+                onChange={(value) => setPageSize(value)}
+                className="w-32"
+                placeholder="Rows per page"
+                style={{ borderRadius: '8px' }}
+              >
+                <Option value={10}>10 rows</Option>
+                <Option value={25}>25 rows</Option>
+                <Option value={50}>50 rows</Option>
+                <Option value={100}>100 rows</Option>
               </Select>
             </div>
-            {dateRange === "custom" && (
-              <div className="flex-1">
-                <RangePicker
-                  value={customDateRange}
-                  onChange={(dates) => {
-                    setCustomDateRange(dates);
-                    setCurrentPage(1);
-                    setExpandedRows([]);
-                    queryClient.invalidateQueries(["gscAnalytics"]);
-                  }}
-                  disabledDate={(current) => current && current > moment().endOf("day")}
-                  className="w-full"
-                  placeholder={["Start Date", "End Date"]}
-                />
-              </div>
-            )}
-            <div className="flex-2 flex items-center gap-2">
-              <label className="text-sm font-medium text-gray-700">Include Country</label>
-              <Switch
-                checked={includeCountry}
-                onChange={(checked) => {
-                  setIncludeCountry(checked);
-                  if (!checked) setSelectedCountries([]);
-                  setCurrentPage(1);
-                  setExpandedRows([]);
-                  queryClient.invalidateQueries(["gscAnalytics"]);
-                }}
-                className={`w-fit ${includeCountry ? "bg-blue-600" : "bg-gray-200"}`}
-              />
-            </div>
-            <div className="flex-2">
-              <Button
-                icon={<RefreshCw className="w-4 h-4" />}
-                onClick={resetAllFilters}
-                className={`w-full flex items-center gap-2 ${
-                  hasActiveFilters ? "border-red-400 bg-red-50 text-red-600" : ""
-                }`}
-              >
-                Reset
-              </Button>
-            </div>
           </div>
+          {error && (
+            <div className="bg-red-50 text-red-600 p-4 rounded-lg mb-6 flex items-center border border-red-200">
+              <span>{error}</span>
+              {error.includes("invalid_grant") && (
+                <Button
+                  onClick={connectGSC}
+                  className="ml-4"
+                  type="link"
+                  icon={<LogIn className="w-4 h-4 mr-2" />}
+                >
+                  Reconnect GSC
+                </Button>
+              )}
+            </div>
+          )}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <Tabs
+              activeKey={activeTab}
+              onChange={handleTabChange}
+              className="custom-tabs"
+              tabBarStyle={{
+                background: '#f8fafc',
+                padding: '12px 16px',
+                borderBottom: '1px solid #e5e7eb',
+                margin: 0,
+              }}
+            >
+              <TabPane tab={<span className="text-base font-medium">Queries</span>} key="query">
+                <Table
+                  columns={getColumns("query")}
+                  dataSource={filteredData}
+                  rowKey="id"
+                  pagination={{
+                    pageSize,
+                    showSizeChanger: false,
+                    showTotal: (total) => `Total ${total} results`,
+                  }}
+                  loading={isLoading || sitesLoading}
+                  locale={{
+                    emptyText: error
+                      ? `Error: ${error}. Please try refreshing or reconnecting GSC.`
+                      : "No data available. Try refreshing or adjusting filters.",
+                  }}
+                  className="custom-table"
+                />
+              </TabPane>
+              <TabPane tab={<span className="text-base font-medium">Pages</span>} key="page">
+                <Table
+                  columns={getColumns("page")}
+                  dataSource={filteredData}
+                  rowKey="id"
+                  pagination={{
+                    pageSize,
+                    showSizeChanger: false,
+                    showTotal: (total) => `Total ${total} results`,
+                  }}
+                  loading={isLoading || sitesLoading}
+                  locale={{
+                    emptyText: error
+                      ? `Error: ${error}. Please try refreshing or reconnecting GSC.`
+                      : "No data available. Try refreshing or adjusting filters.",
+                  }}
+                  className="custom-table"
+                />
+              </TabPane>
+              <TabPane tab={<span className="text-base font-medium">Countries</span>} key="country">
+                <Table
+                  columns={getColumns("country")}
+                  dataSource={filteredData}
+                  rowKey="id"
+                  pagination={{
+                    pageSize,
+                    showSizeChanger: false,
+                    showTotal: (total) => `Total ${total} results`,
+                  }}
+                  loading={isLoading || sitesLoading}
+                  locale={{
+                    emptyText: error
+                      ? `Error: ${error}. Please try refreshing or reconnecting GSC.`
+                      : "No data available. Try refreshing or adjusting filters.",
+                  }}
+                  className="custom-table"
+                />
+              </TabPane>
+            </Tabs>
+          </div>
+          <style jsx>{`
+            .custom-table .ant-table-thead > tr > th {
+              background: #f8fafc;
+              font-weight: 600;
+              color: #1f2937;
+              border-bottom: 1px solid #e5e7eb;
+              padding: 12px 16px;
+            }
+            .custom-table .ant-table-row:hover {
+              background: #f9fafb;
+            }
+            .custom-table .ant-table-row {
+              border-bottom: 1px solid #e5e7eb;
+            }
+            .custom-table .ant-table-cell {
+              padding: 12px 16px;
+            }
+            .ant-select-selector,
+            .ant-picker,
+            .ant-input-search .ant-input {
+              border-radius: 8px !important;
+              border: 1px solid #d1d5db !important;
+              box-shadow: none !important;
+              transition: border-color 0.2s;
+            }
+            .ant-select-selector:hover,
+            .ant-picker:hover,
+            .ant-input-search .ant-input:hover {
+              border-color: #1a73e8 !important;
+            }
+            .border-blue-500 .ant-select-selector,
+            .border-blue-500 .ant-picker,
+            .border-blue-500 .ant-input {
+              border-color: #1a73e8 !important;
+              box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1) !important;
+            }
+            .ant-tabs-nav {
+              margin: 0 !important;
+            }
+            .ant-tabs-tab {
+              padding: 12px 24px !important;
+              margin: 0 !important;
+              border-radius: 8px 8px 0 0 !important;
+              transition: background-color 0.2s, color 0.2s !important;
+            }
+            .ant-tabs-tab:hover {
+              background: #e5e7eb !important;
+              color: #1a73e8 !important;
+            }
+            .ant-tabs-tab-active {
+              background: #ffffff !important;
+              border-bottom: 2px solid #1a73e8 !important;
+              font-weight: 600 !important;
+              color: #1a73e8 !important;
+            }
+            .ant-tabs-ink-bar {
+              background: #1a73e8 !important;
+              height: 2px !important;
+            }
+            .ant-card {
+              border-radius: 8px !important;
+              background: #ffffff !important;
+            }
+            .ant-card-head {
+              border-bottom: none !important;
+              padding: 12px 16px !important;
+            }
+            .ant-card-body {
+              padding: 16px !important;
+            }
+            .ant-btn-primary,
+            .ant-btn-default {
+              border-radius: 8px !important;
+              height: 40px !important;
+              font-size: 14px !important;
+              font-weight: 500 !important;
+            }
+            .ant-btn-primary:hover,
+            .ant-btn-default:hover {
+              transform: translateY(-1px);
+              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+            .ant-table-pagination {
+              padding: 16px !important;
+            }
+          `}</style>
         </div>
-
-        <Table
-          columns={columns}
-          dataSource={filteredBlogData}
-          rowKey="id"
-          pagination={{
-            current: currentPage,
-            pageSize: itemsPerPage,
-            total: filteredBlogData.length,
-            onChange: (page, pageSize) => {
-              setCurrentPage(page);
-              setItemsPerPage(pageSize);
-            },
-            pageSizeOptions: [10, 20, 50, 100],
-            showSizeChanger: true,
-            showTotal: (total) => `Total ${total} results`,
-          }}
-          expandable={
-            selectedBlogTitle === "all"
-              ? {
-                  expandedRowKeys: expandedRows,
-                  onExpand: (expanded, record) => toggleRow(record.id),
-                  expandedRowRender: (record) => (
-                    <Table
-                      columns={keywordColumns}
-                      dataSource={record.keywordDetails}
-                      rowKey="id"
-                      pagination={false}
-                      className="bg-gray-50 rounded-lg"
-                    />
-                  ),
-                }
-              : undefined
-          }
-          onChange={(pagination, filters) => {
-            setSelectedCountries(filters.countryName || []);
-            setCurrentPage(pagination.current);
-            setItemsPerPage(pagination.pageSize);
-          }}
-          className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
-          locale={{
-            emptyText: connectErr
-              ? `Error: ${connectErr.message || connectErr.error || "An error occurred"}. Please try refreshing or reconnecting GSC.`
-              : "No data available. Try adjusting your filters or refreshing the data.",
-          }}
-        />
-      </div>
-
-      <style jsx>{`
-        .ant-select-highlighted-green .ant-select-selector {
-          border-color: #10b981 !important;
-          box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1) !important;
-        }
-        .ant-select-highlighted-purple .ant-select-selector {
-          border-color: #8b5cf6 !important;
-          box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.1) !important;
-        }
-        .ant-select-highlighted-indigo .ant-select-selector {
-          border-color: #6366f1 !important;
-          box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1) !important;
-        }
-        .ant-table-thead > tr > th {
-          background: #f8fafc;
-          font-weight: 600;
-          color: #1f2937;
-        }
-        .ant-table-row {
-          transition: background 0.2s;
-        }
-        .ant-table-row:hover {
-          background: #f1f5f9;
-        }
-        .ant-tag {
-          transition: all 0.2s;
-        }
-        .ant-tag:hover {
-          transform: scale(1.05);
-        }
-      `}</style>
-    </div>
-  );
-};
-
-export default SearchConsole;
+      );
+    };
+export default SearchConsole
