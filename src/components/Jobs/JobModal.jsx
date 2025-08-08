@@ -32,7 +32,7 @@ const initialJob = {
     includeTableOfContents: false,
     addOutBoundLinks: false,
   },
-  status: "active",
+  status: "stop",
 }
 
 const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded }) => {
@@ -177,6 +177,7 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
     dispatch(
       createJobThunk({
         jobPayload,
+        user,
         onSuccess: () => {
           dispatch(closeJobModal())
           dispatch(fetchJobs())
