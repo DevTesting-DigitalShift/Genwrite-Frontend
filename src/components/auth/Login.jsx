@@ -67,9 +67,9 @@ const Auth = ({ path }) => {
       newErrors.terms = "You must accept the Terms and Conditions."
     }
 
-    // if (!recaptchaValue) {
-    //   newErrors.recaptcha = "Please complete the reCAPTCHA."
-    // }
+    if (!recaptchaValue) {
+      newErrors.recaptcha = "Please complete the reCAPTCHA."
+    }
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -94,26 +94,12 @@ const Auth = ({ path }) => {
     setErrors((prev) => ({ ...prev, recaptcha: undefined }))
   }
 
-  // Handle Google
-  const handleGoogleLoginClick = () => {
-    // if (!recaptchaValue) {
-    //   message.error("Please verify captcha first.")
-    //   return
-    // }
-    handleGoogleLogin()
-  }
-
   const handleGoogleLogin = useGoogleLogin({
     flow: "implicit",
+    scope: "https://www.googleapis.com/auth/webmasters.readonly",
     redirect_uri: "https://app.genwrite.co/login",
     onSuccess: async (tokenResponse) => {
-      // if (!recaptchaValue) {
-      //   message.error("Please verify captcha first.")
-      //   return
-      // }
-      dispatch(
-        googleLogin({ access_token: tokenResponse.access_token, captchaToken: recaptchaValue })
-      )
+      dispatch(googleLogin({ access_token: tokenResponse.access_token }))
         .unwrap()
         .then((user) => {
           message.success("Google login successful!")
@@ -318,7 +304,7 @@ const Auth = ({ path }) => {
               <motion.button
                 whileHover={{ y: -2, scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={handleGoogleLoginClick}
+                onClick={handleGoogleLogin}
                 disabled={loading}
                 className="w-full flex items-center justify-center gap-3 py-4 px-6 bg-white border-2 border-gray-200 rounded-2xl text-gray-700 hover:border-gray-300 hover:shadow-lg transition-all duration-300 mb-6 font-medium disabled:opacity-50"
               >
@@ -498,7 +484,7 @@ const Auth = ({ path }) => {
                   </div>
                 )}
 
-                {/* <div className="flex justify-center">
+                <div className="flex justify-center">
                   <ReCAPTCHA
                     sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
                     onChange={onRecaptchaChange}
@@ -516,7 +502,7 @@ const Auth = ({ path }) => {
                       {errors.recaptcha}
                     </motion.p>
                   )}
-                </AnimatePresence> */}
+                </AnimatePresence>
 
                 {/* Forgot Password Link (Login Only) */}
                 {!isSignup && (

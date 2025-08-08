@@ -59,7 +59,7 @@ export const fetchBlogDetails = createAsyncThunk(
 
 export const createNewBlog = createAsyncThunk(
   "blogs/createNewBlog",
-  async ({ blogData, navigate }, { rejectWithValue }) => {
+  async ({ blogData, user, navigate }, { rejectWithValue }) => {
     if (!blogData) {
       message.error("Blog data is required to create a blog.")
       return rejectWithValue("Blog data is required to create a blog.")
