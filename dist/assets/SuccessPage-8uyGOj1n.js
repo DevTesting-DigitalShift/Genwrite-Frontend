@@ -1,0 +1,2 @@
+import{J as e,j as s,E as a}from"./index-NO-siel3.js";import{R as r}from"./index-J2Jp-ujV.js";function c(){const t=e();return s.jsx(r,{status:"success",title:"Payment Successful!",subTitle:"Your subscription or credit purchase has been processed.",extra:[s.jsx(a,{type:"primary",onClick:()=>t("/"),children:"Go to Dashboard"})]})}export{c as default};
+//# sourceMappingURL=SuccessPage-8uyGOj1n.js.map
