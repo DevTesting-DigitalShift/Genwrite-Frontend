@@ -165,13 +165,11 @@ const SecondStepModal = ({
                   id: "chatgpt",
                   label: "ChatGPT",
                   logo: "/Images/chatgpt.png",
-                  
                 },
                 {
                   id: "claude",
                   label: "Claude",
                   logo: "/Images/claude.png",
-                 
                 },
               ].map((model) => (
                 <label
@@ -215,10 +213,7 @@ const SecondStepModal = ({
           <div className="flex justify-between items-center">
             <label className="block text-sm font-semibold text-gray-700 mb-2">Add Image</label>
             <div className="flex items-center">
-              <label
-                htmlFor="add-image-toggle"
-                className={`relative inline-block w-12 h-6`}
-              >
+              <label htmlFor="add-image-toggle" className={`relative inline-block w-12 h-6`}>
                 <input
                   type="checkbox"
                   id="add-image-toggle"
@@ -246,20 +241,15 @@ const SecondStepModal = ({
                 />
                 <div
                   className={`w-12 h-6 rounded-full transition-all duration-300 ${
-                    formData.isCheckedGeneratedImages
-                      ? "bg-[#1B6FC9]"
-                      : "bg-gray-300"
+                    formData.isCheckedGeneratedImages ? "bg-[#1B6FC9]" : "bg-gray-300"
                   }`}
                 />
                 <div
                   className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-300 ${
-                    formData.isCheckedGeneratedImages
-                      ? "translate-x-6"
-                      : ""
+                    formData.isCheckedGeneratedImages ? "translate-x-6" : ""
                   }`}
                 />
               </label>
-              
             </div>
           </div>
 
@@ -272,8 +262,8 @@ const SecondStepModal = ({
                   htmlFor="unsplash"
                   className={`border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150 ${
                     formData.imageSource === "unsplash"
-                    ? "border-blue-600 bg-blue-50"
-                    : "border-gray-300"
+                      ? "border-blue-600 bg-blue-50"
+                      : "border-gray-300"
                   } hover:shadow-sm w-full max-w-[200px]`}
                 >
                   <input
@@ -315,22 +305,24 @@ const SecondStepModal = ({
                   <span className="text-sm font-medium text-gray-800">AI-Generated Images</span>
                   {userPlan === "free" ? (
                     <Crown className="w-4 h-4 text-yellow-500 absolute top-2 right-2" />
-                  ): isAiImagesLimitReached && (
-                <Tooltip
-                  title="You've reached your AI image generation limit. It'll reset in the next billing cycle."
-                  overlayInnerStyle={{
-                    backgroundColor: "#FEF9C3", // light yellow
-                    border: "1px solid #FACC15", // yellow-400 border
-                    color: "#78350F", // dark yellow text
-                  }}
-                >
-                  <TriangleAlert className="text-yellow-400 ml-4" size={15} />
-                </Tooltip>
-              )}
+                  ) : (
+                    isAiImagesLimitReached && (
+                      <Tooltip
+                        title="You've reached your AI image generation limit. It'll reset in the next billing cycle."
+                        overlayInnerStyle={{
+                          backgroundColor: "#FEF9C3", // light yellow
+                          border: "1px solid #FACC15", // yellow-400 border
+                          color: "#78350F", // dark yellow text
+                        }}
+                      >
+                        <TriangleAlert className="text-yellow-400 ml-4" size={15} />
+                      </Tooltip>
+                    )
+                  )}
                 </label>
               </div>
             </div>
-            )}
+          )}
 
           {/* Quick Summary Toggle */}
           <div className="flex items-center justify-between">
@@ -441,12 +433,14 @@ const SecondStepModal = ({
                     type="checkbox"
                     checked={formData.addCTA}
                     onChange={() => {
-                      setNewJob((prev) => ({
+                      setFormData((prev) => ({
                         ...prev,
-                        blogs: {
-                          ...prev.blogs,
-                          addCTA: !prev.formData.addCTA,
-                        },
+
+                        addCTA: !prev.addCTA,
+                      }))
+                      setData((prev) => ({
+                        ...prev,
+                        addCTA: !prev.addCTA,
                       }))
                     }}
                     className="sr-only peer"

@@ -137,7 +137,7 @@ const MultiStepModal = ({ closeFnc }) => {
         </>
       ),
       onConfirm: () => {
-        dispatch(createMultiBlog({ blogData: formData, navigate }))
+        dispatch(createMultiBlog({ blogData: formData, user, navigate }))
         handleClose()
       },
     })

@@ -19,6 +19,7 @@ import {
   getBlogs,
 } from "@api/blogApi"
 import { message } from "antd"
+import { pushToDataLayer } from "@utils/DataLayer"
 
 // ----------------------- Async Thunks -----------------------
 
@@ -59,18 +60,58 @@ export const fetchBlogDetails = createAsyncThunk(
 
 export const createNewBlog = createAsyncThunk(
   "blogs/createNewBlog",
-  async ({ blogData, navigate }, { rejectWithValue }) => {
-    if (!blogData) {
-      message.error("Blog data is required to create a blog.")
-      return rejectWithValue("Blog data is required to create a blog.")
-    }
+  async ({ blogData, user, navigate }, { rejectWithValue }) => {
+    console.debug(blogData)
 
     try {
+      if (!blogData) {
+        message.error("Blog data is required to create a blog.")
+        throw new Error("Blog data is required to create a blog.")
+      }
       const blog = await createBlog(blogData)
       message.success("Blog created successfully")
+      pushToDataLayer({
+        event: "Blog Creation",
+        event_type: "Single blog",
+        event_status: "success",
+        user_id: user._id,
+
+        blog_id: blog._id,
+        blog_template: blogData.template.name,
+        blog_ai_model: blogData.aiModel,
+        blog_words_length: blogData?.userDefinedLength || 1000,
+        blog_images: blogData.isCheckedGeneratedImages
+          ? blogData.isUnsplashActive
+            ? "stock_images"
+            : "ai_images"
+          : "no_images",
+        blog_isBranded: blogData.isCheckedBrand,
+        blog_isBriefedByUser: blogData?.brief?.length ? "yes" : "no",
+        blog_quickSummary: blogData.isCheckedQuick,
+      })
       navigate("/blogs")
       return blog
     } catch (error) {
+      pushToDataLayer({
+        event: "Blog Creation",
+        event_type: "Single blog",
+        event_status: "fail",
+        user_id: user._id,
+
+        blog_template: blogData.template.name,
+        blog_ai_model: blogData.aiModel,
+        blog_words_length: blogData?.userDefinedLength || 1000,
+        blog_images: blogData.isCheckedGeneratedImages
+          ? blogData.isUnsplashActive
+            ? "stock_images"
+            : "ai_images"
+          : "no_images",
+        blog_isBranded: blogData.isCheckedBrand,
+        blog_isBriefedByUser: blogData?.brief ? "yes" : "no",
+        blog_quickSummary: blogData.isCheckedQuick,
+
+        error_msg: err?.message || err?.response?.data?.message || "Blog Creation Failed",
+      })
       message.error(error.message)
       console.error("Blog creation error:", error)
       return rejectWithValue(error.message)
@@ -80,13 +121,45 @@ export const createNewBlog = createAsyncThunk(
 
 export const createNewQuickBlog = createAsyncThunk(
   "blogs/createNewQuickBlog",
-  async ({ blogData, navigate }, { rejectWithValue }) => {
+  async ({ blogData, user, navigate }, { rejectWithValue }) => {
+    console.debug(blogData)
     try {
       const blog = await createQuickBlog(blogData)
       message.success("QuickBlog created successfully")
+      pushToDataLayer({
+        event: "Blog Creation",
+        event_type: "Quick blog",
+        event_status: "success",
+        user_id: user._id,
+
+        blog_id: blog._id,
+        blog_template: blogData.template,
+        blog_words_length: blogData?.userDefinedLength || 1000,
+        blog_ai_model: "gemini",
+        blog_images: "stock_images",
+        blog_isBranded: blogData?.isCheckedBrand || false,
+        blog_isBriefedByUser: blogData?.brief ? "yes" : "no",
+        blog_quickSummary: blogData?.isCheckedQuick || false,
+      })
       navigate(`/toolbox/${blog._id}`)
       return blog
     } catch (error) {
+      pushToDataLayer({
+        event: "Blog Creation",
+        event_type: "Quick blog",
+        event_status: "fail",
+        user_id: user._id,
+
+        blog_template: blogData.template,
+        blog_words_length: blogData?.userDefinedLength || 1000,
+        blog_ai_model: "gemini",
+        blog_images: "stock_images",
+        blog_isBranded: blogData?.isCheckedBrand || false,
+        blog_isBriefedByUser: blogData?.brief ? "yes" : "no",
+        blog_quickSummary: blogData?.isCheckedQuick || false,
+
+        error_msg: err?.message || err?.response?.data?.message || "Blog Creation Failed",
+      })
       message.error(error.message)
       return rejectWithValue(error.message)
     }
@@ -95,13 +168,100 @@ export const createNewQuickBlog = createAsyncThunk(
 
 export const createMultiBlog = createAsyncThunk(
   "blogs/createMultiBlog",
-  async ({ blogData, navigate }, { rejectWithValue }) => {
+  async ({ blogData, user, navigate }, { rejectWithValue }) => {
+    console.debug(blogData)
     try {
-      await createBlogMultiple(blogData)
+      const blogs = await createBlogMultiple(blogData)
+
       message.success("Bulk blogs will be generated shortly")
+      pushToDataLayer({
+        event: "Blog Creation",
+        event_type: "Bulk blog",
+        event_status: "success",
+        user_id: user._id,
+
+        blog_id: JSON.stringify(blogs),
+        blog_template: JSON.stringify(blogData.templates),
+        blog_words_length: blogData.userDefinedLength,
+        blog_count: blogData.numberOfBlogs,
+        blog_ai_model: blogData.aiModel || "gemini",
+        blog_images: blogData.isCheckedGeneratedImages
+          ? blogData.imageSource == "unsplash"
+            ? "stock_images"
+            : "ai_images"
+          : "no_images",
+        blog_isBranded: blogData?.useBrandVoice || false,
+      })
       navigate("/blogs")
     } catch (error) {
+      pushToDataLayer({
+        event: "Blog Creation",
+        event_type: "Bulk blog",
+        event_status: "fail",
+        user_id: user._id,
+
+        blog_template: JSON.stringify(blogData.templates),
+        blog_words_length: blogData.userDefinedLength,
+        blog_count: blogData.numberOfBlogs,
+        blog_ai_model: blogData.aiModel || "gemini",
+        blog_images: blogData.isCheckedGeneratedImages
+          ? blogData.imageSource == "unsplash"
+            ? "stock_images"
+            : "ai_images"
+          : "no_images",
+        blog_isBranded: blogData?.useBrandVoice || false,
+
+        error_msg: err?.message || err?.response?.data?.message || "Blog Creation Failed",
+      })
       return rejectWithValue(error.message)
+    }
+  }
+)
+
+export const createManualBlog = createAsyncThunk(
+  "blogs/createBlog",
+  async ({ blogData, user }, { rejectWithValue }) => {
+    console.log(blogData)
+    try {
+      const blog = await createSimpleBlog(blogData)
+      pushToDataLayer({
+        event: "Blog Creation",
+        event_type: "Manual blog",
+        event_status: "success",
+        user_id: user._id,
+
+        blog_id: blog._id,
+        blog_template: blogData.template,
+        blog_words_length: blogData?.userDefinedLength || 1000,
+        blog_ai_model: blogData.aiModel || "gemini",
+        blog_images: blogData?.isCheckedGeneratedImages
+          ? blogData?.imageSource == "unsplash"
+            ? "stock_images"
+            : "ai_images"
+          : "no_images",
+        blog_isBranded: blogData?.useBrandVoice || false,
+      })
+      return blog
+    } catch (error) {
+      pushToDataLayer({
+        event: "Blog Creation",
+        event_type: "Manual blog",
+        event_status: "fail",
+        user_id: user._id,
+
+        blog_template: blogData.template,
+        blog_words_length: blogData?.userDefinedLength || 1000,
+        blog_ai_model: blogData.aiModel || "gemini",
+        blog_images: blogData?.isCheckedGeneratedImages
+          ? blogData?.imageSource == "unsplash"
+            ? "stock_images"
+            : "ai_images"
+          : "no_images",
+        blog_isBranded: blogData?.useBrandVoice || false,
+
+        error_msg: err?.message || err?.response?.data?.message || "Blog Creation Failed",
+      })
+      return rejectWithValue(error)
     }
   }
 )
@@ -241,18 +401,6 @@ export const fetchGeneratedTitles = createAsyncThunk(
     } catch (error) {
       message.error("Failed to generate blog titles.")
       return rejectWithValue(error.response?.data?.message || error.message)
-    }
-  }
-)
-
-export const createManualBlog = createAsyncThunk(
-  "blogs/createBlog",
-  async (blogData, { rejectWithValue }) => {
-    try {
-      const response = await createSimpleBlog(blogData)
-      return response
-    } catch (error) {
-      return rejectWithValue(error)
     }
   }
 )
