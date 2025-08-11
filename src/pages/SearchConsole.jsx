@@ -39,7 +39,7 @@ const SearchConsole = () => {
   const [filterType, setFilterType] = useState("search")
   const [blogUrlFilter, setBlogUrlFilter] = useState("")
   const [blogTitleFilter, setBlogTitleFilter] = useState(null)
-  const [countryFilter, setCountryFilter] = useState(null)
+  // const [countryFilter, setCountryFilter] = useState(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [userCountry, setUserCountry] = useState(navigator.language.split("-")[1] || "US")
   const [pageSize, setPageSize] = useState(10)
@@ -56,7 +56,7 @@ const SearchConsole = () => {
       customDateRange[1] !== null ||
       blogUrlFilter ||
       blogTitleFilter ||
-      countryFilter ||
+      // countryFilter ||
       searchQuery ||
       pageSize !== 10
     )
@@ -65,7 +65,7 @@ const SearchConsole = () => {
     customDateRange,
     blogUrlFilter,
     blogTitleFilter,
-    countryFilter,
+    // countryFilter,
     searchQuery,
     pageSize,
   ])
@@ -98,11 +98,11 @@ const SearchConsole = () => {
         filterType,
         blogUrlFilter,
         blogTitleFilter,
-        countryFilter,
+        // countryFilter,
         userCountry,
       })
     )
-  }, [filterType, blogUrlFilter, blogTitleFilter, countryFilter, userCountry])
+  }, [filterType, blogUrlFilter, blogTitleFilter, userCountry])
 
   // Calculate date range for API request
   const getDateRangeParams = useCallback(() => {
@@ -134,9 +134,10 @@ const SearchConsole = () => {
 
   // Determine dimensions
   const getDimensions = useCallback(() => {
-    const dimensions = ["page"]
-    if (activeTab === "query") dimensions.push("query")
-    if (activeTab === "country") dimensions.push("country")
+    const dimensions = []
+    if (activeTab === "query") dimensions.push("query", "page")
+    else if (activeTab === "country") dimensions.push("country")
+    else dimensions.push("page")
     return dimensions
   }, [activeTab])
 
@@ -151,9 +152,9 @@ const SearchConsole = () => {
       activeTab,
       dateRange,
       customDateRange,
-      blogUrlFilter,
-      blogTitleFilter,
-      countryFilter,
+      // blogUrlFilter,
+      // blogTitleFilter,
+      // countryFilter,
     ],
     queryFn: async () => {
       const dimensions = getDimensions()
@@ -162,9 +163,9 @@ const SearchConsole = () => {
         from,
         to,
         query: JSON.stringify(dimensions),
-        ...(filterType === "blog" && blogUrlFilter && { blogUrl: blogUrlFilter }),
-        ...(blogTitleFilter && { blogTitle: blogTitleFilter }),
-        ...(countryFilter && activeTab === "country" && { country: countryFilter }),
+        // ...(filterType === "blog" && blogUrlFilter && { blogUrl: blogUrlFilter }),
+        // ...(blogTitleFilter && { blogTitle: blogTitleFilter }),
+        // ...(countryFilter && activeTab === "country" && { country: countryFilter }),
       }
       const data = await dispatch(fetchGscAnalytics(params)).unwrap()
       return data.map((item, index) => ({
@@ -182,9 +183,12 @@ const SearchConsole = () => {
       }))
     },
     enabled: isAuthenticated,
-    staleTime: 1000 * 60 * 10,
-    cacheTime: 1000 * 60 * 60 * 24,
-    retry: 1,
+    staleTime: 1000 * 60 * 30,
+    cacheTime: 1000 * 60 * 60,
+    refetchOnMount: false, // 👈 Don't auto refetch when switching tabs
+    refetchOnWindowFocus: false, // 👈 Don't refetch when tab gains focus
+    refetchOnReconnect: false, // 👈 Don't refetch on network reconnect
+    retry: 3,
     onError: (err) => {
       setError(err.message || "Failed to fetch analytics data")
       if (err?.message?.includes("invalid_grant")) {
@@ -250,7 +254,7 @@ const SearchConsole = () => {
   // Handle tab change
   const handleTabChange = (key) => {
     setActiveTab(key)
-    setCountryFilter(null)
+    // setCountryFilter(null)
     setSearchQuery("")
   }
 
@@ -258,6 +262,7 @@ const SearchConsole = () => {
   const handleDateRangeChange = (value) => {
     setDateRange(value)
     setCustomDateRange([null, null])
+    setError(null)
     setShowDatePicker(value === "custom")
     refetch()
   }
@@ -291,7 +296,7 @@ const SearchConsole = () => {
   // Handle blog title filter change
   const handleBlogTitleChange = (value) => {
     setBlogTitleFilter(value)
-    refetch()
+    // refetch()
   }
 
   // Handle country filter change
@@ -310,7 +315,7 @@ const SearchConsole = () => {
     setFilterType("search")
     setBlogUrlFilter("")
     setBlogTitleFilter("")
-    setCountryFilter("")
+    // setCountryFilter("")
     setSearchQuery("")
     setDateRange("7d")
     setCustomDateRange([moment().subtract(6, "days"), moment()])
@@ -325,18 +330,18 @@ const SearchConsole = () => {
     if (filterType === "blog" && blogUrlFilter) {
       result = result.filter((item) => item.url === blogUrlFilter)
     }
-    if (blogTitleFilter) {
+    if (blogTitleFilter && activeTab !== "country") {
       result = result.filter((item) => item.blogTitle === blogTitleFilter)
     }
-    if (countryFilter && activeTab === "country") {
-      result = result.filter((item) => item.countryName === countryFilter)
-    }
+    // if (countryFilter && activeTab === "country") {
+    //   result = result.filter((item) => item.countryName === countryFilter)
+    // }
     if (searchQuery && filterType === "search") {
       const fuse = new Fuse(result, fuseOptions)
       result = fuse.search(searchQuery).map(({ item }) => item)
     }
     return result
-  }, [blogData, filterType, blogUrlFilter, blogTitleFilter, countryFilter, searchQuery, activeTab])
+  }, [blogData, filterType, blogUrlFilter, blogTitleFilter, searchQuery, activeTab])
 
   // Calculate metrics for mini cards
   const metrics = useMemo(() => {
@@ -602,8 +607,7 @@ const SearchConsole = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <Card
             title={<span className="text-sm font-semibold text-gray-600">Total Clicks</span>}
-            className="rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-gradient-to-br from-blue-100/70 to-blue-50/70"
-            bodyStyle={{ padding: "16px", textAlign: "center" }}
+            className="rounded-lg text-center p-4 shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-gradient-to-br from-blue-100/70 to-blue-50/70"
           >
             <p className="text-2xl font-bold text-blue-600">
               {new Intl.NumberFormat().format(metrics.totalClicks)}
@@ -613,7 +617,7 @@ const SearchConsole = () => {
           <Card
             title={<span className="text-sm font-semibold text-gray-600">Total Impressions</span>}
             className="rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-gradient-to-br from-purple-100/70 to-purple-50/70"
-            bodyStyle={{ padding: "16px", textAlign: "center" }}
+            style={{ padding: "16px", textAlign: "center" }}
           >
             <p className="text-2xl font-bold text-blue-600">
               {new Intl.NumberFormat().format(metrics.totalImpressions)}
@@ -623,7 +627,7 @@ const SearchConsole = () => {
           <Card
             title={<span className="text-sm font-semibold text-gray-600">Average CTR</span>}
             className="rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-gradient-to-br from-teal-100/70 to-teal-50/70"
-            bodyStyle={{ padding: "16px", textAlign: "center" }}
+            style={{ padding: "16px", textAlign: "center" }}
           >
             <p className="text-2xl font-bold text-blue-600">{metrics.avgCtr}%</p>
             <p className="text-xs text-gray-500 mt-1">Average click-through rate</p>
@@ -631,7 +635,7 @@ const SearchConsole = () => {
           <Card
             title={<span className="text-sm font-semibold text-gray-600">Average Position</span>}
             className="rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-gradient-to-br from-amber-100/70 to-amber-50/70"
-            bodyStyle={{ padding: "16px", textAlign: "center" }}
+            style={{ padding: "16px", textAlign: "center" }}
           >
             <p className="text-2xl font-bold text-blue-600">{metrics.avgPosition}</p>
             <p className="text-xs text-gray-500 mt-1">Average search result position</p>
@@ -644,11 +648,11 @@ const SearchConsole = () => {
             </h2>
           </div>
         )}
-        <div className="flex flex-wrap gap-3 items-center w-full">
+        <div className="flex flex-wrap gap-3 items-center justify-between w-full">
           <Select
             value={dateRange}
             onChange={handleDateRangeChange}
-            className={`flex-1 min-w-[140px] ${dateRange ? "border-blue-500" : ""}`}
+            className={`flex-1 max-w-36 ${dateRange ? "border-blue-500" : ""}`}
             placeholder="Select Date Range"
             style={{ borderRadius: "8px" }}
           >
@@ -662,7 +666,7 @@ const SearchConsole = () => {
               value={customDateRange}
               onChange={handleCustomDateRangeChange}
               disabledDate={(current) => current && current > moment().endOf("day")}
-              className={`flex-1 min-w-[200px] ${
+              className={`flex-1 min-w-56 max-w- ${
                 customDateRange[0] && customDateRange[1] ? "border-blue-500" : ""
               }`}
               placeholder={["Start Date", "End Date"]}
@@ -670,33 +674,35 @@ const SearchConsole = () => {
               style={{ borderRadius: "8px" }}
             />
           )}
-          <div className="relative flex-1 min-w-[200px]">
+          <div className="relative flex-1 min-w-[200px] max-w-1/2">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
-              placeholder="Search URL, query, or country"
+              placeholder="Search title, query, or country"
               className={`pl-9 pr-4 py-1 w-full bg-white border ${
                 searchQuery ? "border-blue-500" : "border-gray-300"
               } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
             />
           </div>
-          <Select
-            value={blogTitleFilter}
-            onChange={handleBlogTitleChange}
-            className={`flex-1 min-w-[200px] ${blogTitleFilter ? "border-blue-500" : ""}`}
-            placeholder="Select Blog Title"
-            allowClear
-            style={{ borderRadius: "8px" }}
-          >
-            {blogTitles.map((title) => (
-              <Option key={title} value={title}>
-                {title}
-              </Option>
-            ))}
-          </Select>
-          {activeTab === "country" && (
+          {activeTab !== "country" && (
+            <Select
+              value={blogTitleFilter}
+              onChange={handleBlogTitleChange}
+              className={`flex-1 min-w-[200px] ${blogTitleFilter ? "border-blue-500" : ""}`}
+              placeholder="Select Blog Title"
+              allowClear
+              style={{ borderRadius: "8px" }}
+            >
+              {blogTitles.map((title) => (
+                <Option key={title} value={title}>
+                  {title}
+                </Option>
+              ))}
+            </Select>
+          )}
+          {/* {activeTab === "country" && (
             <Select
               value={countryFilter}
               onChange={handleCountryFilterChange}
@@ -711,11 +717,11 @@ const SearchConsole = () => {
                 </Option>
               ))}
             </Select>
-          )}
+          )} */}
           <Select
             value={pageSize}
             onChange={(value) => setPageSize(value)}
-            className="flex-1 min-w-[120px]"
+            className="flex-1 max-w-[100px]"
             placeholder="Rows per page"
             style={{ borderRadius: "8px" }}
           >
@@ -727,7 +733,7 @@ const SearchConsole = () => {
           <Button
             onClick={handleResetFilters}
             type="default"
-            className={`flex-1 min-w-[120px] rounded-lg h-10 text-base font-medium text-gray-700 ${
+            className={`flex-1 max-w-36 rounded-lg h-10 text-base font-medium text-gray-700 ${
               isFilterApplied
                 ? "bg-blue-100 hover:bg-blue-200 border-blue-300"
                 : "bg-gray-100 hover:bg-gray-200 border-gray-300"
@@ -802,7 +808,11 @@ const SearchConsole = () => {
               className="custom-table"
             />
           </TabPane>
-          <TabPane tab={<span className="text-base font-medium">Countries</span>} key="country">
+          <TabPane
+            tab={<span className="text-base font-medium">Countries</span>}
+            key="country"
+            disabled={Boolean(blogTitleFilter)}
+          >
             <Table
               columns={getColumns("country")}
               dataSource={filteredData}

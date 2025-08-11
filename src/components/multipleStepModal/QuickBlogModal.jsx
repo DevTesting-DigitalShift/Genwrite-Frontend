@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { createNewQuickBlog } from "../../store/slices/blogSlice"
-import { useDispatch } from "react-redux"
+import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import Carousel from "./Carousel"
 import { packages } from "@constants/templates"
@@ -8,6 +8,7 @@ import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { message, Modal, Switch } from "antd"
 import { Plus, X } from "lucide-react"
+import { selectUser } from "@store/slices/authSlice"
 
 const QuickBlogModal = ({ closeFnc }) => {
   const [currentStep, setCurrentStep] = useState(0)
@@ -15,6 +16,7 @@ const QuickBlogModal = ({ closeFnc }) => {
   const [videoLinks, setVideoLinks] = useState([]) // Store video links
   const [otherLinks, setOtherLinks] = useState([]) // Store other links
   const [isOtherLinksEnabled, setIsOtherLinksEnabled] = useState(false) // Toggle for other links
+  const user = useSelector(selectUser)
   const [errors, setErrors] = useState({
     template: false,
     focusKeywords: false,
@@ -103,7 +105,7 @@ const QuickBlogModal = ({ closeFnc }) => {
         </>
       ),
       onConfirm: () => {
-        dispatch(createNewQuickBlog({ blogData: finalData, navigate }))
+        dispatch(createNewQuickBlog({ blogData: finalData, user, navigate }))
         handleClose()
       },
     })

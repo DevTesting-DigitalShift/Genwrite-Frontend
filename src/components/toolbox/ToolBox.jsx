@@ -137,7 +137,9 @@ const ToolBox = () => {
       setIsPosted(response?.data)
       message.success(`Blog ${isPosted ? "updated" : "posted"} successfully!`)
     } catch (error) {
-      message.error(error.response?.data?.message || `Failed to ${isPosted ? "update" : "post to"} WordPress.`)
+      message.error(
+        error.response?.data?.message || `Failed to ${isPosted ? "update" : "post to"} WordPress.`
+      )
     } finally {
       setIsPosting(false)
     }
@@ -289,7 +291,7 @@ const ToolBox = () => {
     }
 
     try {
-      const res = await dispatch(createManualBlog(blogData)).unwrap()
+      const res = await dispatch(createManualBlog({ blogData, user })).unwrap()
       setShowTemplateModal(false)
       navigate(`/blog-editor/${res._id}`)
     } catch (err) {
@@ -538,7 +540,7 @@ const ToolBox = () => {
             isPosting={isPosting}
             formData={formData}
             title={editorTitle}
-            editorContent={editorContent} 
+            editorContent={editorContent}
           />
         </div>
       </div>

@@ -1,31 +1,31 @@
-import React, { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import axiosInstance from "@api/index";
-import { loadStripe } from "@stripe/stripe-js";
-import { Check, Coins, Crown, Mail, Shield, Star, X, Zap } from "lucide-react";
-import { Helmet } from "react-helmet";
-import { SkeletonCard } from "@components/Projects/SkeletonLoader";
-import { message } from "antd";
-import ReactGA from "react-ga4";
+import React, { useEffect, useState } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import axiosInstance from "@api/index"
+import { loadStripe } from "@stripe/stripe-js"
+import { Check, Coins, Crown, Mail, Shield, Star, X, Zap } from "lucide-react"
+import { Helmet } from "react-helmet"
+import { SkeletonCard } from "@components/Projects/SkeletonLoader"
+import { message } from "antd"
+import ReactGA from "react-ga4"
 
 const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
-  const [customCredits, setCustomCredits] = useState(500);
+  const [customCredits, setCustomCredits] = useState(500)
 
   const handleCustomCreditsChange = (e) => {
-    const value = parseInt(e.target.value, 10);
-    setCustomCredits(value);
-  };
+    const value = parseInt(e.target.value, 10)
+    setCustomCredits(value)
+  }
 
   const calculateCustomPrice = () => {
-    return (customCredits * 0.01).toFixed(2);
-  };
+    return (customCredits * 0.01).toFixed(2)
+  }
 
   const displayPrice =
     plan.type === "credit_purchase"
       ? null
       : billingPeriod === "annual"
       ? plan.priceAnnual
-      : plan.priceMonthly;
+      : plan.priceMonthly
 
   const getCardStyles = () => {
     switch (plan.tier) {
@@ -36,7 +36,7 @@ const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
           price: "text-gray-900",
           button: "bg-gray-900 hover:bg-gray-800 text-white",
           accent: "text-gray-600",
-        };
+        }
       case "pro":
         return {
           container:
@@ -45,7 +45,7 @@ const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
           price: "text-blue-600",
           button: "bg-blue-600 hover:bg-blue-700 text-white",
           accent: "text-blue-600",
-        };
+        }
       case "enterprise":
         return {
           container: "bg-white border border-purple-200 hover:border-purple-300 hover:shadow-lg",
@@ -53,7 +53,7 @@ const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
           price: "text-purple-600",
           button: "bg-purple-600 hover:bg-purple-700 text-white",
           accent: "text-purple-600",
-        };
+        }
       case "credits":
         return {
           container: "bg-white border border-emerald-200 hover:border-emerald-300 hover:shadow-lg",
@@ -61,7 +61,7 @@ const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
           price: "text-emerald-600",
           button: "bg-emerald-600 hover:bg-emerald-700 text-white",
           accent: "text-emerald-600",
-        };
+        }
       default:
         return {
           container: "bg-white border border-gray-200",
@@ -69,11 +69,11 @@ const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
           price: "text-gray-900",
           button: "bg-gray-900 hover:bg-gray-800 text-white",
           accent: "text-gray-600",
-        };
+        }
     }
-  };
+  }
 
-  const styles = getCardStyles();
+  const styles = getCardStyles()
 
   return (
     <div className={`relative group ${plan.featured ? "lg:scale-105" : ""}`}>
@@ -173,18 +173,18 @@ const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
         <button
           onClick={() => {
             if (plan.type === "credit_purchase") {
-              if (customCredits < 500) return;
-              onBuy(plan, customCredits, billingPeriod);
+              if (customCredits < 500) return
+              onBuy(plan, customCredits, billingPeriod)
             } else if (plan.name.toLowerCase().includes("enterprise")) {
               ReactGA.event("contact_sales", {
                 plan: plan.name,
-              });
+              })
               window.open(
                 `https://mail.google.com/mail/?view=cm&fs=1&to=support@genwrite.com&su=GenWrite Enterprise Subscription&body=I'm interested in the Enterprise plan.`,
                 "_blank"
-              );
+              )
             } else {
-              onBuy(plan, plan.credits, billingPeriod);
+              onBuy(plan, plan.credits, billingPeriod)
             }
           }}
           className={`w-full py-4 px-6 rounded-lg font-semibold transition-all duration-300 hover:transform hover:scale-105 hover:shadow-lg ${
@@ -201,8 +201,8 @@ const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
         </button>
       </div>
     </div>
-  );
-};
+  )
+}
 
 const ComparisonTable = ({ plans, billingPeriod }) => {
   // Define feature categories and features inspired by Canva and tailored for GenWrite
@@ -310,17 +310,17 @@ const ComparisonTable = ({ plans, billingPeriod }) => {
     //     },
     //   ],
     // },
-  ];
+  ]
 
   // Compute monthly cost for annual billing
   const getMonthlyCost = (plan) => {
-    if (plan.tier === "enterprise") return "Custom";
-    if (plan.tier === "credits") return "Pay-as-you-go";
-    if (billingPeriod === "monthly") return `$${plan.priceMonthly}/month`;
+    if (plan.tier === "enterprise") return "Custom"
+    if (plan.tier === "credits") return "Pay-as-you-go"
+    if (billingPeriod === "monthly") return `$${plan.priceMonthly}/month`
     // For annual, calculate equivalent monthly cost
-    const monthlyEquivalent = (plan.annualPrice / 12).toFixed(2);
-    return `$${monthlyEquivalent}/month, charged annually`;
-  };
+    const monthlyEquivalent = (plan.annualPrice / 12).toFixed(2)
+    return `$${monthlyEquivalent}/month, charged annually`
+  }
 
   return (
     <div className="mt-20 bg-white rounded-2xl shadow-lg overflow-hidden">
@@ -422,19 +422,19 @@ const ComparisonTable = ({ plans, billingPeriod }) => {
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
 const Upgrade = () => {
-  const [loading, setLoading] = useState(true);
-  const [billingPeriod, setBillingPeriod] = useState("annual");
-  const [showComparisonTable, setShowComparisonTable] = useState(true);
+  const [loading, setLoading] = useState(true)
+  const [billingPeriod, setBillingPeriod] = useState("annual")
+  const [showComparisonTable, setShowComparisonTable] = useState(true)
 
   useEffect(() => {
-    ReactGA.send({ hitType: "pageview", page: "/upgrade", title: "Upgrade Page" });
-    const timer = setTimeout(() => setLoading(false), 1200);
-    return () => clearTimeout(timer);
-  }, []);
+    ReactGA.send({ hitType: "pageview", page: "/upgrade", title: "Upgrade Page" })
+    const timer = setTimeout(() => setLoading(false), 1200)
+    return () => clearTimeout(timer)
+  }, [])
 
   const getPlans = (billingPeriod) => {
     return [
@@ -556,26 +556,30 @@ const Upgrade = () => {
         tier: "credits",
         featured: false,
       },
-    ];
-  };
+    ]
+  }
 
-  const plans = getPlans(billingPeriod);
+  const plans = getPlans(billingPeriod)
+
+  function getGaClientId() {
+    // Find the _ga cookie, it looks something like: "GAx.Y.123456789.9876543210"
+    // Where 123456789.9876543210 is the client ID (or similar depending on GA4 cookie format)
+    const gaCookie = document.cookie.split("; ").find((row) => row.startsWith("_ga="))
+    if (gaCookie) {
+      // For GA4, the client ID is usually the last two segments of the _ga cookie value.
+      // Example: _ga=GA1.2.123456789.9638527410
+      // We need '123456789.9638527410'
+      const parts = gaCookie.split(".")
+      // Check if it's a valid GA4 _ga cookie format
+      if (parts.length > 2) {
+        return parts[2] + "." + parts[3] // The last two parts are the client ID
+      }
+    }
+    return null // Client ID not found
+  }
 
   const handleBuy = async (plan, credits, billingPeriod) => {
-    ReactGA.event("begin_checkout", {
-      currency: "USD",
-      value: billingPeriod === "annual" ? plan.annualPrice : plan.priceMonthly,
-      items: [
-        {
-          item_id: plan.tier,
-          item_name: plan.name,
-          price: billingPeriod === "annual" ? plan.priceAnnual : plan.priceMonthly,
-          quantity: 1,
-        },
-      ],
-    });
-
-    const stripe = await loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+    const stripe = await loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
 
     try {
       const { data } = await axiosInstance.post("/stripe/checkout", {
@@ -586,19 +590,20 @@ const Upgrade = () => {
           : "credits",
         credits: plan.type === "credit_purchase" ? credits : plan.credits,
         billingPeriod,
+        client_id: getGaClientId(),
         success_url: `${window.location.origin}/payment/success`,
         cancel_url: `${window.location.origin}/payment/cancel`,
-      });
+      })
 
-      console.log(data.sessionId)
+      console.debug(data.sessionId)
 
-      const result = await stripe.redirectToCheckout({ sessionId: data.sessionId });
-      if (result?.error) throw result.error;
+      const result = await stripe.redirectToCheckout({ sessionId: data.sessionId })
+      if (result?.error) throw result.error
     } catch (error) {
-      console.error("Checkout error:", error);
-      message.error("Failed to initiate checkout. Please try again.");
+      console.error("Checkout error:", error)
+      message.error("Failed to initiate checkout. Please try again.")
     }
-  };
+  }
 
   return (
     <div className="bg-gray-50 py-10 px-4">
@@ -684,7 +689,7 @@ const Upgrade = () => {
         </AnimatePresence>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default Upgrade;
+export default Upgrade

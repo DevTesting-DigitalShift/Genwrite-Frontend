@@ -38,7 +38,7 @@ export const loginUser = createAsyncThunk(
           event_status: "success",
           auth_method: "email_password",
           user_id: user._id,
-          user_subscription: user.subscription,
+          user_subscription: user.subscription.plan,
         })
         return { user, token }
       }
@@ -74,7 +74,7 @@ export const signupUser = createAsyncThunk(
           event_status: "success",
           auth_method: "email_password",
           user_id: user._id,
-          user_subscription: user.subscription,
+          user_subscription: user.subscription.plan,
         })
         return { user, token }
       }
