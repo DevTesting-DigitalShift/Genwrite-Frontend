@@ -1,4 +1,3 @@
-import crypto from "node:crypto"
 /**
  * Pushes a custom event and data to the Google Tag Manager data layer.
  * @param {object} eventData - The data object to push.
@@ -6,23 +5,47 @@ import crypto from "node:crypto"
 export function pushToDataLayer(eventData) {
   // Ensure the dataLayer is initialized before pushing anything
   window.dataLayer = window.dataLayer || []
-
-  // Clone and transform eventData
   const transformedData = { ...eventData }
-  for (const key in transformedData) {
+  // Collect promises for all _id hashes
+  const hashPromises = Object.keys(transformedData).map(async (key) => {
     if (/_id$/.test(key) && transformedData[key] != null) {
-      transformedData[key] = getHashedId(transformedData[key])
+      try {
+        const hash = await getHashedId(transformedData[key])
+        transformedData[key] = hash
+      } catch (err) {
+        console.error(err)
+        transformedData[key] = "id_" + Date.now().toString()
+      }
     }
-  }
+    // If not an ID, return a resolved promise so Promise.all works
+    return Promise.resolve()
+  })
 
-  // Push the transformed data to the data layer
-  window.dataLayer.push(transformedData)
-
-  // Optional: Log to the console for debugging purposes
-  console.debug("Pushed to dataLayer:", transformedData)
+  // Chain the `.then()` for when *all* hashes are done
+  Promise.all(hashPromises).then(() => {
+    window.dataLayer.push(transformedData)
+    console.debug("Pushed to dataLayer:", transformedData)
+  })
 }
 
-const getHashedId = (id) => {
+/**
+ * Hash a given ID to SHA-256 hex using Web Crypto API
+ * @param {string|number} id - ID to hash
+ * @returns {Promise<string>} - SHA-256 hash in hex
+ */
+async function getHashedId(id) {
   if (!id) return null
-  return crypto.createHash("sha256").update(id.toString()).digest("hex")
+
+  // Convert string to Uint8Array
+  const encoder = new TextEncoder()
+  const data = encoder.encode(id.toString())
+
+  // Compute SHA-256 hash
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data)
+
+  // Convert ArrayBuffer to hex string
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("")
+
+  return hashHex
 }
