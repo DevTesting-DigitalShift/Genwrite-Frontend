@@ -38,7 +38,8 @@ const Jobs = () => {
       const response = await dispatch(fetchJobs()).unwrap() // Dispatch and unwrap the payload
       return response // Return the jobs data
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    
+    staleTime: 1000, // 5 minutes
   })
 
   // TanStack Query for fetching brands
