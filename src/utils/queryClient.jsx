@@ -6,8 +6,11 @@ import { del, get, set } from "idb-keyval"
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
-      cacheTime: 1000 * 60 * 60 * 24, // 24 hours
+      staleTime: 0, // always stale
+      cacheTime: 0, // remove from cache immediately
+      refetchOnMount: "always", // always refetch on mount
+      refetchOnWindowFocus: true, // also refetch when tab gets focus
+      refetchOnReconnect: true, // refetch if internet reconnects
     },
   },
 })

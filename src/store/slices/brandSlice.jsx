@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit"
+import { createSlice, createAsyncThunk, isAnyOf } from "@reduxjs/toolkit"
 import {
   createBrandVoice,
   updateBrandVoice,
@@ -8,10 +8,15 @@ import {
 } from "@api/brandApi"
 import { message } from "antd"
 
-export const fetchBrands = async () => {
-  const brands = await getBrands()
-  return brands
-}
+export const fetchBrands = createAsyncThunk("brand/fetch", async (_, { rejectWithValue }) => {
+  try {
+    const brands = await getBrands()
+    return brands
+  } catch (error) {
+    console.error("Error fetching brands:", error)
+    return rejectWithValue(error.response?.data?.message || error.message)
+  }
+})
 
 export const createBrandVoiceThunk = createAsyncThunk(
   "brand/create",
@@ -77,6 +82,13 @@ export const fetchSiteInfo = createAsyncThunk(
   }
 )
 
+const BrandThunks = [
+  fetchBrands,
+  createBrandVoiceThunk,
+  updateBrandVoiceThunk,
+  deleteBrandVoiceThunk,
+]
+
 const brandSlice = createSlice({
   name: "brand",
   initialState: {
@@ -105,23 +117,14 @@ const brandSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-
-      .addCase(createBrandVoiceThunk.pending, (state) => {
-        state.loading = true
-        state.error = null
+      .addCase(fetchBrands.fulfilled, (state, action) => {
+        state.loading = false
+        state.brands = action.payload
       })
       .addCase(createBrandVoiceThunk.fulfilled, (state, action) => {
         state.loading = false
         state.brands.push(action.payload)
         state.selectedVoice = action.payload
-      })
-      .addCase(createBrandVoiceThunk.rejected, (state, action) => {
-        state.loading = false
-        state.error = action.payload
-      })
-      .addCase(updateBrandVoiceThunk.pending, (state) => {
-        state.loading = true
-        state.error = null
       })
       .addCase(updateBrandVoiceThunk.fulfilled, (state, action) => {
         state.loading = false
@@ -130,24 +133,12 @@ const brandSlice = createSlice({
         )
         state.selectedVoice = action.payload
       })
-      .addCase(updateBrandVoiceThunk.rejected, (state, action) => {
-        state.loading = false
-        state.error = action.payload
-      })
-      .addCase(deleteBrandVoiceThunk.pending, (state) => {
-        state.loading = true
-        state.error = null
-      })
       .addCase(deleteBrandVoiceThunk.fulfilled, (state, action) => {
         state.loading = false
         state.brands = state.brands.filter((b) => b._id !== action.payload)
         if (state.selectedVoice?._id === action.payload) {
           state.selectedVoice = state.brands[0] || null
         }
-      })
-      .addCase(deleteBrandVoiceThunk.rejected, (state, action) => {
-        state.loading = false
-        state.error = action.payload
       })
       .addCase(fetchSiteInfo.pending, (state) => {
         state.siteInfo.loading = true
@@ -160,6 +151,14 @@ const brandSlice = createSlice({
       .addCase(fetchSiteInfo.rejected, (state, action) => {
         state.siteInfo.loading = false
         state.siteInfo.error = action.payload
+      })
+      .addMatcher(isAnyOf(...BrandThunks.map((t) => t.pending)), (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addMatcher(isAnyOf(...BrandThunks.map((t) => t.rejected)), (state, action) => {
+        state.loading = false
+        state.error = action.payload
       })
   },
 })

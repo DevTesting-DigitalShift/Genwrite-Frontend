@@ -50,10 +50,13 @@ const OutlineEditor = () => {
     error: brandError,
   } = useQuery({
     queryKey: ["brands"],
-    queryFn: fetchBrands,
+    queryFn: async () => {
+      const response = await dispatch(fetchBrands()).unwrap() // Dispatch and unwrap the payload
+      return response // Return the brands data
+    },
     enabled: formData.isCheckedBrand,
-    staleTime: 5 * 60 * 1000,
-    cacheTime: 10 * 60 * 1000,
+    // staleTime: 5 * 60 * 1000,
+    // cacheTime: 10 * 60 * 1000,
   })
 
   console.log({ brands })

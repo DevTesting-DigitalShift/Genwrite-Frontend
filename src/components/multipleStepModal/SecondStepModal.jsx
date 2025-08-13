@@ -44,10 +44,13 @@ const SecondStepModal = ({
     error: brandError,
   } = useQuery({
     queryKey: ["brands"],
-    queryFn: fetchBrands,
+    queryFn: async () => {
+      const response = await dispatch(fetchBrands()).unwrap() // Dispatch and unwrap the payload
+      return response // Return the brands data
+    },
     enabled: formData.isCheckedBrand, // Only fetch if brand voice is checked
-    staleTime: 5 * 60 * 1000,
-    cacheTime: 10 * 60 * 1000,
+    // staleTime: 5 * 60 * 1000,
+    // cacheTime: 10 * 60 * 1000,
   })
 
   const handleAddLink = () => {

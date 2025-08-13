@@ -186,8 +186,6 @@ const SearchConsole = () => {
     staleTime: 1000 * 60 * 30,
     cacheTime: 1000 * 60 * 60,
     refetchOnMount: false, // 👈 Don't auto refetch when switching tabs
-    refetchOnWindowFocus: false, // 👈 Don't refetch when tab gains focus
-    refetchOnReconnect: false, // 👈 Don't refetch on network reconnect
     retry: 3,
     onError: (err) => {
       setError(err.message || "Failed to fetch analytics data")

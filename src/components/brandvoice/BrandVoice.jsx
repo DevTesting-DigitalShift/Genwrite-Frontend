@@ -40,9 +40,12 @@ const BrandVoice = () => {
     error,
   } = useQuery({
     queryKey: ["brands"],
-    queryFn: fetchBrands,
-    staleTime: 5 * 60 * 1000,
-    cacheTime: 10 * 60 * 1000,
+    queryFn: async () => {
+      const response = await dispatch(fetchBrands()).unwrap() // Dispatch and unwrap the payload
+      return response // Return the brands data
+    },
+    // staleTime: 5 * 60 * 1000,
+    // cacheTime: 10 * 60 * 1000,
   })
 
   console.log({ brands }, { isLoading }, { error })
@@ -364,7 +367,7 @@ const BrandVoice = () => {
     const latestKeywords = formData.keywords.slice(-3)
     const remainingCount = formData.keywords.length - latestKeywords.length
     return (
-      <>
+      <div className={`flex flex-wrap gap-2 ${formData.keywords.length > 0 ? "mb-1" : "hidden"}`}>
         {remainingCount > 0 && (
           <motion.div
             className="flex items-center bg-indigo-100 text-indigo-700 rounded-md px-2 py-1 mr-2"
@@ -378,7 +381,7 @@ const BrandVoice = () => {
         {latestKeywords.map((keyword) => (
           <motion.div
             key={keyword}
-            className="flex items-center bg-indigo-100 text-indigo-700 rounded-md px-2 py-1 mr-2"
+            className="flex items-center w-fit bg-indigo-100 text-indigo-700 rounded-md px-2 py-1 mr-2"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8 }}
@@ -395,7 +398,7 @@ const BrandVoice = () => {
             />
           </motion.div>
         ))}
-      </>
+      </div>
     )
   }, [formData.keywords, removeKeyword])
 
@@ -520,13 +523,15 @@ const BrandVoice = () => {
               Keywords <span className="text-red-500">*</span>
               <Tooltip
                 title="Upload a .csv file in the format: `Keyword` as header"
-                overlayInnerStyle={{
-                  backgroundColor: "#4169e1",
-                  color: "#fff",
-                  borderRadius: "8px",
-                  padding: "8px 12px",
-                  fontSize: "13px",
-                  maxWidth: "220px",
+                styles={{
+                  body: {
+                    backgroundColor: "#4169e1",
+                    color: "#fff",
+                    borderRadius: "8px",
+                    padding: "8px 12px",
+                    fontSize: "13px",
+                    maxWidth: "220px",
+                  },
                 }}
               >
                 <span className="cursor-pointer">
@@ -535,39 +540,41 @@ const BrandVoice = () => {
               </Tooltip>
             </label>
             <motion.div
-              className={`flex items-center bg-white border rounded-lg p-2 flex-wrap gap-2 ${
+              className={`flex bg-white border rounded-lg p-2 flex-col gap-2 ${
                 errors.keywords ? "border-red-500" : "border-gray-300"
               }`}
               whileHover={{ boxShadow: "0 0 0 3px rgba(99, 102, 241, 0.2)" }}
             >
               {renderKeywords}
-              <input
-                id="keywords"
-                type="text"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                className="flex-grow p-2 bg-transparent border-none outline-none text-sm"
-                placeholder="Type a keyword and press Enter"
-                aria-describedby={errors.keywords ? "keywords-error" : undefined}
-              />
-              <label htmlFor="file-upload" className="flex items-center cursor-pointer">
-                <motion.div
-                  className="bg-indigo-100 p-2 rounded-lg"
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.95 }}
-                  aria-label="Upload CSV file"
-                >
-                  <Upload size={20} className="text-indigo-600" />
-                </motion.div>
-              </label>
-              <input
-                id="file-upload"
-                type="file"
-                className="hidden"
-                onChange={handleFileChange}
-                accept=".csv"
-              />
+              <div className="flex-grow flex w-full items-center gap-2">
+                <input
+                  id="keywords"
+                  type="text"
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  className="flex-grow p-2 bg-transparent border-none outline-none text-sm"
+                  placeholder="Type a keyword and press Enter"
+                  aria-describedby={errors.keywords ? "keywords-error" : undefined}
+                />
+                <label htmlFor="file-upload" className="flex items-center cursor-pointer">
+                  <motion.div
+                    className="bg-indigo-100 p-2 rounded-lg"
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                    aria-label="Upload CSV file"
+                  >
+                    <Upload size={20} className="text-indigo-600" />
+                  </motion.div>
+                </label>
+                <input
+                  id="file-upload"
+                  type="file"
+                  className="hidden"
+                  onChange={handleFileChange}
+                  accept=".csv"
+                />
+              </div>
             </motion.div>
             {errors.keywords && (
               <p id="keywords-error" className="text-red-500 text-xs mt-1">

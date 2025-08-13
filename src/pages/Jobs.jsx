@@ -6,7 +6,6 @@ import { Helmet } from "react-helmet"
 import { Pagination } from "antd"
 import { FiPlus } from "react-icons/fi"
 import { fetchJobs, openJobModal } from "@store/slices/jobSlice"
-import { fetchBrands } from "@store/slices/brandSlice"
 import { selectUser } from "@store/slices/authSlice"
 import SkeletonLoader from "@components/Projects/SkeletonLoader"
 import UpgradeModal from "@components/UpgradeModal"
@@ -38,21 +37,7 @@ const Jobs = () => {
       const response = await dispatch(fetchJobs()).unwrap() // Dispatch and unwrap the payload
       return response // Return the jobs data
     },
-    
-    staleTime: 1000, // 5 minutes
   })
-
-  // TanStack Query for fetching brands
-  const { data: queryBrands } = useQuery({
-    queryKey: ["brands"],
-    queryFn: async () => {
-      const response = await dispatch(fetchBrands()).unwrap() // Dispatch and unwrap the payload
-      return response // Return the brands data
-    },
-    staleTime: 1000 * 60 * 5, // 5 minutes
-  })
-
-  // console.log(queryBrands)
 
   const checkJobLimit = () => {
     if (usage >= usageLimit) {
