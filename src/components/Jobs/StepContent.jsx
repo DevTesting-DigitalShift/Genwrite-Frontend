@@ -5,11 +5,11 @@ import MultiDatePicker from "react-multi-date-picker"
 import Carousel from "@components/multipleStepModal/Carousel"
 import { packages } from "@constants/templates"
 import { Crown, Info, Plus, TriangleAlert, Upload, X } from "lucide-react"
-import { useSelector } from "react-redux"
+import { useDispatch } from "react-redux"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
 import { useNavigate } from "react-router-dom"
-import { useQuery } from "@tanstack/react-query"
 import { fetchBrands } from "@store/slices/brandSlice"
+import { useQuery } from "@tanstack/react-query"
 
 const { Option } = Select
 
@@ -30,14 +30,19 @@ const StepContent = ({
   user,
   userPlan,
 }) => {
-  const { loading: loadingBrands, error: brandError } = useSelector((state) => state.brand)
-  const { data: brands } = useQuery({
+  const dispatch = useDispatch()
+  const {
+    data: brands = [],
+    isLoading: loadingBrands,
+    error: brandError,
+  } = useQuery({
     queryKey: ["brands"],
     queryFn: async () => {
-      const response = await dispatch(fetchBrands()).unwrap()
-      return response
+      const response = await dispatch(fetchBrands()).unwrap() // Dispatch and unwrap the payload
+      return response // Return the brands data
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    // staleTime: 5 * 60 * 1000,
+    // cacheTime: 10 * 60 * 1000,
   })
 
   const tones = ["Professional", "Casual", "Friendly", "Formal", "Technical"]
@@ -121,6 +126,10 @@ const StepContent = ({
     if (newItems.length === 0) return
 
     if (type === "topics") {
+      setFormData((prev) => ({
+        ...prev,
+        topicInput: "",
+      }))
       setNewJob((prev) => ({
         ...prev,
         blogs: { ...prev.blogs, topics: [...prev.blogs.topics, ...newItems] },

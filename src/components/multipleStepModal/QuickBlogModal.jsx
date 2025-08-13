@@ -215,10 +215,10 @@ const QuickBlogModal = ({ closeFnc }) => {
       try {
         const urlObj = new URL(validatedUrl)
         if (isVideo) {
-          const videoDomains = ["youtube.com", "youtu.be", "vimeo.com"]
+          const videoDomains = ["youtube.com", "youtu.be"]
           if (!videoDomains.some((domain) => urlObj.hostname.includes(domain))) {
             setErrors((prev) => ({ ...prev, videoLinks: true }))
-            message.error("Please enter a valid video URL (e.g., YouTube, Vimeo).")
+            message.error("Please enter a valid video URL (e.g., YouTube).")
             continue
           }
         }
@@ -450,7 +450,7 @@ const QuickBlogModal = ({ closeFnc }) => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Video Links (e.g., YouTube, Vimeo) <span className="text-red-500">*</span>
+                Video Links (e.g., YouTube) <span className="text-red-500">*</span>
               </label>
               <div className="flex gap-2">
                 <input
@@ -463,7 +463,7 @@ const QuickBlogModal = ({ closeFnc }) => {
                   className={`flex-1 px-3 py-2 border ${
                     errors.videoLinks ? "border-red-500" : "border-gray-200"
                   } rounded-md text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-600`}
-                  placeholder="Enter video links (e.g., YouTube, Vimeo), separated by commas"
+                  placeholder="Enter video links (e.g., YouTube), separated by commas"
                   aria-label="Video links"
                 />
                 <button

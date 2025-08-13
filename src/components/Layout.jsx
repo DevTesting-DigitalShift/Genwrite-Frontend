@@ -90,14 +90,14 @@ const LayoutWithSidebarAndHeader = () => {
       if (key === "logout") handleLogout()
       else navigate(`/${key}`)
     },
-    rootClassName: "!px-4 !py-2 rounded-lg shadow-md w-[20ch] text-lg !bg-gray-50 gap-4",
+    rootClassName: "!px-4 !py-2 rounded-lg shadow-md max-w-[20ch] text-lg !bg-gray-50 gap-4",
     items: [
       {
         key: "name",
         label: (
           <Tooltip
             title={user?.name}
-            className="block font-medium text-gray-900 text-center text-lg whitespace-nowrap w-full overflow-hidden text-ellipsis"
+            className="block font-medium text-gray-900 text-center text-lg w-[15ch] whitespace-nowrap overflow-hidden text-ellipsis"
           >
             {user?.name}
           </Tooltip>

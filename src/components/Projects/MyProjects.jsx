@@ -41,6 +41,7 @@ import { archiveBlog, fetchAllBlogs, retryBlog } from "@store/slices/blogSlice"
 import moment from "moment"
 import Fuse from "fuse.js"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { getSocket } from "@utils/socket"
 
 const { RangePicker } = DatePicker
 
@@ -117,7 +118,7 @@ const MyProjects = () => {
     setStatusFilter("all")
     setDateRange([null, null])
     setPresetDateRange([null, null])
-    setActivePresetLabel("")
+    setActivePresetLabel("Last 7 days")
     setSearchTerm("")
     setCurrentPage(1)
     sessionStorage.removeItem(`user_${userId}_filters`)
@@ -196,8 +197,8 @@ const MyProjects = () => {
       presetDateRange[1]?.toISOString() ?? null,
     ],
     queryFn: fetchBlogsQuery,
-    staleTime: 10 * 60 * 1000, // 10 minutes
-    cacheTime: 15 * 60 * 1000, // 15 minutes
+    // staleTime: 10 * 60 * 1000, // 10 minutes
+    // cacheTime: 15 * 60 * 1000, // 15 minutes
     onError: (error) => {
       console.error("Failed to fetch blogs:", {
         error: error.message,
@@ -207,6 +208,21 @@ const MyProjects = () => {
       message.error("Failed to load blogs. Please try again.")
     },
   })
+
+  useEffect(() => {
+    const socket = getSocket()
+    if (!socket) return
+
+    socket.on("blog:statusChanged", (data) => {
+      console.log("Blog status changed:", data)
+      // Optionally, you can trigger a refetch or update the UI based on the new status
+      queryClient.invalidateQueries(["blogs"])
+    })
+
+    return () => {
+      socket.off("blog:statusChanged")
+    }
+  }, [])
 
   // TanStack Query: Retry mutation
   const retryMutation = useMutation({

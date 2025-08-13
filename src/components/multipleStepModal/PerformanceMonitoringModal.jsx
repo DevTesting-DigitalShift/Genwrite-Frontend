@@ -609,7 +609,7 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
       footer={null}
       width={900}
       centered
-      bodyStyle={{ maxHeight: "85vh", overflowY: "auto" }}
+      styles={{ body: { maxHeight: "85vh", overflowY: "auto" } }}
       className="rounded-2xl shadow-lg"
     >
       <div className="space-y-6 p-6">

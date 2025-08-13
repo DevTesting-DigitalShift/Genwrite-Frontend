@@ -1,14 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react"
-import {
-  Button,
-  Tooltip,
-  Popconfirm,
-  Badge,
-  Pagination,
-  Input,
-  Select,
-  message,
-} from "antd"
+import { Button, Tooltip, Popconfirm, Badge, Pagination, Input, Select, message } from "antd"
 import { RefreshCcw, Trash2, Search } from "lucide-react"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { QuestionCircleOutlined } from "@ant-design/icons"
@@ -70,8 +61,6 @@ const Trashcan = () => {
       }
     },
     keepPreviousData: true, // Keep previous data while fetching new data
-    staleTime: 5 * 60 * 1000, // Cache data for 5 minutes
-    cacheTime: 10 * 60 * 1000, // Keep cache for 10 minutes
   })
 
   const trashedBlogs = data?.trashedBlogs || []
