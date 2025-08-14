@@ -432,13 +432,15 @@ const BrandVoice = () => {
               Post or Blog Link <span className="text-red-500">*</span>
               <Tooltip
                 title="Add a link of your home page to fetch site info"
-                overlayInnerStyle={{
-                  backgroundColor: "#4169e1",
-                  color: "#fff",
-                  borderRadius: "8px",
-                  padding: "8px 12px",
-                  fontSize: "13px",
-                  maxWidth: "220px",
+                styles={{
+                  body: {
+                    backgroundColor: "#4169e1",
+                    color: "#fff",
+                    borderRadius: "8px",
+                    padding: "8px 12px",
+                    fontSize: "13px",
+                    maxWidth: "220px",
+                  },
                 }}
               >
                 <span className="cursor-pointer">
@@ -592,13 +594,15 @@ const BrandVoice = () => {
               Sitemap URL <span className="text-red-500">*</span>
               <Tooltip
                 title="Paste the URL of your XML sitemap (e.g., https://example.com/sitemap.xml)"
-                overlayInnerStyle={{
-                  backgroundColor: "#4169e1",
-                  color: "#fff",
-                  borderRadius: "8px",
-                  padding: "8px 12px",
-                  fontSize: "13px",
-                  maxWidth: "320px",
+                styles={{
+                  body: {
+                    backgroundColor: "#4169e1",
+                    color: "#fff",
+                    borderRadius: "8px",
+                    padding: "8px 12px",
+                    fontSize: "13px",
+                    maxWidth: "320px",
+                  },
                 }}
               >
                 <span className="cursor-pointer">
@@ -657,7 +661,7 @@ const BrandVoice = () => {
           </div>
 
           {/* Save Button */}
-          <div className="text-right">
+          <div className="flex gap-2 justify-end">
             <motion.button
               className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-2 rounded-lg font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={handleSave}
@@ -676,6 +680,18 @@ const BrandVoice = () => {
               ) : (
                 "Save Brand Voice"
               )}
+            </motion.button>
+
+            {/* Reset Button */}
+            <motion.button
+              className="bg-gradient-to-tr from-red-700 from-10% via-red-500 via-80% to-red-700 to-100% text-white px-6 py-2 rounded-lg font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={resetForm}
+              whileHover={{ scale: 1.03, y: -2 }}
+              whileTap={{ scale: 0.98 }}
+              disabled={isUploading}
+              aria-label="Clear Form"
+            >
+              Clear
             </motion.button>
           </div>
         </div>
