@@ -24,7 +24,5 @@ const persister = createAsyncStoragePersister({
 })
 
 export const QueryProvider = ({ children }) => (
-  <PersistQueryClientProvider client={queryClient} persistOptions={{ persister }}>
-    {children}
-  </PersistQueryClientProvider>
+  <PersistQueryClientProvider client={queryClient}>{children}</PersistQueryClientProvider>
 )
