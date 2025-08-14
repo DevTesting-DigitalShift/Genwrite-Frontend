@@ -87,7 +87,7 @@ const StepContent = ({
       restricted: false,
     },
     {
-      id: "openai",
+      id: "chatgpt",
       label: "ChatGPT (Open AI)",
       value: "openai",
       // restricted: userPlan === "free",
