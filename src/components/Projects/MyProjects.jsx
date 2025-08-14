@@ -216,7 +216,7 @@ const MyProjects = () => {
     socket.on("blog:statusChanged", (data) => {
       console.log("Blog status changed:", data)
       // Optionally, you can trigger a refetch or update the UI based on the new status
-      queryClient.invalidateQueries(["blogs"])
+      queryClient.invalidateQueries({ queryKey: ["blogs"], exact: false })
     })
 
     return () => {
@@ -228,7 +228,7 @@ const MyProjects = () => {
   const retryMutation = useMutation({
     mutationFn: (id) => dispatch(retryBlog({ id })).unwrap(),
     onSuccess: () => {
-      queryClient.invalidateQueries(["blogs"])
+      queryClient.invalidateQueries({ queryKey: ["blogs"], exact: false })
       message.success("Blog retry initiated.")
     },
     onError: (error) => {
@@ -241,7 +241,7 @@ const MyProjects = () => {
   const archiveMutation = useMutation({
     mutationFn: (id) => dispatch(archiveBlog(id)).unwrap(),
     onSuccess: () => {
-      queryClient.invalidateQueries(["blogs"])
+      queryClient.invalidateQueries({ queryKey: ["blogs"], exact: false })
     },
     onError: (error) => {
       console.error("Failed to archive blog:", error)

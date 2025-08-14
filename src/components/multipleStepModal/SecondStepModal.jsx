@@ -113,12 +113,10 @@ const SecondStepModal = ({
     setFormData((prev) => ({
       ...prev,
       imageSource: source,
-      isCheckedGeneratedImages: source === "ai",
     }))
     setData((prev) => ({
       ...prev,
       imageSource: source,
-      isCheckedGeneratedImages: source === "ai",
       isUnsplashActive: source === "unsplash",
     }))
   }
@@ -363,12 +361,12 @@ const SecondStepModal = ({
                     setFormData((prev) => ({
                       ...prev,
                       isCheckedBrand: !prev.isCheckedBrand,
-                      brandId: !prev.isCheckedBrand ? prev.brandId : null,
+                      brandId: null,
                     }))
                     setData((prev) => ({
                       ...prev,
                       isCheckedBrand: !prev.isCheckedBrand,
-                      brandId: !prev.isCheckedBrand ? prev.brandId : null,
+                      brandId: null,
                     }))
                   }}
                   className="sr-only peer"

@@ -70,8 +70,9 @@ const Trashcan = () => {
   const restoreMutation = useMutation({
     mutationFn: (id) => dispatch(restoreTrashedBlog(id)).unwrap(),
     onSuccess: () => {
-      queryClient.invalidateQueries(["trashedBlogs"])
-      message.success("Blog restored successfully")
+      queryClient.invalidateQueries({ queryKey: ["trashedBlogs"], exact: false })
+      queryClient.invalidateQueries({ queryKey: ["blogs"], exact: false })
+      // message.success("Blog restored successfully")
     },
     onError: (error) => {
       console.error("Failed to restore blog:", error)
@@ -83,9 +84,9 @@ const Trashcan = () => {
   const bulkDeleteMutation = useMutation({
     mutationFn: () => dispatch(deleteAllUserBlogs()).unwrap(),
     onSuccess: () => {
-      queryClient.invalidateQueries(["trashedBlogs"])
+      queryClient.invalidateQueries({ queryKey: ["trashedBlogs"], exact: false })
       setCurrentPage(1)
-      message.success("All trashed blogs deleted successfully")
+      // message.success("All trashed blogs deleted successfully")
     },
     onError: (error) => {
       console.error("Failed to delete all blogs:", error)
