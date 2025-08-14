@@ -197,7 +197,6 @@ const SearchConsole = () => {
     enabled: isAuthenticated,
     // staleTime: 1000 * 60 * 30,
     // cacheTime: 1000 * 60 * 60,
-    refetchOnMount: false, // 👈 Don't auto refetch when switching tabs
     retry: 1,
     onError: (err) => {
       setError(err.message || "Failed to fetch analytics data")
