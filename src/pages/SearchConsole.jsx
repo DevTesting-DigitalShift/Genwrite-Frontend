@@ -20,19 +20,18 @@ import {
 import { RefreshCw, LogIn, Search, Link, Edit, Download } from "lucide-react"
 import { FcGoogle } from "react-icons/fc"
 import Fuse from "fuse.js"
-import moment from "moment"
+import dayjs from "dayjs"
 import * as ExcelJS from "exceljs"
-import { persistQueryClient } from "@tanstack/react-query-persist-client"
+// import { persistQueryClient } from "@tanstack/react-query-persist-client"
 
 const { Option } = Select
 const { RangePicker } = DatePicker
-const { TabPane } = Tabs
 
 // Configure TanStack Query persister for IndexedDB
-const persister = {
-  storage: window.indexedDB,
-  key: "gsc-analytics-cache",
-}
+// const persister = {
+//   storage: window.indexedDB,
+//   key: "gsc-analytics-cache",
+// }
 
 // Configure Fuse.js for frontend search
 const fuseOptions = {
@@ -46,10 +45,10 @@ const SearchConsole = () => {
   const [error, setError] = useState(null)
   const [activeTab, setActiveTab] = useState("query")
   const [dateRange, setDateRange] = useState("7d")
-  const [customDateRange, setCustomDateRange] = useState([moment().subtract(6, "days"), moment()])
+  const [customDateRange, setCustomDateRange] = useState([dayjs().subtract(6, "days"), dayjs()])
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [filterType, setFilterType] = useState("search")
-  const [blogUrlFilter, setBlogUrlFilter] = useState("")
+  const [blogUrlFilter, setBlogUrlFilter] = useState(null)
   const [blogTitleFilter, setBlogTitleFilter] = useState(null)
   // const [countryFilter, setCountryFilter] = useState(null)
   const [searchQuery, setSearchQuery] = useState("")
@@ -94,13 +93,13 @@ const SearchConsole = () => {
   }, [user, dispatch, queryClient])
 
   // Persist TanStack Query cache to IndexedDB
-  useEffect(() => {
-    persistQueryClient({
-      queryClient,
-      persister,
-      maxAge: 1000 * 60 * 60 * 24,
-    })
-  }, [queryClient])
+  // useEffect(() => {
+  //   persistQueryClient({
+  //     queryClient,
+  //     persister,
+  //     maxAge: 1000 * 60 * 60 * 24,
+  //   })
+  // }, [queryClient])
 
   // Update session storage
   useEffect(() => {
@@ -123,8 +122,8 @@ const SearchConsole = () => {
       from = customDateRange[0].startOf("day").format("YYYY-MM-DD")
       to = customDateRange[1].endOf("day").format("YYYY-MM-DD")
     } else {
-      to = moment().endOf("day")
-      from = moment().startOf("day")
+      to = dayjs().endOf("day")
+      from = dayjs().startOf("day")
       switch (dateRange) {
         case "7d":
           from = from.subtract(6, "days")
@@ -328,7 +327,7 @@ const SearchConsole = () => {
     // setCountryFilter("")
     setSearchQuery("")
     setDateRange("7d")
-    setCustomDateRange([moment().subtract(6, "days"), moment()])
+    setCustomDateRange([dayjs().subtract(6, "days"), dayjs()])
     setShowDatePicker(false)
     setPageSize(10)
     refetch()
@@ -553,7 +552,7 @@ const SearchConsole = () => {
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
-    a.download = `search_performance_${activeTab}_${moment().format("YYYYMMDD_HHmmss")}.xlsx`
+    a.download = `search_performance_${activeTab}_${dayjs().format("YYYYMMDD_HHmmss")}.xlsx`
     a.click()
     window.URL.revokeObjectURL(url)
   }
@@ -669,7 +668,7 @@ const SearchConsole = () => {
             <RangePicker
               value={customDateRange}
               onChange={handleCustomDateRangeChange}
-              disabledDate={(current) => current && current > moment().endOf("day")}
+              disabledDate={(current) => current && current > dayjs().endOf("day")}
               className={`flex-1 min-w-56 max-w- ${
                 customDateRange[0] && customDateRange[1] ? "border-blue-500" : ""
               }`}
@@ -813,7 +812,7 @@ const SearchConsole = () => {
           }}
         ></Tabs>
       </div>
-      <style jsx>{`
+      <style jsx="true">{`
         .custom-table .ant-table-thead > tr > th {
           background: #f8fafc;
           font-weight: 600;

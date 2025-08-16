@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { DecorationSet, Decoration } from "prosemirror-view";
 
 export function useProofreadingUI(editor) {
   const [activeSpan, setActiveSpan] = useState(null);

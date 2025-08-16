@@ -17,7 +17,7 @@ import {
 import { useSelector, useDispatch } from "react-redux"
 import { loadAuthenticatedUser } from "@store/slices/authSlice"
 import { DatePicker, message, Select, Tag, Progress, Badge, Tooltip } from "antd"
-import moment from "moment"
+import dayjs from "dayjs"
 import { Helmet } from "react-helmet"
 import { updateProfile } from "@store/slices/userSlice"
 
@@ -550,7 +550,7 @@ const Profile = () => {
                         format="YYYY-MM-DD"
                         value={
                           profileData.personalDetails.dob
-                            ? moment(profileData.personalDetails.dob)
+                            ? dayjs(profileData.personalDetails.dob)
                             : null
                         }
                         onChange={(date, dateString) =>
@@ -562,7 +562,7 @@ const Profile = () => {
                           })
                         }
                         className="w-full"
-                        disabledDate={(current) => current && current > moment().endOf("day")}
+                        disabledDate={(current) => current && current > dayjs().endOf("day")}
                       />
                     ) : (
                       <motion.div

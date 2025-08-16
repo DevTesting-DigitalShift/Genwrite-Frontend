@@ -33,15 +33,23 @@ import {
   SortDescendingOutlined,
   FieldTimeOutlined,
   ClockCircleOutlined,
+  ArrowUpOutlined,
+  ArrowDownOutlined,
 } from "@ant-design/icons"
 import { Helmet } from "react-helmet"
 import { useDispatch, useSelector } from "react-redux"
 import { selectUser } from "@store/slices/authSlice"
 import { archiveBlog, fetchAllBlogs, retryBlog } from "@store/slices/blogSlice"
-import moment from "moment"
+import dayjs from "dayjs"
 import Fuse from "fuse.js"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { getSocket } from "@utils/socket"
+import isBetween from "dayjs/plugin/isBetween";
+import clsx from "clsx"
+import DateRangePicker from "@components/UI/DateRangePicker"
+
+// Add plugin before using
+dayjs.extend(isBetween);
 
 const { RangePicker } = DatePicker
 
@@ -61,12 +69,12 @@ const MyProjects = () => {
   const [sortOrder, setSortOrder] = useState(initialFilters.sortOrder || "desc")
   const [statusFilter, setStatusFilter] = useState(initialFilters.statusFilter || "all")
   const [dateRange, setDateRange] = useState([
-    initialFilters.dateRangeStart ? moment(initialFilters.dateRangeStart) : null,
-    initialFilters.dateRangeEnd ? moment(initialFilters.dateRangeEnd) : null,
+    initialFilters.dateRangeStart ? dayjs(initialFilters.dateRangeStart) : null,
+    initialFilters.dateRangeEnd ? dayjs(initialFilters.dateRangeEnd) : null,
   ])
   const [presetDateRange, setPresetDateRange] = useState([
-    initialFilters.presetDateRangeStart ? moment(initialFilters.presetDateRangeStart) : null,
-    initialFilters.presetDateRangeEnd ? moment(initialFilters.presetDateRangeEnd) : null,
+    initialFilters.presetDateRangeStart ? dayjs(initialFilters.presetDateRangeStart) : null,
+    initialFilters.presetDateRangeEnd ? dayjs(initialFilters.presetDateRangeEnd) : null,
   ])
   const [searchTerm, setSearchTerm] = useState(initialFilters.searchTerm || "")
   const [isMenuOpen, setMenuOpen] = useState(false)
@@ -143,6 +151,8 @@ const MyProjects = () => {
     if (sortType === "title" && sortOrder === "desc") return "Z-A"
     if (sortType === "updatedAt" && sortOrder === "desc") return "Recently Updated"
     if (sortType === "updatedAt" && sortOrder === "asc") return "Oldest Updated"
+    if (sortType === "createdAt" && sortOrder === "desc") return "Newest"
+    if (sortType === "createdAt" && sortOrder === "asc") return "Oldest"
     return "Recently Updated"
   }, [sortType, sortOrder])
 
@@ -164,7 +174,7 @@ const MyProjects = () => {
   const getCurrentDateLabel = useCallback(() => {
     if (activePresetLabel) return activePresetLabel
     if (dateRange[0] && dateRange[1]) {
-      return `${moment(dateRange[0]).format("MMM DD")} - ${moment(dateRange[1]).format("MMM DD")}`
+      return `${dayjs(dateRange[0]).format("MMM DD")} - ${dayjs(dateRange[1]).format("MMM DD")}`
     }
     return "All Dates"
   }, [activePresetLabel, dateRange])
@@ -173,18 +183,18 @@ const MyProjects = () => {
   const fetchBlogsQuery = useCallback(async () => {
     const queryParams = {
       start: dateRange[0]
-        ? moment(dateRange[0]).startOf("day").toISOString()
+        ? dayjs(dateRange[0]).startOf("day").toISOString()
         : presetDateRange[0]
-        ? moment(presetDateRange[0]).startOf("day").toISOString()
+        ? dayjs(presetDateRange[0]).startOf("day").toISOString()
         : undefined,
       end: dateRange[1]
-        ? moment(dateRange[1]).endOf("day").toISOString()
+        ? dayjs(dateRange[1]).endOf("day").toISOString()
         : presetDateRange[1]
-        ? moment(presetDateRange[1]).endOf("day").toISOString()
-        : undefined,
-      isArchived: "",
+        ? dayjs(presetDateRange[1]).endOf("day").toISOString()
+        : undefined
     }
     const response = await dispatch(fetchAllBlogs(queryParams)).unwrap()
+    console.log(response.data)
     return response.data || []
   }, [dispatch, dateRange, presetDateRange])
 
@@ -276,27 +286,28 @@ const MyProjects = () => {
     if (statusFilter !== "all") {
       result = result.filter((blog) => blog.status === statusFilter)
     }
-
     // Apply date range filter
-    if (dateRange[0] && dateRange[1]) {
-      result = result.filter((blog) =>
-        moment(blog.updatedAt).isBetween(
-          moment(dateRange[0]).startOf("day"),
-          moment(dateRange[1]).endOf("day"),
-          null,
-          "[]"
-        )
-      )
-    } else if (presetDateRange[0] && presetDateRange[1]) {
-      result = result.filter((blog) =>
-        moment(blog.updatedAt).isBetween(
-          moment(presetDateRange[0]).startOf("day"),
-          moment(presetDateRange[1]).endOf("day"),
-          null,
-          "[]"
-        )
-      )
-    }
+    // if (dateRange[0] && dateRange[1]) {
+    //   result = result.filter((blog) =>
+    //     dayjs(blog.updatedAt).isBetween(
+    //       dayjs(dateRange[0]).startOf("day"),
+    //       dayjs(dateRange[1]).endOf("day"),
+    //       null,
+    //       "[]"
+    //     )
+    //   )
+    // } else if (presetDateRange[0] && presetDateRange[1]) {
+    //   result = result.filter((blog) =>
+    //     dayjs(blog.updatedAt).isBetween(
+    //       dayjs(presetDateRange[0]).startOf("day"),
+    //       dayjs(presetDateRange[1]).endOf("day"),
+    //       null,
+    //       "[]"
+    //     )
+    //   )
+    // }
+
+    // console.log("Filtered blogs:", result)
 
     // Apply sorting
     const sortedResult = [...result]
@@ -309,6 +320,13 @@ const MyProjects = () => {
         sortOrder === "asc"
           ? new Date(a.updatedAt) - new Date(b.updatedAt)
           : new Date(b.updatedAt) - new Date(a.updatedAt)
+      )
+    }
+     else if (sortType === "createdAt") {
+      sortedResult.sort((a, b) =>
+        sortOrder === "asc"
+          ? new Date(a.createdAt) - new Date(b.createdAt)
+          : new Date(b.createdAt) - new Date(a.createdAt)
       )
     }
 
@@ -443,6 +461,26 @@ const MyProjects = () => {
           setCurrentPage(1)
         },
       },
+      {
+        label: "Newest",
+        icon: <ArrowUpOutlined />,
+        onClick: () => {
+          setSortType("createdAt")
+          setSortOrder("desc")
+          setMenuOpen(false)
+          setCurrentPage(1)
+        },
+      },
+      {
+        label: "Oldest",
+        icon: <ArrowDownOutlined />,
+        onClick: () => {
+          setSortType("createdAt")
+          setSortOrder("asc")
+          setMenuOpen(false)
+          setCurrentPage(1)
+        },
+      },
     ],
     []
   )
@@ -495,9 +533,9 @@ const MyProjects = () => {
     () => [
       {
         label: "Last 7 Days",
-        value: [moment().subtract(7, "days").startOf("day"), moment().endOf("day")],
+        value: [dayjs().subtract(7, "days").startOf("day"), dayjs().endOf("day")],
         onClick: () => {
-          setPresetDateRange([moment().subtract(7, "days").startOf("day"), moment().endOf("day")])
+          setPresetDateRange([dayjs().subtract(7, "days").startOf("day"), dayjs().endOf("day")])
           setDateRange([null, null])
           setActivePresetLabel("Last 7 Days")
           setCurrentPage(1)
@@ -506,9 +544,9 @@ const MyProjects = () => {
       },
       {
         label: "Last 30 Days",
-        value: [moment().subtract(30, "days").startOf("day"), moment().endOf("day")],
+        value: [dayjs().subtract(30, "days").startOf("day"), dayjs().endOf("day")],
         onClick: () => {
-          setPresetDateRange([moment().subtract(30, "days").startOf("day"), moment().endOf("day")])
+          setPresetDateRange([dayjs().subtract(30, "days").startOf("day"), dayjs().endOf("day")])
           setDateRange([null, null])
           setActivePresetLabel("Last 30 Days")
           setCurrentPage(1)
@@ -517,9 +555,9 @@ const MyProjects = () => {
       },
       {
         label: "Last 3 Months",
-        value: [moment().subtract(3, "months").startOf("day"), moment().endOf("day")],
+        value: [dayjs().subtract(3, "months").startOf("day"), dayjs().endOf("day")],
         onClick: () => {
-          setPresetDateRange([moment().subtract(3, "months").startOf("day"), moment().endOf("day")])
+          setPresetDateRange([dayjs().subtract(3, "months").startOf("day"), dayjs().endOf("day")])
           setDateRange([null, null])
           setActivePresetLabel("Last 3 Months")
           setCurrentPage(1)
@@ -528,9 +566,9 @@ const MyProjects = () => {
       },
       {
         label: "Last 6 Months",
-        value: [moment().subtract(6, "months").startOf("day"), moment().endOf("day")],
+        value: [dayjs().subtract(6, "months").startOf("day"), dayjs().endOf("day")],
         onClick: () => {
-          setPresetDateRange([moment().subtract(6, "months").startOf("day"), moment().endOf("day")])
+          setPresetDateRange([dayjs().subtract(6, "months").startOf("day"), dayjs().endOf("day")])
           setDateRange([null, null])
           setActivePresetLabel("Last 6 Months")
           setCurrentPage(1)
@@ -539,9 +577,9 @@ const MyProjects = () => {
       },
       {
         label: "This Year",
-        value: [moment().startOf("year").startOf("day"), moment().endOf("day")],
+        value: [dayjs().startOf("year").startOf("day"), dayjs().endOf("day")],
         onClick: () => {
-          setPresetDateRange([moment().startOf("year").startOf("day"), moment().endOf("day")])
+          setPresetDateRange([dayjs().startOf("year").startOf("day"), dayjs().endOf("day")])
           setDateRange([null, null])
           setActivePresetLabel("This Year")
           setCurrentPage(1)
@@ -750,23 +788,25 @@ const MyProjects = () => {
         <div className="flex-1">
           <RangePicker
             value={dateRange}
+            minDate = {user?.createdAt ? dayjs(user?.createdAt): undefined}
+            maxDate = {dayjs()}
             onChange={(dates) => {
               setDateRange(
                 dates
-                  ? [moment(dates[0]).startOf("day"), moment(dates[1]).endOf("day")]
+                  ? [dayjs(dates[0]).startOf("day"), dayjs(dates[1]).endOf("day")]
                   : [null, null]
               )
               setPresetDateRange([null, null])
               setActivePresetLabel("")
               setCurrentPage(1)
             }}
-            className={`w-full rounded-lg border-gray-300 shadow-sm ${
-              dateRange[0] || presetDateRange[0] ? "border-purple-400 shadow-purple-100" : ""
-            }`}
+            className={clsx("w-full rounded-lg border-gray-300 shadow-sm",
+              (dateRange[0] || presetDateRange[0]) &&  "!border-purple-400 !shadow-purple-100"
+            )}
             format="YYYY-MM-DD"
             placeholder={["Start date", "End date"]}
             aria-label="Select date range"
-          />
+            />
         </div>
       </div>
 
