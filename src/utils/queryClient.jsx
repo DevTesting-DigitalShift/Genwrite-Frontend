@@ -1,7 +1,7 @@
-import { QueryClient } from "@tanstack/react-query"
-import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client"
-import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister"
-import { del, get, set } from "idb-keyval"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+// import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client"
+// import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister"
+// import { del, get, set } from "idb-keyval"
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -15,14 +15,14 @@ const queryClient = new QueryClient({
   },
 })
 
-const persister = createAsyncStoragePersister({
-  storage: {
-    setItem: set,
-    getItem: get,
-    removeItem: del,
-  },
-})
+// const persister = createAsyncStoragePersister({
+//   storage: {
+//     setItem: set,
+//     getItem: get,
+//     removeItem: del,
+//   },
+// })
 
 export const QueryProvider = ({ children }) => (
-  <PersistQueryClientProvider client={queryClient}>{children}</PersistQueryClientProvider>
+  <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
 )

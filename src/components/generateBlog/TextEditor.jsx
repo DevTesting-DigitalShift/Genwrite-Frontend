@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useLayoutEffect, useMemo, useCallback } from "react"
-import { useEditor, EditorContent, BubbleMenu } from "@tiptap/react"
+import { useEditor, EditorContent } from "@tiptap/react"
+import { BubbleMenu } from "@tiptap/react/menus"
 import StarterKit from "@tiptap/starter-kit"
 import Link from "@tiptap/extension-link"
 import Image from "@tiptap/extension-image"
@@ -47,7 +48,6 @@ import Loading from "@components/Loading"
 import { ReloadOutlined } from "@ant-design/icons"
 import { sendRetryLines } from "@api/blogApi"
 import { retryBlog } from "@store/slices/blogSlice"
-
 // Configure marked for better HTML output
 marked.setOptions({
   gfm: true,
@@ -115,7 +115,9 @@ const TextEditor = ({
   const markdownToHtml = useCallback((markdown) => {
     if (!markdown) return "<p></p>"
     try {
-      const html = marked.parse(markdown)
+      const html = marked.parse( markdown
+    .replace(/!\[(["'""])(.*?)\1\]\((.*?)\)/g, (_, __, alt, url) => `![${alt}](${url})`) // remove quotes from alt
+    .replace(/'/g, "&apos;") )
       const parser = new DOMParser()
       const doc = parser.parseFromString(html, "text/html")
       doc.querySelectorAll("script").forEach((script) => script.remove())
@@ -228,7 +230,7 @@ const TextEditor = ({
 
   useEffect(() => {
     const scrollToTop = () => {
-      if (activeTab === "Normal" && normalEditor) {
+      if (activeTab === "Normal" && normalEditor && normalEditor.view) {
         const editorElement = normalEditor.view.dom
         if (editorElement) {
           editorElement.scrollTop = 0
@@ -456,7 +458,9 @@ const TextEditor = ({
       setContent(initialContent)
     }
     if (normalEditor && !normalEditor.isDestroyed && activeTab === "Normal") {
-      const htmlContent = initialContent ? marked.parse(initialContent, { gfm: true }) : "<p></p>"
+      const htmlContent = initialContent ? marked.parse( initialContent
+    .replace(/!\[(["'""])(.*?)\1\]\((.*?)\)/g, (_, __, alt, url) => `![${alt}](${url})`) // remove quotes from alt
+    .replace(/'/g, "&apos;") , { gfm: true }) : "<p></p>"
       if (normalEditor.getHTML() !== htmlContent) {
         const { from, to } = normalEditor.state.selection
         normalEditor.commands.setContent(htmlContent, false)
@@ -853,7 +857,9 @@ const TextEditor = ({
   }, [selectedImage, normalEditor, activeTab, setContent, markdownToHtml, htmlToMarkdown])
 
   useEffect(() => {
-    if (normalEditor && activeTab === "Normal") {
+    if (activeTab === "Normal" && normalEditor
+       && normalEditor.view
+    ) {
       const editorElement = normalEditor.view.dom
       editorElement.addEventListener("click", handleImageClick)
       return () => {
@@ -1594,7 +1600,6 @@ const TextEditor = ({
             {normalEditor && (
               <BubbleMenu
                 editor={normalEditor}
-                tippyOptions={{ duration: 100 }}
                 className="flex gap-2 bg-white shadow-lg p-2 rounded-lg border border-gray-200"
               >
                 <Tooltip title="Bold" placement="top">

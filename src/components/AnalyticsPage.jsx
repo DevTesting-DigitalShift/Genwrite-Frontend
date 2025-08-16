@@ -19,7 +19,7 @@ import { Pie, Doughnut, Bar, Line } from "react-chartjs-2";
 import { useQuery } from "@tanstack/react-query";
 import { getBlogStatus } from "@/api/analysisApi";
 import { selectUser } from "@/store/slices/authSlice";
-import moment from "moment";
+import dayjs from "dayjs";
 
 ChartJS.register(...registerables);
 
@@ -91,24 +91,24 @@ const AnalyticsPage = () => {
     queryKey: ["blogStatus", selectedRange],
     queryFn: () => {
       let params = {};
-      const endDate = moment().endOf("day").toISOString();
+      const endDate = dayjs().endOf("day").toISOString();
 
       switch (selectedRange) {
         case "7days":
           params = {
-            start: moment().subtract(6, "days").startOf("day").toISOString(),
+            start: dayjs().subtract(6, "days").startOf("day").toISOString(),
             end: endDate,
           };
           break;
         case "30days":
           params = {
-            start: moment().subtract(29, "days").startOf("day").toISOString(),
+            start: dayjs().subtract(29, "days").startOf("day").toISOString(),
             end: endDate,
           };
           break;
         case "90days":
           params = {
-            start: moment().subtract(89, "days").startOf("day").toISOString(),
+            start: dayjs().subtract(89, "days").startOf("day").toISOString(),
             end: endDate,
           };
           break;

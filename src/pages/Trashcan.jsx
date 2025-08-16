@@ -10,7 +10,7 @@ import SkeletonLoader from "@components/Projects/SkeletonLoader"
 import { getAllBlogs } from "@api/blogApi"
 import { deleteAllUserBlogs, restoreTrashedBlog } from "@store/slices/blogSlice"
 import { debounce } from "lodash"
-import moment from "moment"
+import dayjs from "dayjs"
 import { useNavigate } from "react-router-dom"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 
@@ -37,7 +37,7 @@ const Trashcan = () => {
     debounce((value) => {
       setSearchTerm(value)
       setCurrentPage(1) // Reset to first page on search
-    }, 500),
+    }, 500, {leading:false, trailing:true, maxWait: 1000}),
     []
   )
 
@@ -49,8 +49,8 @@ const Trashcan = () => {
         isArchived: true,
         status: statusFilter !== "all" ? statusFilter : undefined,
         q: searchTerm || undefined,
-        start: dateRange[0] ? moment(dateRange[0]).toISOString() : undefined,
-        end: dateRange[1] ? moment(dateRange[1]).toISOString() : undefined,
+        start: dateRange[0] ? dayjs(dateRange[0]).toISOString() : undefined,
+        end: dateRange[1] ? dayjs(dateRange[1]).toISOString() : undefined,
         page: currentPage,
         limit: pageSize,
       }
