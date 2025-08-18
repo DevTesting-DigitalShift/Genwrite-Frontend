@@ -159,13 +159,8 @@ export const getBlogStatsById = async (id) => {
   return response.data
 }
 
-export const getGeneratedTitles = async ({ keywords, focusKeywords, topic, template }) => {
-  const response = await axiosInstance.post(`/generate/title`, {
-    keywords,
-    focusKeywords,
-    topic,
-    template,
-  })
+export const getGeneratedTitles = async (data) => {
+  const response = await axiosInstance.post(`/generate/title`, data)
   return response.data
 }
 

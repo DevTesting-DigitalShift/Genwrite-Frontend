@@ -389,17 +389,11 @@ export const fetchBlogStats = createAsyncThunk(
 
 export const fetchGeneratedTitles = createAsyncThunk(
   "blogs/fetchGeneratedTitles",
-  async ({ keywords, focusKeywords, topic, template }, { rejectWithValue }) => {
+  async (payload, { rejectWithValue }) => {
     try {
-      const titles = await getGeneratedTitles({
-        keywords,
-        focusKeywords,
-        topic,
-        template,
-      })
+      const titles = await getGeneratedTitles(payload)
       return titles
     } catch (error) {
-      message.error("Failed to generate blog titles.")
       return rejectWithValue(error.response?.data?.message || error.message)
     }
   }
