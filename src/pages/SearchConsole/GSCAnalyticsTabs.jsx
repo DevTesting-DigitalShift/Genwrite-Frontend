@@ -159,7 +159,7 @@ export default function GSCAnalyticsTabs({
                 showSizeChanger: true,
                 showTotal: (total) => `Total ${total} items`,
                 position: ["topRight"],
-                rootClassName: "border absolute z-10 right-4 -top-[12.5%] bg-white rounded-xl"
+                rootClassName: `absolute z-10 right-4 -top-[${activeTab == "country" ? "14.5%" : "12.5%"}] bg-white rounded-xl`
               }}
               locale={{
                 emptyText: <Empty />,
