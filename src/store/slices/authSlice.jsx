@@ -112,7 +112,7 @@ export const googleLogin = createAsyncThunk(
         event_status: "success",
         auth_method: "google_oauth",
         user_id: user._id,
-        user_subscription: user.subscription,
+        user_subscription: user.subscription.plan,
       })
 
       return response // or return whole response if needed

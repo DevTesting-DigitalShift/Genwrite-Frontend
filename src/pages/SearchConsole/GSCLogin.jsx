@@ -35,7 +35,7 @@ const GSCLogin = () => {
         if (status === "GSC Connected") {
           message.success("Google Search Console connected!")
           clearInterval(popupCheck) // ✅ stop checking
-          // window.location.reload()
+          window.location.reload()
         } else {
           message.error(status || "Authentication failed")
           setError(status || "Authentication failed")

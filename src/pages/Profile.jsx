@@ -102,18 +102,6 @@ const Profile = () => {
         dob: user.dob || "",
         interests: user.interests || ["other"],
       },
-      billingDetails: {
-        company: user.billing?.company || "",
-        address: {
-          line1: user.billing?.address?.line1 || "",
-          line2: user.billing?.address?.line2 || "",
-          city: user.billing?.address?.city || "",
-          state: user.billing?.address?.state || "",
-          country: user.billing?.address?.country || "",
-          postalCode: user.billing?.address?.postalCode || "",
-        },
-        gstOrTaxId: user.billing?.gstOrTaxId || "",
-      },
       subscription: {
         plan: user.subscription?.plan || "free",
         startDate: user.subscription?.startDate || "",
@@ -149,11 +137,6 @@ const Profile = () => {
       dob: profileData.personalDetails.dob,
       wordpressLink: profileData.personalDetails.wordpress,
       interests: profileData.personalDetails.interests,
-      billing: {
-        company: profileData.billingDetails.company,
-        address: profileData.billingDetails.address,
-        gstOrTaxId: profileData.billingDetails.gstOrTaxId,
-      },
     }
 
     try {

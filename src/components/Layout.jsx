@@ -109,6 +109,7 @@ const LayoutWithSidebarAndHeader = () => {
       { key: "transactions", label: "Transactions", className: "!py-1.5 hover:bg-gray-100" },
       { key: "credit-logs", label: "Credit Logs", className: "!py-1.5 hover:bg-gray-100" },
       { key: "upgrade", label: "Upgrade", className: "!py-1.5 hover:bg-gray-100" },
+      user?.subscription?.plan !== "free" && { key: "cancel-subscription", label: "Cancel Subscription", className: "!py-1.5 hover:bg-gray-100" },
       { type: "divider" },
       { key: "logout", danger: true, label: "Logout", className: "!py-2 hover:bg-gray-100" },
     ],
@@ -153,12 +154,12 @@ const LayoutWithSidebarAndHeader = () => {
               onClick={() => navigate("/pricing")}
               className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg flex items-center justify-center gap-2 group capitalize"
             >
-              {user?.plan === "pro" || user?.plan === "enterprise" ? (
+              {user?.subscription?.plan === "pro" || user?.subscription?.plan === "enterprise" ? (
                 <Crown className="w-4 h-4 group-hover:rotate-12 transition-transform duration-300" />
               ) : (
                 <Zap className="w-4 h-4 group-hover:scale-110 transition-transform duration-300" />
               )}
-              <span>{user?.plan || user?.subscription?.plan} Plan</span>
+              <span>{user?.subscription?.plan} Plan</span>
             </button>
           </div>
         )}

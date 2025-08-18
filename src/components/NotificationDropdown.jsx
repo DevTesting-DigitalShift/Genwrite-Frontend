@@ -74,59 +74,6 @@ const NotificationDropdown = ({ notifications }) => {
     }
   }
 
-  // Memoized notification list content
-  const content = useMemo(
-    () => (
-      <Card
-        title={
-          <div className="flex items-center justify-center gap-3">
-            <BellFilled className="text-blue-600" />
-            <span className="text-lg font-semibold text-gray-900">Notifications</span>
-          </div>
-        }
-        className="w-[400px] max-h-[500px] overflow-auto shadow-lg rounded-xl border border-gray-200 mt-4"
-        classNames={{
-          body: "!pt-2 !px-3",
-        }}
-      >
-        {localNotifications.length === 0 ? (
-          <Empty description="No notifications available" />
-        ) : (
-          <List
-            itemLayout="horizontal"
-            dataSource={localNotifications}
-            renderItem={(item) => (
-              <List.Item
-                className={`px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors duration-200 ${
-                  !item.read ? "bg-blue-50 border-l-4 border-blue-500" : ""
-                }`}
-              >
-                <List.Item.Meta
-                  avatar={
-                    <div className="text-xl text-blue-600 ml-2">
-                      {typeIconMap[item.type] || <BellOutlined />}
-                    </div>
-                  }
-                  title={
-                    <Text strong={!item.read} className="text-base font-medium text-gray-800">
-                      {item.message}
-                    </Text>
-                  }
-                  description={
-                    <Text type="secondary" className="text-sm">
-                      {formatDate(item.createdAt)}
-                    </Text>
-                  }
-                />
-              </List.Item>
-            )}
-          />
-        )}
-      </Card>
-    ),
-    [localNotifications]
-  )
-
   const menuItems = useMemo(() => {
     if (localNotifications.length === 0) {
       return [

@@ -44,3 +44,15 @@ export function sendStripeGTMEvent(plan, credits, billingPeriod, userId) {
     },
   })
 }
+
+export function sendCancellationRelatedEvent(user, key) {
+  pushToDataLayer({
+    event: key == "cancel" ? "subscription_cancellation" : "credit_discount_opted",
+    user_id: user._id,
+    user_subscription: user.subscription.plan,
+    user_subscription_startDate: user.subscription.startDate,
+    user_subscription_renewalDate: user.subscription.renewalDate,
+    user_discount: key == "discount" ? 30 : undefined,
+    user_action_reason: "user_initiated", // You can customize this based on actual reason
+  })
+}
