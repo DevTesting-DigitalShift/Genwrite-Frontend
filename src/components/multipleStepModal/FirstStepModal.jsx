@@ -129,7 +129,7 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
     setErrors((prev) => ({ ...prev, tone: false }))
   }
   const handleGenerateTitles = async () => {
-    if (!topic.trim() || formData.keywords.length === 0) {
+    if (!topic.trim() || formData.focusKeywords.length === 0 || formData.keywords.length === 0) {
       message.error("Please enter a topic and at least one keyword before generating titles.")
       return
     }
@@ -147,7 +147,7 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
       setHasGeneratedTitles(true)
     } catch (error) {
       console.error("Error generating titles:", error)
-      message.error("Failed to generate titles. Please try again.")
+      message.error("Failed to generate titles. Please try again later.")
     } finally {
       setLoadingTitles(false)
     }
