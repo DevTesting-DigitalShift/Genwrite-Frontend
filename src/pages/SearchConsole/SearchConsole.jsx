@@ -1,30 +1,18 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { Helmet } from "react-helmet"
 import { useDispatch, useSelector } from "react-redux"
-import { fetchGscAuthUrl, fetchGscAnalytics, clearAnalytics } from "@store/slices/gscSlice"
+import { fetchGscAnalytics, clearAnalytics } from "@store/slices/gscSlice"
 import { selectUser } from "@store/slices/authSlice"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import {
-  Button,
-  Table,
-  message,
-  Select,
-  Input,
-  DatePicker,
-  Tabs,
-  Card,
-  Dropdown,
-  Menu,
-  Empty,
-} from "antd"
-import { RefreshCw, LogIn, Search, Link, Edit, Download } from "lucide-react"
-
+import { Button, message, Select, DatePicker, Card } from "antd"
+import { RefreshCw, Search, Download } from "lucide-react"
 import Fuse from "fuse.js"
 import dayjs from "dayjs"
 import * as ExcelJS from "exceljs"
-import clsx from "clsx"
 import "@pages/SearchConsole/searchConsole.css"
 import GSCLogin from "@pages/SearchConsole/GSCLogin"
+import GSCAnalyticsTabs from "@pages/SearchConsole/GSCAnalyticsTabs"
+import clsx from "clsx"
 
 const { Option } = Select
 const { RangePicker } = DatePicker
@@ -48,7 +36,7 @@ const SearchConsole = () => {
   const [searchQuery, setSearchQuery] = useState("")
   const [userCountry, setUserCountry] = useState(navigator.language.split("-")[1] || "US")
   const [pageSize, setPageSize] = useState(10)
-  
+
   const dispatch = useDispatch()
   const queryClient = useQueryClient()
   const user = useSelector(selectUser)
@@ -136,10 +124,9 @@ const SearchConsole = () => {
 
   // Determine dimensions
   const getDimensions = useCallback(() => {
-    const dimensions = []
-    if (activeTab === "query") dimensions.push("query", "page")
+    const dimensions = ["page"]
+    if (activeTab === "query") dimensions.push("query")
     else if (activeTab === "country") dimensions.push("country")
-    else dimensions.push("page")
     return dimensions
   }, [activeTab])
 
@@ -198,11 +185,6 @@ const SearchConsole = () => {
     },
   })
 
-  // Extract unique countries and blog titles
-  const countries = useMemo(() => {
-    return [...new Set(blogData.map((item) => item.countryName).filter((c) => c !== "-"))]
-  }, [blogData])
-
   const blogTitles = useMemo(() => {
     return [...new Set(blogData.map((item) => item.blogTitle).filter((t) => t !== "Untitled"))]
   }, [blogData])
@@ -234,31 +216,10 @@ const SearchConsole = () => {
     }
   }
 
-  // Handle filter type change
-  const handleFilterTypeChange = (value) => {
-    setFilterType(value)
-    setBlogUrlFilter("")
-    setBlogTitleFilter("")
-    setSearchQuery("")
-    refetch()
-  }
-
-  // Handle blog URL filter change
-  const handleBlogUrlChange = (value) => {
-    setBlogUrlFilter(value)
-    refetch()
-  }
-
   // Handle blog title filter change
   const handleBlogTitleChange = (value) => {
     setBlogTitleFilter(value)
     // refetch()
-  }
-
-  // Handle country filter change
-  const handleCountryFilterChange = (value) => {
-    setCountryFilter(value)
-    refetch()
   }
 
   // Handle search query change
@@ -280,18 +241,55 @@ const SearchConsole = () => {
     refetch()
   }
 
+  const aggregateData = (data) => {
+    const grouped = {}
+
+    data.forEach((row) => {
+      // Group by country (code) or countryName depending on tab
+      const key = row.country
+
+      if (!grouped[key]) {
+        grouped[key] = {
+          ...row,
+          clicks: row.clicks,
+          impressions: row.impressions,
+          ctr: row.ctr,
+          position: row.position,
+        }
+      } else {
+        // sum clicks + impressions
+        grouped[key].clicks += row.clicks
+        grouped[key].impressions += row.impressions
+
+        // weighted avg position by impressions
+        grouped[key].position =
+          (grouped[key].position * (grouped[key].impressions - row.impressions) +
+            row.position * row.impressions) /
+          grouped[key].impressions
+
+        // recompute CTR from totals
+        grouped[key].ctr =
+          grouped[key].impressions > 0
+            ? ((grouped[key].clicks / grouped[key].impressions) * 100).toFixed(2)
+            : 0
+      }
+    })
+
+    return Object.values(grouped)
+  }
+
   // Filter data with Fuse.js
   const filteredData = useMemo(() => {
     let result = blogData
     if (filterType === "blog" && blogUrlFilter) {
       result = result.filter((item) => item.url === blogUrlFilter)
     }
-    if (blogTitleFilter && activeTab !== "country") {
+    if (blogTitleFilter) {
       result = result.filter((item) => item.blogTitle === blogTitleFilter)
     }
-    // if (countryFilter && activeTab === "country") {
-    //   result = result.filter((item) => item.countryName === countryFilter)
-    // }
+    if (activeTab === "country") {
+      result = aggregateData(result)
+    }
     if (searchQuery && filterType === "search") {
       const fuse = new Fuse(result, fuseOptions)
       result = fuse.search(searchQuery).map(({ item }) => item)
@@ -306,140 +304,18 @@ const SearchConsole = () => {
     const avgCtr =
       filteredData.length > 0
         ? (
-          filteredData.reduce((sum, item) => sum + parseFloat(item.ctr), 0) / filteredData.length
-        ).toFixed(2)
+            filteredData.reduce((sum, item) => sum + parseFloat(item.ctr), 0) / filteredData.length
+          ).toFixed(2)
         : "0.00"
     const avgPosition =
       filteredData.length > 0
         ? (
-          filteredData.reduce((sum, item) => sum + (parseFloat(item.position) || 0), 0) /
-          filteredData.length
-        ).toFixed(1)
+            filteredData.reduce((sum, item) => sum + (parseFloat(item.position) || 0), 0) /
+            filteredData.length
+          ).toFixed(1)
         : "0"
     return { totalClicks, totalImpressions, avgCtr, avgPosition }
   }, [filteredData])
-
-  // Table columns
-  const getColumns = (tab) => {
-    const baseColumns = [
-      ...(tab === "page" && !blogTitleFilter
-        ? [
-          {
-            title: "Blog Title",
-            dataIndex: "blogTitle",
-            key: "blogTitle",
-            sorter: (a, b) => a.blogTitle.localeCompare(b.blogTitle),
-            width: 200,
-            render: (text) => <span className="font-medium text-gray-800">{text}</span>,
-          },
-        ]
-        : []),
-      ...(tab !== "page"
-        ? [
-          {
-            title: tab === "query" ? "Query" : "Country",
-            dataIndex: tab === "query" ? "query" : "countryName",
-            key: tab,
-            render: (text) => (
-              <span className="text-gray-700">
-                {text.length > 50 ? `${text.substring(0, 47)}...` : text}
-              </span>
-            ),
-            sorter: (a, b) =>
-              a[tab === "query" ? "query" : "countryName"].localeCompare(
-                b[tab === "query" ? "query" : "countryName"]
-              ),
-            width: 250,
-          },
-        ]
-        : []),
-      {
-        title: "Clicks",
-        dataIndex: "clicks",
-        key: "clicks",
-        sorter: (a, b) => a.clicks - b.clicks,
-        render: (clicks) => (
-          <span className="text-blue-600 font-semibold">
-            {new Intl.NumberFormat().format(clicks)}
-          </span>
-        ),
-        width: 100,
-      },
-      {
-        title: "Impressions",
-        dataIndex: "impressions",
-        key: "impressions",
-        sorter: (a, b) => a.impressions - b.impressions,
-        render: (impressions) => (
-          <span className="text-blue-600 font-semibold">
-            {new Intl.NumberFormat().format(impressions)}
-          </span>
-        ),
-        width: 120,
-      },
-      {
-        title: "CTR (%)",
-        dataIndex: "ctr",
-        key: "ctr",
-        sorter: (a, b) => a.ctr - b.ctr,
-        render: (ctr) => <span className="text-gray-700">{`${ctr}%`}</span>,
-        width: 100,
-      },
-      {
-        title: "Position",
-        dataIndex: "position",
-        key: "position",
-        sorter: (a, b) => a.position - b.position,
-        render: (position) => <span className="text-gray-700">{position}</span>,
-        width: 100,
-      },
-      ...(tab === "page"
-        ? [
-          {
-            title: "Actions",
-            key: "actions",
-            width: 100,
-            render: (_, record) => (
-              <Dropdown
-                overlay={
-                  <Menu>
-                    <Menu.Item key="go">
-                      <a
-                        href={record.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center"
-                      >
-                        <Link className="w-4 h-4 mr-2" />
-                        Go to Blog
-                      </a>
-                    </Menu.Item>
-                    <Menu.Item key="edit">
-                      <a
-                        href={`${import.meta.env.VITE_FRONTEND_URL}/toolbox/${record.blogId}`}
-                        target="_blank"
-                        className="flex items-center"
-                      >
-                        <Edit className="w-4 h-4 mr-2" />
-                        Edit Blog
-                      </a>
-                    </Menu.Item>
-                  </Menu>
-                }
-                trigger={["click"]}
-              >
-                <Button
-                  type="text"
-                  icon={<Link className="w-4 h-4 text-gray-600 hover:text-blue-600" />}
-                />
-              </Dropdown>
-            ),
-          },
-        ]
-        : []),
-    ]
-    return baseColumns
-  }
 
   // Export to Excel using ExcelJS
   const handleExport = async () => {
@@ -504,208 +380,190 @@ const SearchConsole = () => {
     window.URL.revokeObjectURL(url)
   }
 
-  return user?.gsc ? (
-    <div className="p-6 bg-gray-50 min-h-screen">
+  return (
+    <>
       <Helmet>
         <title>Search Performance | GenWrite</title>
       </Helmet>
-      <div className="bg-white rounded-xl shadow-sm p-6 mb-6 border border-gray-200">
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Search Performance</h1>
-          <div className="flex gap-3 items-center">
-            <Button
-              icon={<Download className="w-4 h-4 mr-2" />}
-              onClick={handleExport}
-              disabled={isLoading}
-              type="primary"
-              className="bg-blue-600 hover:bg-blue-700 rounded-lg h-10 text-base font-medium"
-            >
-              Export
-            </Button>
-            <Button
-              icon={<RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />}
-              onClick={() => refetch()}
-              disabled={isLoading}
-              type="primary"
-              className="bg-blue-600 hover:bg-blue-700 rounded-lg h-10 text-base font-medium"
-            >
-              Refresh
-            </Button>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <Card
-            title={<span className="text-sm font-semibold text-gray-600">Total Clicks</span>}
-            className="rounded-lg text-center p-4 shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-gradient-to-br from-blue-100/70 to-blue-50/70"
-          >
-            <p className="text-2xl font-bold text-blue-600">
-              {new Intl.NumberFormat().format(metrics.totalClicks)}
-            </p>
-            <p className="text-xs text-gray-500 mt-1">Total clicks on filtered data</p>
-          </Card>
-          <Card
-            title={<span className="text-sm font-semibold text-gray-600">Total Impressions</span>}
-            className="rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-gradient-to-br from-purple-100/70 to-purple-50/70"
-            style={{ padding: "16px", textAlign: "center" }}
-          >
-            <p className="text-2xl font-bold text-blue-600">
-              {new Intl.NumberFormat().format(metrics.totalImpressions)}
-            </p>
-            <p className="text-xs text-gray-500 mt-1">Total impressions on filtered data</p>
-          </Card>
-          <Card
-            title={<span className="text-sm font-semibold text-gray-600">Average CTR</span>}
-            className="rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-gradient-to-br from-teal-100/70 to-teal-50/70"
-            style={{ padding: "16px", textAlign: "center" }}
-          >
-            <p className="text-2xl font-bold text-blue-600">{metrics.avgCtr}%</p>
-            <p className="text-xs text-gray-500 mt-1">Average click-through rate</p>
-          </Card>
-          <Card
-            title={<span className="text-sm font-semibold text-gray-600">Average Position</span>}
-            className="rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-gradient-to-br from-amber-100/70 to-amber-50/70"
-            style={{ padding: "16px", textAlign: "center" }}
-          >
-            <p className="text-2xl font-bold text-blue-600">{metrics.avgPosition}</p>
-            <p className="text-xs text-gray-500 mt-1">Average search result position</p>
-          </Card>
-        </div>
 
-        <div className="flex flex-wrap gap-3 items-center justify-between w-full">
-          <Select
-            value={dateRange}
-            onChange={handleDateRangeChange}
-            className={`flex-1 max-w-36 ${dateRange ? "border-blue-500" : ""}`}
-            placeholder="Select Date Range"
-            style={{ borderRadius: "8px" }}
-          >
-            <Option value="7d">Last 7 Days</Option>
-            <Option value="30d">Last 30 Days</Option>
-            <Option value="180d">Last 6 Months</Option>
-            <Option value="custom">Custom Range</Option>
-          </Select>
-          {showDatePicker && (
-            <RangePicker
-              value={customDateRange}
-              onChange={handleCustomDateRangeChange}
-              disabledDate={(current) => current && current > dayjs().endOf("day")}
-              className={`flex-1 min-w-56 max-w- ${customDateRange[0] && customDateRange[1] ? "border-blue-500" : ""
+      {!!user?.gsc ? (
+        <div className="p-6 bg-gray-50 min-h-screen">
+          <div className="bg-white rounded-xl shadow-sm p-6 mb-6 border border-gray-200">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
+              <h1 className="text-2xl font-bold text-gray-900">Search Performance</h1>
+              <div className="flex gap-3 items-center">
+                <Button
+                  icon={<Download className="size-4 mr-2" />}
+                  title="Export"
+                  onClick={handleExport}
+                  disabled={isLoading}
+                  type="dashed"
+                  className="bg-gradient-to-l from-blue-400 to-purple-300 hover:!bg-gradient-to-r hover:!from-purple-500 hover:!to-blue-400 hover:!text-white rounded-lg h-10 text-base font-semibold"
+                >
+                  Export
+                </Button>
+                <Button
+                  icon={<RefreshCw className={clsx("size-4 mr-2", isLoading && "animate-spin")} />}
+                  onClick={() => refetch()}
+                  disabled={isLoading}
+                  type="dashed"
+                  className="bg-gradient-to-l from-blue-300 to-purple-400 hover:!bg-gradient-to-r hover:!from-purple-600 hover:!to-blue-400 hover:!text-white rounded-lg h-10 text-base font-semibold"
+                >
+                  Refresh
+                </Button>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <Card
+                title={<span className="text-sm font-semibold text-gray-600">Total Clicks</span>}
+                className="rounded-lg text-center p-4 shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-gradient-to-br from-blue-100/70 to-blue-50/70"
+              >
+                <p className="text-2xl font-bold text-blue-600">
+                  {new Intl.NumberFormat().format(metrics.totalClicks)}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">Total clicks on filtered data</p>
+              </Card>
+              <Card
+                title={
+                  <span className="text-sm font-semibold text-gray-600">Total Impressions</span>
+                }
+                className="rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-gradient-to-br from-purple-100/70 to-purple-50/70"
+                style={{ padding: "16px", textAlign: "center" }}
+              >
+                <p className="text-2xl font-bold text-blue-600">
+                  {new Intl.NumberFormat().format(metrics.totalImpressions)}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">Total impressions on filtered data</p>
+              </Card>
+              <Card
+                title={<span className="text-sm font-semibold text-gray-600">Average CTR</span>}
+                className="rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-gradient-to-br from-teal-100/70 to-teal-50/70"
+                style={{ padding: "16px", textAlign: "center" }}
+              >
+                <p className="text-2xl font-bold text-blue-600">{metrics.avgCtr}%</p>
+                <p className="text-xs text-gray-500 mt-1">Average click-through rate</p>
+              </Card>
+              <Card
+                title={
+                  <span className="text-sm font-semibold text-gray-600">Average Position</span>
+                }
+                className="rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-gradient-to-br from-amber-100/70 to-amber-50/70"
+                style={{ padding: "16px", textAlign: "center" }}
+              >
+                <p className="text-2xl font-bold text-blue-600">{metrics.avgPosition}</p>
+                <p className="text-xs text-gray-500 mt-1">Average search result position</p>
+              </Card>
+            </div>
+
+            <div className="flex flex-wrap gap-3 items-center justify-between w-full">
+              <Select
+                value={dateRange}
+                onChange={handleDateRangeChange}
+                className={clsx("flex-1 max-w-36", dateRange && "border-blue-500")}
+                placeholder="Select Date Range"
+                style={{ borderRadius: "8px" }}
+              >
+                <Option value="7d">Last 7 Days</Option>
+                <Option value="30d">Last 30 Days</Option>
+                <Option value="180d">Last 6 Months</Option>
+                <Option value="custom">Custom Range</Option>
+              </Select>
+              {showDatePicker && (
+                <RangePicker
+                  value={customDateRange}
+                  onChange={handleCustomDateRangeChange}
+                  disabledDate={(current) => current && current > dayjs().endOf("day")}
+                  className={clsx(
+                    "flex-1 min-w-56",
+                    customDateRange[0] && customDateRange[1] && "border-blue-500"
+                  )}
+                  placeholder={["Start Date", "End Date"]}
+                  allowEmpty={[false, false]}
+                  style={{ borderRadius: "8px" }}
+                />
+              )}
+              <div className="relative flex-1 min-w-[200px] max-w-1/2">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  placeholder="Search title, query, or country"
+                  className={`pl-9 pr-4 py-1 w-full bg-white border ${
+                    searchQuery ? "border-blue-500" : "border-gray-300"
+                  } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
+                />
+              </div>
+
+              <Select
+                value={blogTitleFilter}
+                onChange={handleBlogTitleChange}
+                className={clsx("flex-1 min-w-[200px]", blogTitleFilter && "border-blue-500")}
+                placeholder="Select Blog Title"
+                allowClear
+                style={{ borderRadius: "8px" }}
+              >
+                {blogTitles.map((title) => (
+                  <Option key={title} value={title}>
+                    {title}
+                  </Option>
+                ))}
+              </Select>
+
+              {/* <Select
+                value={pageSize}
+                onChange={(value) => setPageSize(value)}
+                className="flex-1 max-w-[100px]"
+                placeholder="Rows per page"
+                style={{ borderRadius: "8px" }}
+              >
+                <Option value={10}>10 rows</Option>
+                <Option value={25}>25 rows</Option>
+                <Option value={50}>50 rows</Option>
+                <Option value={100}>100 rows</Option>
+              </Select> */}
+              <Button
+                onClick={handleResetFilters}
+                type="default"
+                className={`flex-1 max-w-36 rounded-lg h-10 text-base font-medium text-gray-700 ${
+                  isFilterApplied
+                    ? "bg-blue-100 hover:bg-blue-200 border-blue-300"
+                    : "bg-gray-100 hover:bg-gray-200 border-gray-300"
                 }`}
-              placeholder={["Start Date", "End Date"]}
-              allowEmpty={[false, false]}
-              style={{ borderRadius: "8px" }}
-            />
-          )}
-          <div className="relative flex-1 min-w-[200px] max-w-1/2">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
-              placeholder="Search title, query, or country"
-              className={`pl-9 pr-4 py-1 w-full bg-white border ${searchQuery ? "border-blue-500" : "border-gray-300"
-                } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
-            />
+              >
+                Reset Filters
+              </Button>
+            </div>
           </div>
-          {activeTab !== "country" && (
-            <Select
-              value={blogTitleFilter}
-              onChange={handleBlogTitleChange}
-              className={`flex-1 min-w-[200px] ${blogTitleFilter ? "border-blue-500" : ""}`}
-              placeholder="Select Blog Title"
-              allowClear
-              style={{ borderRadius: "8px" }}
-            >
-              {blogTitles.map((title) => (
-                <Option key={title} value={title}>
-                  {title}
-                </Option>
-              ))}
-            </Select>
+          {error && (
+            <div className="bg-red-50 text-red-600 p-4 rounded-lg mb-6 flex items-center border border-red-200">
+              <span>{error}</span>
+            </div>
           )}
-          
-          <Select
-            value={pageSize}
-            onChange={(value) => setPageSize(value)}
-            className="flex-1 max-w-[100px]"
-            placeholder="Rows per page"
-            style={{ borderRadius: "8px" }}
-          >
-            <Option value={10}>10 rows</Option>
-            <Option value={25}>25 rows</Option>
-            <Option value={50}>50 rows</Option>
-            <Option value={100}>100 rows</Option>
-          </Select>
-          <Button
-            onClick={handleResetFilters}
-            type="default"
-            className={`flex-1 max-w-36 rounded-lg h-10 text-base font-medium text-gray-700 ${isFilterApplied
-                ? "bg-blue-100 hover:bg-blue-200 border-blue-300"
-                : "bg-gray-100 hover:bg-gray-200 border-gray-300"
-              }`}
-          >
-            Reset Filters
-          </Button>
+          {blogTitleFilter && (
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold text-gray-800">
+                Showing data for: <span className="text-blue-600">{blogTitleFilter}</span>
+              </h2>
+            </div>
+          )}
+          <GSCAnalyticsTabs
+            items={[
+              { key: "query", label: "Queries" },
+              { key: "page", label: "Pages" },
+              { key: "country", label: "Countries" },
+            ]}
+            filteredData={filteredData}
+            activeTab={activeTab}
+            handleTabChange={handleTabChange}
+            isLoading={isLoading}
+          />
         </div>
-      </div>
-      {error && (
-        <div className="bg-red-50 text-red-600 p-4 rounded-lg mb-6 flex items-center border border-red-200">
-          <span>{error}</span>
-        </div>
+      ) : (
+        <GSCLogin />
       )}
-      {blogTitleFilter && (
-        <div className="mb-4">
-          <h2 className="text-lg font-semibold text-gray-800">
-            Showing data for: <span className="text-blue-600">{blogTitleFilter}</span>
-          </h2>
-        </div>
-      )}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <Tabs
-          items={[
-            { key: "query", label: "Queries" },
-            { key: "page", label: "Pages" },
-            { key: "country", label: "Countries", disabled: Boolean(blogTitleFilter) },
-          ].map((item) => ({
-            key: item.key,
-            label: <span className="text-base font-medium">{item.label}</span>,
-            disabled: item?.disabled || false,
-            children: (
-              <Table
-                columns={getColumns(item.key)}
-                dataSource={filteredData}
-                rowKey="id"
-                pagination={{
-                  pageSize,
-                  showSizeChanger: false,
-                  showTotal: (total) => `Total ${total} results`,
-                }}
-                loading={isLoading}
-                locale={{
-                  emptyText: error ? (
-                    `Error: ${error}. Please try refreshing or reconnecting GSC.`
-                  ) : (
-                    <Empty />
-                  ),
-                }}
-                className="custom-table"
-              />
-            ),
-          }))}
-          defaultActiveKey="query"
-          activeKey={activeTab}
-          onChange={handleTabChange}
-          className="custom-tabs"
-          tabBarStyle={{
-            background: "#f8fafc",
-            padding: "12px 16px",
-            borderBottom: "1px solid #e5e7eb",
-            margin: 0,
-          }}
-        ></Tabs>
-      </div>
-    </div>
-  ) : <GSCLogin />
+    </>
+  )
 }
 
 export default SearchConsole
