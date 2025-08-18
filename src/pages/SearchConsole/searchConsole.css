@@ -3,6 +3,7 @@
     font-weight: 600;
     color: #1f2937;
     border-bottom: 1px solid #e5e7eb;
+    position: relative;
     padding: 12px 16px;
     text-align: center;
 }
@@ -57,6 +58,10 @@
     margin: 0 !important;
 }
 
+.ant-tabs{
+    @apply relative;
+}
+
 .ant-tabs-tab {
     padding: 12px 24px !important;
     margin: 0 !important;
@@ -109,7 +114,8 @@
 }
 
 .ant-table-pagination {
-    padding: 16px !important;
+    padding: 16px 12px !important;
+    
 }
 
 .ant-dropdown-menu {
