@@ -3,7 +3,6 @@ import Modal from "../utils/Modal"
 import SelectTemplateModal from "./multipleStepModal/SelectTemplateModal"
 import FirstStepModal from "./multipleStepModal/FirstStepModal"
 import SecondStepModal from "./multipleStepModal/SecondStepModal"
-import { letsBegin, quickTools } from "./dashdata/dash"
 import { DashboardBox, QuickBox, Blogs } from "../utils/DashboardBox"
 import { useDispatch, useSelector } from "react-redux"
 import { createNewBlog, fetchAllBlogs, fetchBlogs } from "@store/slices/blogSlice"
@@ -39,6 +38,7 @@ import {
   Tooltip,
   Legend,
 } from "chart.js"
+import { quickTools, letsBegin } from "./dashData/dash"
 
 ChartJS.register(
   ArcElement,
