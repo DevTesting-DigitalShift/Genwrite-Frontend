@@ -194,7 +194,6 @@ const MyProjects = () => {
         : undefined
     }
     const response = await dispatch(fetchAllBlogs(queryParams)).unwrap()
-    console.log(response.data)
     return response.data || []
   }, [dispatch, dateRange, presetDateRange])
 
@@ -224,7 +223,7 @@ const MyProjects = () => {
     if (!socket) return
 
     socket.on("blog:statusChanged", (data) => {
-      console.log("Blog status changed:", data)
+      console.debug("Blog status changed:", data)
       // Optionally, you can trigger a refetch or update the UI based on the new status
       queryClient.invalidateQueries({ queryKey: ["blogs"], exact: false })
     })

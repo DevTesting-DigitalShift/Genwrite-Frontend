@@ -190,16 +190,19 @@ const TextEditor = ({
         StarterKit.configure({
           heading: { levels: [1, 2, 3] },
           bold: { HTMLAttributes: { class: "font-bold" } },
+          italic: { HTMLAttributes: { class: "italic" } },
+          underline: { HTMLAttributes: { class: "underline" } },
+          link: { HTMLAttributes: { class: "text-blue-600 underline" } },
         }),
-        Link.configure({ HTMLAttributes: { class: "text-blue-600 underline" } }),
+        // Link.configure({ HTMLAttributes: { class: "text-blue-600 underline" } }),
         Image.configure({
           HTMLAttributes: {
             class: "rounded-lg mx-auto w-3/4 h-auto object-contain",
             style: "display: block;;",
           },
         }),
-        Underline,
-        TextAlign.configure({ types: ["heading", "paragraph"] }),
+        // Underline,
+        TextAlign.configure({ types: ["heading", "paragraph", "right"] }),
         ProofreadingDecoration.configure({
           suggestions: proofreadingResults,
         }),
@@ -230,7 +233,7 @@ const TextEditor = ({
 
   useEffect(() => {
     const scrollToTop = () => {
-      if (activeTab === "Normal" && normalEditor && normalEditor.view) {
+      if (activeTab === "Normal" && normalEditor && normalEditor?.view?.dom) {
         const editorElement = normalEditor.view.dom
         if (editorElement) {
           editorElement.scrollTop = 0
@@ -858,12 +861,14 @@ const TextEditor = ({
 
   useEffect(() => {
     if (activeTab === "Normal" && normalEditor
-       && normalEditor.view
+       && normalEditor?.view?.dom
     ) {
       const editorElement = normalEditor.view.dom
       editorElement.addEventListener("click", handleImageClick)
       return () => {
-        editorElement.removeEventListener("click", handleImageClick)
+        if(editorElement){
+          editorElement.removeEventListener("click", handleImageClick)
+        }
       }
     }
   }, [normalEditor, activeTab, handleImageClick])

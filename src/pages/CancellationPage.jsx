@@ -50,7 +50,6 @@ const {handlePopup} = useConfirmPopup()
       setShowSuccess(true);
       sendCancellationRelatedEvent(user, "discount")
       message.success("30% More Credits applied successfully!");
-      navigate("/dashboard");
     }catch(err){
       console.error("Error applying discount:", err);
       message.error("Failed to apply discount, please try again later.");
@@ -80,6 +79,7 @@ const {handlePopup} = useConfirmPopup()
           sendCancellationRelatedEvent(user, "cancel")
           console.log("Subscription cancelled");
           message.success("Subscription cancelled successfully!");
+          navigate("/dashboard");
         }catch(err){
           console.error("Error cancelling subscription:", err);
           message.error("Failed to cancel subscription, please try again later.");
