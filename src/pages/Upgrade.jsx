@@ -6,8 +6,8 @@ import { Check, Coins, Crown, Mail, Shield, Star, X, Zap } from "lucide-react"
 import { Helmet } from "react-helmet"
 import { SkeletonCard } from "@components/Projects/SkeletonLoader"
 import { message } from "antd"
-import ReactGA from "react-ga4"
-
+import { sendStripeGTMEvent } from "@utils/stripeGTMEvents"
+import { useSelector } from "react-redux"
 const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
   const [customCredits, setCustomCredits] = useState(500)
 
@@ -176,9 +176,6 @@ const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
               if (customCredits < 500) return
               onBuy(plan, customCredits, billingPeriod)
             } else if (plan.name.toLowerCase().includes("enterprise")) {
-              ReactGA.event("contact_sales", {
-                plan: plan.name,
-              })
               window.open(
                 `https://mail.google.com/mail/?view=cm&fs=1&to=support@genwrite.com&su=GenWrite Enterprise Subscription&body=I'm interested in the Enterprise plan.`,
                 "_blank"
@@ -429,9 +426,9 @@ const Upgrade = () => {
   const [loading, setLoading] = useState(true)
   const [billingPeriod, setBillingPeriod] = useState("annual")
   const [showComparisonTable, setShowComparisonTable] = useState(true)
+  const user = useSelector((state) => state.auth.user)
 
   useEffect(() => {
-    ReactGA.send({ hitType: "pageview", page: "/upgrade", title: "Upgrade Page" })
     const timer = setTimeout(() => setLoading(false), 1200)
     return () => clearTimeout(timer)
   }, [])
@@ -439,7 +436,8 @@ const Upgrade = () => {
   const getPlans = (billingPeriod) => {
     return [
       {
-        name: "Basic Plan",
+        name: "GenWrite Basic",
+        eventName: "Basic_" + billingPeriod + "_clicks",
         priceMonthly: 20,
         priceAnnual: 16.58,
         annualPrice: 199,
@@ -465,6 +463,7 @@ const Upgrade = () => {
       },
       {
         name: "GenWrite Pro",
+        eventName: "Pro_" + billingPeriod + "_clicks",
         priceMonthly: 50,
         priceAnnual: 41.58,
         annualPrice: 499,
@@ -500,7 +499,8 @@ const Upgrade = () => {
         featured: true,
       },
       {
-        name: "Enterprise",
+        name: "GenWrite Enterprise",
+        eventName: "Enterprise_" + billingPeriod + "_clicks",
         priceMonthly: "Custom",
         priceAnnual: "Custom",
         credits: "Unlimited",
@@ -532,6 +532,7 @@ const Upgrade = () => {
       },
       {
         name: "Credit Pack",
+        eventName: "Credits_clicks",
         priceMonthly: null,
         priceAnnual: null,
         credits: null,
@@ -580,7 +581,11 @@ const Upgrade = () => {
 
   const handleBuy = async (plan, credits, billingPeriod) => {
     const stripe = await loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
-
+    if (!stripe) {
+      console.error("Stripe.js failed to load.")
+      message.error("Failed to load payment gateway. Please try again later.")
+      return
+    }
     try {
       const { data } = await axiosInstance.post("/stripe/checkout", {
         planName: plan.name.toLowerCase().includes("pro")
@@ -595,8 +600,7 @@ const Upgrade = () => {
         cancel_url: `${window.location.origin}/payment/cancel`,
       })
 
-      console.debug(data.sessionId)
-
+      sendStripeGTMEvent(plan, credits, billingPeriod, user._id)
       const result = await stripe.redirectToCheckout({ sessionId: data.sessionId })
       if (result?.error) throw result.error
     } catch (error) {

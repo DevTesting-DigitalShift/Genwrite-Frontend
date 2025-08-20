@@ -1,14 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react"
-import {
-  Button,
-  Tooltip,
-  Popconfirm,
-  Badge,
-  Pagination,
-  Input,
-  Select,
-  message,
-} from "antd"
+import { Button, Tooltip, Popconfirm, Badge, Pagination, Input, Select, message } from "antd"
 import { RefreshCcw, Trash2, Search } from "lucide-react"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { QuestionCircleOutlined } from "@ant-design/icons"
@@ -70,8 +61,6 @@ const Trashcan = () => {
       }
     },
     keepPreviousData: true, // Keep previous data while fetching new data
-    staleTime: 5 * 60 * 1000, // Cache data for 5 minutes
-    cacheTime: 10 * 60 * 1000, // Keep cache for 10 minutes
   })
 
   const trashedBlogs = data?.trashedBlogs || []
@@ -81,8 +70,9 @@ const Trashcan = () => {
   const restoreMutation = useMutation({
     mutationFn: (id) => dispatch(restoreTrashedBlog(id)).unwrap(),
     onSuccess: () => {
-      queryClient.invalidateQueries(["trashedBlogs"])
-      message.success("Blog restored successfully")
+      queryClient.invalidateQueries({ queryKey: ["trashedBlogs"], exact: false })
+      queryClient.invalidateQueries({ queryKey: ["blogs"], exact: false })
+      // message.success("Blog restored successfully")
     },
     onError: (error) => {
       console.error("Failed to restore blog:", error)
@@ -94,9 +84,9 @@ const Trashcan = () => {
   const bulkDeleteMutation = useMutation({
     mutationFn: () => dispatch(deleteAllUserBlogs()).unwrap(),
     onSuccess: () => {
-      queryClient.invalidateQueries(["trashedBlogs"])
+      queryClient.invalidateQueries({ queryKey: ["trashedBlogs"], exact: false })
       setCurrentPage(1)
-      message.success("All trashed blogs deleted successfully")
+      // message.success("All trashed blogs deleted successfully")
     },
     onError: (error) => {
       console.error("Failed to delete all blogs:", error)

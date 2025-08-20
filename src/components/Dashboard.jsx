@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import Modal from "../utils/Modal"
 import SelectTemplateModal from "./multipleStepModal/SelectTemplateModal"
 import FirstStepModal from "./multipleStepModal/FirstStepModal"
 import SecondStepModal from "./multipleStepModal/SecondStepModal"
-import { letsBegin, quickTools } from "./dashData/dash"
+import { letsBegin, quickTools } from "./dashdata/dash"
 import { DashboardBox, QuickBox, Blogs } from "../utils/DashboardBox"
 import { useDispatch, useSelector } from "react-redux"
-import { createNewBlog, fetchAllBlogs, fetchBlogs, fetchBlogStatus } from "@store/slices/blogSlice"
+import { createNewBlog, fetchAllBlogs, fetchBlogs } from "@store/slices/blogSlice"
 import { useNavigate } from "react-router-dom"
 import MultiStepModal from "./multipleStepModal/DaisyUi"
 import DaisyUIModal from "./DaisyUIModal"
@@ -19,14 +19,7 @@ import { AnimatePresence, motion } from "framer-motion"
 import { loadAuthenticatedUser, selectUser } from "@store/slices/authSlice"
 import {
   Clock,
-  Sparkles,
-  ChevronLeft,
-  ChevronRight,
-  FileText,
-  UploadCloud,
-  Archive,
-  BadgePercent,
-  ThumbsUp, // Added for feedback button
+  Sparkles, // Added for feedback button
 } from "lucide-react"
 import { Helmet } from "react-helmet"
 import SeoAnalysisModal from "./multipleStepModal/SeoAnalysisModal"
@@ -46,7 +39,6 @@ import {
   Tooltip,
   Legend,
 } from "chart.js"
-import { Pie, Line } from "react-chartjs-2"
 
 ChartJS.register(
   ArcElement,

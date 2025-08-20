@@ -4,12 +4,26 @@ import { useDispatch, useSelector } from "react-redux"
 import { fetchGscAuthUrl, fetchGscAnalytics, clearAnalytics } from "@store/slices/gscSlice"
 import { selectUser } from "@store/slices/authSlice"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { Button, Table, message, Select, Input, DatePicker, Tabs, Card, Dropdown, Menu } from "antd"
+import {
+  Button,
+  Table,
+  message,
+  Select,
+  Input,
+  DatePicker,
+  Tabs,
+  Card,
+  Dropdown,
+  Menu,
+  Empty,
+  Tooltip,
+} from "antd"
 import { RefreshCw, LogIn, Search, Link, Edit, Download } from "lucide-react"
 import { FcGoogle } from "react-icons/fc"
 import Fuse from "fuse.js"
 import moment from "moment"
 import * as ExcelJS from "exceljs"
+import clsx from "clsx"
 import { persistQueryClient } from "@tanstack/react-query-persist-client"
 
 const { Option } = Select
@@ -134,10 +148,9 @@ const SearchConsole = () => {
 
   // Determine dimensions
   const getDimensions = useCallback(() => {
-    const dimensions = []
-    if (activeTab === "query") dimensions.push("query", "page")
+    const dimensions = ["page"]
+    if (activeTab === "query") dimensions.push("query")
     else if (activeTab === "country") dimensions.push("country")
-    else dimensions.push("page")
     return dimensions
   }, [activeTab])
 
@@ -183,12 +196,9 @@ const SearchConsole = () => {
       }))
     },
     enabled: isAuthenticated,
-    staleTime: 1000 * 60 * 30,
-    cacheTime: 1000 * 60 * 60,
-    refetchOnMount: false, // 👈 Don't auto refetch when switching tabs
-    refetchOnWindowFocus: false, // 👈 Don't refetch when tab gains focus
-    refetchOnReconnect: false, // 👈 Don't refetch on network reconnect
-    retry: 3,
+    // staleTime: 1000 * 60 * 30,
+    // cacheTime: 1000 * 60 * 60,
+    retry: 1,
     onError: (err) => {
       setError(err.message || "Failed to fetch analytics data")
       if (err?.message?.includes("invalid_grant")) {
@@ -217,23 +227,6 @@ const SearchConsole = () => {
       if (!popup) {
         throw new Error("Popup blocked. Please allow popups and try again.")
       }
-
-      const expectedOrigin = new URL(import.meta.env.VITE_BACKEND_URL).origin
-      const handleMessage = (event) => {
-        if (event.origin !== expectedOrigin) return
-        const { status, message: msg } = event.data || {}
-        if (status === "success") {
-          setIsAuthenticated(true)
-          message.success("Google Search Console connected!")
-          window.location.reload()
-        } else if (status === "error") {
-          message.error(msg || "Authentication failed")
-          setError(msg || "Authentication failed")
-        }
-        window.removeEventListener("message", handleMessage)
-      }
-
-      window.addEventListener("message", handleMessage)
       const popupCheck = setInterval(() => {
         if (popup.closed) {
           clearInterval(popupCheck)
@@ -244,6 +237,24 @@ const SearchConsole = () => {
           }
         }
       }, 1000)
+
+      const expectedOrigin = new URL(import.meta.env.VITE_BACKEND_URL).origin
+      const handleMessage = (event) => {
+        if (event.origin !== expectedOrigin) return
+        const status = event.data || {}
+        if (status === "GSC Connected") {
+          setIsAuthenticated(true)
+          message.success("Google Search Console connected!")
+          clearInterval(popupCheck) // ✅ stop checking
+          // window.location.reload()
+        } else {
+          message.error(status || "Authentication failed")
+          setError(status || "Authentication failed")
+        }
+        window.removeEventListener("message", handleMessage)
+      }
+
+      window.addEventListener("message", handleMessage)
     } catch (err) {
       message.error(err.message || "Failed to connect to Google Search Console")
       setError(err.message || "Connection failed")
@@ -314,7 +325,7 @@ const SearchConsole = () => {
   const handleResetFilters = () => {
     setFilterType("search")
     setBlogUrlFilter("")
-    setBlogTitleFilter("")
+    setBlogTitleFilter(null)
     // setCountryFilter("")
     setSearchQuery("")
     setDateRange("7d")
@@ -324,22 +335,60 @@ const SearchConsole = () => {
     refetch()
   }
 
+  const aggregateData = (data) => {
+  const grouped = {}
+
+  data.forEach((row) => {
+    // Group by country (code) or countryName depending on tab
+    const key = row.country
+
+    if (!grouped[key]) {
+      grouped[key] = {
+        ...row,
+        clicks: row.clicks,
+        impressions: row.impressions,
+        ctr: row.ctr,
+        position: row.position,
+      }
+    } else {
+      // sum clicks + impressions
+      grouped[key].clicks += row.clicks
+      grouped[key].impressions += row.impressions
+
+      // weighted avg position by impressions
+      grouped[key].position =
+        (grouped[key].position * (grouped[key].impressions - row.impressions) +
+          row.position * row.impressions) /
+        grouped[key].impressions
+
+      // recompute CTR from totals
+      grouped[key].ctr =
+        grouped[key].impressions > 0
+          ? ((grouped[key].clicks / grouped[key].impressions) * 100).toFixed(2)
+          : 0
+    }
+  })
+
+  return Object.values(grouped)
+}
+
   // Filter data with Fuse.js
   const filteredData = useMemo(() => {
     let result = blogData
     if (filterType === "blog" && blogUrlFilter) {
       result = result.filter((item) => item.url === blogUrlFilter)
     }
-    if (blogTitleFilter && activeTab !== "country") {
+    if (blogTitleFilter) {
       result = result.filter((item) => item.blogTitle === blogTitleFilter)
     }
-    // if (countryFilter && activeTab === "country") {
-    //   result = result.filter((item) => item.countryName === countryFilter)
-    // }
+    if (activeTab === "country") {
+      result = aggregateData(result)
+    }
     if (searchQuery && filterType === "search") {
       const fuse = new Fuse(result, fuseOptions)
       result = fuse.search(searchQuery).map(({ item }) => item)
     }
+    
     return result
   }, [blogData, filterType, blogUrlFilter, blogTitleFilter, searchQuery, activeTab])
 
@@ -366,34 +415,34 @@ const SearchConsole = () => {
   // Table columns
   const getColumns = (tab) => {
     const baseColumns = [
-      ...(tab === "page" && !blogTitleFilter
-        ? [
-            {
-              title: "Blog Title",
-              dataIndex: "blogTitle",
-              key: "blogTitle",
-              sorter: (a, b) => a.blogTitle.localeCompare(b.blogTitle),
-              width: 200,
-              render: (text) => <span className="font-medium text-gray-800">{text}</span>,
-            },
-          ]
-        : []),
       ...(tab !== "page"
         ? [
             {
               title: tab === "query" ? "Query" : "Country",
               dataIndex: tab === "query" ? "query" : "countryName",
               key: tab,
-              render: (text) => (
-                <span className="text-gray-700">
-                  {text.length > 50 ? `${text.substring(0, 47)}...` : text}
-                </span>
+              render: (text, row) => (
+                <Tooltip title={text} className="text-gray-700 px-8 line-clamp-1 tracking-normal">
+                    {text + (tab==="country" ? ` (${row.country})` : "")}
+                </Tooltip>
               ),
               sorter: (a, b) =>
                 a[tab === "query" ? "query" : "countryName"].localeCompare(
                   b[tab === "query" ? "query" : "countryName"]
                 ),
-              width: 250,
+              width: "30%",
+            },
+          ]
+        : []),
+        ...(["page"].includes(tab) && !blogTitleFilter
+        ? [
+            {
+              title: "Blog Title",
+              dataIndex: "blogTitle",
+              key: "blogTitle",
+              sorter: (a, b) => a.blogTitle.localeCompare(b.blogTitle),
+              width: "40%",
+              render: (text) => <Tooltip title={text} className="font-medium text-gray-700">{text}</Tooltip>,
             },
           ]
         : []),
@@ -407,7 +456,7 @@ const SearchConsole = () => {
             {new Intl.NumberFormat().format(clicks)}
           </span>
         ),
-        width: 100,
+       
       },
       {
         title: "Impressions",
@@ -419,30 +468,29 @@ const SearchConsole = () => {
             {new Intl.NumberFormat().format(impressions)}
           </span>
         ),
-        width: 120,
+       
       },
       {
         title: "CTR (%)",
         dataIndex: "ctr",
         key: "ctr",
         sorter: (a, b) => a.ctr - b.ctr,
-        render: (ctr) => <span className="text-gray-700">{`${ctr}%`}</span>,
-        width: 100,
+        render: (ctr) => <span className="text-gray-700">{`${Number(ctr).toFixed(2)}%`}</span>,
+        
       },
       {
         title: "Position",
         dataIndex: "position",
         key: "position",
         sorter: (a, b) => a.position - b.position,
-        render: (position) => <span className="text-gray-700">{position}</span>,
-        width: 100,
+        render: (position) => <span className="text-gray-700">{Number(position).toFixed(2)}</span>,
+        
       },
-      ...(tab === "page"
+      ...(tab !== "country"
         ? [
             {
               title: "Actions",
               key: "actions",
-              width: 100,
               render: (_, record) => (
                 <Dropdown
                   overlay={
@@ -641,13 +689,7 @@ const SearchConsole = () => {
             <p className="text-xs text-gray-500 mt-1">Average search result position</p>
           </Card>
         </div>
-        {blogTitleFilter && (
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold text-gray-800">
-              Showing data for: <span className="text-blue-600">{blogTitleFilter}</span>
-            </h2>
-          </div>
-        )}
+
         <div className="flex flex-wrap gap-3 items-center justify-between w-full">
           <Select
             value={dateRange}
@@ -686,11 +728,11 @@ const SearchConsole = () => {
               } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
             />
           </div>
-          {activeTab !== "country" && (
+          
             <Select
               value={blogTitleFilter}
               onChange={handleBlogTitleChange}
-              className={`flex-1 min-w-[200px] ${blogTitleFilter ? "border-blue-500" : ""}`}
+              className={clsx("flex-1 min-w-[200px]", blogTitleFilter && "border-blue-500")}
               placeholder="Select Blog Title"
               allowClear
               style={{ borderRadius: "8px" }}
@@ -701,7 +743,7 @@ const SearchConsole = () => {
                 </Option>
               ))}
             </Select>
-          )}
+         
           {/* {activeTab === "country" && (
             <Select
               value={countryFilter}
@@ -758,8 +800,46 @@ const SearchConsole = () => {
           )}
         </div>
       )}
+      {blogTitleFilter && (
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold text-gray-800">
+            Showing data for: <span className="text-blue-600">{blogTitleFilter}</span>
+          </h2>
+        </div>
+      )}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <Tabs
+          items={[
+            { key: "query", label: "Queries" },
+            { key: "page", label: "Pages" },
+            { key: "country", label: "Countries", disabled: Boolean(blogTitleFilter) },
+          ].map((item) => ({
+            key: item.key,
+            label: <span className="text-base font-medium">{item.label}</span>,
+            disabled: item?.disabled || false,
+            children: (
+              <Table
+                columns={getColumns(item.key)}
+                dataSource={filteredData}
+                rowKey="id"
+                pagination={{
+                  pageSize,
+                  showSizeChanger: false,
+                  showTotal: (total) => `Total ${total} results`,
+                }}
+                loading={isLoading}
+                locale={{
+                  emptyText: error ? (
+                    `Error: ${error}. Please try refreshing or reconnecting GSC.`
+                  ) : (
+                    <Empty />
+                  ),
+                }}
+                className="custom-table"
+              />
+            ),
+          }))}
+          defaultActiveKey="query"
           activeKey={activeTab}
           onChange={handleTabChange}
           className="custom-tabs"
@@ -769,75 +849,14 @@ const SearchConsole = () => {
             borderBottom: "1px solid #e5e7eb",
             margin: 0,
           }}
-        >
-          <TabPane tab={<span className="text-base font-medium">Queries</span>} key="query">
-            <Table
-              columns={getColumns("query")}
-              dataSource={filteredData}
-              rowKey="id"
-              pagination={{
-                pageSize,
-                showSizeChanger: false,
-                showTotal: (total) => `Total ${total} results`,
-              }}
-              loading={isLoading}
-              locale={{
-                emptyText: error
-                  ? `Error: ${error}. Please try refreshing or reconnecting GSC.`
-                  : "No data available. Try refreshing or adjusting filters.",
-              }}
-              className="custom-table"
-            />
-          </TabPane>
-          <TabPane tab={<span className="text-base font-medium">Pages</span>} key="page">
-            <Table
-              columns={getColumns("page")}
-              dataSource={filteredData}
-              rowKey="id"
-              pagination={{
-                pageSize,
-                showSizeChanger: false,
-                showTotal: (total) => `Total ${total} results`,
-              }}
-              loading={isLoading}
-              locale={{
-                emptyText: error
-                  ? `Error: ${error}. Please try refreshing or reconnecting GSC.`
-                  : "No data available. Try refreshing or adjusting filters.",
-              }}
-              className="custom-table"
-            />
-          </TabPane>
-          <TabPane
-            tab={<span className="text-base font-medium">Countries</span>}
-            key="country"
-            disabled={Boolean(blogTitleFilter)}
-          >
-            <Table
-              columns={getColumns("country")}
-              dataSource={filteredData}
-              rowKey="id"
-              pagination={{
-                pageSize,
-                showSizeChanger: false,
-                showTotal: (total) => `Total ${total} results`,
-              }}
-              loading={isLoading}
-              locale={{
-                emptyText: error
-                  ? `Error: ${error}. Please try refreshing or reconnecting GSC.`
-                  : "No data available. Try refreshing or adjusting filters.",
-              }}
-              className="custom-table"
-            />
-          </TabPane>
-        </Tabs>
+        ></Tabs>
       </div>
-      <style jsx>{`
+      <style jsx="true">{`
         .custom-table .ant-table-thead > tr > th {
           background: #f8fafc;
           font-weight: 600;
           color: #1f2937;
+          text-align: center;
           border-bottom: 1px solid #e5e7eb;
           padding: 12px 16px;
         }
@@ -846,6 +865,10 @@ const SearchConsole = () => {
         }
         .custom-table .ant-table-row {
           border-bottom: 1px solid #e5e7eb;
+          text-align: center;
+        }
+        .custom-table .ant-table-row .ant-table-cell:nth-child(1) {
+          text-align:justify
         }
         .custom-table .ant-table-cell {
           padding: 12px 16px;
@@ -930,7 +953,8 @@ const SearchConsole = () => {
         .ant-dropdown-menu-item:hover {
           background: #f9fafb !important;
           color: #1a73e8 !important;
-        }
+        }import default from './../../postcss.config';
+
       `}</style>
     </div>
   )

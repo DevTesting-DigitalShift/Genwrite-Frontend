@@ -171,7 +171,7 @@ const NotificationDropdown = ({ notifications }) => {
       onOpenChange={handleOpenChange}
       menu={{
         items: menuItems,
-        className: "w-[30vw] h-[60vh] top-1 !pb-2",
+        className: "w-[30vw] max-h-[60vh] top-1 !pb-2",
         title: "Notifications",
       }}
       placement="bottomRight"

@@ -44,10 +44,13 @@ const SecondStepModal = ({
     error: brandError,
   } = useQuery({
     queryKey: ["brands"],
-    queryFn: fetchBrands,
+    queryFn: async () => {
+      const response = await dispatch(fetchBrands()).unwrap() // Dispatch and unwrap the payload
+      return response // Return the brands data
+    },
     enabled: formData.isCheckedBrand, // Only fetch if brand voice is checked
-    staleTime: 5 * 60 * 1000,
-    cacheTime: 10 * 60 * 1000,
+    // staleTime: 5 * 60 * 1000,
+    // cacheTime: 10 * 60 * 1000,
   })
 
   const handleAddLink = () => {
@@ -110,12 +113,10 @@ const SecondStepModal = ({
     setFormData((prev) => ({
       ...prev,
       imageSource: source,
-      isCheckedGeneratedImages: source === "ai",
     }))
     setData((prev) => ({
       ...prev,
       imageSource: source,
-      isCheckedGeneratedImages: source === "ai",
       isUnsplashActive: source === "unsplash",
     }))
   }
@@ -360,12 +361,12 @@ const SecondStepModal = ({
                     setFormData((prev) => ({
                       ...prev,
                       isCheckedBrand: !prev.isCheckedBrand,
-                      brandId: !prev.isCheckedBrand ? prev.brandId : null,
+                      brandId: null,
                     }))
                     setData((prev) => ({
                       ...prev,
                       isCheckedBrand: !prev.isCheckedBrand,
-                      brandId: !prev.isCheckedBrand ? prev.brandId : null,
+                      brandId: null,
                     }))
                   }}
                   className="sr-only peer"

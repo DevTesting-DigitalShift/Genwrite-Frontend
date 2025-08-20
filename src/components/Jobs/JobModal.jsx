@@ -32,7 +32,7 @@ const initialJob = {
     includeTableOfContents: false,
     addOutBoundLinks: false,
   },
-  status: "stop",
+  status: "active",
 }
 
 const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded }) => {

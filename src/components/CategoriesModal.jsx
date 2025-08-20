@@ -215,8 +215,9 @@ const CategoriesModal = ({
               value: category,
               label: category,
             }))}
-            dropdownStyle={{ borderRadius: "8px" }}
-            popupClassName="rounded-lg"
+            styles={{ popup: { root: { borderRadius: "8px" } } }}
+            // dropdownStyle={{ borderRadius: "8px" }}
+            // popupClassName="rounded-lg"
             aria-label="Select or add a category"
           />
           {categoryError && !selectedCategory && (

@@ -37,9 +37,7 @@ export default defineConfig({
     cssCodeSplit: true,
     cssMinify: "esbuild",
     minify: "esbuild",
-    sourcemap: true,
-    // Increase chunk size warning limit
-    chunkSizeWarningLimit: 1000,
+    sourcemap: false,
     // Enable module preloading for better performance
     modulePreload: {
       polyfill: true,
