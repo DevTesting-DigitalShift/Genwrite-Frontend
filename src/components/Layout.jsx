@@ -154,7 +154,7 @@ const LayoutWithSidebarAndHeader = () => {
               onClick={() => navigate("/pricing")}
               className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg flex items-center justify-center gap-2 group capitalize"
             >
-              {user?.subscription?.plan === "pro" || user?.subscription?.plan === "enterprise" ? (
+              {["pro", "enterprise"].includes(user?.subscription?.plan) ? (
                 <Crown className="w-4 h-4 group-hover:rotate-12 transition-transform duration-300" />
               ) : (
                 <Zap className="w-4 h-4 group-hover:scale-110 transition-transform duration-300" />

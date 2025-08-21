@@ -154,7 +154,8 @@ const ToolBox = () => {
 
   const handleSave = async () => {
     if (userPlan === "free" || userPlan === "basic") {
-      showUpgradePopup()
+      // showUpgradePopup()
+      navigate("/pricing")
       return
     }
 

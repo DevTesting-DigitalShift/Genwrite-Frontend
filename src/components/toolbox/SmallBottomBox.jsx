@@ -39,13 +39,14 @@ const SmallBottomBox = ({ id }) => {
 
   const handleRegenerate = () => {
     if (userPlan === "free" || userPlan === "basic") {
-      handlePopup({
-        title: "Upgrade Required",
-        description: "Rewrite is only available for Pro and Enterprise users.",
-        confirmText: "Buy Now",
-        cancelText: "Cancel",
-        onConfirm: () => navigate("/pricing"),
-      })
+      // handlePopup({
+      //   title: "Upgrade Required",
+      //   description: "Rewrite is only available for Pro and Enterprise users.",
+      //   confirmText: "Buy Now",
+      //   cancelText: "Cancel",
+      //   onConfirm: () => navigate("/pricing"),
+      // })
+      navigate("/pricing")
     } else {
       handlePopup({
         title: "Retry Blog Generation",

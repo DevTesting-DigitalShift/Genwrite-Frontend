@@ -13,6 +13,7 @@ dayjs.extend(relativeTime);
 export const DashboardBox = ({ title, content, id, functions, icon, gradient }) => {
   const user = useSelector((state) => state.auth.user)
   const userPlan = user?.plan ?? user?.subscription?.plan
+  const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
   const showPopup = () => {
     handlePopup({
@@ -32,7 +33,8 @@ export const DashboardBox = ({ title, content, id, functions, icon, gradient }) 
       functions.showModal?.()
     } else if (id === "B") {
       if (["free", "basic"].includes(userPlan?.toLowerCase())) {
-        showPopup()
+        // showPopup()
+        navigate("/pricing")
         return
       }
       functions.showMultiStepModal?.()
@@ -119,7 +121,8 @@ export const QuickBox = ({
 
     if (id === 4 && functions?.showCompetitiveAnalysis) {
       if (["free", "basic"].includes(userPlan?.toLowerCase())) {
-        showPopup()
+        // showPopup()
+        navigate("/pricing")
         return
       }
       functions.showCompetitiveAnalysis()
