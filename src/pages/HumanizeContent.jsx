@@ -70,7 +70,8 @@ const HumanizeContent = () => {
 
   const handleMagicWandClick = () => {
     if (userPlan === "free" || userPlan === "basic") {
-      showUpgradePopup()
+      // showUpgradePopup()
+      navigate("/pricing")
       return
     }
     handleSubmit()

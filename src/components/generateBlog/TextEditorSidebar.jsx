@@ -33,6 +33,7 @@ import CategoriesModal from "@components/CategoriesModal"
 import Loading from "@components/Loading"
 import { marked } from "marked"
 import DOMPurify from "dompurify"
+import { CrownTwoTone } from "@ant-design/icons"
 
 const { Panel } = Collapse
 
@@ -59,7 +60,7 @@ const TextEditorSidebar = ({
   const [isMinimized, setIsMinimized] = useState(false)
   const [activeSection, setActiveSection] = useState("overview")
   const user = useSelector((state) => state.auth.user)
-  const userPlan = user?.plan ?? user?.subscription?.plan
+  const userPlan = user?.subscription?.plan
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const { handlePopup } = useConfirmPopup()
@@ -223,13 +224,15 @@ const TextEditorSidebar = ({
 
   const handleAnalyzing = useCallback(() => {
     if (["free", "basic"].includes(userPlan?.toLowerCase?.())) {
-      return handlePopup({
-        title: "Upgrade Required",
-        description: "Competitor Analysis is only available for Pro and Enterprise users.",
-        confirmText: "Buy Now",
-        cancelText: "Cancel",
-        onConfirm: () => navigate("/pricing"),
-      })
+      // return handlePopup({
+      //   title: "Upgrade Required",
+      //   description: "Competitor Analysis is only available for Pro and Enterprise users.",
+      //   confirmText: "Buy Now",
+      //   cancelText: "Cancel",
+      //   onConfirm: () => navigate("/pricing"),
+      // })
+      navigate("/pricing")
+      return;
     }
 
     const seoScore = blog?.seoScore
@@ -260,13 +263,14 @@ const TextEditorSidebar = ({
 
   const handleProofreadingBlog = useCallback(() => {
     if (["free", "basic"].includes(userPlan?.toLowerCase?.())) {
-      handlePopup({
-        title: "Upgrade Required",
-        description: "AI Proofreading is only available for Pro and Enterprise users.",
-        confirmText: "Buy Now",
-        cancelText: "Cancel",
-        onConfirm: () => navigate("/pricing"),
-      })
+      // handlePopup({
+      //   title: "Upgrade Required",
+      //   description: "AI Proofreading is only available for Pro and Enterprise users.",
+      //   confirmText: "Buy Now",
+      //   cancelText: "Cancel",
+      //   onConfirm: () => navigate("/pricing"),
+      // })
+      navigate("/pricing")
     } else {
       handlePopup({
         title: "AI Proofreading",
@@ -428,23 +432,18 @@ const TextEditorSidebar = ({
     icon: Icon,
   }) => (
     <motion.div
-      whileHover={{ scale: 1.02 }}
-      transition={{ duration: 0.2 }}
-      className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-all duration-300"
+      whileHover={{ scale: 1.02, boxShadow: "0px 0px 5px 0px rgba(0, 0, 0, 0.8)", transition: { duration: 0.2 } }}
+      className="bg-white rounded-lg shadow-sm border border-gray-200 p-4"
     >
       <div className="flex items-start gap-3 mb-3">
         <div className="p-2 bg-blue-50 rounded-lg">
           <Icon className="w-4 h-4 text-blue-600" />
         </div>
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-4 mb-1">
             <h3 className="font-semibold text-gray-900">{title}</h3>
             {isPro && (
-              <Badge
-                count={<Crown size={10} />}
-                style={{ backgroundColor: "#fbbf24" }}
-                size="small"
-              />
+              <CrownTwoTone className="text-2xl ml-auto mr-2" />
             )}
           </div>
           <p className="text-sm text-gray-600">{description}</p>

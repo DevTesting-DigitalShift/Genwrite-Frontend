@@ -7,6 +7,8 @@ import {
   GlobalOutlined,
   CloseOutlined,
   DownloadOutlined,
+  ThunderboltTwoTone,
+  CrownTwoTone,
 } from "@ant-design/icons"
 import { motion } from "framer-motion"
 import CompetitiveAnalysisModal from "../multipleStepModal/CompetitiveAnalysisModal"
@@ -15,6 +17,9 @@ import { analyzeKeywordsThunk, clearKeywordAnalysis } from "@store/slices/analys
 import { Helmet } from "react-helmet"
 import { ImMagicWand } from "react-icons/im"
 import { Keyboard, WholeWord, Workflow } from "lucide-react"
+import { selectUser } from "@store/slices/authSlice"
+import { Crown } from "lucide-react"
+import { Flex } from "antd"
 
 export default function ToolboxPage() {
   const navigate = useNavigate()
@@ -242,7 +247,7 @@ export default function ToolboxPage() {
     {
       key: "ai-writer",
       title: "AI Writer",
-      icon: <ThunderboltOutlined className="text-yellow-500" />,
+      icon: <ThunderboltTwoTone className="text-2xl size-5 text-yellow-500" />,
       description: "Generate blog content with AI assistance",
       action: () => navigate("/editor"),
       actionText: "Open Editor",
@@ -251,7 +256,7 @@ export default function ToolboxPage() {
     {
       key: "humanize-content",
       title: "Humanize Content",
-      icon: <ImMagicWand className="text-blue-500" />,
+      icon: <ImMagicWand className="size-5 text-blue-500" />,
       description:
         "Transform AI-generated text into natural, human-sounding content while preserving intent and clarity.",
       action: () => navigate("/humanize-content"),
@@ -261,7 +266,7 @@ export default function ToolboxPage() {
     {
       key: "outline",
       title: "AI Outline",
-      icon: <Workflow  className="text-green-500" />, // from react-icons/bs
+      icon: <Workflow  className="size-5 text-green-500" />, // from react-icons/bs
       description:
         "Craft high-impact blog outlines with SEO keywords, structure, and brand voice in seconds using AI.",
       action: () => navigate("/outline"),
@@ -348,7 +353,7 @@ export default function ToolboxPage() {
                 </motion.div>
               ),
               children: (
-                <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-6 mt-6">
+                <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-8 mt-4 px-4">
                   {cardItems
                     .filter((item) =>
                       ["ai-writer", "humanize-content", "outline"].includes(item.key)
@@ -371,7 +376,7 @@ export default function ToolboxPage() {
                 </motion.div>
               ),
               children: (
-                <div className="space-y-6 mt-6">
+                <div className="space-y-6 mt-4 px-8">
                   {cardItems
                     .filter((item) => item.key === "competitor-analysis")
                     .map((item) => (
@@ -392,7 +397,7 @@ export default function ToolboxPage() {
                 </motion.div>
               ),
               children: (
-                <div className="space-y-6 mt-6">
+                <div className="space-y-6 mt-6 px-4">
                   {/* Keyword Research Card */}
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -569,7 +574,7 @@ export default function ToolboxPage() {
         />
         {competitiveAnalysisModalOpen && (
           <CompetitiveAnalysisModal
-            blogs={blogs}
+            blogs={blogs ?? []}
             open={competitiveAnalysisModalOpen}
             closeFnc={() => setCompetitiveAnalysisModalOpen(false)}
           />
@@ -580,20 +585,32 @@ export default function ToolboxPage() {
 }
 
 function AnimatedCard({ item }) {
+  const navigate = useNavigate()
+  const user = useSelector(selectUser)
+  const [isUserPlanFree, setIsUserPlanFree] = useState(false)
+  useEffect(() => {
+    if(user){
+      setIsUserPlanFree(["free"].includes(user?.subscription?.plan))
+    }
+  }, [user])
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{
-        y: -10,
-        transition: { duration: 0.3 },
+        scale:1.03,
+        transition: { type:"spring", stiffness: 300, damping: 10, duration:0.5 },
       }}
     >
       <Card
         title={
           <div className="flex justify-between items-center">
             <span className="font-medium text-gray-700">{item.title}</span>
-            <div>{item.icon}</div>
+            <Flex justify="around" align="center" gap={20}>
+              {isUserPlanFree && <CrownTwoTone className="size-6 text-4xl" />}
+              {item.icon}
+            </Flex>
           </div>
         }
         className={`rounded-xl shadow-lg border-0 relative overflow-hidden transition-all duration-300 ${
@@ -604,13 +621,13 @@ function AnimatedCard({ item }) {
         {item.span ? (
           <span className="text-gray-500 font-medium">{item.span}</span>
         ) : (
-          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex justify-center">
             <Button
               block
               type={item.disabled ? "default" : "primary"}
-              onClick={item.action}
+              onClick={isUserPlanFree ? () => navigate("/pricing") : item.action}
               disabled={item.disabled}
-              className="transition-all"
+              className="transition-all !w-5/6"
             >
               {item.actionText}
             </Button>

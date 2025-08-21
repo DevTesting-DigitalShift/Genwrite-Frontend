@@ -38,7 +38,7 @@ import {
   Tooltip,
   Legend,
 } from "chart.js"
-import { quickTools, letsBegin } from "./dashData/dash"
+import { quickTools, letsBegin } from "./dashdata/dash"
 
 ChartJS.register(
   ArcElement,

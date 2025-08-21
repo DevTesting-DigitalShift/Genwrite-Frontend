@@ -122,6 +122,7 @@ const NotificationDropdown = ({ notifications }) => {
         title: "Notifications",
       }}
       placement="bottomRight"
+      rootClassName="!bg-gray-50 shadow-xl rounded-xl"
     >
       <Badge
         count={unreadCount}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useLayoutEffect, useMemo, useCallback } from "react"
 import { useEditor, EditorContent } from "@tiptap/react"
-import { BubbleMenu } from "@tiptap/react"
+import { BubbleMenu } from "@tiptap/react/menus"
 import StarterKit from "@tiptap/starter-kit"
 import Link from "@tiptap/extension-link"
 import Image from "@tiptap/extension-image"
@@ -100,7 +100,7 @@ const TextEditor = ({
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
   const user = useSelector((state) => state.auth.user)
-  const userPlan = user?.plan ?? user?.subscription?.plan
+  const userPlan = user?.subscription?.plan
   const hasShownToast = useRef(false)
   const location = useLocation()
   const fileInputRef = useRef(null) // Added for file input
@@ -518,7 +518,8 @@ const TextEditor = ({
   const safeEditorAction = useCallback(
     (action) => {
       if (userPlan === "free" || userPlan === "basic") {
-        showUpgradePopup()
+        // showUpgradePopup()
+        navigate("/pricing")
         return
       }
       action()
@@ -547,13 +548,14 @@ const TextEditor = ({
 
   const handleRegenerate = () => {
     if (userPlan === "free" || userPlan === "basic") {
-      handlePopup({
-        title: "Upgrade Required",
-        description: "Rewrite is only available for Pro and Enterprise users.",
-        confirmText: "Buy Now",
-        cancelText: "Cancel",
-        onConfirm: () => navigate("/pricing"),
-      })
+      // handlePopup({
+      //   title: "Upgrade Required",
+      //   description: "Rewrite is only available for Pro and Enterprise users.",
+      //   confirmText: "Buy Now",
+      //   cancelText: "Cancel",
+      //   onConfirm: () => navigate("/pricing"),
+      // })
+      navigate("/pricing")
     } else {
       handlePopup({
         title: "Retry Blog Generation",
@@ -1069,13 +1071,14 @@ const TextEditor = ({
 
   const handleRewrite = () => {
     if (userPlan === "free" || userPlan === "basic") {
-      handlePopup({
-        title: "Upgrade Required",
-        description: "Rewrite is only available for Pro and Enterprise users.",
-        confirmText: "Buy Now",
-        cancelText: "Cancel",
-        onConfirm: () => navigate("/pricing"),
-      })
+      // handlePopup({
+      //   title: "Upgrade Required",
+      //   description: "Rewrite is only available for Pro and Enterprise users.",
+      //   confirmText: "Buy Now",
+      //   cancelText: "Cancel",
+      //   onConfirm: () => navigate("/pricing"),
+      // })
+      navigate("/pricing")
     } else {
       handlePopup({
         title: "Rewrite Selected Lines",
