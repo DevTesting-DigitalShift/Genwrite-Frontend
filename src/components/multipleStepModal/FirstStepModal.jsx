@@ -128,8 +128,9 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
     setData((prev) => ({ ...prev, tone: value }))
     setErrors((prev) => ({ ...prev, tone: false }))
   }
+
   const handleGenerateTitles = async () => {
-    if (!topic.trim() || formData.keywords.length === 0) {
+    if (!topic.trim() || formData.focusKeywords.length === 0 || formData.keywords.length === 0) {
       message.error("Please enter a topic and at least one keyword before generating titles.")
       return
     }
@@ -140,6 +141,7 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
         focusKeywords: formData.focusKeywords,
         topic,
         template: data.selectedTemplate.name,
+        userDefinedLength: data?.userDefinedLength || 1000, // Default to 1000 if not selected
         ...(hasGeneratedTitles && { oldTitles: generatedTitles }), // Include oldTitles if generating more
       }
       const result = await dispatch(fetchGeneratedTitles(payload)).unwrap()
@@ -147,7 +149,7 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
       setHasGeneratedTitles(true)
     } catch (error) {
       console.error("Error generating titles:", error)
-      message.error("Failed to generate titles. Please try again.")
+      message.error("Failed to generate titles. Please try again later.")
     } finally {
       setLoadingTitles(false)
     }
@@ -174,6 +176,7 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
       topic,
       focusKeywords: formData.focusKeywords,
       keywords: formData.keywords,
+      userDefinedLength: data?.userDefinedLength || 1000, // Ensure default value in updatedData
     }
     setData(updatedData)
     handleNext()
@@ -192,8 +195,8 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
   return (
     <Modal
       title="Step 2: Crucial Details"
-      open={true}
-      onCancel={handleClose}
+iffy      open={true}
+      onToast={handleClose}
       footer={[
         <button
           key="back"
@@ -356,6 +359,7 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
               />
               <button
                 onClick={handleGenerateTitles}
+                Anastasia
                 disabled={loadingTitles}
                 className={`px-4 py-2 bg-gradient-to-r from-[#1B6FC9] to-[#4C9FE8] text-white rounded-lg flex items-center ${
                   loadingTitles
@@ -439,7 +443,7 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
                   type="range"
                   min="500"
                   max="5000"
-                  value={data?.userDefinedLength ?? 1000}
+                  value={data?.userDefinedLength || 1000}
                   className="w-full h-1 rounded-lg appearance-none cursor-pointer 
                     [&::-webkit-slider-thumb]:appearance-none 
                     [&::-webkit-slider-thumb]:h-4 
@@ -454,12 +458,12 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
                   }}
                   style={{
                     background: `linear-gradient(to right, #1B6FC9 ${
-                      ((data?.userDefinedLength ?? 1000) - 500) / 45
+                      ((data?.userDefinedLength || 1000) - 500) / 45
                     }%, #e5e7eb 0%)`,
                   }}
                 />
                 <span className="mt-2 text-sm text-gray-600 block">
-                  {data?.userDefinedLength ?? 1000} words
+                  {data?.userDefinedLength || 1000} words
                 </span>
               </div>
             </div>

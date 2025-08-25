@@ -5,7 +5,7 @@ import { useSelector } from "react-redux"
 
 const GoProButton = ({ onClick }) => {
   const { user } = useSelector((state) => state.auth)
-  const userPlan = user?.plan ?? user?.subscriptions?.plan
+  const userPlan = user?.subscriptions?.plan
   return (
     <motion.div
       whileHover={{ scale: 1.05 }}

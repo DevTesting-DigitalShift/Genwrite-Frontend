@@ -61,7 +61,7 @@ export const fetchBlogDetails = createAsyncThunk(
 export const createNewBlog = createAsyncThunk(
   "blogs/createNewBlog",
   async ({ blogData, user, navigate }, { rejectWithValue }) => {
-    console.debug(blogData)
+  
 
     try {
       if (!blogData) {
@@ -122,7 +122,7 @@ export const createNewBlog = createAsyncThunk(
 export const createNewQuickBlog = createAsyncThunk(
   "blogs/createNewQuickBlog",
   async ({ blogData, user, navigate }, { rejectWithValue }) => {
-    console.debug(blogData)
+  
     try {
       const blog = await createQuickBlog(blogData)
       message.success("QuickBlog created successfully")
@@ -169,7 +169,7 @@ export const createNewQuickBlog = createAsyncThunk(
 export const createMultiBlog = createAsyncThunk(
   "blogs/createMultiBlog",
   async ({ blogData, user, navigate }, { rejectWithValue }) => {
-    console.debug(blogData)
+  
     try {
       const blogs = await createBlogMultiple(blogData)
 
@@ -389,17 +389,11 @@ export const fetchBlogStats = createAsyncThunk(
 
 export const fetchGeneratedTitles = createAsyncThunk(
   "blogs/fetchGeneratedTitles",
-  async ({ keywords, focusKeywords, topic, template }, { rejectWithValue }) => {
+  async (payload, { rejectWithValue }) => {
     try {
-      const titles = await getGeneratedTitles({
-        keywords,
-        focusKeywords,
-        topic,
-        template,
-      })
+      const titles = await getGeneratedTitles(payload)
       return titles
     } catch (error) {
-      message.error("Failed to generate blog titles.")
       return rejectWithValue(error.response?.data?.message || error.message)
     }
   }

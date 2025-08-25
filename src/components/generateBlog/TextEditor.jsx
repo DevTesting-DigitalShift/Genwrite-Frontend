@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useLayoutEffect, useMemo, useCallback } from "react"
-import { useEditor, EditorContent, BubbleMenu } from "@tiptap/react"
+import { useEditor, EditorContent } from "@tiptap/react"
+import { BubbleMenu } from "@tiptap/react/menus"
 import StarterKit from "@tiptap/starter-kit"
 import Link from "@tiptap/extension-link"
 import Image from "@tiptap/extension-image"
@@ -47,7 +48,6 @@ import Loading from "@components/Loading"
 import { ReloadOutlined } from "@ant-design/icons"
 import { sendRetryLines } from "@api/blogApi"
 import { retryBlog } from "@store/slices/blogSlice"
-
 // Configure marked for better HTML output
 marked.setOptions({
   gfm: true,
@@ -100,7 +100,7 @@ const TextEditor = ({
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
   const user = useSelector((state) => state.auth.user)
-  const userPlan = user?.plan ?? user?.subscription?.plan
+  const userPlan = user?.subscription?.plan
   const hasShownToast = useRef(false)
   const location = useLocation()
   const fileInputRef = useRef(null) // Added for file input
@@ -115,7 +115,9 @@ const TextEditor = ({
   const markdownToHtml = useCallback((markdown) => {
     if (!markdown) return "<p></p>"
     try {
-      const html = marked.parse(markdown)
+      const html = marked.parse( markdown
+    .replace(/!\[(["'""])(.*?)\1\]\((.*?)\)/g, (_, __, alt, url) => `![${alt}](${url})`) // remove quotes from alt
+    .replace(/'/g, "&apos;") )
       const parser = new DOMParser()
       const doc = parser.parseFromString(html, "text/html")
       doc.querySelectorAll("script").forEach((script) => script.remove())
@@ -188,16 +190,19 @@ const TextEditor = ({
         StarterKit.configure({
           heading: { levels: [1, 2, 3] },
           bold: { HTMLAttributes: { class: "font-bold" } },
+          italic: { HTMLAttributes: { class: "italic" } },
+          underline: { HTMLAttributes: { class: "underline" } },
+          link: { HTMLAttributes: { class: "text-blue-600 underline" } },
         }),
-        Link.configure({ HTMLAttributes: { class: "text-blue-600 underline" } }),
+        // Link.configure({ HTMLAttributes: { class: "text-blue-600 underline" } }),
         Image.configure({
           HTMLAttributes: {
             class: "rounded-lg mx-auto w-3/4 h-auto object-contain",
             style: "display: block;;",
           },
         }),
-        Underline,
-        TextAlign.configure({ types: ["heading", "paragraph"] }),
+        // Underline,
+        TextAlign.configure({ types: ["heading", "paragraph", "right"] }),
         ProofreadingDecoration.configure({
           suggestions: proofreadingResults,
         }),
@@ -228,7 +233,7 @@ const TextEditor = ({
 
   useEffect(() => {
     const scrollToTop = () => {
-      if (activeTab === "Normal" && normalEditor) {
+      if (activeTab === "Normal" && normalEditor && normalEditor?.view?.dom) {
         const editorElement = normalEditor.view.dom
         if (editorElement) {
           editorElement.scrollTop = 0
@@ -456,7 +461,9 @@ const TextEditor = ({
       setContent(initialContent)
     }
     if (normalEditor && !normalEditor.isDestroyed && activeTab === "Normal") {
-      const htmlContent = initialContent ? marked.parse(initialContent, { gfm: true }) : "<p></p>"
+      const htmlContent = initialContent ? marked.parse( initialContent
+    .replace(/!\[(["'""])(.*?)\1\]\((.*?)\)/g, (_, __, alt, url) => `![${alt}](${url})`) // remove quotes from alt
+    .replace(/'/g, "&apos;") , { gfm: true }) : "<p></p>"
       if (normalEditor.getHTML() !== htmlContent) {
         const { from, to } = normalEditor.state.selection
         normalEditor.commands.setContent(htmlContent, false)
@@ -511,7 +518,8 @@ const TextEditor = ({
   const safeEditorAction = useCallback(
     (action) => {
       if (userPlan === "free" || userPlan === "basic") {
-        showUpgradePopup()
+        // showUpgradePopup()
+        navigate("/pricing")
         return
       }
       action()
@@ -540,13 +548,14 @@ const TextEditor = ({
 
   const handleRegenerate = () => {
     if (userPlan === "free" || userPlan === "basic") {
-      handlePopup({
-        title: "Upgrade Required",
-        description: "Rewrite is only available for Pro and Enterprise users.",
-        confirmText: "Buy Now",
-        cancelText: "Cancel",
-        onConfirm: () => navigate("/pricing"),
-      })
+      // handlePopup({
+      //   title: "Upgrade Required",
+      //   description: "Rewrite is only available for Pro and Enterprise users.",
+      //   confirmText: "Buy Now",
+      //   cancelText: "Cancel",
+      //   onConfirm: () => navigate("/pricing"),
+      // })
+      navigate("/pricing")
     } else {
       handlePopup({
         title: "Retry Blog Generation",
@@ -853,11 +862,15 @@ const TextEditor = ({
   }, [selectedImage, normalEditor, activeTab, setContent, markdownToHtml, htmlToMarkdown])
 
   useEffect(() => {
-    if (normalEditor && activeTab === "Normal") {
+    if (activeTab === "Normal" && normalEditor
+       && normalEditor?.view?.dom
+    ) {
       const editorElement = normalEditor.view.dom
       editorElement.addEventListener("click", handleImageClick)
       return () => {
-        editorElement.removeEventListener("click", handleImageClick)
+        if(editorElement){
+          editorElement.removeEventListener("click", handleImageClick)
+        }
       }
     }
   }, [normalEditor, activeTab, handleImageClick])
@@ -1058,13 +1071,14 @@ const TextEditor = ({
 
   const handleRewrite = () => {
     if (userPlan === "free" || userPlan === "basic") {
-      handlePopup({
-        title: "Upgrade Required",
-        description: "Rewrite is only available for Pro and Enterprise users.",
-        confirmText: "Buy Now",
-        cancelText: "Cancel",
-        onConfirm: () => navigate("/pricing"),
-      })
+      // handlePopup({
+      //   title: "Upgrade Required",
+      //   description: "Rewrite is only available for Pro and Enterprise users.",
+      //   confirmText: "Buy Now",
+      //   cancelText: "Cancel",
+      //   onConfirm: () => navigate("/pricing"),
+      // })
+      navigate("/pricing")
     } else {
       handlePopup({
         title: "Rewrite Selected Lines",
@@ -1594,7 +1608,6 @@ const TextEditor = ({
             {normalEditor && (
               <BubbleMenu
                 editor={normalEditor}
-                tippyOptions={{ duration: 100 }}
                 className="flex gap-2 bg-white shadow-lg p-2 rounded-lg border border-gray-200"
               >
                 <Tooltip title="Bold" placement="top">

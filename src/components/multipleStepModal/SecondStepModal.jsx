@@ -310,10 +310,12 @@ const SecondStepModal = ({
                     isAiImagesLimitReached && (
                       <Tooltip
                         title="You've reached your AI image generation limit. It'll reset in the next billing cycle."
-                        overlayInnerStyle={{
-                          backgroundColor: "#FEF9C3", // light yellow
-                          border: "1px solid #FACC15", // yellow-400 border
-                          color: "#78350F", // dark yellow text
+                        styles={{
+                          body: {
+                            backgroundColor: "#FEF9C3", // light yellow
+                            border: "1px solid #FACC15", // yellow-400 border
+                            color: "#78350F", // dark yellow text
+                          },
                         }}
                       >
                         <TriangleAlert className="text-yellow-400 ml-4" size={15} />

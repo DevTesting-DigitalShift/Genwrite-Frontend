@@ -25,6 +25,12 @@ export const createStripeSession = async (payload) => {
   return response.data
 }
 
+// 🔵 Stripe API
+export const cancelStripeSubscription = async () => {
+  const response = await axiosInstance.patch("/stripe/cancel-subscription")
+  return response.data
+}
+
 export const humanizeContentGenerator = async (payload) => {
   const response = await axiosInstance.post("/generate/humanised-content", payload)
   return response.data

@@ -17,7 +17,7 @@ import {
 import { useSelector, useDispatch } from "react-redux"
 import { loadAuthenticatedUser } from "@store/slices/authSlice"
 import { DatePicker, message, Select, Tag, Progress, Badge, Tooltip } from "antd"
-import moment from "moment"
+import dayjs from "dayjs"
 import { Helmet } from "react-helmet"
 import { updateProfile } from "@store/slices/userSlice"
 
@@ -102,18 +102,6 @@ const Profile = () => {
         dob: user.dob || "",
         interests: user.interests || ["other"],
       },
-      billingDetails: {
-        company: user.billing?.company || "",
-        address: {
-          line1: user.billing?.address?.line1 || "",
-          line2: user.billing?.address?.line2 || "",
-          city: user.billing?.address?.city || "",
-          state: user.billing?.address?.state || "",
-          country: user.billing?.address?.country || "",
-          postalCode: user.billing?.address?.postalCode || "",
-        },
-        gstOrTaxId: user.billing?.gstOrTaxId || "",
-      },
       subscription: {
         plan: user.subscription?.plan || "free",
         startDate: user.subscription?.startDate || "",
@@ -149,11 +137,6 @@ const Profile = () => {
       dob: profileData.personalDetails.dob,
       wordpressLink: profileData.personalDetails.wordpress,
       interests: profileData.personalDetails.interests,
-      billing: {
-        company: profileData.billingDetails.company,
-        address: profileData.billingDetails.address,
-        gstOrTaxId: profileData.billingDetails.gstOrTaxId,
-      },
     }
 
     try {
@@ -550,7 +533,7 @@ const Profile = () => {
                         format="YYYY-MM-DD"
                         value={
                           profileData.personalDetails.dob
-                            ? moment(profileData.personalDetails.dob)
+                            ? dayjs(profileData.personalDetails.dob)
                             : null
                         }
                         onChange={(date, dateString) =>
@@ -562,7 +545,7 @@ const Profile = () => {
                           })
                         }
                         className="w-full"
-                        disabledDate={(current) => current && current > moment().endOf("day")}
+                        disabledDate={(current) => current && current > dayjs().endOf("day")}
                       />
                     ) : (
                       <motion.div

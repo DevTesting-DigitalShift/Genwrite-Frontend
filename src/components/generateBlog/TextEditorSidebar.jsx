@@ -33,7 +33,7 @@ import CategoriesModal from "@components/CategoriesModal"
 import Loading from "@components/Loading"
 import { marked } from "marked"
 import DOMPurify from "dompurify"
-import html2pdf from "html2pdf.js"
+import { CrownTwoTone } from "@ant-design/icons"
 
 const { Panel } = Collapse
 
@@ -60,7 +60,7 @@ const TextEditorSidebar = ({
   const [isMinimized, setIsMinimized] = useState(false)
   const [activeSection, setActiveSection] = useState("overview")
   const user = useSelector((state) => state.auth.user)
-  const userPlan = user?.plan ?? user?.subscription?.plan
+  const userPlan = user?.subscription?.plan
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const { handlePopup } = useConfirmPopup()
@@ -224,13 +224,15 @@ const TextEditorSidebar = ({
 
   const handleAnalyzing = useCallback(() => {
     if (["free", "basic"].includes(userPlan?.toLowerCase?.())) {
-      return handlePopup({
-        title: "Upgrade Required",
-        description: "Competitor Analysis is only available for Pro and Enterprise users.",
-        confirmText: "Buy Now",
-        cancelText: "Cancel",
-        onConfirm: () => navigate("/pricing"),
-      })
+      // return handlePopup({
+      //   title: "Upgrade Required",
+      //   description: "Competitor Analysis is only available for Pro and Enterprise users.",
+      //   confirmText: "Buy Now",
+      //   cancelText: "Cancel",
+      //   onConfirm: () => navigate("/pricing"),
+      // })
+      navigate("/pricing")
+      return;
     }
 
     const seoScore = blog?.seoScore
@@ -261,13 +263,14 @@ const TextEditorSidebar = ({
 
   const handleProofreadingBlog = useCallback(() => {
     if (["free", "basic"].includes(userPlan?.toLowerCase?.())) {
-      handlePopup({
-        title: "Upgrade Required",
-        description: "AI Proofreading is only available for Pro and Enterprise users.",
-        confirmText: "Buy Now",
-        cancelText: "Cancel",
-        onConfirm: () => navigate("/pricing"),
-      })
+      // handlePopup({
+      //   title: "Upgrade Required",
+      //   description: "AI Proofreading is only available for Pro and Enterprise users.",
+      //   confirmText: "Buy Now",
+      //   cancelText: "Cancel",
+      //   onConfirm: () => navigate("/pricing"),
+      // })
+      navigate("/pricing")
     } else {
       handlePopup({
         title: "AI Proofreading",
@@ -319,60 +322,60 @@ const TextEditorSidebar = ({
     [editorContent, blog]
   )
 
-  const handleExportPDF = useCallback(() => {
-    if (!editorContent) {
-      message.error("No content to export.")
-      return
-    }
+  // const handleExportPDF = useCallback(() => {
+  //   if (!editorContent) {
+  //     message.error("No content to export.")
+  //     return
+  //   }
 
-    const title = blog?.title || "Untitled_Blog"
-    const rawHtml = marked(editorContent, { gfm: true })
-    const safeHtml = DOMPurify.sanitize(rawHtml)
+  //   const title = blog?.title || "Untitled_Blog"
+  //   const rawHtml = marked(editorContent, { gfm: true })
+  //   const safeHtml = DOMPurify.sanitize(rawHtml)
 
-    const container = document.createElement("div")
-    container.innerHTML = safeHtml
-    container.style.padding = "20px"
-    container.style.fontFamily = "Arial, sans-serif"
-    container.style.lineHeight = "1.6"
-    container.style.maxWidth = "800px"
-    container.style.color = "#000"
-    container.style.backgroundColor = "#fff"
+  //   const container = document.createElement("div")
+  //   container.innerHTML = safeHtml
+  //   container.style.padding = "20px"
+  //   container.style.fontFamily = "Arial, sans-serif"
+  //   container.style.lineHeight = "1.6"
+  //   container.style.maxWidth = "800px"
+  //   container.style.color = "#000"
+  //   container.style.backgroundColor = "#fff"
 
-    // ✅ Patch oklch color fallback
-    Array.from(container.querySelectorAll("*")).forEach((el) => {
-      const style = window.getComputedStyle(el)
-      if (style.color?.includes("oklch")) {
-        el.style.color = "#000"
-      }
-      if (style.backgroundColor?.includes("oklch")) {
-        el.style.backgroundColor = "#fff"
-      }
-    })
+  //   // ✅ Patch oklch color fallback
+  //   Array.from(container.querySelectorAll("*")).forEach((el) => {
+  //     const style = window.getComputedStyle(el)
+  //     if (style.color?.includes("oklch")) {
+  //       el.style.color = "#000"
+  //     }
+  //     if (style.backgroundColor?.includes("oklch")) {
+  //       el.style.backgroundColor = "#fff"
+  //     }
+  //   })
 
-    document.body.appendChild(container)
+  //   document.body.appendChild(container)
 
-    const opt = {
-      margin: 0.5,
-      filename: `${title}.pdf`,
-      image: { type: "jpeg", quality: 0.98 },
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
-    }
+  //   const opt = {
+  //     margin: 0.5,
+  //     filename: `${title}.pdf`,
+  //     image: { type: "jpeg", quality: 0.98 },
+  //     html2canvas: { scale: 2 },
+  //     jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
+  //   }
 
-    html2pdf()
-      .set(opt)
-      .from(container)
-      .save()
-      .then(() => {
-        message.success("PDF exported successfully!")
-        document.body.removeChild(container)
-      })
-      .catch((err) => {
-        console.error("Error exporting PDF:", err)
-        message.error("Failed to export PDF.")
-        document.body.removeChild(container)
-      })
-  }, [editorContent, blog])
+  //   html2pdf()
+  //     .set(opt)
+  //     .from(container)
+  //     .save()
+  //     .then(() => {
+  //       message.success("PDF exported successfully!")
+  //       document.body.removeChild(container)
+  //     })
+  //     .catch((err) => {
+  //       console.error("Error exporting PDF:", err)
+  //       message.error("Failed to export PDF.")
+  //       document.body.removeChild(container)
+  //     })
+  // }, [editorContent, blog])
 
   const exportMenu = (
     <Menu>
@@ -429,23 +432,18 @@ const TextEditorSidebar = ({
     icon: Icon,
   }) => (
     <motion.div
-      whileHover={{ scale: 1.02 }}
-      transition={{ duration: 0.2 }}
-      className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-all duration-300"
+      whileHover={{ scale: 1.02, boxShadow: "0px 0px 5px 0px rgba(0, 0, 0, 0.8)", transition: { duration: 0.2 } }}
+      className="bg-white rounded-lg shadow-sm border border-gray-200 p-4"
     >
       <div className="flex items-start gap-3 mb-3">
         <div className="p-2 bg-blue-50 rounded-lg">
           <Icon className="w-4 h-4 text-blue-600" />
         </div>
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-4 mb-1">
             <h3 className="font-semibold text-gray-900">{title}</h3>
             {isPro && (
-              <Badge
-                count={<Crown size={10} />}
-                style={{ backgroundColor: "#fbbf24" }}
-                size="small"
-              />
+              <CrownTwoTone className="text-2xl ml-auto mr-2" />
             )}
           </div>
           <p className="text-sm text-gray-600">{description}</p>
@@ -733,11 +731,11 @@ const TextEditorSidebar = ({
               >
                 <Icon className="w-4 h-4" />
                 {label}
-                {badge > 0 && (
+                {/* {badge > 0 && (
                   <span className="ml-1 inline-flex items-center justify-center w-5 h-5 text-xs font-semibold text-white bg-red-500 rounded-full">
                     {badge}
                   </span>
-                )}
+                )} */}
               </button>
             ))}
           </div>

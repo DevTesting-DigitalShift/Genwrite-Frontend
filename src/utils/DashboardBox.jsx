@@ -5,11 +5,15 @@ import { useSelector } from "react-redux"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { CrownFilled } from "@ant-design/icons"
 import { ArrowRight, Eye, Gem } from "lucide-react"
-import moment from "moment"
+import dayjs from "dayjs"
+import relativeTime from "dayjs/plugin/relativeTime"
+
+dayjs.extend(relativeTime);
 
 export const DashboardBox = ({ title, content, id, functions, icon, gradient }) => {
   const user = useSelector((state) => state.auth.user)
   const userPlan = user?.plan ?? user?.subscription?.plan
+  const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
   const showPopup = () => {
     handlePopup({
@@ -29,7 +33,8 @@ export const DashboardBox = ({ title, content, id, functions, icon, gradient }) 
       functions.showModal?.()
     } else if (id === "B") {
       if (["free", "basic"].includes(userPlan?.toLowerCase())) {
-        showPopup()
+        // showPopup()
+        navigate("/pricing")
         return
       }
       functions.showMultiStepModal?.()
@@ -116,7 +121,8 @@ export const QuickBox = ({
 
     if (id === 4 && functions?.showCompetitiveAnalysis) {
       if (["free", "basic"].includes(userPlan?.toLowerCase())) {
-        showPopup()
+        // showPopup()
+        navigate("/pricing")
         return
       }
       functions.showCompetitiveAnalysis()
@@ -238,7 +244,7 @@ export const Blogs = ({ title, content, tags, item, time }) => {
         <div className="flex items-center gap-4 text-sm text-gray-500">
           <div className="flex items-center gap-1">
             <span>View</span>
-            <span>{moment(time).fromNow()}</span>
+            <span>{dayjs(time).fromNow()}</span>
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </div>
         </div>
