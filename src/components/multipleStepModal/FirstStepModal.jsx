@@ -322,7 +322,6 @@ iffy      open={true}
                     >
                       ×
                     </button>
-iscellaneous
                   </span>
                 ))}
                 {formData.keywords.length > MAX_VISIBLE_KEYWORDS && (
