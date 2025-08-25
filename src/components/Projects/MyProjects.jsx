@@ -285,28 +285,6 @@ const MyProjects = () => {
     if (statusFilter !== "all") {
       result = result.filter((blog) => blog.status === statusFilter)
     }
-    // Apply date range filter
-    // if (dateRange[0] && dateRange[1]) {
-    //   result = result.filter((blog) =>
-    //     dayjs(blog.updatedAt).isBetween(
-    //       dayjs(dateRange[0]).startOf("day"),
-    //       dayjs(dateRange[1]).endOf("day"),
-    //       null,
-    //       "[]"
-    //     )
-    //   )
-    // } else if (presetDateRange[0] && presetDateRange[1]) {
-    //   result = result.filter((blog) =>
-    //     dayjs(blog.updatedAt).isBetween(
-    //       dayjs(presetDateRange[0]).startOf("day"),
-    //       dayjs(presetDateRange[1]).endOf("day"),
-    //       null,
-    //       "[]"
-    //     )
-    //   )
-    // }
-
-    // console.log("Filtered blogs:", result)
 
     // Apply sorting
     const sortedResult = [...result]

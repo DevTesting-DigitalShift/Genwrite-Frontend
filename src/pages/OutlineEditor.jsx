@@ -55,12 +55,7 @@ const OutlineEditor = () => {
       return response // Return the brands data
     },
     enabled: formData.isCheckedBrand,
-    // staleTime: 5 * 60 * 1000,
-    // cacheTime: 10 * 60 * 1000,
   })
-
-  console.log({ brands })
-  console.log({ brandError })
 
   const handleClose = () => {
     setIsOpen(false)

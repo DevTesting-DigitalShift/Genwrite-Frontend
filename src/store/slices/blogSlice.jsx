@@ -221,7 +221,6 @@ export const createMultiBlog = createAsyncThunk(
 export const createManualBlog = createAsyncThunk(
   "blogs/createBlog",
   async ({ blogData, user }, { rejectWithValue }) => {
-    console.log(blogData)
     try {
       const blog = await createSimpleBlog(blogData)
       pushToDataLayer({

@@ -8,6 +8,7 @@ import {
   Briefcase,
   Crown,
   FileText,
+  HelpCircle,
   LayoutDashboard,
   Megaphone,
   Plug,
@@ -22,10 +23,12 @@ import { RiCoinsFill } from "react-icons/ri"
 import NotificationDropdown from "@components/NotificationDropdown"
 import GoProButton from "@components/GoProButton"
 import { getSocket } from "@utils/socket"
+import WhatsNewModal from "./HowToModel"
 
 const LayoutWithSidebarAndHeader = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [isUserLoaded, setIsUserLoaded] = useState(false)
+  const [showWhatsNew, setShowWhatsNew] = useState(false)
   const user = useSelector(selectUser)
   const location = useLocation()
   const dispatch = useDispatch()
@@ -38,6 +41,10 @@ const LayoutWithSidebarAndHeader = () => {
       console.error("User load failed:", err)
       navigate("/login")
     }
+  }
+
+  const handleCloseModal = () => {
+    setShowWhatsNew(false)
   }
 
   useEffect(() => {
@@ -109,7 +116,11 @@ const LayoutWithSidebarAndHeader = () => {
       { key: "transactions", label: "Transactions", className: "!py-1.5 hover:bg-gray-100" },
       { key: "credit-logs", label: "Credit Logs", className: "!py-1.5 hover:bg-gray-100" },
       { key: "upgrade", label: "Upgrade", className: "!py-1.5 hover:bg-gray-100" },
-      user?.subscription?.plan !== "free" && { key: "cancel-subscription", label: "Cancel Subscription", className: "!py-1.5 hover:bg-gray-100" },
+      user?.subscription?.plan !== "free" && {
+        key: "cancel-subscription",
+        label: "Cancel Subscription",
+        className: "!py-1.5 hover:bg-gray-100",
+      },
       { type: "divider" },
       { key: "logout", danger: true, label: "Logout", className: "!py-2 hover:bg-gray-100" },
     ],
@@ -126,6 +137,7 @@ const LayoutWithSidebarAndHeader = () => {
   return (
     <div className={`${path.includes("signup") || path.includes("login") ? "hidden" : "flex"}`}>
       {/* Sidebar */}
+      {showWhatsNew && <WhatsNewModal onClose={handleCloseModal} />}
       <div
         className={`fixed top-0 left-0 h-full z-40 transition-all duration-300 bg-[#3F51B5] from-purple-800 to-blue-600 text-white overflow-hidden p-2 flex flex-col ${
           sidebarOpen ? "w-56" : "w-16"
@@ -248,10 +260,18 @@ const LayoutWithSidebarAndHeader = () => {
                   </button>
                 </Tooltip>
                 <NotificationDropdown notifications={user?.notifications} />
+                <Tooltip title="Introduction Video">
+                  <button
+                    onClick={() => setShowWhatsNew(true)}
+                    className="flex gap-2 justify-center items-center rounded-full p-2 hover:bg-gray-100 transition"
+                  >
+                    <HelpCircle className="transition-all duration-300 w-7 h-7 text-gray-700" />
+                  </button>
+                </Tooltip>
                 <Dropdown menu={userMenu} trigger={["click"]} placement="bottomRight">
                   <Avatar
                     className="bg-gradient-to-tr from-blue-400 to-purple-700 text-white font-bold cursor-pointer hover:ring-2 hover:ring-offset-2 hover:ring-purple-500 transition"
-                    style={{ marginLeft: "25px", marginRight: "20px" }}
+                    style={{ marginLeft: "20px", marginRight: "20px" }}
                     size="large"
                     src={user?.avatar ? user.avatar : undefined}
                   >

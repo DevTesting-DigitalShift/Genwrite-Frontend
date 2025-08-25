@@ -48,8 +48,6 @@ const BrandVoice = () => {
     // cacheTime: 10 * 60 * 1000,
   })
 
-  console.log({ brands }, { isLoading }, { error })
-
   // Reset form on mount and unmount (page change)
   useEffect(() => {
     if (!formData._id) {
@@ -81,9 +79,6 @@ const BrandVoice = () => {
         sitemapUrl: undefined,
       }))
       setLastScrapedUrl(formData.postLink)
-    }
-    if (siteInfo.error) {
-      message.error("Failed to fetch site info. Please try a different URL.")
     }
   }, [siteInfo, formData.postLink, isFormReset])
 
@@ -353,7 +348,6 @@ const BrandVoice = () => {
         .then(() => {
           setIsFormReset(false) // Allow form population
         })
-        .catch(() => message.error("Failed to fetch site info. Please try a different URL."))
     } catch {
       setErrors((prev) => ({
         ...prev,
@@ -705,7 +699,6 @@ const BrandVoice = () => {
       >
         <h2 className="text-xl font-bold text-gray-800 mb-4">Your Brand Voices</h2>
         <div className="space-y-3 overflow-y-auto max-h-[calc(100vh-200px)]">
-          {console.log("Brands value before map:", brands)}
           {brands.length > 0 ? (
             brands.map((item) => (
               <YourVoicesComponent

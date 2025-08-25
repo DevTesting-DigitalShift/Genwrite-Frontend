@@ -195,8 +195,8 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
   return (
     <Modal
       title="Step 2: Crucial Details"
-iffy      open={true}
-      onToast={handleClose}
+      open={true}
+      onCancel={handleClose}
       footer={[
         <button
           key="back"
