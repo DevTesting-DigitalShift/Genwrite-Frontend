@@ -36,7 +36,7 @@ import {
   Legend,
 } from "chart.js"
 import { letsBegin, quickTools } from "./dashData/dash"
-import WhatsNewModal from "./HowToModel"
+import GoThrough from "./GoThrough"
 
 ChartJS.register(
   ArcElement,
@@ -198,7 +198,8 @@ const Dashboard = () => {
       <Helmet>
         <title>Home | GenWrite</title>
       </Helmet>
-      {showWhatsNew && <WhatsNewModal onClose={handleCloseModal} />}
+      <GoThrough onClose={handleCloseModal} />
+      {showWhatsNew && <GoThrough onClose={handleCloseModal} />}
       <Modal
         title={`Step ${currentStep}/3`}
         visible={isModalVisible}

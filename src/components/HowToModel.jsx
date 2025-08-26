@@ -128,19 +128,19 @@ const WhatsNewModal = ({ onClose }) => {
       id: 1,
       title: "Naya Dashboard",
       description: "Apne kaam ko behtar dhang se manage karein.",
-      videoUrl: "/public/Images/blog_generate.mp4",
+      videoUrl: "/public/blog_generate.mp4",
     },
     {
       id: 2,
       title: "Instant Reports",
       description: "Ek click mein detailed reports download karein.",
-      videoUrl: "public/Images/content_agent.mp4",
+      videoUrl: "public/content_agent.mp4",
     },
     {
       id: 3,
       title: "Team Collaboration",
       description: "Apni team ke saath real-time mein kaam karein.",
-      videoUrl: "public/Images/keyword_toBlog.mp4",
+      videoUrl: "public/keyword_toBlog.mp4",
     },
   ]
 
