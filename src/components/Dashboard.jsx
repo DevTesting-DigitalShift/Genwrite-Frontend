@@ -198,7 +198,6 @@ const Dashboard = () => {
       <Helmet>
         <title>Home | GenWrite</title>
       </Helmet>
-      <GoThrough onClose={handleCloseModal} />
       {showWhatsNew && <GoThrough onClose={handleCloseModal} />}
       <Modal
         title={`Step ${currentStep}/3`}
