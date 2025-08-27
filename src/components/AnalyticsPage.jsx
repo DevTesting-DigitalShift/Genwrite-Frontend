@@ -72,12 +72,6 @@ const ChartCard = ({ title, children, className = "" }) => (
   >
     <div className="flex items-center justify-between mb-6">
       <h3 className="text-lg font-semibold">{title}</h3>
-      <button
-        className="p-2 rounded-lg transition-colors hover:bg-gray-50"
-        aria-label="More options"
-      >
-        <MoreHorizontal className="w-5 h-5 text-gray-400" />
-      </button>
     </div>
     <div className="h-80">{children}</div>
   </div>
@@ -404,7 +398,7 @@ const AnalyticsPage = () => {
                 <h2 className="text-xl font-semibold text-gray-900">Blog Statistics</h2>
               </div>
             </motion.div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
               {statsData.map((stat, index) => (
                 <StatsCard
                   key={stat.title}
