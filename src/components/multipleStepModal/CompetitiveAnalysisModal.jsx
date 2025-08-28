@@ -21,12 +21,12 @@ import { useDispatch, useSelector } from "react-redux"
 import { fetchCompetitiveAnalysisThunk } from "@store/slices/analysisSlice"
 import { LoadingOutlined } from "@ant-design/icons"
 import Loading from "@components/Loading"
-import { fetchBlogById } from "@store/slices/blogSlice"
+import { fetchBlogById, fetchBlogs } from "@store/slices/blogSlice"
 
 const { Panel } = Collapse
 const { TabPane } = Tabs
 
-const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
+const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
   const [formData, setFormData] = useState({
     title: "",
     content: "",
@@ -44,7 +44,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
   const { handlePopup } = useConfirmPopup()
   const dispatch = useDispatch()
   const { analysis, loading: analysisLoading } = useSelector((state) => state.analysis)
-  const { blog, loading: blogLoading } = useSelector((state) => state.blog)
+  const { allBlogs: blogs, loading: blogLoading } = useSelector((state) => state.blog)
 
   // Handle analysis results
   useEffect(() => {
@@ -70,6 +70,8 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
       setIsLoading(false)
       setActiveTab(null)
       setCollapseKey(0)
+    } else {
+      dispatch(fetchBlogs())
     }
   }, [open])
 
@@ -140,19 +142,19 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
   ])
 
   const handleProjectSelect = (value) => {
-    const foundProject = blogs.find((p) => p._id === value)
+    const foundProject = blogs?.find((p) => p._id === value)
     if (foundProject) {
       setId(foundProject._id)
-      setFormData((prev) => ({
-        ...prev,
-        title: foundProject.title,
-        content: foundProject.content || "",
-        keywords: foundProject.keywords || [],
-        focusKeywords: foundProject.focusKeywords || [],
-        selectedProject: foundProject,
-        contentType: "markdown",
-        generatedMetadata: null,
-      }))
+      // setFormData((prev) => ({
+      //   ...prev,
+      //   title: foundProject.title,
+      //   content: foundProject.content || "",
+      //   keywords: foundProject.keywords || [],
+      //   focusKeywords: foundProject.focusKeywords || [],
+      //   selectedProject: foundProject,
+      //   contentType: "markdown",
+      //   generatedMetadata: null,
+      // }))
       setAnalysisResults(null)
       setCollapseKey((prev) => prev + 1) // Reset Collapse
     }
@@ -517,7 +519,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
       closable={true}
       transitionName=""
       maskTransitionName=""
-      bodyStyle={{ maxHeight: "85vh", overflowY: "auto", padding: "16px" }}
+      styles={{ body: { maxHeight: "85vh", overflowY: "auto", padding: "16px" } }}
     >
       <div className="space-y-6">
         <motion.div
@@ -534,11 +536,11 @@ const CompetitiveAnalysisModal = ({ closeFnc, open, blogs }) => {
             className="w-full rounded-md text-sm"
             onChange={handleProjectSelect}
             value={formData.selectedProject?._id || ""}
-            dropdownStyle={{ maxHeight: 200, overflowY: "auto" }}
+            styles={{ popup: { maxHeight: 200, overflowY: "auto" } }}
             placeholder="Select a blog"
           >
             <Select.Option value="">Select a blog</Select.Option>
-            {blogs.map((project) => (
+            {blogs?.map((project) => (
               <Select.Option key={project._id} value={project._id}>
                 {project.title.charAt(0).toUpperCase() + project.title.slice(1)}
               </Select.Option>
