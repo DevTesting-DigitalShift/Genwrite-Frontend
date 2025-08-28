@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux"
 import { Plus, RefreshCw, Sparkles } from "lucide-react"
 import { message, Modal, Select, Spin, Tooltip } from "antd"
 import { fetchGeneratedTitles } from "@store/slices/blogSlice"
+import { CloseOutlined } from "@ant-design/icons"
 
 const { Option } = Select
 
@@ -16,9 +17,9 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
 
   const [formData, setFormData] = useState({
     focusKeywordInput: "",
-    focusKeywords: selectedKeywords?.focusKeywords || [],
+    focusKeywords: data?.focusKeywords || [],
     keywordInput: "",
-    keywords: selectedKeywords?.keywords || [],
+    keywords: data?.keywords || [],
   })
 
   const [errors, setErrors] = useState({
@@ -35,13 +36,13 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
   const [loadingTitles, setLoadingTitles] = useState(false)
 
   // Sync formData with data prop changes
-  useEffect(() => {
-    setFormData((prev) => ({
-      ...prev,
-      focusKeywords: selectedKeywords?.focusKeywords || [],
-      keywords: selectedKeywords?.keywords || [],
-    }))
-  }, [selectedKeywords])
+  // useEffect(() => {
+  //   setFormData((prev) => ({
+  //     ...prev,
+  //     focusKeywords: selectedKeywords?.focusKeywords || [],
+  //     keywords: selectedKeywords?.keywords || [],
+  //   }))
+  // }, [selectedKeywords])
 
   // Reset hasGeneratedTitles when modal opens
   useEffect(() => {
@@ -195,8 +196,9 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
   return (
     <Modal
       title="Step 2: Crucial Details"
-iffy      open={true}
-      onToast={handleClose}
+      iffy
+      open={true}
+      onCancel={handleClose}
       footer={[
         <button
           key="back"
@@ -322,7 +324,6 @@ iffy      open={true}
                     >
                       ×
                     </button>
-iscellaneous
                   </span>
                 ))}
                 {formData.keywords.length > MAX_VISIBLE_KEYWORDS && (
