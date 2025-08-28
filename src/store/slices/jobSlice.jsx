@@ -21,7 +21,6 @@ export const createJobThunk = createAsyncThunk(
   async ({ jobPayload, user, onSuccess }, { rejectWithValue }) => {
     try {
       const data = await createJob(jobPayload)
-      console.log(data)
       pushToDataLayer({
         event: "job_agent_creation",
         event_status: "success",

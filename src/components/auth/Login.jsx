@@ -154,7 +154,7 @@ const Auth = ({ path }) => {
         }, 100)
       } catch (err) {
         console.error("Auth error:", err)
-        message.error(err.data?.message || err?.message)
+        message.error(err.data?.message || err?.message || "Signup failed")
         setRecaptchaValue(null)
       } finally {
         setLoading(false)

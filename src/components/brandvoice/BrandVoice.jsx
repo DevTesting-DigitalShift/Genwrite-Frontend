@@ -18,7 +18,7 @@ import {
 const BrandVoice = () => {
   const user = useSelector((state) => state.auth.user)
   const dispatch = useDispatch()
-  const queryClient = useQueryClient() // Added for cache management
+  const queryClient = useQueryClient()
   const [inputValue, setInputValue] = useState("")
   const [isUploading, setIsUploading] = useState(false)
   const [formData, setFormData] = useState({
@@ -34,6 +34,7 @@ const BrandVoice = () => {
   const { siteInfo } = useSelector((state) => state.brand)
   const [lastScrapedUrl, setLastScrapedUrl] = useState("")
   const [isFormReset, setIsFormReset] = useState(false)
+  const [showAllKeywords, setShowAllKeywords] = useState(false) // New state for toggling keywords
   const {
     data: brands = [],
     isLoading,
@@ -41,27 +42,21 @@ const BrandVoice = () => {
   } = useQuery({
     queryKey: ["brands"],
     queryFn: async () => {
-      const response = await dispatch(fetchBrands()).unwrap() // Dispatch and unwrap the payload
-      return response // Return the brands data
+      const response = await dispatch(fetchBrands()).unwrap()
+      return response
     },
-    // staleTime: 5 * 60 * 1000,
-    // cacheTime: 10 * 60 * 1000,
   })
 
-  console.log({ brands }, { isLoading }, { error })
-
-  // Reset form on mount and unmount (page change)
   useEffect(() => {
     if (!formData._id) {
       resetForm()
     }
     return () => {
       resetForm()
-      dispatch(resetSiteInfo()) // Clear siteInfo on unmount
+      dispatch(resetSiteInfo())
     }
   }, [dispatch])
 
-  // Populate form with fetched siteInfo data
   useEffect(() => {
     if (siteInfo.data && !isFormReset) {
       setFormData((prev) => ({
@@ -82,12 +77,8 @@ const BrandVoice = () => {
       }))
       setLastScrapedUrl(formData.postLink)
     }
-    if (siteInfo.error) {
-      message.error("Failed to fetch site info. Please try a different URL.")
-    }
   }, [siteInfo, formData.postLink, isFormReset])
 
-  // Reset form function
   const resetForm = useCallback(() => {
     setFormData({
       nameOfVoice: "",
@@ -101,10 +92,10 @@ const BrandVoice = () => {
     setInputValue("")
     setErrors({})
     setLastScrapedUrl("")
-    setIsFormReset(true) // Set flag to prevent siteInfo repopulation
+    setIsFormReset(true)
+    setShowAllKeywords(false) // Reset showAllKeywords on form reset
   }, [brands])
 
-  // Validate form fields
   const validateForm = useCallback(() => {
     const newErrors = {}
     if (!formData.nameOfVoice.trim()) {
@@ -138,7 +129,6 @@ const BrandVoice = () => {
     return Object.keys(newErrors).length === 0
   }, [formData])
 
-  // Handle form input changes
   const handleInputChange = useCallback(
     (e) => {
       const { name, value } = e.target
@@ -147,12 +137,11 @@ const BrandVoice = () => {
       if (name === "postLink" && value !== lastScrapedUrl) {
         setLastScrapedUrl("")
       }
-      setIsFormReset(false) // Allow siteInfo to populate if user edits
+      setIsFormReset(false)
     },
     [lastScrapedUrl]
   )
 
-  // Handle keyword input
   const handleKeyDown = useCallback(
     (event) => {
       if (event.key === "Enter" && inputValue.trim()) {
@@ -181,7 +170,6 @@ const BrandVoice = () => {
     [inputValue, formData.keywords]
   )
 
-  // Remove keyword
   const removeKeyword = useCallback((keyword) => {
     setFormData((prev) => ({
       ...prev,
@@ -190,7 +178,6 @@ const BrandVoice = () => {
     setIsFormReset(false)
   }, [])
 
-  // Handle CSV file upload for keywords
   const handleFileChange = useCallback((event) => {
     const file = event.target.files[0]
     if (!file) return
@@ -229,7 +216,6 @@ const BrandVoice = () => {
     event.target.value = null
   }, [])
 
-  // Save or update brand voice
   const handleSave = useCallback(async () => {
     if (!validateForm()) return
     setIsUploading(true)
@@ -242,7 +228,6 @@ const BrandVoice = () => {
       userId: user?._id,
     }
 
-    // Check for duplicate postLink
     const isDuplicate = brands.some(
       (brand) =>
         brand.postLink === payload.postLink && (formData._id ? brand._id !== formData._id : true)
@@ -262,7 +247,7 @@ const BrandVoice = () => {
       }
       resetForm()
       queryClient.invalidateQueries(["brands"])
-      dispatch(resetSiteInfo()) // Clear siteInfo after save
+      dispatch(resetSiteInfo())
     } catch (error) {
       console.error("Error saving brand voice:", error)
       message.error(
@@ -273,7 +258,6 @@ const BrandVoice = () => {
     }
   }, [formData, user, dispatch, validateForm, resetForm, brands, queryClient])
 
-  // Edit brand voice
   const handleEdit = useCallback((brand) => {
     setFormData({
       nameOfVoice: brand.nameOfVoice || "",
@@ -287,9 +271,9 @@ const BrandVoice = () => {
     setErrors({})
     setLastScrapedUrl(brand.postLink || "")
     setIsFormReset(false)
+    setShowAllKeywords(false) // Reset showAllKeywords on edit
   }, [])
 
-  // Delete brand voice
   const handleDelete = useCallback(
     (brand) => {
       Modal.confirm({
@@ -300,24 +284,17 @@ const BrandVoice = () => {
         okButtonProps: { danger: true },
         onOk: async () => {
           try {
-            // Optimistic update: Remove brand from cache immediately
             queryClient.setQueryData(["brands"], (oldBrands = []) =>
               oldBrands.filter((b) => b._id !== brand._id)
             )
-
             await dispatch(deleteBrandVoiceThunk({ id: brand._id })).unwrap()
-
-            // Invalidate query to refetch latest data
             queryClient.invalidateQueries(["brands"])
-
-            // Reset form if deleted brand was selected
             if (formData.selectedVoice?._id === brand._id) {
               resetForm()
               dispatch(resetSiteInfo())
             }
           } catch (error) {
             console.error("Failed to delete brand voice:", error)
-            // Rollback optimistic update by invalidating query
             queryClient.invalidateQueries(["brands"])
           }
         },
@@ -326,13 +303,11 @@ const BrandVoice = () => {
     [dispatch, formData.selectedVoice, resetForm, queryClient]
   )
 
-  // Select brand voice
   const handleSelect = useCallback((voice) => {
     setFormData((prev) => ({ ...prev, selectedVoice: voice }))
     setIsFormReset(false)
   }, [])
 
-  // Fetch site info
   const handleFetchSiteInfo = useCallback(() => {
     const url = formData.postLink.trim()
     if (!url) {
@@ -351,9 +326,8 @@ const BrandVoice = () => {
       dispatch(fetchSiteInfo(url))
         .unwrap()
         .then(() => {
-          setIsFormReset(false) // Allow form population
+          setIsFormReset(false)
         })
-        .catch(() => message.error("Failed to fetch site info. Please try a different URL."))
     } catch {
       setErrors((prev) => ({
         ...prev,
@@ -362,23 +336,16 @@ const BrandVoice = () => {
     }
   }, [formData.postLink, lastScrapedUrl, dispatch])
 
-  // Memoized keywords rendering
   const renderKeywords = useMemo(() => {
-    const latestKeywords = formData.keywords.slice(-3)
-    const remainingCount = formData.keywords.length - latestKeywords.length
+    const maxInitialKeywords = 12 // Maximum keywords to show initially
+    const displayedKeywords = showAllKeywords
+      ? formData.keywords
+      : formData.keywords.slice(0, maxInitialKeywords)
+    const remainingCount = formData.keywords.length - maxInitialKeywords
+
     return (
       <div className={`flex flex-wrap gap-2 ${formData.keywords.length > 0 ? "mb-1" : "hidden"}`}>
-        {remainingCount > 0 && (
-          <motion.div
-            className="flex items-center bg-indigo-100 text-indigo-700 rounded-md px-2 py-1 mr-2"
-            initial={{ scale: 0.8 }}
-            animate={{ scale: 1 }}
-            title={`+${remainingCount} more keywords`}
-          >
-            <span className="text-sm">{`+${remainingCount}`}</span>
-          </motion.div>
-        )}
-        {latestKeywords.map((keyword) => (
+        {displayedKeywords.map((keyword) => (
           <motion.div
             key={keyword}
             className="flex items-center w-fit bg-indigo-100 text-indigo-700 rounded-md px-2 py-1 mr-2"
@@ -398,9 +365,18 @@ const BrandVoice = () => {
             />
           </motion.div>
         ))}
+        {remainingCount > 0 && (
+          <button
+            type="button"
+            className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
+            onClick={() => setShowAllKeywords(!showAllKeywords)}
+          >
+            {showAllKeywords ? "Show Less" : `Show More (+${remainingCount})`}
+          </button>
+        )}
       </div>
     )
-  }, [formData.keywords, removeKeyword])
+  }, [formData.keywords, removeKeyword, showAllKeywords])
 
   return (
     <motion.div
@@ -412,7 +388,6 @@ const BrandVoice = () => {
         <title>Brand Voice | GenWrite</title>
       </Helmet>
 
-      {/* Left Section: Form */}
       <motion.div
         className="w-full lg:w-[60%] bg-white rounded-xl p-6 shadow-lg border border-gray-100"
         initial={{ x: -20 }}
@@ -426,7 +401,6 @@ const BrandVoice = () => {
         </p>
 
         <div className="space-y-4">
-          {/* Post Link */}
           <div>
             <label htmlFor="postLink" className="text-sm font-medium text-gray-700 flex gap-2 mb-1">
               Post or Blog Link <span className="text-red-500">*</span>
@@ -490,7 +464,6 @@ const BrandVoice = () => {
             )}
           </div>
 
-          {/* Name of Voice */}
           <div>
             <label
               htmlFor="nameOfVoice"
@@ -519,7 +492,6 @@ const BrandVoice = () => {
             )}
           </div>
 
-          {/* Keywords */}
           <div>
             <label htmlFor="keywords" className="text-sm font-medium text-gray-700 flex gap-2 mb-1">
               Keywords <span className="text-red-500">*</span>
@@ -585,7 +557,6 @@ const BrandVoice = () => {
             )}
           </div>
 
-          {/* Sitemap URL */}
           <div>
             <label
               htmlFor="sitemapUrl"
@@ -631,7 +602,6 @@ const BrandVoice = () => {
             )}
           </div>
 
-          {/* Brand Description */}
           <div>
             <label
               htmlFor="describeBrand"
@@ -660,7 +630,6 @@ const BrandVoice = () => {
             )}
           </div>
 
-          {/* Save Button */}
           <div className="flex gap-2 justify-end">
             <motion.button
               className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-2 rounded-lg font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -682,7 +651,6 @@ const BrandVoice = () => {
               )}
             </motion.button>
 
-            {/* Reset Button */}
             <motion.button
               className="bg-gradient-to-tr from-red-700 from-10% via-red-500 via-80% to-red-700 to-100% text-white px-6 py-2 rounded-lg font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={resetForm}
@@ -697,7 +665,6 @@ const BrandVoice = () => {
         </div>
       </motion.div>
 
-      {/* Right Section: Brand Voices List */}
       <motion.div
         className="w-full lg:w-[40%] bg-white rounded-xl p-6 shadow-lg border border-gray-100"
         initial={{ x: 20 }}
@@ -705,7 +672,6 @@ const BrandVoice = () => {
       >
         <h2 className="text-xl font-bold text-gray-800 mb-4">Your Brand Voices</h2>
         <div className="space-y-3 overflow-y-auto max-h-[calc(100vh-200px)]">
-          {console.log("Brands value before map:", brands)}
           {brands.length > 0 ? (
             brands.map((item) => (
               <YourVoicesComponent

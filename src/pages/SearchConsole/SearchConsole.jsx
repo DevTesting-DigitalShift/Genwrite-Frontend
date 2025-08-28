@@ -343,8 +343,6 @@ const SearchConsole = () => {
 
     worksheet.columns = columns
 
-    console.log("Columns:", worksheet.columns)
-
     filteredData.forEach((item, index) => {
       const rowData = {
         ...(isPageTab && !blogTitleFilter ? { blogTitle: item.blogTitle } : {}),
@@ -356,8 +354,7 @@ const SearchConsole = () => {
         ctr: `${item.ctr}%`,
         position: item.position,
       }
-
-      console.log(`Row ${index + 1}:`, rowData)
+      
       worksheet.addRow(rowData)
     })
 

@@ -16,10 +16,7 @@ import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { AnimatePresence, motion } from "framer-motion"
 import { loadAuthenticatedUser, selectUser } from "@store/slices/authSlice"
-import {
-  Clock,
-  Sparkles, // Added for feedback button
-} from "lucide-react"
+import { Clock, Sparkles } from "lucide-react"
 import { Helmet } from "react-helmet"
 import SeoAnalysisModal from "./multipleStepModal/SeoAnalysisModal"
 import KeywordResearchModel from "./multipleStepModal/KeywordResearchModel"
@@ -38,7 +35,8 @@ import {
   Tooltip,
   Legend,
 } from "chart.js"
-import { quickTools, letsBegin } from "./dashdata/dash"
+import { letsBegin, quickTools } from "./dashData/dash"
+import GoThrough from "./GoThrough"
 
 ChartJS.register(
   ArcElement,
@@ -65,12 +63,12 @@ const Dashboard = () => {
   const [recentBlogData, setRecentBlogData] = useState([])
   const [loading, setLoading] = useState(true)
   const { blogs, error, allBlogs } = useSelector((state) => state.blog)
+  const [showWhatsNew, setShowWhatsNew] = useState(false)
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const user = useSelector(selectUser)
   const { handlePopup } = useConfirmPopup()
 
-  // Event handlers
   const showModal = () => setIsModalVisible(true)
   const showDaisy = () => setDaisyUIModal(true)
   const hideDaisy = () => setDaisyUIModal(false)
@@ -80,6 +78,17 @@ const Dashboard = () => {
   const hideQuickBlogModal = () => setQuickBlogModal(false)
   const showCompetitiveAnalysis = () => setCompetitiveAnalysisModal(true)
   const hideCompetitiveAnalysis = () => setCompetitiveAnalysisModal(false)
+
+  useEffect(() => {
+    const currentUser = user
+    if (currentUser && !currentUser.lastLogin) {
+      setShowWhatsNew(true)
+    }
+  }, [user])
+
+  const handleCloseModal = () => {
+    setShowWhatsNew(false)
+  }
 
   const openSecondStepModal = () => {
     setKeywordResearchModal(false)
@@ -99,7 +108,6 @@ const Dashboard = () => {
 
   // Initialize data and fetch
   useEffect(() => {
-    // dispatch(fetchBlogStatus())
     dispatch(fetchAllBlogs())
     const timer = setTimeout(() => setLoading(false), 1200)
     return () => clearTimeout(timer)
@@ -190,6 +198,7 @@ const Dashboard = () => {
       <Helmet>
         <title>Home | GenWrite</title>
       </Helmet>
+      {showWhatsNew && <GoThrough onClose={handleCloseModal} />}
       <Modal
         title={`Step ${currentStep}/3`}
         visible={isModalVisible}
@@ -407,8 +416,7 @@ const Dashboard = () => {
 
         {/* Feedback Button */}
         <a
-          href="https://docs.google.com/forms/d/e/1FAIpQLScIdA2aVtugx-zMGON8LJKD4IRWtLZqiiurw-jU6wRYfOv7EA/viewform?usp=sharing&ouid=117159793210831255816
-"
+          href="https://docs.google.com/forms/d/e/1FAIpQLScIdA2aVtugx-zMGON8LJKD4IRWtLZqiiurw-jU6wRYfOv7EA/viewform?usp=sharing&ouid=117159793210831255816"
           target="_blank"
           rel="noopener noreferrer"
           className="fixed right-0 bottom-28 z-50"
@@ -416,10 +424,9 @@ const Dashboard = () => {
           <button
             className="fixed right-[-30px] bottom-28 bg-blue-600 text-white px-4 py-2 rounded-lg rotate-90 flex items-center gap-2 hover:bg-blue-700 transition-all duration-300 shadow-md z-50"
             style={{
-              // transformOrigin: "bottom right",
-              backfaceVisibility: "hidden", // Helps with blurry text sometimes
-              WebkitFontSmoothing: "antialiased", // Fix for Safari
-              MozOsxFontSmoothing: "grayscale", // Fix for Firefox
+              backfaceVisibility: "hidden",
+              WebkitFontSmoothing: "antialiased",
+              MozOsxFontSmoothing: "grayscale",
             }}
             aria-label="Provide feedback"
           >

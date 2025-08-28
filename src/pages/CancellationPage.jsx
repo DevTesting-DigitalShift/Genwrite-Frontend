@@ -77,7 +77,6 @@ const {handlePopup} = useConfirmPopup()
           setIsProcessing(true);
           const data = await cancelStripeSubscription();
           sendCancellationRelatedEvent(user, "cancel")
-          console.log("Subscription cancelled");
           message.success("Subscription cancelled successfully!");
           navigate("/dashboard");
         }catch(err){

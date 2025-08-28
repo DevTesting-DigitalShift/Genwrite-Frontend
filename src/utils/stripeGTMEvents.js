@@ -2,7 +2,6 @@ import { pushToDataLayer } from "@utils/DataLayer"
 
 export function sendStripeGTMEvent(plan, credits, billingPeriod, userId) {
   const isCreditPack = /credit/gi.test(plan.name)
-  console.log(userId)
   // 1️⃣ Send unique click event for the plan
   pushToDataLayer({
     event: plan.eventName, // Already generated in getPlans

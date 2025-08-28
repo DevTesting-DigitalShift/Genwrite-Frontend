@@ -177,7 +177,7 @@ const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
               onBuy(plan, customCredits, billingPeriod)
             } else if (plan.name.toLowerCase().includes("enterprise")) {
               window.open(
-                `https://mail.google.com/mail/?view=cm&fs=1&to=support@genwrite.com&su=GenWrite Enterprise Subscription&body=I'm interested in the Enterprise plan.`,
+                `https://mail.google.com/mail/?view=cm&fs=1&to= contact@thedigitalshift.com&su=GenWrite Enterprise Subscription&body=I'm interested in the Enterprise plan.`,
                 "_blank"
               )
             } else {

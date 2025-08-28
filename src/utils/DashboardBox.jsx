@@ -8,7 +8,7 @@ import { ArrowRight, Eye, Gem } from "lucide-react"
 import dayjs from "dayjs"
 import relativeTime from "dayjs/plugin/relativeTime"
 
-dayjs.extend(relativeTime);
+dayjs.extend(relativeTime)
 
 export const DashboardBox = ({ title, content, id, functions, icon, gradient }) => {
   const user = useSelector((state) => state.auth.user)
@@ -173,20 +173,18 @@ export const QuickBox = ({
 export const Blogs = ({ title, content, tags, item, time }) => {
   const navigate = useNavigate()
 
-  // Truncate content to 80 characters and add ellipses if it's too long
   const cleanContent = content
-    ?.replace(/^#+\s*/gm, "") // Remove markdown headers like "# Heading"
-    ?.replace(/#[^\s#]+/g, "") // Remove hashtags like #tag
-    ?.replace(/[*_~`>\\=|-]+/g, "") // Remove markdown formatting
-    ?.replace(/\n+/g, " ") // Replace newlines with space
-    ?.replace(/\s+/g, " ") // Collapse multiple spaces
+    ?.replace(/^#+\s*/gm, "")
+    ?.replace(/#[^\s#]+/g, "")
+    ?.replace(/[*_~`>\\=|-]+/g, "")
+    ?.replace(/\n+/g, " ")
+    ?.replace(/\s+/g, " ")
     ?.trim()
 
   const truncatedContent =
-    cleanContent && cleanContent.length > 40
+    cleanContent && cleanContent.length > 80
       ? `${cleanContent.substring(0, 80)}...`
       : cleanContent || ""
-  // Default to an empty string if content is null
 
   const handleBlogClick = () => {
     if (item && item._id) {
@@ -197,12 +195,12 @@ export const Blogs = ({ title, content, tags, item, time }) => {
   return (
     <div
       onClick={handleBlogClick}
-      className="group p-6 rounded-xl border border-gray-200 hover:border-blue-200 hover:shadow-md transition-all duration-300 cursor-pointer mb-4"
+      className="group p-4 sm:p-5 md:p-6 rounded-xl border border-gray-200 hover:border-blue-200 hover:shadow-md transition-all duration-300 cursor-pointer mb-4"
     >
-      <div className="flex lg:items-start lg:justify-between gap-4">
-        {/* Left section: content */}
+      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+        {/* Left */}
         <div className="flex-1">
-          <div className="flex items-center gap-3 mb-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3">
             <h3 className="font-bold capitalize text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-1">
               {title}
             </h3>
@@ -216,7 +214,7 @@ export const Blogs = ({ title, content, tags, item, time }) => {
             </span>
 
             <span
-              className={`px-2 py-1 capitalize text-xs font-medium rounded-full ${
+              className={`px-2 py-1 text-xs font-medium rounded-full capitalize ${
                 item?.status === "complete"
                   ? "bg-green-100 text-green-700"
                   : "bg-yellow-100 text-yellow-700"
@@ -232,7 +230,7 @@ export const Blogs = ({ title, content, tags, item, time }) => {
             {tags?.map((tag, index) => (
               <span
                 key={index}
-                className="px-3 py-1 capitalize bg-gray-100 text-gray-700 text-xs rounded-full hover:bg-gray-200 transition-colors"
+                className="px-3 py-1 text-xs capitalize bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors"
               >
                 {tag}
               </span>
@@ -240,13 +238,11 @@ export const Blogs = ({ title, content, tags, item, time }) => {
           </div>
         </div>
 
-        {/* Right section: actions */}
-        <div className="flex items-center gap-4 text-sm text-gray-500">
-          <div className="flex items-center gap-1">
-            <span>View</span>
-            <span>{dayjs(time).fromNow()}</span>
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </div>
+        {/* Right */}
+        <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 ml-auto">
+          <span>View</span>
+          <span>{dayjs(time).fromNow()}</span>
+          <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
         </div>
       </div>
     </div>

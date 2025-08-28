@@ -137,7 +137,7 @@ const ContactUs = () => {
       country: "United States",
     },
     phone: "+1 (555) 123-4567",
-    email: "support@genwrite.co",
+    email: " contact@thedigitalshift.co",
     workingHours: {
       weekdays: "Monday - Friday: 9:00 AM - 6:00 PM PST",
       weekend: "Saturday - Sunday: Closed",

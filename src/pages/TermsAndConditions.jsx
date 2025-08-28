@@ -106,8 +106,8 @@ const TermsAndConditions = () => {
     {
       title: "12. Contact Information",
       content: [
-        "For questions about these Terms of Service, contact us at legal@genwrite.com.",
-        "For general support inquiries, use support@genwrite.com.",
+        "For questions about these Terms of Service, contact us at genwrite.co@gmail.com.",
+        "For general support inquiries, use  contact@thedigitalshift.com.",
         "Mailing address: GenWrite Technologies, 123 Innovation Drive, Suite 400, San Francisco, CA 94105",
         "We will respond to legal inquiries within 5 business days.",
       ],
@@ -177,12 +177,12 @@ const TermsAndConditions = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4">
             <a
-              href="mailto:legal@genwrite.com"
+              href="mailto:genwrite.co@gmail.com"
               className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors font-medium"
               aria-label="Contact legal team via email"
             >
               <Mail className="w-4 h-4" />
-              legal@genwrite.com
+              genwrite.co@gmail.com
             </a>
             <Link
               to="/contact"

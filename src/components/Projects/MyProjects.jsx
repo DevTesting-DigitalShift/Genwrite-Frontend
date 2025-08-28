@@ -285,28 +285,6 @@ const MyProjects = () => {
     if (statusFilter !== "all") {
       result = result.filter((blog) => blog.status === statusFilter)
     }
-    // Apply date range filter
-    // if (dateRange[0] && dateRange[1]) {
-    //   result = result.filter((blog) =>
-    //     dayjs(blog.updatedAt).isBetween(
-    //       dayjs(dateRange[0]).startOf("day"),
-    //       dayjs(dateRange[1]).endOf("day"),
-    //       null,
-    //       "[]"
-    //     )
-    //   )
-    // } else if (presetDateRange[0] && presetDateRange[1]) {
-    //   result = result.filter((blog) =>
-    //     dayjs(blog.updatedAt).isBetween(
-    //       dayjs(presetDateRange[0]).startOf("day"),
-    //       dayjs(presetDateRange[1]).endOf("day"),
-    //       null,
-    //       "[]"
-    //     )
-    //   )
-    // }
-
-    // console.log("Filtered blogs:", result)
 
     // Apply sorting
     const sortedResult = [...result]
@@ -645,145 +623,145 @@ const MyProjects = () => {
             aria-label="Search blogs"
           />
         </div>
-        <div className="flex gap-2 items-center">
-          <Popover
-            open={isMenuOpen}
-            onOpenChange={(visible) => setMenuOpen(visible)}
-            trigger="click"
-            placement="bottomRight"
-            content={
-              <div className="min-w-[200px] rounded-lg space-y-1">
-                {menuOptions.map(({ label, icon, onClick }) => (
-                  <Tooltip title={label} placement="left" key={label}>
-                    <button
-                      onClick={onClick}
-                      className="w-full flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
-                      aria-label={`Sort by ${label}`}
-                    >
-                      <span className="text-lg">{icon}</span>
-                      <span>{label}</span>
-                    </button>
-                  </Tooltip>
-                ))}
-              </div>
-            }
-          >
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button
-                type="default"
-                icon={<ArrowDownUp className="w-4 h-4" />}
-                className={`p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100 ${
-                  !isDefaultSort ? "border-blue-400 bg-blue-50 text-blue-600" : ""
-                }`}
-                aria-label="Open sort menu"
-              >
-                Sort: {getCurrentSortLabel()}
-              </Button>
-            </motion.div>
-          </Popover>
-
-          <Popover
-            open={isFunnelMenuOpen}
-            onOpenChange={(visible) => setFunnelMenuOpen(visible)}
-            trigger="click"
-            placement="bottomRight"
-            content={
-              <div className="min-w-[200px] rounded-lg space-y-1">
-                {funnelMenuOptions.map(({ label, icon, onClick }) => (
-                  <Tooltip title={label} placement="left" key={label}>
-                    <button
-                      onClick={onClick}
-                      className="w-full flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
-                      aria-label={`Filter by ${label}`}
-                    >
-                      <span className="text-lg">{icon}</span>
-                      <span>{label}</span>
-                    </button>
-                  </Tooltip>
-                ))}
-              </div>
-            }
-          >
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button
-                type="default"
-                icon={<Filter className="w-4 h-4" />}
-                className={`p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100 ${
-                  statusFilter !== "all" ? "border-green-400 bg-green-50 text-green-600" : ""
-                }`}
-                aria-label="Open filter menu"
-              >
-                Filter: {getCurrentStatusLabel()}
-              </Button>
-            </motion.div>
-          </Popover>
-
-          <Popover
-            open={isCustomDatePickerOpen}
-            onOpenChange={(visible) => setIsCustomDatePickerOpen(visible)}
-            trigger="click"
-            placement="bottomRight"
-            content={
-              <div>
-                {datePresets.map(({ label, onClick }) => (
-                  <Tooltip title={label} placement="left" key={label}>
-                    <button
-                      onClick={onClick}
-                      className="w-full flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
-                      aria-label={`Filter by ${label}`}
-                    >
-                      <span className="text-lg">
-                        <FieldTimeOutlined />
-                      </span>
-                      <span>{label}</span>
-                    </button>
-                  </Tooltip>
-                ))}
-              </div>
-            }
-          >
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button
-                type="default"
-                icon={<Calendar className="w-4 h-4" />}
-                className={`p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100 ${
-                  dateRange[0] || presetDateRange[0]
-                    ? "border-purple-400 bg-purple-50 text-purple-600"
-                    : ""
-                }`}
-                aria-label="Open date preset menu"
-              >
-                Date: {getCurrentDateLabel()}
-              </Button>
-            </motion.div>
-          </Popover>
-
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Button
-              type="default"
-              icon={<RefreshCcw className="w-4 h-4" />}
-              onClick={() => queryClient.invalidateQueries(["blogs"])}
-              className="p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100"
-              aria-label="Refresh blogs"
+       <div className="flex flex-wrap gap-3 items-center">
+  {/* Sort */}
+  <Popover
+    open={isMenuOpen}
+    onOpenChange={(visible) => setMenuOpen(visible)}
+    trigger="click"
+    placement="bottomRight"
+    content={
+      <div className="min-w-[200px] rounded-lg space-y-1">
+        {menuOptions.map(({ label, icon, onClick }) => (
+          <Tooltip title={label} placement="left" key={label}>
+            <button
+              onClick={onClick}
+              className="w-full flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
             >
-              Refresh
-            </Button>
-          </motion.div>
+              <span className="text-lg">{icon}</span>
+              <span>{label}</span>
+            </button>
+          </Tooltip>
+        ))}
+      </div>
+    }
+  >
+    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+      <Button
+        type="default"
+        icon={<ArrowDownUp className="w-4 h-4" />}
+        className={`p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100 w-full sm:w-auto ${
+          !isDefaultSort ? "border-blue-400 bg-blue-50 text-blue-600" : ""
+        }`}
+      >
+        Sort: {getCurrentSortLabel()}
+      </Button>
+    </motion.div>
+  </Popover>
 
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Button
-              type="default"
-              icon={<RotateCcw className="w-4 h-4" />}
-              onClick={resetFilters}
-              className={`p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100 ${
-                hasActiveFilters ? "border-red-400 bg-red-50 text-red-600" : ""
-              }`}
-              aria-label="Reset filters"
+  {/* Filter */}
+  <Popover
+    open={isFunnelMenuOpen}
+    onOpenChange={(visible) => setFunnelMenuOpen(visible)}
+    trigger="click"
+    placement="bottomRight"
+    content={
+      <div className="min-w-[200px] rounded-lg space-y-1">
+        {funnelMenuOptions.map(({ label, icon, onClick }) => (
+          <Tooltip title={label} placement="left" key={label}>
+            <button
+              onClick={onClick}
+              className="w-full flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
             >
-              Reset
-            </Button>
-          </motion.div>
-        </div>
+              <span className="text-lg">{icon}</span>
+              <span>{label}</span>
+            </button>
+          </Tooltip>
+        ))}
+      </div>
+    }
+  >
+    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+      <Button
+        type="default"
+        icon={<Filter className="w-4 h-4" />}
+        className={`p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100 w-full sm:w-auto ${
+          statusFilter !== "all"
+            ? "border-green-400 bg-green-50 text-green-600"
+            : ""
+        }`}
+      >
+        Filter: {getCurrentStatusLabel()}
+      </Button>
+    </motion.div>
+  </Popover>
+
+  {/* Date Preset */}
+  <Popover
+    open={isCustomDatePickerOpen}
+    onOpenChange={(visible) => setIsCustomDatePickerOpen(visible)}
+    trigger="click"
+    placement="bottomRight"
+    content={
+      <div>
+        {datePresets.map(({ label, onClick }) => (
+          <Tooltip title={label} placement="left" key={label}>
+            <button
+              onClick={onClick}
+              className="w-full flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+            >
+              <span className="text-lg">
+                <FieldTimeOutlined />
+              </span>
+              <span>{label}</span>
+            </button>
+          </Tooltip>
+        ))}
+      </div>
+    }
+  >
+    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+      <Button
+        type="default"
+        icon={<Calendar className="w-4 h-4" />}
+        className={`p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100 w-full sm:w-auto ${
+          dateRange[0] || presetDateRange[0]
+            ? "border-purple-400 bg-purple-50 text-purple-600"
+            : ""
+        }`}
+      >
+        Date: {getCurrentDateLabel()}
+      </Button>
+    </motion.div>
+  </Popover>
+
+  {/* Refresh */}
+  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+    <Button
+      type="default"
+      icon={<RefreshCcw className="w-4 h-4" />}
+      onClick={() => queryClient.invalidateQueries(["blogs"])}
+      className="p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100 w-full sm:w-auto"
+    >
+      Refresh
+    </Button>
+  </motion.div>
+
+  {/* Reset */}
+  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+    <Button
+      type="default"
+      icon={<RotateCcw className="w-4 h-4" />}
+      onClick={resetFilters}
+      className={`p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100 w-full sm:w-auto ${
+        hasActiveFilters ? "border-red-400 bg-red-50 text-red-600" : ""
+      }`}
+    >
+      Reset
+    </Button>
+  </motion.div>
+</div>
+
         <div className="flex-1">
           <RangePicker
             value={dateRange}

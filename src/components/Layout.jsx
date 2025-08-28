@@ -8,6 +8,7 @@ import {
   Briefcase,
   Crown,
   FileText,
+  HelpCircle,
   LayoutDashboard,
   Megaphone,
   Plug,
@@ -22,10 +23,12 @@ import { RiCoinsFill } from "react-icons/ri"
 import NotificationDropdown from "@components/NotificationDropdown"
 import GoProButton from "@components/GoProButton"
 import { getSocket } from "@utils/socket"
+import WhatsNewModal from "./HowToModel"
 
 const LayoutWithSidebarAndHeader = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [isUserLoaded, setIsUserLoaded] = useState(false)
+  const [showWhatsNew, setShowWhatsNew] = useState(false)
   const user = useSelector(selectUser)
   const location = useLocation()
   const dispatch = useDispatch()
@@ -38,6 +41,10 @@ const LayoutWithSidebarAndHeader = () => {
       console.error("User load failed:", err)
       navigate("/login")
     }
+  }
+
+  const handleCloseModal = () => {
+    setShowWhatsNew(false)
   }
 
   useEffect(() => {
@@ -109,7 +116,11 @@ const LayoutWithSidebarAndHeader = () => {
       { key: "transactions", label: "Transactions", className: "!py-1.5 hover:bg-gray-100" },
       { key: "credit-logs", label: "Credit Logs", className: "!py-1.5 hover:bg-gray-100" },
       { key: "upgrade", label: "Upgrade", className: "!py-1.5 hover:bg-gray-100" },
-      user?.subscription?.plan !== "free" && { key: "cancel-subscription", label: "Cancel Subscription", className: "!py-1.5 hover:bg-gray-100" },
+      user?.subscription?.plan !== "free" && {
+        key: "cancel-subscription",
+        label: "Cancel Subscription",
+        className: "!py-1.5 hover:bg-gray-100",
+      },
       { type: "divider" },
       { key: "logout", danger: true, label: "Logout", className: "!py-2 hover:bg-gray-100" },
     ],
@@ -126,9 +137,10 @@ const LayoutWithSidebarAndHeader = () => {
   return (
     <div className={`${path.includes("signup") || path.includes("login") ? "hidden" : "flex"}`}>
       {/* Sidebar */}
+      {showWhatsNew && <WhatsNewModal onClose={handleCloseModal} />}
       <div
-        className={`fixed top-0 left-0 h-full z-40 transition-all duration-300 bg-[#3F51B5] from-purple-800 to-blue-600 text-white overflow-hidden p-2 flex flex-col ${
-          sidebarOpen ? "w-56" : "w-16"
+        className={`fixed top-0 left-0 h-full z-50 transition-all duration-300 bg-[#3F51B5] from-purple-800 to-blue-600 text-white overflow-hidden p-2 flex flex-col md:w-16 md:hover:w-56 ${
+          sidebarOpen ? "w-56" : "w-0 md:w-16"
         }`}
         onMouseEnter={() => setSidebarOpen(true)}
         onMouseLeave={() => setSidebarOpen(false)}
@@ -169,7 +181,6 @@ const LayoutWithSidebarAndHeader = () => {
           {Menus.map((Menu, index) => {
             const isActive = location.pathname.startsWith(Menu.path)
             const Icon = Menu.icon
-
             const isSearchConsole = Menu.title === ""
             const isContentAgent = Menu.title === ""
             const isPro = ["pro", "enterprise"].includes(user?.subscription?.plan)
@@ -190,14 +201,14 @@ const LayoutWithSidebarAndHeader = () => {
                   <span className={`${!sidebarOpen ? "hidden" : "block"}`}>{Menu.title}</span>
                 </NavLink>
 
-                {/* 👇 Show upgrade icon only for "Content Agent" and free users */}
+                {/* Show upgrade icon for Content Agent and free users */}
                 {isContentAgent && isFreeUser && sidebarOpen && (
                   <button className="p-1 bg-yellow-500 text-white rounded-md transition-all duration-200 hover:scale-105">
                     <Crown className="w-4 h-4" />
                   </button>
                 )}
 
-                {/* Optional: existing logic for Blog Performance & Pro users */}
+                {/* Show upgrade icon for Blog Performance and non-pro users */}
                 {isSearchConsole && !isPro && sidebarOpen && (
                   <button className="p-1 bg-yellow-500 text-white rounded-md transition-all duration-200 hover:scale-105">
                     <Crown className="w-4 h-4" />
@@ -207,6 +218,30 @@ const LayoutWithSidebarAndHeader = () => {
             )
           })}
         </ul>
+
+        {/* Responsive Sidebar Items (GoProButton and Introduction Video) */}
+        {sidebarOpen && (
+          <ul className="space-y-3 mt-4 md:hidden">
+            <li>
+              <button
+                onClick={() => navigate("/pricing")}
+                className="flex items-center gap-3 px-3 py-2 rounded-md transition-colors duration-200 text-white hover:bg-white/10 w-full"
+              >
+                <Zap className="w-5 h-5" />
+                <span>Go Pro</span>
+              </button>
+            </li>
+            <li>
+              <button
+                onClick={() => setShowWhatsNew(true)}
+                className="flex items-center gap-3 px-3 py-2 rounded-md transition-colors duration-200 text-white hover:bg-white/10 w-full"
+              >
+                <HelpCircle className="w-5 h-5" />
+                <span>Introduction Video</span>
+              </button>
+            </li>
+          </ul>
+        )}
 
         {/* Contact Us - Stick to bottom */}
         <div className="mt-auto px-2 pt-4">
@@ -227,16 +262,18 @@ const LayoutWithSidebarAndHeader = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 ml-16 fixed z-30 w-[calc(100%-4rem)]">
-        <header className="top-0 z-[9999] bg-gray-50 p-4 flex items-center justify-between border-b border-gray-200">
+      <div className="flex-1 md:ml-16">
+        <header className="fixed top-0 z-40 bg-gray-50 p-4 flex items-center justify-between border-b border-gray-200 w-full md:w-[calc(100%-4rem)]">
           <div className="flex items-center gap-2">
+            <button className="md:hidden" onClick={() => setSidebarOpen(!sidebarOpen)}>
+              <FiMenu size={24} className="text-gray-700" />
+            </button>
             <img src="/Images/logo_genwrite_2.png" loading="lazy" alt="Logo" className="w-36" />
           </div>
           <div className="flex items-center space-x-4">
-            <GoProButton onClick={() => navigate("/pricing")} />
             {isUserLoaded ? (
               <>
-                <Tooltip title="User Credits">
+                <Tooltip title="User Credits" className="hidden md:flex">
                   <button
                     onClick={() => navigate("/credit-logs")}
                     className="flex gap-2 justify-center items-center rounded-full p-2 hover:bg-gray-100 transition"
@@ -248,10 +285,18 @@ const LayoutWithSidebarAndHeader = () => {
                   </button>
                 </Tooltip>
                 <NotificationDropdown notifications={user?.notifications} />
+                <Tooltip title="Introduction Video" className="hidden md:flex">
+                  <button
+                    onClick={() => setShowWhatsNew(true)}
+                    className="flex gap-2 justify-center items-center rounded-full p-2 hover:bg-gray-100 transition"
+                  >
+                    <HelpCircle className="transition-all duration-300 w-7 h-7 text-gray-700" />
+                  </button>
+                </Tooltip>
                 <Dropdown menu={userMenu} trigger={["click"]} placement="bottomRight">
                   <Avatar
                     className="bg-gradient-to-tr from-blue-400 to-purple-700 text-white font-bold cursor-pointer hover:ring-2 hover:ring-offset-2 hover:ring-purple-500 transition"
-                    style={{ marginLeft: "25px", marginRight: "20px" }}
+                    style={{ marginLeft: "20px", marginRight: "20px" }}
                     size="large"
                     src={user?.avatar ? user.avatar : undefined}
                   >
@@ -269,6 +314,7 @@ const LayoutWithSidebarAndHeader = () => {
             )}
           </div>
         </header>
+        <div className="pt-16">{/* Placeholder for main content */}</div>
       </div>
     </div>
   )

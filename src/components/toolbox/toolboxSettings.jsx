@@ -30,7 +30,7 @@ export default function ToolboxPage() {
   const [pageSize, setPageSize] = useState(10)
   const [currentPage, setCurrentPage] = useState(1)
   const [selectedRowKeys, setSelectedRowKeys] = useState([])
-  const { blogs } = useSelector((state) => state.blog)
+  const { allBlogs } = useSelector((state) => state.blog)
   const dispatch = useDispatch()
   const { keywordAnalysis: keywordAnalysisResult, loading: analyzing } = useSelector(
     (state) => state.analysis
@@ -266,7 +266,7 @@ export default function ToolboxPage() {
     {
       key: "outline",
       title: "AI Outline",
-      icon: <Workflow  className="size-5 text-green-500" />, // from react-icons/bs
+      icon: <Workflow className="size-5 text-green-500" />, // from react-icons/bs
       description:
         "Craft high-impact blog outlines with SEO keywords, structure, and brand voice in seconds using AI.",
       action: () => navigate("/outline"),
@@ -574,7 +574,7 @@ export default function ToolboxPage() {
         />
         {competitiveAnalysisModalOpen && (
           <CompetitiveAnalysisModal
-            blogs={blogs ?? []}
+            blogs={allBlogs}
             open={competitiveAnalysisModalOpen}
             closeFnc={() => setCompetitiveAnalysisModalOpen(false)}
           />
@@ -589,7 +589,7 @@ function AnimatedCard({ item }) {
   const user = useSelector(selectUser)
   const [isUserPlanFree, setIsUserPlanFree] = useState(false)
   useEffect(() => {
-    if(user){
+    if (user) {
       setIsUserPlanFree(["free"].includes(user?.subscription?.plan))
     }
   }, [user])
@@ -599,8 +599,8 @@ function AnimatedCard({ item }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{
-        scale:1.03,
-        transition: { type:"spring", stiffness: 300, damping: 10, duration:0.5 },
+        scale: 1.03,
+        transition: { type: "spring", stiffness: 300, damping: 10, duration: 0.5 },
       }}
     >
       <Card
@@ -621,7 +621,11 @@ function AnimatedCard({ item }) {
         {item.span ? (
           <span className="text-gray-500 font-medium">{item.span}</span>
         ) : (
-          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex justify-center">
+          <motion.div
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="flex justify-center"
+          >
             <Button
               block
               type={item.disabled ? "default" : "primary"}
