@@ -1,3 +1,5 @@
+"use client"
+
 import React, { useState } from "react"
 
 const CloseIcon = () => (
@@ -48,21 +50,14 @@ const FeatureCarousel = ({ features }) => {
             className="absolute top-0 left-0 w-full h-full transition-opacity duration-700 ease-in-out"
             style={{ opacity: index === currentIndex ? 1 : 0 }}
           >
-            <video
+            <iframe
               className="w-full h-full object-contain"
               src={feature.videoUrl}
-              autoPlay
-              loop
-              // controls
-              onPlay={(e) => {
-                document.querySelectorAll("video").forEach((vid) => {
-                  if (vid !== e.target) vid.pause()
-                })
-              }}
-            >
-              Your browser does not support the video tag.
-            </video>
-
+              title={feature.title}
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            ></iframe>
             <div className="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-black/70 to-transparent text-white">
               <h3 className="text-xl font-bold">{feature.title}</h3>
               <p className="text-sm">{feature.description}</p>
@@ -126,21 +121,27 @@ const WhatsNewModal = ({ onClose }) => {
   const features = [
     {
       id: 1,
-      title: "Naya Dashboard",
-      description: "Apne kaam ko behtar dhang se manage karein.",
-      videoUrl: "/public/blog_generate.mp4",
+      title: "AI Blog Generator",
+      description:
+        "Boost your blogging workflow with AI! Just enter a topic and our AI Blog Generator creates a complete, SEO-friendly blog in seconds. Save time, write quality content, and level up your productivity.",
+      videoUrl:
+        "https://www.youtube.com/embed/dAT1IQxhiqY?autoplay=1&mute=1&loop=1&playlist=dAT1IQxhiqY",
     },
     {
       id: 2,
-      title: "Instant Reports",
-      description: "Ek click mein detailed reports download karein.",
-      videoUrl: "public/content_agent.mp4",
+      title: "Content Agent",
+      description:
+        "Meet your AI-powered Content Agent. From proofreading and rewriting to optimization and competitive analysis — this tool is built to make your writing smarter and sharper.",
+      videoUrl:
+        "https://www.youtube.com/embed/--4sbhhN05U?autoplay=1&mute=1&loop=1&playlist=--4sbhhN05U",
     },
     {
       id: 3,
-      title: "Team Collaboration",
-      description: "Apni team ke saath real-time mein kaam karein.",
-      videoUrl: "public/keyword_toBlog.mp4",
+      title: "Keyword to Blog",
+      description:
+        "Turn simple keywords into full-length, engaging blogs instantly. Our AI ensures SEO optimization and a natural human-like flow in every post.",
+      videoUrl:
+        "https://www.youtube.com/embed/dwIH4l5_P2Y?autoplay=1&mute=1&loop=1&playlist=dwIH4l5_P2Y",
     },
   ]
 
@@ -163,12 +164,11 @@ const WhatsNewModal = ({ onClose }) => {
 
         {/* Carousel Component */}
         <FeatureCarousel features={features} />
-
       </div>
       <style>{`
-                @keyframes scale-in { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-                .animate-scale-in { animation: scale-in 0.3s ease-out forwards; }
-            `}</style>
+        @keyframes scale-in { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .animate-scale-in { animation: scale-in 0.3s ease-out forwards; }
+      `}</style>
     </div>
   )
 }
