@@ -18,7 +18,11 @@ import {
 const BrandVoice = () => {
   const user = useSelector((state) => state.auth.user)
   const dispatch = useDispatch()
+<<<<<<< HEAD
   const queryClient = useQueryClient()
+=======
+  const queryClient = useQueryClient() // Added for cache management
+>>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
   const [inputValue, setInputValue] = useState("")
   const [isUploading, setIsUploading] = useState(false)
   const [formData, setFormData] = useState({
@@ -34,7 +38,10 @@ const BrandVoice = () => {
   const { siteInfo } = useSelector((state) => state.brand)
   const [lastScrapedUrl, setLastScrapedUrl] = useState("")
   const [isFormReset, setIsFormReset] = useState(false)
+<<<<<<< HEAD
   const [showAllKeywords, setShowAllKeywords] = useState(false) // New state for toggling keywords
+=======
+>>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
   const {
     data: brands = [],
     isLoading,
@@ -42,21 +49,42 @@ const BrandVoice = () => {
   } = useQuery({
     queryKey: ["brands"],
     queryFn: async () => {
+<<<<<<< HEAD
       const response = await dispatch(fetchBrands()).unwrap()
       return response
     },
   })
 
+=======
+      const response = await dispatch(fetchBrands()).unwrap() // Dispatch and unwrap the payload
+      return response // Return the brands data
+    },
+    // staleTime: 5 * 60 * 1000,
+    // cacheTime: 10 * 60 * 1000,
+  })
+
+  console.log({ brands }, { isLoading }, { error })
+
+  // Reset form on mount and unmount (page change)
+>>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
   useEffect(() => {
     if (!formData._id) {
       resetForm()
     }
     return () => {
       resetForm()
+<<<<<<< HEAD
       dispatch(resetSiteInfo())
     }
   }, [dispatch])
 
+=======
+      dispatch(resetSiteInfo()) // Clear siteInfo on unmount
+    }
+  }, [dispatch])
+
+  // Populate form with fetched siteInfo data
+>>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
   useEffect(() => {
     if (siteInfo.data && !isFormReset) {
       setFormData((prev) => ({
@@ -77,8 +105,17 @@ const BrandVoice = () => {
       }))
       setLastScrapedUrl(formData.postLink)
     }
+<<<<<<< HEAD
   }, [siteInfo, formData.postLink, isFormReset])
 
+=======
+    if (siteInfo.error) {
+      message.error("Failed to fetch site info. Please try a different URL.")
+    }
+  }, [siteInfo, formData.postLink, isFormReset])
+
+  // Reset form function
+>>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
   const resetForm = useCallback(() => {
     setFormData({
       nameOfVoice: "",
@@ -92,10 +129,17 @@ const BrandVoice = () => {
     setInputValue("")
     setErrors({})
     setLastScrapedUrl("")
+<<<<<<< HEAD
     setIsFormReset(true)
     setShowAllKeywords(false) // Reset showAllKeywords on form reset
   }, [brands])
 
+=======
+    setIsFormReset(true) // Set flag to prevent siteInfo repopulation
+  }, [brands])
+
+  // Validate form fields
+>>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
   const validateForm = useCallback(() => {
     const newErrors = {}
     if (!formData.nameOfVoice.trim()) {
@@ -129,6 +173,10 @@ const BrandVoice = () => {
     return Object.keys(newErrors).length === 0
   }, [formData])
 
+<<<<<<< HEAD
+=======
+  // Handle form input changes
+>>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
   const handleInputChange = useCallback(
     (e) => {
       const { name, value } = e.target
@@ -137,6 +185,7 @@ const BrandVoice = () => {
       if (name === "postLink" && value !== lastScrapedUrl) {
         setLastScrapedUrl("")
       }
+<<<<<<< HEAD
       setIsFormReset(false)
     },
     [lastScrapedUrl]
@@ -342,9 +391,230 @@ const BrandVoice = () => {
       ? formData.keywords
       : formData.keywords.slice(0, maxInitialKeywords)
     const remainingCount = formData.keywords.length - maxInitialKeywords
+=======
+      setIsFormReset(false) // Allow siteInfo to populate if user edits
+    },
+    [lastScrapedUrl]
+  )
+>>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
 
+  // Handle keyword input
+  const handleKeyDown = useCallback(
+    (event) => {
+      if (event.key === "Enter" && inputValue.trim()) {
+        event.preventDefault()
+        const existing = formData.keywords.map((k) => k.toLowerCase())
+        const seen = new Set()
+        const newKeywords = inputValue
+          .split(",")
+          .map((k) => k.trim())
+          .filter((k) => {
+            const lower = k.toLowerCase()
+            if (!k || existing.includes(lower) || seen.has(lower)) return false
+            seen.add(lower)
+            return true
+          })
+        if (newKeywords.length === 0) return
+        setFormData((prev) => ({
+          ...prev,
+          keywords: [...prev.keywords, ...newKeywords],
+        }))
+        setInputValue("")
+        setErrors((prev) => ({ ...prev, keywords: undefined }))
+        setIsFormReset(false)
+      }
+    },
+    [inputValue, formData.keywords]
+  )
+
+  // Remove keyword
+  const removeKeyword = useCallback((keyword) => {
+    setFormData((prev) => ({
+      ...prev,
+      keywords: prev.keywords.filter((k) => k !== keyword),
+    }))
+    setIsFormReset(false)
+  }, [])
+
+  // Handle CSV file upload for keywords
+  const handleFileChange = useCallback((event) => {
+    const file = event.target.files[0]
+    if (!file) return
+    if (!file.name.toLowerCase().endsWith(".csv")) {
+      message.error("Invalid file type. Please upload a .csv file.")
+      event.target.value = null
+      return
+    }
+    const maxSizeInBytes = 20 * 1024
+    if (file.size > maxSizeInBytes) {
+      message.error("File size exceeds 20KB limit. Please upload a smaller file.")
+      event.target.value = null
+      return
+    }
+    if (file.type !== "text/csv") {
+      message.error("Please upload a valid CSV file.")
+      event.target.value = null
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const text = e.target.result
+      const keywords = text
+        .split(/,|\n|;/)
+        .map((kw) => kw.trim())
+        .filter((kw) => kw.length > 0)
+      setFormData((prev) => ({
+        ...prev,
+        keywords: [...new Set([...prev.keywords, ...keywords])],
+      }))
+      setErrors((prev) => ({ ...prev, keywords: undefined }))
+      setIsFormReset(false)
+    }
+    reader.onerror = () => message.error("Error reading CSV file.")
+    reader.readAsText(file)
+    event.target.value = null
+  }, [])
+
+  // Save or update brand voice
+  const handleSave = useCallback(async () => {
+    if (!validateForm()) return
+    setIsUploading(true)
+    const payload = {
+      nameOfVoice: formData.nameOfVoice.trim(),
+      postLink: formData.postLink.trim(),
+      keywords: formData.keywords.map((k) => k.trim()).filter(Boolean),
+      describeBrand: formData.describeBrand.trim(),
+      sitemap: formData.sitemapUrl.trim(),
+      userId: user?._id,
+    }
+
+    // Check for duplicate postLink
+    const isDuplicate = brands.some(
+      (brand) =>
+        brand.postLink === payload.postLink && (formData._id ? brand._id !== formData._id : true)
+    )
+
+    if (isDuplicate) {
+      message.error("A brand voice already exists with that name and link.")
+      setIsUploading(false)
+      return
+    }
+
+    try {
+      if (formData._id) {
+        await dispatch(updateBrandVoiceThunk({ id: formData._id, payload })).unwrap()
+      } else {
+        await dispatch(createBrandVoiceThunk({ payload })).unwrap()
+      }
+      resetForm()
+      queryClient.invalidateQueries(["brands"])
+      dispatch(resetSiteInfo()) // Clear siteInfo after save
+    } catch (error) {
+      console.error("Error saving brand voice:", error)
+      message.error(
+        formData._id ? "Failed to update brand voice." : "Failed to create brand voice."
+      )
+    } finally {
+      setIsUploading(false)
+    }
+  }, [formData, user, dispatch, validateForm, resetForm, brands, queryClient])
+
+  // Edit brand voice
+  const handleEdit = useCallback((brand) => {
+    setFormData({
+      nameOfVoice: brand.nameOfVoice || "",
+      postLink: brand.postLink || "",
+      keywords: Array.isArray(brand.keywords) ? brand.keywords : [],
+      describeBrand: brand.describeBrand || "",
+      sitemapUrl: brand.sitemap || "",
+      selectedVoice: brand,
+      _id: brand._id,
+    })
+    setErrors({})
+    setLastScrapedUrl(brand.postLink || "")
+    setIsFormReset(false)
+  }, [])
+
+  // Delete brand voice
+  const handleDelete = useCallback(
+    (brand) => {
+      Modal.confirm({
+        title: "Delete Brand Voice?",
+        content: "Are you sure you want to delete this brand voice? This action cannot be undone.",
+        okText: "Delete",
+        cancelText: "Cancel",
+        okButtonProps: { danger: true },
+        onOk: async () => {
+          try {
+            // Optimistic update: Remove brand from cache immediately
+            queryClient.setQueryData(["brands"], (oldBrands = []) =>
+              oldBrands.filter((b) => b._id !== brand._id)
+            )
+
+            await dispatch(deleteBrandVoiceThunk({ id: brand._id })).unwrap()
+
+            // Invalidate query to refetch latest data
+            queryClient.invalidateQueries(["brands"])
+
+            // Reset form if deleted brand was selected
+            if (formData.selectedVoice?._id === brand._id) {
+              resetForm()
+              dispatch(resetSiteInfo())
+            }
+          } catch (error) {
+            console.error("Failed to delete brand voice:", error)
+            // Rollback optimistic update by invalidating query
+            queryClient.invalidateQueries(["brands"])
+          }
+        },
+      })
+    },
+    [dispatch, formData.selectedVoice, resetForm, queryClient]
+  )
+
+  // Select brand voice
+  const handleSelect = useCallback((voice) => {
+    setFormData((prev) => ({ ...prev, selectedVoice: voice }))
+    setIsFormReset(false)
+  }, [])
+
+  // Fetch site info
+  const handleFetchSiteInfo = useCallback(() => {
+    const url = formData.postLink.trim()
+    if (!url) {
+      setErrors((prev) => ({
+        ...prev,
+        postLink: "Post link is required to fetch site info.",
+      }))
+      return
+    }
+    if (url === lastScrapedUrl) {
+      message.info("This URL has already been fetched.")
+      return
+    }
+    try {
+      new URL(url)
+      dispatch(fetchSiteInfo(url))
+        .unwrap()
+        .then(() => {
+          setIsFormReset(false) // Allow form population
+        })
+        .catch(() => message.error("Failed to fetch site info. Please try a different URL."))
+    } catch {
+      setErrors((prev) => ({
+        ...prev,
+        postLink: "Please enter a valid URL (e.g., https://example.com).",
+      }))
+    }
+  }, [formData.postLink, lastScrapedUrl, dispatch])
+
+  // Memoized keywords rendering
+  const renderKeywords = useMemo(() => {
+    const latestKeywords = formData.keywords.slice(-3)
+    const remainingCount = formData.keywords.length - latestKeywords.length
     return (
       <div className={`flex flex-wrap gap-2 ${formData.keywords.length > 0 ? "mb-1" : "hidden"}`}>
+<<<<<<< HEAD
         {displayedKeywords.map((keyword) => (
           <motion.div
             key={keyword}
@@ -354,6 +624,27 @@ const BrandVoice = () => {
             exit={{ opacity: 0, scale: 0.8 }}
             whileHover={{ scale: 1.05 }}
           >
+=======
+        {remainingCount > 0 && (
+          <motion.div
+            className="flex items-center bg-indigo-100 text-indigo-700 rounded-md px-2 py-1 mr-2"
+            initial={{ scale: 0.8 }}
+            animate={{ scale: 1 }}
+            title={`+${remainingCount} more keywords`}
+          >
+            <span className="text-sm">{`+${remainingCount}`}</span>
+          </motion.div>
+        )}
+        {latestKeywords.map((keyword) => (
+          <motion.div
+            key={keyword}
+            className="flex items-center w-fit bg-indigo-100 text-indigo-700 rounded-md px-2 py-1 mr-2"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            whileHover={{ scale: 1.05 }}
+          >
+>>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
             <span className="text-sm truncate max-w-[100px]">{keyword}</span>
             <FaTimes
               className="ml-1 cursor-pointer text-indigo-500 hover:text-indigo-700 transition-colors"
@@ -365,6 +656,7 @@ const BrandVoice = () => {
             />
           </motion.div>
         ))}
+<<<<<<< HEAD
         {remainingCount > 0 && (
           <button
             type="button"
@@ -377,6 +669,11 @@ const BrandVoice = () => {
       </div>
     )
   }, [formData.keywords, removeKeyword, showAllKeywords])
+=======
+      </div>
+    )
+  }, [formData.keywords, removeKeyword])
+>>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
 
   return (
     <motion.div
@@ -388,6 +685,10 @@ const BrandVoice = () => {
         <title>Brand Voice | GenWrite</title>
       </Helmet>
 
+<<<<<<< HEAD
+=======
+      {/* Left Section: Form */}
+>>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
       <motion.div
         className="w-full lg:w-[60%] bg-white rounded-xl p-6 shadow-lg border border-gray-100"
         initial={{ x: -20 }}
@@ -401,6 +702,10 @@ const BrandVoice = () => {
         </p>
 
         <div className="space-y-4">
+<<<<<<< HEAD
+=======
+          {/* Post Link */}
+>>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
           <div>
             <label htmlFor="postLink" className="text-sm font-medium text-gray-700 flex gap-2 mb-1">
               Post or Blog Link <span className="text-red-500">*</span>
@@ -464,6 +769,10 @@ const BrandVoice = () => {
             )}
           </div>
 
+<<<<<<< HEAD
+=======
+          {/* Name of Voice */}
+>>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
           <div>
             <label
               htmlFor="nameOfVoice"
@@ -492,6 +801,10 @@ const BrandVoice = () => {
             )}
           </div>
 
+<<<<<<< HEAD
+=======
+          {/* Keywords */}
+>>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
           <div>
             <label htmlFor="keywords" className="text-sm font-medium text-gray-700 flex gap-2 mb-1">
               Keywords <span className="text-red-500">*</span>
@@ -557,6 +870,10 @@ const BrandVoice = () => {
             )}
           </div>
 
+<<<<<<< HEAD
+=======
+          {/* Sitemap URL */}
+>>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
           <div>
             <label
               htmlFor="sitemapUrl"
@@ -602,6 +919,10 @@ const BrandVoice = () => {
             )}
           </div>
 
+<<<<<<< HEAD
+=======
+          {/* Brand Description */}
+>>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
           <div>
             <label
               htmlFor="describeBrand"
@@ -630,6 +951,10 @@ const BrandVoice = () => {
             )}
           </div>
 
+<<<<<<< HEAD
+=======
+          {/* Save Button */}
+>>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
           <div className="flex gap-2 justify-end">
             <motion.button
               className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-2 rounded-lg font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -651,6 +976,10 @@ const BrandVoice = () => {
               )}
             </motion.button>
 
+<<<<<<< HEAD
+=======
+            {/* Reset Button */}
+>>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
             <motion.button
               className="bg-gradient-to-tr from-red-700 from-10% via-red-500 via-80% to-red-700 to-100% text-white px-6 py-2 rounded-lg font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={resetForm}
@@ -665,6 +994,10 @@ const BrandVoice = () => {
         </div>
       </motion.div>
 
+<<<<<<< HEAD
+=======
+      {/* Right Section: Brand Voices List */}
+>>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
       <motion.div
         className="w-full lg:w-[40%] bg-white rounded-xl p-6 shadow-lg border border-gray-100"
         initial={{ x: 20 }}
@@ -672,6 +1005,10 @@ const BrandVoice = () => {
       >
         <h2 className="text-xl font-bold text-gray-800 mb-4">Your Brand Voices</h2>
         <div className="space-y-3 overflow-y-auto max-h-[calc(100vh-200px)]">
+<<<<<<< HEAD
+=======
+          {console.log("Brands value before map:", brands)}
+>>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
           {brands.length > 0 ? (
             brands.map((item) => (
               <YourVoicesComponent
