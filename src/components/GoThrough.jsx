@@ -24,30 +24,17 @@ const GoThrough = ({ onClose }) => {
       <div className="relative rounded-lg overflow-hidden m-6 mt-4">
         {/* The video will only render when the modal is open */}
         {open && (
-          <video
-            className="w-full h-auto object-contain bg-black rounded-lg"
-            src="/public/all_pages.mp4"
-            onError={(e) => (e.target.style.display = "none")}
-            autoPlay
-            loop
-            muted
-            playsInline
-          >
-            Your browser does not support the video tag.
-          </video>
+          <iframe
+            width="560"
+            height="315"
+            src="https://www.youtube.com/embed/Yq9WDkzi39U?autoplay=1&mute=1&loop=1&playlist=Yq9WDkzi39U"
+            title="YouTube video player"
+            frameborder="0"
+            allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen
+            className="w-full h-64 sm:h-80 md:h-96 lg:h-[500px] rounded-lg"
+          ></iframe>
         )}
-        <div
-          className="absolute inset-0 bg-gray-200 flex items-center justify-center rounded-lg"
-          style={{ zIndex: -1 }}
-        >
-          <p className="text-gray-500">Video loading...</p>
-        </div>
-        <div className="absolute bottom-0 left-0 w-full p-5 bg-gradient-to-t from-black/80 to-transparent text-white rounded-b-lg">
-          <h3 className="text-xl font-bold">Dive Into a Smooth Experience</h3>
-          <p className="text-sm opacity-90">
-            Take a quick tour and see all the features in action.
-          </p>
-        </div>
       </div>
     </Modal>
   )

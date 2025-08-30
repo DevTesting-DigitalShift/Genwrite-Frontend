@@ -1,31 +1,30 @@
-import { useState, useEffect, useMemo } from "react";
-import DifferentPlugins from "./DifferentPlugins";
-import Modal from "react-modal";
-import { CiGlobe } from "react-icons/ci";
-import { ImGithub } from "react-icons/im";
-import { RiCloseLine } from "react-icons/ri";
-import { pluginsData } from "@constants/pluginsData";
-import { motion } from "framer-motion";
-import { Helmet } from "react-helmet";
-import axiosInstance from "@api/index";
+"use client"
 
-Modal.setAppElement("#root");
+import { useState, useEffect, useMemo } from "react"
+import DifferentPlugins from "./DifferentPlugins"
+import Modal from "react-modal"
+import { CiGlobe } from "react-icons/ci"
+import { ImGithub } from "react-icons/im"
+import { RiCloseLine } from "react-icons/ri"
+import { pluginsData } from "@constants/pluginsData"
+import { motion } from "framer-motion"
+import { Helmet } from "react-helmet"
+import axiosInstance from "@api/index"
+
+Modal.setAppElement("#root")
 
 const PluginsMain = () => {
-  const [selectedPlugin, setSelectedPlugin] = useState(null);
-  const [wordpressStatus, setWordpressStatus] = useState({});
-  // Memoize plugins to prevent new array creation on each render
-  const plugins = useMemo(() => pluginsData(setWordpressStatus), []);
+  const [selectedPlugin, setSelectedPlugin] = useState(null)
+  const [wordpressStatus, setWordpressStatus] = useState({})
+  const plugins = useMemo(() => pluginsData(setWordpressStatus), [])
 
-  // Check connection status for each plugin on mount, only if not already checked
   useEffect(() => {
     const checkAllPlugins = async () => {
       for (const plugin of plugins) {
-        // Skip if status is already set
-        if (wordpressStatus[plugin.id]?.success) continue;
+        if (wordpressStatus[plugin.id]?.success) continue
 
         try {
-          const res = await axiosInstance.get("/wordpress/check");
+          const res = await axiosInstance.get("/wordpress/check")
           setWordpressStatus((prev) => ({
             ...prev,
             [plugin.id]: {
@@ -33,9 +32,9 @@ const PluginsMain = () => {
               message: res.data.message,
               success: res.data.success,
             },
-          }));
+          }))
         } catch (err) {
-          console.error(`Error checking plugin ${plugin.pluginName}:`, err);
+          console.error(`Error checking plugin ${plugin.pluginName}:`, err)
           setWordpressStatus((prev) => ({
             ...prev,
             [plugin.id]: {
@@ -48,24 +47,24 @@ const PluginsMain = () => {
                   : "Wordpress Connection Error",
               success: false,
             },
-          }));
+          }))
         }
       }
-    };
+    }
 
-    checkAllPlugins();
-  }, [plugins]); // Include wordpressStatus to allow re-checking if status changes
+    checkAllPlugins()
+  }, [plugins])
 
   const handlePluginClick = (plugin) => {
-    setSelectedPlugin(plugin);
-  };
+    setSelectedPlugin(plugin)
+  }
 
   const closeModal = () => {
-    setSelectedPlugin(null);
-  };
+    setSelectedPlugin(null)
+  }
 
   return (
-    <div className="p-5">
+    <div className="p-4 sm:p-6 md:p-8">
       <Helmet>
         <title>Plugins | GenWrite</title>
       </Helmet>
@@ -73,7 +72,7 @@ const PluginsMain = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.2 }}
-        className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
+        className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
       >
         Plugins
       </motion.h1>
@@ -81,7 +80,7 @@ const PluginsMain = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3 }}
-        className="text-gray-600 max-w-xl mt-2 mb-7"
+        className="text-gray-600 text-sm sm:text-base max-w-full sm:max-w-xl mt-2 mb-4 sm:mb-6 md:mb-8"
       >
         Seamlessly integrate tools and features that work exactly how you need them.
       </motion.p>
@@ -108,63 +107,79 @@ const PluginsMain = () => {
           isOpen={true}
           onRequestClose={closeModal}
           contentLabel="Plugin Details"
-          className="fixed inset-0 flex items-center justify-center z-50"
+          className="fixed inset-0 flex items-center justify-center z-50 p-4 sm:p-6"
           overlayClassName="fixed inset-0 bg-black bg-opacity-50 z-40"
         >
-          <div className="bg-white p-6 rounded-lg shadow-lg max-w-lg mx-auto relative">
-            <div className="flex justify-between items-center mb-4">
-              <div className="flex items-center gap-2">
-                <img src={selectedPlugin.pluginImage} alt="" className="h-10 w-10 object-contain" />
+          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg w-full max-w-md sm:max-w-lg mx-auto relative">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <img
+                  src={selectedPlugin.pluginImage}
+                  alt=""
+                  className="h-8 w-8 sm:h-10 sm:w-10 object-contain"
+                />
                 <div className="flex flex-col">
-                  <h3 className="text-[25px] font-[500] text-[#000000]">
+                  <h3 className="text-xl sm:text-2xl font-medium text-[#000000]">
                     {selectedPlugin.pluginName}
                   </h3>
-                  <span className="text-[16px] font-[400] text-[#454545]">
+                  <span className="text-sm sm:text-base font-normal text-[#454545]">
                     {selectedPlugin.name}
                   </span>
                 </div>
               </div>
               <button
                 onClick={closeModal}
-                className="bg-transparent border-none text-[#000000] hover:text-red-500 focus:outline-none"
+                className="bg-transparent border-none text-[#000000] hover:text-red-500 focus:outline-none absolute top-4 right-4 sm:static"
               >
-                <RiCloseLine size={25} />
+                <RiCloseLine size={20} className="sm:h-6 sm:w-6" />
               </button>
             </div>
-            <p className="text-[16px] font-400 text-[#454545] mb-4">
+            <p className="text-sm sm:text-base font-normal text-[#454545] mb-4">
               Prototype content blur draft italic strikethrough undo. Underline arrow rectangle
               opacity connection figma. Pencil layer slice ipsum layout flatten asset selection
               union editor. Text library fill fill rotate list. Distribute share figma figma
               underline editor main flatten frame draft.
             </p>
             <div className="mb-4">
-              <h3 className="text-lg font-medium mb-2">More about us</h3>
-              <div className="flex items-center gap-4">
-                <span className="w-[40px] h-[40px] rounded-full bg-[#F8F9F9] flex items-center justify-center">
-                  <CiGlobe size={25} />
-                </span>
-                <span className="w-[40px] h-[40px] rounded-full bg-[#F8F9F9] flex items-center justify-center">
-                  <ImGithub size={25} />
-                </span>
+              <h3 className="text-base sm:text-lg font-medium mb-2">More about us</h3>
+              <div className="flex items-center gap-3 sm:gap-4">
+                <a
+                  href="https://example.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#F8F9F9] flex items-center justify-center hover:bg-gray-200"
+                >
+                  <CiGlobe size={20} className="sm:h-6 sm:w-6" />
+                </a>
+                <a
+                  href="https://github.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#F8F9F9] flex items-center justify-center hover:bg-gray-200"
+                >
+                  <ImGithub size={20} className="sm:h-6 sm:w-6" />
+                </a>
               </div>
             </div>
-            <p className="text-gray-600 mb-4">Created by: {selectedPlugin.name}</p>
-            <p className="text-[#454545] mb-2">
+            <p className="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4">
+              Created by: {selectedPlugin.name}
+            </p>
+            <p className="text-sm sm:text-base text-[#454545] mb-2">
               Last Updated {selectedPlugin.updatedDate} months ago
             </p>
-            <p className="text-[#454545] text-[14px] font-[400] mb-2">Support: aryans@gmail.com</p>
-            <p className="font-[400] text-[14px] mb-4">
+            <p className="text-xs sm:text-sm text-[#454545] mb-2">Support: aryans@gmail.com</p>
+            <p className="text-xs sm:text-sm mb-3 sm:mb-4">
               License under{" "}
               <a href="https://companylicense.com" className="text-[#2790F9] underline">
                 Community free license
               </a>
             </p>
-            <div className="flex items-center justify-between mt-2">
-              <span className="text-[14px] font-[500] text-[#454545] underline cursor-pointer">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-2 gap-3 sm:gap-0">
+              <span className="text-xs sm:text-sm font-medium text-[#454545] underline cursor-pointer hover:text-[#2790F9]">
                 Report an issue
               </span>
               <a href={selectedPlugin.pluginInstallUrl} target="_blank" rel="noopener noreferrer">
-                <button className="bg-[#1B71CC] text-white py-2 px-6 rounded hover:bg-[#155a9c]">
+                <button className="bg-[#1B71CC] text-white py-2 px-4 sm:px-6 rounded hover:bg-[#155a9c] w-full sm:w-auto text-sm sm:text-base">
                   Install
                 </button>
               </a>
@@ -173,7 +188,7 @@ const PluginsMain = () => {
         </Modal>
       )}
     </div>
-  );
-};
+  )
+}
 
-export default PluginsMain;
+export default PluginsMain
