@@ -16,7 +16,14 @@ import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { AnimatePresence, motion } from "framer-motion"
 import { loadAuthenticatedUser, selectUser } from "@store/slices/authSlice"
+<<<<<<< HEAD
 import { Clock, Sparkles } from "lucide-react"
+=======
+import {
+  Clock,
+  Sparkles, // Added for feedback button
+} from "lucide-react"
+>>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
 import { Helmet } from "react-helmet"
 import SeoAnalysisModal from "./multipleStepModal/SeoAnalysisModal"
 import KeywordResearchModel from "./multipleStepModal/KeywordResearchModel"
@@ -35,8 +42,12 @@ import {
   Tooltip,
   Legend,
 } from "chart.js"
+<<<<<<< HEAD
 import { letsBegin, quickTools } from "./dashData/dash"
 import GoThrough from "./GoThrough"
+=======
+import { quickTools, letsBegin } from "./dashdata/dash"
+>>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
 
 ChartJS.register(
   ArcElement,
@@ -63,12 +74,19 @@ const Dashboard = () => {
   const [recentBlogData, setRecentBlogData] = useState([])
   const [loading, setLoading] = useState(true)
   const { blogs, error, allBlogs } = useSelector((state) => state.blog)
+<<<<<<< HEAD
   const [showWhatsNew, setShowWhatsNew] = useState(false)
+=======
+>>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const user = useSelector(selectUser)
   const { handlePopup } = useConfirmPopup()
 
+<<<<<<< HEAD
+=======
+  // Event handlers
+>>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
   const showModal = () => setIsModalVisible(true)
   const showDaisy = () => setDaisyUIModal(true)
   const hideDaisy = () => setDaisyUIModal(false)
@@ -79,6 +97,7 @@ const Dashboard = () => {
   const showCompetitiveAnalysis = () => setCompetitiveAnalysisModal(true)
   const hideCompetitiveAnalysis = () => setCompetitiveAnalysisModal(false)
 
+<<<<<<< HEAD
   useEffect(() => {
     const currentUser = user
     if (currentUser && !currentUser.lastLogin) {
@@ -131,6 +150,50 @@ const Dashboard = () => {
         message.error("Failed to load user data.")
       }
     }
+=======
+  const openSecondStepModal = () => {
+    setKeywordResearchModal(false)
+    setIsModalVisible(true)
+    setCurrentStep(0)
+  }
+
+  const openSecondStepJobModal = () => {
+    setKeywordResearchModal(false)
+    dispatch(openJobModal())
+    navigate("/jobs")
+  }
+
+  useEffect(() => {
+    dispatch(fetchBlogs())
+  }, [])
+
+  // Initialize data and fetch
+  useEffect(() => {
+    // dispatch(fetchBlogStatus())
+    dispatch(fetchAllBlogs())
+    const timer = setTimeout(() => setLoading(false), 1200)
+    return () => clearTimeout(timer)
+  }, [dispatch])
+
+  useEffect(() => {
+    const initUser = async () => {
+      const token = localStorage.getItem("token")
+      if (!token) {
+        navigate("/login")
+        return
+      }
+      try {
+        const result = await dispatch(loadAuthenticatedUser())
+        if (loadAuthenticatedUser.rejected.match(result)) {
+          console.warn("Failed to load user, redirecting...")
+          navigate("/login")
+        }
+      } catch (error) {
+        console.error("User init failed:", error)
+        message.error("Failed to load user data.")
+      }
+    }
+>>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
     initUser()
   }, [dispatch, navigate])
 
@@ -198,7 +261,10 @@ const Dashboard = () => {
       <Helmet>
         <title>Home | GenWrite</title>
       </Helmet>
+<<<<<<< HEAD
       {showWhatsNew && <GoThrough onClose={handleCloseModal} />}
+=======
+>>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
       <Modal
         title={`Step ${currentStep}/3`}
         visible={isModalVisible}
@@ -416,7 +482,12 @@ const Dashboard = () => {
 
         {/* Feedback Button */}
         <a
+<<<<<<< HEAD
           href="https://docs.google.com/forms/d/e/1FAIpQLScIdA2aVtugx-zMGON8LJKD4IRWtLZqiiurw-jU6wRYfOv7EA/viewform?usp=sharing&ouid=117159793210831255816"
+=======
+          href="https://docs.google.com/forms/d/e/1FAIpQLScIdA2aVtugx-zMGON8LJKD4IRWtLZqiiurw-jU6wRYfOv7EA/viewform?usp=sharing&ouid=117159793210831255816
+"
+>>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
           target="_blank"
           rel="noopener noreferrer"
           className="fixed right-0 bottom-28 z-50"
@@ -424,9 +495,16 @@ const Dashboard = () => {
           <button
             className="fixed right-[-30px] bottom-28 bg-blue-600 text-white px-4 py-2 rounded-lg rotate-90 flex items-center gap-2 hover:bg-blue-700 transition-all duration-300 shadow-md z-50"
             style={{
+<<<<<<< HEAD
               backfaceVisibility: "hidden",
               WebkitFontSmoothing: "antialiased",
               MozOsxFontSmoothing: "grayscale",
+=======
+              // transformOrigin: "bottom right",
+              backfaceVisibility: "hidden", // Helps with blurry text sometimes
+              WebkitFontSmoothing: "antialiased", // Fix for Safari
+              MozOsxFontSmoothing: "grayscale", // Fix for Firefox
+>>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
             }}
             aria-label="Provide feedback"
           >
