@@ -135,7 +135,7 @@ const Trashcan = () => {
   }
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-full">
+    <div className="p-8 max-w-full">
       <Helmet>
         <title>Trashcan | GenWrite</title>
       </Helmet>

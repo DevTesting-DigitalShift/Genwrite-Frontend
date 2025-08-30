@@ -122,7 +122,7 @@ const Transactions = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="p-4 sm:p-6 md:p-8 bg-white rounded-xl shadow-md max-w-full"
+        className="p-8 bg-white rounded-xl shadow-md max-w-full"
       >
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-0">
           <h2 className="text-lg sm:text-xl md:text-2xl font-semibold text-gray-800">

@@ -55,7 +55,7 @@ const FeatureCarousel = ({ features }) => {
               src={feature.videoUrl}
               title={feature.title}
               frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
             ></iframe>
             <div className="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-black/70 to-transparent text-white">
@@ -125,7 +125,7 @@ const WhatsNewModal = ({ onClose }) => {
       description:
         "Boost your blogging workflow with AI! Just enter a topic and our AI Blog Generator creates a complete, SEO-friendly blog in seconds. Save time, write quality content, and level up your productivity.",
       videoUrl:
-        "https://www.youtube.com/embed/dAT1IQxhiqY?autoplay=1&mute=1&loop=1&playlist=dAT1IQxhiqY",
+        "https://www.youtube.com/embed/dAT1IQxhiqY?autoplay=0&mute=1&loop=1&playlist=dAT1IQxhiqY",
     },
     {
       id: 2,
@@ -133,7 +133,7 @@ const WhatsNewModal = ({ onClose }) => {
       description:
         "Meet your AI-powered Content Agent. From proofreading and rewriting to optimization and competitive analysis — this tool is built to make your writing smarter and sharper.",
       videoUrl:
-        "https://www.youtube.com/embed/--4sbhhN05U?autoplay=1&mute=1&loop=1&playlist=--4sbhhN05U",
+        "https://www.youtube.com/embed/--4sbhhN05U?autoplay=0&mute=1&loop=1&playlist=--4sbhhN05U",
     },
     {
       id: 3,
@@ -141,7 +141,7 @@ const WhatsNewModal = ({ onClose }) => {
       description:
         "Turn simple keywords into full-length, engaging blogs instantly. Our AI ensures SEO optimization and a natural human-like flow in every post.",
       videoUrl:
-        "https://www.youtube.com/embed/dwIH4l5_P2Y?autoplay=1&mute=1&loop=1&playlist=dwIH4l5_P2Y",
+        "https://www.youtube.com/embed/dwIH4l5_P2Y?autoplay=0&mute=1&loop=1&playlist=dwIH4l5_P2Y",
     },
   ]
 

@@ -18,11 +18,7 @@ import {
 const BrandVoice = () => {
   const user = useSelector((state) => state.auth.user)
   const dispatch = useDispatch()
-<<<<<<< HEAD
   const queryClient = useQueryClient()
-=======
-  const queryClient = useQueryClient() // Added for cache management
->>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
   const [inputValue, setInputValue] = useState("")
   const [isUploading, setIsUploading] = useState(false)
   const [formData, setFormData] = useState({
@@ -38,10 +34,8 @@ const BrandVoice = () => {
   const { siteInfo } = useSelector((state) => state.brand)
   const [lastScrapedUrl, setLastScrapedUrl] = useState("")
   const [isFormReset, setIsFormReset] = useState(false)
-<<<<<<< HEAD
-  const [showAllKeywords, setShowAllKeywords] = useState(false) // New state for toggling keywords
-=======
->>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
+  const [showAllKeywords, setShowAllKeywords] = useState(false)
+
   const {
     data: brands = [],
     isLoading,
@@ -49,42 +43,21 @@ const BrandVoice = () => {
   } = useQuery({
     queryKey: ["brands"],
     queryFn: async () => {
-<<<<<<< HEAD
       const response = await dispatch(fetchBrands()).unwrap()
       return response
     },
   })
 
-=======
-      const response = await dispatch(fetchBrands()).unwrap() // Dispatch and unwrap the payload
-      return response // Return the brands data
-    },
-    // staleTime: 5 * 60 * 1000,
-    // cacheTime: 10 * 60 * 1000,
-  })
-
-  console.log({ brands }, { isLoading }, { error })
-
-  // Reset form on mount and unmount (page change)
->>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
   useEffect(() => {
     if (!formData._id) {
       resetForm()
     }
     return () => {
       resetForm()
-<<<<<<< HEAD
       dispatch(resetSiteInfo())
     }
   }, [dispatch])
 
-=======
-      dispatch(resetSiteInfo()) // Clear siteInfo on unmount
-    }
-  }, [dispatch])
-
-  // Populate form with fetched siteInfo data
->>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
   useEffect(() => {
     if (siteInfo.data && !isFormReset) {
       setFormData((prev) => ({
@@ -105,17 +78,8 @@ const BrandVoice = () => {
       }))
       setLastScrapedUrl(formData.postLink)
     }
-<<<<<<< HEAD
   }, [siteInfo, formData.postLink, isFormReset])
 
-=======
-    if (siteInfo.error) {
-      message.error("Failed to fetch site info. Please try a different URL.")
-    }
-  }, [siteInfo, formData.postLink, isFormReset])
-
-  // Reset form function
->>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
   const resetForm = useCallback(() => {
     setFormData({
       nameOfVoice: "",
@@ -129,17 +93,10 @@ const BrandVoice = () => {
     setInputValue("")
     setErrors({})
     setLastScrapedUrl("")
-<<<<<<< HEAD
     setIsFormReset(true)
-    setShowAllKeywords(false) // Reset showAllKeywords on form reset
+    setShowAllKeywords(false)
   }, [brands])
 
-=======
-    setIsFormReset(true) // Set flag to prevent siteInfo repopulation
-  }, [brands])
-
-  // Validate form fields
->>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
   const validateForm = useCallback(() => {
     const newErrors = {}
     if (!formData.nameOfVoice.trim()) {
@@ -173,10 +130,6 @@ const BrandVoice = () => {
     return Object.keys(newErrors).length === 0
   }, [formData])
 
-<<<<<<< HEAD
-=======
-  // Handle form input changes
->>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
   const handleInputChange = useCallback(
     (e) => {
       const { name, value } = e.target
@@ -185,7 +138,6 @@ const BrandVoice = () => {
       if (name === "postLink" && value !== lastScrapedUrl) {
         setLastScrapedUrl("")
       }
-<<<<<<< HEAD
       setIsFormReset(false)
     },
     [lastScrapedUrl]
@@ -320,7 +272,7 @@ const BrandVoice = () => {
     setErrors({})
     setLastScrapedUrl(brand.postLink || "")
     setIsFormReset(false)
-    setShowAllKeywords(false) // Reset showAllKeywords on edit
+    setShowAllKeywords(false)
   }, [])
 
   const handleDelete = useCallback(
@@ -330,7 +282,8 @@ const BrandVoice = () => {
         content: "Are you sure you want to delete this brand voice? This action cannot be undone.",
         okText: "Delete",
         cancelText: "Cancel",
-        okButtonProps: { danger: true },
+        okButtonProps: { danger: true, className: "px-3 sm:px-4 py-2" },
+        cancelButtonProps: { className: "px-3 sm:px-4 py-2" },
         onOk: async () => {
           try {
             queryClient.setQueryData(["brands"], (oldBrands = []) =>
@@ -377,228 +330,6 @@ const BrandVoice = () => {
         .then(() => {
           setIsFormReset(false)
         })
-    } catch {
-      setErrors((prev) => ({
-        ...prev,
-        postLink: "Please enter a valid URL (e.g., https://example.com).",
-      }))
-    }
-  }, [formData.postLink, lastScrapedUrl, dispatch])
-
-  const renderKeywords = useMemo(() => {
-    const maxInitialKeywords = 12 // Maximum keywords to show initially
-    const displayedKeywords = showAllKeywords
-      ? formData.keywords
-      : formData.keywords.slice(0, maxInitialKeywords)
-    const remainingCount = formData.keywords.length - maxInitialKeywords
-=======
-      setIsFormReset(false) // Allow siteInfo to populate if user edits
-    },
-    [lastScrapedUrl]
-  )
->>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
-
-  // Handle keyword input
-  const handleKeyDown = useCallback(
-    (event) => {
-      if (event.key === "Enter" && inputValue.trim()) {
-        event.preventDefault()
-        const existing = formData.keywords.map((k) => k.toLowerCase())
-        const seen = new Set()
-        const newKeywords = inputValue
-          .split(",")
-          .map((k) => k.trim())
-          .filter((k) => {
-            const lower = k.toLowerCase()
-            if (!k || existing.includes(lower) || seen.has(lower)) return false
-            seen.add(lower)
-            return true
-          })
-        if (newKeywords.length === 0) return
-        setFormData((prev) => ({
-          ...prev,
-          keywords: [...prev.keywords, ...newKeywords],
-        }))
-        setInputValue("")
-        setErrors((prev) => ({ ...prev, keywords: undefined }))
-        setIsFormReset(false)
-      }
-    },
-    [inputValue, formData.keywords]
-  )
-
-  // Remove keyword
-  const removeKeyword = useCallback((keyword) => {
-    setFormData((prev) => ({
-      ...prev,
-      keywords: prev.keywords.filter((k) => k !== keyword),
-    }))
-    setIsFormReset(false)
-  }, [])
-
-  // Handle CSV file upload for keywords
-  const handleFileChange = useCallback((event) => {
-    const file = event.target.files[0]
-    if (!file) return
-    if (!file.name.toLowerCase().endsWith(".csv")) {
-      message.error("Invalid file type. Please upload a .csv file.")
-      event.target.value = null
-      return
-    }
-    const maxSizeInBytes = 20 * 1024
-    if (file.size > maxSizeInBytes) {
-      message.error("File size exceeds 20KB limit. Please upload a smaller file.")
-      event.target.value = null
-      return
-    }
-    if (file.type !== "text/csv") {
-      message.error("Please upload a valid CSV file.")
-      event.target.value = null
-      return
-    }
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      const text = e.target.result
-      const keywords = text
-        .split(/,|\n|;/)
-        .map((kw) => kw.trim())
-        .filter((kw) => kw.length > 0)
-      setFormData((prev) => ({
-        ...prev,
-        keywords: [...new Set([...prev.keywords, ...keywords])],
-      }))
-      setErrors((prev) => ({ ...prev, keywords: undefined }))
-      setIsFormReset(false)
-    }
-    reader.onerror = () => message.error("Error reading CSV file.")
-    reader.readAsText(file)
-    event.target.value = null
-  }, [])
-
-  // Save or update brand voice
-  const handleSave = useCallback(async () => {
-    if (!validateForm()) return
-    setIsUploading(true)
-    const payload = {
-      nameOfVoice: formData.nameOfVoice.trim(),
-      postLink: formData.postLink.trim(),
-      keywords: formData.keywords.map((k) => k.trim()).filter(Boolean),
-      describeBrand: formData.describeBrand.trim(),
-      sitemap: formData.sitemapUrl.trim(),
-      userId: user?._id,
-    }
-
-    // Check for duplicate postLink
-    const isDuplicate = brands.some(
-      (brand) =>
-        brand.postLink === payload.postLink && (formData._id ? brand._id !== formData._id : true)
-    )
-
-    if (isDuplicate) {
-      message.error("A brand voice already exists with that name and link.")
-      setIsUploading(false)
-      return
-    }
-
-    try {
-      if (formData._id) {
-        await dispatch(updateBrandVoiceThunk({ id: formData._id, payload })).unwrap()
-      } else {
-        await dispatch(createBrandVoiceThunk({ payload })).unwrap()
-      }
-      resetForm()
-      queryClient.invalidateQueries(["brands"])
-      dispatch(resetSiteInfo()) // Clear siteInfo after save
-    } catch (error) {
-      console.error("Error saving brand voice:", error)
-      message.error(
-        formData._id ? "Failed to update brand voice." : "Failed to create brand voice."
-      )
-    } finally {
-      setIsUploading(false)
-    }
-  }, [formData, user, dispatch, validateForm, resetForm, brands, queryClient])
-
-  // Edit brand voice
-  const handleEdit = useCallback((brand) => {
-    setFormData({
-      nameOfVoice: brand.nameOfVoice || "",
-      postLink: brand.postLink || "",
-      keywords: Array.isArray(brand.keywords) ? brand.keywords : [],
-      describeBrand: brand.describeBrand || "",
-      sitemapUrl: brand.sitemap || "",
-      selectedVoice: brand,
-      _id: brand._id,
-    })
-    setErrors({})
-    setLastScrapedUrl(brand.postLink || "")
-    setIsFormReset(false)
-  }, [])
-
-  // Delete brand voice
-  const handleDelete = useCallback(
-    (brand) => {
-      Modal.confirm({
-        title: "Delete Brand Voice?",
-        content: "Are you sure you want to delete this brand voice? This action cannot be undone.",
-        okText: "Delete",
-        cancelText: "Cancel",
-        okButtonProps: { danger: true },
-        onOk: async () => {
-          try {
-            // Optimistic update: Remove brand from cache immediately
-            queryClient.setQueryData(["brands"], (oldBrands = []) =>
-              oldBrands.filter((b) => b._id !== brand._id)
-            )
-
-            await dispatch(deleteBrandVoiceThunk({ id: brand._id })).unwrap()
-
-            // Invalidate query to refetch latest data
-            queryClient.invalidateQueries(["brands"])
-
-            // Reset form if deleted brand was selected
-            if (formData.selectedVoice?._id === brand._id) {
-              resetForm()
-              dispatch(resetSiteInfo())
-            }
-          } catch (error) {
-            console.error("Failed to delete brand voice:", error)
-            // Rollback optimistic update by invalidating query
-            queryClient.invalidateQueries(["brands"])
-          }
-        },
-      })
-    },
-    [dispatch, formData.selectedVoice, resetForm, queryClient]
-  )
-
-  // Select brand voice
-  const handleSelect = useCallback((voice) => {
-    setFormData((prev) => ({ ...prev, selectedVoice: voice }))
-    setIsFormReset(false)
-  }, [])
-
-  // Fetch site info
-  const handleFetchSiteInfo = useCallback(() => {
-    const url = formData.postLink.trim()
-    if (!url) {
-      setErrors((prev) => ({
-        ...prev,
-        postLink: "Post link is required to fetch site info.",
-      }))
-      return
-    }
-    if (url === lastScrapedUrl) {
-      message.info("This URL has already been fetched.")
-      return
-    }
-    try {
-      new URL(url)
-      dispatch(fetchSiteInfo(url))
-        .unwrap()
-        .then(() => {
-          setIsFormReset(false) // Allow form population
-        })
         .catch(() => message.error("Failed to fetch site info. Please try a different URL."))
     } catch {
       setErrors((prev) => ({
@@ -608,46 +339,28 @@ const BrandVoice = () => {
     }
   }, [formData.postLink, lastScrapedUrl, dispatch])
 
-  // Memoized keywords rendering
   const renderKeywords = useMemo(() => {
-    const latestKeywords = formData.keywords.slice(-3)
-    const remainingCount = formData.keywords.length - latestKeywords.length
+    const maxInitialKeywords = 12
+    const displayedKeywords = showAllKeywords
+      ? formData.keywords
+      : formData.keywords.slice(0, maxInitialKeywords)
+    const remainingCount = formData.keywords.length - maxInitialKeywords
     return (
       <div className={`flex flex-wrap gap-2 ${formData.keywords.length > 0 ? "mb-1" : "hidden"}`}>
-<<<<<<< HEAD
         {displayedKeywords.map((keyword) => (
           <motion.div
             key={keyword}
-            className="flex items-center w-fit bg-indigo-100 text-indigo-700 rounded-md px-2 py-1 mr-2"
+            className="flex items-center bg-indigo-100 text-indigo-700 rounded-md px-2 sm:px-3 py-1"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8 }}
             whileHover={{ scale: 1.05 }}
           >
-=======
-        {remainingCount > 0 && (
-          <motion.div
-            className="flex items-center bg-indigo-100 text-indigo-700 rounded-md px-2 py-1 mr-2"
-            initial={{ scale: 0.8 }}
-            animate={{ scale: 1 }}
-            title={`+${remainingCount} more keywords`}
-          >
-            <span className="text-sm">{`+${remainingCount}`}</span>
-          </motion.div>
-        )}
-        {latestKeywords.map((keyword) => (
-          <motion.div
-            key={keyword}
-            className="flex items-center w-fit bg-indigo-100 text-indigo-700 rounded-md px-2 py-1 mr-2"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            whileHover={{ scale: 1.05 }}
-          >
->>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
-            <span className="text-sm truncate max-w-[100px]">{keyword}</span>
+            <span className="text-xs sm:text-sm truncate max-w-[100px] sm:max-w-[120px]">
+              {keyword}
+            </span>
             <FaTimes
-              className="ml-1 cursor-pointer text-indigo-500 hover:text-indigo-700 transition-colors"
+              className="ml-1 cursor-pointer text-indigo-500 hover:text-indigo-700 transition-colors w-3 sm:w-4 h-3 sm:h-4"
               onClick={(e) => {
                 e.stopPropagation()
                 removeKeyword(keyword)
@@ -656,11 +369,10 @@ const BrandVoice = () => {
             />
           </motion.div>
         ))}
-<<<<<<< HEAD
         {remainingCount > 0 && (
           <button
             type="button"
-            className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
+            className="text-xs sm:text-sm text-indigo-600 hover:text-indigo-800 font-medium"
             onClick={() => setShowAllKeywords(!showAllKeywords)}
           >
             {showAllKeywords ? "Show Less" : `Show More (+${remainingCount})`}
@@ -669,65 +381,50 @@ const BrandVoice = () => {
       </div>
     )
   }, [formData.keywords, removeKeyword, showAllKeywords])
-=======
-      </div>
-    )
-  }, [formData.keywords, removeKeyword])
->>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="flex flex-col lg:flex-row gap-6 p-4 lg:p-6 max-w-7xl mx-auto"
+      className="flex flex-col lg:flex-row gap-4 sm:gap-6 p-4 sm:p-6 md:p-8 max-w-7xl mx-auto"
     >
       <Helmet>
         <title>Brand Voice | GenWrite</title>
       </Helmet>
 
-<<<<<<< HEAD
-=======
-      {/* Left Section: Form */}
->>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
       <motion.div
-        className="w-full lg:w-[60%] bg-white rounded-xl p-6 shadow-lg border border-gray-100"
+        className="w-full lg:w-[60%] bg-white rounded-xl p-4 sm:p-6 shadow-lg border border-gray-100"
         initial={{ x: -20 }}
         animate={{ x: 0 }}
       >
-        <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
           Create Your Brand Voice
         </h1>
-        <p className="text-gray-600 text-sm mb-6">
+        <p className="text-gray-600 text-sm mb-4 sm:mb-6">
           Define your brand's unique tone and style to ensure consistent content creation.
         </p>
 
-        <div className="space-y-4">
-<<<<<<< HEAD
-=======
-          {/* Post Link */}
->>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
+        <div className="space-y-4 sm:space-y-6">
           <div>
             <label htmlFor="postLink" className="text-sm font-medium text-gray-700 flex gap-2 mb-1">
               Post or Blog Link <span className="text-red-500">*</span>
               <Tooltip
                 title="Add a link of your home page to fetch site info"
-                styles={{
-                  body: {
-                    backgroundColor: "#4169e1",
-                    color: "#fff",
-                    borderRadius: "8px",
-                    padding: "8px 12px",
-                    fontSize: "13px",
-                    maxWidth: "220px",
-                  },
+                overlayStyle={{
+                  backgroundColor: "#4169e1",
+                  color: "#fff",
+                  borderRadius: "8px",
+                  padding: "8px 12px",
+                  fontSize: "13px",
+                  maxWidth: "220px",
                 }}
               >
                 <span className="cursor-pointer">
-                  <Info size={16} className="text-blue-500" />
+                  <Info className="w-4 sm:w-5 h-4 sm:h-5 text-blue-500" />
                 </span>
               </Tooltip>
             </label>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <motion.input
                 id="postLink"
                 type="url"
@@ -735,7 +432,7 @@ const BrandVoice = () => {
                 value={formData.postLink}
                 onChange={handleInputChange}
                 placeholder="e.g., https://example.com/blog"
-                className={`flex-grow p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
+                className={`flex-grow p-2 sm:p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base ${
                   errors.postLink ? "border-red-500" : "border-gray-300"
                 }`}
                 whileFocus={{ scale: 1.01 }}
@@ -743,7 +440,7 @@ const BrandVoice = () => {
                 aria-describedby={errors.postLink ? "postLink-error" : undefined}
               />
               <motion.button
-                className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-2 rounded-lg font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-3 sm:px-4 py-2 rounded-lg font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                 onClick={handleFetchSiteInfo}
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.98 }}
@@ -754,7 +451,7 @@ const BrandVoice = () => {
               >
                 {siteInfo.loading ? (
                   <span className="flex items-center gap-2">
-                    <Loader2 className="animate-spin w-4 h-4" />
+                    <Loader2 className="animate-spin w-4 sm:w-5 h-4 sm:h-5" />
                     Fetching...
                   </span>
                 ) : (
@@ -763,16 +460,12 @@ const BrandVoice = () => {
               </motion.button>
             </div>
             {errors.postLink && (
-              <p id="postLink-error" className="text-red-500 text-xs mt-1">
+              <p id="postLink-error" className="text-red-500 text-xs sm:text-sm mt-1">
                 {errors.postLink}
               </p>
             )}
           </div>
 
-<<<<<<< HEAD
-=======
-          {/* Name of Voice */}
->>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
           <div>
             <label
               htmlFor="nameOfVoice"
@@ -787,7 +480,7 @@ const BrandVoice = () => {
               value={formData.nameOfVoice}
               onChange={handleInputChange}
               placeholder="e.g., Friendly Tech"
-              className={`w-full p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
+              className={`w-full p-2 sm:p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base ${
                 errors.nameOfVoice ? "border-red-500" : "border-gray-300"
               }`}
               whileFocus={{ scale: 1.01 }}
@@ -795,52 +488,46 @@ const BrandVoice = () => {
               aria-describedby={errors.nameOfVoice ? "nameOfVoice-error" : undefined}
             />
             {errors.nameOfVoice && (
-              <p id="nameOfVoice-error" className="text-red-500 text-xs mt-1">
+              <p id="nameOfVoice-error" className="text-red-500 text-xs sm:text-sm mt-1">
                 {errors.nameOfVoice}
               </p>
             )}
           </div>
 
-<<<<<<< HEAD
-=======
-          {/* Keywords */}
->>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
           <div>
             <label htmlFor="keywords" className="text-sm font-medium text-gray-700 flex gap-2 mb-1">
               Keywords <span className="text-red-500">*</span>
               <Tooltip
                 title="Upload a .csv file in the format: `Keyword` as header"
-                styles={{
-                  body: {
-                    backgroundColor: "#4169e1",
-                    color: "#fff",
-                    borderRadius: "8px",
-                    padding: "8px 12px",
-                    fontSize: "13px",
-                    maxWidth: "220px",
-                  },
+                overlayStyle={{
+                  backgroundColor: "#4169e1",
+                  color: "#fff",
+                  borderRadius: "8px",
+                  padding: "8px 12px",
+                  fontSize: "13px",
+                  maxWidth: "220px",
                 }}
               >
                 <span className="cursor-pointer">
-                  <Info size={16} className="text-blue-500" />
+                  <Info className="w-4 sm:w-5 h-4 sm:h-5 text-blue-500" />
                 </span>
               </Tooltip>
             </label>
             <motion.div
-              className={`flex bg-white border rounded-lg p-2 flex-col gap-2 ${
+              className={`flex bg-white border rounded-lg p-2 sm:p-3 flex-col gap-2 ${
                 errors.keywords ? "border-red-500" : "border-gray-300"
               }`}
               whileHover={{ boxShadow: "0 0 0 3px rgba(99, 102, 241, 0.2)" }}
             >
               {renderKeywords}
-              <div className="flex-grow flex w-full items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-center gap-2">
                 <input
                   id="keywords"
                   type="text"
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  className="flex-grow p-2 bg-transparent border-none outline-none text-sm"
+                  className="flex-grow p-2 sm:p-3 bg-transparent border-none outline-none text-sm sm:text-base"
                   placeholder="Type a keyword and press Enter"
                   aria-describedby={errors.keywords ? "keywords-error" : undefined}
                 />
@@ -851,7 +538,7 @@ const BrandVoice = () => {
                     whileTap={{ scale: 0.95 }}
                     aria-label="Upload CSV file"
                   >
-                    <Upload size={20} className="text-indigo-600" />
+                    <Upload className="w-4 sm:w-5 h-4 sm:h-5 text-indigo-600" />
                   </motion.div>
                 </label>
                 <input
@@ -864,16 +551,12 @@ const BrandVoice = () => {
               </div>
             </motion.div>
             {errors.keywords && (
-              <p id="keywords-error" className="text-red-500 text-xs mt-1">
+              <p id="keywords-error" className="text-red-500 text-xs sm:text-sm mt-1">
                 {errors.keywords}
               </p>
             )}
           </div>
 
-<<<<<<< HEAD
-=======
-          {/* Sitemap URL */}
->>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
           <div>
             <label
               htmlFor="sitemapUrl"
@@ -882,19 +565,17 @@ const BrandVoice = () => {
               Sitemap URL <span className="text-red-500">*</span>
               <Tooltip
                 title="Paste the URL of your XML sitemap (e.g., https://example.com/sitemap.xml)"
-                styles={{
-                  body: {
-                    backgroundColor: "#4169e1",
-                    color: "#fff",
-                    borderRadius: "8px",
-                    padding: "8px 12px",
-                    fontSize: "13px",
-                    maxWidth: "320px",
-                  },
+                overlayStyle={{
+                  backgroundColor: "#4169e1",
+                  color: "#fff",
+                  borderRadius: "8px",
+                  padding: "8px 12px",
+                  fontSize: "13px",
+                  maxWidth: "320px",
                 }}
               >
                 <span className="cursor-pointer">
-                  <Info size={16} className="text-blue-500" />
+                  <Info className="w-4 sm:w-5 h-4 sm:h-5 text-blue-500" />
                 </span>
               </Tooltip>
             </label>
@@ -905,7 +586,7 @@ const BrandVoice = () => {
               value={formData.sitemapUrl}
               onChange={handleInputChange}
               placeholder="e.g., https://example.com/sitemap.xml"
-              className={`w-full p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
+              className={`w-full p-2 sm:p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base ${
                 errors.sitemapUrl ? "border-red-500" : "border-gray-300"
               }`}
               whileFocus={{ scale: 1.01 }}
@@ -913,16 +594,12 @@ const BrandVoice = () => {
               aria-describedby={errors.sitemapUrl ? "sitemapUrl-error" : undefined}
             />
             {errors.sitemapUrl && (
-              <p id="sitemapUrl-error" className="text-red-500 text-xs mt-1">
+              <p id="sitemapUrl-error" className="text-red-500 text-xs sm:text-sm mt-1">
                 {errors.sitemapUrl}
               </p>
             )}
           </div>
 
-<<<<<<< HEAD
-=======
-          {/* Brand Description */}
->>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
           <div>
             <label
               htmlFor="describeBrand"
@@ -936,28 +613,24 @@ const BrandVoice = () => {
               value={formData.describeBrand}
               onChange={handleInputChange}
               placeholder="Describe your brand's tone and personality"
-              className={`w-full p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
+              className={`w-full p-2 sm:p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base ${
                 errors.describeBrand ? "border-red-500" : "border-gray-300"
               }`}
-              rows="4"
+              rows={4}
               whileFocus={{ scale: 1.01 }}
               aria-invalid={!!errors.describeBrand}
               aria-describedby={errors.describeBrand ? "describeBrand-error" : undefined}
             />
             {errors.describeBrand && (
-              <p id="describeBrand-error" className="text-red-500 text-xs mt-1">
+              <p id="describeBrand-error" className="text-red-500 text-xs sm:text-sm mt-1">
                 {errors.describeBrand}
               </p>
             )}
           </div>
 
-<<<<<<< HEAD
-=======
-          {/* Save Button */}
->>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
-          <div className="flex gap-2 justify-end">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-end">
             <motion.button
-              className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-2 rounded-lg font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-3 sm:px-4 py-2 rounded-lg font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
               onClick={handleSave}
               whileHover={{ scale: 1.03, y: -2 }}
               whileTap={{ scale: 0.98 }}
@@ -966,7 +639,7 @@ const BrandVoice = () => {
             >
               {isUploading ? (
                 <span className="flex items-center gap-2">
-                  <Loader2 className="animate-spin w-4 h-4" />
+                  <Loader2 className="animate-spin w-4 sm:w-5 h-4 sm:h-5" />
                   Saving...
                 </span>
               ) : formData._id ? (
@@ -976,12 +649,8 @@ const BrandVoice = () => {
               )}
             </motion.button>
 
-<<<<<<< HEAD
-=======
-            {/* Reset Button */}
->>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
             <motion.button
-              className="bg-gradient-to-tr from-red-700 from-10% via-red-500 via-80% to-red-700 to-100% text-white px-6 py-2 rounded-lg font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-gradient-to-tr from-red-700 from-10% via-red-500 via-80% to-red-700 to-100% text-white px-3 sm:px-4 py-2 rounded-lg font-medium shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
               onClick={resetForm}
               whileHover={{ scale: 1.03, y: -2 }}
               whileTap={{ scale: 0.98 }}
@@ -994,22 +663,20 @@ const BrandVoice = () => {
         </div>
       </motion.div>
 
-<<<<<<< HEAD
-=======
-      {/* Right Section: Brand Voices List */}
->>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
       <motion.div
-        className="w-full lg:w-[40%] bg-white rounded-xl p-6 shadow-lg border border-gray-100"
+        className="w-full lg:w-[40%] bg-white rounded-xl p-4 sm:p-6 shadow-lg border border-gray-100"
         initial={{ x: 20 }}
         animate={{ x: 0 }}
       >
-        <h2 className="text-xl font-bold text-gray-800 mb-4">Your Brand Voices</h2>
-        <div className="space-y-3 overflow-y-auto max-h-[calc(100vh-200px)]">
-<<<<<<< HEAD
-=======
-          {console.log("Brands value before map:", brands)}
->>>>>>> 86bb258a1a776161dcae6c41a1f608b79c6c808e
-          {brands.length > 0 ? (
+        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 mb-4">
+          Your Brand Voices
+        </h2>
+        <div className="space-y-3 overflow-y-auto max-h-[calc(100vh-300px)] sm:max-h-[calc(100vh-250px)]">
+          {isLoading ? (
+            <div className="flex justify-center items-center h-32">
+              <Loader2 className="animate-spin w-8 h-8 text-indigo-600" />
+            </div>
+          ) : brands.length > 0 ? (
             brands.map((item) => (
               <YourVoicesComponent
                 key={item._id}
@@ -1029,12 +696,59 @@ const BrandVoice = () => {
               />
             ))
           ) : (
-            <div className="p-6 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300 text-center text-gray-500 text-sm">
+            <div className="p-4 sm:p-6 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300 text-center text-gray-500 text-xs sm:text-sm">
               No brand voices created yet. Start by adding one on the left.
             </div>
           )}
         </div>
       </motion.div>
+      <style>
+        {`
+          .ant-modal-content {
+            border-radius: 8px !important;
+            padding: 12px sm:p-16px !important;
+          }
+          .ant-modal-header {
+            border-radius: 8px 8px 0 0 !important;
+          }
+          .ant-input, .ant-input-textarea {
+            border-radius: 8px !important;
+            border: 1px solid #d1d5db !important;
+            padding: 6px 12px !important;
+          }
+          .ant-input:focus,
+          .ant-input:hover,
+          .ant-input-textarea:focus,
+          .ant-input-textarea:hover {
+            border-color: #3b82f6 !important;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+          }
+          .ant-btn {
+            display: flex;
+            align-items: center;
+          }
+          @media (max-width: 640px) {
+            .ant-modal-content {
+              padding: 12px !important;
+            }
+            .ant-input, .ant-input-textarea {
+              font-size: 12px !important;
+              padding: 4px 8px !important;
+            }
+            .ant-btn {
+              font-size: 12px !important;
+              padding: 4px 8px !important;
+            }
+          }
+          @media (max-width: 768px) {
+            .ant-modal {
+              width: 100% !important;
+              margin: 8px !important;
+              max-width: 400px !important;
+            }
+          }
+        `}
+      </style>
     </motion.div>
   )
 }

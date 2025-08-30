@@ -10,40 +10,52 @@ const PrivateRoutesLayout = () => {
   const token = localStorage.getItem("token")
   const [chatOpen, setChatOpen] = useState(false)
 
+  // Check if token exists
   return token ? (
     <>
       <LoadingOverlay />
-      <div className="flex flex-col md:flex-row lg:min-h-screen">
+      <div className="flex flex-col min-h-screen">
+        {/* Header and Sidebar */}
+        <LayoutWithSidebarAndHeader />
         {/* Main content area */}
-        <div className="flex-1 flex flex-col">
-          {/* Header + Sidebar wrapper */}
-          <LayoutWithSidebarAndHeader />
-          <div
-            className="
-              flex-1 
-              mt-0 lg:mt-0    /* reset for desktop */
-              ml-0 md:ml-20   /* sidebar margin only on md+ */
-              p-4 md:p-6     
-            "
+        <div className="flex-1 ml-0 md:ml-16 pt-16 sm:pt-20">
+          <Tooltip
+            title="Chatbot"
+            overlayStyle={{
+              fontSize: "12px",
+              padding: "6px 10px",
+              borderRadius: "6px",
+              maxWidth: "150px",
+            }}
           >
-            {/* Floating Chat Button */}
-            <Tooltip title="Chatbot">
-              <div
-                onClick={() => setChatOpen(true)}
-                className="rounded-full bg-blue-500 fixed z-40 bottom-6 right-6 md:right-8 shadow-lg cursor-pointer transition-transform hover:translate-y-0.5"
-              >
-                <RiChatAiLine className="p-2 size-10 text-white" />
-              </div>
-            </Tooltip>
-
-            {/* Dynamic page content */}
+            <div
+              onClick={() => setChatOpen(true)}
+              className="rounded-full bg-blue-500 fixed z-40 bottom-4 sm:bottom-6 right-4 sm:right-6 transition ease-linear duration-300 cursor-pointer hover:shadow-lg shadow-md hover:translate-y-0.5"
+            >
+              <RiChatAiLine className="p-2 sm:p-3 size-10 sm:size-12 text-white" />
+            </div>
+          </Tooltip>
+          <main className="min-h-screen">
             <Outlet />
-
-            {/* Chatbox Drawer / Popup */}
-            <ChatBox isOpen={chatOpen} onClose={() => setChatOpen(false)} />
-          </div>
+          </main>
+          <ChatBox isOpen={chatOpen} onClose={() => setChatOpen(false)} />
         </div>
       </div>
+      <style>
+        {`
+          .ant-tooltip-inner {
+            font-size: 12px !important;
+            padding: 6px 10px !important;
+            border-radius: 6px !important;
+          }
+          @media (max-width: 640px) {
+            .ant-tooltip-inner {
+              font-size: 10px !important;
+              max-width: 120px !important;
+            }
+          }
+        `}
+      </style>
     </>
   ) : (
     <Navigate to="/login" replace />

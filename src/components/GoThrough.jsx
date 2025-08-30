@@ -27,7 +27,7 @@ const GoThrough = ({ onClose }) => {
           <iframe
             width="560"
             height="315"
-            src="https://www.youtube.com/embed/Yq9WDkzi39U?autoplay=1&mute=1&loop=1&playlist=Yq9WDkzi39U"
+            src="https://www.youtube.com/embed/Yq9WDkzi39U?autoplay=0&mute=1&loop=1&playlist=Yq9WDkzi39U"
             title="YouTube video player"
             frameborder="0"
             allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

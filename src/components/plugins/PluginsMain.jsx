@@ -64,7 +64,7 @@ const PluginsMain = () => {
   }
 
   return (
-    <div className="p-4 sm:p-6 md:p-8">
+    <div className="p-8">
       <Helmet>
         <title>Plugins | GenWrite</title>
       </Helmet>
@@ -72,7 +72,7 @@ const PluginsMain = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.2 }}
-        className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
+        className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
       >
         Plugins
       </motion.h1>

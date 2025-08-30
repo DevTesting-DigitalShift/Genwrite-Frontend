@@ -1,9 +1,6 @@
 import React, { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Card, Tabs, Input, Button, Table, Tag, message } from "antd"
-import React, { useEffect, useState } from "react"
-import { useNavigate } from "react-router-dom"
-import { Card, Tabs, Input, Button, Table, Tag, message } from "antd"
 import {
   SearchOutlined,
   ThunderboltOutlined,
@@ -286,7 +283,7 @@ export default function ToolboxPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="p-4 sm:p-6 md:p-8 max-w-full"
+        className="p-8 max-w-full"
       >
         <Helmet>
           <title>Toolbox | GenWrite</title>
@@ -303,7 +300,7 @@ export default function ToolboxPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
-              className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
+              className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
             >
               Toolbox
             </motion.h1>
@@ -311,7 +308,7 @@ export default function ToolboxPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3 }}
-              className="text-gray-600 max-w-xl mt-2 text-sm sm:text-base"
+              className="text-gray-600 max-w-xl mt-2 text-sm"
             >
               All your content creation tools in one place. Streamline your workflow with our
               powerful suite of tools.
@@ -683,60 +680,6 @@ function AnimatedCard({ item }) {
               onClick={isUserPlanFree ? () => navigate("/pricing") : item.action}
               disabled={item.disabled}
               className="transition-all w-full sm:w-5/6 text-xs sm:text-sm"
-            >
-              {item.actionText}
-            </Button>
-          </motion.div>
-        )}
-      </Card>
-    </motion.div>
-  )
-}
-
-function AnimatedCard({ item }) {
-  const navigate = useNavigate()
-  const user = useSelector(selectUser)
-  const [isUserPlanFree, setIsUserPlanFree] = useState(false)
-  useEffect(() => {
-    if(user){
-      setIsUserPlanFree(["free"].includes(user?.subscription?.plan))
-    }
-  }, [user])
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{
-        scale:1.03,
-        transition: { type:"spring", stiffness: 300, damping: 10, duration:0.5 },
-      }}
-    >
-      <Card
-        title={
-          <div className="flex justify-between items-center">
-            <span className="font-medium text-gray-700">{item.title}</span>
-            <Flex justify="around" align="center" gap={20}>
-              {isUserPlanFree && <CrownTwoTone className="size-6 text-4xl" />}
-              {item.icon}
-            </Flex>
-          </div>
-        }
-        className={`rounded-xl shadow-lg border-0 relative overflow-hidden transition-all duration-300 ${
-          item.disabled ? "opacity-70" : "hover:shadow-xl"
-        }`}
-      >
-        <p className="mb-4 text-gray-600 min-h-[60px]">{item.description}</p>
-        {item.span ? (
-          <span className="text-gray-500 font-medium">{item.span}</span>
-        ) : (
-          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex justify-center">
-            <Button
-              block
-              type={item.disabled ? "default" : "primary"}
-              onClick={isUserPlanFree ? () => navigate("/pricing") : item.action}
-              disabled={item.disabled}
-              className="transition-all !w-5/6"
             >
               {item.actionText}
             </Button>

@@ -220,7 +220,7 @@ const CreditLogsTable = () => {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.3 }}
-        className="p-4 sm:p-6 bg-white rounded-2xl shadow-md border border-gray-200 w-full max-w-full"
+        className="p-8 bg-white rounded-2xl shadow-md border border-gray-200 w-full max-w-full"
       >
         <div className="flex flex-col gap-4 mb-6">
           <h2 className="text-xl sm:text-2xl font-semibold text-gray-900">Credit Logs</h2>

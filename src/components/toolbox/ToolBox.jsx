@@ -154,7 +154,6 @@ const ToolBox = () => {
 
   const handleSave = async () => {
     if (userPlan === "free" || userPlan === "basic") {
-      // showUpgradePopup()
       navigate("/pricing")
       return
     }
@@ -325,7 +324,7 @@ const ToolBox = () => {
     if (!editorContent.trim())
       return `<h1>${editorTitle || "Preview Title"}</h1><p>No content available for preview.</p>`
     return `<div class="prose prose-lg"><h1>${
-      editorTitle || topic || "Your Blog Title"
+      editorTitle || templateFormData.topic || "Your Blog Title"
     }</h1>${editorContent}</div>`
   }
 
@@ -334,7 +333,7 @@ const ToolBox = () => {
       <Helmet>
         <title>Blog Editor | GenWrite</title>
       </Helmet>
-      <div className={`h-screen flex flex-col ${showTemplateModal ? "blur-sm" : ""}`}>
+      <div className={`flex flex-col h-screen ${showTemplateModal ? "blur-sm" : ""}`}>
         <Modal
           open={saveModalOpen}
           centered
@@ -342,47 +341,43 @@ const ToolBox = () => {
             <Button
               key="reject"
               onClick={handleRejectSave}
-              style={{ background: "#f5f5f5", color: "#595959" }}
+              className="px-3 sm:px-4 py-2 bg-gray-100 text-gray-600 hover:bg-gray-200"
             >
               Reject
             </Button>,
-            <Button key="accept" type="primary" onClick={handleAcceptSave}>
+            <Button
+              key="accept"
+              type="primary"
+              onClick={handleAcceptSave}
+              className="px-3 sm:px-4 py-2"
+            >
               Accept
             </Button>,
           ]}
           onCancel={handleRejectSave}
-          width={700}
-          className="rounded-lg"
+          width="100%"
+          className="rounded-lg max-w-[600px] sm:max-w-[700px] md:max-w-[800px]"
         >
-          <Title level={3} style={{ marginBottom: "16px" }}>
+          <Title level={3} className="text-base sm:text-lg mb-4">
             Suggested Content
           </Title>
-          <div
-            style={{
-              padding: "16px",
-              background: "#f5f5f5",
-              borderRadius: "4px",
-              marginBottom: "16px",
-            }}
-          >
+          <div className="p-4 sm:p-6 bg-gray-100 rounded-md mb-4">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               rehypePlugins={[rehypeRaw]}
-              className="prose"
+              className="prose prose-sm sm:prose-base"
               components={{
                 a: ({ href, children }) => (
                   <a
                     href={href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{ color: "#1890ff" }}
+                    className="text-blue-500 hover:underline"
                   >
                     {children}
                   </a>
                 ),
-                strong: ({ children }) => (
-                  <strong style={{ fontWeight: "bold" }}>{children}</strong>
-                ),
+                strong: ({ children }) => <strong className="font-bold">{children}</strong>,
               }}
             >
               {saveContent}
@@ -398,53 +393,53 @@ const ToolBox = () => {
             <button
               key="close"
               onClick={handlePreviewClose}
-              className="px-4 py-2 bg-gray-400 text-white rounded-md hover:bg-gray-500 focus:outline-none focus:bg-gray-500"
+              className="px-3 sm:px-4 py-2 bg-gray-400 text-white rounded-md hover:bg-gray-500 focus:outline-none focus:bg-gray-500"
               aria-label="Close preview"
             >
               Close
             </button>,
           ]}
-          width={800}
+          width="100%"
+          className="rounded-lg max-w-[700px] sm:max-w-[800px] md:max-w-[900px]"
           centered
         >
           <div
-            className="prose prose-lg max-w-none p-4"
+            className="prose prose-sm sm:prose-base max-w-none p-4 sm:p-6"
             dangerouslySetInnerHTML={{ __html: generatePreviewContent() }}
           />
         </Modal>
 
-        <div
-          className="flex flex-col lg:flex-row mt-5 pb-5 
-                max-h-[90vh] overflow-y-auto lg:max-h-none lg:overflow-visible"
-        >
-          <div className="flex-1 flex flex-col">
-            <header className="bg-white shadow-lg border rounded-tl-lg border-gray-200 p-6">
-              <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row flex-grow overflow-hidden">
+          <div className="flex-1 flex flex-col min-w-0">
+            <header className="bg-white shadow-lg border rounded-tl-lg border-gray-200 p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-                    <FileText className="w-5 h-5 text-white" />
+                  <div className="w-8 sm:w-10 h-8 sm:h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                    <FileText className="w-4 sm:w-5 h-4 sm:h-5 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold text-gray-900">
+                    <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">
                       {id ? "Edit Blog" : "Create New Blog"}
                     </h2>
-                    <p className="text-gray-600 text-sm">Write and optimize your content</p>
+                    <p className="text-gray-600 text-xs sm:text-sm">
+                      Write and optimize your content
+                    </p>
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
                   {pathDetect && (
                     <button
                       onClick={handlePreview}
-                      className="px-4 py-2 bg-gradient-to-r from-[#1B6FC9] to-[#4C9FE8] text-white rounded-lg hover:from-[#1B6FC9]/90 hover:to-[#4C9FE8]/90 flex items-center"
+                      className="px-3 sm:px-4 py-2 bg-gradient-to-r from-[#1B6FC9] to-[#4C9FE8] text-white rounded-lg hover:from-[#1B6FC9]/90 hover:to-[#4C9FE8]/90 flex items-center text-xs sm:text-sm"
                       aria-label="Preview blog"
                     >
-                      <Eye size={16} className="mr-2" />
+                      <Eye className="w-4 sm:w-5 h-4 sm:h-5 mr-2" />
                       Preview
                     </button>
                   )}
                   <button
                     onClick={handleSave}
-                    className={`px-4 py-2 rounded-lg font-semibold flex items-center gap-2 transition-all duration-300 ${
+                    className={`px-3 sm:px-4 py-2 rounded-lg font-semibold flex items-center gap-2 transition-all duration-300 text-xs sm:text-sm ${
                       isSaving ||
                       !editorTitle.trim() ||
                       !editorContent.trim() ||
@@ -462,12 +457,12 @@ const ToolBox = () => {
                   >
                     {isSaving ? (
                       <>
-                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <RefreshCw className="w-4 sm:w-5 h-4 sm:h-5 animate-spin" />
                         Saving...
                       </>
                     ) : (
                       <>
-                        <Save className="w-4 h-4" />
+                        <Save className="w-4 sm:w-5 h-4 sm:h-5" />
                         Save Blog
                       </>
                     )}
@@ -482,13 +477,13 @@ const ToolBox = () => {
                       value={editorTitle}
                       onChange={handleTitleChange}
                       placeholder="Enter your blog title..."
-                      className={`flex-1 text-2xl sm:text-3xl font-bold text-gray-900 placeholder-gray-400 border-none outline-none resize-none ${
+                      className={`flex-1 text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 placeholder-gray-400 border-none outline-none resize-none w-full ${
                         getWordCount(editorTitle) > 60 ? "text-red-600" : ""
                       }`}
                       aria-label="Blog title"
                     />
                   </div>
-                  <div className="mt-2 text-sm text-gray-500">
+                  <div className="mt-2 text-xs sm:text-sm text-gray-500">
                     {getWordCount(editorTitle)}/60 words (optimal for SEO)
                     {getWordCount(editorTitle) > 60 && (
                       <span className="text-red-600 ml-2">Title exceeds 60 words</span>
@@ -505,7 +500,7 @@ const ToolBox = () => {
                 exit="hidden"
                 variants={tabVariants}
                 transition={{ duration: 0.3 }}
-                className="flex-grow"
+                className="flex-grow overflow-auto min-h-[calc(100vh-200px)] sm:min-h-[calc(100vh-220px)]"
               >
                 {isLoading ? (
                   <div className="flex justify-center items-center h-[calc(100vh-120px)]">
@@ -525,6 +520,7 @@ const ToolBox = () => {
                     title={editorTitle}
                     setTitle={setEditorTitle}
                     isSavingKeyword={isSaving}
+                    className="w-full"
                   />
                 )}
               </motion.div>
@@ -545,19 +541,68 @@ const ToolBox = () => {
             formData={formData}
             title={editorTitle}
             editorContent={editorContent}
+            className="w-full md:w-80 border-l border-gray-200"
           />
         </div>
-      </div>
 
-      <TemplateModal
-        closeFnc={handleTemplateModalClose}
-        isOpen={showTemplateModal}
-        handleSubmit={handleSubmit}
-        errors={errors}
-        setErrors={setErrors}
-        formData={templateFormData}
-        setFormData={setTemplateFormData}
-      />
+        <TemplateModal
+          closeFnc={handleTemplateModalClose}
+          isOpen={showTemplateModal}
+          handleSubmit={handleSubmit}
+          errors={errors}
+          setErrors={setErrors}
+          formData={templateFormData}
+          setFormData={setTemplateFormData}
+          className="w-full max-w-lg"
+        />
+      </div>
+      <style>
+        {`
+          .ant-modal-content {
+            border-radius: 8px !important;
+            padding: 16px !important;
+          }
+          .ant-modal-header {
+            border-radius: 8px 8px 0 0 !important;
+          }
+          .ant-input {
+            border-radius: 8px !important;
+            border: 1px solid #d1d5db !important;
+            padding: 6px 12px !important;
+          }
+          .ant-input:focus,
+          .ant-input:hover {
+            border-color: #3b82f6 !important;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+          }
+          .ant-btn {
+            display: flex;
+            align-items: center;
+          }
+          @media (max-width: 640px) {
+            .ant-modal-content {
+              padding: 12px !important;
+            }
+            .ant-input {
+              font-size: 12px !important;
+              padding: 4px 8px !important;
+            }
+            .ant-btn {
+              font-size: 12px !important;
+              padding: 4px 8px !important;
+            }
+            .prose {
+              font-size: 14px !important;
+            }
+          }
+          @media (max-width: 768px) {
+            .ant-modal {
+              width: 100% !important;
+              margin: 8px !important;
+            }
+          }
+        `}
+      </style>
     </>
   )
 }
