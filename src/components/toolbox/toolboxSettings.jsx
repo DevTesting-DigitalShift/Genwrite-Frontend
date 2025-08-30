@@ -77,17 +77,14 @@ export default function ToolboxPage() {
     setSelectedRowKeys([])
   }
 
-  // Deselect a keyword from the selected keywords display
   const deselectKeyword = (index) => {
     setSelectedRowKeys(selectedRowKeys.filter((key) => key !== index))
   }
 
-  // Clear all selected keywords
   const clearSelectedKeywords = () => {
     setSelectedRowKeys([])
   }
 
-  // Function to download selected keywords as CSV
   const downloadAsCSV = () => {
     if (
       !keywordAnalysisResult ||
@@ -103,7 +100,6 @@ export default function ToolboxPage() {
       return
     }
 
-    // Filter selected keywords based on selectedRowKeys
     const selectedKeywords = keywordAnalysisResult.filter((_, idx) => selectedRowKeys.includes(idx))
 
     if (selectedKeywords.length === 0) {
@@ -111,24 +107,12 @@ export default function ToolboxPage() {
       return
     }
 
-    // Create CSV content with all columns
-    // const headers = ["keyword", "monthly_searches", "competition", "avg_cpc", "low_bid", "high_bid"];
     const headers = ["keyword"]
     const csvContent = [
       headers.join(","),
-      ...selectedKeywords.map((kw) =>
-        [
-          `${kw.keyword.replace(/"/g, '""')}`,
-          // kw.avgMonthlySearches,
-          // kw.compression,
-          // kw.avgCpc ? kw.avgCpc.toFixed(2) : "N/A",
-          // kw.lowBid ? kw.lowBid.toFixed(2) : "N/A",
-          // kw.highBid ? kw.highBid.toFixed(2) : "N/A",
-        ].join(",")
-      ),
+      ...selectedKeywords.map((kw) => [`${kw.keyword.replace(/"/g, '""')}`].join(",")),
     ].join("\n")
 
-    // Create a Blob and trigger download
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
     const url = URL.createObjectURL(blob)
     const link = document.createElement("a")
@@ -141,21 +125,22 @@ export default function ToolboxPage() {
     URL.revokeObjectURL(url)
   }
 
-  // Table columns for keyword analysis results
   const columns = [
     {
       title: "Keyword",
       dataIndex: "keyword",
       key: "keyword",
       sorter: (a, b) => a.keyword.localeCompare(b.keyword),
-      render: (text) => <span className="font-medium capitalize">{text}</span>,
+      render: (text) => <span className="font-medium capitalize text-xs sm:text-sm">{text}</span>,
     },
     {
       title: "Monthly Searches",
       dataIndex: "avgMonthlySearches",
       key: "avgMonthlySearches",
       sorter: (a, b) => a.avgMonthlySearches - b.avgMonthlySearches,
-      render: (value) => new Intl.NumberFormat().format(value),
+      render: (value) => (
+        <span className="text-xs sm:text-sm">{new Intl.NumberFormat().format(value)}</span>
+      ),
     },
     {
       title: "Competition",
@@ -173,6 +158,7 @@ export default function ToolboxPage() {
               ? "red"
               : "gray"
           }
+          className="text-xs sm:text-sm"
         >
           {text}
         </Tag>
@@ -183,25 +169,32 @@ export default function ToolboxPage() {
       dataIndex: "avgCpc",
       key: "avgCpc",
       sorter: (a, b) => a.avgCpc - b.avgCpc,
-      render: (value) => (value ? value.toFixed(2) : "N/A"),
+      render: (value) => (
+        <span className="text-xs sm:text-sm">{value ? value.toFixed(2) : "N/A"}</span>
+      ),
     },
     {
       title: "Low Bid ($)",
       dataIndex: "lowBid",
       key: "lowBid",
+      responsive: ["md"], // Hide on small screens
       sorter: (a, b) => a.lowBid - b.lowBid,
-      render: (value) => (value ? value.toFixed(2) : "N/A"),
+      render: (value) => (
+        <span className="text-xs sm:text-sm">{value ? value.toFixed(2) : "N/A"}</span>
+      ),
     },
     {
       title: "High Bid ($)",
       dataIndex: "highBid",
       key: "highBid",
+      responsive: ["md"], // Hide on small screens
       sorter: (a, b) => a.highBid - b.highBid,
-      render: (value) => (value ? value.toFixed(2) : "N/A"),
+      render: (value) => (
+        <span className="text-xs sm:text-sm">{value ? value.toFixed(2) : "N/A"}</span>
+      ),
     },
   ]
 
-  // Table row selection configuration
   const rowSelection = {
     selectedRowKeys,
     onChange: (newSelectedRowKeys) => {
@@ -212,7 +205,6 @@ export default function ToolboxPage() {
     }),
   }
 
-  // Prepare table data from keywordAnalysisResult
   const tableData =
     keywordAnalysisResult?.map((kw, idx) => ({
       key: idx,
@@ -225,29 +217,24 @@ export default function ToolboxPage() {
       highBid: kw.highBid,
     })) || []
 
-  // Get selected keywords for display
   const selectedKeywordsDisplay = keywordAnalysisResult
     ? selectedRowKeys.map((idx) => keywordAnalysisResult[idx]?.keyword).filter(Boolean)
     : []
 
-  // Handle pagination size change
   const handlePageSizeChange = (current, size) => {
     setPageSize(size)
     setCurrentPage(1)
-    // Removed setSelectedRowKeys([]) to preserve selections
   }
 
-  // Handle page change
   const handlePageChange = (page) => {
     setCurrentPage(page)
-    // Removed setSelectedRowKeys([]) to preserve selections
   }
 
   const cardItems = [
     {
       key: "ai-writer",
       title: "AI Writer",
-      icon: <ThunderboltTwoTone className="text-2xl size-5 text-yellow-500" />,
+      icon: <ThunderboltTwoTone className="text-xl sm:text-2xl size-4 sm:size-5 text-yellow-500" />,
       description: "Generate blog content with AI assistance",
       action: () => navigate("/editor"),
       actionText: "Open Editor",
@@ -256,7 +243,7 @@ export default function ToolboxPage() {
     {
       key: "humanize-content",
       title: "Humanize Content",
-      icon: <ImMagicWand className="size-5 text-blue-500" />,
+      icon: <ImMagicWand className="size-4 sm:size-5 text-blue-500" />,
       description:
         "Transform AI-generated text into natural, human-sounding content while preserving intent and clarity.",
       action: () => navigate("/humanize-content"),
@@ -266,7 +253,7 @@ export default function ToolboxPage() {
     {
       key: "outline",
       title: "AI Outline",
-      icon: <Workflow className="size-5 text-green-500" />, // from react-icons/bs
+      icon: <Workflow className="size-4 sm:size-5 text-green-500" />,
       description:
         "Craft high-impact blog outlines with SEO keywords, structure, and brand voice in seconds using AI.",
       action: () => navigate("/outline"),
@@ -276,7 +263,7 @@ export default function ToolboxPage() {
     {
       key: "competitor-analysis",
       title: "Competitor Analysis",
-      icon: <GlobalOutlined className="text-purple-500" />,
+      icon: <GlobalOutlined className="text-purple-500 size-4 sm:size-5" />,
       description: "Analyze top performing content in your niche",
       action: () => setCompetitiveAnalysisModalOpen(true),
       actionText: "Start Analysis",
@@ -296,7 +283,7 @@ export default function ToolboxPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="p-10 sm:p-6"
+        className="p-4 sm:p-6 md:p-8 max-w-full"
       >
         <Helmet>
           <title>Toolbox | GenWrite</title>
@@ -306,14 +293,14 @@ export default function ToolboxPage() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, duration: 0.4 }}
-          className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8"
+          className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 sm:mb-8"
         >
           <div>
             <motion.h1
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
-              className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
+              className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
             >
               Toolbox
             </motion.h1>
@@ -321,7 +308,7 @@ export default function ToolboxPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3 }}
-              className="text-gray-600 max-w-xl mt-2"
+              className="text-gray-600 max-w-xl mt-2 text-sm sm:text-base"
             >
               All your content creation tools in one place. Streamline your workflow with our
               powerful suite of tools.
@@ -336,24 +323,24 @@ export default function ToolboxPage() {
           className="custom-tabs"
           tabBarStyle={{
             background: "#f9fafb",
-            padding: "0 16px",
+            padding: "0 8px sm:0 16px",
             borderRadius: "12px",
-            marginBottom: "24px",
+            marginBottom: "16px sm:24px",
           }}
           items={[
             {
               key: "content",
               label: (
                 <motion.div
-                  className="flex items-center gap-2 font-medium"
+                  className="flex items-center gap-2 font-medium text-xs sm:text-sm"
                   whileHover={{ scale: 1.05 }}
                 >
-                  <ThunderboltOutlined className="text-blue-500" />
+                  <ThunderboltOutlined className="text-blue-500 size-4 sm:size-5" />
                   <span>Content Tools</span>
                 </motion.div>
               ),
               children: (
-                <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-8 mt-4 px-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8 mt-4 px-2 sm:px-4">
                   {cardItems
                     .filter((item) =>
                       ["ai-writer", "humanize-content", "outline"].includes(item.key)
@@ -368,15 +355,15 @@ export default function ToolboxPage() {
               key: "seo",
               label: (
                 <motion.div
-                  className="flex items-center gap-2 font-medium"
+                  className="flex items-center gap-2 font-medium text-xs sm:text-sm"
                   whileHover={{ scale: 1.05 }}
                 >
-                  <SearchOutlined className="text-purple-500" />
+                  <SearchOutlined className="text-purple-500 size-4 sm:size-5" />
                   <span>SEO Tools</span>
                 </motion.div>
               ),
               children: (
-                <div className="space-y-6 mt-4 px-8">
+                <div className="space-y-4 sm:space-y-6 mt-4 px-2 sm:px-4">
                   {cardItems
                     .filter((item) => item.key === "competitor-analysis")
                     .map((item) => (
@@ -389,15 +376,15 @@ export default function ToolboxPage() {
               key: "keyword",
               label: (
                 <motion.div
-                  className="flex items-center gap-2 font-medium"
+                  className="flex items-center gap-2 font-medium text-xs sm:text-sm"
                   whileHover={{ scale: 1.05 }}
                 >
-                  <Keyboard className="text-green-500" size={16} />
+                  <Keyboard className="text-green-500 size-4 sm:size-5" />
                   <span>Keyword Tools</span>
                 </motion.div>
               ),
               children: (
-                <div className="space-y-6 mt-6 px-4">
+                <div className="space-y-4 sm:space-y-6 mt-4 sm:mt-6 px-2 sm:px-4">
                   {/* Keyword Research Card */}
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -408,41 +395,49 @@ export default function ToolboxPage() {
                     <Card
                       title={
                         <div className="flex justify-between items-center">
-                          <span className="font-medium text-gray-700">Keyword Research</span>
-                          <WholeWord className="text-green-500" />
+                          <span className="font-medium text-gray-700 text-sm sm:text-base">
+                            Keyword Research
+                          </span>
+                          <WholeWord className="text-green-500 size-4 sm:size-5" />
                         </div>
                       }
                       className="rounded-xl shadow-lg border-0 relative overflow-hidden transition-all duration-300 hover:shadow-xl"
                     >
-                      <p className="mb-4 text-gray-600">Find and analyze keywords for your blog</p>
-                      <div className="flex gap-2 mb-4">
+                      <p className="mb-4 text-gray-600 text-xs sm:text-sm">
+                        Find and analyze keywords for your blog
+                      </p>
+                      <div className="flex flex-col sm:flex-row gap-2 mb-4">
                         <Input
                           placeholder="Enter a keyword (e.g., tech)"
                           value={newKeyword}
                           onChange={(e) => setNewKeyword(e.target.value)}
                           onKeyPress={handleKeyPress}
-                          className="flex-1"
+                          className="flex-1 text-xs sm:text-sm"
                         />
                         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                          <Button type="primary" onClick={addKeyword}>
+                          <Button
+                            type="primary"
+                            onClick={addKeyword}
+                            className="text-xs sm:text-sm"
+                          >
                             Add
                           </Button>
                         </motion.div>
                       </div>
-                      <div className="flex flex-wrap gap-2 mb-6">
+                      <div className="flex flex-wrap gap-2 mb-4 sm:mb-6">
                         {keywords.map((keyword, index) => (
                           <motion.div
                             key={index}
                             initial={{ opacity: 0, scale: 0.8 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.8 }}
-                            className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full flex items-center"
+                            className="bg-blue-100 text-blue-800 px-2 sm:px-3 py-1 rounded-full flex items-center text-xs sm:text-sm"
                           >
                             <span>{keyword}</span>
                             <motion.div
                               whileHover={{ scale: 1.2 }}
                               whileTap={{ scale: 0.8 }}
-                              className="ml-2 cursor-pointer"
+                              className="ml-1 sm:ml-2 cursor-pointer"
                               onClick={() => removeKeyword(index)}
                             >
                               <CloseOutlined className="text-blue-800 text-xs" />
@@ -450,7 +445,7 @@ export default function ToolboxPage() {
                           </motion.div>
                         ))}
                       </div>
-                      <div className="flex gap-2 mb-6">
+                      <div className="flex flex-col sm:flex-row gap-2 mb-4 sm:mb-6">
                         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                           <Button
                             block
@@ -458,6 +453,7 @@ export default function ToolboxPage() {
                             onClick={analyzeKeywords}
                             loading={analyzing}
                             disabled={keywords.length === 0}
+                            className="text-xs sm:text-sm"
                           >
                             Analyze Keywords
                           </Button>
@@ -471,7 +467,7 @@ export default function ToolboxPage() {
                                 icon={<DownloadOutlined />}
                                 onClick={downloadAsCSV}
                                 disabled={selectedRowKeys.length === 0}
-                                className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                                className="border-blue-600 text-blue-600 hover:bg-blue-50 text-xs sm:text-sm"
                                 aria-label="Download selected keywords as CSV"
                               >
                                 Download as CSV
@@ -482,18 +478,17 @@ export default function ToolboxPage() {
                       {keywordAnalysisResult &&
                         Array.isArray(keywordAnalysisResult) &&
                         keywordAnalysisResult.length > 0 && (
-                          <div className="mt-6">
-                            {/* Display Selected Keywords */}
+                          <div className="mt-4 sm:mt-6">
                             {selectedKeywordsDisplay.length > 0 && (
                               <div className="mb-4">
                                 <div className="flex justify-between items-center mb-2">
-                                  <p className="text-gray-700 font-medium">
+                                  <p className="text-gray-700 font-medium text-xs sm:text-sm">
                                     Selected Keywords ({selectedKeywordsDisplay.length}):
                                   </p>
                                   <Button
                                     type="link"
                                     onClick={clearSelectedKeywords}
-                                    className="text-red-600"
+                                    className="text-red-600 text-xs sm:text-sm"
                                     disabled={selectedKeywordsDisplay.length === 0}
                                   >
                                     Clear All
@@ -506,13 +501,13 @@ export default function ToolboxPage() {
                                       initial={{ opacity: 0, scale: 0.8 }}
                                       animate={{ opacity: 1, scale: 1 }}
                                       exit={{ opacity: 0, scale: 0.8 }}
-                                      className="bg-green-100 text-green-800 px-3 py-1 rounded-full flex items-center"
+                                      className="bg-green-100 text-green-800 px-2 sm:px-3 py-1 rounded-full flex items-center text-xs sm:text-sm"
                                     >
                                       <span>{keyword}</span>
                                       <motion.div
                                         whileHover={{ scale: 1.2 }}
                                         whileTap={{ scale: 0.8 }}
-                                        className="ml-2 cursor-pointer"
+                                        className="ml-1 sm:ml-2 cursor-pointer"
                                         onClick={() => deselectKeyword(selectedRowKeys[index])}
                                       >
                                         <CloseOutlined className="text-green-800 text-xs" />
@@ -529,15 +524,16 @@ export default function ToolboxPage() {
                               pagination={{
                                 current: currentPage,
                                 pageSize: pageSize,
-                                pageSizeOptions: ["20", "50", "100"],
+                                pageSizeOptions: ["10", "20", "50"],
                                 showSizeChanger: true,
                                 onChange: handlePageChange,
                                 onShowSizeChange: handlePageSizeChange,
                                 total: tableData.length,
+                                responsive: true,
                               }}
                               rowKey="key"
-                              className="keyword-analysis-table"
-                              scroll={{ x: true }}
+                              className="keyword-analysis-table rounded-lg overflow-hidden"
+                              scroll={{ x: "max-content" }}
                             />
                           </div>
                         )}
@@ -579,6 +575,57 @@ export default function ToolboxPage() {
             closeFnc={() => setCompetitiveAnalysisModalOpen(false)}
           />
         )}
+        <style>
+          {`
+            .ant-table-container {
+              overflow-x: auto;
+              -webkit-overflow-scrolling: touch;
+            }
+            .ant-table-thead {
+              position: sticky;
+              top: 0;
+              z-index: 10;
+              background: #fafafa;
+            }
+            .ant-table-thead > tr > th {
+              background: #fafafa !important;
+              white-space: nowrap;
+            }
+            .ant-table-cell {
+              white-space: nowrap;
+            }
+            @media (max-width: 640px) {
+              .ant-table-tbody > tr > td {
+                padding: 8px !important;
+                font-size: 12px !important;
+              }
+              .ant-table-thead > tr > th {
+                padding: 8px !important;
+                font-size: 12px !important;
+              }
+              .ant-tag {
+                font-size: 12px !important;
+                padding: 2px 6px !important;
+              }
+              .ant-input {
+                font-size: 12px !important;
+                padding: 4px 8px !important;
+              }
+              .ant-btn {
+                font-size: 12px !important;
+                padding: 4px 8px !important;
+              }
+            }
+            @media (max-width: 768px) {
+              .ant-table-tbody > tr > td {
+                padding: 10px !important;
+              }
+              .ant-table-thead > tr > th {
+                padding: 10px !important;
+              }
+            }
+          `}
+        </style>
       </motion.div>
     </>
   )
@@ -602,13 +649,14 @@ function AnimatedCard({ item }) {
         scale: 1.03,
         transition: { type: "spring", stiffness: 300, damping: 10, duration: 0.5 },
       }}
+      className="min-w-0"
     >
       <Card
         title={
           <div className="flex justify-between items-center">
-            <span className="font-medium text-gray-700">{item.title}</span>
-            <Flex justify="around" align="center" gap={20}>
-              {isUserPlanFree && <CrownTwoTone className="size-6 text-4xl" />}
+            <span className="font-medium text-gray-700 text-sm sm:text-base">{item.title}</span>
+            <Flex justify="around" align="center" gap={8}>
+              {isUserPlanFree && <CrownTwoTone className="size-5 sm:size-6 text-3xl sm:text-4xl" />}
               {item.icon}
             </Flex>
           </div>
@@ -617,9 +665,9 @@ function AnimatedCard({ item }) {
           item.disabled ? "opacity-70" : "hover:shadow-xl"
         }`}
       >
-        <p className="mb-4 text-gray-600 min-h-[60px]">{item.description}</p>
+        <p className="mb-4 text-gray-600 min-h-[60px] text-xs sm:text-sm">{item.description}</p>
         {item.span ? (
-          <span className="text-gray-500 font-medium">{item.span}</span>
+          <span className="text-gray-500 font-medium text-xs sm:text-sm">{item.span}</span>
         ) : (
           <motion.div
             whileHover={{ scale: 1.02 }}
@@ -631,7 +679,7 @@ function AnimatedCard({ item }) {
               type={item.disabled ? "default" : "primary"}
               onClick={isUserPlanFree ? () => navigate("/pricing") : item.action}
               disabled={item.disabled}
-              className="transition-all !w-5/6"
+              className="transition-all w-full sm:w-5/6 text-xs sm:text-sm"
             >
               {item.actionText}
             </Button>

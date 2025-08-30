@@ -107,7 +107,7 @@ const TermsAndConditions = () => {
       title: "12. Contact Information",
       content: [
         "For questions about these Terms of Service, contact us at genwrite.co@gmail.com.",
-        "For general support inquiries, use  contact@thedigitalshift.com.",
+        "For general support inquiries, use  support@genwrite.com.",
         "Mailing address: GenWrite Technologies, 123 Innovation Drive, Suite 400, San Francisco, CA 94105",
         "We will respond to legal inquiries within 5 business days.",
       ],

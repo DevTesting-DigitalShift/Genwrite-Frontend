@@ -1,8 +1,10 @@
-import { useState, useEffect } from "react"
-import { NavLink, useLocation, useNavigate } from "react-router-dom"
-import { useDispatch, useSelector } from "react-redux"
-import { RxAvatar } from "react-icons/rx"
-import { FiMenu } from "react-icons/fi"
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { RxAvatar } from "react-icons/rx";
+import { FiMenu } from "react-icons/fi";
 import {
   Box,
   Briefcase,
@@ -16,59 +18,79 @@ import {
   TrendingUp,
   UsersRound,
   Zap,
-} from "lucide-react"
-import { loadAuthenticatedUser, logoutUser, selectUser } from "../store/slices/authSlice"
-import { Tooltip, Dropdown, Avatar } from "antd"
-import { RiCoinsFill } from "react-icons/ri"
-import NotificationDropdown from "@components/NotificationDropdown"
-import GoProButton from "@components/GoProButton"
-import { getSocket } from "@utils/socket"
-import WhatsNewModal from "./HowToModel"
+} from "lucide-react";
+import { loadAuthenticatedUser, logoutUser, selectUser } from "../store/slices/authSlice";
+import { Tooltip, Dropdown, Avatar } from "antd";
+import { RiCoinsFill } from "react-icons/ri";
+import NotificationDropdown from "@components/NotificationDropdown";
+import GoProButton from "@components/GoProButton";
+import { getSocket } from "@utils/socket";
+import WhatsNewModal from "./HowToModel";
 
 const LayoutWithSidebarAndHeader = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [isUserLoaded, setIsUserLoaded] = useState(false)
-  const [showWhatsNew, setShowWhatsNew] = useState(false)
-  const user = useSelector(selectUser)
-  const location = useLocation()
-  const dispatch = useDispatch()
-  const navigate = useNavigate()
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isUserLoaded, setIsUserLoaded] = useState(false);
+  const [showWhatsNew, setShowWhatsNew] = useState(false);
+  const user = useSelector(selectUser);
+  const location = useLocation();
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const sidebarRef = useRef(null); // Ref for sidebar
 
   const fetchCurrentUser = async () => {
     try {
-      await dispatch(loadAuthenticatedUser()).unwrap()
+      await dispatch(loadAuthenticatedUser()).unwrap();
     } catch (err) {
-      console.error("User load failed:", err)
-      navigate("/login")
+      console.error("User load failed:", err);
+      navigate("/login");
     }
-  }
+  };
 
   const handleCloseModal = () => {
-    setShowWhatsNew(false)
-  }
+    setShowWhatsNew(false);
+  };
+
+  // Handle outside click to close sidebar
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        sidebarOpen &&
+        sidebarRef.current &&
+        !sidebarRef.current.contains(event.target) &&
+        window.innerWidth < 768 // Only close on mobile (md breakpoint)
+      ) {
+        setSidebarOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [sidebarOpen]);
 
   useEffect(() => {
-    const socket = getSocket()
-    if (!socket) return
+    const socket = getSocket();
+    if (!socket) return;
 
-    socket.on("user:credits", fetchCurrentUser)
-    socket.on("user:notification", fetchCurrentUser)
+    socket.on("user:credits", fetchCurrentUser);
+    socket.on("user:notification", fetchCurrentUser);
 
     return () => {
-      socket.off("user:credits", fetchCurrentUser)
-      socket.off("user:notification", fetchCurrentUser)
-    }
-  }, [])
+      socket.off("user:credits", fetchCurrentUser);
+      socket.off("user:notification", fetchCurrentUser);
+    };
+  }, []);
 
   useEffect(() => {
-    fetchCurrentUser()
-  }, [dispatch, navigate])
+    fetchCurrentUser();
+  }, [dispatch, navigate]);
 
   useEffect(() => {
     if (user?.name || user?.credits) {
-      setIsUserLoaded(true)
+      setIsUserLoaded(true);
     }
-  }, [user])
+  }, [user]);
 
   const Menus = [
     { title: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
@@ -79,23 +101,23 @@ const LayoutWithSidebarAndHeader = () => {
     { title: "Integrations", icon: Plug, path: "/integrations" },
     { title: "Brand Voice", icon: Megaphone, path: "/brand-voice" },
     { title: "TrashCan", icon: Trash2, path: "/trashcan" },
-  ]
+  ];
 
-  const path = location.pathname
+  const path = location.pathname;
 
   const handleLogout = async () => {
     try {
-      await dispatch(logoutUser()).unwrap()
-      navigate("/login")
+      await dispatch(logoutUser()).unwrap();
+      navigate("/login");
     } catch (error) {
-      console.error("Logout error:", error)
+      console.error("Logout error:", error);
     }
-  }
+  };
 
   const userMenu = {
     onClick: ({ key }) => {
-      if (key === "logout") handleLogout()
-      else navigate(`/${key}`)
+      if (key === "logout") handleLogout();
+      else navigate(`/${key}`);
     },
     rootClassName: "!px-4 !py-2 rounded-lg shadow-md max-w-[20ch] text-lg !bg-gray-50 gap-4",
     items: [
@@ -115,7 +137,7 @@ const LayoutWithSidebarAndHeader = () => {
       { key: "profile", label: "Profile", className: "!py-1.5 hover:bg-gray-100" },
       { key: "transactions", label: "Transactions", className: "!py-1.5 hover:bg-gray-100" },
       { key: "credit-logs", label: "Credit Logs", className: "!py-1.5 hover:bg-gray-100" },
-      { key: "upgrade", label: "Upgrade", className: "!py-1.5 hover:bg-gray-100" },
+      { key: "pricing", label: "Upgrade", className: "!py-1.5 hover:bg-gray-100" },
       user?.subscription?.plan !== "free" && {
         key: "cancel-subscription",
         label: "Cancel Subscription",
@@ -123,27 +145,30 @@ const LayoutWithSidebarAndHeader = () => {
       },
       { type: "divider" },
       { key: "logout", danger: true, label: "Logout", className: "!py-2 hover:bg-gray-100" },
-    ],
-  }
+    ].filter(Boolean), // Remove falsy items (e.g., undefined from conditional)
+  };
 
   const noUserMenu = {
     onClick: ({ key }) => {
-      if (key === "login") navigate("/login")
+      if (key === "login") navigate("/login");
     },
     rootClassName: "!px-4 !py-2 rounded-lg shadow-md w-[20ch] text-lg !bg-gray-50 gap-4",
     items: [{ key: "login", danger: true, label: "Login", className: "!py-1.5 hover:bg-gray-100" }],
-  }
+  };
 
   return (
     <div className={`${path.includes("signup") || path.includes("login") ? "hidden" : "flex"}`}>
       {/* Sidebar */}
       {showWhatsNew && <WhatsNewModal onClose={handleCloseModal} />}
       <div
-        className={`fixed top-0 left-0 h-full z-50 transition-all duration-300 bg-[#3F51B5] from-purple-800 to-blue-600 text-white overflow-hidden p-2 flex flex-col md:w-16 md:hover:w-56 ${
-          sidebarOpen ? "w-56" : "w-0 md:w-16"
+        ref={sidebarRef}
+        className={`fixed top-0 left-0 h-full z-50 transition-all duration-300 bg-[#3F51B5] from-purple-800 to-blue-600 text-white overflow-hidden p-2 flex flex-col ${
+          sidebarOpen ? "w-56" : "hidden md:w-16 md:block"
         }`}
         onMouseEnter={() => setSidebarOpen(true)}
-        onMouseLeave={() => setSidebarOpen(false)}
+        onMouseLeave={() => {
+          if (window.innerWidth >= 768) setSidebarOpen(false); // Only close on hover for desktop
+        }}
       >
         {/* Logo or menu icon */}
         <div className="flex justify-center items-center h-14 mb-4">
@@ -179,12 +204,12 @@ const LayoutWithSidebarAndHeader = () => {
         {/* Navigation Menu */}
         <ul className="space-y-3">
           {Menus.map((Menu, index) => {
-            const isActive = location.pathname.startsWith(Menu.path)
-            const Icon = Menu.icon
-            const isSearchConsole = Menu.title === ""
-            const isContentAgent = Menu.title === ""
-            const isPro = ["pro", "enterprise"].includes(user?.subscription?.plan)
-            const isFreeUser = user?.plan === "free" || user?.subscription?.plan === "free"
+            const isActive = location.pathname.startsWith(Menu.path);
+            const Icon = Menu.icon;
+            const isSearchConsole = Menu.title === "";
+            const isContentAgent = Menu.title === "";
+            const isPro = ["pro", "enterprise"].includes(user?.subscription?.plan);
+            const isFreeUser = user?.plan === "free" || user?.subscription?.plan === "free";
 
             return (
               <li key={index} className="flex items-center gap-2">
@@ -215,7 +240,7 @@ const LayoutWithSidebarAndHeader = () => {
                   </button>
                 )}
               </li>
-            )
+            );
           })}
         </ul>
 
@@ -317,7 +342,7 @@ const LayoutWithSidebarAndHeader = () => {
         <div className="pt-16">{/* Placeholder for main content */}</div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default LayoutWithSidebarAndHeader
+export default LayoutWithSidebarAndHeader;

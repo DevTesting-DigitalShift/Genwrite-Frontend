@@ -44,12 +44,11 @@ import dayjs from "dayjs"
 import Fuse from "fuse.js"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { getSocket } from "@utils/socket"
-import isBetween from "dayjs/plugin/isBetween";
+import isBetween from "dayjs/plugin/isBetween"
 import clsx from "clsx"
 import DateRangePicker from "@components/UI/DateRangePicker"
 
-// Add plugin before using
-dayjs.extend(isBetween);
+dayjs.extend(isBetween)
 
 const { RangePicker } = DatePicker
 
@@ -60,11 +59,10 @@ const MyProjects = () => {
   const user = useSelector(selectUser)
   const userId = user?.id || "guest"
 
-  // Initialize state from single sessionStorage object
   const initialFilters = JSON.parse(sessionStorage.getItem(`user_${userId}_filters`)) || {}
   const [filteredBlogs, setFilteredBlogs] = useState([])
   const [currentPage, setCurrentPage] = useState(initialFilters.currentPage || 1)
-  const [itemsPerPage, setItemsPerPage] = useState(15)
+  const [itemsPerPage, setItemsPerPage] = useState(6) // Default for mobile
   const [sortType, setSortType] = useState(initialFilters.sortType || "updatedAt")
   const [sortOrder, setSortOrder] = useState(initialFilters.sortOrder || "desc")
   const [statusFilter, setStatusFilter] = useState(initialFilters.statusFilter || "all")
@@ -87,7 +85,6 @@ const MyProjects = () => {
   const TRUNCATE_LENGTH = 120
   const [totalBlogs, setTotalBlogs] = useState(0)
 
-  // Persist all filters to single sessionStorage object
   useEffect(() => {
     const filters = {
       sortType,
@@ -114,12 +111,10 @@ const MyProjects = () => {
     currentPage,
   ])
 
-  // Scroll to top on page change
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" })
   }, [currentPage])
 
-  // Reset filters
   const resetFilters = useCallback(() => {
     setSortType("updatedAt")
     setSortOrder("desc")
@@ -137,7 +132,6 @@ const MyProjects = () => {
     setCurrentPage(1)
   }, [])
 
-  // Check if filters are active
   const isDefaultSort = sortType === "updatedAt" && sortOrder === "desc"
   const hasActiveFilters = useMemo(
     () =>
@@ -145,7 +139,6 @@ const MyProjects = () => {
     [searchTerm, isDefaultSort, statusFilter, dateRange, presetDateRange]
   )
 
-  // Get current sort label
   const getCurrentSortLabel = useCallback(() => {
     if (sortType === "title" && sortOrder === "asc") return "A-Z"
     if (sortType === "title" && sortOrder === "desc") return "Z-A"
@@ -156,7 +149,6 @@ const MyProjects = () => {
     return "Recently Updated"
   }, [sortType, sortOrder])
 
-  // Get current status label
   const getCurrentStatusLabel = useCallback(() => {
     switch (statusFilter) {
       case "complete":
@@ -170,7 +162,6 @@ const MyProjects = () => {
     }
   }, [statusFilter])
 
-  // Get current date label
   const getCurrentDateLabel = useCallback(() => {
     if (activePresetLabel) return activePresetLabel
     if (dateRange[0] && dateRange[1]) {
@@ -179,7 +170,6 @@ const MyProjects = () => {
     return "All Dates"
   }, [activePresetLabel, dateRange])
 
-  // TanStack Query: Fetch blogs
   const fetchBlogsQuery = useCallback(async () => {
     const queryParams = {
       start: dateRange[0]
@@ -191,7 +181,7 @@ const MyProjects = () => {
         ? dayjs(dateRange[1]).endOf("day").toISOString()
         : presetDateRange[1]
         ? dayjs(presetDateRange[1]).endOf("day").toISOString()
-        : undefined
+        : undefined,
     }
     const response = await dispatch(fetchAllBlogs(queryParams)).unwrap()
     return response.data || []
@@ -206,8 +196,6 @@ const MyProjects = () => {
       presetDateRange[1]?.toISOString() ?? null,
     ],
     queryFn: fetchBlogsQuery,
-    // staleTime: 10 * 60 * 1000, // 10 minutes
-    // cacheTime: 15 * 60 * 1000, // 15 minutes
     onError: (error) => {
       console.error("Failed to fetch blogs:", {
         error: error.message,
@@ -224,16 +212,14 @@ const MyProjects = () => {
 
     socket.on("blog:statusChanged", (data) => {
       console.debug("Blog status changed:", data)
-      // Optionally, you can trigger a refetch or update the UI based on the new status
       queryClient.invalidateQueries({ queryKey: ["blogs"], exact: false })
     })
 
     return () => {
       socket.off("blog:statusChanged")
     }
-  }, [])
+  }, [queryClient])
 
-  // TanStack Query: Retry mutation
   const retryMutation = useMutation({
     mutationFn: (id) => dispatch(retryBlog({ id })).unwrap(),
     onSuccess: () => {
@@ -246,7 +232,6 @@ const MyProjects = () => {
     },
   })
 
-  // TanStack Query: Archive mutation
   const archiveMutation = useMutation({
     mutationFn: (id) => dispatch(archiveBlog(id)).unwrap(),
     onSuccess: () => {
@@ -258,7 +243,6 @@ const MyProjects = () => {
     },
   })
 
-  // Fuse.js setup
   const fuse = useMemo(() => {
     return new Fuse(allBlogs, {
       keys: [
@@ -272,21 +256,17 @@ const MyProjects = () => {
     })
   }, [allBlogs])
 
-  // Client-side filtered and searched data
   const filteredBlogsData = useMemo(() => {
     let result = allBlogs
 
-    // Apply fuzzy search with Fuse.js
     if (searchTerm.trim()) {
       result = fuse.search(searchTerm).map(({ item }) => item)
     }
 
-    // Apply status filter
     if (statusFilter !== "all") {
       result = result.filter((blog) => blog.status === statusFilter)
     }
 
-    // Apply sorting
     const sortedResult = [...result]
     if (sortType === "title") {
       sortedResult.sort((a, b) =>
@@ -298,8 +278,7 @@ const MyProjects = () => {
           ? new Date(a.updatedAt) - new Date(b.updatedAt)
           : new Date(b.updatedAt) - new Date(a.updatedAt)
       )
-    }
-     else if (sortType === "createdAt") {
+    } else if (sortType === "createdAt") {
       sortedResult.sort((a, b) =>
         sortOrder === "asc"
           ? new Date(a.createdAt) - new Date(b.createdAt)
@@ -307,7 +286,6 @@ const MyProjects = () => {
       )
     }
 
-    // Return both filtered blogs and total count
     return {
       blogs: sortedResult.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage),
       total: sortedResult.length,
@@ -325,13 +303,11 @@ const MyProjects = () => {
     fuse,
   ])
 
-  // Update filteredBlogs and totalBlogs
   useEffect(() => {
     setFilteredBlogs(filteredBlogsData.blogs)
     setTotalBlogs(filteredBlogsData.total)
   }, [filteredBlogsData])
 
-  // Responsive items per page
   useEffect(() => {
     const updateItemsPerPage = () => {
       if (window.innerWidth >= 1024) {
@@ -349,7 +325,6 @@ const MyProjects = () => {
     return () => window.removeEventListener("resize", updateItemsPerPage)
   }, [])
 
-  // Handle blog click
   const handleBlogClick = useCallback(
     (blog) => {
       navigate(`/toolbox/${blog._id}`)
@@ -364,7 +339,6 @@ const MyProjects = () => {
     [navigate]
   )
 
-  // Handle retry
   const handleRetry = useCallback(
     (id) => {
       retryMutation.mutate(id)
@@ -372,7 +346,6 @@ const MyProjects = () => {
     [retryMutation]
   )
 
-  // Handle archive
   const handleArchive = useCallback(
     (id) => {
       archiveMutation.mutate(id)
@@ -380,13 +353,11 @@ const MyProjects = () => {
     [archiveMutation]
   )
 
-  // Truncate content
   const truncateContent = useCallback((content, length = TRUNCATE_LENGTH) => {
     if (!content) return ""
     return content.length > length ? content.substring(0, length) + "..." : content
   }, [])
 
-  // Strip markdown
   const stripMarkdown = useCallback((text) => {
     return text
       ?.replace(/<[^>]*>/g, "")
@@ -395,7 +366,6 @@ const MyProjects = () => {
       ?.trim()
   }, [])
 
-  // Menu options for sorting
   const menuOptions = useMemo(
     () => [
       {
@@ -462,7 +432,6 @@ const MyProjects = () => {
     []
   )
 
-  // Filter options
   const funnelMenuOptions = useMemo(
     () => [
       {
@@ -505,7 +474,6 @@ const MyProjects = () => {
     []
   )
 
-  // Date range presets
   const datePresets = useMemo(
     () => [
       {
@@ -568,7 +536,7 @@ const MyProjects = () => {
   )
 
   return (
-    <div className="p-5">
+    <div className="p-4 sm:p-6 md:p-8 max-w-full">
       <Helmet>
         <title>Blogs | GenWrite</title>
       </Helmet>
@@ -623,150 +591,148 @@ const MyProjects = () => {
             aria-label="Search blogs"
           />
         </div>
-       <div className="flex flex-wrap gap-3 items-center">
-  {/* Sort */}
-  <Popover
-    open={isMenuOpen}
-    onOpenChange={(visible) => setMenuOpen(visible)}
-    trigger="click"
-    placement="bottomRight"
-    content={
-      <div className="min-w-[200px] rounded-lg space-y-1">
-        {menuOptions.map(({ label, icon, onClick }) => (
-          <Tooltip title={label} placement="left" key={label}>
-            <button
-              onClick={onClick}
-              className="w-full flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+        <div className="flex flex-wrap gap-3 items-center">
+          {/* Sort */}
+          <Popover
+            open={isMenuOpen}
+            onOpenChange={(visible) => setMenuOpen(visible)}
+            trigger="click"
+            placement="bottomRight"
+            content={
+              <div className="min-w-[200px] rounded-lg space-y-1">
+                {menuOptions.map(({ label, icon, onClick }) => (
+                  <Tooltip title={label} placement="left" key={label}>
+                    <button
+                      onClick={onClick}
+                      className="w-full flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                    >
+                      <span className="text-lg">{icon}</span>
+                      <span>{label}</span>
+                    </button>
+                  </Tooltip>
+                ))}
+              </div>
+            }
+          >
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                type="default"
+                icon={<ArrowDownUp className="w-4 h-4" />}
+                className={`p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100 w-full sm:w-auto ${
+                  !isDefaultSort ? "border-blue-400 bg-blue-50 text-blue-600" : ""
+                }`}
+              >
+                Sort: {getCurrentSortLabel()}
+              </Button>
+            </motion.div>
+          </Popover>
+
+          {/* Filter */}
+          <Popover
+            open={isFunnelMenuOpen}
+            onOpenChange={(visible) => setFunnelMenuOpen(visible)}
+            trigger="click"
+            placement="bottomRight"
+            content={
+              <div className="min-w-[200px] rounded-lg space-y-1">
+                {funnelMenuOptions.map(({ label, icon, onClick }) => (
+                  <Tooltip title={label} placement="left" key={label}>
+                    <button
+                      onClick={onClick}
+                      className="w-full flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                    >
+                      <span className="text-lg">{icon}</span>
+                      <span>{label}</span>
+                    </button>
+                  </Tooltip>
+                ))}
+              </div>
+            }
+          >
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                type="default"
+                icon={<Filter className="w-4 h-4" />}
+                className={`p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100 w-full sm:w-auto ${
+                  statusFilter !== "all" ? "border-green-400 bg-green-50 text-green-600" : ""
+                }`}
+              >
+                Filter: {getCurrentStatusLabel()}
+              </Button>
+            </motion.div>
+          </Popover>
+
+          {/* Date Preset */}
+          <Popover
+            open={isCustomDatePickerOpen}
+            onOpenChange={(visible) => setIsCustomDatePickerOpen(visible)}
+            trigger="click"
+            placement="bottomRight"
+            content={
+              <div>
+                {datePresets.map(({ label, onClick }) => (
+                  <Tooltip title={label} placement="left" key={label}>
+                    <button
+                      onClick={onClick}
+                      className="w-full flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                    >
+                      <span className="text-lg">
+                        <FieldTimeOutlined />
+                      </span>
+                      <span>{label}</span>
+                    </button>
+                  </Tooltip>
+                ))}
+              </div>
+            }
+          >
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                type="default"
+                icon={<Calendar className="w-4 h-4" />}
+                className={`p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100 w-full sm:w-auto ${
+                  dateRange[0] || presetDateRange[0]
+                    ? "border-purple-400 bg-purple-50 text-purple-600"
+                    : ""
+                }`}
+              >
+                Date: {getCurrentDateLabel()}
+              </Button>
+            </motion.div>
+          </Popover>
+
+          {/* Refresh */}
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Button
+              type="default"
+              icon={<RefreshCcw className="w-4 h-4" />}
+              onClick={() => queryClient.invalidateQueries(["blogs"])}
+              className="p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100 w-full sm:w-auto"
             >
-              <span className="text-lg">{icon}</span>
-              <span>{label}</span>
-            </button>
-          </Tooltip>
-        ))}
-      </div>
-    }
-  >
-    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-      <Button
-        type="default"
-        icon={<ArrowDownUp className="w-4 h-4" />}
-        className={`p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100 w-full sm:w-auto ${
-          !isDefaultSort ? "border-blue-400 bg-blue-50 text-blue-600" : ""
-        }`}
-      >
-        Sort: {getCurrentSortLabel()}
-      </Button>
-    </motion.div>
-  </Popover>
+              Refresh
+            </Button>
+          </motion.div>
 
-  {/* Filter */}
-  <Popover
-    open={isFunnelMenuOpen}
-    onOpenChange={(visible) => setFunnelMenuOpen(visible)}
-    trigger="click"
-    placement="bottomRight"
-    content={
-      <div className="min-w-[200px] rounded-lg space-y-1">
-        {funnelMenuOptions.map(({ label, icon, onClick }) => (
-          <Tooltip title={label} placement="left" key={label}>
-            <button
-              onClick={onClick}
-              className="w-full flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+          {/* Reset */}
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Button
+              type="default"
+              icon={<RotateCcw className="w-4 h-4" />}
+              onClick={resetFilters}
+              className={`p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100 w-full sm:w-auto ${
+                hasActiveFilters ? "border-red-400 bg-red-50 text-red-600" : ""
+              }`}
             >
-              <span className="text-lg">{icon}</span>
-              <span>{label}</span>
-            </button>
-          </Tooltip>
-        ))}
-      </div>
-    }
-  >
-    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-      <Button
-        type="default"
-        icon={<Filter className="w-4 h-4" />}
-        className={`p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100 w-full sm:w-auto ${
-          statusFilter !== "all"
-            ? "border-green-400 bg-green-50 text-green-600"
-            : ""
-        }`}
-      >
-        Filter: {getCurrentStatusLabel()}
-      </Button>
-    </motion.div>
-  </Popover>
-
-  {/* Date Preset */}
-  <Popover
-    open={isCustomDatePickerOpen}
-    onOpenChange={(visible) => setIsCustomDatePickerOpen(visible)}
-    trigger="click"
-    placement="bottomRight"
-    content={
-      <div>
-        {datePresets.map(({ label, onClick }) => (
-          <Tooltip title={label} placement="left" key={label}>
-            <button
-              onClick={onClick}
-              className="w-full flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
-            >
-              <span className="text-lg">
-                <FieldTimeOutlined />
-              </span>
-              <span>{label}</span>
-            </button>
-          </Tooltip>
-        ))}
-      </div>
-    }
-  >
-    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-      <Button
-        type="default"
-        icon={<Calendar className="w-4 h-4" />}
-        className={`p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100 w-full sm:w-auto ${
-          dateRange[0] || presetDateRange[0]
-            ? "border-purple-400 bg-purple-50 text-purple-600"
-            : ""
-        }`}
-      >
-        Date: {getCurrentDateLabel()}
-      </Button>
-    </motion.div>
-  </Popover>
-
-  {/* Refresh */}
-  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-    <Button
-      type="default"
-      icon={<RefreshCcw className="w-4 h-4" />}
-      onClick={() => queryClient.invalidateQueries(["blogs"])}
-      className="p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100 w-full sm:w-auto"
-    >
-      Refresh
-    </Button>
-  </motion.div>
-
-  {/* Reset */}
-  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-    <Button
-      type="default"
-      icon={<RotateCcw className="w-4 h-4" />}
-      onClick={resetFilters}
-      className={`p-2 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100 w-full sm:w-auto ${
-        hasActiveFilters ? "border-red-400 bg-red-50 text-red-600" : ""
-      }`}
-    >
-      Reset
-    </Button>
-  </motion.div>
-</div>
+              Reset
+            </Button>
+          </motion.div>
+        </div>
 
         <div className="flex-1">
           <RangePicker
             value={dateRange}
-            minDate = {user?.createdAt ? dayjs(user?.createdAt): undefined}
-            maxDate = {dayjs()}
+            minDate={user?.createdAt ? dayjs(user?.createdAt) : undefined}
+            maxDate={dayjs()}
             onChange={(dates) => {
               setDateRange(
                 dates
@@ -777,20 +743,21 @@ const MyProjects = () => {
               setActivePresetLabel("")
               setCurrentPage(1)
             }}
-            className={clsx("w-full rounded-lg border-gray-300 shadow-sm",
-              (dateRange[0] || presetDateRange[0]) &&  "!border-purple-400 !shadow-purple-100"
+            className={clsx(
+              "w-full rounded-lg border-gray-300 shadow-sm",
+              (dateRange[0] || presetDateRange[0]) && "!border-purple-400 !shadow-purple-100"
             )}
             format="YYYY-MM-DD"
             placeholder={["Start date", "End date"]}
             aria-label="Select date range"
-            />
+          />
         </div>
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
           {[...Array(itemsPerPage)].map((_, index) => (
-            <div key={index} className="bg-white shadow-md rounded-xl p-4">
+            <div key={index} className="bg-white shadow-md rounded-lg p-4 sm:p-6">
               <SkeletonLoader />
             </div>
           ))}
@@ -800,12 +767,12 @@ const MyProjects = () => {
           className="flex flex-col justify-center items-center"
           style={{ minHeight: "calc(100vh - 270px)" }}
         >
-          <img src="Images/no-blog.png" alt="No blogs" style={{ width: "8rem" }} />
-          <p className="text-xl mt-5">No blogs available.</p>
+          <img src="Images/no-blog.png" alt="No blogs" className="w-20 sm:w-24" />
+          <p className="text-lg sm:text-xl mt-5">No blogs available.</p>
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 place-items-center p-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8 place-items-center p-2">
             {filteredBlogs.map((blog) => {
               const isManualEditor = blog.isManuallyEdited === true
               const {
@@ -825,7 +792,7 @@ const MyProjects = () => {
                 <Badge.Ribbon
                   key={_id}
                   text={
-                    <span className="flex items-center justify-center gap-1 py-1 font-medium tracking-wide">
+                    <span className="flex items-center justify-center gap-1 py-1 font-medium tracking-wide text-xs sm:text-sm">
                       {isManualEditor ? (
                         <>Manually Generated</>
                       ) : (
@@ -835,8 +802,8 @@ const MyProjects = () => {
                               isGemini ? "gemini" : aiModel === "claude" ? "claude" : "chatgpt"
                             }.png`}
                             alt={isGemini ? "Gemini" : aiModel === "claude" ? "Claude" : "ChatGPT"}
-                            width={20}
-                            height={20}
+                            width={16}
+                            height={16}
                             loading="lazy"
                             className="bg-white"
                           />
@@ -861,7 +828,7 @@ const MyProjects = () => {
                   }
                 >
                   <div
-                    className={`bg-white shadow-md hover:shadow-xl transition-all duration-300 rounded-xl p-4 min-h-[180px] min-w-[390px] relative ${
+                    className={`bg-white shadow-md hover:shadow-xl transition-all duration-300 rounded-lg p-4 sm:p-6 min-h-[180px] min-w-0 relative ${
                       isManualEditor
                         ? "border-gray-500"
                         : status === "failed"
@@ -886,10 +853,10 @@ const MyProjects = () => {
                         aria-label={`View blog ${title}`}
                       >
                         <div className="flex flex-col gap-4 items-center justify-between mb-2">
-                          <h3 className="text-lg capitalize font-semibold text-gray-900 !text-left max-w-76">
+                          <h3 className="text-base sm:text-lg capitalize font-semibold text-gray-900 !text-left max-w-full">
                             {title}
                           </h3>
-                          <p className="text-sm text-gray-600 mb-4 line-clamp-3 break-all">
+                          <p className="text-xs sm:text-sm text-gray-600 mb-4 line-clamp-3 break-all">
                             {truncateContent(stripMarkdown(content)) || ""}
                           </p>
                         </div>
@@ -934,10 +901,10 @@ const MyProjects = () => {
                           aria-label={`View blog ${title}`}
                         >
                           <div className="flex flex-col gap-4 items-center justify-between mb-2">
-                            <h3 className="text-lg capitalize font-semibold text-gray-900 !text-left max-w-76">
+                            <h3 className="text-base sm:text-lg capitalize font-semibold text-gray-900 !text-left max-w-full">
                               {title}
                             </h3>
-                            <p className="text-sm text-gray-600 mb-4 line-clamp-3 break-all">
+                            <p className="text-xs sm:text-sm text-gray-600 mb-4 line-clamp-3 break-all">
                               {truncateContent(stripMarkdown(content)) || ""}
                             </p>
                           </div>
@@ -946,11 +913,11 @@ const MyProjects = () => {
                     )}
 
                     <div className="flex items-center justify-end gap-2">
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-1 sm:gap-2">
                         {focusKeywords?.map((keyword, index) => (
                           <span
                             key={index}
-                            className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full"
+                            className="bg-blue-100 text-blue-800 text-xs font-semibold px-2 sm:px-2.5 py-0.5 rounded-full"
                           >
                             {keyword}
                           </span>
@@ -972,7 +939,7 @@ const MyProjects = () => {
                             className="p-2 hover:!border-blue-500 hover:text-blue-500"
                             aria-label="Retry blog generation"
                           >
-                            <RotateCcw />
+                            <RotateCcw className="w-4 sm:w-5 h-4 sm:h-5" />
                           </Button>
                         </Popconfirm>
                       )}
@@ -1003,11 +970,11 @@ const MyProjects = () => {
                         }
                         aria-label={`Move blog ${title} to trash`}
                       >
-                        <Trash2 />
+                        <Trash2 className="w-4 sm:w-5 h-4 sm:h-5" />
                       </Button>
                     </div>
 
-                    <div className="mt-3 -mb-2 flex justify-end text-xs text-right text-gray-500 font-medium">
+                    <div className="mt-3 -mb-2 flex justify-end text-xs sm:text-sm text-right text-gray-500 font-medium">
                       {wordpress?.postedOn && (
                         <span className="">
                           Posted on:{" "}
@@ -1029,7 +996,7 @@ const MyProjects = () => {
             })}
           </div>
           {totalBlogs > itemsPerPage && (
-            <div className="flex justify-center mt-8">
+            <div className="flex justify-center mt-6 sm:mt-8">
               <Pagination
                 current={currentPage}
                 total={totalBlogs}
@@ -1046,11 +1013,13 @@ const MyProjects = () => {
                 showSizeChanger={false}
                 pageSizeOptions={["6", "12", "15"]}
                 disabled={isLoading}
+                className="text-xs sm:text-sm"
               />
             </div>
           )}
         </>
       )}
+    
     </div>
   )
 }

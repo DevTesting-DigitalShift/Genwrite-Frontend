@@ -413,7 +413,10 @@ const ToolBox = () => {
           />
         </Modal>
 
-        <div className="flex mt-5 pb-5">
+        <div
+          className="flex flex-col lg:flex-row mt-5 pb-5 
+                max-h-[90vh] overflow-y-auto lg:max-h-none lg:overflow-visible"
+        >
           <div className="flex-1 flex flex-col">
             <header className="bg-white shadow-lg border rounded-tl-lg border-gray-200 p-6">
               <div className="flex items-center justify-between">

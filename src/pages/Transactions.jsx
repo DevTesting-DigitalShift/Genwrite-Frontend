@@ -29,7 +29,7 @@ const Transactions = () => {
       dataIndex: "type",
       key: "type",
       render: (type) => (
-        <Tag color={type === "subscription" ? "blue" : "gold"}>
+        <Tag color={type === "subscription" ? "blue" : "gold"} className="text-xs sm:text-sm">
           {type.replace(/_/g, " ").toUpperCase()}
         </Tag>
       ),
@@ -38,25 +38,37 @@ const Transactions = () => {
       title: "Plan",
       dataIndex: "plan",
       key: "plan",
-      render: (plan) => (plan ? <Tag color="purple">{plan.toUpperCase()}</Tag> : "-"),
+      render: (plan) =>
+        plan ? (
+          <Tag color="purple" className="text-xs sm:text-sm">
+            {plan.toUpperCase()}
+          </Tag>
+        ) : (
+          "-"
+        ),
     },
     {
       title: "Credits",
       dataIndex: "creditsAdded",
       key: "creditsAdded",
-      render: (credits) => <span>{credits || 0}</span>,
+      render: (credits) => <span className="text-xs sm:text-sm">{credits || 0}</span>,
     },
     {
       title: "Amount",
       dataIndex: "amount",
       key: "amount",
-      render: (amt, record) => `$${(amt / 100).toFixed(2)} ${record.currency?.toUpperCase()}`,
+      render: (amt, record) => (
+        <span className="text-xs sm:text-sm">{`$${(amt / 100).toFixed(
+          2
+        )} ${record.currency?.toUpperCase()}`}</span>
+      ),
     },
     {
       title: "Payment Method",
       dataIndex: "paymentMethod",
       key: "paymentMethod",
-      render: (pm) => pm?.toUpperCase() || "-",
+      responsive: ["md"], // Hide on small screens
+      render: (pm) => <span className="text-xs sm:text-sm">{pm?.toUpperCase() || "-"}</span>,
     },
     {
       title: "Status",
@@ -67,7 +79,11 @@ const Transactions = () => {
         if (status === "success") color = "green"
         else if (status === "failed") color = "red"
         else if (status === "pending") color = "orange"
-        return <Tag color={color}>{status.toUpperCase()}</Tag>
+        return (
+          <Tag color={color} className="text-xs sm:text-sm">
+            {status.toUpperCase()}
+          </Tag>
+        )
       },
       filters: [
         { text: "Success", value: "success" },
@@ -80,13 +96,14 @@ const Transactions = () => {
       title: "Invoice",
       dataIndex: "invoiceUrl",
       key: "invoiceUrl",
+      responsive: ["md"], // Hide on small screens
       render: (url) =>
         url ? (
           <a
             href={url}
             target="_blank"
             rel="noreferrer"
-            className="text-blue-500 underline hover:text-blue-700"
+            className="text-blue-500 underline hover:text-blue-700 text-xs sm:text-sm"
           >
             View Invoice
           </a>
@@ -105,26 +122,73 @@ const Transactions = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="p-6 bg-white rounded-xl shadow-md"
+        className="p-4 sm:p-6 md:p-8 bg-white rounded-xl shadow-md max-w-full"
       >
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-gray-800">Your Transactions</h2>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-0">
+          <h2 className="text-lg sm:text-xl md:text-2xl font-semibold text-gray-800">
+            Your Transactions
+          </h2>
           <Tooltip title="Refresh">
             <button
-              onClick={fetchTransactions}
-              className="px-3 py-2 bg-gray-100 rounded-full hover:bg-gray-200 transition"
+              onClick={() => dispatch(fetchTransactions())}
+              className="px-3 sm:px-4 py-2 bg-gray-100 rounded-full hover:bg-gray-200 transition text-sm"
             >
-              <ReloadOutlined />
+              <ReloadOutlined className="w-4 sm:w-5 h-4 sm:h-5" />
             </button>
           </Tooltip>
         </div>
+        <style>
+          {`
+            .ant-table-container {
+              overflow-x: auto;
+              -webkit-overflow-scrolling: touch;
+            }
+            .ant-table-thead {
+              position: sticky;
+              top: 0;
+              z-index: 10;
+              background: #fafafa;
+            }
+            .ant-table-thead > tr > th {
+              background: #fafafa !important;
+              white-space: nowrap;
+            }
+            .ant-table-cell {
+              white-space: nowrap;
+            }
+            @media (max-width: 640px) {
+              .ant-table-tbody > tr > td {
+                padding: 8px !important;
+                font-size: 12px !important;
+              }
+              .ant-table-thead > tr > th {
+                padding: 8px !important;
+                font-size: 12px !important;
+              }
+              .ant-tag {
+                font-size: 12px !important;
+                padding: 2px 6px !important;
+              }
+            }
+            @media (max-width: 768px) {
+              .ant-table-tbody > tr > td {
+                padding: 10px !important;
+              }
+              .ant-table-thead > tr > th {
+                padding: 10px !important;
+              }
+            }
+          `}
+        </style>
         <Table
           rowKey="_id"
           loading={loading}
           dataSource={transactions}
           columns={columns}
-          pagination={{ pageSize: 10 }}
-          className="custom-table rounded-lg overflow-hidden"
+          pagination={{ pageSize: 10, responsive: true, showSizeChanger: false }}
+          className="rounded-lg overflow-hidden"
+          rowClassName="hover:bg-gray-50 transition-colors duration-200"
+          scroll={{ x: "max-content" }}
         />
       </motion.div>
     </>
