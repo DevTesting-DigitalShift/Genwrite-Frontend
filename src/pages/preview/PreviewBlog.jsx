@@ -30,7 +30,7 @@ function generateTOC(markdown) {
         .replace(/[*_~`]+/g, "")
         .replace(/<[^>]*>/g, "")
         .trim()
-
+const hello = "A"
       const id = text
         .toLowerCase()
         .replace(/[^\w]+/g, "-")
