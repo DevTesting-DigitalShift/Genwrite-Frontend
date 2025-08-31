@@ -35,7 +35,7 @@ import {
   Tooltip,
   Legend,
 } from "chart.js"
-import { letsBegin, quickTools } from "./dashData/dash"
+import { letsBegin, quickTools } from "./dashdata/dash"
 import GoThrough from "./GoThrough"
 
 ChartJS.register(
@@ -243,7 +243,7 @@ const Dashboard = () => {
       {competitiveAnalysisModal && (
         <CompetitiveAnalysisModal
           closeFnc={hideCompetitiveAnalysis}
-          open={showCompetitiveAnalysis}
+          open={competitiveAnalysisModal}
           blogs={allBlogs}
         />
       )}

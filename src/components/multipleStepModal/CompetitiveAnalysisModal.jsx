@@ -55,6 +55,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
 
   // Reset form and results when modal closes
   useEffect(() => {
+    console.log("Loading", open)
     if (!open) {
       setFormData({
         title: "",
