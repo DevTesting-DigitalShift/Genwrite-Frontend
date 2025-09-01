@@ -190,3 +190,12 @@ export const getBlogs = async () => {
     throw new Error(error || "Failed to fetch blogs")
   }
 }
+
+export const getBlogPrompt = async (id, prompt) => {
+  try {
+    const response = await axiosInstance.post(`/blogs/${id}/prompt`, { prompt })
+    return response
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to fetch blog prompt")
+  }
+}

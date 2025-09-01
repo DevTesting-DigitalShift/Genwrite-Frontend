@@ -1,4 +1,4 @@
-import { createOutline, fetchCategories } from "@api/otherApi"
+import { createOutline, fetchCategories, generateMetadata, generatePromptContent } from "@api/otherApi"
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit"
 import { message } from "antd"
 import { data } from "react-router-dom"
@@ -71,6 +71,32 @@ export const createOutlineThunk = createAsyncThunk("outline/create", async (payl
   }
 })
 
+export const generateMetadataThunk = createAsyncThunk(
+  "metadata/generate",
+  async (payload, thunkAPI) => {
+    try {
+      const data = await generateMetadata(payload)
+      return data
+    } catch (error) {
+      console.error("Error in generateMetadata", error)
+      return thunkAPI.rejectWithValue(error.response?.data || error.message)
+    }
+  }
+)
+
+export const generatePromptContentThunk = createAsyncThunk(
+  "content/generatePromptContent",
+  async ({ prompt, content }, thunkAPI) => {
+    try {
+      const data = await generatePromptContent({ prompt, content })
+      return data
+    } catch (error) {
+      console.error("Error in generatePromptContent", error)
+      return thunkAPI.rejectWithValue(error.response?.data || error.message)
+    }
+  }
+)
+
 const wordpressSlice = createSlice({
   name: "wordpress",
   initialState: {
@@ -79,8 +105,13 @@ const wordpressSlice = createSlice({
     error: null,
     success: false,
     categories: [],
+    metadata: null,
   },
-  reducers: {},
+  reducers: {
+    resetMetadata: (state) => {
+      state.data = null // clears the generated metadata
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(postToWordPress.pending, (state) => {
@@ -122,7 +153,34 @@ const wordpressSlice = createSlice({
         state.loading = false
         state.error = action.payload || "Something went wrong"
       })
+
+      .addCase(generateMetadataThunk.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(generateMetadataThunk.fulfilled, (state, action) => {
+        state.loading = false
+        state.metadata = action.payload // 👈 store metadata response
+      })
+      .addCase(generateMetadataThunk.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload || "Failed to generate metadata"
+      })
+
+      .addCase(generatePromptContentThunk.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(generatePromptContentThunk.fulfilled, (state, action) => {
+        state.loading = false
+        state.data = action.payload // or maybe state.humanizedContent if you want separate
+      })
+      .addCase(generatePromptContentThunk.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload || "Failed to generate prompt content"
+      })
   },
 })
 
+export const { resetMetadata } = wordpressSlice.actions
 export default wordpressSlice.reducer

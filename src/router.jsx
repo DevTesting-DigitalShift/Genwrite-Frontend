@@ -32,6 +32,8 @@ const HumanizeContent = lazy(() => import("@pages/HumanizeContent"))
 const CancellationPage = lazy(() => import("@pages/CancellationPage"))
 const AnalyticsPage = lazy(() => import("@components/AnalyticsPage"))
 const OutlineEditor = lazy(() => import("@pages/OutlineEditor"))
+const GenerateMetaData = lazy(() => import("@components/GenerateMetaData"))
+const PromptContent = lazy(() => import("@components/PromptContent"))
 
 /**
  * Wraps a component in React.Suspense with fallback support.
@@ -77,6 +79,8 @@ const router = createBrowserRouter([
       { path: "blog-editor/:id", element: withSuspense(ToolBox) },
       { path: "cancel-subscription", element: withSuspense(CancellationPage) },
       { path: "analytics", element: withSuspense(AnalyticsPage) },
+      { path: "generate-metadata", element: withSuspense(GenerateMetaData) },
+      { path: "prompt-content", element: withSuspense(PromptContent) },
       {
         path: "payment",
         children: [

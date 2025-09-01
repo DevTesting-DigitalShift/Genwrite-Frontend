@@ -19,23 +19,37 @@ import {
   Minimize2,
   Maximize2,
   Download,
+  Tag as TagIcon,
+  MessageSquare,
 } from "lucide-react"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useNavigate } from "react-router-dom"
 import { useDispatch, useSelector } from "react-redux"
-import { Button, Modal, Tooltip, message, Tabs, Badge, Collapse, Dropdown, Menu, Tag } from "antd"
-import { fetchProofreadingSuggestions } from "@store/slices/blogSlice"
+import {
+  Button,
+  Tooltip,
+  message,
+  Tabs,
+  Badge,
+  Collapse,
+  Dropdown,
+  Menu,
+  Tag,
+  Input,
+  Modal,
+} from "antd"
+import { fetchProofreadingSuggestions, fetchBlogPrompt } from "@store/slices/blogSlice"
 import { fetchCompetitiveAnalysisThunk } from "@store/slices/analysisSlice"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
-import { getCategoriesThunk } from "@store/slices/otherSlice"
+import { getCategoriesThunk, generateMetadataThunk } from "@store/slices/otherSlice"
 import CategoriesModal from "@components/CategoriesModal"
 import Loading from "@components/Loading"
 import { marked } from "marked"
-import DOMPurify from "dompurify"
 import { CrownTwoTone } from "@ant-design/icons"
 
 const { Panel } = Collapse
+const { TextArea } = Input
 
 const TextEditorSidebar = ({
   blog,
@@ -51,6 +65,13 @@ const TextEditorSidebar = ({
   isPosting,
   formData,
   editorContent,
+  setEditorContent,
+  humanizePrompt,
+  setHumanizePrompt,
+  setIsHumanizing,
+  isHumanizing,
+  setHumanizedContent,
+  setIsHumanizeModalOpen,
 }) => {
   const [newKeyword, setNewKeyword] = useState("")
   const [isAnalyzingProofreading, setIsAnalyzingProofreading] = useState(false)
@@ -59,12 +80,16 @@ const TextEditorSidebar = ({
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
   const [activeSection, setActiveSection] = useState("overview")
+  const [metadata, setMetadata] = useState({ title: "", description: "" })
+  const [customPrompt, setCustomPrompt] = useState("") // New state for custom prompt
+  const [isPromptModalOpen, setIsPromptModalOpen] = useState(false) // New state for prompt modal
   const user = useSelector((state) => state.auth.user)
   const userPlan = user?.subscription?.plan
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const { handlePopup } = useConfirmPopup()
   const { loading: isAnalyzingCompetitive } = useSelector((state) => state.analysis)
+  const { metadata: reduxMetadata } = useSelector((state) => state.wordpress)
   const [open, setOpen] = useState(false)
   const { analysisResult } = useSelector((state) => state.analysis)
   const blogId = blog?._id
@@ -78,7 +103,6 @@ const TextEditorSidebar = ({
     mangle: false,
   })
 
-  // Define getWordCount function
   const getWordCount = (text) => {
     return text
       ? text
@@ -95,6 +119,17 @@ const TextEditorSidebar = ({
   useEffect(() => {
     setCompetitiveAnalysisResults(null)
   }, [blog?._id])
+
+  useEffect(() => {
+    if (reduxMetadata) {
+      setMetadata({
+        title: reduxMetadata.title || "",
+        description: reduxMetadata.description || "",
+      })
+    } else {
+      setMetadata({ title: "", description: "" })
+    }
+  }, [reduxMetadata])
 
   const fetchCompetitiveAnalysis = useCallback(async () => {
     if (!blog || !blog.title || !blog.content) {
@@ -222,17 +257,44 @@ const TextEditorSidebar = ({
     message.success("All proofreading suggestions applied successfully!")
   }, [proofreadingResults, handleReplace, setProofreadingResults])
 
+  const handleMetadataGeneration = useCallback(async () => {
+    if (!blog || !editorContent) {
+      message.error("Blog content is required for metadata generation.")
+      return
+    }
+
+    if (["free", "basic"].includes(userPlan?.toLowerCase?.())) {
+      navigate("/pricing")
+      return
+    }
+
+    const validKeywords =
+      keywords && keywords.length > 0 ? keywords : blog?.focusKeywords || blog.keywords
+
+    try {
+      await dispatch(
+        generateMetadataThunk({
+          content: editorContent,
+          keywords: validKeywords,
+          focusKeywords: blog?.focusKeywords || [],
+        })
+      ).unwrap()
+      message.success("Metadata generated successfully!")
+    } catch (error) {
+      console.error("Error generating metadata:", error)
+      message.error("Failed to generate metadata.")
+    }
+  }, [blog, editorContent, keywords, dispatch, navigate, userPlan])
+
+  const handleMetadataSave = useCallback(() => {
+    message.success("Metadata saved successfully!")
+    handleSave()
+  }, [handleSave])
+
   const handleAnalyzing = useCallback(() => {
     if (["free", "basic"].includes(userPlan?.toLowerCase?.())) {
-      // return handlePopup({
-      //   title: "Upgrade Required",
-      //   description: "Competitor Analysis is only available for Pro and Enterprise users.",
-      //   confirmText: "Buy Now",
-      //   cancelText: "Cancel",
-      //   onConfirm: () => navigate("/pricing"),
-      // })
       navigate("/pricing")
-      return;
+      return
     }
 
     const seoScore = blog?.seoScore
@@ -263,13 +325,6 @@ const TextEditorSidebar = ({
 
   const handleProofreadingBlog = useCallback(() => {
     if (["free", "basic"].includes(userPlan?.toLowerCase?.())) {
-      // handlePopup({
-      //   title: "Upgrade Required",
-      //   description: "AI Proofreading is only available for Pro and Enterprise users.",
-      //   confirmText: "Buy Now",
-      //   cancelText: "Cancel",
-      //   onConfirm: () => navigate("/pricing"),
-      // })
       navigate("/pricing")
     } else {
       handlePopup({
@@ -281,6 +336,114 @@ const TextEditorSidebar = ({
       })
     }
   }, [userPlan, handlePopup, navigate, handleProofreadingClick])
+
+  const handleHumanizeBlog = useCallback(() => {
+    if (["free", "basic"].includes(userPlan?.toLowerCase?.())) {
+      navigate("/pricing")
+      return
+    }
+
+    handlePopup({
+      title: "Humanize Content",
+      description: `Do you want to make the blog content more humanized? This will cost 5 credits.`,
+      confirmText: "Humanize",
+      cancelText: "Cancel",
+      onConfirm: async () => {
+        if (!blog || !editorContent) {
+          message.error("Blog content is required for humanization.")
+          return
+        }
+
+        setIsHumanizing(true)
+        try {
+          const promptToUse = humanizePrompt || "make blog more humanised."
+          const result = await dispatch(
+            fetchBlogPrompt({
+              id: blog._id,
+              prompt: promptToUse,
+            })
+          ).unwrap()
+          setHumanizedContent(result.content)
+          setIsHumanizeModalOpen(true)
+          message.success("Humanized content generated successfully!")
+        } catch (error) {
+          console.error("Error humanizing content:", error)
+          message.error("Failed to humanize content.")
+        } finally {
+          setIsHumanizing(false)
+        }
+      },
+    })
+  }, [
+    blog,
+    editorContent,
+    dispatch,
+    handlePopup,
+    navigate,
+    userPlan,
+    humanizePrompt,
+    setIsHumanizing,
+    setHumanizedContent,
+    setIsHumanizeModalOpen,
+  ])
+
+  const handleCustomPromptBlog = useCallback(() => {
+    if (["free", "basic"].includes(userPlan?.toLowerCase?.())) {
+      navigate("/pricing")
+      return
+    }
+
+    setIsPromptModalOpen(true) // Open the prompt input modal
+  }, [userPlan, navigate])
+
+  const handleConfirmCustomPrompt = useCallback(async () => {
+    if (!customPrompt.trim()) {
+      message.error("Please enter a valid prompt.")
+      return
+    }
+
+    if (!blog || !editorContent) {
+      message.error("Blog content is required for prompt-based modification.")
+      return
+    }
+
+    handlePopup({
+      title: "Apply Custom Prompt",
+      description: `Do you want to modify the blog content using the prompt: "${customPrompt}"? This will cost 5 credits.`,
+      confirmText: "Apply Prompt",
+      cancelText: "Cancel",
+      onConfirm: async () => {
+        setIsHumanizing(true) // Reuse isHumanizing for loading state
+        try {
+          const result = await dispatch(
+            fetchBlogPrompt({
+              id: blog._id,
+              prompt: customPrompt,
+            })
+          ).unwrap()
+          setHumanizedContent(result.data)
+          setIsHumanizeModalOpen(true)
+          message.success("Content modified with custom prompt successfully!")
+        } catch (error) {
+          console.error("Error applying custom prompt:", error)
+          message.error("Failed to apply custom prompt.")
+        } finally {
+          setIsHumanizing(false)
+          setIsPromptModalOpen(false)
+          setCustomPrompt("")
+        }
+      },
+    })
+  }, [
+    blog,
+    editorContent,
+    customPrompt,
+    dispatch,
+    handlePopup,
+    setHumanizedContent,
+    setIsHumanizing,
+    setIsHumanizeModalOpen,
+  ])
 
   const handleKeywordRewrite = useCallback(() => {
     handlePopup({
@@ -321,61 +484,6 @@ const TextEditorSidebar = ({
     },
     [editorContent, blog]
   )
-
-  // const handleExportPDF = useCallback(() => {
-  //   if (!editorContent) {
-  //     message.error("No content to export.")
-  //     return
-  //   }
-
-  //   const title = blog?.title || "Untitled_Blog"
-  //   const rawHtml = marked(editorContent, { gfm: true })
-  //   const safeHtml = DOMPurify.sanitize(rawHtml)
-
-  //   const container = document.createElement("div")
-  //   container.innerHTML = safeHtml
-  //   container.style.padding = "20px"
-  //   container.style.fontFamily = "Arial, sans-serif"
-  //   container.style.lineHeight = "1.6"
-  //   container.style.maxWidth = "800px"
-  //   container.style.color = "#000"
-  //   container.style.backgroundColor = "#fff"
-
-  //   // ✅ Patch oklch color fallback
-  //   Array.from(container.querySelectorAll("*")).forEach((el) => {
-  //     const style = window.getComputedStyle(el)
-  //     if (style.color?.includes("oklch")) {
-  //       el.style.color = "#000"
-  //     }
-  //     if (style.backgroundColor?.includes("oklch")) {
-  //       el.style.backgroundColor = "#fff"
-  //     }
-  //   })
-
-  //   document.body.appendChild(container)
-
-  //   const opt = {
-  //     margin: 0.5,
-  //     filename: `${title}.pdf`,
-  //     image: { type: "jpeg", quality: 0.98 },
-  //     html2canvas: { scale: 2 },
-  //     jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
-  //   }
-
-  //   html2pdf()
-  //     .set(opt)
-  //     .from(container)
-  //     .save()
-  //     .then(() => {
-  //       message.success("PDF exported successfully!")
-  //       document.body.removeChild(container)
-  //     })
-  //     .catch((err) => {
-  //       console.error("Error exporting PDF:", err)
-  //       message.error("Failed to export PDF.")
-  //       document.body.removeChild(container)
-  //     })
-  // }, [editorContent, blog])
 
   const exportMenu = (
     <Menu>
@@ -432,7 +540,11 @@ const TextEditorSidebar = ({
     icon: Icon,
   }) => (
     <motion.div
-      whileHover={{ scale: 1.02, boxShadow: "0px 0px 5px 0px rgba(0, 0, 0, 0.8)", transition: { duration: 0.2 } }}
+      whileHover={{
+        scale: 1.02,
+        boxShadow: "0px 0px 5px 0px rgba(0, 0, 0, 0.8)",
+        transition: { duration: 0.2 },
+      }}
       className="bg-white rounded-lg shadow-sm border border-gray-200 p-4"
     >
       <div className="flex items-start gap-3 mb-3">
@@ -442,9 +554,7 @@ const TextEditorSidebar = ({
         <div className="flex-1">
           <div className="flex items-center gap-4 mb-1">
             <h3 className="font-semibold text-gray-900">{title}</h3>
-            {isPro && (
-              <CrownTwoTone className="text-2xl ml-auto mr-2" />
-            )}
+            {isPro && <CrownTwoTone className="text-2xl ml-auto mr-2" />}
           </div>
           <p className="text-sm text-gray-600">{description}</p>
         </div>
@@ -561,7 +671,6 @@ const TextEditorSidebar = ({
         {visibleEntries.map(([key, value], index) => {
           const isExpanded = expandedIndexes.has(index)
           const text = typeof value === "object" ? "Multiple insights available" : value?.toString()
-
           const shouldTruncate = text?.length > 120 && !isExpanded
           const displayText = shouldTruncate ? text.slice(0, 120) + "..." : text
           const match = value.match(/\((\d+\/\d+)\)$/)
@@ -582,7 +691,7 @@ const TextEditorSidebar = ({
                     <p className="font-medium text-blue-900 text-sm mb-1">
                       {key.replace(/([A-Z])/g, " $1").trim()}
                     </p>
-                    <p> {score && <Tag color="blue">{score.replace("/", " / ")}</Tag>}</p>
+                    <p>{score && <Tag color="blue">{score.replace("/", " / ")}</Tag>}</p>
                   </div>
                   <p
                     className="text-xs text-blue-700 leading-relaxed cursor-pointer select-none"
@@ -631,7 +740,7 @@ const TextEditorSidebar = ({
             <CheckCircle className="w-4 h-4 text-green-500" />
             <span className="text-xs font-medium text-gray-700">Suggested</span>
           </div>
-          <div className="p-2 bg-green-50 border border-green-100 rounded text-xs text-gray-700 leading-relaxed">
+          <div className="p-2 bg-green-50 border border-red-100 rounded text-xs text-gray-700 leading-relaxed">
             {suggestion.change}
           </div>
         </div>
@@ -731,11 +840,11 @@ const TextEditorSidebar = ({
               >
                 <Icon className="w-4 h-4" />
                 {label}
-                {/* {badge > 0 && (
+                {badge > 0 && (
                   <span className="ml-1 inline-flex items-center justify-center w-5 h-5 text-xs font-semibold text-white bg-red-500 rounded-full">
                     {badge}
                   </span>
-                )} */}
+                )}
               </button>
             ))}
           </div>
@@ -826,7 +935,7 @@ const TextEditorSidebar = ({
                 </div>
 
                 <div className="space-y-7">
-                  <div className="flex items-center gap-2 ">
+                  <div className="flex items-center gap-2">
                     <BarChart3 className="w-4 h-4 text-blue-600" />
                     <h3 className="font-semibold text-gray-900 flex items-center gap-2">
                       Performance Metrics
@@ -866,6 +975,61 @@ const TextEditorSidebar = ({
 
                   <div className="space-y-3">
                     <FeatureCard
+                      title="Generate Metadata"
+                      description="Create SEO-friendly title and description"
+                      isPro={["free", "basic"].includes(userPlan?.toLowerCase?.())}
+                      isLoading={false}
+                      onClick={() => {
+                        handlePopup({
+                          title: "Generate Metadata",
+                          description: "Generate SEO metadata? This will cost 3 credits.",
+                          confirmText: "Generate",
+                          cancelText: "Cancel",
+                          onConfirm: handleMetadataGeneration,
+                        })
+                      }}
+                      buttonText="Generate Metadata"
+                      icon={TagIcon}
+                    />
+                    {(metadata.title || metadata.description) && (
+                      <div className="space-y-4 p-4 bg-white rounded-lg shadow-sm border border-gray-200">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">
+                            Meta Title
+                          </label>
+                          <Input
+                            value={metadata.title}
+                            onChange={(e) =>
+                              setMetadata((prev) => ({ ...prev, title: e.target.value }))
+                            }
+                            placeholder="Enter meta title"
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">
+                            Meta Description
+                          </label>
+                          <TextArea
+                            value={metadata.description}
+                            onChange={(e) =>
+                              setMetadata((prev) => ({ ...prev, description: e.target.value }))
+                            }
+                            placeholder="Enter meta description"
+                            rows={4}
+                            className="mt-1"
+                          />
+                        </div>
+                        <Button
+                          type="primary"
+                          onClick={handleMetadataSave}
+                          className="w-full py-2 text-sm px-4 rounded-lg font-medium bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg"
+                        >
+                          Save Metadata
+                        </Button>
+                      </div>
+                    )}
+                    <FeatureCard
                       title="Competitive Analysis"
                       description="Compare with top competitors"
                       isPro={["free", "basic"].includes(userPlan?.toLowerCase?.())}
@@ -874,7 +1038,6 @@ const TextEditorSidebar = ({
                       buttonText="Run Analysis"
                       icon={TrendingUp}
                     />
-
                     {activeTab === "Normal" && (
                       <FeatureCard
                         title="AI Proofreading"
@@ -886,6 +1049,24 @@ const TextEditorSidebar = ({
                         icon={FileText}
                       />
                     )}
+                    <FeatureCard
+                      title="Humanize Content"
+                      description="Make content sound more natural and engaging"
+                      isPro={["free", "basic"].includes(userPlan?.toLowerCase?.())}
+                      isLoading={isHumanizing}
+                      onClick={handleHumanizeBlog}
+                      buttonText="Humanize Content"
+                      icon={MessageSquare}
+                    />
+                    <FeatureCard
+                      title="Custom Prompt"
+                      description="Modify content with a custom AI prompt"
+                      isPro={["free", "basic"].includes(userPlan?.toLowerCase?.())}
+                      isLoading={isHumanizing}
+                      onClick={handleCustomPromptBlog}
+                      buttonText="Apply Custom Prompt"
+                      icon={Sparkles}
+                    />
                   </div>
                 </div>
               </motion.div>
@@ -1059,6 +1240,30 @@ const TextEditorSidebar = ({
         width={480}
       >
         <FeatureSettingsModal features={blog?.options || {}} />
+      </Modal>
+
+      <Modal
+        title="Custom Prompt"
+        open={isPromptModalOpen}
+        onOk={handleConfirmCustomPrompt}
+        onCancel={() => {
+          setIsPromptModalOpen(false)
+          setCustomPrompt("")
+        }}
+        okText="Apply Prompt"
+        cancelText="Cancel"
+        centered
+      >
+        <TextArea
+          value={customPrompt}
+          onChange={(e) => setCustomPrompt(e.target.value)}
+          placeholder="Enter a custom prompt to modify the content (e.g., 'Make the tone more professional and concise')"
+          rows={4}
+          className="mt-4"
+        />
+        <p className="mt-2 text-xs text-gray-500">
+          Enter a prompt to guide the AI in modifying the blog content.
+        </p>
       </Modal>
 
       <CategoriesModal

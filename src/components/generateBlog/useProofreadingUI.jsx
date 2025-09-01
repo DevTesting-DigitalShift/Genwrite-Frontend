@@ -5,10 +5,11 @@ export function useProofreadingUI(editor) {
   const bubbleRef = useRef(null)
 
   useEffect(() => {
-    if (!editor) {
+    if (!editor || !editor.view) {
       return
     }
 
+    const dom = editor.view.dom
     const handler = (e) => {
       const target = e.target.closest(".proofreading-mark")
       if (target && target.dataset.suggestion) {
@@ -18,16 +19,10 @@ export function useProofreadingUI(editor) {
       }
     }
 
-    // Use mousedown for reliable capture
-    const dom = editor.view.dom
-    if(dom){
-      dom.addEventListener("mousedown", handler)
-    }
+    dom.addEventListener("mousedown", handler)
 
     return () => {
-      if (dom) {
-        dom.removeEventListener("mousedown", handler)
-      }
+      dom.removeEventListener("mousedown", handler)
     }
   }, [editor])
 

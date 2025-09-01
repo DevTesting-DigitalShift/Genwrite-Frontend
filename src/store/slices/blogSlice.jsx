@@ -17,6 +17,7 @@ import {
   createSimpleBlog,
   getBlogStatus,
   getBlogs,
+  getBlogPrompt,
 } from "@api/blogApi"
 import { message } from "antd"
 import { pushToDataLayer } from "@utils/DataLayer"
@@ -61,8 +62,6 @@ export const fetchBlogDetails = createAsyncThunk(
 export const createNewBlog = createAsyncThunk(
   "blogs/createNewBlog",
   async ({ blogData, user, navigate }, { rejectWithValue }) => {
-  
-
     try {
       if (!blogData) {
         message.error("Blog data is required to create a blog.")
@@ -122,7 +121,6 @@ export const createNewBlog = createAsyncThunk(
 export const createNewQuickBlog = createAsyncThunk(
   "blogs/createNewQuickBlog",
   async ({ blogData, user, navigate }, { rejectWithValue }) => {
-  
     try {
       const blog = await createQuickBlog(blogData)
       message.success("QuickBlog created successfully")
@@ -169,7 +167,6 @@ export const createNewQuickBlog = createAsyncThunk(
 export const createMultiBlog = createAsyncThunk(
   "blogs/createMultiBlog",
   async ({ blogData, user, navigate }, { rejectWithValue }) => {
-  
     try {
       const blogs = await createBlogMultiple(blogData)
 
@@ -409,6 +406,7 @@ export const fetchBlogStatus = createAsyncThunk(
     }
   }
 )
+
 export const fetchBlogs = createAsyncThunk("blogs/fetchBlogs", async (_, { rejectWithValue }) => {
   try {
     const result = await getBlogs()
@@ -417,6 +415,18 @@ export const fetchBlogs = createAsyncThunk("blogs/fetchBlogs", async (_, { rejec
     return rejectWithValue(error?.message || "Something went wrong")
   }
 })
+
+export const fetchBlogPrompt = createAsyncThunk(
+  "blogs/fetchBlogPrompt",
+  async ({ id, prompt }, { rejectWithValue }) => {
+    try {
+      const result = await getBlogPrompt(id, prompt)
+      return result
+    } catch (error) {
+      return rejectWithValue(error.message || "Failed to fetch blog prompt")
+    }
+  }
+)
 
 // ------------------------ Initial State ------------------------
 
@@ -431,6 +441,7 @@ const initialState = {
   generatedTitles: [],
   blogStatus: null,
   allBlogs: [],
+  blogPrompts: {},
 }
 
 // ------------------------ Slice ------------------------
@@ -607,6 +618,19 @@ const blogSlice = createSlice({
         state.allBlogs = action.payload || [] // Add `blogStatus` in initialState
       })
       .addCase(fetchBlogs.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload
+      })
+
+      .addCase(fetchBlogPrompt.pending, (state) => {
+        state.loading = true
+      })
+      .addCase(fetchBlogPrompt.fulfilled, (state, action) => {
+        state.loading = false
+        const { id, prompt } = action.payload
+        state.blogPrompts[id] = prompt
+      })
+      .addCase(fetchBlogPrompt.rejected, (state, action) => {
         state.loading = false
         state.error = action.payload
       })

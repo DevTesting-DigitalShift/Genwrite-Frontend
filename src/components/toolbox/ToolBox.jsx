@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useLocation, useNavigate, useParams } from "react-router-dom"
 import { useDispatch, useSelector } from "react-redux"
 import { motion, AnimatePresence } from "framer-motion"
@@ -20,6 +20,7 @@ const ToolBox = () => {
   const { id } = useParams()
   const dispatch = useDispatch()
   const blog = useSelector((state) => state.blog.selectedBlog)
+  const { metadata } = useSelector((state) => state.wordpress) // Add metadata from wordpress slice
   const [activeTab, setActiveTab] = useState("Normal")
   const [isLoading, setIsLoading] = useState(true)
   const [keywords, setKeywords] = useState([])
@@ -33,6 +34,10 @@ const ToolBox = () => {
   const [isPosting, setIsPosting] = useState(false)
   const [formData, setFormData] = useState({ category: "", includeTableOfContents: false })
   const [showTemplateModal, setShowTemplateModal] = useState(!id)
+  const [isHumanizeModalOpen, setIsHumanizeModalOpen] = useState(false)
+  const [humanizedContent, setHumanizedContent] = useState("")
+  const [isHumanizing, setIsHumanizing] = useState(false)
+  const [humanizePrompt, setHumanizePrompt] = useState("")
   const user = useSelector((state) => state.auth.user)
   const userPlan = user?.plan ?? user?.subscription?.plan
   const navigate = useNavigate()
@@ -173,6 +178,9 @@ const ToolBox = () => {
           published: blog?.published,
           focusKeywords: blog?.focusKeywords,
           keywords,
+          seoMetadata: metadata
+            ? { title: metadata.title, description: metadata.description }
+            : undefined,
         })
       ).unwrap()
 
@@ -205,6 +213,9 @@ const ToolBox = () => {
           published: blog?.published,
           focusKeywords: blog?.focusKeywords,
           keywords,
+          seoMetadata: metadata
+            ? { title: metadata.title, description: metadata.description }
+            : undefined,
         })
       ).unwrap()
       const res = await sendRetryLines(blog._id)
@@ -327,6 +338,19 @@ const ToolBox = () => {
       editorTitle || templateFormData.topic || "Your Blog Title"
     }</h1>${editorContent}</div>`
   }
+
+  const handleAcceptHumanizedContent = useCallback(() => {
+    setEditorContent(humanizedContent)
+    setIsHumanizeModalOpen(false)
+    setActiveTab("Normal")
+    message.success("Humanized content applied successfully!")
+  }, [humanizedContent, setEditorContent, setIsHumanizeModalOpen, setActiveTab])
+
+  const handleAcceptOriginalContent = useCallback(() => {
+    setIsHumanizeModalOpen(false)
+    setActiveTab("Normal")
+    message.info("Retained original content.")
+  }, [setIsHumanizeModalOpen, setActiveTab])
 
   return (
     <>
@@ -521,6 +545,11 @@ const ToolBox = () => {
                     setTitle={setEditorTitle}
                     isSavingKeyword={isSaving}
                     className="w-full"
+                    humanizedContent={humanizedContent}
+                    showDiff={isHumanizeModalOpen}
+                    handleAcceptHumanizedContent={handleAcceptHumanizedContent}
+                    handleAcceptOriginalContent={handleAcceptOriginalContent}
+                    editorContent={editorContent}
                   />
                 )}
               </motion.div>
@@ -540,8 +569,15 @@ const ToolBox = () => {
             isPosting={isPosting}
             formData={formData}
             title={editorTitle}
+            setEditorContent={setEditorContent}
             editorContent={editorContent}
             className="w-full md:w-80 border-l border-gray-200"
+            humanizePrompt={humanizePrompt}
+            setHumanizePrompt={setHumanizePrompt}
+            setIsHumanizing={setIsHumanizing}
+            isHumanizing={isHumanizing}
+            setHumanizedContent={setHumanizedContent}
+            setIsHumanizeModalOpen={setIsHumanizeModalOpen}
           />
         </div>
 

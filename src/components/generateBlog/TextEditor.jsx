@@ -2,9 +2,7 @@ import React, { useState, useEffect, useRef, useLayoutEffect, useMemo, useCallba
 import { useEditor, EditorContent } from "@tiptap/react"
 import { BubbleMenu } from "@tiptap/react/menus"
 import StarterKit from "@tiptap/starter-kit"
-import Link from "@tiptap/extension-link"
 import Image from "@tiptap/extension-image"
-import Underline from "@tiptap/extension-underline"
 import TextAlign from "@tiptap/extension-text-align"
 import { motion } from "framer-motion"
 import ReactMarkdown from "react-markdown"
@@ -48,7 +46,7 @@ import Loading from "@components/Loading"
 import { ReloadOutlined } from "@ant-design/icons"
 import { sendRetryLines } from "@api/blogApi"
 import { retryBlog } from "@store/slices/blogSlice"
-// Configure marked for better HTML output
+
 marked.setOptions({
   gfm: true,
   breaks: true,
@@ -73,6 +71,11 @@ const TextEditor = ({
   proofreadingResults,
   handleReplace,
   isSavingKeyword,
+  humanizedContent,
+  showDiff,
+  handleAcceptHumanizedContent,
+  handleAcceptOriginalContent,
+  editorContent,
 }) => {
   const [isEditorLoading, setIsEditorLoading] = useState(true)
   const [selectedFont, setSelectedFont] = useState(FONT_OPTIONS[0].value)
@@ -115,9 +118,11 @@ const TextEditor = ({
   const markdownToHtml = useCallback((markdown) => {
     if (!markdown) return "<p></p>"
     try {
-      const html = marked.parse( markdown
-    .replace(/!\[(["'""])(.*?)\1\]\((.*?)\)/g, (_, __, alt, url) => `![${alt}](${url})`) // remove quotes from alt
-    .replace(/'/g, "&apos;") )
+      const html = marked.parse(
+        markdown
+          .replace(/!\[(["'""])(.*?)\1\]\((.*?)\)/g, (_, __, alt, url) => `![${alt}](${url})`) // remove quotes from alt
+          .replace(/'/g, "&apos;")
+      )
       const parser = new DOMParser()
       const doc = parser.parseFromString(html, "text/html")
       doc.querySelectorAll("script").forEach((script) => script.remove())
@@ -461,9 +466,14 @@ const TextEditor = ({
       setContent(initialContent)
     }
     if (normalEditor && !normalEditor.isDestroyed && activeTab === "Normal") {
-      const htmlContent = initialContent ? marked.parse( initialContent
-    .replace(/!\[(["'""])(.*?)\1\]\((.*?)\)/g, (_, __, alt, url) => `![${alt}](${url})`) // remove quotes from alt
-    .replace(/'/g, "&apos;") , { gfm: true }) : "<p></p>"
+      const htmlContent = initialContent
+        ? marked.parse(
+            initialContent
+              .replace(/!\[(["'""])(.*?)\1\]\((.*?)\)/g, (_, __, alt, url) => `![${alt}](${url})`) // remove quotes from alt
+              .replace(/'/g, "&apos;"),
+            { gfm: true }
+          )
+        : "<p></p>"
       if (normalEditor.getHTML() !== htmlContent) {
         const { from, to } = normalEditor.state.selection
         normalEditor.commands.setContent(htmlContent, false)
@@ -862,13 +872,11 @@ const TextEditor = ({
   }, [selectedImage, normalEditor, activeTab, setContent, markdownToHtml, htmlToMarkdown])
 
   useEffect(() => {
-    if (activeTab === "Normal" && normalEditor
-       && normalEditor?.view?.dom
-    ) {
+    if (activeTab === "Normal" && normalEditor && normalEditor?.view?.dom) {
       const editorElement = normalEditor.view.dom
       editorElement.addEventListener("click", handleImageClick)
       return () => {
-        if(editorElement){
+        if (editorElement) {
           editorElement.removeEventListener("click", handleImageClick)
         }
       }
@@ -1196,36 +1204,40 @@ const TextEditor = ({
       </div>
       <div className="w-px h-6 bg-gray-200 mx-2" />
       <div className="flex gap-1">
-        {["left", "center", " personally"].map((align) => (
-          <Tooltip key={align} title={`Align ${align}`}>
-            <button
-              onClick={() =>
-                safeEditorAction(() => {
-                  if (activeTab === "Normal") {
-                    normalEditor.chain().focus().setTextAlign(align).run()
-                  } else {
-                    insertText(
-                      `<div style="text-align: ${align};">`,
-                      "</div>",
-                      activeTab === "HTML" ? htmlEditorRef : mdEditorRef
-                    )
-                  }
-                })
-              }
-              className={`p-2 rounded-md transition-colors duration-150 flex items-center justify-center ${
-                activeTab === "Normal" && normalEditor?.isActive({ textAlign: align })
-                  ? "bg-blue-100 text-blue-600"
-                  : "hover:bg-gray-100"
-              }`}
-              aria-label={`Align ${align}`}
-              type="button"
-            >
-              {align === "left" && <AlignLeft className="w-4 h-4" />}
-              {align === "center" && <AlignCenter className="w-4 h-4" />}
-              {align === "right" && <AlignRight className="w-4 h-4" />}
-            </button>
-          </Tooltip>
-        ))}
+        {["left", "center", "right"].map(
+          (
+            align // fixed typo "personally" to "right"
+          ) => (
+            <Tooltip key={align} title={`Align ${align}`}>
+              <button
+                onClick={() =>
+                  safeEditorAction(() => {
+                    if (activeTab === "Normal") {
+                      normalEditor.chain().focus().setTextAlign(align).run()
+                    } else {
+                      insertText(
+                        `<div style="text-align: ${align};">`,
+                        "</div>",
+                        activeTab === "HTML" ? htmlEditorRef : mdEditorRef
+                      )
+                    }
+                  })
+                }
+                className={`p-2 rounded-md transition-colors duration-150 flex items-center justify-center ${
+                  activeTab === "Normal" && normalEditor?.isActive({ textAlign: align })
+                    ? "bg-blue-100 text-blue-600"
+                    : "hover:bg-gray-100"
+                }`}
+                aria-label={`Align ${align}`}
+                type="button"
+              >
+                {align === "left" && <AlignLeft className="w-4 h-4" />}
+                {align === "center" && <AlignCenter className="w-4 h-4" />}
+                {align === "right" && <AlignRight className="w-4 h-4" />}
+              </button>
+            </Tooltip>
+          )
+        )}
       </div>
       <div className="w-px h-6 bg-gray-200 mx-2" />
       <div className="flex gap-1">
@@ -1423,6 +1435,65 @@ const TextEditor = ({
     </div>
   )
 
+  function computeLineDiff(original, updated) {
+    if (!original || !updated) {
+      console.warn("computeLineDiff: Empty or invalid input", { original, updated })
+      return [{ lineNumber: 1, oldLine: "", newLine: "", type: "unchanged" }]
+    }
+
+    try {
+      // Split content into lines, removing trailing newlines
+      const originalLines = original.split("\n").filter((line) => line !== "")
+      const updatedLines = updated.split("\n").filter((line) => line !== "")
+      const maxLength = Math.max(originalLines.length, updatedLines.length)
+      const result = []
+      let lineNumber = 1
+
+      // Compare lines
+      for (let i = 0; i < maxLength; i++) {
+        const originalLine = i < originalLines.length ? originalLines[i] : ""
+        const updatedLine = i < updatedLines.length ? updatedLines[i] : ""
+
+        if (originalLine === updatedLine) {
+          // Unchanged line
+          result.push({
+            lineNumber: lineNumber++,
+            oldLine: originalLine,
+            newLine: updatedLine,
+            type: "unchanged",
+          })
+        } else {
+          // Removed line (if original exists)
+          if (originalLine) {
+            result.push({
+              lineNumber: lineNumber++,
+              oldLine: originalLine,
+              newLine: "",
+              type: "removed",
+            })
+          }
+          // Added line (if updated exists)
+          if (updatedLine) {
+            result.push({
+              lineNumber: lineNumber++,
+              oldLine: "",
+              newLine: updatedLine,
+              type: "added",
+            })
+          }
+        }
+      }
+
+      // Return default if no differences
+      return result.length > 0
+        ? result
+        : [{ lineNumber: 1, oldLine: "", newLine: "", type: "unchanged" }]
+    } catch (error) {
+      console.error("computeLineDiff error:", error)
+      return [{ lineNumber: 1, oldLine: "", newLine: "", type: "unchanged" }]
+    }
+  }
+
   const renderContentArea = () => {
     if (isEditorLoading || !editorReady || blog?.status === "pending") {
       return (
@@ -1432,19 +1503,87 @@ const TextEditor = ({
       )
     }
 
+    console.log({ humanizedContent })
+
+    if (activeTab === "Diff") {
+      console.log("Rendering Diff tab", { editorContent, humanizedContent })
+      const diff = computeLineDiff(editorContent || "", humanizedContent || "")
+      console.log({ diff })
+
+      if (!editorContent && !humanizedContent) {
+        return (
+          <div className="p-4 bg-white h-screen overflow-auto">
+            <p className="text-gray-500">No content to compare.</p>
+          </div>
+        )
+      }
+
+      return (
+        <div className="p-4 bg-white h-screen overflow-auto">
+          <div className="flex flex-row gap-4">
+            <div className="flex-1">
+              <h3 className="text-lg font-bold mb-2 text-gray-900">Original Content</h3>
+              <div className="border rounded-lg p-2 bg-gray-50">
+                {diff.map((line, index) => (
+                  <div
+                    key={`original-${index}`}
+                    className={`flex items-start p-1 text-sm font-mono ${
+                      line.type === "removed"
+                        ? "bg-red-100"
+                        : line.type === "added"
+                        ? "bg-gray-100 opacity-50"
+                        : ""
+                    }`}
+                  >
+                    <span className="w-8 text-right text-gray-500 pr-2">{line.lineNumber}</span>
+                    <span className="flex-1">{line.oldLine || "\u00A0"}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-bold mb-2 text-gray-900">Humanized Content</h3>
+              <div className="border rounded-lg p-2 bg-gray-50">
+                {diff.map((line, index) => (
+                  <div
+                    key={`humanized-${index}`}
+                    className={`flex items-start p-1 text-sm font-mono ${
+                      line.type === "added"
+                        ? "bg-green-100"
+                        : line.type === "removed"
+                        ? "bg-gray-100 opacity-50"
+                        : ""
+                    }`}
+                  >
+                    <span className="w-8 text-right text-gray-500 pr-2">{line.lineNumber}</span>
+                    <span className="flex-1">{line.newLine || "\u00A0"}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button onClick={handleAcceptOriginalContent}>Keep Original</Button>
+            <Button type="primary" onClick={handleAcceptHumanizedContent}>
+              Accept Humanized
+            </Button>
+          </div>
+        </div>
+      )
+    }
+
+    // Rest of the renderContentArea remains unchanged
     if (markdownPreview && (activeTab === "Markdown" || activeTab === "HTML")) {
       if (activeTab === "HTML" && isFullHtmlDocument(htmlContent)) {
-        // Render full HTML document in an iframe for HTML tab preview
         const sanitizedHtml = DOMPurify.sanitize(htmlContent, {
           USE_PROFILES: { html: true },
           ADD_TAGS: ["style"],
-          ADD_ATTR: ["target"], // Allow target attribute for links
+          ADD_ATTR: ["target"],
         })
         return (
           <div
             className={`p-8 rounded-lg rounded-t-none overflow-y-auto custom-scroll h-screen border border-gray-200 ${selectedFont}`}
           >
-            {/* <h1 className="text-3xl font-bold mb-6 text-gray-900">{title || "Untitled"}</h1> */}
             <iframe srcDoc={sanitizedHtml} title="HTML Preview" sandbox="allow-same-origin" />
           </div>
         )
@@ -1454,7 +1593,6 @@ const TextEditor = ({
         <div
           className={`p-8 rounded-lg rounded-t-none overflow-y-auto custom-scroll h-screen border border-gray-200 bg-white ${selectedFont}`}
         >
-          {/* <h1 className="text-3xl font-bold mb-6 text-gray-900">{title || "Untitled"}</h1> */}
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             rehypePlugins={[rehypeRaw]}
@@ -1720,11 +1858,6 @@ const TextEditor = ({
               ref={htmlEditorRef}
               value={htmlContent}
               onChange={(e) => {
-                // const text = e.target.value
-                // setHtmlContent(text)
-                // const markdown = htmlToMarkdown(text)
-                // setContent(markdown)
-                // setUnsavedChanges(true)
                 setContent(e.target.value)
                 setUnsavedChanges(true)
               }}
@@ -1855,19 +1988,17 @@ const TextEditor = ({
           </p>
         </Modal>
       )}
-      {!pathDetect && (
-        <div className="flex border-b bg-white shadow-sm border-x">
-          {["Normal", "Markdown", "HTML"].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => handleTabSwitch(tab)}
-              className={`editor-tab ${activeTab === tab ? "active" : ""}`}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-      )}
+      <div className="flex border-b bg-white shadow-sm border-x">
+        {["Normal", "Markdown", "HTML", ...(showDiff ? ["Diff"] : [])].map((tab) => (
+          <button
+            key={tab}
+            onClick={() => handleTabSwitch(tab)}
+            className={`editor-tab ${activeTab === tab ? "active" : ""}`}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
       {renderToolbar()}
       {renderContentArea()}
       <Modal

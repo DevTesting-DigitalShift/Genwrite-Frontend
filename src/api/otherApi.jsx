@@ -45,3 +45,21 @@ export const createOutline = async (payload) => {
   const response = await axiosInstance.post("/generate/outline", payload)
   return response.data
 }
+
+export const generateMetadata = async (payload) => {
+  const response = await axiosInstance.post("/generate/metadata", payload)
+  return response.data
+}
+
+// Generate blog content with custom prompt
+export const generatePromptContent = async ({ prompt, content }) => {
+  try {
+    const response = await axiosInstance.post("/generate/prompt-content", {
+      prompt,
+      content,
+    })
+    return response.data
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to generate prompt content")
+  }
+}

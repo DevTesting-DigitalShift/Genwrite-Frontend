@@ -269,6 +269,24 @@ export default function ToolboxPage() {
       actionText: "Start Analysis",
       color: "from-rose-500 to-pink-600",
     },
+    {
+      key: "generated-metadata",
+      title: "Generate Metadata",
+      icon: <GlobalOutlined className="text-purple-500 size-4 sm:size-5" />,
+      description: "Turn content into SEO-friendly metadata",
+      action: () => navigate("/generate-metadata"),
+      actionText: "Boost SEO",
+      color: "from-rose-500 to-pink-600",
+    },
+    {
+      key: "prompt-content",
+      title: "Prompt Content",
+      icon: <GlobalOutlined className="text-purple-500 size-4 sm:size-5" />,
+      description: "Turn content into SEO-friendly metadata",
+      action: () => navigate("/prompt-content"),
+      actionText: "Boost SEO",
+      color: "from-rose-500 to-pink-600",
+    },
   ]
 
   useEffect(() => {
@@ -340,10 +358,10 @@ export default function ToolboxPage() {
                 </motion.div>
               ),
               children: (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8 mt-4 px-2 sm:px-4">
+                <div className="grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8 mt-4 px-2 sm:px-4">
                   {cardItems
                     .filter((item) =>
-                      ["ai-writer", "humanize-content", "outline"].includes(item.key)
+                      ["ai-writer", "humanize-content", "outline", "prompt-content"].includes(item.key)
                     )
                     .map((item) => (
                       <AnimatedCard key={item.key} item={item} />
@@ -363,9 +381,12 @@ export default function ToolboxPage() {
                 </motion.div>
               ),
               children: (
-                <div className="space-y-4 sm:space-y-6 mt-4 px-2 sm:px-4">
+                <div className="grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8 mt-4 px-2 sm:px-4">
                   {cardItems
-                    .filter((item) => item.key === "competitor-analysis")
+                    .filter(
+                      (item) =>
+                        item.key === "competitor-analysis" || item.key === "generated-metadata"
+                    )
                     .map((item) => (
                       <AnimatedCard key={item.key} item={item} />
                     ))}
