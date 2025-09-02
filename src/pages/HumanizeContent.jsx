@@ -179,28 +179,15 @@ const HumanizeContent = () => {
               className="w-full h-60 p-4 border-2 border-gray-200 rounded-xl resize-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all duration-300 text-gray-800 placeholder-gray-500"
             />
             <div className="flex justify-between items-center">
-              <p
-                className={`text-sm ${
-                  wordCount < 300
-                    ? "text-gray-600"
-                    : wordCount > 300
-                    ? "text-red-500"
-                    : "text-green-600"
-                }`}
-              >
-                Word count: {wordCount}{" "}
-                {wordCount < 300
-                  ? "(Minimum 300 words required)"
-                  : wordCount > 300
-                  ? "(Maximum 300 words allowed)"
-                  : ""}
+              <p className={`text-sm ${wordCount < 300 ? "text-red-500" : "text-green-600"}`}>
+                Word count: {wordCount} {wordCount < 300 ? "(Minimum 300 words required)" : ""}
               </p>
 
               <button
                 onClick={handleMagicWandClick}
-                disabled={isLoading || !inputContent.trim() || wordCount > 300}
+                disabled={isLoading || !inputContent.trim() || wordCount < 300}
                 className={`flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl transition-all duration-300 hover:shadow-lg ${
-                  !inputContent.trim() || wordCount > 300
+                  !inputContent.trim() || wordCount < 300
                     ? "opacity-50 cursor-not-allowed"
                     : "hover:from-blue-700 hover:to-purple-700 hover:scale-105"
                 }`}
@@ -222,71 +209,68 @@ const HumanizeContent = () => {
                 Processing Results
               </h2>
             </div>
-          <div className="h-96 overflow-y-auto grid lg:grid-cols-2 gap-0 border border-gray-200 rounded-lg">
-  {/* Original Content Panel */}
-  <div className="flex flex-col border-r border-gray-200">
-    <div className="flex items-center justify-between p-4 bg-gray-50 border-b border-gray-200">
-      <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-        <FileText className="w-4 h-4 text-gray-600" />
-        Original Content
-      </h3>
-      <button
-        onClick={() => handleCopy(inputContent, "original")}
-        className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
-        title="Copy original content"
-      >
-        <Copy className="w-4 h-4" />
-      </button>
-    </div>
-    <div className="p-4 bg-gray-50/50 text-gray-800 text-sm leading-relaxed whitespace-pre-wrap">
-      {inputContent}
-    </div>
-  </div>
+            <div className="h-96 overflow-y-auto grid lg:grid-cols-2 gap-0 border border-gray-200 rounded-lg">
+              {/* Original Content Panel */}
+              <div className="flex flex-col border-r border-gray-200">
+                <div className="flex items-center justify-between p-4 bg-gray-50 border-b border-gray-200">
+                  <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-gray-600" />
+                    Original Content
+                  </h3>
+                  <button
+                    onClick={() => handleCopy(inputContent, "original")}
+                    className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
+                    title="Copy original content"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="p-4 bg-gray-50/50 text-gray-800 text-sm leading-relaxed whitespace-pre-wrap">
+                  {inputContent}
+                </div>
+              </div>
 
-  {/* Processed Content Panel */}
-  <div className="flex flex-col">
-    <div className="flex items-center justify-between p-4 bg-blue-50 border-b border-gray-200">
-      <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-        <Sparkles className="w-4 h-4 text-blue-600" />
-        Processed Content
-      </h3>
-      <div className="flex gap-2">
-        <button
-          onClick={() => handleCopy(outputContent, "processed")}
-          disabled={!outputContent}
-          className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          title="Copy processed content"
-        >
-          <Copy className="w-4 h-4" />
-        </button>
-        <button
-          onClick={() =>
-            handleDownload(outputContent, "processed-content.txt")
-          }
-          disabled={!outputContent}
-          className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          title="Download processed content"
-        >
-          <Download className="w-4 h-4" />
-        </button>
-      </div>
-    </div>
-    <div className="p-4 bg-white text-gray-800 text-sm leading-relaxed whitespace-pre-wrap">
-      {isLoading ? (
-        <div className="flex items-center justify-center h-full">
-          <div className="text-center">
-            <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
-            <p className="text-gray-600 font-medium">Processing your content...</p>
-            <p className="text-gray-500 text-sm mt-2">This may take a few moments</p>
-          </div>
-        </div>
-      ) : (
-        outputContent
-      )}
-    </div>
-  </div>
-</div>
-
+              {/* Processed Content Panel */}
+              <div className="flex flex-col">
+                <div className="flex items-center justify-between p-4 bg-blue-50 border-b border-gray-200">
+                  <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-blue-600" />
+                    Processed Content
+                  </h3>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleCopy(outputContent, "processed")}
+                      disabled={!outputContent}
+                      className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Copy processed content"
+                    >
+                      <Copy className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDownload(outputContent, "processed-content.txt")}
+                      disabled={!outputContent}
+                      className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Download processed content"
+                    >
+                      <Download className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+                <div className="p-4 bg-white text-gray-800 text-sm leading-relaxed whitespace-pre-wrap">
+                  {isLoading ? (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center">
+                        <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
+                        <p className="text-gray-600 font-medium">Processing your content...</p>
+                        <p className="text-gray-500 text-sm mt-2">This may take a few moments</p>
+                      </div>
+                    </div>
+                  ) : (
+                    outputContent
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>

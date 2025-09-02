@@ -214,8 +214,8 @@ const OutlineEditor = () => {
             audience: selectedBrand.describeBrand,
             values: selectedBrand.keywords,
           }
-        : null,
-      resources: formData.resources,
+        : undefined,
+      resources: formData?.resources || undefined,
     }
 
     const newErrors = {
