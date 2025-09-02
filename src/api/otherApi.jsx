@@ -58,8 +58,8 @@ export const generatePromptContent = async ({ prompt, content }) => {
       prompt,
       content,
     })
-    return response.data
+    return response
   } catch (error) {
-    throw new Error(error.response?.data?.message || "Failed to generate prompt content")
+    throw new Error(error || "Failed to generate prompt content")
   }
 }

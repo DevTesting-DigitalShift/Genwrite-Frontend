@@ -106,7 +106,7 @@ const TextEditor = ({
   const userPlan = user?.subscription?.plan
   const hasShownToast = useRef(false)
   const location = useLocation()
-  const fileInputRef = useRef(null) // Added for file input
+  const fileInputRef = useRef(null)
   const pathDetect = location.pathname === `/blog-editor/${blog?._id}`
   const [editImageModalOpen, setEditImageModalOpen] = useState(false)
   const [selectedImage, setSelectedImage] = useState(null)
@@ -114,13 +114,20 @@ const TextEditor = ({
 
   const safeContent = content ?? blog?.content ?? ""
 
+  // Automatically activate Diff tab when humanizedContent and showDiff are present
+  useEffect(() => {
+    if (humanizedContent && showDiff && activeTab !== "Diff") {
+      setActiveTab("Diff")
+    }
+  }, [humanizedContent, showDiff, activeTab, setActiveTab])
+
   // Helper function to convert markdown to HTML
   const markdownToHtml = useCallback((markdown) => {
     if (!markdown) return "<p></p>"
     try {
       const html = marked.parse(
         markdown
-          .replace(/!\[(["'""])(.*?)\1\]\((.*?)\)/g, (_, __, alt, url) => `![${alt}](${url})`) // remove quotes from alt
+          .replace(/!\[(["'""])(.*?)\1\]\((.*?)\)/g, (_, __, alt, url) => `![${alt}](${url})`)
           .replace(/'/g, "&apos;")
       )
       const parser = new DOMParser()
@@ -199,14 +206,12 @@ const TextEditor = ({
           underline: { HTMLAttributes: { class: "underline" } },
           link: { HTMLAttributes: { class: "text-blue-600 underline" } },
         }),
-        // Link.configure({ HTMLAttributes: { class: "text-blue-600 underline" } }),
         Image.configure({
           HTMLAttributes: {
             class: "rounded-lg mx-auto w-3/4 h-auto object-contain",
-            style: "display: block;;",
+            style: "display: block;",
           },
         }),
-        // Underline,
         TextAlign.configure({ types: ["heading", "paragraph", "right"] }),
         ProofreadingDecoration.configure({
           suggestions: proofreadingResults,
@@ -469,7 +474,7 @@ const TextEditor = ({
       const htmlContent = initialContent
         ? marked.parse(
             initialContent
-              .replace(/!\[(["'""])(.*?)\1\]\((.*?)\)/g, (_, __, alt, url) => `![${alt}](${url})`) // remove quotes from alt
+              .replace(/!\[(["'""])(.*?)\1\]\((.*?)\)/g, (_, __, alt, url) => `![${alt}](${url})`)
               .replace(/'/g, "&apos;"),
             { gfm: true }
           )
@@ -528,13 +533,12 @@ const TextEditor = ({
   const safeEditorAction = useCallback(
     (action) => {
       if (userPlan === "free" || userPlan === "basic") {
-        // showUpgradePopup()
         navigate("/pricing")
         return
       }
       action()
     },
-    [userPlan, handlePopup, navigate]
+    [userPlan, navigate]
   )
 
   const handleAddLink = useCallback(() => {
@@ -558,13 +562,6 @@ const TextEditor = ({
 
   const handleRegenerate = () => {
     if (userPlan === "free" || userPlan === "basic") {
-      // handlePopup({
-      //   title: "Upgrade Required",
-      //   description: "Rewrite is only available for Pro and Enterprise users.",
-      //   confirmText: "Buy Now",
-      //   cancelText: "Cancel",
-      //   onConfirm: () => navigate("/pricing"),
-      // })
       navigate("/pricing")
     } else {
       handlePopup({
@@ -732,7 +729,6 @@ const TextEditor = ({
     try {
       await dispatch(retryBlog({ id: blog._id, payload }))
       navigate("/blogs")
-      // navigate("/blogs")
     } catch (error) {
       console.error("Retry failed:", error)
       message.error(error.message || "Retry failed.")
@@ -791,7 +787,7 @@ const TextEditor = ({
     if (event.target.tagName === "IMG") {
       const { src, alt } = event.target
       setSelectedImage({ src, alt: alt || "" })
-      setImageAlt(alt || "") // Set the existing alt text
+      setImageAlt(alt || "")
       setEditImageModalOpen(true)
     }
   }, [])
@@ -1079,13 +1075,6 @@ const TextEditor = ({
 
   const handleRewrite = () => {
     if (userPlan === "free" || userPlan === "basic") {
-      // handlePopup({
-      //   title: "Upgrade Required",
-      //   description: "Rewrite is only available for Pro and Enterprise users.",
-      //   confirmText: "Buy Now",
-      //   cancelText: "Cancel",
-      //   onConfirm: () => navigate("/pricing"),
-      // })
       navigate("/pricing")
     } else {
       handlePopup({
@@ -1095,6 +1084,27 @@ const TextEditor = ({
       })
     }
   }
+
+  // Modified handleAcceptHumanizedContent to update content and switch to Normal tab
+  const handleAcceptHumanizedContentModified = useCallback(() => {
+    if (humanizedContent) {
+      // Update the content state for Markdown and HTML tabs
+      setContent(humanizedContent)
+      // Update Normal editor content
+      if (normalEditor && !normalEditor.isDestroyed) {
+        const htmlContent = markdownToHtml(humanizedContent)
+        normalEditor.commands.setContent(htmlContent, false)
+      }
+      // Update HTML content for HTML tab
+      setHtmlContent(markdownToHtml(humanizedContent).replace(/>\s*</g, ">\n<"))
+      setUnsavedChanges(true)
+      // Switch to Normal tab
+      setActiveTab("Normal")
+      // Close Diff modal
+      handleAcceptHumanizedContent()
+    }
+  }, [humanizedContent, setContent, normalEditor, markdownToHtml, setHtmlContent, setActiveTab, handleAcceptHumanizedContent])
+
   const renderToolbar = () => (
     <div className="bg-white border-x border-gray-200 shadow-sm px-4 py-2 flex items-center">
       <div className="flex gap-1">
@@ -1204,40 +1214,36 @@ const TextEditor = ({
       </div>
       <div className="w-px h-6 bg-gray-200 mx-2" />
       <div className="flex gap-1">
-        {["left", "center", "right"].map(
-          (
-            align // fixed typo "personally" to "right"
-          ) => (
-            <Tooltip key={align} title={`Align ${align}`}>
-              <button
-                onClick={() =>
-                  safeEditorAction(() => {
-                    if (activeTab === "Normal") {
-                      normalEditor.chain().focus().setTextAlign(align).run()
-                    } else {
-                      insertText(
-                        `<div style="text-align: ${align};">`,
-                        "</div>",
-                        activeTab === "HTML" ? htmlEditorRef : mdEditorRef
-                      )
-                    }
-                  })
-                }
-                className={`p-2 rounded-md transition-colors duration-150 flex items-center justify-center ${
-                  activeTab === "Normal" && normalEditor?.isActive({ textAlign: align })
-                    ? "bg-blue-100 text-blue-600"
-                    : "hover:bg-gray-100"
-                }`}
-                aria-label={`Align ${align}`}
-                type="button"
-              >
-                {align === "left" && <AlignLeft className="w-4 h-4" />}
-                {align === "center" && <AlignCenter className="w-4 h-4" />}
-                {align === "right" && <AlignRight className="w-4 h-4" />}
-              </button>
-            </Tooltip>
-          )
-        )}
+        {["left", "center", "right"].map((align) => (
+          <Tooltip key={align} title={`Align ${align}`}>
+            <button
+              onClick={() =>
+                safeEditorAction(() => {
+                  if (activeTab === "Normal") {
+                    normalEditor.chain().focus().setTextAlign(align).run()
+                  } else {
+                    insertText(
+                      `<div style="text-align: ${align};">`,
+                      "</div>",
+                      activeTab === "HTML" ? htmlEditorRef : mdEditorRef
+                    )
+                  }
+                })
+              }
+              className={`p-2 rounded-md transition-colors duration-150 flex items-center justify-center ${
+                activeTab === "Normal" && normalEditor?.isActive({ textAlign: align })
+                  ? "bg-blue-100 text-blue-600"
+                  : "hover:bg-gray-100"
+              }`}
+              aria-label={`Align ${align}`}
+              type="button"
+            >
+              {align === "left" && <AlignLeft className="w-4 h-4" />}
+              {align === "center" && <AlignCenter className="w-4 h-4" />}
+              {align === "right" && <AlignRight className="w-4 h-4" />}
+            </button>
+          </Tooltip>
+        ))}
       </div>
       <div className="w-px h-6 bg-gray-200 mx-2" />
       <div className="flex gap-1">
@@ -1442,20 +1448,17 @@ const TextEditor = ({
     }
 
     try {
-      // Split content into lines, removing trailing newlines
       const originalLines = original.split("\n").filter((line) => line !== "")
       const updatedLines = updated.split("\n").filter((line) => line !== "")
       const maxLength = Math.max(originalLines.length, updatedLines.length)
       const result = []
       let lineNumber = 1
 
-      // Compare lines
       for (let i = 0; i < maxLength; i++) {
         const originalLine = i < originalLines.length ? originalLines[i] : ""
         const updatedLine = i < updatedLines.length ? updatedLines[i] : ""
 
         if (originalLine === updatedLine) {
-          // Unchanged line
           result.push({
             lineNumber: lineNumber++,
             oldLine: originalLine,
@@ -1463,7 +1466,6 @@ const TextEditor = ({
             type: "unchanged",
           })
         } else {
-          // Removed line (if original exists)
           if (originalLine) {
             result.push({
               lineNumber: lineNumber++,
@@ -1472,7 +1474,6 @@ const TextEditor = ({
               type: "removed",
             })
           }
-          // Added line (if updated exists)
           if (updatedLine) {
             result.push({
               lineNumber: lineNumber++,
@@ -1484,7 +1485,6 @@ const TextEditor = ({
         }
       }
 
-      // Return default if no differences
       return result.length > 0
         ? result
         : [{ lineNumber: 1, oldLine: "", newLine: "", type: "unchanged" }]
@@ -1503,12 +1503,8 @@ const TextEditor = ({
       )
     }
 
-    console.log({ humanizedContent })
-
     if (activeTab === "Diff") {
-      console.log("Rendering Diff tab", { editorContent, humanizedContent })
       const diff = computeLineDiff(editorContent || "", humanizedContent || "")
-      console.log({ diff })
 
       if (!editorContent && !humanizedContent) {
         return (
@@ -1525,16 +1521,7 @@ const TextEditor = ({
               <h3 className="text-lg font-bold mb-2 text-gray-900">Original Content</h3>
               <div className="border rounded-lg p-2 bg-gray-50">
                 {diff.map((line, index) => (
-                  <div
-                    key={`original-${index}`}
-                    className={`flex items-start p-1 text-sm font-mono ${
-                      line.type === "removed"
-                        ? "bg-red-100"
-                        : line.type === "added"
-                        ? "bg-gray-100 opacity-50"
-                        : ""
-                    }`}
-                  >
+                  <div key={`original-${index}`} className="flex items-start p-1 text-sm">
                     <span className="w-8 text-right text-gray-500 pr-2">{line.lineNumber}</span>
                     <span className="flex-1">{line.oldLine || "\u00A0"}</span>
                   </div>

@@ -20,7 +20,7 @@ const ToolBox = () => {
   const { id } = useParams()
   const dispatch = useDispatch()
   const blog = useSelector((state) => state.blog.selectedBlog)
-  const { metadata } = useSelector((state) => state.wordpress) // Add metadata from wordpress slice
+  const { metadata } = useSelector((state) => state.wordpress)
   const [activeTab, setActiveTab] = useState("Normal")
   const [isLoading, setIsLoading] = useState(true)
   const [keywords, setKeywords] = useState([])
@@ -133,6 +133,7 @@ const ToolBox = () => {
         content: editorContent,
         categories: postData.categories,
         includeTableOfContents: postData.includeTableOfContents,
+        seoMetadata: metadata, // Include metadata in WordPress post
       }
 
       const response = isPosted
@@ -157,7 +158,7 @@ const ToolBox = () => {
       .filter((word) => word.length > 0).length
   }
 
-  const handleSave = async () => {
+  const handleSave = async ({ metadata }) => {
     if (userPlan === "free" || userPlan === "basic") {
       navigate("/pricing")
       return
@@ -180,7 +181,7 @@ const ToolBox = () => {
           keywords,
           seoMetadata: metadata
             ? { title: metadata.title, description: metadata.description }
-            : undefined,
+            : blog?.seoMetadata || { title: "", description: "" },
         })
       ).unwrap()
 
@@ -215,7 +216,7 @@ const ToolBox = () => {
           keywords,
           seoMetadata: metadata
             ? { title: metadata.title, description: metadata.description }
-            : undefined,
+            : blog?.seoMetadata || { title: "", description: "" },
         })
       ).unwrap()
       const res = await sendRetryLines(blog._id)
@@ -462,7 +463,7 @@ const ToolBox = () => {
                     </button>
                   )}
                   <button
-                    onClick={handleSave}
+                    onClick={() => handleSave({ metadata })}
                     className={`px-3 sm:px-4 py-2 rounded-lg font-semibold flex items-center gap-2 transition-all duration-300 text-xs sm:text-sm ${
                       isSaving ||
                       !editorTitle.trim() ||
@@ -565,6 +566,7 @@ const ToolBox = () => {
             proofreadingResults={proofreadingResults}
             setProofreadingResults={setProofreadingResults}
             handleSave={handleOptimizeSave}
+            handleSubmit={handleSave}
             posted={isPosted}
             isPosting={isPosting}
             formData={formData}

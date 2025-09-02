@@ -1,4 +1,9 @@
-import { createOutline, fetchCategories, generateMetadata, generatePromptContent } from "@api/otherApi"
+import {
+  createOutline,
+  fetchCategories,
+  generateMetadata,
+  generatePromptContent,
+} from "@api/otherApi"
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit"
 import { message } from "antd"
 import { data } from "react-router-dom"
@@ -92,7 +97,11 @@ export const generatePromptContentThunk = createAsyncThunk(
       return data
     } catch (error) {
       console.error("Error in generatePromptContent", error)
-      return thunkAPI.rejectWithValue(error.response?.data || error.message)
+
+      // pick a clean, serializable message
+      const errorMessage = error || "Error while generating content"
+
+      return thunkAPI.rejectWithValue(errorMessage) // ✅ string only
     }
   }
 )

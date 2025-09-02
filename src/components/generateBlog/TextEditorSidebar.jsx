@@ -20,25 +20,12 @@ import {
   Maximize2,
   Download,
   Tag as TagIcon,
-  MessageSquare,
 } from "lucide-react"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useNavigate } from "react-router-dom"
 import { useDispatch, useSelector } from "react-redux"
-import {
-  Button,
-  Tooltip,
-  message,
-  Tabs,
-  Badge,
-  Collapse,
-  Dropdown,
-  Menu,
-  Tag,
-  Input,
-  Modal,
-} from "antd"
+import { Button, Tooltip, message, Tabs, Badge, Collapse, Dropdown, Menu, Tag, Input } from "antd"
 import { fetchProofreadingSuggestions, fetchBlogPrompt } from "@store/slices/blogSlice"
 import { fetchCompetitiveAnalysisThunk } from "@store/slices/analysisSlice"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
@@ -46,7 +33,8 @@ import { getCategoriesThunk, generateMetadataThunk } from "@store/slices/otherSl
 import CategoriesModal from "@components/CategoriesModal"
 import Loading from "@components/Loading"
 import { marked } from "marked"
-import { CrownTwoTone } from "@ant-design/icons"
+import { CrownTwoTone, DownOutlined } from "@ant-design/icons"
+import { Modal } from "antd"
 
 const { Panel } = Collapse
 const { TextArea } = Input
@@ -65,9 +53,7 @@ const TextEditorSidebar = ({
   isPosting,
   formData,
   editorContent,
-  setEditorContent,
-  humanizePrompt,
-  setHumanizePrompt,
+  handleSubmit,
   setIsHumanizing,
   isHumanizing,
   setHumanizedContent,
@@ -80,9 +66,12 @@ const TextEditorSidebar = ({
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
   const [activeSection, setActiveSection] = useState("overview")
-  const [metadata, setMetadata] = useState({ title: "", description: "" })
-  const [customPrompt, setCustomPrompt] = useState("") // New state for custom prompt
-  const [isPromptModalOpen, setIsPromptModalOpen] = useState(false) // New state for prompt modal
+  const [metadata, setMetadata] = useState({
+    title: blog?.seoMetadata?.title || "",
+    description: blog?.seoMetadata?.description || "",
+  })
+  const [metadataHistory, setMetadataHistory] = useState([])
+  const [customPrompt, setCustomPrompt] = useState()
   const user = useSelector((state) => state.auth.user)
   const userPlan = user?.subscription?.plan
   const navigate = useNavigate()
@@ -120,14 +109,30 @@ const TextEditorSidebar = ({
     setCompetitiveAnalysisResults(null)
   }, [blog?._id])
 
+  // Handle reduxMetadata updates
   useEffect(() => {
-    if (reduxMetadata) {
-      setMetadata({
+    if (reduxMetadata && (reduxMetadata.title || reduxMetadata.description)) {
+      const newMeta = {
+        id: Date.now().toString(),
         title: reduxMetadata.title || "",
         description: reduxMetadata.description || "",
+      }
+      setMetadataHistory((prev) => {
+        const exists = prev.some(
+          (item) => item.title === newMeta.title && item.description === newMeta.description
+        )
+        if (!exists && (newMeta.title || newMeta.description)) {
+          return [...prev, newMeta]
+        }
+        return prev
       })
-    } else {
-      setMetadata({ title: "", description: "" })
+      // Only update metadata state if it differs from current state
+      if (metadata.title !== newMeta.title || metadata.description !== newMeta.description) {
+        setMetadata({
+          title: newMeta.title,
+          description: newMeta.description,
+        })
+      }
     }
   }, [reduxMetadata])
 
@@ -279,17 +284,39 @@ const TextEditorSidebar = ({
           focusKeywords: blog?.focusKeywords || [],
         })
       ).unwrap()
-      message.success("Metadata generated successfully!")
     } catch (error) {
       console.error("Error generating metadata:", error)
       message.error("Failed to generate metadata.")
     }
   }, [blog, editorContent, keywords, dispatch, navigate, userPlan])
 
-  const handleMetadataSave = useCallback(() => {
-    message.success("Metadata saved successfully!")
-    handleSave()
-  }, [handleSave])
+  const handleMetadataSave = useCallback(async () => {
+    if (!metadata.title && !metadata.description) {
+      message.error("Please enter a meta title or description to save.")
+      return
+    }
+    try {
+      await handleSubmit({ metadata })
+      const newMeta = {
+        id: Date.now().toString(),
+        title: metadata.title || "",
+        description: metadata.description || "",
+      }
+      setMetadataHistory((prev) => {
+        const exists = prev.some(
+          (item) => item.title === newMeta.title && item.description === newMeta.description
+        )
+        if (!exists && (newMeta.title || newMeta.description)) {
+          return [...prev, newMeta]
+        }
+        return prev
+      })
+      message.success("Metadata saved successfully!")
+    } catch (error) {
+      console.error("Error saving metadata:", error)
+      message.error("Failed to save metadata.")
+    }
+  }, [handleSubmit, metadata])
 
   const handleAnalyzing = useCallback(() => {
     if (["free", "basic"].includes(userPlan?.toLowerCase?.())) {
@@ -337,68 +364,9 @@ const TextEditorSidebar = ({
     }
   }, [userPlan, handlePopup, navigate, handleProofreadingClick])
 
-  const handleHumanizeBlog = useCallback(() => {
+  const handleCustomPromptBlog = useCallback(async () => {
     if (["free", "basic"].includes(userPlan?.toLowerCase?.())) {
       navigate("/pricing")
-      return
-    }
-
-    handlePopup({
-      title: "Humanize Content",
-      description: `Do you want to make the blog content more humanized? This will cost 5 credits.`,
-      confirmText: "Humanize",
-      cancelText: "Cancel",
-      onConfirm: async () => {
-        if (!blog || !editorContent) {
-          message.error("Blog content is required for humanization.")
-          return
-        }
-
-        setIsHumanizing(true)
-        try {
-          const promptToUse = humanizePrompt || "make blog more humanised."
-          const result = await dispatch(
-            fetchBlogPrompt({
-              id: blog._id,
-              prompt: promptToUse,
-            })
-          ).unwrap()
-          setHumanizedContent(result.content)
-          setIsHumanizeModalOpen(true)
-          message.success("Humanized content generated successfully!")
-        } catch (error) {
-          console.error("Error humanizing content:", error)
-          message.error("Failed to humanize content.")
-        } finally {
-          setIsHumanizing(false)
-        }
-      },
-    })
-  }, [
-    blog,
-    editorContent,
-    dispatch,
-    handlePopup,
-    navigate,
-    userPlan,
-    humanizePrompt,
-    setIsHumanizing,
-    setHumanizedContent,
-    setIsHumanizeModalOpen,
-  ])
-
-  const handleCustomPromptBlog = useCallback(() => {
-    if (["free", "basic"].includes(userPlan?.toLowerCase?.())) {
-      navigate("/pricing")
-      return
-    }
-
-    setIsPromptModalOpen(true) // Open the prompt input modal
-  }, [userPlan, navigate])
-
-  const handleConfirmCustomPrompt = useCallback(async () => {
-    if (!customPrompt.trim()) {
-      message.error("Please enter a valid prompt.")
       return
     }
 
@@ -409,11 +377,11 @@ const TextEditorSidebar = ({
 
     handlePopup({
       title: "Apply Custom Prompt",
-      description: `Do you want to modify the blog content using the prompt: "${customPrompt}"? This will cost 5 credits.`,
+      description: `Do you want to modify the blog content using the prompt? This will cost 5 credits.`,
       confirmText: "Apply Prompt",
       cancelText: "Cancel",
       onConfirm: async () => {
-        setIsHumanizing(true) // Reuse isHumanizing for loading state
+        setIsHumanizing(true)
         try {
           const result = await dispatch(
             fetchBlogPrompt({
@@ -429,8 +397,6 @@ const TextEditorSidebar = ({
           message.error("Failed to apply custom prompt.")
         } finally {
           setIsHumanizing(false)
-          setIsPromptModalOpen(false)
-          setCustomPrompt("")
         }
       },
     })
@@ -443,6 +409,8 @@ const TextEditorSidebar = ({
     setHumanizedContent,
     setIsHumanizing,
     setIsHumanizeModalOpen,
+    userPlan,
+    navigate,
   ])
 
   const handleKeywordRewrite = useCallback(() => {
@@ -538,6 +506,7 @@ const TextEditorSidebar = ({
     onClick,
     buttonText,
     icon: Icon,
+    children, // Added to support additional content like TextArea
   }) => (
     <motion.div
       whileHover={{
@@ -559,6 +528,7 @@ const TextEditorSidebar = ({
           <p className="text-sm text-gray-600">{description}</p>
         </div>
       </div>
+      {children}
       <Button
         onClick={onClick}
         loading={isLoading}
@@ -991,44 +961,109 @@ const TextEditorSidebar = ({
                       buttonText="Generate Metadata"
                       icon={TagIcon}
                     />
-                    {(metadata.title || metadata.description) && (
-                      <div className="space-y-4 p-4 bg-white rounded-lg shadow-sm border border-gray-200">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">
-                            Meta Title
-                          </label>
-                          <Input
-                            value={metadata.title}
-                            onChange={(e) =>
-                              setMetadata((prev) => ({ ...prev, title: e.target.value }))
-                            }
-                            placeholder="Enter meta title"
-                            className="mt-1"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">
-                            Meta Description
-                          </label>
-                          <TextArea
-                            value={metadata.description}
-                            onChange={(e) =>
-                              setMetadata((prev) => ({ ...prev, description: e.target.value }))
-                            }
-                            placeholder="Enter meta description"
-                            rows={4}
-                            className="mt-1"
-                          />
-                        </div>
-                        <Button
-                          type="primary"
-                          onClick={handleMetadataSave}
-                          className="w-full py-2 text-sm px-4 rounded-lg font-medium bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg"
+                    <div className="space-y-4 p-4 bg-white rounded-lg shadow-sm border border-gray-200">
+                      {metadataHistory.length > 0 && (
+                        <Dropdown
+                          overlay={
+                            <Menu
+                              onClick={({ key }) => {
+                                if (key.startsWith("delete-")) {
+                                  const idToDelete = key.replace("delete-", "")
+                                  setMetadataHistory((prev) =>
+                                    prev.filter((item) => item.id !== idToDelete)
+                                  )
+                                  // Only clear metadata if the deleted item was the current one
+                                  if (
+                                    metadataHistory.find((item) => item.id === idToDelete)
+                                      ?.title === metadata.title &&
+                                    metadataHistory.find((item) => item.id === idToDelete)
+                                      ?.description === metadata.description
+                                  ) {
+                                    setMetadata({ title: "", description: "" })
+                                  }
+                                } else {
+                                  const selected = metadataHistory.find((item) => item.id === key)
+                                  if (selected) {
+                                    setMetadata({
+                                      title: selected.title,
+                                      description: selected.description,
+                                    })
+                                  }
+                                }
+                              }}
+                            >
+                              {metadataHistory.map((item, index) => (
+                                <Menu.Item key={item.id}>
+                                  <div className="flex justify-between items-center">
+                                    <span>Version {index + 1}</span>
+                                    <Button
+                                      type="link"
+                                      danger
+                                      size="small"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        const idToDelete = item.id
+                                        setMetadataHistory((prev) =>
+                                          prev.filter((m) => m.id !== idToDelete)
+                                        )
+                                        // Only clear metadata if the deleted item was the current one
+                                        if (
+                                          item.title === metadata.title &&
+                                          item.description === metadata.description
+                                        ) {
+                                          setMetadata({ title: "", description: "" })
+                                        }
+                                      }}
+                                    >
+                                      Delete
+                                    </Button>
+                                  </div>
+                                </Menu.Item>
+                              ))}
+                            </Menu>
+                          }
+                          trigger={["click"]}
                         >
-                          Save Metadata
-                        </Button>
+                          <Button className="w-full mb-2">
+                            Select Previous Metadata <DownOutlined />
+                          </Button>
+                        </Dropdown>
+                      )}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                          Meta Title
+                        </label>
+                        <Input
+                          value={metadata.title || blog?.seoMetadata?.title || ""}
+                          onChange={(e) =>
+                            setMetadata((prev) => ({ ...prev, title: e.target.value }))
+                          }
+                          placeholder="Enter meta title"
+                          className="mt-1"
+                        />
                       </div>
-                    )}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                          Meta Description
+                        </label>
+                        <TextArea
+                          value={metadata.description || blog?.seoMetadata?.description || ""}
+                          onChange={(e) =>
+                            setMetadata((prev) => ({ ...prev, description: e.target.value }))
+                          }
+                          placeholder="Enter meta description"
+                          rows={4}
+                          className="mt-1"
+                        />
+                      </div>
+                      <Button
+                        type="primary"
+                        onClick={handleMetadataSave}
+                        className="w-full py-2 text-sm px-4 rounded-lg font-medium bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg"
+                      >
+                        Save Metadata
+                      </Button>
+                    </div>
                     <FeatureCard
                       title="Competitive Analysis"
                       description="Compare with top competitors"
@@ -1050,15 +1085,6 @@ const TextEditorSidebar = ({
                       />
                     )}
                     <FeatureCard
-                      title="Humanize Content"
-                      description="Make content sound more natural and engaging"
-                      isPro={["free", "basic"].includes(userPlan?.toLowerCase?.())}
-                      isLoading={isHumanizing}
-                      onClick={handleHumanizeBlog}
-                      buttonText="Humanize Content"
-                      icon={MessageSquare}
-                    />
-                    <FeatureCard
                       title="Custom Prompt"
                       description="Modify content with a custom AI prompt"
                       isPro={["free", "basic"].includes(userPlan?.toLowerCase?.())}
@@ -1066,7 +1092,25 @@ const TextEditorSidebar = ({
                       onClick={handleCustomPromptBlog}
                       buttonText="Apply Custom Prompt"
                       icon={Sparkles}
-                    />
+                    >
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Custom Prompt
+                        </label>
+                        <textarea
+                          value={customPrompt}
+                          onChange={(e) => setCustomPrompt(e.target.value)}
+                          placeholder="e.g., 'Make the tone more professional' or 'Shorten the content'"
+                          rows={6}
+                          resize="vertical"
+                          aria-label="Custom prompt for AI content modification"
+                          className="mt-1 w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                        />
+                        <p className="mt-2 text-xs text-gray-500">
+                          Enter a prompt to customize the AI's content modification.
+                        </p>
+                      </div>
+                    </FeatureCard>
                   </div>
                 </div>
               </motion.div>
@@ -1078,7 +1122,7 @@ const TextEditorSidebar = ({
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="p-4 space-y-4"
+                className="p-4 sp ace-y-4"
               >
                 {competitiveAnalysisResults || result ? (
                   <Collapse defaultActiveKey={["1"]} ghost expandIconPosition="end">
@@ -1240,30 +1284,6 @@ const TextEditorSidebar = ({
         width={480}
       >
         <FeatureSettingsModal features={blog?.options || {}} />
-      </Modal>
-
-      <Modal
-        title="Custom Prompt"
-        open={isPromptModalOpen}
-        onOk={handleConfirmCustomPrompt}
-        onCancel={() => {
-          setIsPromptModalOpen(false)
-          setCustomPrompt("")
-        }}
-        okText="Apply Prompt"
-        cancelText="Cancel"
-        centered
-      >
-        <TextArea
-          value={customPrompt}
-          onChange={(e) => setCustomPrompt(e.target.value)}
-          placeholder="Enter a custom prompt to modify the content (e.g., 'Make the tone more professional and concise')"
-          rows={4}
-          className="mt-4"
-        />
-        <p className="mt-2 text-xs text-gray-500">
-          Enter a prompt to guide the AI in modifying the blog content.
-        </p>
       </Modal>
 
       <CategoriesModal
