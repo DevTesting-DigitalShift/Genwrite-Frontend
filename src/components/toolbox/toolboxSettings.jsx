@@ -20,6 +20,8 @@ import { Keyboard, WholeWord, Workflow } from "lucide-react"
 import { selectUser } from "@store/slices/authSlice"
 import { Crown } from "lucide-react"
 import { Flex } from "antd"
+import { Rocket } from "lucide-react"
+import { Layers } from "lucide-react"
 
 export default function ToolboxPage() {
   const navigate = useNavigate()
@@ -272,7 +274,7 @@ export default function ToolboxPage() {
     {
       key: "generated-metadata",
       title: "Generate Metadata",
-      icon: <GlobalOutlined className="text-purple-500 size-4 sm:size-5" />,
+      icon: <Layers className="text-purple-500 size-4 sm:size-5" />,
       description: "Turn content into SEO-friendly metadata",
       action: () => navigate("/generate-metadata"),
       actionText: "Boost SEO",
@@ -280,9 +282,9 @@ export default function ToolboxPage() {
     },
     {
       key: "prompt-content",
-      title: "Prompt Content",
-      icon: <GlobalOutlined className="text-purple-500 size-4 sm:size-5" />,
-      description: "Turn content into SEO-friendly metadata",
+      title: "Boost Your Content",
+      icon: <Rocket className="text-purple-500 size-4 sm:size-5" />,
+      description: "Transform your content into SEO-optimized metadata in seconds",
       action: () => navigate("/prompt-content"),
       actionText: "Boost SEO",
       color: "from-rose-500 to-pink-600",
@@ -361,7 +363,9 @@ export default function ToolboxPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8 mt-4 px-2 sm:px-4">
                   {cardItems
                     .filter((item) =>
-                      ["ai-writer", "humanize-content", "outline", "prompt-content"].includes(item.key)
+                      ["ai-writer", "humanize-content", "outline", "prompt-content"].includes(
+                        item.key
+                      )
                     )
                     .map((item) => (
                       <AnimatedCard key={item.key} item={item} />

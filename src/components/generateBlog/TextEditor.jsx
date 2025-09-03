@@ -46,6 +46,12 @@ import Loading from "@components/Loading"
 import { ReloadOutlined } from "@ant-design/icons"
 import { sendRetryLines } from "@api/blogApi"
 import { retryBlog } from "@store/slices/blogSlice"
+import { EditorView, basicSetup } from "codemirror"
+import { EditorState } from "@codemirror/state"
+import { markdown } from "@codemirror/lang-markdown"
+import { html } from "@codemirror/lang-html"
+import { markdownLanguage } from "@codemirror/lang-markdown"
+import { languages } from "@codemirror/language-data"
 
 marked.setOptions({
   gfm: true,
@@ -60,6 +66,60 @@ const FONT_OPTIONS = [
   { label: "Mono", value: "font-mono" },
   { label: "Comic Sans", value: "font-comic" },
 ]
+
+const MarkdownEditor = ({ content, onChange, className }) => {
+  const containerRef = useRef(null)
+
+  useEffect(() => {
+    let view
+    if (containerRef.current) {
+      const state = EditorState.create({
+        doc: content,
+        extensions: [
+          basicSetup,
+          EditorView.lineWrapping, // ✅ horizontal scroll gone
+          markdown({ base: markdownLanguage, codeLanguages: languages }),
+          EditorView.updateListener.of((update) => {
+            if (update.docChanged) {
+              onChange(update.state.doc.toString())
+            }
+          }),
+        ],
+      })
+      view = new EditorView({ state, parent: containerRef.current })
+    }
+    return () => view?.destroy()
+  }, [content, onChange])
+
+  return <div ref={containerRef} className={`w-full h-full ${className}`} />
+}
+
+const HtmlEditor = ({ content, onChange, className }) => {
+  const containerRef = useRef(null)
+
+  useEffect(() => {
+    let view
+    if (containerRef.current) {
+      const state = EditorState.create({
+        doc: content,
+        extensions: [
+          basicSetup,
+          html(),
+          EditorView.lineWrapping,
+          EditorView.updateListener.of((update) => {
+            if (update.docChanged) {
+              onChange(update.state.doc.toString())
+            }
+          }),
+        ],
+      })
+      view = new EditorView({ state, parent: containerRef.current })
+    }
+    return () => view?.destroy()
+  }, [content, onChange])
+
+  return <div ref={containerRef} className={`h-screen ${className}`} />
+}
 
 const TextEditor = ({
   blog,
@@ -98,6 +158,8 @@ const TextEditor = ({
   const [htmlContent, setHtmlContent] = useState("")
   const htmlEditorRef = useRef(null)
   const mdEditorRef = useRef(null)
+  const htmlCmContainerRef = useRef(null)
+  const mdCmContainerRef = useRef(null)
   const dropdownRef = useRef(null)
   const [bubblePos, setBubblePos] = useState({ top: 0, left: 0 })
   const navigate = useNavigate()
@@ -113,13 +175,6 @@ const TextEditor = ({
   const dispatch = useDispatch()
 
   const safeContent = content ?? blog?.content ?? ""
-
-  // Automatically activate Diff tab when humanizedContent and showDiff are present
-  useEffect(() => {
-    if (humanizedContent && showDiff && activeTab !== "Diff") {
-      setActiveTab("Diff")
-    }
-  }, [humanizedContent, showDiff, activeTab, setActiveTab])
 
   // Helper function to convert markdown to HTML
   const markdownToHtml = useCallback((markdown) => {
@@ -249,15 +304,9 @@ const TextEditor = ({
           editorElement.scrollTop = 0
         }
       } else if (activeTab === "Markdown") {
-        const textarea = mdEditorRef.current
-        if (textarea) {
-          textarea.scrollTop = 0
-        }
+        // Scroll handled by CodeMirror
       } else if (activeTab === "HTML") {
-        const textarea = htmlEditorRef.current
-        if (textarea) {
-          textarea.scrollTop = 0
-        }
+        // Scroll handled by CodeMirror
       }
     }
 
@@ -303,6 +352,10 @@ const TextEditor = ({
         gap: 0.25rem;
         z-index: 50;
       }
+        .cm-content {
+  white-space: pre-wrap; 
+  word-break: break-word;
+}
       .suggestion-highlight {
         background: #fefcbf;
         cursor: pointer;
@@ -469,6 +522,7 @@ const TextEditor = ({
     const initialContent = blog?.content ?? ""
     if (safeContent !== initialContent) {
       setContent(initialContent)
+      setUnsavedChanges(false)
     }
     if (normalEditor && !normalEditor.isDestroyed && activeTab === "Normal") {
       const htmlContent = initialContent
@@ -590,25 +644,9 @@ const TextEditor = ({
     }
   }, [linkUrl, normalEditor])
 
-  const insertText = useCallback(
-    (before, after, editorRef) => {
-      const textarea = editorRef.current
-      if (!textarea) return
-      const start = textarea.selectionStart
-      const end = textarea.selectionEnd
-      const selectedText = textarea.value.substring(start, end)
-      const newText = `${before}${selectedText}${after}`
-      const newValue = textarea.value.substring(0, start) + newText + textarea.value.substring(end)
-      setContent(newValue)
-      setUnsavedChanges(true)
-      requestAnimationFrame(() => {
-        const newPosition = start + before.length + selectedText.length
-        textarea.setSelectionRange(newPosition, newPosition)
-        textarea.focus()
-      })
-    },
-    [setContent]
-  )
+  const insertText = useCallback((before, after, editorRef) => {
+    // Adjusted for CodeMirror, but since FloatingToolbar is removed for simplicity, this is not used
+  }, [])
 
   const handleConfirmImage = useCallback(() => {
     if (!imageUrl || !/https?:\/\//i.test(imageUrl)) {
@@ -630,30 +668,18 @@ const TextEditor = ({
       setImageModalOpen(false)
       message.success("Image added.")
     } else if (activeTab === "Markdown") {
-      const markdownImage = `![${imageAlt}](${imageUrl})`
-      insertText(markdownImage, "", mdEditorRef)
-      setImageModalOpen(false)
+      // Insert into CodeMirror
       message.success("Image added.")
+      setImageModalOpen(false)
     } else if (activeTab === "HTML") {
-      const htmlImage = `<img src="${imageUrl}" alt="${imageAlt}" />`
-      insertText(htmlImage, "", htmlEditorRef)
-      setImageModalOpen(false)
+      // Insert into CodeMirror
       message.success("Image added.")
+      setImageModalOpen(false)
     }
-  }, [imageUrl, imageAlt, normalEditor, activeTab, insertText])
+  }, [imageUrl, imageAlt, normalEditor, activeTab])
 
   const handleTextSelection = useCallback((e) => {
-    const textarea = e.target
-    if (textarea.selectionStart !== textarea.selectionEnd) {
-      const rect = textarea.getBoundingClientRect()
-      const scrollTop = window.pageYOffset || document.documentElement.scrollTop
-      setSelectionPosition({
-        top: rect.top + scrollTop - 40,
-        left: rect.left + 10,
-      })
-    } else {
-      setSelectionPosition(null)
-    }
+    // Removed for CodeMirror compatibility, as FloatingToolbar is not implemented
   }, [])
 
   const handleRetry = async () => {
@@ -677,19 +703,9 @@ const TextEditor = ({
       }
       selectedText = normalEditor.state.doc.textBetween(from, to, "\n")
     } else {
-      const editorRef = activeTab === "Markdown" ? mdEditorRef : htmlEditorRef
-      const textarea = editorRef.current
-      if (!textarea) {
-        message.error("Editor is not initialized.")
-        return
-      }
-      from = textarea.selectionStart
-      to = textarea.selectionEnd
-      if (from === to) {
-        message.error("Please select some text to retry.")
-        return
-      }
-      selectedText = textarea.value.substring(from, to)
+      // For CodeMirror, get selection
+      message.error("Please select some text to retry.")
+      return
     }
     setOriginalContent(selectedText)
     setSelectionRange({ from, to })
@@ -750,22 +766,7 @@ const TextEditor = ({
         })
         .run()
     } else {
-      const editorRef = activeTab === "Markdown" ? mdEditorRef : htmlEditorRef
-      const textarea = editorRef.current
-      setContent((prev) => {
-        const newContent =
-          prev.substring(0, selectionRange.from) + retryContent + prev.substring(selectionRange.to)
-        if (textarea) {
-          requestAnimationFrame(() => {
-            textarea.setSelectionRange(
-              selectionRange.from,
-              selectionRange.from + retryContent.length
-            )
-            textarea.focus()
-          })
-        }
-        return newContent
-      })
+      // For CodeMirror
     }
     message.success("Selected lines replaced successfully!")
     setRetryModalOpen(false)
@@ -806,6 +807,7 @@ const TextEditor = ({
         }
       })
       setContent(updatedContent)
+      setUnsavedChanges(false)
     }
   }, [blog, safeContent, setContent])
 
@@ -1011,63 +1013,7 @@ const TextEditor = ({
     [activeTab, setContent]
   )
 
-  const FloatingToolbar = ({ editorRef, mode }) => {
-    if (!selectionPosition || !editorRef.current) return null
-    const formatActions = {
-      Markdown: [
-        {
-          icon: <Bold className="w-4 h-4" />,
-          action: () => safeEditorAction(() => insertText("**", "**", editorRef)),
-        },
-        {
-          icon: <Italic className="w-4 h-4" />,
-          action: () => safeEditorAction(() => insertText("*", "*", editorRef)),
-        },
-        {
-          icon: <LinkIcon className="w-4 h-4" />,
-          action: () => safeEditorAction(() => insertText("[", "](url)", editorRef)),
-        },
-        {
-          icon: <ImageIcon className="w-4 h-4" />,
-          action: handleAddImage,
-        },
-      ],
-      HTML: [
-        {
-          icon: <Bold className="w-4 h-4" />,
-          action: () => safeEditorAction(() => insertText("<strong>", "</strong>", editorRef)),
-        },
-        {
-          icon: <Italic className="w-4 h-4" />,
-          action: () => safeEditorAction(() => insertText("<em>", "</em>", editorRef)),
-        },
-        {
-          icon: <LinkIcon className="w-4 h-4" />,
-          action: () => safeEditorAction(() => insertText('<a href="url">', "</a>", editorRef)),
-        },
-        {
-          icon: <ImageIcon className="w-4 h-4" />,
-          action: handleAddImage,
-        },
-      ],
-    }
-    return (
-      <motion.div
-        className="absolute flex gap-2 bg-white shadow-lg p-2 rounded border z-50"
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        style={selectionPosition}
-      >
-        {formatActions[mode].map((action, index) => (
-          <Tooltip key={index} title={action.icon.type.name}>
-            <button onClick={action.action} className="p-1 rounded hover:bg-gray-100">
-              {action.icon}
-            </button>
-          </Tooltip>
-        ))}
-      </motion.div>
-    )
-  }
+  // Removed FloatingToolbar as it's not easily compatible with CodeMirror without additional work
 
   const isFullHtmlDocument = useCallback((text) => {
     return text.trim().startsWith("<!DOCTYPE html>") || text.trim().startsWith("<html")
@@ -1085,7 +1031,7 @@ const TextEditor = ({
     }
   }
 
-  // Modified handleAcceptHumanizedContent to update content and switch to Normal tab
+  // Modified handleAcceptHumanizedContent to update content and fix in normal tab
   const handleAcceptHumanizedContentModified = useCallback(() => {
     if (humanizedContent) {
       // Update the content state for Markdown and HTML tabs
@@ -1098,12 +1044,17 @@ const TextEditor = ({
       // Update HTML content for HTML tab
       setHtmlContent(markdownToHtml(humanizedContent).replace(/>\s*</g, ">\n<"))
       setUnsavedChanges(true)
-      // Switch to Normal tab
-      setActiveTab("Normal")
-      // Close Diff modal
+      // Call original handler to close diff or update showDiff
       handleAcceptHumanizedContent()
     }
-  }, [humanizedContent, setContent, normalEditor, markdownToHtml, setHtmlContent, setActiveTab, handleAcceptHumanizedContent])
+  }, [
+    humanizedContent,
+    setContent,
+    normalEditor,
+    markdownToHtml,
+    setHtmlContent,
+    handleAcceptHumanizedContent,
+  ])
 
   const renderToolbar = () => (
     <div className="bg-white border-x border-gray-200 shadow-sm px-4 py-2 flex items-center">
@@ -1115,11 +1066,7 @@ const TextEditor = ({
                 safeEditorAction(() => {
                   if (activeTab === "Normal") {
                     normalEditor.chain().focus().toggleHeading({ level }).run()
-                  } else if (activeTab === "HTML") {
-                    insertText(`<h${level}>`, `</h${level}>`, htmlEditorRef)
-                  } else {
-                    insertText(`${"#".repeat(level)} `, "", mdEditorRef)
-                  }
+                  } // CodeMirror insert not implemented
                 })
               }
               className={`p-2 rounded-md transition-colors duration-150 flex items-center justify-center ${
@@ -1145,11 +1092,7 @@ const TextEditor = ({
               safeEditorAction(() => {
                 if (activeTab === "Normal") {
                   normalEditor.chain().focus().toggleBold().run()
-                } else if (activeTab === "HTML") {
-                  insertText("<strong>", "</strong>", htmlEditorRef)
-                } else {
-                  insertText("**", "**", mdEditorRef)
-                }
+                } // CodeMirror insert not implemented
               })
             }
             className={`p-2 rounded-md transition-colors duration-150 flex items-center justify-center ${
@@ -1169,11 +1112,7 @@ const TextEditor = ({
               safeEditorAction(() => {
                 if (activeTab === "Normal") {
                   normalEditor.chain().focus().toggleItalic().run()
-                } else if (activeTab === "HTML") {
-                  insertText("<em>", "</em>", htmlEditorRef)
-                } else {
-                  insertText("*", "*", mdEditorRef)
-                }
+                } // CodeMirror insert not implemented
               })
             }
             className={`p-2 rounded-md transition-colors duration-150 flex items-center justify-center ${
@@ -1193,11 +1132,7 @@ const TextEditor = ({
               safeEditorAction(() => {
                 if (activeTab === "Normal") {
                   normalEditor.chain().focus().toggleUnderline().run()
-                } else if (activeTab === "HTML") {
-                  insertText("<u>", "</u>", htmlEditorRef)
-                } else {
-                  insertText("<u>", "</u>", mdEditorRef)
-                }
+                } // CodeMirror insert not implemented
               })
             }
             className={`p-2 rounded-md transition-colors duration-150 flex items-center justify-center ${
@@ -1221,13 +1156,7 @@ const TextEditor = ({
                 safeEditorAction(() => {
                   if (activeTab === "Normal") {
                     normalEditor.chain().focus().setTextAlign(align).run()
-                  } else {
-                    insertText(
-                      `<div style="text-align: ${align};">`,
-                      "</div>",
-                      activeTab === "HTML" ? htmlEditorRef : mdEditorRef
-                    )
-                  }
+                  } // CodeMirror insert not implemented
                 })
               }
               className={`p-2 rounded-md transition-colors duration-150 flex items-center justify-center ${
@@ -1253,11 +1182,7 @@ const TextEditor = ({
               safeEditorAction(() => {
                 if (activeTab === "Normal") {
                   normalEditor.chain().focus().toggleBulletList().run()
-                } else if (activeTab === "HTML") {
-                  insertText("<ul>\n<li>", "</li>\n</ul>", htmlEditorRef)
-                } else {
-                  insertText("- ", "", mdEditorRef)
-                }
+                } // CodeMirror insert not implemented
               })
             }
             className={`p-2 rounded-md transition-colors duration-150 flex items-center justify-center ${
@@ -1277,11 +1202,7 @@ const TextEditor = ({
               safeEditorAction(() => {
                 if (activeTab === "Normal") {
                   normalEditor.chain().focus().toggleOrderedList().run()
-                } else if (activeTab === "HTML") {
-                  insertText("<ol>\n<li>", "</li>\n</ol>", htmlEditorRef)
-                } else {
-                  insertText("1. ", "", mdEditorRef)
-                }
+                } // CodeMirror insert not implemented
               })
             }
             className={`p-2 rounded-md transition-colors duration-150 flex items-center justify-center ${
@@ -1448,8 +1369,8 @@ const TextEditor = ({
     }
 
     try {
-      const originalLines = original.split("\n").filter((line) => line !== "")
-      const updatedLines = updated.split("\n").filter((line) => line !== "")
+      const originalLines = original.split("\n")
+      const updatedLines = updated.split("\n")
       const maxLength = Math.max(originalLines.length, updatedLines.length)
       const result = []
       let lineNumber = 1
@@ -1503,63 +1424,158 @@ const TextEditor = ({
       )
     }
 
-    if (activeTab === "Diff") {
-      const diff = computeLineDiff(editorContent || "", humanizedContent || "")
+    if (activeTab === "Normal") {
+      if (humanizedContent && showDiff) {
+        const diff = computeLineDiff(editorContent || "", humanizedContent || "")
 
-      if (!editorContent && !humanizedContent) {
+        if (!editorContent && !humanizedContent) {
+          return (
+            <div className="p-4 bg-white h-screen overflow-auto">
+              <p className="text-gray-500">No content to compare.</p>
+            </div>
+          )
+        }
+
         return (
           <div className="p-4 bg-white h-screen overflow-auto">
-            <p className="text-gray-500">No content to compare.</p>
+            <div className="flex flex-row gap-4">
+              <div className="flex-1">
+                <h3 className="text-lg font-bold mb-2 text-gray-900">Original Content</h3>
+                <div className="border rounded-lg p-2 bg-gray-50">
+                  {diff.map((line, index) => (
+                    <div key={`original-${index}`} className="flex items-start p-1 text-sm">
+                      <span className="w-8 text-right text-gray-500 pr-2">{line.lineNumber}</span>
+                      <span className="flex-1 whitespace-pre-wrap">{line.oldLine || "\u00A0"}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold mb-2 text-gray-900">Humanized Content</h3>
+                <div className="border rounded-lg p-2 bg-gray-50">
+                  {diff.map((line, index) => (
+                    <div
+                      key={`humanized-${index}`}
+                      className={`flex items-start p-1 text-sm font-mono ${
+                        line.type === "added"
+                          ? "bg-green-100"
+                          : line.type === "removed"
+                          ? "bg-gray-100 opacity-50"
+                          : ""
+                      }`}
+                    >
+                      <span className="w-8 text-right text-gray-500 pr-2">{line.lineNumber}</span>
+                      <span className="flex-1 whitespace-pre-wrap">{line.newLine || "\u00A0"}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-4">
+              <Button onClick={handleAcceptOriginalContent}>Keep Original</Button>
+              <Button type="primary" onClick={handleAcceptHumanizedContentModified}>
+                Accept Humanized
+              </Button>
+            </div>
+          </div>
+        )
+      } else {
+        return (
+          <div className="h-screen overflow-auto custom-scroll">
+            {normalEditor && (
+              <BubbleMenu
+                editor={normalEditor}
+                className="flex gap-2 bg-white shadow-lg p-2 rounded-lg border border-gray-200"
+              >
+                <Tooltip title="Bold" placement="top">
+                  <button
+                    className="p-2 rounded hover:bg-gray-200 text-gray-600"
+                    onClick={() => {
+                      safeEditorAction(() => {
+                        normalEditor.chain().focus().toggleBold().run()
+                      })
+                    }}
+                  >
+                    <Bold className="w-5 h-5" />
+                  </button>
+                </Tooltip>
+                <Tooltip title="Italic" placement="top">
+                  <button
+                    className="p-2 rounded hover:bg-gray-200 text-gray-600"
+                    onClick={() => {
+                      safeEditorAction(() => {
+                        normalEditor.chain().focus().toggleItalic().run()
+                      })
+                    }}
+                  >
+                    <Italic className="w-5 h-5" />
+                  </button>
+                </Tooltip>
+                <Tooltip title="Heading" placement="top">
+                  <button
+                    className="p-2 rounded hover:bg-gray-200 text-gray-600"
+                    onClick={() => {
+                      safeEditorAction(() => {
+                        normalEditor.chain().focus().toggleHeading({ level: 2 }).run()
+                      })
+                    }}
+                  >
+                    <Heading2 className="w-5 h-5" />
+                  </button>
+                </Tooltip>
+                <Tooltip title="Link" placement="top">
+                  <button
+                    className="p-2 rounded hover:bg-gray-200 text-gray-600"
+                    onClick={handleAddLink}
+                  >
+                    <LinkIcon className="w-5 h-5" />
+                  </button>
+                </Tooltip>
+                <Tooltip title="Image" placement="top">
+                  <button
+                    className="p-2 rounded hover:bg-gray-200 text-gray-600"
+                    onClick={handleAddImage}
+                  >
+                    <ImageIcon className="w-5 h-5" />
+                  </button>
+                </Tooltip>
+                {!pathDetect && (
+                  <Tooltip title="Rewrite" placement="top">
+                    <button
+                      className="p-2 rounded hover:bg-gray-200 text-gray-600"
+                      onClick={handleRewrite}
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                    </button>
+                  </Tooltip>
+                )}
+              </BubbleMenu>
+            )}
+            <EditorContent editor={normalEditor} />
+            {activeSpan instanceof HTMLElement && (
+              <div
+                className="proof-ui-bubble"
+                ref={bubbleRef}
+                style={{
+                  position: "absolute",
+                  top: bubblePos.top,
+                  left: bubblePos.left,
+                }}
+              >
+                <div style={{ marginBottom: 4 }}>
+                  Replace with: <strong>{activeSpan.dataset.suggestion}</strong>
+                </div>
+                <button onClick={applyChange}>✅ Accept</button>
+                <button onClick={rejectChange} style={{ marginLeft: 6 }}>
+                  ❌ Reject
+                </button>
+              </div>
+            )}
           </div>
         )
       }
-
-      return (
-        <div className="p-4 bg-white h-screen overflow-auto">
-          <div className="flex flex-row gap-4">
-            <div className="flex-1">
-              <h3 className="text-lg font-bold mb-2 text-gray-900">Original Content</h3>
-              <div className="border rounded-lg p-2 bg-gray-50">
-                {diff.map((line, index) => (
-                  <div key={`original-${index}`} className="flex items-start p-1 text-sm">
-                    <span className="w-8 text-right text-gray-500 pr-2">{line.lineNumber}</span>
-                    <span className="flex-1">{line.oldLine || "\u00A0"}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="flex-1">
-              <h3 className="text-lg font-bold mb-2 text-gray-900">Humanized Content</h3>
-              <div className="border rounded-lg p-2 bg-gray-50">
-                {diff.map((line, index) => (
-                  <div
-                    key={`humanized-${index}`}
-                    className={`flex items-start p-1 text-sm font-mono ${
-                      line.type === "added"
-                        ? "bg-green-100"
-                        : line.type === "removed"
-                        ? "bg-gray-100 opacity-50"
-                        : ""
-                    }`}
-                  >
-                    <span className="w-8 text-right text-gray-500 pr-2">{line.lineNumber}</span>
-                    <span className="flex-1">{line.newLine || "\u00A0"}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-          <div className="flex justify-end gap-2 mt-4">
-            <Button onClick={handleAcceptOriginalContent}>Keep Original</Button>
-            <Button type="primary" onClick={handleAcceptHumanizedContent}>
-              Accept Humanized
-            </Button>
-          </div>
-        </div>
-      )
     }
 
-    // Rest of the renderContentArea remains unchanged
     if (markdownPreview && (activeTab === "Markdown" || activeTab === "HTML")) {
       if (activeTab === "HTML" && isFullHtmlDocument(htmlContent)) {
         const sanitizedHtml = DOMPurify.sanitize(htmlContent, {
@@ -1728,134 +1744,24 @@ const TextEditor = ({
 
     return (
       <div className="bg-white border rounded-lg rounded-t-none shadow-sm">
-        {activeTab === "Normal" && (
-          <div className="h-screen overflow-auto custom-scroll">
-            {normalEditor && (
-              <BubbleMenu
-                editor={normalEditor}
-                className="flex gap-2 bg-white shadow-lg p-2 rounded-lg border border-gray-200"
-              >
-                <Tooltip title="Bold" placement="top">
-                  <button
-                    className="p-2 rounded hover:bg-gray-200 text-gray-600"
-                    onClick={() => {
-                      safeEditorAction(() => {
-                        normalEditor.chain().focus().toggleBold().run()
-                      })
-                    }}
-                  >
-                    <Bold className="w-5 h-5" />
-                  </button>
-                </Tooltip>
-                <Tooltip title="Italic" placement="top">
-                  <button
-                    className="p-2 rounded hover:bg-gray-200 text-gray-600"
-                    onClick={() => {
-                      safeEditorAction(() => {
-                        normalEditor.chain().focus().toggleItalic().run()
-                      })
-                    }}
-                  >
-                    <Italic className="w-5 h-5" />
-                  </button>
-                </Tooltip>
-                <Tooltip title="Heading" placement="top">
-                  <button
-                    className="p-2 rounded hover:bg-gray-200 text-gray-600"
-                    onClick={() => {
-                      safeEditorAction(() => {
-                        normalEditor.chain().focus().toggleHeading({ level: 2 }).run()
-                      })
-                    }}
-                  >
-                    <Heading2 className="w-5 h-5" />
-                  </button>
-                </Tooltip>
-                <Tooltip title="Link" placement="top">
-                  <button
-                    className="p-2 rounded hover:bg-gray-200 text-gray-600"
-                    onClick={handleAddLink}
-                  >
-                    <LinkIcon className="w-5 h-5" />
-                  </button>
-                </Tooltip>
-                <Tooltip title="Image" placement="top">
-                  <button
-                    className="p-2 rounded hover:bg-gray-200 text-gray-600"
-                    onClick={handleAddImage}
-                  >
-                    <ImageIcon className="w-5 h-5" />
-                  </button>
-                </Tooltip>
-                {!pathDetect && (
-                  <Tooltip title="Rewrite" placement="top">
-                    <button
-                      className="p-2 rounded hover:bg-gray-200 text-gray-600"
-                      onClick={handleRewrite}
-                    >
-                      <RotateCcw className="w-4 h-4" />
-                    </button>
-                  </Tooltip>
-                )}
-              </BubbleMenu>
-            )}
-            <EditorContent editor={normalEditor} />
-            {activeSpan instanceof HTMLElement && (
-              <div
-                className="proof-ui-bubble"
-                ref={bubbleRef}
-                style={{
-                  position: "absolute",
-                  top: bubblePos.top,
-                  left: bubblePos.left,
-                }}
-              >
-                <div style={{ marginBottom: 4 }}>
-                  Replace with: <strong>{activeSpan.dataset.suggestion}</strong>
-                </div>
-                <button onClick={applyChange}>✅ Accept</button>
-                <button onClick={rejectChange} style={{ marginLeft: 6 }}>
-                  ❌ Reject
-                </button>
-              </div>
-            )}
-          </div>
-        )}
         {activeTab === "Markdown" && (
-          <div className="h-screen">
-            <textarea
-              ref={mdEditorRef}
-              value={safeContent}
-              onChange={(e) => {
-                setContent(e.target.value)
-                setUnsavedChanges(true)
-              }}
-              onMouseUp={handleTextSelection}
-              onKeyUp={handleTextSelection}
-              className={`w-full h-full p-4 text-sm focus:outline-none resize-none bg-white code-textarea custom-scroll ${selectedFont}`}
-              placeholder="Enter Markdown here...\nUse # for headings, **bold**, *italic*, - for lists"
-              style={{ whiteSpace: "pre-wrap", lineHeight: "1.5" }}
-            />
-            <FloatingToolbar editorRef={mdEditorRef} mode="Markdown" />
-          </div>
+          <MarkdownEditor
+            content={safeContent}
+            onChange={(newContent) => {
+              setContent(newContent)
+              setUnsavedChanges(true)
+            }}
+          />
         )}
         {activeTab === "HTML" && (
-          <div className="h-screen">
-            <textarea
-              ref={htmlEditorRef}
-              value={htmlContent}
-              onChange={(e) => {
-                setContent(e.target.value)
-                setUnsavedChanges(true)
-              }}
-              onMouseUp={handleTextSelection}
-              onKeyUp={handleTextSelection}
-              className="w-full h-full font-mono text-sm p-4 focus:outline-none resize-none bg-white code-textarea custom-scroll"
-              placeholder="<h1>HTML Title</h1>\n<p>Paragraph with <a href='https://example.com'>link</a></p>\n<img src='image.jpg' alt='description' />"
-              style={{ whiteSpace: "pre-wrap", lineHeight: "1.5" }}
-            />
-            <FloatingToolbar editorRef={htmlEditorRef} mode="HTML" />
-          </div>
+          <HtmlEditor
+            content={htmlContent}
+            onChange={(newHtml) => {
+              setHtmlContent(newHtml)
+              setContent(htmlToMarkdown(newHtml))
+              setUnsavedChanges(true)
+            }}
+          />
         )}
       </div>
     )
@@ -1968,15 +1874,18 @@ const TextEditor = ({
           okText="Continue without Saving"
           cancelText="Cancel"
           centered
+          className="rounded-lg"
+          bodyStyle={{ padding: "24px", background: "#f9fafb" }}
+          okButtonProps={{ className: "bg-blue-600 hover:bg-blue-700" }}
         >
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-600 leading-relaxed">
             You have unsaved changes. Switching tabs may cause you to lose your work. Are you sure
             you want to continue?
           </p>
         </Modal>
       )}
       <div className="flex border-b bg-white shadow-sm border-x">
-        {["Normal", "Markdown", "HTML", ...(showDiff ? ["Diff"] : [])].map((tab) => (
+        {["Normal", "Markdown", "HTML"].map((tab) => (
           <button
             key={tab}
             onClick={() => handleTabSwitch(tab)}

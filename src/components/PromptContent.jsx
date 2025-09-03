@@ -7,6 +7,8 @@ import { generatePromptContentThunk, resetMetadata } from "@store/slices/otherSl
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
 import Loading from "@/components/Loading" // Assuming this is your loading component
+import { Tooltip } from "antd"
+import { Coins } from "lucide-react"
 
 const { TextArea } = Input
 
@@ -182,11 +184,6 @@ const PromptContent = () => {
                 prompt.trim() && !isPromptValid ? "border-red-300" : "border-gray-300"
               }`}
             />
-            {prompt.trim() && !isPromptValid && (
-              <p className="text-red-500 text-sm mt-1">
-                Prompt must be at least 10 characters long
-              </p>
-            )}
           </div>
 
           {/* Content Section */}
@@ -226,29 +223,28 @@ const PromptContent = () => {
                 content.trim() && !isContentValid ? "border-red-300" : "border-gray-300"
               }`}
             />
-            {content.trim() && !isContentValid && (
-              <p className="text-red-500 text-sm mt-1">Content must be at least 300 words</p>
-            )}
           </div>
 
           {/* Generate Button */}
           <Button
             onClick={() =>
-              handlePopup({
-                title: "Generate Content",
-                description: `Generate humanized content? This will cost 3 credits.`,
-                confirmText: "Generate",
-                cancelText: "Cancel",
-                onConfirm: handleGenerateContent,
-              })
+              handleGenerateContent()
             }
             loading={isGenerating}
             disabled={!canGenerate}
-            className={`w-full py-3 text-sm font-medium text-white rounded-lg transition-all duration-200 bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-lg ${
+            className={`w-full py-3 text-sm font-medium text-white rounded-lg transition-all duration-200 bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-lg flex items-center justify-center gap-2 ${
               !canGenerate ? "opacity-50 cursor-not-allowed" : ""
             }`}
           >
             {isGenerating ? "Generating..." : "Generate Content"}
+            {!isGenerating && (
+              <Tooltip title="This action will deduct 2 credits">
+                <div className="flex items-center gap-1 ml-3">
+                  <span className="text-yellow-300 font-semibold">5</span>
+                  <Coins className="w-4 h-4 text-yellow-400" />
+                </div>
+              </Tooltip>
+            )}
           </Button>
         </div>
       </div>

@@ -9,11 +9,13 @@ import {
   ArrowRight,
   Loader2,
 } from "lucide-react"
-import { message } from "antd"
+import { Button, message } from "antd"
 import { useDispatch, useSelector } from "react-redux"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { generateHumanizedContent, resetHumanizeState } from "@store/slices/humanizeSlice"
 import Loading from "@components/Loading"
+import { Tooltip } from "antd"
+import { Coins } from "lucide-react"
 
 const HumanizeContent = () => {
   const [inputContent, setInputContent] = useState("")
@@ -178,25 +180,33 @@ const HumanizeContent = () => {
               placeholder="Paste or type your content here (300–500 words)..."
               className="w-full h-60 p-4 border-2 border-gray-200 rounded-xl resize-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all duration-300 text-gray-800 placeholder-gray-500"
             />
-            <div className="flex justify-between items-center">
-              <p className={`text-sm ${wordCount < 300 ? "text-red-500" : "text-green-600"}`}>
+            <div className="flex justify-end items-center">
+              <p className={`text-sm mb-2 ${wordCount < 300 ? "text-red-500" : "text-green-600"}`}>
                 Word count: {wordCount} {wordCount < 300 ? "(Minimum 300 words required)" : ""}
               </p>
 
-              <button
+            </div>
+              <Button
                 onClick={handleMagicWandClick}
                 disabled={isLoading || !inputContent.trim() || wordCount < 300}
-                className={`flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl transition-all duration-300 hover:shadow-lg ${
+                className={`flex items-center justify-center gap-2 px-6 py-3 w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl transition-all duration-300 hover:shadow-lg ${
                   !inputContent.trim() || wordCount < 300
                     ? "opacity-50 cursor-not-allowed"
                     : "hover:from-blue-700 hover:to-purple-700 hover:scale-105"
                 }`}
               >
-                <Send className="w-5 h-5" />
+                
                 Process Content
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
+               
+                {!isLoading && (
+                  <Tooltip title="This action will deduct 5 credits">
+                    <div className="flex items-center gap-1 ml-2">
+                      <span className="text-yellow-300 font-semibold">5</span>
+                      <Coins className="w-4 h-4 text-yellow-400" />
+                    </div>
+                  </Tooltip>
+                )}
+              </Button>
           </div>
         </div>
 

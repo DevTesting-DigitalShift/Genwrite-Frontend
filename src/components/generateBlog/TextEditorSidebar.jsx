@@ -71,7 +71,7 @@ const TextEditorSidebar = ({
     description: blog?.seoMetadata?.description || "",
   })
   const [metadataHistory, setMetadataHistory] = useState([])
-  const [customPrompt, setCustomPrompt] = useState()
+  const [customPrompt, setCustomPrompt] = useState("")
   const user = useSelector((state) => state.auth.user)
   const userPlan = user?.subscription?.plan
   const navigate = useNavigate()
@@ -83,6 +83,15 @@ const TextEditorSidebar = ({
   const { analysisResult } = useSelector((state) => state.analysis)
   const blogId = blog?._id
   const result = analysisResult?.[blogId]
+
+  // Reset metadata and history when blog changes
+  useEffect(() => {
+    setMetadata({
+      title: blog?.seoMetadata?.title || "",
+      description: blog?.seoMetadata?.description || "",
+    })
+    setMetadataHistory([])
+  }, [blog?._id])
 
   // Configure marked for HTML output and token parsing
   marked.setOptions({
@@ -311,10 +320,9 @@ const TextEditorSidebar = ({
         }
         return prev
       })
-      message.success("Metadata saved successfully!")
     } catch (error) {
       console.error("Error saving metadata:", error)
-      message.error("Failed to save metadata.")
+      // message.error("Failed to save metadata.")
     }
   }, [handleSubmit, metadata])
 
@@ -342,8 +350,12 @@ const TextEditorSidebar = ({
 
     return handlePopup({
       title: "Run Competitive Analysis Again?",
-      description:
-        "You have already performed a competitive analysis for this blog. Would you like to run it again? This will cost 10 credits.",
+      description: (
+        <>
+          You have already performed a competitive analysis for this blog. Would you like to run it
+          again? <span className="font-bold">This will cost 10 credits.</span>
+        </>
+      ),
       confirmText: "Run",
       cancelText: "Cancel",
       onConfirm: () => fetchCompetitiveAnalysis(),
@@ -356,9 +368,15 @@ const TextEditorSidebar = ({
     } else {
       handlePopup({
         title: "AI Proofreading",
-        description: `Do you really want to proofread the blog? \nIt will cost ${getEstimatedCost(
-          "blog.proofread"
-        )} credits.`,
+        description: (
+          <>
+            Do you really want to proofread the blog?{" "}
+            <span className="font-bold">
+              {" "}
+              This will cost {getEstimatedCost("blog.proofread")} credits.
+            </span>
+          </>
+        ),
         onConfirm: handleProofreadingClick,
       })
     }
@@ -377,7 +395,12 @@ const TextEditorSidebar = ({
 
     handlePopup({
       title: "Apply Custom Prompt",
-      description: `Do you want to modify the blog content using the prompt? This will cost 5 credits.`,
+      description: (
+        <>
+          Do you want to modify the blog content using the prompt?{" "}
+          <span className="font-bold">This will cost 5 credits.</span>
+        </>
+      ),
       confirmText: "Apply Prompt",
       cancelText: "Cancel",
       onConfirm: async () => {
@@ -392,6 +415,7 @@ const TextEditorSidebar = ({
           setHumanizedContent(result.data)
           setIsHumanizeModalOpen(true)
           message.success("Content modified with custom prompt successfully!")
+          setCustomPrompt("") // ✅ only clear after success
         } catch (error) {
           console.error("Error applying custom prompt:", error)
           message.error("Failed to apply custom prompt.")
@@ -511,10 +535,9 @@ const TextEditorSidebar = ({
     <motion.div
       whileHover={{
         scale: 1.02,
-        boxShadow: "0px 0px 5px 0px rgba(0, 0, 0, 0.8)",
         transition: { duration: 0.2 },
       }}
-      className="bg-white rounded-lg shadow-sm border border-gray-200 p-4"
+      className="bg-white rounded-lg shadow-sm border hover:shadow-xl border-gray-200 p-4"
     >
       <div className="flex items-start gap-3 mb-3">
         <div className="p-2 bg-blue-50 rounded-lg">
@@ -865,7 +888,7 @@ const TextEditorSidebar = ({
                     <AnimatePresence>
                       {keywords.map((keyword, index) => (
                         <motion.div
-                          key={keyword}
+                          key={`${keyword}-${index}`}
                           initial={{ opacity: 0, scale: 0.8 }}
                           animate={{ opacity: 1, scale: 1 }}
                           exit={{ opacity: 0, scale: 0.8 }}
@@ -945,6 +968,26 @@ const TextEditorSidebar = ({
 
                   <div className="space-y-3">
                     <FeatureCard
+                      title="Competitive Analysis"
+                      description="Compare with top competitors"
+                      isPro={["free", "basic"].includes(userPlan?.toLowerCase?.())}
+                      isLoading={isAnalyzingCompetitive}
+                      onClick={handleAnalyzing}
+                      buttonText="Run Analysis"
+                      icon={TrendingUp}
+                    />
+                    {activeTab === "Normal" && (
+                      <FeatureCard
+                        title="AI Proofreading"
+                        description="Grammar and style improvements"
+                        isPro={["free", "basic"].includes(userPlan?.toLowerCase?.())}
+                        isLoading={isAnalyzingProofreading}
+                        onClick={handleProofreadingBlog}
+                        buttonText="Proofread Content"
+                        icon={FileText}
+                      />
+                    )}
+                    <FeatureCard
                       title="Generate Metadata"
                       description="Create SEO-friendly title and description"
                       isPro={["free", "basic"].includes(userPlan?.toLowerCase?.())}
@@ -952,7 +995,12 @@ const TextEditorSidebar = ({
                       onClick={() => {
                         handlePopup({
                           title: "Generate Metadata",
-                          description: "Generate SEO metadata? This will cost 3 credits.",
+                          description: (
+                            <>
+                              Generate SEO metadata?
+                              <span className="font-bold"> This will cost 2 credits.</span>
+                            </>
+                          ),
                           confirmText: "Generate",
                           cancelText: "Cancel",
                           onConfirm: handleMetadataGeneration,
@@ -1053,7 +1101,7 @@ const TextEditorSidebar = ({
                           }
                           placeholder="Enter meta description"
                           rows={4}
-                          className="mt-1"
+                          className="mt-1 !resize-none"
                         />
                       </div>
                       <Button
@@ -1064,54 +1112,52 @@ const TextEditorSidebar = ({
                         Save Metadata
                       </Button>
                     </div>
-                    <FeatureCard
-                      title="Competitive Analysis"
-                      description="Compare with top competitors"
-                      isPro={["free", "basic"].includes(userPlan?.toLowerCase?.())}
-                      isLoading={isAnalyzingCompetitive}
-                      onClick={handleAnalyzing}
-                      buttonText="Run Analysis"
-                      icon={TrendingUp}
-                    />
-                    {activeTab === "Normal" && (
-                      <FeatureCard
-                        title="AI Proofreading"
-                        description="Grammar and style improvements"
-                        isPro={["free", "basic"].includes(userPlan?.toLowerCase?.())}
-                        isLoading={isAnalyzingProofreading}
-                        onClick={handleProofreadingBlog}
-                        buttonText="Proofread Content"
-                        icon={FileText}
-                      />
-                    )}
-                    <FeatureCard
-                      title="Custom Prompt"
-                      description="Modify content with a custom AI prompt"
-                      isPro={["free", "basic"].includes(userPlan?.toLowerCase?.())}
-                      isLoading={isHumanizing}
-                      onClick={handleCustomPromptBlog}
-                      buttonText="Apply Custom Prompt"
-                      icon={Sparkles}
-                    >
-                      <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Custom Prompt
-                        </label>
-                        <textarea
-                          value={customPrompt}
-                          onChange={(e) => setCustomPrompt(e.target.value)}
-                          placeholder="e.g., 'Make the tone more professional' or 'Shorten the content'"
-                          rows={6}
-                          resize="vertical"
-                          aria-label="Custom prompt for AI content modification"
-                          className="mt-1 w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                        />
-                        <p className="mt-2 text-xs text-gray-500">
-                          Enter a prompt to customize the AI's content modification.
-                        </p>
+
+                    <div className="mb-4 bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                      <div className="flex items-start gap-3 mb-3">
+                        <div className="p-2 bg-blue-50 rounded-lg">
+                          <Sparkles className="w-4 h-4 text-blue-600" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-4 mb-1">
+                            <h3 className="font-semibold text-gray-900">Custom Prompt</h3>
+                            {["free", "basic"].includes(userPlan?.toLowerCase?.()) && (
+                              <CrownTwoTone className="text-2xl ml-auto mr-2" />
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-600">
+                            Modify content with a custom AI prompt
+                          </p>
+                        </div>
                       </div>
-                    </FeatureCard>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Custom Prompt
+                      </label>
+                      <textarea
+                        value={customPrompt}
+                        onChange={(e) => {
+                          console.log("Typing:", e.target.value)
+                          setCustomPrompt(e.target.value)
+                        }}
+                        placeholder="e.g., 'Make the tone more professional' or 'Shorten the content'"
+                        rows={6}
+                        aria-label="Custom prompt for AI content modification"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all !resize-none"
+                      />
+                      <p className="mt-2 text-xs text-gray-500">
+                        Enter a prompt to customize the AI's content modification.
+                      </p>
+                    </div>
                   </div>
+                  <Button
+                    onClick={handleCustomPromptBlog}
+                    loading={isHumanizing}
+                    type="primary"
+                    className="w-full py-2 text-sm px-4 rounded-lg font-medium transition-all duration-200 bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg"
+                    ghost={["free", "basic"].includes(userPlan?.toLowerCase?.())}
+                  >
+                    {isHumanizing ? "Processing..." : "Apply Custom Prompt"}
+                  </Button>
                 </div>
               </motion.div>
             )}

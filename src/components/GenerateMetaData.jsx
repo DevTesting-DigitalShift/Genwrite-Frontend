@@ -5,13 +5,15 @@ import { Button, message, Input } from "antd"
 import { PlusOutlined, CloseOutlined, CopyOutlined } from "@ant-design/icons"
 import { generateMetadataThunk, resetMetadata } from "@store/slices/otherSlice"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
-import { openUpgradePopup } from "@utils/UpgardePopUp" // Note: Fix typo to UpgradePopUp
 import { RefreshCw, Sparkles } from "lucide-react"
+import { Tooltip } from "antd"
+import { Coins } from "lucide-react"
 
 const { TextArea } = Input
 
 const GenerateMetaData = () => {
   const [content, setContent] = useState("")
+  console.log(content.length)
   const [keywords, setKeywords] = useState([])
   const [newKeyword, setNewKeyword] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
@@ -21,9 +23,23 @@ const GenerateMetaData = () => {
   const userPlan = useSelector((state) => state.auth.user?.subscription?.plan)
   const metadata = useSelector((state) => state.wordpress.metadata)
 
+  // Calculate word count
+  const wordCount = useCallback(() => {
+    const words = content
+      .trim()
+      .split(/\s+/)
+      .filter((word) => word.length > 0)
+    return words.length
+  }, [content])
+
   const handleGenerateMetadata = useCallback(async () => {
     if (!content.trim()) {
       message.error("Please enter some content to generate metadata.")
+      return
+    }
+
+    if (content.length < 300) {
+      message.error("Content must be at least 300 characters long.")
       return
     }
 
@@ -37,8 +53,6 @@ const GenerateMetaData = () => {
       await dispatch(
         generateMetadataThunk({
           content,
-          keywords,
-          focusKeywords: keywords,
         })
       ).unwrap()
       message.success("Metadata generated successfully!")
@@ -48,7 +62,7 @@ const GenerateMetaData = () => {
     } finally {
       setIsGenerating(false)
     }
-  }, [content, keywords, dispatch, userPlan, navigate])
+  }, [content, dispatch, userPlan, navigate])
 
   const addKeyword = useCallback(() => {
     if (newKeyword.trim()) {
@@ -145,6 +159,7 @@ const GenerateMetaData = () => {
                 <path d="M16 17H8"></path>
               </svg>
               <h2 className="text-xl font-semibold text-gray-900">Content</h2>
+              <span className="text-sm text-gray-500">({wordCount()} words)</span>
             </div>
             <TextArea
               value={content}
@@ -155,62 +170,23 @@ const GenerateMetaData = () => {
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Keywords (optional)
-            </label>
-            <div className="flex gap-2">
-              <Input
-                value={newKeyword}
-                onChange={(e) => setNewKeyword(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Add keywords, separated by commas..."
-                className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <Button
-                onClick={addKeyword}
-                icon={<PlusOutlined />}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              />
-            </div>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {keywords.map((keyword, index) => (
-                <div
-                  key={index}
-                  className="flex items-center bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full border border-blue-200"
-                >
-                  <span className="truncate max-w-[120px]">{keyword}</span>
-                  <button
-                    onClick={() => removeKeyword(keyword)}
-                    className="ml-1 text-blue-600 hover:text-blue-800"
-                  >
-                    <CloseOutlined className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
-            {keywords.length === 0 && (
-              <p className="text-xs text-gray-500 text-center mt-2">No keywords added yet</p>
-            )}
-          </div>
-
           <Button
-            onClick={() =>
-              handlePopup({
-                title: "Generate Metadata",
-                description: `Generate SEO metadata? This will cost 3 credits.`,
-                confirmText: "Generate",
-                cancelText: "Cancel",
-                onConfirm: handleGenerateMetadata,
-              })
-            }
+            onClick={() => handleGenerateMetadata()}
             loading={isGenerating}
-            disabled={isGenerating || !content.trim()}
-            className={`w-full py-3 text-sm font-medium text-white rounded-lg transition-all duration-200 bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-lg ${
-              !content.trim() ? "opacity-50 cursor-not-allowed" : ""
+            disabled={isGenerating || !content.trim() || content.length < 300}
+            className={`w-full py-3 text-sm font-medium text-white rounded-lg transition-all duration-200 bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-lg flex items-center justify-center gap-2 ${
+              !content.trim() || content.length < 300 ? "opacity-50 cursor-not-allowed" : ""
             }`}
           >
             {isGenerating ? "Generating..." : "Generate Metadata"}
+            {!isGenerating && (
+              <Tooltip title="This action will deduct 2 credits">
+                <div className="flex items-center gap-1">
+                  <span className="text-yellow-300 font-semibold">2</span>
+                  <Coins className="w-4 h-4 text-yellow-400" />
+                </div>
+              </Tooltip>
+            )}
           </Button>
         </div>
 
