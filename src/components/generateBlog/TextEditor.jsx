@@ -77,7 +77,7 @@ const MarkdownEditor = ({ content, onChange, className }) => {
         doc: content,
         extensions: [
           basicSetup,
-          EditorView.lineWrapping, // ✅ horizontal scroll gone
+          EditorView.lineWrapping,
           markdown({ base: markdownLanguage, codeLanguages: languages }),
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {
@@ -176,7 +176,6 @@ const TextEditor = ({
 
   const safeContent = content ?? blog?.content ?? ""
 
-  // Helper function to convert markdown to HTML
   const markdownToHtml = useCallback((markdown) => {
     if (!markdown) return "<p></p>"
     try {
@@ -195,7 +194,6 @@ const TextEditor = ({
     }
   }, [])
 
-  // Helper function to convert HTML to markdown
   const htmlToMarkdown = useCallback((html) => {
     if (!html) return ""
     try {
@@ -246,10 +244,11 @@ const TextEditor = ({
     }
   }, [])
 
-  // Memoize initial content
   const initialContent = useMemo(() => {
     return safeContent ? marked.parse(safeContent, { gfm: true }) : "<p></p>"
   }, [safeContent])
+
+  console.log({unsavedChanges})
 
   const normalEditor = useEditor(
     {
@@ -303,17 +302,11 @@ const TextEditor = ({
         if (editorElement) {
           editorElement.scrollTop = 0
         }
-      } else if (activeTab === "Markdown") {
-        // Scroll handled by CodeMirror
-      } else if (activeTab === "HTML") {
-        // Scroll handled by CodeMirror
       }
     }
-
     scrollToTop()
   }, [activeTab, normalEditor])
 
-  // Handle tab switch loading
   useEffect(() => {
     setIsEditorLoading(true)
     const timer = setTimeout(() => {
@@ -325,7 +318,6 @@ const TextEditor = ({
     return () => clearTimeout(timer)
   }, [activeTab, normalEditor])
 
-  // Show message for failed blog status
   useEffect(() => {
     if (blog?.status === "failed" && !hasShownToast.current) {
       message.error("Your blog generation failed. You can write blog manually.")
@@ -333,7 +325,6 @@ const TextEditor = ({
     }
   }, [blog?.status])
 
-  // Add custom styles
   useEffect(() => {
     const styleElement = document.createElement("style")
     styleElement.id = "text-editor-styles"
@@ -352,10 +343,10 @@ const TextEditor = ({
         gap: 0.25rem;
         z-index: 50;
       }
-        .cm-content {
-  white-space: pre-wrap; 
-  word-break: break-word;
-}
+      .cm-content {
+        white-space: pre-wrap; 
+        word-break: break-word;
+      }
       .suggestion-highlight {
         background: #fefcbf;
         cursor: pointer;
@@ -473,7 +464,6 @@ const TextEditor = ({
     }
   }, [])
 
-  // Normalize initial content to ensure proper line breaks
   useEffect(() => {
     if (normalEditor && editorReady && blog?.content) {
       const html = normalEditor.getHTML()
@@ -485,7 +475,6 @@ const TextEditor = ({
     }
   }, [normalEditor, editorReady, blog, htmlToMarkdown, markdownToHtml, safeContent, setContent])
 
-  // Update editor content only when necessary
   useEffect(() => {
     if (normalEditor && activeTab === "Normal" && !normalEditor.isDestroyed) {
       const currentHtml = normalEditor.getHTML()
@@ -498,7 +487,6 @@ const TextEditor = ({
     }
   }, [safeContent, activeTab, normalEditor, markdownToHtml])
 
-  // Update proofreading suggestions
   useEffect(() => {
     if (normalEditor) {
       const ext = normalEditor.extensionManager.extensions.find(
@@ -511,7 +499,6 @@ const TextEditor = ({
     }
   }, [proofreadingResults, normalEditor])
 
-  // Set editor ready and cleanup
   useEffect(() => {
     if (normalEditor) {
       setEditorReady(true)
@@ -523,7 +510,6 @@ const TextEditor = ({
     }
   }, [normalEditor])
 
-  // Highlight code in HTML mode
   useEffect(() => {
     if (activeTab === "HTML" && !markdownPreview) {
       requestAnimationFrame(() => Prism.highlightAll())
@@ -559,7 +545,6 @@ const TextEditor = ({
     }
   }, [safeContent, activeTab, markdownToHtml])
 
-  // Handle click outside for dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -680,11 +665,9 @@ const TextEditor = ({
       setImageModalOpen(false)
       message.success("Image added.")
     } else if (activeTab === "Markdown") {
-      // Insert into CodeMirror
       message.success("Image added.")
       setImageModalOpen(false)
     } else if (activeTab === "HTML") {
-      // Insert into CodeMirror
       message.success("Image added.")
       setImageModalOpen(false)
     }
@@ -715,7 +698,6 @@ const TextEditor = ({
       }
       selectedText = normalEditor.state.doc.textBetween(from, to, "\n")
     } else {
-      // For CodeMirror, get selection
       message.error("Please select some text to retry.")
       return
     }
@@ -777,8 +759,6 @@ const TextEditor = ({
           to: selectionRange.from + parsedContent.length,
         })
         .run()
-    } else {
-      // For CodeMirror
     }
     message.success("Selected lines replaced successfully!")
     setRetryModalOpen(false)
@@ -819,7 +799,7 @@ const TextEditor = ({
         }
       })
       setContent(updatedContent)
-      setUnsavedChanges(false)
+      // setUnsavedChanges(false)
     }
   }, [blog, safeContent, setContent])
 
@@ -957,7 +937,6 @@ const TextEditor = ({
     }
   }, [selectedImage, imageAlt, normalEditor, activeTab, setContent, markdownToHtml, htmlToMarkdown])
 
-  // Utility to escape special characters for regex
   const escapeRegExp = (string) => {
     return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
   }
@@ -1025,8 +1004,6 @@ const TextEditor = ({
     [activeTab, setContent]
   )
 
-  // Removed FloatingToolbar as it's not easily compatible with CodeMirror without additional work
-
   const isFullHtmlDocument = useCallback((text) => {
     return text.trim().startsWith("<!DOCTYPE html>") || text.trim().startsWith("<html")
   }, [])
@@ -1043,20 +1020,15 @@ const TextEditor = ({
     }
   }
 
-  // Modified handleAcceptHumanizedContent to update content and fix in normal tab
   const handleAcceptHumanizedContentModified = useCallback(() => {
     if (humanizedContent) {
-      // Update the content state for Markdown and HTML tabs
       setContent(humanizedContent)
-      // Update Normal editor content
       if (normalEditor && !normalEditor.isDestroyed) {
         const htmlContent = markdownToHtml(humanizedContent)
         normalEditor.commands.setContent(htmlContent, false)
       }
-      // Update HTML content for HTML tab
       setHtmlContent(markdownToHtml(humanizedContent).replace(/>\s*</g, ">\n<"))
       setUnsavedChanges(true)
-      // Call original handler to close diff or update showDiff
       handleAcceptHumanizedContent()
     }
   }, [
@@ -1078,7 +1050,7 @@ const TextEditor = ({
                 safeEditorAction(() => {
                   if (activeTab === "Normal") {
                     normalEditor.chain().focus().toggleHeading({ level }).run()
-                  } // CodeMirror insert not implemented
+                  }
                 })
               }
               className={`p-2 rounded-md transition-colors duration-150 flex items-center justify-center ${
@@ -1104,7 +1076,7 @@ const TextEditor = ({
               safeEditorAction(() => {
                 if (activeTab === "Normal") {
                   normalEditor.chain().focus().toggleBold().run()
-                } // CodeMirror insert not implemented
+                }
               })
             }
             className={`p-2 rounded-md transition-colors duration-150 flex items-center justify-center ${
@@ -1124,7 +1096,7 @@ const TextEditor = ({
               safeEditorAction(() => {
                 if (activeTab === "Normal") {
                   normalEditor.chain().focus().toggleItalic().run()
-                } // CodeMirror insert not implemented
+                }
               })
             }
             className={`p-2 rounded-md transition-colors duration-150 flex items-center justify-center ${
@@ -1144,7 +1116,7 @@ const TextEditor = ({
               safeEditorAction(() => {
                 if (activeTab === "Normal") {
                   normalEditor.chain().focus().toggleUnderline().run()
-                } // CodeMirror insert not implemented
+                }
               })
             }
             className={`p-2 rounded-md transition-colors duration-150 flex items-center justify-center ${
@@ -1168,7 +1140,7 @@ const TextEditor = ({
                 safeEditorAction(() => {
                   if (activeTab === "Normal") {
                     normalEditor.chain().focus().setTextAlign(align).run()
-                  } // CodeMirror insert not implemented
+                  }
                 })
               }
               className={`p-2 rounded-md transition-colors duration-150 flex items-center justify-center ${
@@ -1194,7 +1166,7 @@ const TextEditor = ({
               safeEditorAction(() => {
                 if (activeTab === "Normal") {
                   normalEditor.chain().focus().toggleBulletList().run()
-                } // CodeMirror insert not implemented
+                }
               })
             }
             className={`p-2 rounded-md transition-colors duration-150 flex items-center justify-center ${
@@ -1214,7 +1186,7 @@ const TextEditor = ({
               safeEditorAction(() => {
                 if (activeTab === "Normal") {
                   normalEditor.chain().focus().toggleOrderedList().run()
-                } // CodeMirror insert not implemented
+                }
               })
             }
             className={`p-2 rounded-md transition-colors duration-150 flex items-center justify-center ${
@@ -1472,7 +1444,7 @@ const TextEditor = ({
                 </div>
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-bold mb-2 text-gray-900">Humanized Content</h3>
+                <h3 className="text-lg font-bold mb-2 text-gray-900">AI Improved Content</h3>
                 <div className="border rounded-lg p-2 bg-gray-50">
                   {diff.map((line, index) => (
                     <div
