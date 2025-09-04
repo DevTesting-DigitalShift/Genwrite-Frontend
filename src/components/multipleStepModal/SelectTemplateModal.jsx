@@ -1,10 +1,10 @@
-import React, { memo, useEffect, useState } from "react"
+import React, { memo, useEffect } from "react"
 import { Modal, Button, message } from "antd"
 import Carousel from "./Carousel"
 
 const SelectTemplateModal = ({ handleNext, handleClose, data, setData }) => {
-  const [selectedPackage, setSelectedPackage] = useState(null)
-  const [formData, setFormData] = useState({
+  const [selectedPackage, setSelectedPackage] = React.useState(null)
+  const [formData, setFormData] = React.useState({
     userDefinedLength: 0,
     tone: "",
     includeInterlink: false,
@@ -96,7 +96,7 @@ const SelectTemplateModal = ({ handleNext, handleClose, data, setData }) => {
     return () => {
       document.body.style.overflow = "auto"
     }
-  }, [open])
+  }, [])
 
   return (
     <Modal
@@ -104,32 +104,65 @@ const SelectTemplateModal = ({ handleNext, handleClose, data, setData }) => {
       open={true}
       onCancel={handleClose}
       footer={[
-        <button
+        <Button
           key="next"
           onClick={handleNextClick}
-          className="px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 ml-3"
+          className="px-4 sm:px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 ml-2 sm:ml-3 text-sm sm:text-base"
         >
           Next
-        </button>,
+        </Button>,
       ]}
       centered
-      width={800}
-      // bodyStyle={{ padding: "24px" }}
+      width="90vw"
+      styles={{
+        content: { maxWidth: "800px", margin: "0 auto" },
+        body: { padding: "16px" },
+      }}
+      className="rounded-lg sm:rounded-xl"
       transitionName=""
       maskTransitionName=""
     >
-      <div>
-        <div className="p-3">
-          <Carousel>
+      <div className="p-2 sm:p-3">
+        {/* Mobile View: Vertical Scrolling Layout */}
+        <div className="block sm:hidden space-y-4">
+          {packages.map((pkg, index) => (
+            <div
+              key={index}
+              className={`cursor-pointer transition-all duration-200 w-full ${
+                formData.template.includes(pkg.name) ? "border-gray-300 border-2 rounded-lg" : ""
+              }`}
+              onClick={() => handlePackageSelect(index)}
+            >
+              <div className="bg-white rounded-lg overflow-hidden shadow-sm">
+                <div className="relative">
+                  <img
+                    src={pkg.imgSrc || "/placeholder.svg"}
+                    alt={pkg.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="p-3">
+                  <h3 className="font-medium text-gray-900 text-base mb-1">{pkg.name}</h3>
+                  <p className="text-sm text-gray-500 line-clamp-2">{pkg.description}</p>
+                  {pkg.author && <p className="text-xs text-gray-400 mt-1">By {pkg.author}</p>}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop View: Carousel Layout */}
+        <div className="hidden sm:block">
+          <Carousel className="flex flex-row gap-4">
             {packages.map((pkg, index) => (
               <div
                 key={index}
-                className={`cursor-pointer transition-all duration-200 ${
+                className={`cursor-pointer transition-all duration-200 w-full h-full${
                   formData.template.includes(pkg.name) ? "border-gray-300 border-2 rounded-lg" : ""
                 }`}
                 onClick={() => handlePackageSelect(index)}
               >
-                <div className="bg-white rounded-lg overflow-hidden">
+                <div className="bg-white rounded-lg overflow-hidden shadow-sm">
                   <div className="relative">
                     <img
                       src={pkg.imgSrc || "/placeholder.svg"}
@@ -137,9 +170,10 @@ const SelectTemplateModal = ({ handleNext, handleClose, data, setData }) => {
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <div className="p-2 mt-2">
-                    <h3 className="font-medium text-gray-900 mb-1">{pkg.name}</h3>
+                  <div className="p-3">
+                    <h3 className="font-medium text-gray-900 text-base mb-1">{pkg.name}</h3>
                     <p className="text-sm text-gray-500 line-clamp-2">{pkg.description}</p>
+                    {pkg.author && <p className="text-xs text-gray-400 mt-1">By {pkg.author}</p>}
                   </div>
                 </div>
               </div>

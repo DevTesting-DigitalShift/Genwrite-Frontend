@@ -124,19 +124,20 @@ const Transactions = () => {
         transition={{ duration: 0.4 }}
         className="p-8 bg-white rounded-xl shadow-md max-w-full"
       >
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-0">
+        <div className="flex flex-row justify-between items-center mb-4 sm:mb-6 gap-3">
           <h2 className="text-lg sm:text-xl md:text-2xl font-semibold text-gray-800">
             Your Transactions
           </h2>
           <Tooltip title="Refresh">
             <button
               onClick={() => dispatch(fetchTransactions())}
-              className="px-3 sm:px-4 py-2 bg-gray-100 rounded-full hover:bg-gray-200 transition text-sm"
+              className="px-3 sm:px-4 py-2 bg-gray-100 rounded-full hover:bg-gray-200 transition text-sm flex items-center justify-center"
             >
               <ReloadOutlined className="w-4 sm:w-5 h-4 sm:h-5" />
             </button>
           </Tooltip>
         </div>
+
         <style>
           {`
             .ant-table-container {

@@ -74,7 +74,7 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
     setIsLoading(true)
     try {
       const response = await dispatch(fetchBlogStats(formData.selectedBlog._id)).unwrap()
-      setStats(response.stats || response) // Handle case where stats is nested or not
+      setStats(response.stats || response)
       message.success("Performance insights loaded successfully.")
     } catch (error) {
       console.error("Failed to fetch blog stats:", error)
@@ -94,7 +94,7 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
 
   const InfoTooltip = ({ type = "seo" }) => (
     <Tooltip title={scoreInfo[type]} trigger={["hover", "click"]} placement="top">
-      <InfoCircleOutlined className="ml-2 text-gray-500 hover:text-blue-500 cursor-pointer" />
+      <InfoCircleOutlined className="ml-1 text-gray-500 hover:text-blue-500 cursor-pointer" />
     </Tooltip>
   )
 
@@ -103,13 +103,13 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: delay * 0.1, duration: 0.3 }}
-      className={`p-5 bg-white rounded-xl border ${color} shadow-sm hover:shadow-md transition-shadow`}
+      className={`p-4 bg-white rounded-lg border ${color} shadow-sm hover:shadow-md transition-shadow w-full sm:w-auto`}
     >
-      <div className="flex items-center gap-4">
-        {icon && <div className="p-2 bg-blue-50 rounded-lg text-blue-500">{icon}</div>}
+      <div className="flex items-center gap-3">
+        {icon && <div className="p-2 bg-blue-50 rounded-md text-blue-500">{icon}</div>}
         <div>
-          <p className="text-sm font-semibold text-gray-600">{label}</p>
-          <p className="text-2xl font-bold text-gray-800 mt-1">
+          <p className="text-xs sm:text-sm font-semibold text-gray-600">{label}</p>
+          <p className="text-lg sm:text-xl font-bold text-gray-800 mt-1">
             {value}
             {suffix}
           </p>
@@ -120,23 +120,23 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
   )
 
   const ScoreBox = ({ score, max, label, level, color }) => (
-    <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+    <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm w-full">
       <div className="flex justify-between items-center">
-        <span className="text-sm font-semibold text-gray-600 flex items-center gap-2">
+        <span className="text-xs sm:text-sm font-semibold text-gray-600 flex items-center gap-1">
           {label}
           <InfoTooltip type={/seo/gi.test(label) ? "seo" : "flesch"} />
         </span>
-        <span className="text-sm font-semibold text-gray-600">{level}</span>
+        <span className="text-xs sm:text-sm font-semibold text-gray-600">{level}</span>
       </div>
-      <div className="mt-3">
-        <div className="w-full bg-gray-100 rounded-full h-3">
+      <div className="mt-2">
+        <div className="w-full bg-gray-100 rounded-full h-2.5">
           <div
-            className={`h-3 rounded-full ${color} transition-all duration-500`}
+            className={`h-2.5 rounded-full ${color} transition-all duration-500`}
             style={{ width: `${(score / max) * 100}%` }}
           ></div>
         </div>
-        <div className="flex justify-end mt-2">
-          <span className="text-sm font-semibold text-gray-600">
+        <div className="flex justify-end mt-1">
+          <span className="text-xs sm:text-sm font-semibold text-gray-600">
             {score} / {max}
           </span>
         </div>
@@ -197,52 +197,53 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mt-6"
+        className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6 mt-4 sm:mt-6"
       >
-        <div className="mb-6 text-center">
-          <h3 className="text-2xl font-bold text-gray-800">Blog Performance Overview</h3>
+        <div className="mb-4 sm:mb-6 text-center">
+          <h3 className="text-lg sm:text-2xl font-bold text-gray-800">Blog Performance Overview</h3>
         </div>
-        <div className="mb-8 capitalize">
-          <div className="flex items-center gap-2 mb-4">
+        <div className="mb-6 sm:mb-8 capitalize">
+          <div className="flex items-center gap-2 mb-3 sm:mb-4">
             <div className="p-1.5 bg-purple-100 rounded text-purple-500">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
+                width="16"
+                height="16"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                className="w-4 h-4 sm:w-5 sm:h-5"
               >
                 <circle cx="12" cy="12" r="10" />
                 <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
                 <path d="M12 17h.01" />
               </svg>
             </div>
-            <h4 className="text-xl font-semibold text-gray-800">Metadata</h4>
+            <h4 className="text-base sm:text-xl font-semibold text-gray-800">Metadata</h4>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div className="bg-gray-50 p-3 sm:p-4 rounded-lg border border-gray-100">
               <p className="text-xs text-gray-500">Title</p>
               <p className="text-sm font-medium text-gray-800 truncate">{metadata?.title || "-"}</p>
             </div>
-            <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+            <div className="bg-gray-50 p-3 sm:p-4 rounded-lg border border-gray-100">
               <p className="text-xs text-gray-500">Tone</p>
               <p className="text-sm font-medium text-gray-800">{metadata?.tone || "-"}</p>
             </div>
-            <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+            <div className="bg-gray-50 p-3 sm:p-4 rounded-lg border border-gray-100">
               <p className="text-xs text-gray-500">Template</p>
               <p className="text-sm font-medium text-gray-800">{metadata?.template || "-"}</p>
             </div>
-            <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+            <div className="bg-gray-50 p-3 sm:p-4 rounded-lg border border-gray-100">
               <p className="text-xs text-gray-500">AI Model</p>
               <p className="text-sm font-medium text-gray-800">{metadata?.aiModel || "-"}</p>
             </div>
           </div>
           {metadata?.generatedAt && (
-            <div className="mt-4 bg-gray-50 p-3 rounded-lg border normal-case border-gray-100">
+            <div className="mt-3 sm:mt-4 bg-gray-50 p-3 rounded-lg border normal-case border-gray-100">
               <p className="text-xs text-gray-500">Generated At</p>
               <p className="text-sm font-medium text-gray-800">
                 {new Date(metadata.generatedAt).toLocaleString("en-IN")}
@@ -250,27 +251,28 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
             </div>
           )}
         </div>
-        <div className="mb-8">
-          <div className="flex items-center gap-2 mb-4">
+        <div className="mb-6 sm:mb-8">
+          <div className="flex items-center gap-2 mb-3 sm:mb-4">
             <div className="p-1.5 bg-blue-100 rounded text-blue-500">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
+                width="16"
+                height="16"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                className="w-4 h-4 sm:w-5 sm:h-5"
               >
                 <path d="m3 11 18-5v12L3 14v-3z" />
                 <path d="m11.6 16.8 3.9-2.4 3.9 2.4" />
               </svg>
             </div>
-            <h4 className="text-xl font-semibold text-gray-800">SEO</h4>
+            <h4 className="text-base sm:text-xl font-semibold text-gray-800">SEO</h4>
           </div>
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 gap-3 sm:gap-4">
             {Boolean(seo?.score) && (
               <ScoreBox
                 score={seo?.score || 0}
@@ -280,19 +282,20 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
                 color="bg-blue-500"
               />
             )}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <StatCard
                 icon={
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
+                    width="16"
+                    height="16"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
+                    className="w-4 h-4 sm:w-5 sm:h-5"
                   >
                     <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
                   </svg>
@@ -307,14 +310,15 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
                 icon={
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
+                    width="16"
+                    height="16"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
+                    className="w-4 h-4 sm:w-5 sm:h-5"
                   >
                     <path d="m10 14 2-2 2 2" />
                     <path d="M12 12v8" />
@@ -330,14 +334,15 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
                 icon={
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
+                    width="16"
+                    height="16"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
+                    className="w-4 h-4 sm:w-5 sm:h-5"
                   >
                     <circle cx="12" cy="12" r="10" />
                     <line x1="2" y1="12" x2="22" y2="12" />
@@ -351,8 +356,8 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
               />
             </div>
           </div>
-          <div className="mt-6">
-            <h5 className="text-sm font-semibold text-gray-700 mb-3">Focus Keywords</h5>
+          <div className="mt-4 sm:mt-6">
+            <h5 className="text-sm font-semibold text-gray-700 mb-2 sm:mb-3">Focus Keywords</h5>
             <div className="flex flex-wrap gap-2">
               {seo?.focusKeywords?.map((k, i) => (
                 <motion.span
@@ -360,56 +365,40 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
                   initial={{ opacity: 0, y: 5 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.1 }}
-                  className="px-3 py-1 bg-blue-50 rounded-full text-sm text-blue-700 border border-blue-100 hover:bg-blue-100 transition-colors"
+                  className="px-2 sm:px-3 py-1 bg-blue-50 rounded-full text-xs sm:text-sm text-blue-700 border border-blue-100 hover:bg-blue-100 transition-colors"
                 >
                   {k}
                 </motion.span>
               ))}
             </div>
           </div>
-          {seo?.keywords.length > 0 && (
-            <div className="mt-4">
-              <h5 className="text-sm font-semibold text-gray-700 mb-3">Other Keywords</h5>
-              <div className="flex flex-wrap gap-2">
-                {seo?.keywords?.map((k, i) => (
-                  <motion.span
-                    key={k}
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    className="px-3 py-2 bg-gray-100 rounded-full text-sm text-gray-700 border border-gray-200 hover:bg-gray-200 transition-colors"
-                  >
-                    {k}
-                  </motion.span>
-                ))}
-              </div>
-            </div>
-          )}
-          <div className="mt-6">
-            <h5 className="text-sm font-semibold text-gray-700 mb-3">Keyword Analysis</h5>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+
+          <div className="mt-4 sm:mt-6">
+            <h5 className="text-sm font-semibold text-gray-700 mb-2 sm:mb-3">Keyword Analysis</h5>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-3 sm:mb-4">
               <StatCard
-                icon={<Tag className="w-5 h-5" />}
+                icon={<Tag className="w-4 h-4 sm:w-5 sm:h-5" />}
                 label="Short-Tail Keywords"
                 value={shortTailCount}
                 color="border-blue-100"
                 delay={0}
               />
               <StatCard
-                icon={<Tags className="w-5 h-5" />}
+                icon={<Tags className="w-4 h-4 sm:w-5 sm:h-5" />}
                 label="Long-Tail Keywords"
                 value={longTailCount}
                 color="border-blue-100"
                 delay={0.1}
               />
             </div>
-            <h5 className="text-sm font-semibold text-gray-700 mb-3">Keyword Densities</h5>
+            <h5 className="text-sm font-semibold text-gray-700 mb-2 sm:mb-3">Keyword Densities</h5>
             <motion.div
               initial="hidden"
               animate="visible"
               variants={{
                 visible: { transition: { staggerChildren: 0.1 } },
               }}
+              className="overflow-x-auto w-full"
             >
               <Table
                 dataSource={dataSource}
@@ -425,6 +414,7 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
                           initial={{ opacity: 0, y: 5 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay }}
+                          className="w-full"
                         >
                           {children}
                         </motion.tr>
@@ -432,32 +422,33 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
                     },
                   },
                 }}
-                className="rounded-md overflow-hidden capitalize"
+                className="min-w-[300px] sm:min-w-full md:min-w-[600px] lg:min-w-full rounded-md overflow-hidden capitalize"
               />
             </motion.div>
           </div>
         </div>
         <div>
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-2 mb-3 sm:mb-4">
             <div className="p-1.5 bg-teal-100 rounded text-teal-500">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
+                width="16"
+                height="16"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                className="w-4 h-4 sm:w-5 sm:h-5"
               >
                 <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
                 <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
               </svg>
             </div>
-            <h4 className="text-xl font-semibold text-gray-800">Readability</h4>
+            <h4 className="text-base sm:text-xl font-semibold text-gray-800">Readability</h4>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <ScoreBox
               score={readabililty?.fleschEase?.score || 0}
               max={100}
@@ -465,30 +456,30 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
               level={readabililty?.fleschEase?.level || "-"}
               color="bg-teal-500"
             />
-            <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+            <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
               <div className="flex justify-between items-center">
-                <span className="text-sm font-semibold text-gray-600">
+                <span className="text-xs sm:text-sm font-semibold text-gray-600">
                   SMOG Index
                   <InfoTooltip type="smog" />
                 </span>
-                <span className="text-sm font-semibold text-gray-600">
+                <span className="text-xs sm:text-sm font-semibold text-gray-600">
                   {readabililty?.smogIndex?.level || "-"}
                 </span>
               </div>
-              <p className="text-2xl font-bold text-gray-800 mt-2">
+              <p className="text-lg sm:text-xl font-bold text-gray-800 mt-2">
                 {readabililty?.smogIndex?.score || 0} grade
               </p>
             </div>
-            <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+            <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
               <div className="flex justify-between items-center">
-                <span className="text-sm font-semibold text-gray-600">
+                <span className="text-xs sm:text-sm font-semibold text-gray-600">
                   ARI <InfoTooltip type="ari" />
                 </span>
-                <span className="text-sm font-semibold text-gray-600">
+                <span className="text-xs sm:text-sm font-semibold text-gray-600">
                   {readabililty?.ari?.level || "-"}
                 </span>
               </div>
-              <p className="text-2xl font-bold text-gray-800 mt-2">
+              <p className="text-lg sm:text-xl font-bold text-gray-800 mt-2">
                 {readabililty?.ari?.score || 0} grade
               </p>
             </div>
@@ -496,14 +487,15 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
               icon={
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
+                  width="16"
+                  height="16"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
+                  className="w-4 h-4 sm:w-5 sm:h-5"
                 >
                   <circle cx="12" cy="12" r="10" />
                   <polyline points="12 6 12 12 16 14" />
@@ -516,19 +508,20 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
               delay={0}
             />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-3 sm:mt-4">
             <StatCard
               icon={
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
+                  width="16"
+                  height="16"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
+                  className="w-4 h-4 sm:w-5 sm:h-5"
                 >
                   <path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z" />
                 </svg>
@@ -538,27 +531,27 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
               color="border-amber-100"
               delay={1}
             />
-            <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-              <p className="text-sm font-semibold text-gray-600">Sentence Count</p>
-              <p className="text-2xl font-bold text-gray-800 mt-1">
+            <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+              <p className="text-xs sm:text-sm font-semibold text-gray-600">Sentence Count</p>
+              <p className="text-lg sm:text-xl font-bold text-gray-800 mt-1">
                 {readabililty?.sentenceCount || 0}
               </p>
             </div>
-            <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-              <p className="text-sm font-semibold text-gray-600">Avg Sentence Length</p>
-              <p className="text-2xl font-bold text-gray-800 mt-1">
+            <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+              <p className="text-xs sm:text-sm font-semibold text-gray-600">Avg Sentence Length</p>
+              <p className="text-lg sm:text-xl font-bold text-gray-800 mt-1">
                 {readabililty?.avgSentenceLength || 0}
               </p>
             </div>
-            <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-              <p className="text-sm font-semibold text-gray-600">Avg Word Length</p>
-              <p className="text-2xl font-bold text-gray-800 mt-1">
+            <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+              <p className="text-xs sm:text-sm font-semibold text-gray-600">Avg Word Length</p>
+              <p className="text-lg sm:text-xl font-bold text-gray-800 mt-1">
                 {readabililty?.avgWordLength || 0}
               </p>
             </div>
-            <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-              <p className="text-sm font-semibold text-gray-600">Syllables</p>
-              <p className="text-2xl font-bold text-gray-800 mt-1">
+            <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+              <p className="text-xs sm:text-sm font-semibold text-gray-600">Syllables</p>
+              <p className="text-lg sm:text-xl font-bold text-gray-800 mt-1">
                 {readabililty?.syllableCount || 0}
               </p>
             </div>
@@ -567,6 +560,7 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
       </motion.div>
     )
   }
+
   useEffect(() => {
     if (visible) {
       document.body.style.overflow = "hidden"
@@ -584,9 +578,9 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
         <motion.div
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
-          className="flex items-center gap-3"
+          className="flex items-center gap-2 sm:gap-3"
         >
-          <div className="p-2 bg-blue-500 rounded-lg text-white">
+          <div className="p-1.5 sm:p-2 bg-blue-500 rounded-md text-white">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="12"
@@ -597,28 +591,36 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
+              className="w-3 h-3 sm:w-4 sm:h-4"
             >
               <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
             </svg>
           </div>
-          <h2 className="text-lg font-semibold text-gray-900">Performance Dashboard</h2>
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900">
+            Performance Dashboard
+          </h2>
         </motion.div>
       }
       open={visible}
       onCancel={closeFnc}
       footer={null}
-      width={900}
+      width="90vw"
       centered
-      styles={{ body: { maxHeight: "85vh", overflowY: "auto" } }}
-      className="rounded-2xl shadow-lg"
+      styles={{
+        body: { maxHeight: "80vh", overflowY: "auto" },
+        content: { maxWidth: "900px", margin: "0 auto" },
+      }}
+      className="rounded-lg sm:rounded-2xl shadow-lg"
     >
-      <div className="space-y-6 p-6">
+      <div className="p-0 sm:p-4 space-y-4 sm:space-y-6">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <label className="block text-base font-semibold text-gray-700 mb-2">Select Blog</label>
+          <label className="block text-sm sm:text-base font-semibold text-gray-700 mt-2 sm:mt-0 mb-1 sm:mb-2">
+            Select Blog
+          </label>
           <div className="relative">
             <Select
               showSearch
@@ -643,9 +645,9 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-center py-10 bg-gray-50 rounded-xl border border-gray-200 shadow-sm"
+            className="text-center py-8 sm:py-10 bg-gray-50 rounded-lg border border-gray-200 shadow-sm"
           >
-            <p className="text-gray-600 text-lg">
+            <p className="text-sm sm:text-lg text-gray-600">
               Select a blog to view content and performance insights.
             </p>
           </motion.div>
@@ -658,16 +660,18 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
               transition={{ delay: 0.2 }}
               className="border border-gray-200 rounded-lg overflow-hidden shadow-sm"
             >
-              <div className="p-4 bg-gray-50 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-700">Content Preview</h3>
+              <div className="p-3 sm:p-4 bg-gray-50 border-b border-gray-200">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-700">
+                  Content Preview
+                </h3>
               </div>
               <div>
-                <div className="text-gray-700 max-h-50 overflow-y-auto whitespace-pre-wrap leading-relaxed p-4 rounded-md">
+                <div className="text-gray-700 max-h-[200px] sm:max-h-[300px] overflow-y-auto whitespace-pre-wrap leading-relaxed p-3 sm:p-4 rounded-md text-sm sm:text-base">
                   {formData?.content?.trim() ? (
                     formData.content.split("\n").map((line, index) => {
                       if (line.startsWith("### ")) {
                         return (
-                          <h3 key={index} className="text-lg font-semibold mt-2">
+                          <h3 key={index} className="text-base sm:text-lg font-semibold mt-2">
                             {line
                               .replace("### ", "")
                               .replace(/[*_~>`]/g, "")
@@ -676,7 +680,7 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
                         )
                       } else if (line.startsWith("## ")) {
                         return (
-                          <h2 key={index} className="text-xl font-semibold mt-2">
+                          <h2 key={index} className="text-lg sm:text-xl font-semibold mt-2">
                             {line
                               .replace("## ", "")
                               .replace(/[*_~>`]/g, "")
@@ -685,7 +689,7 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
                         )
                       } else if (line.startsWith("# ")) {
                         return (
-                          <h1 key={index} className="text-2xl font-bold mt-2">
+                          <h1 key={index} className="text-xl sm:text-2xl font-bold mt-2">
                             {line
                               .replace("# ", "")
                               .replace(/[*_~>`]/g, "")
@@ -694,7 +698,7 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
                         )
                       } else {
                         return (
-                          <p key={index} className="text-base mt-2">
+                          <p key={index} className="text-sm sm:text-base mt-2">
                             {line.replace(/[*_~>`]/g, "").trim()}
                           </p>
                         )
@@ -711,9 +715,9 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="p-4 bg-gray-50 border border-gray-200 rounded-lg shadow-sm"
+                className="p-3 sm:p-4 bg-gray-50 border border-gray-200 rounded-lg shadow-sm"
               >
-                <h4 className="text-md font-semibold text-gray-700 mb-2">Keywords</h4>
+                <h4 className="text-sm sm:text-md font-semibold text-gray-700 mb-2">Keywords</h4>
                 <div className="flex flex-wrap gap-2">
                   {formData.keywords.map((keyword, i) => (
                     <motion.span
@@ -721,7 +725,7 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
                       initial={{ opacity: 0, y: 5 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.1 }}
-                      className="px-3 py-1 bg-blue-50 rounded-full text-sm text-blue-700 border border-blue-100 hover:bg-blue-100 transition-colors"
+                      className="px-2 sm:px-3 py-1 bg-blue-50 rounded-full text-xs sm:text-sm text-blue-700 border border-blue-100 hover:bg-blue-100 transition-colors"
                     >
                       {keyword}
                     </motion.span>
@@ -741,7 +745,7 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
                   size="large"
                   onClick={handleGetInsights}
                   loading={isLoading}
-                  className="bg-blue-600 text-white hover:bg-blue-700 rounded-lg px-6 py-2 transition-all duration-200"
+                  className="bg-blue-600 text-white hover:bg-blue-700 rounded-lg px-4 sm:px-6 py-2 transition-all duration-200"
                   disabled={isLoading || !formData.selectedBlog}
                 >
                   {isLoading ? (

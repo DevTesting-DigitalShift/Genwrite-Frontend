@@ -423,22 +423,23 @@ const MultiStepModal = ({ closeFnc }) => {
     >
       <div className="p-4">
         {currentStep === 0 && (
-          <div>
-            <p className="text-sm text-gray-600 mb-4">
+          <div className="p-2 sm:p-3">
+            <p className="text-sm text-gray-600 mb-3 sm:mb-4">
               Select up to 3 templates for the types of blogs you want to generate.
             </p>
-            <Carousel>
+            {/* Mobile View: Vertical Scrolling Layout */}
+            <div className="block sm:hidden space-y-4">
               {packages.map((pkg, index) => (
                 <div
                   key={pkg.name}
-                  className={`cursor-pointer transition-all duration-200 ${
+                  className={`cursor-pointer transition-all duration-200 w-full ${
                     formData.templates.includes(pkg.name)
                       ? "border-gray-300 border-2 rounded-lg"
                       : ""
                   }`}
                   onClick={() => handlePackageSelect(index)}
                 >
-                  <div className="bg-white rounded-lg overflow-hidden">
+                  <div className="bg-white rounded-lg overflow-hidden shadow-sm">
                     <div className="relative">
                       <img
                         src={pkg.imgSrc || "/placeholder.svg"}
@@ -446,14 +447,45 @@ const MultiStepModal = ({ closeFnc }) => {
                         className="w-full h-full object-cover"
                       />
                     </div>
-                    <div className="p-2 mt-3">
-                      <h3 className="font-medium text-gray-900 mb-1">{pkg.name}</h3>
+                    <div className="p-3">
+                      <h3 className="font-medium text-gray-900 text-base mb-1">{pkg.name}</h3>
                       <p className="text-sm text-gray-500 line-clamp-2">{pkg.description}</p>
                     </div>
                   </div>
                 </div>
               ))}
-            </Carousel>
+            </div>
+
+            {/* Desktop View: Carousel Layout */}
+            <div className="hidden sm:block">
+              <Carousel className="flex flex-row gap-4">
+                {packages.map((pkg, index) => (
+                  <div
+                    key={pkg.name}
+                    className={`cursor-pointer transition-all duration-200 w-full ${
+                      formData.templates.includes(pkg.name)
+                        ? "border-gray-300 border-2 rounded-lg"
+                        : ""
+                    }`}
+                    onClick={() => handlePackageSelect(index)}
+                  >
+                    <div className="bg-white rounded-lg overflow-hidden shadow-sm">
+                      <div className="relative">
+                        <img
+                          src={pkg.imgSrc || "/placeholder.svg"}
+                          alt={pkg.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="p-3">
+                        <h3 className="font-medium text-gray-900 text-base mb-1">{pkg.name}</h3>
+                        <p className="text-sm text-gray-500 line-clamp-2">{pkg.description}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </Carousel>
+            </div>
           </div>
         )}
 

@@ -254,15 +254,20 @@ const StepContent = ({
   switch (currentStep) {
     case 1:
       return (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-          <p className="text-sm text-gray-600 mb-4">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="space-y-4 sm:space-y-6"
+        >
+          <p className="text-sm text-gray-600 mb-3 sm:mb-4">
             Select up to 3 templates for the types of blogs you want to generate.
           </p>
-          <Carousel>
+          {/* Mobile View: Vertical Scrolling Layout */}
+          <div className="block sm:hidden space-y-4">
             {packages.map((pkg) => (
               <div
                 key={pkg.name}
-                className={`cursor-pointer transition-all duration-200 ${
+                className={`cursor-pointer transition-all duration-200 w-full ${
                   newJob.blogs.templates.includes(pkg.name)
                     ? "border-gray-300 border-2 rounded-lg"
                     : errors.template
@@ -290,7 +295,7 @@ const StepContent = ({
                   }
                 }}
               >
-                <div className="bg-white rounded-lg overflow-hidden">
+                <div className="bg-white rounded-lg overflow-hidden shadow-sm">
                   <div className="relative">
                     <img
                       src={pkg.imgSrc || "/placeholder.svg"}
@@ -298,14 +303,68 @@ const StepContent = ({
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <div className="p-2">
-                    <h3 className="font-medium text-gray-900 mb-1">{pkg.name}</h3>
+                  <div className="p-3">
+                    <h3 className="font-medium text-gray-900 text-base mb-1">{pkg.name}</h3>
                     <p className="text-sm text-gray-500 line-clamp-2">{pkg.description}</p>
                   </div>
                 </div>
               </div>
             ))}
-          </Carousel>
+          </div>
+
+          {/* Desktop View: Carousel Layout */}
+          <div className="hidden sm:block">
+            <Carousel className="flex flex-row gap-4">
+              {packages.map((pkg) => (
+                <div
+                  key={pkg.name}
+                  className={`cursor-pointer transition-all duration-200 w-full${
+                    newJob.blogs.templates.includes(pkg.name)
+                      ? "border-gray-300 border-2 rounded-lg"
+                      : errors.template
+                      ? "border-red-500 border-2"
+                      : ""
+                  }`}
+                  onClick={() => {
+                    if (newJob.blogs.templates.includes(pkg.name)) {
+                      setNewJob((prev) => ({
+                        ...prev,
+                        blogs: {
+                          ...prev.blogs,
+                          templates: prev.blogs.templates.filter(
+                            (template) => template !== pkg.name
+                          ),
+                        },
+                      }))
+                      setErrors((prev) => ({ ...prev, template: false }))
+                    } else if (newJob.blogs.templates.length < 3) {
+                      setNewJob((prev) => ({
+                        ...prev,
+                        blogs: { ...prev.blogs, templates: [...prev.blogs.templates, pkg.name] },
+                      }))
+                      setErrors((prev) => ({ ...prev, template: false }))
+                    } else {
+                      message.error("You can only select up to 3 templates.")
+                    }
+                  }}
+                >
+                  <div className="bg-white rounded-lg overflow-hidden shadow-sm">
+                    <div className="relative">
+                      <img
+                        src={pkg.imgSrc || "/placeholder.svg"}
+                        alt={pkg.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="p-3">
+                      <h3 className="font-medium text-gray-900 text-base mb-1">{pkg.name}</h3>
+                      <p className="text-sm text-gray-500 line-clamp-2">{pkg.description}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </Carousel>
+          </div>
         </motion.div>
       )
     case 2:
