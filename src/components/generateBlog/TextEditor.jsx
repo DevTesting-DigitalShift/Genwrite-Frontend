@@ -248,7 +248,7 @@ const TextEditor = ({
     return safeContent ? marked.parse(safeContent, { gfm: true }) : "<p></p>"
   }, [safeContent])
 
-  console.log({unsavedChanges})
+  console.log({ unsavedChanges })
 
   const normalEditor = useEditor(
     {
@@ -617,7 +617,9 @@ const TextEditor = ({
     } else {
       handlePopup({
         title: "Retry Blog Generation",
-        description: `Are you sure you want to retry generating this blog?\nIt will be of 10 credits`,
+        description: (
+          <>Are you sure you want to retry generating this blog? <span className="font-bold">This will cost 10 credits</span></>
+        ),
         onConfirm: handleReGenerate,
       })
     }
@@ -1014,7 +1016,12 @@ const TextEditor = ({
     } else {
       handlePopup({
         title: "Rewrite Selected Lines",
-        description: "Do you want to rewrite the selected lines? You can rewrite only 3 times.",
+        description: (
+          <>
+            Do you want to rewrite the selected lines?{" "}
+            <span className="font-bold">You can rewrite only 3 times.</span>
+          </>
+        ),
         onConfirm: handleRetry,
       })
     }
@@ -1862,16 +1869,28 @@ const TextEditor = ({
         <Modal
           title="Unsaved Changes"
           open={true}
-          onOk={handleConfirmTabSwitch}
           onCancel={handleCancelTabSwitch}
-          okText="Continue without Saving"
-          cancelText="Cancel"
           centered
           className="rounded-lg"
-          bodyStyle={{ padding: "24px", background: "#f9fafb" }}
-          okButtonProps={{ className: "bg-blue-600 hover:bg-blue-700" }}
+          footer={
+            <div className="flex justify-end gap-2">
+              <Button
+                onClick={handleCancelTabSwitch}
+                className="rounded-lg border border-gray-300 hover:bg-gray-100"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="primary"
+                onClick={handleConfirmTabSwitch}
+                className="rounded-lg bg-blue-600 hover:bg-blue-700"
+              >
+                Continue without Saving
+              </Button>
+            </div>
+          }
         >
-          <p className="text-sm text-gray-600 leading-relaxed">
+          <p className="text-gray-700">
             You have unsaved changes. Switching tabs may cause you to lose your work. Are you sure
             you want to continue?
           </p>
@@ -1895,19 +1914,29 @@ const TextEditor = ({
         open={linkModalOpen}
         onOk={handleConfirmLink}
         onCancel={() => setLinkModalOpen(false)}
-        okText="Insert Link"
-        cancelText="Cancel"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button onClick={() => setLinkModalOpen(false)} className="rounded-lg">
+              Cancel
+            </Button>
+            <Button type="primary" onClick={handleConfirmLink} className="rounded-lg">
+              Insert Link
+            </Button>
+          </div>
+        }
         centered
       >
         <Input
+          bordered={false} // removes AntD’s default border completely
           value={linkUrl}
           onChange={(e) => setLinkUrl(e.target.value)}
           placeholder="https://example.com"
-          className="w-full mt-4"
-          prefix={<LinkIcon className="w-4 h-4 text-gray-400" />}
+          className="w-full mt-4 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
         />
+
         <p className="mt-2 text-xs text-gray-500">Include http:// or https://</p>
       </Modal>
+
       <Modal
         title="Edit Image Alt Text"
         open={editImageModalOpen}
@@ -1920,27 +1949,31 @@ const TextEditor = ({
         okText="Update Alt Text"
         cancelText="Cancel"
         footer={[
-          <Button
-            key="delete"
-            onClick={handleDeleteImage}
-            danger
-            icon={<Trash2 className="w-4 h-4" />}
-          >
-            Delete Image
-          </Button>,
-          <Button
-            key="cancel"
-            onClick={() => {
-              setEditImageModalOpen(false)
-              setSelectedImage(null)
-              setImageAlt("")
-            }}
-          >
-            Cancel
-          </Button>,
-          <Button key="ok" type="primary" onClick={handleConfirmEditImage}>
-            Update Alt Text
-          </Button>,
+          <div className="flex justify-end gap-2">
+            <Button
+              key="delete"
+              onClick={handleDeleteImage}
+              danger
+              icon={<Trash2 className="w-4 h-4" />}
+              className="rounded-lg"
+            >
+              Delete Image
+            </Button>
+            <Button
+              key="cancel"
+              onClick={() => {
+                setEditImageModalOpen(false)
+                setSelectedImage(null)
+                setImageAlt("")
+              }}
+              className="rounded-lg"
+            >
+              Cancel
+            </Button>
+            <Button key="ok" type="primary" onClick={handleConfirmEditImage} className="rounded-lg">
+              Update Alt Text
+            </Button>
+          </div>,
         ]}
         centered
       >
@@ -1949,7 +1982,7 @@ const TextEditor = ({
           onChange={(e) => setImageAlt(e.target.value)}
           placeholder="Image description"
           className="w-full mt-4"
-          prefix={<ImageIcon className="w-4 h-4 text-gray-400" />}
+          // prefix={<ImageIcon className="w-4 h-4 text-gray-400" />}
         />
         <p className="mt-2 text-xs text-gray-500">Provide alt text for accessibility</p>
         {selectedImage && (
@@ -1965,10 +1998,17 @@ const TextEditor = ({
       <Modal
         title="Insert Image"
         open={imageModalOpen}
-        onOk={handleConfirmImage}
         onCancel={() => setImageModalOpen(false)}
-        okText="Insert Image"
-        cancelText="Cancel"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button onClick={() => setImageModalOpen(false)} className="rounded-lg">
+              Cancel
+            </Button>
+            <Button type="primary" onClick={handleConfirmImage} className="rounded-lg">
+              Insert Image
+            </Button>
+          </div>
+        }
         centered
       >
         <Input
@@ -1976,7 +2016,7 @@ const TextEditor = ({
           onChange={(e) => setImageUrl(e.target.value)}
           placeholder="https://example.com/image.jpg"
           className="w-full mt-4"
-          prefix={<ImageIcon className="w-4 h-4 text-gray-400" />}
+          // prefix={<ImageIcon className="w-4 h-4 text-gray-400" />}
         />
         <p className="mt-2 text-xs text-gray-500">Include http:// or https://</p>
         <Input
@@ -1984,7 +2024,7 @@ const TextEditor = ({
           onChange={(e) => setImageAlt(e.target.value)}
           placeholder="Image description"
           className="w-full mt-4"
-          prefix={<ImageIcon className="w-4 h-4 text-gray-400" />}
+          // prefix={<ImageIcon className="w-4 h-4 text-gray-400" />}
         />
         <p className="mt-2 text-xs text-gray-500">Provide alt text for accessibility</p>
       </Modal>
