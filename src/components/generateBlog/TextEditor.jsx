@@ -238,7 +238,7 @@ const TextEditor = ({
         },
       })
 
-      const markdown = turndownService.turndown(html)
+      const markdown = turndownService.turndown(cleanHtml)
       return markdown
     } catch (error) {
       console.warn("Failed to convert HTML to markdown:", error)
@@ -472,6 +472,18 @@ const TextEditor = ({
       }
     }
   }, [])
+
+  // Normalize initial content to ensure proper line breaks
+  useEffect(() => {
+    if (normalEditor && editorReady && blog?.content) {
+      const html = normalEditor.getHTML()
+      const normalizedMd = htmlToMarkdown(html)
+      if (normalizedMd !== safeContent) {
+        setContent(normalizedMd)
+        setHtmlContent(markdownToHtml(normalizedMd).replace(/>\s*</g, ">\n<"))
+      }
+    }
+  }, [normalEditor, editorReady, blog, htmlToMarkdown, markdownToHtml, safeContent, setContent])
 
   // Update editor content only when necessary
   useEffect(() => {
@@ -1443,7 +1455,16 @@ const TextEditor = ({
                 <h3 className="text-lg font-bold mb-2 text-gray-900">Original Content</h3>
                 <div className="border rounded-lg p-2 bg-gray-50">
                   {diff.map((line, index) => (
-                    <div key={`original-${index}`} className="flex items-start p-1 text-sm">
+                    <div
+                      key={`original-${index}`}
+                      className={`flex items-start p-1 text-sm font-mono ${
+                        line.type === "removed"
+                          ? "bg-red-100"
+                          : line.type === "added"
+                          ? "bg-gray-100 opacity-50"
+                          : ""
+                      }`}
+                    >
                       <span className="w-8 text-right text-gray-500 pr-2">{line.lineNumber}</span>
                       <span className="flex-1 whitespace-pre-wrap">{line.oldLine || "\u00A0"}</span>
                     </div>
