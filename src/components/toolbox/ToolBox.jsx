@@ -438,7 +438,7 @@ const ToolBox = () => {
           <div className="flex-1 flex flex-col min-w-0">
             <header className="bg-white shadow-lg border rounded-tl-lg border-gray-200 p-4 sm:p-6">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 mt-5 lg:mt-0">
                   <div className="w-8 sm:w-10 h-8 sm:h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
                     <FileText className="w-4 sm:w-5 h-4 sm:h-5 text-white" />
                   </div>
@@ -464,7 +464,7 @@ const ToolBox = () => {
                   )}
                   <button
                     onClick={() => handleSave({ metadata })}
-                    className={`px-3 sm:px-4 py-2 rounded-lg font-semibold flex items-center gap-2 transition-all duration-300 text-xs sm:text-sm ${
+                    className={`px-3 sm:px-4 py-2 rounded-lg font-semibold flex items-center gap-2 transition-all duration-300 text-base lg:text- text-center justify-center ${
                       isSaving ||
                       !editorTitle.trim() ||
                       !editorContent.trim() ||

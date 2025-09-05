@@ -13,7 +13,6 @@ const { TextArea } = Input
 
 const GenerateMetaData = () => {
   const [content, setContent] = useState("")
-  console.log(content.length)
   const [keywords, setKeywords] = useState([])
   const [newKeyword, setNewKeyword] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)

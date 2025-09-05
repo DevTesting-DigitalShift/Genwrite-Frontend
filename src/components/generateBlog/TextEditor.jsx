@@ -248,8 +248,6 @@ const TextEditor = ({
     return safeContent ? marked.parse(safeContent, { gfm: true }) : "<p></p>"
   }, [safeContent])
 
-  console.log({ unsavedChanges })
-
   const normalEditor = useEditor(
     {
       extensions: [
@@ -618,7 +616,10 @@ const TextEditor = ({
       handlePopup({
         title: "Retry Blog Generation",
         description: (
-          <>Are you sure you want to retry generating this blog? <span className="font-bold">This will cost 10 credits</span></>
+          <>
+            Are you sure you want to retry generating this blog?{" "}
+            <span className="font-bold">This will cost 10 credits</span>
+          </>
         ),
         onConfirm: handleReGenerate,
       })
@@ -1048,16 +1049,16 @@ const TextEditor = ({
   ])
 
   const renderToolbar = () => (
-    <div className="bg-white border-x border-gray-200 shadow-sm px-4 py-2 flex items-center">
-      <div className="flex gap-1">
+    <div className="bg-white border-x border-gray-200 shadow-sm px-2 sm:px-4 py-2 flex flex-wrap items-center gap-1 sm:gap-2 overflow-x-auto">
+      {/* Headings */}
+      <div className="flex gap-1 flex-shrink-0">
         {[1, 2, 3].map((level) => (
           <Tooltip key={level} title={`Heading ${level}`}>
             <button
               onClick={() =>
                 safeEditorAction(() => {
-                  if (activeTab === "Normal") {
+                  if (activeTab === "Normal")
                     normalEditor.chain().focus().toggleHeading({ level }).run()
-                  }
                 })
               }
               className={`p-2 rounded-md transition-colors duration-150 flex items-center justify-center ${
@@ -1075,15 +1076,16 @@ const TextEditor = ({
           </Tooltip>
         ))}
       </div>
-      <div className="w-px h-6 bg-gray-200 mx-2" />
-      <div className="flex gap-1">
+
+      <div className="w-px h-6 bg-gray-200 mx-1 sm:mx-2 flex-shrink-0" />
+
+      {/* Text styles */}
+      <div className="flex gap-1 flex-shrink-0">
         <Tooltip title="Bold">
           <button
             onClick={() =>
               safeEditorAction(() => {
-                if (activeTab === "Normal") {
-                  normalEditor.chain().focus().toggleBold().run()
-                }
+                if (activeTab === "Normal") normalEditor.chain().focus().toggleBold().run()
               })
             }
             className={`p-2 rounded-md transition-colors duration-150 flex items-center justify-center ${
@@ -1101,9 +1103,7 @@ const TextEditor = ({
           <button
             onClick={() =>
               safeEditorAction(() => {
-                if (activeTab === "Normal") {
-                  normalEditor.chain().focus().toggleItalic().run()
-                }
+                if (activeTab === "Normal") normalEditor.chain().focus().toggleItalic().run()
               })
             }
             className={`p-2 rounded-md transition-colors duration-150 flex items-center justify-center ${
@@ -1121,9 +1121,7 @@ const TextEditor = ({
           <button
             onClick={() =>
               safeEditorAction(() => {
-                if (activeTab === "Normal") {
-                  normalEditor.chain().focus().toggleUnderline().run()
-                }
+                if (activeTab === "Normal") normalEditor.chain().focus().toggleUnderline().run()
               })
             }
             className={`p-2 rounded-md transition-colors duration-150 flex items-center justify-center ${
@@ -1138,16 +1136,17 @@ const TextEditor = ({
           </button>
         </Tooltip>
       </div>
-      <div className="w-px h-6 bg-gray-200 mx-2" />
-      <div className="flex gap-1">
+
+      <div className="w-px h-6 bg-gray-200 mx-1 sm:mx-2 flex-shrink-0" />
+
+      {/* Alignment */}
+      <div className="flex gap-1 flex-shrink-0">
         {["left", "center", "right"].map((align) => (
           <Tooltip key={align} title={`Align ${align}`}>
             <button
               onClick={() =>
                 safeEditorAction(() => {
-                  if (activeTab === "Normal") {
-                    normalEditor.chain().focus().setTextAlign(align).run()
-                  }
+                  if (activeTab === "Normal") normalEditor.chain().focus().setTextAlign(align).run()
                 })
               }
               className={`p-2 rounded-md transition-colors duration-150 flex items-center justify-center ${
@@ -1165,15 +1164,16 @@ const TextEditor = ({
           </Tooltip>
         ))}
       </div>
-      <div className="w-px h-6 bg-gray-200 mx-2" />
-      <div className="flex gap-1">
+
+      <div className="w-px h-6 bg-gray-200 mx-2 flex-shrink-0" />
+
+      {/* Lists */}
+      <div className="flex gap-1 flex-shrink-0">
         <Tooltip title="Bullet List">
           <button
             onClick={() =>
               safeEditorAction(() => {
-                if (activeTab === "Normal") {
-                  normalEditor.chain().focus().toggleBulletList().run()
-                }
+                if (activeTab === "Normal") normalEditor.chain().focus().toggleBulletList().run()
               })
             }
             className={`p-2 rounded-md transition-colors duration-150 flex items-center justify-center ${
@@ -1191,9 +1191,7 @@ const TextEditor = ({
           <button
             onClick={() =>
               safeEditorAction(() => {
-                if (activeTab === "Normal") {
-                  normalEditor.chain().focus().toggleOrderedList().run()
-                }
+                if (activeTab === "Normal") normalEditor.chain().focus().toggleOrderedList().run()
               })
             }
             className={`p-2 rounded-md transition-colors duration-150 flex items-center justify-center ${
@@ -1208,12 +1206,15 @@ const TextEditor = ({
           </button>
         </Tooltip>
       </div>
-      <div className="w-px h-6 bg-gray-200 mx-2" />
-      <div className="flex gap-1">
+
+      <div className="w-px h-6 bg-gray-200 mx-2 flex-shrink-0" />
+
+      {/* Media & Undo/Redo & Rewrite/Copy/Regenerate/Import */}
+      <div className="flex gap-1 flex-nowrap overflow-x-auto">
         <Tooltip title="Link">
           <button
             onClick={handleAddLink}
-            className="p-2 rounded-md hover:bg-gray-100 transition-colors duration-150 flex items-center justify-center"
+            className="p-2 rounded-md hover:bg-gray-100 flex-shrink-0 flex items-center justify-center"
             aria-label="Link"
             type="button"
           >
@@ -1223,7 +1224,7 @@ const TextEditor = ({
         <Tooltip title="Image">
           <button
             onClick={handleAddImage}
-            className="p-2 rounded-md hover:bg-gray-100 transition-colors duration-150 flex items-center justify-center"
+            className="p-2 rounded-md hover:bg-gray-100 flex-shrink-0 flex items-center justify-center"
             aria-label="Image"
             type="button"
           >
@@ -1233,7 +1234,7 @@ const TextEditor = ({
         <Tooltip title="Undo">
           <button
             onClick={() => safeEditorAction(() => normalEditor?.chain().focus().undo().run())}
-            className="p-2 rounded-md hover:bg-gray-100 transition-colors duration-150 flex items-center justify-center"
+            className="p-2 rounded-md hover:bg-gray-100 flex-shrink-0 flex items-center justify-center"
             aria-label="Undo"
             type="button"
           >
@@ -1243,7 +1244,7 @@ const TextEditor = ({
         <Tooltip title="Redo">
           <button
             onClick={() => safeEditorAction(() => normalEditor?.chain().focus().redo().run())}
-            className="p-2 rounded-md hover:bg-gray-100 transition-colors duration-150 flex items-center justify-center"
+            className="p-2 rounded-md hover:bg-gray-100 flex-shrink-0 flex items-center justify-center"
             aria-label="Redo"
             type="button"
           >
@@ -1254,16 +1255,14 @@ const TextEditor = ({
           <Tooltip title="Rewrite">
             <button
               onClick={() =>
-                safeEditorAction(() => {
-                  handlePopup({
-                    title: "Rewrite Selected Lines",
-                    description:
-                      "Do you want to rewrite the selected lines? You can rewrite only 3 times.",
-                    onConfirm: handleRetry,
-                  })
+                handlePopup({
+                  title: "Rewrite Selected Lines",
+                  description:
+                    "Do you want to rewrite the selected lines? You can rewrite only 3 times.",
+                  onConfirm: handleRetry,
                 })
               }
-              className="p-2 rounded-md hover:bg-gray-100 transition-colors duration-150 flex items-center justify-center"
+              className="p-2 rounded-md hover:bg-gray-100 flex-shrink-0 flex items-center justify-center"
               aria-label="Rewrite"
               type="button"
             >
@@ -1273,13 +1272,11 @@ const TextEditor = ({
         )}
         <Tooltip title="Copy">
           <button
-            onClick={() =>
-              safeEditorAction(() => {
-                navigator.clipboard.writeText(activeTab === "HTML" ? htmlContent : safeContent)
-                message.success("Content copied to clipboard!")
-              })
-            }
-            className="p-2 rounded-md hover:bg-gray-100 transition-colors duration-150 flex items-center justify-center"
+            onClick={() => {
+              navigator.clipboard.writeText(activeTab === "HTML" ? htmlContent : safeContent)
+              message.success("Content copied to clipboard!")
+            }}
+            className="p-2 rounded-md hover:bg-gray-100 flex-shrink-0 flex items-center justify-center"
             aria-label="Copy"
             type="button"
           >
@@ -1290,7 +1287,7 @@ const TextEditor = ({
           <Tooltip title="Regenerate Content">
             <button
               onClick={handleRegenerate}
-              className="p-2 rounded-md hover:bg-gray-100 transition-colors duration-150 flex items-center justify-center"
+              className="p-2 rounded-md hover:bg-gray-100 flex-shrink-0 flex items-center justify-center"
               aria-label="Regenerate"
               type="button"
             >
@@ -1302,7 +1299,7 @@ const TextEditor = ({
           <Tooltip title={`Import ${activeTab === "Markdown" ? ".md" : ".html"} File`}>
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="p-2 rounded-md hover:bg-gray-100 transition-colors duration-150 flex items-center justify-center"
+              className="p-2 rounded-md hover:bg-gray-100 flex-shrink-0 flex items-center justify-center"
               aria-label="Import File"
               type="button"
             >
@@ -1311,6 +1308,8 @@ const TextEditor = ({
           </Tooltip>
         )}
       </div>
+
+      {/* Hidden file input */}
       {(activeTab === "Markdown" || activeTab === "HTML") && (
         <input
           type="file"
@@ -1320,11 +1319,15 @@ const TextEditor = ({
           onChange={handleFileImport}
         />
       )}
-      <div className="w-px h-6 bg-gray-200 mx-2" />
+
+      {/* Divider */}
+      <div className="w-px h-6 bg-gray-200 mx-2 flex-shrink-0" />
+
+      {/* Font Select */}
       <Select
         value={selectedFont}
         onChange={(value) => safeEditorAction(() => setSelectedFont(value))}
-        className="w-32"
+        className="w-32 flex-shrink-0"
         aria-label="Font"
       >
         {FONT_OPTIONS.map((font) => (
@@ -1333,13 +1336,15 @@ const TextEditor = ({
           </Select.Option>
         ))}
       </Select>
+
+      {/* Markdown/HTML Preview */}
       {(activeTab === "Markdown" || activeTab === "HTML") && (
         <>
-          <div className="w-px h-6 bg-gray-200 mx-2" />
+          <div className="w-px h-6 bg-gray-200 mx-2 flex-shrink-0" />
           <Tooltip title={markdownPreview ? "Hide Preview" : "Show Preview"}>
             <button
               onClick={() => setMarkdownPreview(!markdownPreview)}
-              className={`p-2 rounded-md transition-colors duration-150 flex items-center justify-center ${
+              className={`p-2 rounded-md flex items-center justify-center transition-colors duration-150 ${
                 markdownPreview ? "bg-blue-100 text-blue-600" : "hover:bg-gray-100"
               }`}
               aria-label="Toggle Preview"

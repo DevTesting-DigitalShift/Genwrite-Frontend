@@ -1136,7 +1136,6 @@ const TextEditorSidebar = ({
                       <textarea
                         value={customPrompt}
                         onChange={(e) => {
-                          console.log("Typing:", e.target.value)
                           setCustomPrompt(e.target.value)
                         }}
                         placeholder="e.g., 'Make the tone more professional' or 'Shorten the content'"
