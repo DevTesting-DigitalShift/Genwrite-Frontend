@@ -8,6 +8,8 @@ export default defineConfig({
     react({
       // Optimize React production builds
       jsxRuntime: "automatic",
+      // Ensure TypeScript files are processed correctly
+      include: ["**/*.jsx", "**/*.tsx"],
     }),
   ],
   server: {
@@ -30,6 +32,8 @@ export default defineConfig({
       "@store": path.resolve(__dirname, "./src/store"),
       "@": path.resolve(__dirname, "./src"),
     },
+    // Add .ts and .tsx extensions for TypeScript support
+    extensions: [".js", ".jsx", ".ts", ".tsx"],
   },
   build: {
     // Optimize build output

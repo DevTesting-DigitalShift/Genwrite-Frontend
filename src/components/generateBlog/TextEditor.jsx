@@ -52,6 +52,10 @@ import { markdown } from "@codemirror/lang-markdown"
 import { html } from "@codemirror/lang-html"
 import { markdownLanguage } from "@codemirror/lang-markdown"
 import { languages } from "@codemirror/language-data"
+import { lazy } from "react"
+import { Suspense } from "react"
+
+const ContentDiffViewer = lazy(() => import("./ContentDiffViewer"))
 
 marked.setOptions({
   gfm: true,
@@ -137,6 +141,7 @@ const TextEditor = ({
   handleAcceptOriginalContent,
   editorContent,
 }) => {
+  console.log(humanizedContent)
   const [isEditorLoading, setIsEditorLoading] = useState(true)
   const [selectedFont, setSelectedFont] = useState(FONT_OPTIONS[0].value)
   const [linkModalOpen, setLinkModalOpen] = useState(false)
@@ -618,7 +623,10 @@ const TextEditor = ({
       handlePopup({
         title: "Retry Blog Generation",
         description: (
-          <>Are you sure you want to retry generating this blog? <span className="font-bold">This will cost 10 credits</span></>
+          <>
+            Are you sure you want to retry generating this blog?{" "}
+            <span className="font-bold">This will cost 10 credits</span>
+          </>
         ),
         onConfirm: handleReGenerate,
       })
@@ -1417,8 +1425,6 @@ const TextEditor = ({
 
     if (activeTab === "Normal") {
       if (humanizedContent && showDiff) {
-        const diff = computeLineDiff(editorContent || "", humanizedContent || "")
-
         if (!editorContent && !humanizedContent) {
           return (
             <div className="p-4 bg-white h-screen overflow-auto">
@@ -1427,6 +1433,18 @@ const TextEditor = ({
           )
         }
 
+        return (
+          <Suspense fallback={<Loading />}>
+            <ContentDiffViewer
+              oldMarkdown={editorContent}
+              newMarkdown={humanizedContent}
+              onAccept={handleAcceptHumanizedContentModified}
+              onReject={handleAcceptOriginalContent}
+            />
+          </Suspense>
+        )
+
+        /*const diff = computeLineDiff(editorContent || "", humanizedContent || "")
         return (
           <div className="p-4 bg-white h-screen overflow-auto">
             <div className="flex flex-row gap-4">
@@ -1479,6 +1497,7 @@ const TextEditor = ({
             </div>
           </div>
         )
+          */
       } else {
         return (
           <div className="h-screen overflow-auto custom-scroll">
