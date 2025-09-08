@@ -622,17 +622,10 @@ const blogSlice = createSlice({
         state.error = action.payload
       })
 
-      .addCase(fetchBlogPrompt.pending, (state) => {
-        state.loading = true
-      })
       .addCase(fetchBlogPrompt.fulfilled, (state, action) => {
         state.loading = false
         const { id, prompt } = action.payload
         state.blogPrompts[id] = prompt
-      })
-      .addCase(fetchBlogPrompt.rejected, (state, action) => {
-        state.loading = false
-        state.error = action.payload
       })
 
       // Generic Error/Loading Handling
