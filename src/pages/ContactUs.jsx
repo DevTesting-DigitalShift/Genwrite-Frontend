@@ -14,6 +14,7 @@ import {
   Building2,
   ArrowRight,
   Sparkles,
+  Youtube,
 } from "lucide-react"
 import { message } from "antd"
 
@@ -146,15 +147,15 @@ const ContactUs = () => {
 
   const socialLinks = [
     {
-      name: "Facebook",
-      icon: Facebook,
-      url: "https://facebook.com/genwrite",
+      name: "Youtube",
+      icon: Youtube,
+      url: "https://www.youtube.com/@genwrite",
       color: "hover:text-blue-600",
     },
     {
       name: "Instagram",
       icon: Instagram,
-      url: "https://instagram.com/genwrite",
+      url: "https://instagram.com/genwrite_ai",
       color: "hover:text-pink-600",
     },
     {
@@ -166,7 +167,7 @@ const ContactUs = () => {
     {
       name: "LinkedIn",
       icon: Linkedin,
-      url: "https://linkedin.com/company/genwrite",
+      url: "https://www.linkedin.com/in/genwrite/",
       color: "hover:text-blue-700",
     },
   ]
