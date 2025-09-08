@@ -317,12 +317,13 @@ const QuickBlogModal = ({ closeFnc }) => {
     >
       <div className="p-6 space-y-6">
         {currentStep === 0 && (
-          <div className="p-3">
-            <Carousel>
+          <div className="p-2 sm:p-3">
+            {/* Mobile View: Vertical Scrolling Layout */}
+            <div className="block sm:hidden space-y-4">
               {packages.map((pkg, index) => (
                 <div
                   key={index}
-                  className={`cursor-pointer transition-all duration-200 ${
+                  className={`cursor-pointer transition-all duration-200 w-full ${
                     formData.template === pkg.name ? "border-gray-300 border-2 rounded-md" : ""
                   }`}
                   onClick={() => handlePackageSelect(index)}
@@ -331,7 +332,7 @@ const QuickBlogModal = ({ closeFnc }) => {
                   onKeyDown={(e) => e.key === "Enter" && handlePackageSelect(index)}
                   aria-label={`Select ${pkg.name} template`}
                 >
-                  <div className="bg-white rounded-md overflow-hidden">
+                  <div className="bg-white rounded-md overflow-hidden shadow-sm">
                     <div className="relative">
                       <img
                         src={pkg.imgSrc || "/placeholder.svg"}
@@ -339,17 +340,53 @@ const QuickBlogModal = ({ closeFnc }) => {
                         className="w-full h-full object-cover"
                       />
                     </div>
-                    <div className="p-2 mt-2">
-                      <h3 className="font-medium text-gray-900 mb-1">{pkg.name}</h3>
+                    <div className="p-3">
+                      <h3 className="font-medium text-gray-900 text-base mb-1">{pkg.name}</h3>
                       <p className="text-sm text-gray-500 line-clamp-2">{pkg.description}</p>
                     </div>
                   </div>
                 </div>
               ))}
-            </Carousel>
-            {errors.template && (
-              <p className="text-red-500 text-sm mt-2">Please select a template.</p>
-            )}
+              {errors.template && (
+                <p className="text-red-500 text-sm mt-2">Please select a template.</p>
+              )}
+            </div>
+
+            {/* Desktop View: Carousel Layout */}
+            <div className="hidden sm:block">
+              <Carousel className="flex flex-row gap-4">
+                {packages.map((pkg, index) => (
+                  <div
+                    key={index}
+                    className={`cursor-pointer transition-all duration-200 w-full ${
+                      formData.template === pkg.name ? "border-gray-300 border-2 rounded-md" : ""
+                    }`}
+                    onClick={() => handlePackageSelect(index)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => e.key === "Enter" && handlePackageSelect(index)}
+                    aria-label={`Select ${pkg.name} template`}
+                  >
+                    <div className="bg-white rounded-md overflow-hidden shadow-sm">
+                      <div className="relative">
+                        <img
+                          src={pkg.imgSrc || "/placeholder.svg"}
+                          alt={pkg.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="p-3">
+                        <h3 className="font-medium text-gray-900 text-base mb-1">{pkg.name}</h3>
+                        <p className="text-sm text-gray-500 line-clamp-2">{pkg.description}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </Carousel>
+              {errors.template && (
+                <p className="text-red-500 text-sm mt-2">Please select a template.</p>
+              )}
+            </div>
           </div>
         )}
         {currentStep === 1 && (

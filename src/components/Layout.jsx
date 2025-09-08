@@ -137,7 +137,7 @@ const LayoutWithSidebarAndHeader = () => {
       { key: "profile", label: "Profile", className: "!py-1.5 hover:bg-gray-100" },
       { key: "transactions", label: "Transactions", className: "!py-1.5 hover:bg-gray-100" },
       { key: "credit-logs", label: "Credit Logs", className: "!py-1.5 hover:bg-gray-100" },
-      { key: "upgrade", label: "Upgrade", className: "!py-1.5 hover:bg-gray-100" },
+      { key: "pricing", label: "Upgrade", className: "!py-1.5 hover:bg-gray-100" },
       user?.subscription?.plan !== "free" && { key: "cancel-subscription", label: "Cancel Subscription", className: "!py-1.5 hover:bg-gray-100" },
       { type: "divider" },
       { key: "logout", danger: true, label: "Logout", className: "!py-2 hover:bg-gray-100" },

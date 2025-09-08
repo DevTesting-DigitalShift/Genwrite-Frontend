@@ -55,7 +55,6 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
 
   // Reset form and results when modal closes
   useEffect(() => {
-    console.log("Loading", open)
     if (!open) {
       setFormData({
         title: "",
@@ -146,16 +145,6 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
     const foundProject = blogs?.find((p) => p._id === value)
     if (foundProject) {
       setId(foundProject._id)
-      // setFormData((prev) => ({
-      //   ...prev,
-      //   title: foundProject.title,
-      //   content: foundProject.content || "",
-      //   keywords: foundProject.keywords || [],
-      //   focusKeywords: foundProject.focusKeywords || [],
-      //   selectedProject: foundProject,
-      //   contentType: "markdown",
-      //   generatedMetadata: null,
-      // }))
       setAnalysisResults(null)
       setCollapseKey((prev) => prev + 1) // Reset Collapse
     }
@@ -217,7 +206,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
       .split("\n")
       .filter((line) => line.trim() !== "")
       .map((line, index) => (
-        <p key={index} className="mb-2">
+        <p key={index} className="mb-2 text-sm md:text-base">
           <span
             dangerouslySetInnerHTML={{
               __html: line.trim().replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>"),
@@ -235,11 +224,11 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
           <Panel
             key={index}
             header={
-              <div className="flex justify-between items-center w-full pr-2">
-                <span className="font-medium text-gray-800 truncate max-w-[60%]">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center w-full pr-2">
+                <span className="font-medium text-gray-800 truncate max-w-[80%] sm:max-w-[60%] text-sm md:text-base">
                   {cleanMarkdown(competitor.title)}
                 </span>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 mt-2 sm:mt-0">
                   <Tooltip title="Relatable Score">
                     {competitor.score && (
                       <Tag color="blue">{(competitor.score * 100).toFixed(2)}%</Tag>
@@ -257,7 +246,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
                 </div>
               </div>
             }
-            className="text-sm text-gray-700 leading-relaxed"
+            className="text-sm md:text-base text-gray-700 leading-relaxed"
           >
             {competitor?.content ? (
               <div>{parseSummary(competitor.content)}</div>
@@ -298,7 +287,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
                 <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
               </svg>
             </div>
-            <span className="text-lg font-semibold text-gray-800">{title}</span>
+            <span className="text-base md:text-lg font-semibold text-gray-800">{title}</span>
           </div>
         }
         className="bg-white border border-gray-200 rounded-xl shadow-sm"
@@ -308,11 +297,11 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
             <Panel
               key={index}
               header={
-                <div className="flex justify-between items-center w-full">
-                  <span className="text-sm font-medium text-gray-800">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center w-full">
+                  <span className="text-sm md:text-base font-medium text-gray-800">
                     {cleanMarkdown(link.title)}
                   </span>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 mt-2 sm:mt-0">
                     <Tooltip title="Relatable Score">
                       {link.score && <Tag color="blue">{(link.score * 100).toFixed(2)}%</Tag>}
                     </Tooltip>
@@ -328,7 +317,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
                   </div>
                 </div>
               }
-              className="text-sm text-gray-700 leading-relaxed"
+              className="text-sm md:text-base text-gray-700 leading-relaxed"
             >
               <p className="text-gray-600">{cleanMarkdown(link.snippet || link.content)}</p>
               {link.summary && <div>{parseSummary(link.summary)}</div>}
@@ -363,14 +352,14 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
                 <path d="M12 17h.01" />
               </svg>
             </div>
-            <span className="text-lg font-semibold text-gray-800">Competitors Analysis</span>
+            <span className="text-base md:text-lg font-semibold text-gray-800">Competitors Analysis</span>
           </div>
         }
         className="bg-white border border-gray-200 rounded-xl shadow-sm"
       >
         <Collapse key={collapseKey} accordion expandIconPosition="right">
           <Panel
-            header={<span className="font-semibold text-gray-800">Analysis</span>}
+            header={<span className="font-semibold text-gray-800 text-sm md:text-base">Analysis</span>}
             key="analysis"
           >
             <Collapse accordion>
@@ -382,14 +371,14 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
                   <Panel
                     key={key}
                     header={
-                      <div className="flex justify-between items-center w-full pr-2">
-                        <span className="font-medium text-gray-800">{cleanMarkdown(key)}</span>
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center w-full pr-2">
+                        <span className="font-medium text-gray-800 text-sm md:text-base">{cleanMarkdown(key)}</span>
                         <Tooltip title="Relatable Score">
                           {score && <Tag color="blue">{score.replace("/", " / ")}</Tag>}
                         </Tooltip>
                       </div>
                     }
-                    className="text-sm text-gray-700 leading-relaxed"
+                    className="text-sm md:text-base text-gray-700 leading-relaxed"
                   >
                     <p>{description}</p>
                   </Panel>
@@ -398,10 +387,10 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
             </Collapse>
           </Panel>
           <Panel
-            header={<span className="font-semibold text-gray-800">Suggestions</span>}
+            header={<span className="font-semibold text-gray-800 text-sm md:text-base">Suggestions</span>}
             key="suggestions"
           >
-            <ul className="list-decimal pl-6 space-y-3 text-sm text-gray-700">
+            <ul className="list-decimal pl-6 space-y-3 text-sm md:text-base text-gray-700">
               {suggestions
                 .split(/(?:\d+\.\s)/)
                 .filter(Boolean)
@@ -483,21 +472,21 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
               <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
             </svg>
           </div>
-          <h2 className="text-xl font-semibold text-gray-900">Competitive Analysis Dashboard</h2>
+          <h2 className="text-lg md:text-xl font-semibold text-gray-900">Competitive Analysis Dashboard</h2>
         </motion.div>
       }
       onCancel={closeFnc}
       footer={[
-        <div key="footer" className="flex justify-end gap-3">
+        <div key="footer" className="flex flex-col sm:flex-row justify-end gap-3">
           <Button
             onClick={closeFnc}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition"
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition w-full sm:w-auto"
           >
             Close
           </Button>
           <Button
             onClick={handleSubmit}
-            className={`px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition ${
+            className={`px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition w-full sm:w-auto ${
               isLoading || blogLoading || analysisLoading ? "opacity-50 cursor-not-allowed" : ""
             }`}
             disabled={isLoading || blogLoading || analysisLoading}
@@ -515,29 +504,29 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
           </Button>
         </div>,
       ]}
-      width={1000}
+      width="100%"
+      className="w-full max-w-[90vw] md:max-w-3xl lg:max-w-4xl"
       centered
       closable={true}
       transitionName=""
       maskTransitionName=""
-      styles={{ body: { maxHeight: "85vh", overflowY: "auto", padding: "16px" } }}
+      styles={{ body: { maxHeight: "80vh", overflowY: "auto", padding: "12px sm:16px" } }}
     >
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <label className="block text-sm font-medium text-gray-700 mb-2">Select Blog Post</label>
+          <label className="block text-sm md:text-base font-medium text-gray-700 mb-2">Select Blog Post</label>
           <Select
             showSearch
             filterOption={(input, option) =>
               option?.children?.toLowerCase().includes(input.toLowerCase())
             }
-            className="w-full rounded-md text-sm"
+            className="w-full rounded-md text-sm md:text-base"
             onChange={handleProjectSelect}
             value={formData.selectedProject?._id || ""}
-            styles={{ popup: { maxHeight: 200, overflowY: "auto" } }}
             placeholder="Select a blog"
           >
             <Select.Option value="">Select a blog</Select.Option>
@@ -550,34 +539,34 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
         </motion.div>
 
         {formData.selectedProject && (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
               className="border border-gray-200 rounded-xl shadow-sm overflow-hidden"
             >
-              <div className="p-4 bg-gray-50 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-700">Blog Details</h3>
+              <div className="p-3 sm:p-4 bg-gray-50 border-b border-gray-200">
+                <h3 className="text-base md:text-lg font-semibold text-gray-700">Blog Details</h3>
               </div>
-              <div className="p-4">
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Title</label>
+              <div className="p-3 sm:p-4">
+                <div className="mb-3 sm:mb-4">
+                  <label className="block text-sm md:text-base font-medium text-gray-600 mb-1">Title</label>
                   <Input
                     name="title"
                     value={formData.title}
                     readOnly
-                    className="w-full bg-gray-100 cursor-not-allowed"
+                    className="w-full bg-gray-100 cursor-not-allowed text-sm md:text-base"
                   />
                 </div>
                 {mergedKeywords.length > 0 && (
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-600 mb-1">Keywords</label>
+                  <div className="mb-3 sm:mb-4">
+                    <label className="block text-sm md:text-base font-medium text-gray-600 mb-1">Keywords</label>
                     <div className="flex flex-wrap gap-2">
                       {mergedKeywords.map((keyword, i) => (
                         <Tag
                           key={keyword}
-                          className="flex items-center gap-1 bg-blue-50 text-blue-700 border-blue-100"
+                          className="flex items-center gap-1 bg-blue-50 text-blue-700 border-blue-100 text-sm"
                         >
                           {cleanMarkdown(keyword)}
                         </Tag>
@@ -586,11 +575,11 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
                   </div>
                 )}
                 {formData.content ? (
-                  <div className="text-gray-700 max-h-40 overflow-y-auto whitespace-pre-wrap leading-relaxed p-4 bg-gray-50 rounded-md">
+                  <div className="text-gray-700 max-h-40 overflow-y-auto whitespace-pre-wrap leading-relaxed p-3 sm:p-4 bg-gray-50 rounded-md text-sm md:text-base">
                     {cleanMarkdown(formData.content)
                       .split("\n")
                       .map((line, index) => (
-                        <p key={index} className="text-base mt-2">
+                        <p key={index} className="mt-2">
                           {line.trim()}
                         </p>
                       ))}
@@ -608,15 +597,15 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
                 transition={{ delay: 0.3 }}
                 className="border border-gray-200 rounded-xl shadow-sm overflow-hidden"
               >
-                <div className="p-4 bg-gray-50 border-b border-gray-200">
-                  <h3 className="text-lg font-semibold text-gray-700">SEO Metadata</h3>
+                <div className="p-3 sm:p-4 bg-gray-50 border-b border-gray-200">
+                  <h3 className="text-base md:text-lg font-semibold text-gray-700">SEO Metadata</h3>
                 </div>
-                <div className="p-4">
-                  <p className="text-sm text-gray-600">
+                <div className="p-3 sm:p-4">
+                  <p className="text-sm md:text-base text-gray-600">
                     <strong>Title:</strong>{" "}
                     {cleanMarkdown(formData.generatedMetadata.seo_meta.title)}
                   </p>
-                  <p className="text-sm text-gray-600 mt-2">
+                  <p className="text-sm md:text-base text-gray-600 mt-2">
                     <strong>Description:</strong>{" "}
                     {cleanMarkdown(formData.generatedMetadata.seo_meta.description)}
                   </p>
@@ -630,9 +619,9 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-center py-10 bg-gray-50 rounded-xl border border-gray-200 shadow-sm"
+            className="text-center py-8 sm:py-10 bg-gray-50 rounded-xl border border-gray-200 shadow-sm"
           >
-            <p className="text-gray-600 text-lg">Select a blog to view details and analysis</p>
+            <p className="text-gray-600 text-sm md:text-lg">Select a blog to view details and analysis</p>
           </motion.div>
         )}
 
@@ -653,11 +642,12 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
                 setCollapseKey((prev) => prev + 1) // Reset Collapse when tab changes
               }}
               type="card"
+              className="w-full"
             >
               {hasAnalysisResults && (
                 <TabPane
                   tab={
-                    <span className="flex items-center gap-2">
+                    <span className="flex items-center gap-2 text-sm md:text-base">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         width="16"
@@ -680,7 +670,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
                   <motion.div
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, ease: "easeOut" }}
-                    className="space-y-6"
+                    className="space-y-4 sm:space-y-6"
                   >
                     <motion.div
                       initial={{ opacity: 0, scale: 0.8 }}
@@ -694,9 +684,10 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
                         format={(percent) => `${percent} / 100`}
                         strokeColor={{ "0%": "#1B6FC9", "100%": "#4C9FE8" }}
                         trailColor="#e5e7eb"
-                        size="large"
+                        size={["100%", "100%"]}
+                        className="w-32 sm:w-40 md:w-48"
                       />
-                      <div className="text-gray-800 text-lg font-semibold mt-3">Blog SEO Score</div>
+                      <div className="text-gray-800 text-base md:text-lg font-semibold mt-3">Blog SEO Score</div>
                     </motion.div>
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
@@ -709,10 +700,10 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
                         headStyle={{
                           background: "#f9fafb",
                           fontWeight: 600,
-                          fontSize: "1.1rem",
+                          fontSize: "0.9rem sm:1.1rem",
                         }}
                       >
-                        <ul className="list-decimal pl-6 space-y-3 text-sm text-gray-700">
+                        <ul className="list-decimal pl-6 space-y-3 text-sm md:text-base text-gray-700">
                           {analysisResults?.insights?.suggestions
                             ?.split(/(?:\d+\.\s)/)
                             .filter(Boolean)
@@ -738,7 +729,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
               {hasCompetitors && (
                 <TabPane
                   tab={
-                    <span className="flex items-center gap-2">
+                    <span className="flex items-center gap-2 text-sm md:text-base">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         width="16"
@@ -764,7 +755,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
               {(hasOutboundLinks || hasInternalLinks) && (
                 <TabPane
                   tab={
-                    <span className="flex items-center gap-2">
+                    <span className="flex items-center gap-2 text-sm md:text-base">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         width="16"
@@ -785,7 +776,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
                   }
                   key="links"
                 >
-                  <div className="space-y-6">
+                  <div className="space-y-4 sm:space-y-6">
                     {renderOutboundLinksList(
                       formData?.generatedMetadata?.outboundLinks,
                       "Outbound Links"
@@ -800,7 +791,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
               {hasInitialAnalysis && (
                 <TabPane
                   tab={
-                    <span className="flex items-center gap-2">
+                    <span className="flex items-center gap-2 text-sm md:text-base">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         width="16"
