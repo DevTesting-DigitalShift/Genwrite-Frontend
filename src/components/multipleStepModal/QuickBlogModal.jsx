@@ -315,11 +315,11 @@ const QuickBlogModal = ({ closeFnc }) => {
       transitionName=""
       maskTransitionName=""
     >
-      <div className="p-6 space-y-6">
+      <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
         {currentStep === 0 && (
-          <div className="p-2 sm:p-3">
+          <div>
             {/* Mobile View: Vertical Scrolling Layout */}
-            <div className="block sm:hidden space-y-4">
+              <div className="sm:hidden grid grid-cols-2 gap-4">
               {packages.map((pkg, index) => (
                 <div
                   key={index}
@@ -347,9 +347,6 @@ const QuickBlogModal = ({ closeFnc }) => {
                   </div>
                 </div>
               ))}
-              {errors.template && (
-                <p className="text-red-500 text-sm mt-2">Please select a template.</p>
-              )}
             </div>
 
             {/* Desktop View: Carousel Layout */}

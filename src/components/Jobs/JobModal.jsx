@@ -22,6 +22,7 @@ const initialJob = {
     useBrandVoice: false,
     isCheckedGeneratedImages: true,
     addCTA: true,
+    numberOfImages: 0,
   },
   options: {
     wordpressPosting: false,
@@ -294,7 +295,7 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
       centered
       className="custom-modal"
     >
-      <div className="p-4 max-h-[80vh] overflow-y-auto">
+      <div className="p-2 md:p-4 max-h-[80vh] overflow-y-auto">
         <StepContent
           currentStep={currentStep}
           newJob={newJob}

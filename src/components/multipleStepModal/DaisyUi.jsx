@@ -44,6 +44,7 @@ const MultiStepModal = ({ closeFnc }) => {
     includeMetaHeadlines: true,
     includeFaqs: true,
     numberOfBlogs: 1,
+    numberOfImages: 1,
     wordpressPostStatus: false,
     postFrequency: 10 * 60,
     selectedDates: null,
@@ -114,6 +115,11 @@ const MultiStepModal = ({ closeFnc }) => {
     }
 
     if (formData.numberOfBlogs < 1 || formData.numberOfBlogs > 10) {
+      message.error("Number of blogs must be between 1 and 10.")
+      return
+    }
+
+    if (formData.numberOfImages < 1 || formData.numberOfImages > 10) {
       message.error("Number of blogs must be between 1 and 10.")
       return
     }
@@ -421,14 +427,14 @@ const MultiStepModal = ({ closeFnc }) => {
       transitionName=""
       maskTransitionName=""
     >
-      <div className="p-4">
+      <div className="p-2 md:p-4 max-h-[80vh] overflow-y-auto">
         {currentStep === 0 && (
           <div className="p-2 sm:p-3">
             <p className="text-sm text-gray-600 mb-3 sm:mb-4">
               Select up to 3 templates for the types of blogs you want to generate.
             </p>
             {/* Mobile View: Vertical Scrolling Layout */}
-            <div className="block sm:hidden space-y-4">
+            <div className="sm:hidden grid grid-cols-2 gap-4">
               {packages.map((pkg, index) => (
                 <div
                   key={pkg.name}
@@ -897,6 +903,27 @@ const MultiStepModal = ({ closeFnc }) => {
                 </div>
               </div>
             )}
+
+            <div className="pt-4 w-full ">
+              <label className="block text-sm font-semibold text-gray-700 mb-1">
+                Number of Images
+              </label>
+              <p className="text-xs text-gray-500 mb-2">
+                Enter the number of images (0 = AI will decide)
+              </p>
+              <input
+                type="number"
+                name="numberOfImages"
+                min="0"
+                max="20"
+                value={formData.numberOfImages}
+                onChange={handleInputChange}
+                onWheel={(e) => e.currentTarget.blur()} // prevent scroll changes
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm placeholder-gray-400 transition"
+                placeholder="e.g., 5"
+              />
+            </div>
+            
 
             <div className="space-y-4 pt-4 border-t border-gray-200">
               <div className="flex items-center justify-between">

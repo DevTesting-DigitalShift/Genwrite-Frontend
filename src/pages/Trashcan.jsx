@@ -135,13 +135,13 @@ const Trashcan = () => {
   }
 
   return (
-    <div className="p-8 max-w-full">
+    <div className="p-2 md:p-4 lg:p-8 max-w-full">
       <Helmet>
         <title>Trashcan | GenWrite</title>
       </Helmet>
       <div>
         {/* Header */}
-        <div className="mb-6 flex flex-col sm:flex-row sm:justify-between items-center">
+        <div className="mb-6 flex flex-col sm:flex-row sm:justify-between items-center mt-5 p-2 md:mt-0 md:p-0">
           <div>
             <motion.h1
               initial={{ opacity: 0, y: -10 }}

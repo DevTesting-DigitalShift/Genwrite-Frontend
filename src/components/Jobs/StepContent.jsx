@@ -149,6 +149,19 @@ const StepContent = ({
     }
   }
 
+  const handleInputChange = (e) => {
+    const { name, value, type } = e.target
+    const val = type === "number" ? parseInt(value, 10) || 0 : value
+
+    setNewJob({
+      ...newJob,
+      blogs: {
+        ...newJob.blogs,
+        numberOfImages: val, // use val, not value
+      },
+    })
+  }
+
   const handleCSVUpload = (e, type) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -263,7 +276,7 @@ const StepContent = ({
             Select up to 3 templates for the types of blogs you want to generate.
           </p>
           {/* Mobile View: Vertical Scrolling Layout */}
-          <div className="block sm:hidden space-y-4">
+          <div className="sm:hidden grid grid-cols-2 gap-4">
             {packages.map((pkg) => (
               <div
                 key={pkg.name}
@@ -662,6 +675,26 @@ const StepContent = ({
                 </div>
               </div>
             )}
+
+            <div className="pt-4 w-full ">
+              <label className="block text-sm font-semibold text-gray-700 mb-1">
+                Number of Images
+              </label>
+              <p className="text-xs text-gray-500 mb-2">
+                Enter the number of images (0 = AI will decide)
+              </p>
+              <input
+                type="number"
+                name="numberOfImages"
+                min="0"
+                max="20"
+                value={newJob.blogs.numberOfImages}
+                onChange={handleInputChange}
+                onWheel={(e) => e.currentTarget.blur()} // prevent scroll changes
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm placeholder-gray-400 transition"
+                placeholder="e.g., 5"
+              />
+            </div>
           </div>
         </motion.div>
       )

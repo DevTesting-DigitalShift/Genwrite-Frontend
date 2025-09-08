@@ -220,7 +220,7 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
       transitionName=""
       maskTransitionName=""
     >
-      <div className="p-4">
+      <div className="p-2 md:p-4">
         <div className="space-y-6">
           {/* Topic */}
           <div>
@@ -342,14 +342,14 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
           </div>
 
           {/* Title */}
-          <div>
-            <label className="block text-sm font-medium mb-2">
+          <div className="w-full">
+            <label className="block text-sm sm:text-base font-medium mb-2">
               Title <span className="text-red-500">*</span>
             </label>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <input
                 type="text"
-                className={`flex-1 px-3 py-2 bg-gray-50 border ${
+                className={`flex-1 px-3 py-2 text-sm sm:text-base bg-gray-50 border ${
                   errors.title ? "border-red-500" : "border-gray-200"
                 } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B6FC9]`}
                 placeholder="e.g., How to Create a Tech Blog"
@@ -361,9 +361,8 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
               />
               <button
                 onClick={handleGenerateTitles}
-                Anastasia
                 disabled={loadingTitles}
-                className={`px-4 py-2 bg-gradient-to-r from-[#1B6FC9] to-[#4C9FE8] text-white rounded-lg flex items-center ${
+                className={`px-4 py-2 sm:px-5 sm:py-2.5 bg-gradient-to-r from-[#1B6FC9] to-[#4C9FE8] text-white rounded-lg flex items-center justify-center text-sm sm:text-base ${
                   loadingTitles
                     ? "opacity-50 cursor-not-allowed"
                     : "hover:from-[#1B6FC9]/90 hover:to-[#4C9FE8]/90"
@@ -384,6 +383,7 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
                 )}
               </button>
             </div>
+
             {generatedTitles.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-2 items-center">
                 {generatedTitles.map((title, index) => {
@@ -396,12 +396,12 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
                           setData((prev) => ({ ...prev, title }))
                           setErrors((prev) => ({ ...prev, title: false }))
                         }}
-                        className={`px-3 py-1 rounded-full text-sm border transition w-full truncate
-                          ${
-                            isSelected
-                              ? "bg-[#1B6FC9] text-white border-[#1B6FC9]"
-                              : "bg-gray-100 text-gray-700 border-gray-300 opacity-60 hover:opacity-100 hover:bg-gray-200"
-                          }`}
+                        className={`px-3 py-1 rounded-full text-sm sm:text-base border transition w-full truncate
+                ${
+                  isSelected
+                    ? "bg-[#1B6FC9] text-white border-[#1B6FC9]"
+                    : "bg-gray-100 text-gray-700 border-gray-300 opacity-60 hover:opacity-100 hover:bg-gray-200"
+                }`}
                       >
                         {title}
                       </button>

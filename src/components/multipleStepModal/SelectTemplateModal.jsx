@@ -122,13 +122,13 @@ const SelectTemplateModal = ({ handleNext, handleClose, data, setData }) => {
       transitionName=""
       maskTransitionName=""
     >
-      <div className="p-2 sm:p-3">
+      <div className="max-h-[80vh] overflow-y-auto">
         {/* Mobile View: Vertical Scrolling Layout */}
-        <div className="block sm:hidden space-y-4">
+        <div className="sm:hidden grid grid-cols-2 gap-4">
           {packages.map((pkg, index) => (
             <div
               key={index}
-              className={`cursor-pointer transition-all duration-200 w-full ${
+              className={`cursor-pointer transition-all duration-200 ${
                 formData.template.includes(pkg.name) ? "border-gray-300 border-2 rounded-lg" : ""
               }`}
               onClick={() => handlePackageSelect(index)}
@@ -144,7 +144,6 @@ const SelectTemplateModal = ({ handleNext, handleClose, data, setData }) => {
                 <div className="p-3">
                   <h3 className="font-medium text-gray-900 text-base mb-1">{pkg.name}</h3>
                   <p className="text-sm text-gray-500 line-clamp-2">{pkg.description}</p>
-                  {pkg.author && <p className="text-xs text-gray-400 mt-1">By {pkg.author}</p>}
                 </div>
               </div>
             </div>

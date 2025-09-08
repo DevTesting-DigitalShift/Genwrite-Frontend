@@ -33,6 +33,7 @@ const SecondStepModal = ({
     includeInterlinks: data.includeInterlinks || false,
     addOutBoundLinks: data.addOutBoundLinks || false,
     addCTA: data.addCTA || true,
+    numberOfImages: data.numberOfImages || 0
   })
   const [localFormData, setLocalFormData] = useState({
     newLink: "",
@@ -52,6 +53,15 @@ const SecondStepModal = ({
     // staleTime: 5 * 60 * 1000,
     // cacheTime: 10 * 60 * 1000,
   })
+
+  const handleInputChange = (e) => {
+    const { name, value, type } = e.target
+    const val = type === "number" ? parseInt(value, 10) || 0 : value
+    setFormData({
+      ...formData,
+      [name]: val,
+    })
+  }
 
   const handleAddLink = () => {
     const input = localFormData.newLink.trim()
@@ -326,6 +336,26 @@ const SecondStepModal = ({
               </div>
             </div>
           )}
+
+          <div className="pt-4 w-full ">
+            <label className="block text-sm font-semibold text-gray-700 mb-1">
+              Number of Images
+            </label>
+            <p className="text-xs text-gray-500 mb-2">
+              Enter the number of images (0 = AI will decide)
+            </p>
+            <input
+              type="number"
+              name="numberOfImages"
+              min="0"
+              max="20"
+              value={formData.numberOfImages}
+              onChange={handleInputChange}
+              onWheel={(e) => e.currentTarget.blur()} // prevent scroll changes
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm placeholder-gray-400 transition"
+              placeholder="e.g., 5"
+            />
+          </div>
 
           {/* Quick Summary Toggle */}
           <div className="flex items-center justify-between">

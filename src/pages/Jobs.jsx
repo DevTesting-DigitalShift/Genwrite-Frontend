@@ -79,9 +79,9 @@ const Jobs = () => {
       <Helmet>
         <title>Content Agent | GenWrite</title>
       </Helmet>
-      <div className="min-h-screen bg-gray-50 p-8">
+      <div className="min-h-screen bg-gray-50 p-6 lg:p-8">
         <div>
-          <div className="flex justify-between">
+          <div className="flex justify-between mt-5 md:mt-0">
             <div className="mb-8">
               <motion.h1
                 initial={{ y: -20 }}

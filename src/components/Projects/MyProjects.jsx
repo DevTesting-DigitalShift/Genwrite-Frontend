@@ -536,12 +536,12 @@ const MyProjects = () => {
   )
 
   return (
-    <div className="p-8 max-w-full">
+    <div className="p-2 md:p-4 lg:p-8 max-w-full">
       <Helmet>
         <title>Blogs | GenWrite</title>
       </Helmet>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div className="flex-1">
+        <div className="flex-1 mt-5 p-2 md:mt-0 md:p-0">
           <motion.h1
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -556,8 +556,8 @@ const MyProjects = () => {
             transition={{ duration: 0.4, delay: 0.1 }}
             className="text-gray-500 text-sm mt-2 max-w-md"
           >
-            All your content creation tools in one place. Streamline your workflow with our powerful
-            suite of tools.
+            All our blogs in one place. Explore insights, tips, and strategies to level up your
+            content creation.
           </motion.p>
         </div>
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>

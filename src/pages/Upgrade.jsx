@@ -399,7 +399,7 @@ const Upgrade = () => {
           <motion.div initial={{ y: -20 }} animate={{ y: 0 }} className="inline-block mb-4">
             <motion.h1
               whileHover={{ scale: 1.02 }}
-              className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
+              className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mt-10"
             >
               Flexible Pricing Plans
             </motion.h1>

@@ -271,7 +271,7 @@ const Dashboard = () => {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="mt-5 ml-10"
+        className="mt-10 md:mt-5 ml-10"
       >
         <h1 className="bg-clip-text bg-gradient-to-r font-bold from-blue-600 md:text-4xl text-3xl text-transparent to-purple-600">
           Let's Begin <span className="ml-2 text-2xl text-yellow-400">✨</span>

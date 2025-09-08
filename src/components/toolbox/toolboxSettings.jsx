@@ -303,7 +303,7 @@ export default function ToolboxPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="p-8 max-w-full"
+        className="p-2 md:p-4 lg:p-8 max-w-full"
       >
         <Helmet>
           <title>Toolbox | GenWrite</title>
@@ -313,7 +313,7 @@ export default function ToolboxPage() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, duration: 0.4 }}
-          className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 sm:mb-8"
+          className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 sm:mb-8 mt-5 p-2 md:mt-0 md:p-0"
         >
           <div>
             <motion.h1
@@ -431,7 +431,7 @@ export default function ToolboxPage() {
                       <p className="mb-4 text-gray-600 text-xs sm:text-sm">
                         Find and analyze keywords for your blog
                       </p>
-                      <div className="flex flex-col sm:flex-row gap-2 mb-4">
+                      <div className="flex flex-row flex-wrap gap-2 mb-4">
                         <Input
                           placeholder="Enter a keyword (e.g., tech)"
                           value={newKeyword}
@@ -443,12 +443,13 @@ export default function ToolboxPage() {
                           <Button
                             type="primary"
                             onClick={addKeyword}
-                            className="text-xs sm:text-sm"
+                            className="text-xs sm:text-sm whitespace-nowrap"
                           >
                             Add
                           </Button>
                         </motion.div>
                       </div>
+
                       <div className="flex flex-wrap gap-2 mb-4 sm:mb-6">
                         {keywords.map((keyword, index) => (
                           <motion.div
