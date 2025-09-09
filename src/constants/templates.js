@@ -43,4 +43,9 @@ export const packages = [
     name: "Interview",
     description: "Engaging conversations with industry experts.",
   },
+  {
+    imgSrc: "./Images/q&a.png",
+    name: "Question & Answer",
+    description: "Interactive expert Q&A sessions.",
+  },
 ]

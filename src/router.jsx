@@ -34,6 +34,7 @@ const AnalyticsPage = lazy(() => import("@components/AnalyticsPage"))
 const OutlineEditor = lazy(() => import("@pages/OutlineEditor"))
 const GenerateMetaData = lazy(() => import("@components/GenerateMetaData"))
 const PromptContent = lazy(() => import("@components/PromptContent"))
+const UnsubscribeEmail = lazy(() => import("@components/UnsubscribeEmail"))
 
 /**
  * Wraps a component in React.Suspense with fallback support.
@@ -81,6 +82,7 @@ const router = createBrowserRouter([
       { path: "analytics", element: withSuspense(AnalyticsPage) },
       { path: "generate-metadata", element: withSuspense(GenerateMetaData) },
       { path: "prompt-content", element: withSuspense(PromptContent) },
+      { path: "unsubscribe", element: withSuspense(UnsubscribeEmail) },
       {
         path: "payment",
         children: [

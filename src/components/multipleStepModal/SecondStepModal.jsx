@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { useQuery } from "@tanstack/react-query"
 import { fetchBrands } from "@store/slices/brandSlice"
@@ -22,22 +22,38 @@ const SecondStepModal = ({
   const isAiImagesLimitReached = user?.usage?.aiImages >= user?.usageLimits?.aiImages
 
   const [formData, setFormData] = useState({
-    isCheckedQuick: data.isCheckedQuick || false,
-    isCheckedBrand: data.isCheckedBrand || false,
-    aiModel: data.aiModel || "gemini",
-    brandId: data.brandId || null,
-    isFAQEnabled: data.isFAQEnabled || false,
-    imageSource: data.imageSource || "unsplash",
-    isCheckedGeneratedImages: data.isCheckedGeneratedImages || false,
-    referenceLinks: data.referenceLinks || [],
-    includeInterlinks: data.includeInterlinks || false,
-    addOutBoundLinks: data.addOutBoundLinks || false,
-    addCTA: data.addCTA || true,
-    numberOfImages: data.numberOfImages || 0
+    isCheckedQuick: data?.isCheckedQuick || false,
+    isCheckedBrand: data?.isCheckedBrand || false,
+    aiModel: data?.aiModel || "gemini",
+    brandId: data?.brandId || null,
+    isFAQEnabled: data?.isFAQEnabled || false,
+    imageSource: data?.imageSource || "unsplash",
+    isCheckedGeneratedImages: data?.isCheckedGeneratedImages || false,
+    isCheckedblogImages: data?.isCheckedblogImages || false,
+    blogImages: Array.isArray(data?.blogImages) ? data.blogImages : [], // Ensure array
+    referenceLinks: Array.isArray(data?.referenceLinks) ? data.referenceLinks : [],
+    includeInterlinks: data?.includeInterlinks || false,
+    addOutBoundLinks: data?.addOutBoundLinks || false,
+    addCTA: data?.addCTA || true,
+    numberOfImages: data?.numberOfImages || 0,
+    isDragging: false, // For drag-and-drop UI
   })
   const [localFormData, setLocalFormData] = useState({
     newLink: "",
   })
+
+  const fileInputRef = useRef(null)
+
+  // Clean up object URLs to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      formData.blogImages.forEach((image) => {
+        if (image instanceof File) {
+          URL.revokeObjectURL(URL.createObjectURL(image))
+        }
+      })
+    }
+  }, [formData.blogImages])
 
   const {
     data: brands = [],
@@ -46,21 +62,23 @@ const SecondStepModal = ({
   } = useQuery({
     queryKey: ["brands"],
     queryFn: async () => {
-      const response = await dispatch(fetchBrands()).unwrap() // Dispatch and unwrap the payload
-      return response // Return the brands data
+      const response = await dispatch(fetchBrands()).unwrap()
+      return response
     },
-    enabled: formData.isCheckedBrand, // Only fetch if brand voice is checked
-    // staleTime: 5 * 60 * 1000,
-    // cacheTime: 10 * 60 * 1000,
+    enabled: formData.isCheckedBrand,
   })
 
   const handleInputChange = (e) => {
     const { name, value, type } = e.target
     const val = type === "number" ? parseInt(value, 10) || 0 : value
-    setFormData({
-      ...formData,
+    setFormData((prev) => ({
+      ...prev,
       [name]: val,
-    })
+    }))
+    setData((prev) => ({
+      ...prev,
+      [name]: val,
+    }))
   }
 
   const handleAddLink = () => {
@@ -105,21 +123,13 @@ const SecondStepModal = ({
       ...prev,
       referenceLinks: prev.referenceLinks.filter((_, i) => i !== index),
     }))
-  }
-
-  const handleNextStep = () => {
-    const updatedData = {
-      ...data,
-      ...formData,
-    }
-    handleSubmit(updatedData)
+    setData((prev) => ({
+      ...prev,
+      referenceLinks: prev.referenceLinks.filter((_, i) => i !== index),
+    }))
   }
 
   const handleImageSourceChange = (source) => {
-    // if (source === "ai" && userPlan === "free") {
-    //   openUpgradePopup({ featureName: "AI-Generated Images", navigate })
-    //   return
-    // }
     setFormData((prev) => ({
       ...prev,
       imageSource: source,
@@ -129,6 +139,115 @@ const SecondStepModal = ({
       imageSource: source,
       isUnsplashActive: source === "unsplash",
     }))
+  }
+
+  const validateImages = (files) => {
+    const maxImages = 15
+    const maxSize = 5 * 1024 * 1024 // 5 MB in bytes
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"]
+
+    if (!files || files.length === 0) return []
+
+    const validFiles = Array.from(files).filter((file) => {
+      if (!allowedTypes.includes(file.type)) {
+        message.error(
+          `"${file.name}" is not a valid image type. Only PNG, JPEG, and WebP are allowed.`
+        )
+        return false
+      }
+      if (file.size > maxSize) {
+        message.error(`"${file.name}" exceeds the 5 MB size limit.`)
+        return false
+      }
+      return true
+    })
+
+    const totalImages = formData.blogImages.length + validFiles.length
+    if (totalImages > maxImages) {
+      message.error(`Cannot upload more than ${maxImages} images.`)
+      return validFiles.slice(0, maxImages - formData.blogImages.length)
+    }
+
+    return validFiles
+  }
+
+  const handleFileChange = (e) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    const validFiles = validateImages(files)
+    if (validFiles.length > 0) {
+      setFormData((prev) => ({
+        ...prev,
+        blogImages: [...prev.blogImages, ...validFiles],
+      }))
+      setData((prev) => ({
+        ...prev,
+        blogImages: (Array.isArray(prev.blogImages) ? prev.blogImages : []).filter(
+          (_, i) => i !== index
+        ),
+      }))
+      // message.success(`${validFiles.length} image(s) added successfully!`)
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "" // Reset input
+    }
+  }
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setFormData((prev) => ({ ...prev, isDragging: false }))
+
+    const files = e.dataTransfer.files
+    if (!files || files.length === 0) return
+
+    const validFiles = validateImages(files)
+    if (validFiles.length > 0) {
+      setFormData((prev) => ({
+        ...prev,
+        blogImages: [...prev.blogImages, ...validFiles],
+      }))
+      setData((prev) => ({
+        ...prev,
+        blogImages: [...prev.blogImages, ...validFiles],
+      }))
+      message.success(`${validFiles.length} image(s) added successfully!`)
+    }
+  }
+
+  const handleDragOver = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setFormData((prev) => ({ ...prev, isDragging: true }))
+  }
+
+  const handleDragLeave = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setFormData((prev) => ({ ...prev, isDragging: false }))
+  }
+
+  const handleRemoveImage = (index) => {
+    setFormData((prev) => {
+      const newImages = prev.blogImages.filter((_, i) => i !== index)
+      return {
+        ...prev,
+        blogImages: newImages,
+      }
+    })
+    setData((prev) => ({
+      ...prev,
+      blogImages: prev.blogImages.filter((_, i) => i !== index),
+    }))
+  }
+
+  const handleNextStep = () => {
+    const updatedData = {
+      ...data,
+      ...formData,
+    }
+    handleSubmit(updatedData)
   }
 
   return (
@@ -220,141 +339,243 @@ const SecondStepModal = ({
             </div>
           </div>
 
-          {/* Toggle for Adding Image */}
-          <div className="flex justify-between items-center">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Add Image</label>
-            <div className="flex items-center">
-              <label htmlFor="add-image-toggle" className={`relative inline-block w-12 h-6`}>
-                <input
-                  type="checkbox"
-                  id="add-image-toggle"
-                  className="sr-only peer"
-                  checked={formData.isCheckedGeneratedImages}
-                  // disabled={isAiImagesLimitReached}
-                  onChange={(e) => {
-                    // if (isAiImagesLimitReached) {
-                    //   openUpgradePopup({ featureName: "AI-Generated Images", navigate })
-                    //   return
-                    // }
-                    const checked = e.target.checked
-                    setFormData((prev) => ({
-                      ...prev,
-                      isCheckedGeneratedImages: checked,
-                      imageSource: checked ? prev.imageSource : "unsplash",
-                    }))
-                    setData((prev) => ({
-                      ...prev,
-                      isCheckedGeneratedImages: checked,
-                      imageSource: checked ? prev.imageSource : "unsplash",
-                      isUnsplashActive: !checked ? true : prev.isUnsplashActive,
-                    }))
-                  }}
-                />
-                <div
-                  className={`w-12 h-6 rounded-full transition-all duration-300 ${
-                    formData.isCheckedGeneratedImages ? "bg-[#1B6FC9]" : "bg-gray-300"
-                  }`}
-                />
-                <div
-                  className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-300 ${
-                    formData.isCheckedGeneratedImages ? "translate-x-6" : ""
-                  }`}
-                />
-              </label>
-            </div>
-          </div>
-
-          {/* Image Source Selection - Only show if toggle is ON and limit not reached */}
-          {formData.isCheckedGeneratedImages && (
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-3">Image Source</label>
-              <div className="flex gap-6 flex-wrap">
-                <label
-                  htmlFor="unsplash"
-                  className={`border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150 ${
-                    formData.imageSource === "unsplash"
-                      ? "border-blue-600 bg-blue-50"
-                      : "border-gray-300"
-                  } hover:shadow-sm w-full max-w-[200px]`}
-                >
+          {/* Add Image Section */}
+          <div>
+            <div className="flex justify-between items-center">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Add Image</label>
+              <div className="flex items-center">
+                <label htmlFor="add-image-toggle" className="relative inline-block w-12 h-6">
                   <input
-                    type="radio"
-                    id="unsplash"
-                    name="imageSource"
-                    checked={formData.imageSource === "unsplash"}
-                    onChange={() => handleImageSourceChange("unsplash")}
-                    className="hidden"
+                    type="checkbox"
+                    id="add-image-toggle"
+                    className="sr-only peer"
+                    checked={formData.isCheckedGeneratedImages}
+                    onChange={(e) => {
+                      const checked = e.target.checked
+                      setFormData((prev) => ({
+                        ...prev,
+                        isCheckedGeneratedImages: checked,
+                        imageSource: checked ? prev.imageSource : "unsplash",
+                      }))
+                      setData((prev) => ({
+                        ...prev,
+                        isCheckedGeneratedImages: checked,
+                        imageSource: checked ? prev.imageSource : "unsplash",
+                        isUnsplashActive: !checked ? true : prev.isUnsplashActive,
+                      }))
+                    }}
                   />
-                  <span className="text-sm font-medium text-gray-800">Stock Images</span>
-                </label>
-                <label
-                  htmlFor="ai-generated"
-                  // className={`border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150 ${
-                  //   formData.imageSource === "ai" ? "border-blue-600 bg-blue-50" : "border-gray-300"
-                  // } hover:shadow-sm w-full max-w-[200px] relative`}
-                  className={`border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150
-          ${formData.imageSource === "ai" ? "border-blue-600 bg-blue-50" : "border-gray-300"}
-          hover:shadow-sm w-full max-w-[220px] relative
-
-        `}
-                  onClick={(e) => {
-                    if (userPlan === "free") {
-                      e.preventDefault()
-                      openUpgradePopup({ featureName: "AI-Generated Images", navigate })
-                    }
-                  }}
-                >
-                  <input
-                    type="radio"
-                    id="ai-generated"
-                    name="imageSource"
-                    checked={formData.imageSource === "ai"}
-                    onChange={() => handleImageSourceChange("ai")}
-                    className="hidden"
-                    disabled={userPlan === "free" || isAiImagesLimitReached}
+                  <div
+                    className={`w-12 h-6 rounded-full transition-all duration-300 ${
+                      formData.isCheckedGeneratedImages ? "bg-[#1B6FC9]" : "bg-gray-300"
+                    }`}
                   />
-                  <span className="text-sm font-medium text-gray-800">AI-Generated Images</span>
-                  {userPlan === "free" ? (
-                    <Crown className="w-4 h-4 text-yellow-500 absolute top-2 right-2" />
-                  ) : (
-                    isAiImagesLimitReached && (
-                      <Tooltip
-                        title="You've reached your AI image generation limit. It'll reset in the next billing cycle."
-                        styles={{
-                          body: {
-                            backgroundColor: "#FEF9C3", // light yellow
-                            border: "1px solid #FACC15", // yellow-400 border
-                            color: "#78350F", // dark yellow text
-                          },
-                        }}
-                      >
-                        <TriangleAlert className="text-yellow-400 ml-4" size={15} />
-                      </Tooltip>
-                    )
-                  )}
+                  <div
+                    className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-300 ${
+                      formData.isCheckedGeneratedImages ? "translate-x-6" : ""
+                    }`}
+                  />
                 </label>
               </div>
             </div>
-          )}
 
-          <div className="pt-4 w-full ">
-            <label className="block text-sm font-semibold text-gray-700 mb-1">
-              Number of Images
-            </label>
-            <p className="text-xs text-gray-500 mb-2">
-              Enter the number of images (0 = AI will decide)
-            </p>
-            <input
-              type="number"
-              name="numberOfImages"
-              min="0"
-              max="20"
-              value={formData.numberOfImages}
-              onChange={handleInputChange}
-              onWheel={(e) => e.currentTarget.blur()} // prevent scroll changes
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm placeholder-gray-400 transition"
-              placeholder="e.g., 5"
-            />
+            {/* Custom Images Toggle */}
+            {formData.isCheckedGeneratedImages && (
+              <div className="flex justify-between items-center mt-4">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Use Custom Images
+                </label>
+                <div className="flex items-center">
+                  <label htmlFor="custom-images-toggle" className="relative inline-block w-12 h-6">
+                    <input
+                      type="checkbox"
+                      id="custom-images-toggle"
+                      className="sr-only peer"
+                      checked={formData.isCheckedblogImages}
+                      onChange={(e) => {
+                        const checked = e.target.checked
+                        setFormData((prev) => ({
+                          ...prev,
+                          isCheckedblogImages: checked,
+                          blogImages: checked ? prev.blogImages : [],
+                        }))
+                        setData((prev) => ({
+                          ...prev,
+                          isCheckedblogImages: checked,
+                          blogImages: checked ? prev.blogImages : [],
+                        }))
+                      }}
+                    />
+                    <div
+                      className={`w-12 h-6 rounded-full transition-all duration-300 ${
+                        formData.isCheckedblogImages ? "bg-[#1B6FC9]" : "bg-gray-300"
+                      }`}
+                    />
+                    <div
+                      className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-300 ${
+                        formData.isCheckedblogImages ? "translate-x-6" : ""
+                      }`}
+                    />
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {/* Image Source and Custom Upload */}
+            {formData.isCheckedGeneratedImages && (
+              <div className="mt-4">
+                {!formData.isCheckedblogImages ? (
+                  <>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">
+                      Image Source
+                    </label>
+                    <div className="flex gap-6 flex-wrap">
+                      <label
+                        htmlFor="unsplash"
+                        className={`border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150 ${
+                          formData.imageSource === "unsplash"
+                            ? "border-blue-600 bg-blue-50"
+                            : "border-gray-300"
+                        } hover:shadow-sm w-full max-w-[200px]`}
+                      >
+                        <input
+                          type="radio"
+                          id="unsplash"
+                          name="imageSource"
+                          checked={formData.imageSource === "unsplash"}
+                          onChange={() => handleImageSourceChange("unsplash")}
+                          className="hidden"
+                        />
+                        <span className="text-sm font-medium text-gray-800">Stock Images</span>
+                      </label>
+                      <label
+                        htmlFor="ai-generated"
+                        className={`border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150 ${
+                          formData.imageSource === "ai"
+                            ? "border-blue-600 bg-blue-50"
+                            : "border-gray-300"
+                        } hover:shadow-sm w-full max-w-[220px] relative`}
+                        onClick={(e) => {
+                          if (userPlan === "free") {
+                            e.preventDefault()
+                            openUpgradePopup({ featureName: "AI-Generated Images", navigate })
+                          }
+                        }}
+                      >
+                        <input
+                          type="radio"
+                          id="ai-generated"
+                          name="imageSource"
+                          checked={formData.imageSource === "ai"}
+                          onChange={() => handleImageSourceChange("ai")}
+                          className="hidden"
+                          disabled={userPlan === "free" || isAiImagesLimitReached}
+                        />
+                        <span className="text-sm font-medium text-gray-800">
+                          AI-Generated Images
+                        </span>
+                        {userPlan === "free" ? (
+                          <Crown className="w-4 h-4 text-yellow-500 absolute top-2 right-2" />
+                        ) : (
+                          isAiImagesLimitReached && (
+                            <Tooltip
+                              title="You've reached your AI image generation limit. It'll reset in the next billing cycle."
+                              styles={{
+                                body: {
+                                  backgroundColor: "#FEF9C3",
+                                  border: "1px solid #FACC15",
+                                  color: "#78350F",
+                                },
+                              }}
+                            >
+                              <TriangleAlert className="text-yellow-400 ml-4" size={15} />
+                            </Tooltip>
+                          )
+                        )}
+                      </label>
+                    </div>
+                  </>
+                ) : (
+                  <div className="mt-4">
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">
+                      Upload Custom Images (Max 15, each 1GB)
+                    </label>
+                    <div
+                      className={`border-2 border-dashed rounded-lg p-6 text-center ${
+                        formData.isDragging
+                          ? "border-blue-600 bg-blue-50"
+                          : "border-gray-300 bg-gray-50"
+                      }`}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                    >
+                      <p className="text-sm text-gray-600 mb-2">
+                        Drag and drop images here or click to select
+                      </p>
+                      <button
+                        className="px-4 py-2 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white rounded-md text-sm"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        Select Images
+                      </button>
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                        accept="image/jpeg,image/png,image/gif,image/webp"
+                        multiple
+                        className="hidden"
+                      />
+                    </div>
+                    {formData.blogImages.length > 0 && (
+                      <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        {formData.blogImages.map((image, index) => (
+                          <div key={index} className="relative group">
+                            <img
+                              src={image instanceof File ? URL.createObjectURL(image) : image}
+                              alt={image instanceof File ? image.name : `Image ${index + 1}`}
+                              className="w-full h-24 object-cover rounded-md"
+                            />
+                            <button
+                              onClick={() => handleRemoveImage(index)}
+                              className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                            <p className="text-xs text-gray-600 truncate mt-1">
+                              {image instanceof File ? image.name : `Image ${index + 1}`}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {formData.isCheckedGeneratedImages && (
+              <div className="pt-4 w-full">
+                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                  Number of Images
+                </label>
+                <p className="text-xs text-gray-500 mb-2">
+                  Enter the number of images (0 = AI will decide)
+                </p>
+                <input
+                  type="number"
+                  name="numberOfImages"
+                  min="0"
+                  max="20"
+                  value={formData.numberOfImages}
+                  onChange={handleInputChange}
+                  onWheel={(e) => e.currentTarget.blur()}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm placeholder-gray-400 transition"
+                  placeholder="e.g., 5"
+                />
+              </div>
+            )}
           </div>
 
           {/* Quick Summary Toggle */}
@@ -468,7 +689,6 @@ const SecondStepModal = ({
                     onChange={() => {
                       setFormData((prev) => ({
                         ...prev,
-
                         addCTA: !prev.addCTA,
                       }))
                       setData((prev) => ({

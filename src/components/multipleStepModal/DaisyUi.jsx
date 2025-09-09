@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import Carousel from "./Carousel"
@@ -17,6 +17,7 @@ const MultiStepModal = ({ closeFnc }) => {
   const userPlan = user?.subscription?.plan || user?.plan
   const [showAllTopics, setShowAllTopics] = useState(false)
   const isAiImagesLimitReached = user?.usage?.aiImages >= user?.usageLimits?.aiImages
+  const fileInputRef = useRef(null)
 
   const [currentStep, setCurrentStep] = useState(0)
   const [recentlyUploadedCount, setRecentlyUploadedCount] = useState(null)
@@ -52,6 +53,7 @@ const MultiStepModal = ({ closeFnc }) => {
     includeTableOfContents: false,
     isCheckedGeneratedImages: true,
     addOutBoundLinks: false,
+    blogImages: [],
   })
 
   useEffect(() => {
@@ -399,6 +401,107 @@ const MultiStepModal = ({ closeFnc }) => {
 
   const steps = ["Select Template's", "Add Details", "Blog Options"]
 
+  const validateImages = (files) => {
+    const maxImages = 15
+    const maxSize = 5 * 1024 * 1024 // 5 MB in bytes
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"]
+
+    if (!files || files.length === 0) return []
+
+    const validFiles = Array.from(files).filter((file) => {
+      if (!allowedTypes.includes(file.type)) {
+        message.error(
+          `"${file.name}" is not a valid image type. Only PNG, JPEG, and WebP are allowed.`
+        )
+        return false
+      }
+      if (file.size > maxSize) {
+        message.error(`"${file.name}" exceeds the 5 MB size limit.`)
+        return false
+      }
+      return true
+    })
+
+    const totalImages = formData.blogImages.length + validFiles.length
+    if (totalImages > maxImages) {
+      message.error(`Cannot upload more than ${maxImages} images.`)
+      return validFiles.slice(0, maxImages - formData.blogImages.length)
+    }
+
+    return validFiles
+  }
+
+  const handleFileChange = (e) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    const validFiles = validateImages(files)
+    if (validFiles.length > 0) {
+      setFormData((prev) => ({
+        ...prev,
+        blogImages: [...prev.blogImages, ...validFiles],
+      }))
+      setData((prev) => ({
+        ...prev,
+        blogImages: (Array.isArray(prev.blogImages) ? prev.blogImages : []).filter(
+          (_, i) => i !== index
+        ),
+      }))
+      // message.success(`${validFiles.length} image(s) added successfully!`)
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "" // Reset input
+    }
+  }
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setFormData((prev) => ({ ...prev, isDragging: false }))
+
+    const files = e.dataTransfer.files
+    if (!files || files.length === 0) return
+
+    const validFiles = validateImages(files)
+    if (validFiles.length > 0) {
+      setFormData((prev) => ({
+        ...prev,
+        blogImages: [...prev.blogImages, ...validFiles],
+      }))
+      setData((prev) => ({
+        ...prev,
+        blogImages: [...prev.blogImages, ...validFiles],
+      }))
+      message.success(`${validFiles.length} image(s) added successfully!`)
+    }
+  }
+
+  const handleDragOver = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setFormData((prev) => ({ ...prev, isDragging: true }))
+  }
+
+  const handleDragLeave = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setFormData((prev) => ({ ...prev, isDragging: false }))
+  }
+
+  const handleRemoveImage = (index) => {
+    setFormData((prev) => {
+      const newImages = prev.blogImages.filter((_, i) => i !== index)
+      return {
+        ...prev,
+        blogImages: newImages,
+      }
+    })
+    setData((prev) => ({
+      ...prev,
+      blogImages: prev.blogImages.filter((_, i) => i !== index),
+    }))
+  }
+
   return (
     <Modal
       title={`Step ${currentStep + 1} : ${steps[currentStep]}`}
@@ -429,7 +532,7 @@ const MultiStepModal = ({ closeFnc }) => {
     >
       <div className="p-2 md:p-4 max-h-[80vh] overflow-y-auto">
         {currentStep === 0 && (
-          <div className="p-2 sm:p-3">
+          <div className="p-3 md:p-0">
             <p className="text-sm text-gray-600 mb-3 sm:mb-4">
               Select up to 3 templates for the types of blogs you want to generate.
             </p>
@@ -845,85 +948,176 @@ const MultiStepModal = ({ closeFnc }) => {
               </div>
             </div>
 
-            {/* Select Image Source */}
-            {formData.isCheckedGeneratedImages && !isAiImagesLimitReached && (
-              <div className="mb-6">
-                <label className="block text-sm font-semibold text-gray-700 mb-3">
-                  Image Source
+            {/* Custom Images Toggle */}
+            {formData.isCheckedGeneratedImages && 
+            <div className="flex justify-between items-center mt-4">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Use Custom Images
+              </label>
+              <div className="flex items-center">
+                <label htmlFor="custom-images-toggle" className="relative inline-block w-12 h-6">
+                  <input
+                    type="checkbox"
+                    id="custom-images-toggle"
+                    className="sr-only peer"
+                    checked={formData.isCheckedblogImages}
+                    onChange={(e) => {
+                      const checked = e.target.checked
+                      setFormData((prev) => ({
+                        ...prev,
+                        isCheckedblogImages: checked,
+                        blogImages: checked ? prev.blogImages : [],
+                      }))
+                      setData((prev) => ({
+                        ...prev,
+                        isCheckedblogImages: checked,
+                        blogImages: checked ? prev.blogImages : [],
+                      }))
+                    }}
+                  />
+                  <div
+                    className={`w-12 h-6 rounded-full transition-all duration-300 ${
+                      formData.isCheckedblogImages ? "bg-[#1B6FC9]" : "bg-gray-300"
+                    }`}
+                  />
+                  <div
+                    className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-300 ${
+                      formData.isCheckedblogImages ? "translate-x-6" : ""
+                    }`}
+                  />
                 </label>
-                <div className="flex gap-4 flex-wrap">
-                  {[
-                    {
-                      id: "unsplash",
-                      label: "Stock Images",
-                      value: "unsplash",
-                      restricted: false,
-                    },
-                    {
-                      id: "ai",
-                      label: "AI Generated",
-                      value: "ai",
-                      restricted: userPlan === "free",
-                    },
-                  ].map((source) => (
-                    <label
-                      key={source.id}
-                      htmlFor={source.id}
-                      className={`border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150 ${
-                        formData.imageSource === source.value
-                          ? "border-blue-600 bg-blue-50"
-                          : "border-gray-300"
-                      } hover:shadow-sm w-full max-w-[220px]`}
-                      // onClick={(e) => {
-                      //   if (source.restricted) {
-                      //     e.preventDefault()
-                      //     openUpgradePopup({ featureName: model.label, navigate })
-                      //   }
-                      // }}
-                    >
-                      <input
-                        type="radio"
-                        id={source.id}
-                        name="imageSource"
-                        value={source.value}
-                        checked={formData.imageSource === source.value}
-                        onChange={() => {
-                          // if (source.restricted) {
-                          handleImageSourceChange(source.value)
-                          // }
-                        }}
-                        className="hidden"
-                      />
-                      <span className="text-sm font-medium text-gray-800">{source.label}</span>
-                      {/* {source.restricted && (
-                  <Crown className="w-4 h-4 text-yellow-500 absolute top-2 right-2" />
-                )} */}
-                    </label>
-                  ))}
+              </div>
+            </div>
+            }
+
+            {formData.isCheckedblogImages && (
+              <div className="mt-4">
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  Upload Custom Images (Max 15, each 1GB)
+                </label>
+                <div
+                  className={`border-2 border-dashed rounded-lg p-6 text-center ${
+                    formData.isDragging
+                      ? "border-blue-600 bg-blue-50"
+                      : "border-gray-300 bg-gray-50"
+                  }`}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                >
+                  <p className="text-sm text-gray-600 mb-2">
+                    Drag and drop images here or click to select
+                  </p>
+                  <button
+                    className="px-4 py-2 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white rounded-md text-sm"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    Select Images
+                  </button>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    multiple
+                    className="hidden"
+                  />
                 </div>
+                {formData.blogImages.length > 0 && (
+                  <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    {formData.blogImages.map((image, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={image instanceof File ? URL.createObjectURL(image) : image}
+                          alt={image instanceof File ? image.name : `Image ${index + 1}`}
+                          className="w-full h-24 object-cover rounded-md"
+                        />
+                        <button
+                          onClick={() => handleRemoveImage(index)}
+                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                        <p className="text-xs text-gray-600 truncate mt-1">
+                          {image instanceof File ? image.name : `Image ${index + 1}`}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
-            <div className="pt-4 w-full ">
-              <label className="block text-sm font-semibold text-gray-700 mb-1">
-                Number of Images
-              </label>
-              <p className="text-xs text-gray-500 mb-2">
-                Enter the number of images (0 = AI will decide)
-              </p>
-              <input
-                type="number"
-                name="numberOfImages"
-                min="0"
-                max="20"
-                value={formData.numberOfImages}
-                onChange={handleInputChange}
-                onWheel={(e) => e.currentTarget.blur()} // prevent scroll changes
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm placeholder-gray-400 transition"
-                placeholder="e.g., 5"
-              />
-            </div>
-            
+            {/* Select Image Source */}
+            {/* Select Image Source */}
+            {formData.isCheckedGeneratedImages &&
+              !formData.isCheckedblogImages && // 👈 Hide if custom images ON
+              !isAiImagesLimitReached && (
+                <div className="mb-6">
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">
+                    Image Source
+                  </label>
+                  <div className="flex gap-4 flex-wrap">
+                    {[
+                      {
+                        id: "unsplash",
+                        label: "Stock Images",
+                        value: "unsplash",
+                        restricted: false,
+                      },
+                      {
+                        id: "ai",
+                        label: "AI Generated",
+                        value: "ai",
+                        restricted: userPlan === "free",
+                      },
+                    ].map((source) => (
+                      <label
+                        key={source.id}
+                        htmlFor={source.id}
+                        className={`border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150 ${
+                          formData.imageSource === source.value
+                            ? "border-blue-600 bg-blue-50"
+                            : "border-gray-300"
+                        } hover:shadow-sm w-full max-w-[220px]`}
+                      >
+                        <input
+                          type="radio"
+                          id={source.id}
+                          name="imageSource"
+                          value={source.value}
+                          checked={formData.imageSource === source.value}
+                          onChange={() => handleImageSourceChange(source.value)}
+                          className="hidden"
+                        />
+                        <span className="text-sm font-medium text-gray-800">{source.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+            {formData.isCheckedGeneratedImages && (
+              <div className="pt-4 w-full ">
+                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                  Number of Images
+                </label>
+                <p className="text-xs text-gray-500 mb-2">
+                  Enter the number of images (0 = AI will decide)
+                </p>
+                <input
+                  type="number"
+                  name="numberOfImages"
+                  min="0"
+                  max="20"
+                  value={formData.numberOfImages}
+                  onChange={handleInputChange}
+                  onWheel={(e) => e.currentTarget.blur()} // prevent scroll changes
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm placeholder-gray-400 transition"
+                  placeholder="e.g., 5"
+                />
+              </div>
+            )}
 
             <div className="space-y-4 pt-4 border-t border-gray-200">
               <div className="flex items-center justify-between">

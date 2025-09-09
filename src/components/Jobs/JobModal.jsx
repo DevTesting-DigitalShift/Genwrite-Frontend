@@ -21,8 +21,10 @@ const initialJob = {
     brandId: null,
     useBrandVoice: false,
     isCheckedGeneratedImages: true,
+    isCheckedCustomImages: false, // Added
     addCTA: true,
     numberOfImages: 0,
+    blogImages: [],
   },
   options: {
     wordpressPosting: false,

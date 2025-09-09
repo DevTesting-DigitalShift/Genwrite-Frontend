@@ -11,7 +11,7 @@ import {
   CrownTwoTone,
 } from "@ant-design/icons"
 import { motion } from "framer-motion"
-import CompetitiveAnalysisModal from "../multipleStepModal/CompetitiveAnalysisModal"
+import CompetitiveAnalysisModal from "../CompetitiveAnalysisModal"
 import { useDispatch, useSelector } from "react-redux"
 import { analyzeKeywordsThunk, clearKeywordAnalysis } from "@store/slices/analysisSlice"
 import { Helmet } from "react-helmet"

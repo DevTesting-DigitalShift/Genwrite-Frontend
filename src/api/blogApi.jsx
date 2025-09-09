@@ -1,3 +1,4 @@
+import { objectToFormData } from "@utils/usableFunctions"
 import axiosInstance from "."
 
 // Create a new blog
@@ -13,20 +14,38 @@ export const createQuickBlog = async (blogData) => {
 }
 
 export const createBlog = async (blogData) => {
-  if (!blogData) {
-    throw new Error("Missing blog data in createBlog")
-  }
-
   try {
-    const sanitizedData = {
+    // ✅ convert object to formData
+    const formData = objectToFormData({
       ...blogData,
-      isUnsplashActive: Boolean(blogData.isUnsplashActive),
+      isCompetitiveResearchEnabled: blogData.isCompetitiveResearchEnabled ?? false,
+      isCheckedBrand: blogData.isCheckedBrand ?? false,
+      isCheckedGeneratedImages: blogData.isCheckedGeneratedImages ?? false,
+      isUnsplashActive: blogData.isUnsplashActive ?? false,
+      isCheckedQuick: blogData.isCheckedQuick ?? false,
+      isFAQEnabled: blogData.isFAQEnabled ?? false,
+      includeInterlinks: blogData.includeInterlinks ?? false,
+      addOutBoundLinks: blogData.addOutBoundLinks ?? false,
+      addCTA: blogData.addCTA ?? false,
+      numberOfImages: blogData.numberOfImages ?? 0,
+    })
+
+    // ✅ Only append actual files
+    if (blogData.blogImages?.length > 0) {
+      blogData.blogImages.forEach((img) => {
+        formData.append("blogImages", img)
+      })
     }
 
-    const response = await axiosInstance.post("/blogs", sanitizedData)
-    return response.data.blog
+    console.log("👉 Final FormData:", [...formData.entries()])
+
+    const response = await axiosInstance.post("/blogs", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    })
+
+    return response.data.blog || response.data
   } catch (error) {
-    console.error("Blog creation API error:", error)
+    console.error("createBlog error", error.response?.data || error)
     throw new Error(error.response?.data?.message || "Failed to create blog")
   }
 }
@@ -87,7 +106,7 @@ export const getBlogsByAuthor = async () => {
     const response = await axiosInstance.get(`/blogs`)
     return response.data
   } catch (error) {
-    throw new Error(error.response?.data?.message || "Failed to fetch blogs by author")
+    throw new Error(error.response?.data?.message || "Failed to fetch blogs")
   }
 }
 

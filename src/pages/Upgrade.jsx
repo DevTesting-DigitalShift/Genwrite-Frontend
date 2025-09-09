@@ -9,6 +9,7 @@ import { message } from "antd"
 import { sendStripeGTMEvent } from "@utils/stripeGTMEvents"
 import { useSelector } from "react-redux"
 import ComparisonTable from "@components/ComparisonTable"
+
 const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
   const [customCredits, setCustomCredits] = useState(500)
 
@@ -472,6 +473,16 @@ const Upgrade = () => {
           )}
         </AnimatePresence>
       </div>
+      {user?.subscription?.plan !== "free" && (
+        <div className="flex justify-end mt-4 mr-20">
+          <a
+            href="/cancel-subscription"
+            className="text-sm text-gray-700 hover:text-purple-500 transition-colors bg-gray-100 rounded-lg hover:bg-gray-200/50 p-5"
+          >
+            Thinking of leaving GenWrite?
+          </a>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,4 +1,4 @@
-import React, { useEffect } from "react"
+import React, { useEffect, useRef } from "react"
 import { motion } from "framer-motion"
 import { Select, message, Tooltip } from "antd"
 import MultiDatePicker from "react-multi-date-picker"
@@ -31,6 +31,7 @@ const StepContent = ({
   userPlan,
 }) => {
   const dispatch = useDispatch()
+  const fileInputRef = useRef(null)
   const {
     data: brands = [],
     isLoading: loadingBrands,
@@ -38,11 +39,9 @@ const StepContent = ({
   } = useQuery({
     queryKey: ["brands"],
     queryFn: async () => {
-      const response = await dispatch(fetchBrands()).unwrap() // Dispatch and unwrap the payload
-      return response // Return the brands data
+      const response = await dispatch(fetchBrands()).unwrap()
+      return response
     },
-    // staleTime: 5 * 60 * 1000,
-    // cacheTime: 10 * 60 * 1000,
   })
 
   const tones = ["Professional", "Casual", "Friendly", "Formal", "Technical"]
@@ -51,15 +50,29 @@ const StepContent = ({
   const isAiImagesLimitReached = user?.usage?.aiImages >= user?.usageLimits?.aiImages
   const navigate = useNavigate()
 
+  // Clean up object URLs to prevent memory leaks
   useEffect(() => {
-    if (isAiImagesLimitReached && formData.isCheckedGeneratedImages) {
-      setFormData((prev) => ({
+    return () => {
+      newJob.blogs.blogImages.forEach((image) => {
+        if (image instanceof File) {
+          URL.revokeObjectURL(URL.createObjectURL(image))
+        }
+      })
+    }
+  }, [newJob.blogs.blogImages])
+
+  useEffect(() => {
+    if (isAiImagesLimitReached && newJob.blogs.isCheckedGeneratedImages) {
+      setNewJob((prev) => ({
         ...prev,
-        isCheckedGeneratedImages: false,
-        imageSource: "unsplash", // Default to unsplash when AI images are disabled
+        blogs: {
+          ...prev.blogs,
+          isCheckedGeneratedImages: false,
+          imageSource: "unsplash",
+        },
       }))
     }
-  }, [isAiImagesLimitReached, formData.isCheckedGeneratedImages])
+  }, [isAiImagesLimitReached, newJob.blogs.isCheckedGeneratedImages])
 
   const imageSources = [
     {
@@ -90,7 +103,6 @@ const StepContent = ({
       id: "chatgpt",
       label: "ChatGPT (Open AI)",
       value: "openai",
-      // restricted: userPlan === "free",
       logo: "/Images/chatgpt.png",
       featureName: "ChatGPT (Open AI)",
     },
@@ -98,7 +110,6 @@ const StepContent = ({
       id: "claude",
       label: "Claude",
       value: "claude",
-      // restricted: userPlan === "free" || userPlan === "basic",
       logo: "/Images/claude.png",
       featureName: "Claude",
     },
@@ -153,13 +164,13 @@ const StepContent = ({
     const { name, value, type } = e.target
     const val = type === "number" ? parseInt(value, 10) || 0 : value
 
-    setNewJob({
-      ...newJob,
+    setNewJob((prev) => ({
+      ...prev,
       blogs: {
-        ...newJob.blogs,
-        numberOfImages: val, // use val, not value
+        ...prev.blogs,
+        [name]: val,
       },
-    })
+    }))
   }
 
   const handleCSVUpload = (e, type) => {
@@ -251,7 +262,10 @@ const StepContent = ({
   const handleNumberOfBlogsChange = (e) => {
     const value = parseInt(e.target.value, 10)
     if (!isNaN(value) && value >= 0 && value <= MAX_BLOGS) {
-      setNewJob({ ...newJob, blogs: { ...newJob.blogs, numberOfBlogs: value } })
+      setNewJob((prev) => ({
+        ...prev,
+        blogs: { ...prev.blogs, numberOfBlogs: value },
+      }))
       setErrors((prev) => ({ ...prev, numberOfBlogs: false }))
     }
   }
@@ -263,6 +277,110 @@ const StepContent = ({
   const topicsToShow = showAllTopics
     ? newJob.blogs.topics.slice().reverse()
     : newJob.blogs.topics.slice().reverse().slice(0, 18)
+
+  const handleImageSourceChange = (source) => {
+    setNewJob((prev) => ({
+      ...prev,
+      blogs: {
+        ...prev.blogs,
+        imageSource: source,
+        isUnsplashActive: source === "unsplash",
+      },
+    }))
+  }
+
+  const validateImages = (files) => {
+    const maxImages = 15
+    const maxSize = 5 * 1024 * 1024 // 5 MB in bytes
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"]
+
+    if (!files || files.length === 0) return []
+
+    const validFiles = Array.from(files).filter((file) => {
+      if (!allowedTypes.includes(file.type)) {
+        message.error(
+          `"${file.name}" is not a valid image type. Only PNG, JPEG, and WebP are allowed.`
+        )
+        return false
+      }
+      if (file.size > maxSize) {
+        message.error(`"${file.name}" exceeds the 5 MB size limit.`)
+        return false
+      }
+      return true
+    })
+
+    const totalImages = newJob.blogs.blogImages.length + validFiles.length
+    if (totalImages > maxImages) {
+      message.error(`Cannot upload more than ${maxImages} images.`)
+      return validFiles.slice(0, maxImages - newJob.blogs.blogImages.length)
+    }
+
+    return validFiles
+  }
+
+  const handleFileChange = (e) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    const validFiles = validateImages(files)
+    if (validFiles.length > 0) {
+      setNewJob((prev) => ({
+        ...prev,
+        blogs: {
+          ...prev.blogs,
+          blogImages: [...prev.blogs.blogImages, ...validFiles],
+        },
+      }))
+      message.success(`${validFiles.length} image(s) added successfully!`)
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "" // Reset input
+    }
+  }
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setFormData((prev) => ({ ...prev, isDragging: false }))
+
+    const files = e.dataTransfer.files
+    if (!files || files.length === 0) return
+
+    const validFiles = validateImages(files)
+    if (validFiles.length > 0) {
+      setNewJob((prev) => ({
+        ...prev,
+        blogs: {
+          ...prev.blogs,
+          blogImages: [...prev.blogs.blogImages, ...validFiles],
+        },
+      }))
+      // message.success(`${validFiles.length} image(s) added successfully!`)
+    }
+  }
+
+  const handleDragOver = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setFormData((prev) => ({ ...prev, isDragging: true }))
+  }
+
+  const handleDragLeave = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setFormData((prev) => ({ ...prev, isDragging: false }))
+  }
+
+  const handleRemoveImage = (index) => {
+    setNewJob((prev) => ({
+      ...prev,
+      blogs: {
+        ...prev.blogs,
+        blogImages: prev.blogs.blogImages.filter((_, i) => i !== index),
+      },
+    }))
+  }
 
   switch (currentStep) {
     case 1:
@@ -583,6 +701,7 @@ const StepContent = ({
                         blogs: {
                           ...prev.blogs,
                           isCheckedGeneratedImages: checked,
+                          imageSource: checked ? prev.blogs.imageSource : "unsplash",
                         },
                       }))
                     }}
@@ -602,9 +721,9 @@ const StepContent = ({
                   <Tooltip
                     title="You've reached your AI image generation limit. It'll reset in the next billing cycle."
                     overlayInnerStyle={{
-                      backgroundColor: "#FEF9C3", // light yellow
-                      border: "1px solid #FACC15", // yellow-400 border
-                      color: "#78350F", // dark yellow text
+                      backgroundColor: "#FEF9C3",
+                      border: "1px solid #FACC15",
+                      color: "#78350F",
                     }}
                   >
                     <TriangleAlert className="text-yellow-400 ml-4" size={15} />
@@ -612,7 +731,102 @@ const StepContent = ({
                 )}
               </div>
             </div>
-            {newJob.blogs.isCheckedGeneratedImages && (
+            {newJob.blogs.isCheckedGeneratedImages && 
+            <div className="flex justify-between items-center mt-4">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Use Custom Images
+              </label>
+              <div className="flex items-center">
+                <label htmlFor="custom-images-toggle" className="relative inline-block w-12 h-6">
+                  <input
+                    type="checkbox"
+                    id="custom-images-toggle"
+                    className="sr-only peer"
+                    checked={newJob.blogs.isCheckedCustomImages}
+                    onChange={(e) => {
+                      const checked = e.target.checked
+                      setNewJob((prev) => ({
+                        ...prev,
+                        blogs: {
+                          ...prev.blogs,
+                          isCheckedCustomImages: checked,
+                          blogImages: checked ? prev.blogs.blogImages : [],
+                        },
+                      }))
+                    }}
+                  />
+                  <div
+                    className={`w-12 h-6 rounded-full transition-all duration-300 ${
+                      newJob.blogs.isCheckedCustomImages ? "bg-[#1B6FC9]" : "bg-gray-300"
+                    }`}
+                  />
+                  <div
+                    className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-300 ${
+                      newJob.blogs.isCheckedCustomImages ? "translate-x-6" : ""
+                    }`}
+                  />
+                </label>
+              </div>
+            </div>
+            }
+            {newJob.blogs.isCheckedCustomImages && (
+              <div className="mt-4">
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  Upload Custom Images (Max 15, each 5MB)
+                </label>
+                <div
+                  className={`border-2 border-dashed rounded-lg p-6 text-center ${
+                    formData.isDragging
+                      ? "border-blue-600 bg-blue-50"
+                      : "border-gray-300 bg-gray-50"
+                  }`}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                >
+                  <p className="text-sm text-gray-600 mb-2">
+                    Drag and drop images here or click to select
+                  </p>
+                  <button
+                    className="px-4 py-2 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white rounded-md text-sm"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    Select Images
+                  </button>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept="image/jpeg,image/png,image/webp"
+                    multiple
+                    className="hidden"
+                  />
+                </div>
+                {newJob.blogs.blogImages.length > 0 && (
+                  <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    {newJob.blogs.blogImages.map((image, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={image instanceof File ? URL.createObjectURL(image) : image}
+                          alt={image instanceof File ? image.name : `Image ${index + 1}`}
+                          className="w-full h-24 object-cover rounded-md"
+                        />
+                        <button
+                          onClick={() => handleRemoveImage(index)}
+                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                        <p className="text-xs text-gray-600 truncate mt-1">
+                          {image instanceof File ? image.name : `Image ${index + 1}`}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            {newJob.blogs.isCheckedGeneratedImages && !newJob.blogs.isCheckedCustomImages  && (
               <div className="mb-6">
                 <label className="block text-sm font-semibold text-gray-700 mb-3">
                   Image Source
@@ -629,21 +843,21 @@ const StepContent = ({
                         key={source.id}
                         htmlFor={source.id}
                         className={`border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150
-          ${
-            newJob.blogs.imageSource === source.value
-              ? "border-blue-600 bg-blue-50"
-              : "border-gray-300"
-          }
-          hover:shadow-sm w-full max-w-[220px] relative
-          ${isBlocked ? "opacity-50 cursor-not-allowed" : ""}
-        `}
+                          ${
+                            newJob.blogs.imageSource === source.value
+                              ? "border-blue-600 bg-blue-50"
+                              : "border-gray-300"
+                          }
+                          hover:shadow-sm w-full max-w-[220px] relative
+                          ${isBlocked ? "opacity-50 cursor-not-allowed" : ""}
+                        `}
                         onClick={(e) => {
                           if (isBlocked) {
                             e.preventDefault()
-                            // openUpgradePopup({
-                            //   featureName: source.featureName || "AI-Generated Images",
-                            //   navigate,
-                            // })
+                            openUpgradePopup({
+                              featureName: source.featureName || "AI-Generated Images",
+                              navigate,
+                            })
                           }
                         }}
                       >
@@ -655,17 +869,13 @@ const StepContent = ({
                           checked={newJob.blogs.imageSource === source.value}
                           onChange={() => {
                             if (!isBlocked) {
-                              setNewJob({
-                                ...newJob,
-                                blogs: { ...newJob.blogs, imageSource: source.value },
-                              })
+                              handleImageSourceChange(source.value)
                             }
                           }}
                           className="hidden"
                           disabled={isBlocked}
                         />
                         <span className="text-sm font-medium text-gray-800">{source.label}</span>
-
                         {(source.restricted || isAiRestricted) && (
                           <Crown className="w-4 h-4 text-yellow-500 absolute top-2 right-2" />
                         )}
@@ -675,8 +885,8 @@ const StepContent = ({
                 </div>
               </div>
             )}
-
-            <div className="pt-4 w-full ">
+            {newJob.blogs.isCheckedGeneratedImages &&
+            <div className="pt-4 w-full">
               <label className="block text-sm font-semibold text-gray-700 mb-1">
                 Number of Images
               </label>
@@ -690,11 +900,12 @@ const StepContent = ({
                 max="20"
                 value={newJob.blogs.numberOfImages}
                 onChange={handleInputChange}
-                onWheel={(e) => e.currentTarget.blur()} // prevent scroll changes
+                onWheel={(e) => e.currentTarget.blur()}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm placeholder-gray-400 transition"
                 placeholder="e.g., 5"
               />
             </div>
+            }
           </div>
         </motion.div>
       )

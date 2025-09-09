@@ -10,16 +10,16 @@ import { useNavigate } from "react-router-dom"
 import MultiStepModal from "./multipleStepModal/DaisyUi"
 import DaisyUIModal from "./DaisyUIModal"
 import QuickBlogModal from "./multipleStepModal/QuickBlogModal"
-import CompetitiveAnalysisModal from "./multipleStepModal/CompetitiveAnalysisModal"
-import PerformanceMonitoringModal from "./multipleStepModal/PerformanceMonitoringModal"
+import CompetitiveAnalysisModal from "./CompetitiveAnalysisModal"
+import PerformanceMonitoringModal from "./PerformanceMonitoringModal"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { AnimatePresence, motion } from "framer-motion"
 import { loadAuthenticatedUser, selectUser } from "@store/slices/authSlice"
 import { Clock, Sparkles } from "lucide-react"
 import { Helmet } from "react-helmet"
-import SeoAnalysisModal from "./multipleStepModal/SeoAnalysisModal"
-import KeywordResearchModel from "./multipleStepModal/KeywordResearchModel"
+import SeoAnalysisModal from "./SeoAnalysisModal"
+import KeywordResearchModel from "./KeywordResearchModel"
 import { SkeletonDashboardCard, SkeletonGridCard } from "./Projects/SkeletonLoader"
 import { openJobModal } from "@store/slices/jobSlice"
 import { message } from "antd"
@@ -37,6 +37,7 @@ import {
 } from "chart.js"
 import GoThrough from "./GoThrough"
 import { letsBegin, quickTools } from "./dashData/dash"
+import ContentEnhancements from "./multipleStepModal/ContentEnhancements"
 
 ChartJS.register(
   ArcElement,
@@ -232,6 +233,16 @@ const Dashboard = () => {
             handleSubmit={handleSubmit}
           />
         )}
+         {/* {currentStep === 3 && (
+          <ContentEnhancements
+            handleNext={handleNext}
+            handlePrevious={handlePrev}
+            handleClose={handleCancel}
+            data={modelData}
+            setData={setModelData}
+            handleSubmit={handleSubmit}
+          />
+        )} */}
         <div className="flex items-center justify-center mt-4">
           <progress className="w-full max-w-md" max="3" value={currentStep}></progress>
         </div>
