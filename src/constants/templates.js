@@ -45,7 +45,7 @@ export const packages = [
   },
   {
     imgSrc: "./Images/q&a.png",
-    name: "Question & Answer",
+    name: "QnA",
     description: "Interactive expert Q&A sessions.",
   },
 ]

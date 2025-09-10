@@ -1,55 +1,88 @@
-import React from 'react';
-import { Button, Typography, Space, ConfigProvider } from 'antd';
-import { MailMinus } from 'lucide-react'; // Changed icon for better context
+import React, { useEffect } from "react"
+import { Button, Typography, Space, ConfigProvider, message } from "antd"
+import { MailMinus } from "lucide-react"
+import { useDispatch, useSelector } from "react-redux"
+import { useNavigate } from "react-router-dom"
+import { resetUnsubscribe, unsubscribeThunk } from "@store/slices/otherSlice"
+import { selectUser } from "@store/slices/authSlice"
+const { Title, Paragraph, Text } = Typography
 
-const { Title, Paragraph, Text } = Typography;
-
-// Main App Component
 const UnsubscribeEmail = () => {
+  const dispatch = useDispatch()
+  const navigate = useNavigate()
+  const user = useSelector(selectUser)
+  const { loading, successMessage, error } = useSelector((state) => state.wordpress)
+
+  // Reset unsubscribe state when component unmounts
+  useEffect(() => {
+    return () => {
+      dispatch(resetUnsubscribe())
+    }
+  }, [dispatch])
+
+  // Handle success or error messages
+  useEffect(() => {
+    if (successMessage) {
+      message.success(successMessage)
+      // Optionally redirect after successful unsubscribe
+      setTimeout(() => navigate("/"), 2000) // Redirect to home after 2 seconds
+    }
+    if (error) {
+      message.error(error)
+    }
+  }, [successMessage, error, navigate])
+
+  const handleUnsubscribe = async () => {
+    if (!user?.email) {
+      message.error("User email not found. Please log in and try again.")
+      return
+    }
+    try {
+      await dispatch(unsubscribeThunk(user.email)).unwrap()
+    } catch (err) {
+      // Error is handled by useEffect
+    }
+  }
+
+  const handleStaySubscribed = () => {
+    navigate("/dashboard") // Redirect to dashboard or another relevant page
+  }
+
   return (
-    // Use Ant Design's ConfigProvider to set a global theme, like the font.
     <ConfigProvider
       theme={{
         token: {
-          fontFamily: 'Inter, sans-serif',
+          fontFamily: "Inter, sans-serif",
         },
         components: {
           Button: {
-            // Customize button styles globally if needed
-            primaryColor: '#fff',
-          }
-        }
+            primaryColor: "#fff",
+          },
+        },
       }}
     >
-      {/* Main container with a new gradient background */}
       <main className="bg-gradient-to-br from-blue-50 via-purple-50 to-white flex items-center justify-center min-h-screen p-4 font-sans">
-        
-        {/* The content area, no longer a card, but a centered container */}
         <div className="max-w-xl w-full text-center p-8">
-          
-          {/* 1. Updated Company Logo Placeholder */}
           <div className="mb-8">
             <MailMinus className="h-16 w-16 text-purple-500 mx-auto" strokeWidth={1.5} />
           </div>
 
-          {/* 2. Bold and Friendly Headline */}
           <Title level={2} className="!text-4xl !font-bold !text-slate-900 !mb-3">
             We’re sad to see you go 😔
           </Title>
 
-          {/* 3. Short Message */}
           <Paragraph className="!text-slate-600 !mb-10 !text-lg">
             You’re about to unsubscribe from our emails. Are you sure?
           </Paragraph>
 
-          {/* 4. Action Buttons with new colors */}
           <Space direction="vertical" className="w-full sm:w-auto sm:!flex-row" size="middle">
             <Button
               type="primary"
               size="large"
               shape="round"
               className="!bg-gradient-to-r !from-purple-600 !to-blue-600 hover:!from-purple-700 hover:!to-blue-700 !h-12 !px-8 !text-base !font-semibold !shadow-lg !border-none transform hover:scale-105 transition-transform"
-              onClick={() => console.log('Stay Subscribed clicked')}
+              onClick={handleStaySubscribed}
+              disabled={loading}
             >
               Stay Subscribed
             </Button>
@@ -57,24 +90,22 @@ const UnsubscribeEmail = () => {
               size="large"
               shape="round"
               className="!bg-transparent !h-12 !px-8 !text-base !font-semibold !text-purple-800 !border-purple-300 hover:!bg-purple-100 hover:!border-purple-400"
-              onClick={() => console.log('Unsubscribe clicked')}
+              onClick={handleUnsubscribe}
+              disabled={loading}
             >
               Unsubscribe
             </Button>
           </Space>
 
-          {/* 5. Footer Note */}
           <div className="mt-16">
             <Text className="!text-sm !text-slate-500">
               You can resubscribe anytime from your account settings.
             </Text>
           </div>
-          
         </div>
       </main>
     </ConfigProvider>
-  );
-};
+  )
+}
 
-export default UnsubscribeEmail;
-
+export default UnsubscribeEmail

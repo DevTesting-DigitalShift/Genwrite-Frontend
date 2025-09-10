@@ -948,49 +948,61 @@ const MultiStepModal = ({ closeFnc }) => {
               </div>
             </div>
 
-            {/* Custom Images Toggle */}
-            {formData.isCheckedGeneratedImages && 
-            <div className="flex justify-between items-center mt-4">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Use Custom Images
-              </label>
-              <div className="flex items-center">
-                <label htmlFor="custom-images-toggle" className="relative inline-block w-12 h-6">
-                  <input
-                    type="checkbox"
-                    id="custom-images-toggle"
-                    className="sr-only peer"
-                    checked={formData.isCheckedblogImages}
-                    onChange={(e) => {
-                      const checked = e.target.checked
-                      setFormData((prev) => ({
-                        ...prev,
-                        isCheckedblogImages: checked,
-                        blogImages: checked ? prev.blogImages : [],
-                      }))
-                      setData((prev) => ({
-                        ...prev,
-                        isCheckedblogImages: checked,
-                        blogImages: checked ? prev.blogImages : [],
-                      }))
-                    }}
-                  />
-                  <div
-                    className={`w-12 h-6 rounded-full transition-all duration-300 ${
-                      formData.isCheckedblogImages ? "bg-[#1B6FC9]" : "bg-gray-300"
-                    }`}
-                  />
-                  <div
-                    className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-300 ${
-                      formData.isCheckedblogImages ? "translate-x-6" : ""
-                    }`}
-                  />
-                </label>
-              </div>
-            </div>
-            }
+            {/* Select Image Source */}
+            {formData.isCheckedGeneratedImages &&
+              !formData.isCheckedblogImages && // 👈 Hide if custom images ON
+              !isAiImagesLimitReached && (
+                <div className="mb-6">
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">
+                    Image Source
+                  </label>
+                  <div className="flex gap-4 flex-wrap">
+                    {[
+                      {
+                        id: "unsplash",
+                        label: "Stock Images",
+                        value: "unsplash",
+                        restricted: false,
+                      },
+                      {
+                        id: "ai",
+                        label: "AI Generated",
+                        value: "ai",
+                        restricted: userPlan === "free",
+                      },
+                      // {
+                      //   id: "customImages",
+                      //   label: "Use Custom Images",
+                      //   value: "customImages",
+                      //   restricted: false,
+                      // },
+                    ].map((source) => (
+                      <label
+                        key={source.id}
+                        htmlFor={source.id}
+                        className={`border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150 ${
+                          formData.imageSource === source.value
+                            ? "border-blue-600 bg-blue-50"
+                            : "border-gray-300"
+                        } hover:shadow-sm w-full max-w-[220px]`}
+                      >
+                        <input
+                          type="radio"
+                          id={source.id}
+                          name="imageSource"
+                          value={source.value}
+                          checked={formData.imageSource === source.value}
+                          onChange={() => handleImageSourceChange(source.value)}
+                          className="hidden"
+                        />
+                        <span className="text-sm font-medium text-gray-800">{source.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-            {formData.isCheckedblogImages && (
+            {formData.imageSource === "customImages" && (
               <div className="mt-4">
                 <label className="block text-sm font-semibold text-gray-700 mb-3">
                   Upload Custom Images (Max 15, each 1GB)
@@ -1048,56 +1060,7 @@ const MultiStepModal = ({ closeFnc }) => {
               </div>
             )}
 
-            {/* Select Image Source */}
-            {/* Select Image Source */}
-            {formData.isCheckedGeneratedImages &&
-              !formData.isCheckedblogImages && // 👈 Hide if custom images ON
-              !isAiImagesLimitReached && (
-                <div className="mb-6">
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">
-                    Image Source
-                  </label>
-                  <div className="flex gap-4 flex-wrap">
-                    {[
-                      {
-                        id: "unsplash",
-                        label: "Stock Images",
-                        value: "unsplash",
-                        restricted: false,
-                      },
-                      {
-                        id: "ai",
-                        label: "AI Generated",
-                        value: "ai",
-                        restricted: userPlan === "free",
-                      },
-                    ].map((source) => (
-                      <label
-                        key={source.id}
-                        htmlFor={source.id}
-                        className={`border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150 ${
-                          formData.imageSource === source.value
-                            ? "border-blue-600 bg-blue-50"
-                            : "border-gray-300"
-                        } hover:shadow-sm w-full max-w-[220px]`}
-                      >
-                        <input
-                          type="radio"
-                          id={source.id}
-                          name="imageSource"
-                          value={source.value}
-                          checked={formData.imageSource === source.value}
-                          onChange={() => handleImageSourceChange(source.value)}
-                          className="hidden"
-                        />
-                        <span className="text-sm font-medium text-gray-800">{source.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-            {formData.isCheckedGeneratedImages && (
+            {formData.imageSource !== "customImages" && (
               <div className="pt-4 w-full ">
                 <label className="block text-sm font-semibold text-gray-700 mb-1">
                   Number of Images

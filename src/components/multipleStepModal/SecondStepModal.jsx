@@ -448,7 +448,7 @@ const SecondStepModal = ({
                     )}
                   </label>
                   <label
-                    htmlFor="custom-image"
+                    htmlFor="customImage"
                     className={`border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150 ${
                       formData.imageSource === "customImage"
                         ? "border-blue-600 bg-blue-50"
@@ -457,7 +457,7 @@ const SecondStepModal = ({
                   >
                     <input
                       type="radio"
-                      id="custom-image"
+                      id="customImage"
                       name="imageSource"
                       checked={formData.imageSource === "customImage"}
                       onChange={() => handleImageSourceChange("customImage")}

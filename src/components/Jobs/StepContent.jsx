@@ -731,7 +731,7 @@ const StepContent = ({
                 )}
               </div>
             </div>
-            {newJob.blogs.isCheckedGeneratedImages && 
+            {/* {newJob.blogs.isCheckedGeneratedImages && 
             <div className="flex justify-between items-center mt-4">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Use Custom Images
@@ -768,7 +768,7 @@ const StepContent = ({
                 </label>
               </div>
             </div>
-            }
+            } */}
             {newJob.blogs.isCheckedCustomImages && (
               <div className="mt-4">
                 <label className="block text-sm font-semibold text-gray-700 mb-3">

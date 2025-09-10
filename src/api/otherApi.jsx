@@ -63,3 +63,13 @@ export const generatePromptContent = async ({ prompt, content }) => {
     throw new Error(error || "Failed to generate prompt content")
   }
 }
+
+// Unsubscribe API
+export const unsubscribeUser = async (email) => {
+  try {
+    const res = await axiosInstance.get(`/public/unsubscribe?email=${encodeURIComponent(email)}`)
+    return res.data
+  } catch (error) {
+    throw new Error(error || "Failed to unsubscribe")
+  }
+}

@@ -3,6 +3,7 @@ import {
   fetchCategories,
   generateMetadata,
   generatePromptContent,
+  unsubscribeUser,
 } from "@api/otherApi"
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit"
 import { message } from "antd"
@@ -106,6 +107,19 @@ export const generatePromptContentThunk = createAsyncThunk(
   }
 )
 
+export const unsubscribeThunk = createAsyncThunk(
+  "user/unsubscribe",
+  async (email, { rejectWithValue }) => {
+    try {
+      const data = await unsubscribeUser(email)
+      return data
+    } catch (error) {
+      console.error("Error in unsubscribeThunk", error)
+      return rejectWithValue(error.message || "Error while unsubscribing")
+    }
+  }
+)
+
 const wordpressSlice = createSlice({
   name: "wordpress",
   initialState: {
@@ -118,7 +132,12 @@ const wordpressSlice = createSlice({
   },
   reducers: {
     resetMetadata: (state) => {
-      state.data = null // clears the generated metadata
+      state.data = null
+    },
+    resetUnsubscribe: (state) => {
+      state.loading = false
+      state.error = null
+      state.successMessage = null
     },
   },
   extraReducers: (builder) => {
@@ -188,8 +207,22 @@ const wordpressSlice = createSlice({
         state.loading = false
         state.error = action.payload || "Failed to generate prompt content"
       })
+
+      .addCase(unsubscribeThunk.pending, (state) => {
+        state.loading = true
+        state.error = null
+        state.successMessage = null
+      })
+      .addCase(unsubscribeThunk.fulfilled, (state, action) => {
+        state.loading = false
+        state.successMessage = action.payload // backend sends "You have been unsubscribed..."
+      })
+      .addCase(unsubscribeThunk.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload
+      })
   },
 })
 
-export const { resetMetadata } = wordpressSlice.actions
+export const { resetMetadata, resetUnsubscribe } = wordpressSlice.actions
 export default wordpressSlice.reducer

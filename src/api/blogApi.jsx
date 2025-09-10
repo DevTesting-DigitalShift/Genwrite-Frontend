@@ -18,9 +18,11 @@ export const createBlog = async (blogData) => {
     const formData = new FormData()
     const { blogImages, ...restData } = blogData
 
-    // Prepare finalData with safe defaults
+    // ✅ Prepare finalData with safe defaults
     const finalData = {
       ...restData,
+      title: restData.title?.trim() || "Untitled Blog",
+      brandId: restData.brandId || "64f3c2e6b5d3f42a5a1f1234", // <-- must be valid ObjectId
       isCompetitiveResearchEnabled: restData.isCompetitiveResearchEnabled ?? false,
       isCheckedBrand: restData.isCheckedBrand ?? false,
       isCheckedGeneratedImages: restData.isCheckedGeneratedImages ?? false,
@@ -33,24 +35,20 @@ export const createBlog = async (blogData) => {
       numberOfImages: restData.numberOfImages ?? 0,
     }
 
-    // Append blog data
+    // ✅ Append blog data as JSON string
     formData.append("data", JSON.stringify(finalData))
 
-    // Handle blog images (metadata + files)
+    // ✅ Append ONLY metadata for images (no binary files)
     if (blogImages?.length > 0) {
-      // Array of objects with mapping info
-      const imagesArray = blogImages.map((file, index) => ({
+      const imagesArray = blogImages.map((file) => ({
         name: file.name,
-        key: `blogImage_${index}`,
       }))
-
-      // Add JSON metadata once
       formData.append("blogImages", JSON.stringify(imagesArray))
     }
 
-    console.log("👉 Final FormData:", [...formData.entries()])
+    console.log("👉 Final FormData (Single Blog):", [...formData.entries()])
 
-    // Send request
+    // ✅ Send request
     const response = await axiosInstance.post("/blogs", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     })
