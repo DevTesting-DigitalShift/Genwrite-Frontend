@@ -15,30 +15,42 @@ export const createQuickBlog = async (blogData) => {
 
 export const createBlog = async (blogData) => {
   try {
-    // ✅ convert object to formData
-    const formData = objectToFormData({
-      ...blogData,
-      isCompetitiveResearchEnabled: blogData.isCompetitiveResearchEnabled ?? false,
-      isCheckedBrand: blogData.isCheckedBrand ?? false,
-      isCheckedGeneratedImages: blogData.isCheckedGeneratedImages ?? false,
-      isUnsplashActive: blogData.isUnsplashActive ?? false,
-      isCheckedQuick: blogData.isCheckedQuick ?? false,
-      isFAQEnabled: blogData.isFAQEnabled ?? false,
-      includeInterlinks: blogData.includeInterlinks ?? false,
-      addOutBoundLinks: blogData.addOutBoundLinks ?? false,
-      addCTA: blogData.addCTA ?? false,
-      numberOfImages: blogData.numberOfImages ?? 0,
-    })
+    const formData = new FormData()
+    const { blogImages, ...restData } = blogData
 
-    // ✅ Only append actual files
-    if (blogData.blogImages?.length > 0) {
-      blogData.blogImages.forEach((img) => {
-        formData.append("blogImages", img)
-      })
+    // Prepare finalData with safe defaults
+    const finalData = {
+      ...restData,
+      isCompetitiveResearchEnabled: restData.isCompetitiveResearchEnabled ?? false,
+      isCheckedBrand: restData.isCheckedBrand ?? false,
+      isCheckedGeneratedImages: restData.isCheckedGeneratedImages ?? false,
+      isUnsplashActive: restData.isUnsplashActive ?? false,
+      isCheckedQuick: restData.isCheckedQuick ?? false,
+      isFAQEnabled: restData.isFAQEnabled ?? false,
+      includeInterlinks: restData.includeInterlinks ?? false,
+      addOutBoundLinks: restData.addOutBoundLinks ?? false,
+      addCTA: restData.addCTA ?? false,
+      numberOfImages: restData.numberOfImages ?? 0,
+    }
+
+    // Append blog data
+    formData.append("data", JSON.stringify(finalData))
+
+    // Handle blog images (metadata + files)
+    if (blogImages?.length > 0) {
+      // Array of objects with mapping info
+      const imagesArray = blogImages.map((file, index) => ({
+        name: file.name,
+        key: `blogImage_${index}`,
+      }))
+
+      // Add JSON metadata once
+      formData.append("blogImages", JSON.stringify(imagesArray))
     }
 
     console.log("👉 Final FormData:", [...formData.entries()])
 
+    // Send request
     const response = await axiosInstance.post("/blogs", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     })

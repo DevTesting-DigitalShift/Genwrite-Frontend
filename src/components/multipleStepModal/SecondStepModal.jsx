@@ -379,183 +379,156 @@ const SecondStepModal = ({
               </div>
             </div>
 
-            {/* Custom Images Toggle */}
+            {/* Image Source and Custom Upload */}
             {formData.isCheckedGeneratedImages && (
-              <div className="flex justify-between items-center mt-4">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Use Custom Images
+              <div className="mt-4">
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  Image Source
                 </label>
-                <div className="flex items-center">
-                  <label htmlFor="custom-images-toggle" className="relative inline-block w-12 h-6">
+                <div className="flex gap-6 flex-wrap">
+                  <label
+                    htmlFor="unsplash"
+                    className={`border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150 ${
+                      formData.imageSource === "unsplash"
+                        ? "border-blue-600 bg-blue-50"
+                        : "border-gray-300"
+                    } hover:shadow-sm w-full max-w-[200px]`}
+                  >
                     <input
-                      type="checkbox"
-                      id="custom-images-toggle"
-                      className="sr-only peer"
-                      checked={formData.isCheckedblogImages}
-                      onChange={(e) => {
-                        const checked = e.target.checked
-                        setFormData((prev) => ({
-                          ...prev,
-                          isCheckedblogImages: checked,
-                          blogImages: checked ? prev.blogImages : [],
-                        }))
-                        setData((prev) => ({
-                          ...prev,
-                          isCheckedblogImages: checked,
-                          blogImages: checked ? prev.blogImages : [],
-                        }))
-                      }}
+                      type="radio"
+                      id="unsplash"
+                      name="imageSource"
+                      checked={formData.imageSource === "unsplash"}
+                      onChange={() => handleImageSourceChange("unsplash")}
+                      className="hidden"
                     />
-                    <div
-                      className={`w-12 h-6 rounded-full transition-all duration-300 ${
-                        formData.isCheckedblogImages ? "bg-[#1B6FC9]" : "bg-gray-300"
-                      }`}
+                    <span className="text-sm font-medium text-gray-800">Stock Images</span>
+                  </label>
+                  <label
+                    htmlFor="ai-generated"
+                    className={`border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150 ${
+                      formData.imageSource === "ai"
+                        ? "border-blue-600 bg-blue-50"
+                        : "border-gray-300"
+                    } hover:shadow-sm w-full max-w-[220px] relative`}
+                    onClick={(e) => {
+                      if (userPlan === "free") {
+                        e.preventDefault()
+                        openUpgradePopup({ featureName: "AI-Generated Images", navigate })
+                      }
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      id="ai-generated"
+                      name="imageSource"
+                      checked={formData.imageSource === "ai"}
+                      onChange={() => handleImageSourceChange("ai")}
+                      className="hidden"
+                      disabled={userPlan === "free" || isAiImagesLimitReached}
                     />
-                    <div
-                      className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-300 ${
-                        formData.isCheckedblogImages ? "translate-x-6" : ""
-                      }`}
+                    <span className="text-sm font-medium text-gray-800">AI-Generated Images</span>
+                    {userPlan === "free" ? (
+                      <Crown className="w-4 h-4 text-yellow-500 absolute top-2 right-2" />
+                    ) : (
+                      isAiImagesLimitReached && (
+                        <Tooltip
+                          title="You've reached your AI image generation limit. It'll reset in the next billing cycle."
+                          styles={{
+                            body: {
+                              backgroundColor: "#FEF9C3",
+                              border: "1px solid #FACC15",
+                              color: "#78350F",
+                            },
+                          }}
+                        >
+                          <TriangleAlert className="text-yellow-400 ml-4" size={15} />
+                        </Tooltip>
+                      )
+                    )}
+                  </label>
+                  <label
+                    htmlFor="custom-image"
+                    className={`border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150 ${
+                      formData.imageSource === "customImage"
+                        ? "border-blue-600 bg-blue-50"
+                        : "border-gray-300"
+                    } hover:shadow-sm w-full max-w-[220px] relative`}
+                  >
+                    <input
+                      type="radio"
+                      id="custom-image"
+                      name="imageSource"
+                      checked={formData.imageSource === "customImage"}
+                      onChange={() => handleImageSourceChange("customImage")}
+                      className="hidden"
+                      disabled={userPlan === "free" || isAiImagesLimitReached}
                     />
+                    <span className="text-sm font-medium text-gray-800">Use Custom Image</span>
                   </label>
                 </div>
               </div>
             )}
 
-            {/* Image Source and Custom Upload */}
-            {formData.isCheckedGeneratedImages && (
+            {formData.imageSource === "customImage" && (
               <div className="mt-4">
-                {!formData.isCheckedblogImages ? (
-                  <>
-                    <label className="block text-sm font-semibold text-gray-700 mb-3">
-                      Image Source
-                    </label>
-                    <div className="flex gap-6 flex-wrap">
-                      <label
-                        htmlFor="unsplash"
-                        className={`border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150 ${
-                          formData.imageSource === "unsplash"
-                            ? "border-blue-600 bg-blue-50"
-                            : "border-gray-300"
-                        } hover:shadow-sm w-full max-w-[200px]`}
-                      >
-                        <input
-                          type="radio"
-                          id="unsplash"
-                          name="imageSource"
-                          checked={formData.imageSource === "unsplash"}
-                          onChange={() => handleImageSourceChange("unsplash")}
-                          className="hidden"
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  Upload Custom Images (Max 15, each 1GB)
+                </label>
+                <div
+                  className={`border-2 border-dashed rounded-lg p-6 text-center ${
+                    formData.isDragging
+                      ? "border-blue-600 bg-blue-50"
+                      : "border-gray-300 bg-gray-50"
+                  }`}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                >
+                  <p className="text-sm text-gray-600 mb-2">
+                    Drag and drop images here or click to select
+                  </p>
+                  <button
+                    className="px-4 py-2 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white rounded-md text-sm"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    Select Images
+                  </button>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    multiple
+                    className="hidden"
+                  />
+                </div>
+                {formData.blogImages.length > 0 && (
+                  <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    {formData.blogImages.map((image, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={image instanceof File ? URL.createObjectURL(image) : image}
+                          alt={image instanceof File ? image.name : `Image ${index + 1}`}
+                          className="w-full h-24 object-cover rounded-md"
                         />
-                        <span className="text-sm font-medium text-gray-800">Stock Images</span>
-                      </label>
-                      <label
-                        htmlFor="ai-generated"
-                        className={`border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150 ${
-                          formData.imageSource === "ai"
-                            ? "border-blue-600 bg-blue-50"
-                            : "border-gray-300"
-                        } hover:shadow-sm w-full max-w-[220px] relative`}
-                        onClick={(e) => {
-                          if (userPlan === "free") {
-                            e.preventDefault()
-                            openUpgradePopup({ featureName: "AI-Generated Images", navigate })
-                          }
-                        }}
-                      >
-                        <input
-                          type="radio"
-                          id="ai-generated"
-                          name="imageSource"
-                          checked={formData.imageSource === "ai"}
-                          onChange={() => handleImageSourceChange("ai")}
-                          className="hidden"
-                          disabled={userPlan === "free" || isAiImagesLimitReached}
-                        />
-                        <span className="text-sm font-medium text-gray-800">
-                          AI-Generated Images
-                        </span>
-                        {userPlan === "free" ? (
-                          <Crown className="w-4 h-4 text-yellow-500 absolute top-2 right-2" />
-                        ) : (
-                          isAiImagesLimitReached && (
-                            <Tooltip
-                              title="You've reached your AI image generation limit. It'll reset in the next billing cycle."
-                              styles={{
-                                body: {
-                                  backgroundColor: "#FEF9C3",
-                                  border: "1px solid #FACC15",
-                                  color: "#78350F",
-                                },
-                              }}
-                            >
-                              <TriangleAlert className="text-yellow-400 ml-4" size={15} />
-                            </Tooltip>
-                          )
-                        )}
-                      </label>
-                    </div>
-                  </>
-                ) : (
-                  <div className="mt-4">
-                    <label className="block text-sm font-semibold text-gray-700 mb-3">
-                      Upload Custom Images (Max 15, each 1GB)
-                    </label>
-                    <div
-                      className={`border-2 border-dashed rounded-lg p-6 text-center ${
-                        formData.isDragging
-                          ? "border-blue-600 bg-blue-50"
-                          : "border-gray-300 bg-gray-50"
-                      }`}
-                      onDragOver={handleDragOver}
-                      onDragLeave={handleDragLeave}
-                      onDrop={handleDrop}
-                    >
-                      <p className="text-sm text-gray-600 mb-2">
-                        Drag and drop images here or click to select
-                      </p>
-                      <button
-                        className="px-4 py-2 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white rounded-md text-sm"
-                        onClick={() => fileInputRef.current?.click()}
-                      >
-                        Select Images
-                      </button>
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileChange}
-                        accept="image/jpeg,image/png,image/gif,image/webp"
-                        multiple
-                        className="hidden"
-                      />
-                    </div>
-                    {formData.blogImages.length > 0 && (
-                      <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
-                        {formData.blogImages.map((image, index) => (
-                          <div key={index} className="relative group">
-                            <img
-                              src={image instanceof File ? URL.createObjectURL(image) : image}
-                              alt={image instanceof File ? image.name : `Image ${index + 1}`}
-                              className="w-full h-24 object-cover rounded-md"
-                            />
-                            <button
-                              onClick={() => handleRemoveImage(index)}
-                              className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                            <p className="text-xs text-gray-600 truncate mt-1">
-                              {image instanceof File ? image.name : `Image ${index + 1}`}
-                            </p>
-                          </div>
-                        ))}
+                        <button
+                          onClick={() => handleRemoveImage(index)}
+                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                        <p className="text-xs text-gray-600 truncate mt-1">
+                          {image instanceof File ? image.name : `Image ${index + 1}`}
+                        </p>
                       </div>
-                    )}
+                    ))}
                   </div>
                 )}
               </div>
             )}
 
-            {formData.isCheckedGeneratedImages && (
+            {formData.imageSource !== "customImage" && (
               <div className="pt-4 w-full">
                 <label className="block text-sm font-semibold text-gray-700 mb-1">
                   Number of Images
