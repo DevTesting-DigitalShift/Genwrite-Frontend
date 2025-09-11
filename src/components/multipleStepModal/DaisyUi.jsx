@@ -116,15 +116,15 @@ const MultiStepModal = ({ closeFnc }) => {
       return
     }
 
-    if (formData.numberOfBlogs < 1 || formData.numberOfBlogs > 10) {
-      message.error("Number of blogs must be between 1 and 10.")
-      return
-    }
+    // if (formData.numberOfBlogs < 1 || formData.numberOfBlogs > 10) {
+    //   message.error("Number of blogs must be between 1 and 10.")
+    //   return
+    // }
 
-    if (formData.numberOfImages < 1 || formData.numberOfImages > 10) {
-      message.error("Number of blogs must be between 1 and 10.")
-      return
-    }
+    // if (formData.numberOfImages < 1 || formData.numberOfImages > 10) {
+    //   message.error("Number of images must be between 1 and 10.")
+    //   return
+    // }
 
     // ✅ Include aiModel in cost calculation
     const model = formData.aiModel || "gemini" // fallback just in case
