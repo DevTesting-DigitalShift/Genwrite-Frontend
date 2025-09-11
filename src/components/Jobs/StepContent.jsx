@@ -520,7 +520,7 @@ const StepContent = ({
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700 mb-2 flex gap-2 items-center">
-                Topics
+                Keywords
                 <Tooltip title="Upload a .csv file in the format: `Keyword` as header">
                   <Info size={16} className="text-blue-500 cursor-pointer" />
                 </Tooltip>
