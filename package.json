@@ -70,6 +70,7 @@
     "html2canvas": "^1.4.1",
     "idb-keyval": "^6.2.2",
     "jspdf": "^3.0.1",
+    "link-preview-js": "^3.1.0",
     "lodash": "^4.17.21",
     "lucide-react": "^0.488.0",
     "marked": "^15.0.12",

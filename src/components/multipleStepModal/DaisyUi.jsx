@@ -45,7 +45,7 @@ const MultiStepModal = ({ closeFnc }) => {
     includeMetaHeadlines: true,
     includeFaqs: true,
     numberOfBlogs: 1,
-    numberOfImages: 1,
+    numberOfImages: 0,
     wordpressPostStatus: false,
     postFrequency: 10 * 60,
     selectedDates: null,
@@ -1060,7 +1060,7 @@ const MultiStepModal = ({ closeFnc }) => {
               </div>
             )}
 
-            {formData.imageSource !== "customImages" && (
+            {/* {formData.imageSource !== "customImages" && (
               <div className="pt-4 w-full ">
                 <label className="block text-sm font-semibold text-gray-700 mb-1">
                   Number of Images
@@ -1080,7 +1080,7 @@ const MultiStepModal = ({ closeFnc }) => {
                   placeholder="e.g., 5"
                 />
               </div>
-            )}
+            )} */}
 
             <div className="space-y-4 pt-4 border-t border-gray-200">
               <div className="flex items-center justify-between">

@@ -447,7 +447,7 @@ const SecondStepModal = ({
                       )
                     )}
                   </label>
-                  <label
+                  {/* <label
                     htmlFor="customImage"
                     className={`border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150 ${
                       formData.imageSource === "customImage"
@@ -465,7 +465,7 @@ const SecondStepModal = ({
                       disabled={userPlan === "free" || isAiImagesLimitReached}
                     />
                     <span className="text-sm font-medium text-gray-800">Use Custom Image</span>
-                  </label>
+                  </label> */}
                 </div>
               </div>
             )}
@@ -528,7 +528,7 @@ const SecondStepModal = ({
               </div>
             )}
 
-            {formData.imageSource !== "customImage" && (
+            {/* {formData.imageSource !== "customImage" && (
               <div className="pt-4 w-full">
                 <label className="block text-sm font-semibold text-gray-700 mb-1">
                   Number of Images
@@ -548,7 +548,7 @@ const SecondStepModal = ({
                   placeholder="e.g., 5"
                 />
               </div>
-            )}
+            )} */}
           </div>
 
           {/* Quick Summary Toggle */}

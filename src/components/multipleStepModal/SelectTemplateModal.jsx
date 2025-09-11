@@ -126,7 +126,6 @@ const SelectTemplateModal = ({ handleNext, handleClose, data, setData }) => {
                   <div className="p-3">
                     <h3 className="font-medium text-gray-900 text-base mb-1">{pkg.name}</h3>
                     <p className="text-sm text-gray-500 line-clamp-2">{pkg.description}</p>
-                    {pkg.author && <p className="text-xs text-gray-400 mt-1">By {pkg.author}</p>}
                   </div>
                 </div>
               </div>

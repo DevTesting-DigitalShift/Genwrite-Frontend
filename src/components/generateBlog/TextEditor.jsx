@@ -54,6 +54,8 @@ import { markdownLanguage } from "@codemirror/lang-markdown"
 import { languages } from "@codemirror/language-data"
 import { lazy } from "react"
 import { Suspense } from "react"
+import { createPortal } from "react-dom"
+import { getLinkPreview } from "link-preview-js" // Assume this library is installed via npm i link-preview-js
 
 const ContentDiffViewer = lazy(() => import("./ContentDiffViewer"))
 
@@ -141,7 +143,6 @@ const TextEditor = ({
   handleAcceptOriginalContent,
   editorContent,
 }) => {
-  console.log(humanizedContent)
   const [isEditorLoading, setIsEditorLoading] = useState(true)
   const [selectedFont, setSelectedFont] = useState(FONT_OPTIONS[0].value)
   const [linkModalOpen, setLinkModalOpen] = useState(false)
@@ -178,6 +179,11 @@ const TextEditor = ({
   const [editImageModalOpen, setEditImageModalOpen] = useState(false)
   const [selectedImage, setSelectedImage] = useState(null)
   const dispatch = useDispatch()
+  const [linkPreview, setLinkPreview] = useState(null)
+  const [linkPreviewPos, setLinkPreviewPos] = useState(null)
+  const [linkPreviewUrl, setLinkPreviewUrl] = useState(null)
+  const [linkPreviewElement, setLinkPreviewElement] = useState(null)
+  const hideTimeout = useRef(null)
 
   const safeContent = content ?? blog?.content ?? ""
 
@@ -1052,6 +1058,75 @@ const TextEditor = ({
     setHtmlContent,
     handleAcceptHumanizedContent,
   ])
+
+  // New effect for link hover preview and remove button
+  useEffect(() => {
+    const editorDom = normalEditor.view.dom
+
+    const handleMouseOver = async (e) => {
+      // Check if the target or its parent is an <a> tag
+      const link = e.target.closest("a")
+
+      const url = link.href
+
+      const rect = link.getBoundingClientRect()
+      const scrollY = window.scrollY || window.pageYOffset
+      const scrollX = window.scrollX || window.pageXOffset
+
+      // Set position for the preview
+      const pos = {
+        top: rect.bottom + scrollY + 8,
+        left: rect.left + scrollX,
+      }
+
+      setLinkPreviewPos(pos)
+      setLinkPreviewUrl(url)
+      setLinkPreviewElement(link)
+
+      try {
+        const data = await getLinkPreview(url)
+        setLinkPreview(data || { title: url, description: "" })
+      } catch (err) {
+        console.error("Failed to fetch link preview:", err)
+        setLinkPreview({ title: url, description: "" })
+      }
+    }
+
+    const handleMouseOut = (e) => {
+      if (e.target.closest("a")) {
+        if (hideTimeout.current) clearTimeout(hideTimeout.current)
+        hideTimeout.current = setTimeout(() => {
+          setLinkPreview(null)
+          setLinkPreviewPos(null)
+          setLinkPreviewUrl(null)
+          setLinkPreviewElement(null)
+        }, 200)
+      }
+    }
+
+    // Use event delegation to handle dynamic content
+    editorDom.addEventListener("mouseover", handleMouseOver, true)
+    editorDom.addEventListener("mouseout", handleMouseOut, true)
+
+    return () => {
+      editorDom.removeEventListener("mouseover", handleMouseOver, true)
+      editorDom.removeEventListener("mouseout", handleMouseOut, true)
+      if (hideTimeout.current) clearTimeout(hideTimeout.current)
+    }
+  }, [activeTab, normalEditor])
+
+  const handleRemoveLink = () => {
+    if (!linkPreviewElement || !normalEditor) return
+
+    const pos = normalEditor.view.posAtDOM(linkPreviewElement, 0)
+    const end = pos + (linkPreviewElement.textContent?.length || 0)
+    normalEditor.chain().focus().setTextSelection({ from: pos, to: end }).unsetLink().run()
+
+    setLinkPreview(null)
+    setLinkPreviewPos(null)
+    setLinkPreviewUrl(null)
+    setLinkPreviewElement(null)
+  }
 
   const renderToolbar = () => (
     <div className="bg-white border-x border-gray-200 shadow-sm px-2 sm:px-4 py-2 flex flex-wrap items-center gap-1 sm:gap-2 overflow-x-auto">
@@ -1930,6 +2005,70 @@ const TextEditor = ({
       </div>
       {renderToolbar()}
       {renderContentArea()}
+      {linkPreviewPos &&
+        createPortal(
+          <div
+            style={{
+              position: "absolute",
+              top: linkPreviewPos.top,
+              left: linkPreviewPos.left,
+              background: "white",
+              border: "1px solid #e5e7eb",
+              borderRadius: "0.5rem",
+              padding: "0.75rem",
+              boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+              zIndex: 1000, // Increased zIndex to avoid conflicts
+              maxWidth: "300px",
+              minWidth: "200px",
+              display: "block", // Explicitly ensure visibility
+            }}
+            onMouseEnter={() => {
+              if (hideTimeout.current) clearTimeout(hideTimeout.current)
+            }}
+            onMouseLeave={() => {
+              if (hideTimeout.current) clearTimeout(hideTimeout.current)
+              hideTimeout.current = setTimeout(() => {
+                setLinkPreview(null)
+                setLinkPreviewPos(null)
+                setLinkPreviewUrl(null)
+                setLinkPreviewElement(null)
+              }, 200)
+            }}
+          >
+            {linkPreview ? (
+              <>
+                <h4 className="text-sm font-semibold truncate">
+                  {linkPreview.title || "No title"}
+                </h4>
+                <p className="text-xs text-gray-600 truncate">{linkPreview.description}</p>
+                {linkPreview.images && linkPreview.images[0] && (
+                  <img
+                    src={linkPreview.images[0]}
+                    alt="preview"
+                    style={{ width: "100%", height: "auto", marginTop: "8px", borderRadius: "4px" }}
+                  />
+                )}
+                <Button
+                  onClick={() => {
+                    handleRemoveLink()
+                  }}
+                  size="small"
+                  danger
+                  style={{
+                    marginTop: "8px",
+                    width: "100%",
+                    display: "block", // Ensure button is visible
+                  }}
+                >
+                  Remove Link
+                </Button>
+              </>
+            ) : (
+              <p className="text-xs">Loading preview...</p>
+            )}
+          </div>,
+          document.body
+        )}
       <Modal
         title="Insert Link"
         open={linkModalOpen}

@@ -18,11 +18,11 @@ export const createBlog = async (blogData) => {
     const formData = new FormData()
     const { blogImages, ...restData } = blogData
 
-    // ✅ Prepare finalData with safe defaults
-    const finalData = {
+    // ✅ Build safe defaults
+    const rawData = {
       ...restData,
-      title: restData.title?.trim() || "Untitled Blog",
-      brandId: restData.brandId || "64f3c2e6b5d3f42a5a1f1234", // <-- must be valid ObjectId
+      title: restData.title?.trim(),
+      brandId: restData.brandId,
       isCompetitiveResearchEnabled: restData.isCompetitiveResearchEnabled ?? false,
       isCheckedBrand: restData.isCheckedBrand ?? false,
       isCheckedGeneratedImages: restData.isCheckedGeneratedImages ?? false,
@@ -35,18 +35,19 @@ export const createBlog = async (blogData) => {
       numberOfImages: restData.numberOfImages ?? 0,
     }
 
+    // ✅ Remove null/undefined keys
+    const finalData = Object.fromEntries(
+      Object.entries(rawData).filter(([_, v]) => v !== null && v !== undefined)
+    )
+
     // ✅ Append blog data as JSON string
     formData.append("data", JSON.stringify(finalData))
 
     // ✅ Append ONLY metadata for images (no binary files)
     if (blogImages?.length > 0) {
-      const imagesArray = blogImages.map((file) => ({
-        name: file.name,
-      }))
+      const imagesArray = blogImages.map((file) => ({ name: file.name }))
       formData.append("blogImages", JSON.stringify(imagesArray))
     }
-
-    console.log("👉 Final FormData (Single Blog):", [...formData.entries()])
 
     // ✅ Send request
     const response = await axiosInstance.post("/blogs", formData, {

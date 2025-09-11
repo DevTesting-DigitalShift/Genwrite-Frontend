@@ -9,50 +9,51 @@ import {
   setSelectedKeywords,
 } from "@store/slices/analysisSlice"
 
+
 const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, visible }) => {
   const [newKeyword, setNewKeyword] = useState("")
   const [keywords, setKeywords] = useState([])
   const [currentPage, setCurrentPage] = useState(1)
   const [showSelectedOnly, setShowSelectedOnly] = useState(false)
-
+  
   const dispatch = useDispatch()
   const {
     keywordAnalysis: keywordAnalysisResult,
     loading: analyzing,
     selectedKeywords,
   } = useSelector((state) => state.analysis)
-
+  
   useEffect(() => {
     if (keywords.length === 0) {
       setCurrentPage(1)
       dispatch(clearKeywordAnalysis())
     }
   }, [keywords, dispatch])
-
+  
   const addKeyword = () => {
     const input = newKeyword.trim()
     if (!input) return
-
+    
     const existing = keywords.map((k) => k.toLowerCase())
     const seen = new Set()
-
+    
     const newKeywords = input
-      .split(",")
-      .map((k) => k.trim())
-      .filter(
-        (k) =>
-          k &&
-          !existing.includes(k.toLowerCase()) &&
-          !seen.has(k.toLowerCase()) &&
-          seen.add(k.toLowerCase())
-      )
-
+    .split(",")
+    .map((k) => k.trim())
+    .filter(
+      (k) =>
+        k &&
+      !existing.includes(k.toLowerCase()) &&
+      !seen.has(k.toLowerCase()) &&
+      seen.add(k.toLowerCase())
+    )
+    
     if (newKeywords.length > 0) {
       setKeywords([...keywords, ...newKeywords])
       setNewKeyword("")
     }
   }
-
+  
   const removeKeyword = (index) => {
     const keywordToRemove = keywords[index]
     const updatedKeywords = keywords.filter((_, i) => i !== index)

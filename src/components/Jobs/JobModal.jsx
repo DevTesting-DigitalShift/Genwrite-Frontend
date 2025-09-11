@@ -1,9 +1,8 @@
-// @components/Jobs/JobModal.jsx
 import React, { useState, useEffect } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { Modal, message } from "antd"
 import { closeJobModal, createJobThunk, fetchJobs, updateJobThunk } from "@store/slices/jobSlice"
-import { clearSelectedKeywords } from "@store/slices/analysisSlice"
+import { clearSelectedKeywords, setSelectedKeywords } from "@store/slices/analysisSlice"
 import StepContent from "./StepContent"
 
 const initialJob = {
@@ -55,32 +54,38 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
 
   const MAX_BLOGS = 100
 
-  // Initialize newJob with selectedJob when editing
   useEffect(() => {
-    if (selectedJob) {
-      setNewJob({
-        ...selectedJob,
+    setNewJob((prev) => {
+      let baseJob = selectedJob ? { ...selectedJob } : prev // start from selectedJob if editing
+      let mergedTopics = [...(baseJob.blogs.topics || []), ...(selectedKeywords?.allKeywords || [])]
+      let mergedKeywords = [
+        ...(baseJob.blogs.keywords || []),
+        ...(selectedKeywords?.focusKeywords || []),
+        ...(selectedKeywords?.allKeywords || []),
+      ]
+
+      return {
+        ...baseJob,
         blogs: {
-          ...selectedJob.blogs,
-          keywords: selectedJob.blogs.keywords || [],
-          topics: selectedJob.blogs.topics || [],
-          templates: selectedJob.blogs.templates || [],
+          ...baseJob.blogs,
+          topics: [...new Set(mergedTopics)],
+          keywords: [...new Set(mergedKeywords)],
         },
-        options: {
-          ...selectedJob.options,
-          performKeywordResearch: selectedJob.options.performKeywordResearch || false,
-        },
-      })
-      setFormData({
-        keywords: selectedJob.blogs.keywords || [],
-        keywordInput: "",
-        performKeywordResearch: selectedJob.options.performKeywordResearch || false,
-      })
-    } else {
-      setNewJob(initialJob)
-      setFormData({ keywords: [], keywordInput: "", performKeywordResearch: true })
-    }
-  }, [selectedJob])
+      }
+    })
+
+    // Sync formData keywords as well
+    setFormData((prev) => ({
+      ...prev,
+      keywords: [
+        ...new Set([
+          ...(prev.keywords || []),
+          ...(selectedKeywords?.focusKeywords || []),
+          ...(selectedKeywords?.allKeywords || []),
+        ]),
+      ],
+    }))
+  }, [selectedKeywords, selectedJob])
 
   // Merge selectedKeywords into formData and newJob
   useEffect(() => {

@@ -16,9 +16,9 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
   const dispatch = useDispatch()
 
   const [formData, setFormData] = useState({
-    focusKeywordInput: "",
+    focusKeywordInput: data?.focusKeywordInput || "",
     focusKeywords: data?.focusKeywords || [],
-    keywordInput: "",
+    keywordInput: data?.keywordInput || "",
     keywords: data?.keywords || [],
   })
 
@@ -35,20 +35,16 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
   const [generatedTitles, setGeneratedTitles] = useState([])
   const [loadingTitles, setLoadingTitles] = useState(false)
 
-  // Sync formData with data prop changes
-  // useEffect(() => {
-  //   setFormData((prev) => ({
-  //     ...prev,
-  //     focusKeywords: selectedKeywords?.focusKeywords || [],
-  //     keywords: selectedKeywords?.keywords || [],
-  //   }))
-  // }, [selectedKeywords])
-
-  // Reset hasGeneratedTitles when modal opens
+  // Sync formData with selectedKeywords when they change
   useEffect(() => {
-    setHasGeneratedTitles(false)
-    setGeneratedTitles([])
-  }, [])
+    if (selectedKeywords) {
+      setFormData((prev) => ({
+        ...prev,
+        focusKeywords: selectedKeywords.focusKeywords || prev.focusKeywords,
+        keywords: selectedKeywords.keywords || prev.keywords,
+      }))
+    }
+  }, [selectedKeywords])
 
   // Handle modal open/close scroll behavior
   useEffect(() => {
@@ -58,8 +54,16 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
     }
   }, [])
 
+  // Reset generated titles when modal opens
+  useEffect(() => {
+    setHasGeneratedTitles(false)
+    setGeneratedTitles([])
+  }, [])
+
   const handleKeywordInputChange = (e) => {
-    setFormData((prev) => ({ ...prev, keywordInput: e.target.value }))
+    const value = e.target.value
+    setFormData((prev) => ({ ...prev, keywordInput: value }))
+    setData((prev) => ({ ...prev, keywordInput: value })) // Persist in data
   }
 
   const handleAddKeyword = () => {
@@ -81,7 +85,9 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
   }
 
   const handleFocusKeywordInputChange = (e) => {
-    setFormData((prev) => ({ ...prev, focusKeywordInput: e.target.value }))
+    const value = e.target.value
+    setFormData((prev) => ({ ...prev, focusKeywordInput: value }))
+    setData((prev) => ({ ...prev, focusKeywordInput: value })) // Persist in data
   }
 
   const handleFocusAddKeyword = () => {
@@ -101,6 +107,11 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
           focusKeywords: updatedFocusKeywords,
           focusKeywordInput: "",
         }))
+        setData((prev) => ({
+          ...prev,
+          focusKeywords: updatedFocusKeywords,
+          focusKeywordInput: "", // Clear in data as well
+        }))
       }
     }
   }
@@ -109,6 +120,10 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
     const updatedKeywords = [...formData[type]]
     updatedKeywords.splice(index, 1)
     setFormData((prev) => ({
+      ...prev,
+      [type]: updatedKeywords,
+    }))
+    setData((prev) => ({
       ...prev,
       [type]: updatedKeywords,
     }))
@@ -142,8 +157,8 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
         focusKeywords: formData.focusKeywords,
         topic,
         template: data.selectedTemplate.name,
-        userDefinedLength: data?.userDefinedLength || 1000, // Default to 1000 if not selected
-        ...(hasGeneratedTitles && { oldTitles: generatedTitles }), // Include oldTitles if generating more
+        userDefinedLength: data?.userDefinedLength || 1000,
+        ...(hasGeneratedTitles && { oldTitles: generatedTitles }),
       }
       const result = await dispatch(fetchGeneratedTitles(payload)).unwrap()
       setGeneratedTitles(result)
@@ -177,10 +192,26 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
       topic,
       focusKeywords: formData.focusKeywords,
       keywords: formData.keywords,
-      userDefinedLength: data?.userDefinedLength || 1000, // Ensure default value in updatedData
+      keywordInput: formData.keywordInput, // Persist input
+      focusKeywordInput: formData.focusKeywordInput, // Persist input
+      userDefinedLength: data?.userDefinedLength || 1000,
     }
     setData(updatedData)
     handleNext()
+  }
+
+  // Clear fields only when modal is closed
+  const handleModalClose = () => {
+    setFormData({
+      focusKeywordInput: "",
+      focusKeywords: [],
+      keywordInput: "",
+      keywords: [],
+    })
+    setTopic("")
+    setGeneratedTitles([])
+    setHasGeneratedTitles(false)
+    handleClose()
   }
 
   useEffect(() => {
@@ -196,9 +227,8 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
   return (
     <Modal
       title="Step 2: Crucial Details"
-      iffy
       open={true}
-      onCancel={handleClose}
+      onCancel={handleModalClose}
       footer={[
         <button
           key="back"

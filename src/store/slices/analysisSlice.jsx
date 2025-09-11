@@ -65,6 +65,7 @@ const analysisSlice = createSlice({
     },
     setSelectedKeywords: (state, action) => {
       state.selectedKeywords = action.payload
+      console.log("action.payload", action.payload)
     },
     clearSelectedKeywords: (state) => {
       state.selectedKeywords = []

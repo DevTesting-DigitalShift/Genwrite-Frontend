@@ -885,7 +885,7 @@ const StepContent = ({
                 </div>
               </div>
             )}
-            {newJob.blogs.isCheckedGeneratedImages &&
+            {/* {newJob.blogs.isCheckedGeneratedImages &&
             <div className="pt-4 w-full">
               <label className="block text-sm font-semibold text-gray-700 mb-1">
                 Number of Images
@@ -905,7 +905,7 @@ const StepContent = ({
                 placeholder="e.g., 5"
               />
             </div>
-            }
+            } */}
           </div>
         </motion.div>
       )
