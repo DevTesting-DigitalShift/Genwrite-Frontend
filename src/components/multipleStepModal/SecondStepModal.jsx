@@ -283,7 +283,7 @@ const SecondStepModal = ({
             <label className="block text-sm font-semibold text-gray-700 mb-3">
               Select AI Model
             </label>
-            <div className="flex gap-6 flex-wrap">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full">
               {[
                 {
                   id: "gemini",
@@ -305,9 +305,9 @@ const SecondStepModal = ({
                 <label
                   key={model.id}
                   htmlFor={model.id}
-                  className={`relative border rounded-lg px-4 py-3 flex items-center gap-3 cursor-pointer transition-all duration-150 ${
-                    formData.aiModel === model.id ? "border-blue-600 bg-blue-50" : "border-gray-300"
-                  } hover:shadow-sm w-full max-w-[200px]`}
+                  className={`relative border rounded-lg px-4 py-3 flex items-center gap-3 cursor-pointer transition-all duration-150
+        ${formData.aiModel === model.id ? "border-blue-600 bg-blue-50" : "border-gray-300"}
+        hover:shadow-sm w-full`}
                   onClick={(e) => {
                     if (model.restricted) {
                       e.preventDefault()
@@ -385,14 +385,14 @@ const SecondStepModal = ({
                 <label className="block text-sm font-semibold text-gray-700 mb-3">
                   Image Source
                 </label>
-                <div className="flex gap-6 flex-wrap">
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full">
+                  {/* Stock Images */}
                   <label
                     htmlFor="unsplash"
-                    className={`border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150 ${
-                      formData.imageSource === "unsplash"
-                        ? "border-blue-600 bg-blue-50"
-                        : "border-gray-300"
-                    } hover:shadow-sm w-full max-w-[200px]`}
+                    className={`border rounded-lg px-4 py-3 flex items-center justify-center gap-3 cursor-pointer transition-all duration-150
+        ${formData.imageSource === "unsplash" ? "border-blue-600 bg-blue-50" : "border-gray-300"}
+        hover:shadow-sm w-full`}
                   >
                     <input
                       type="radio"
@@ -404,13 +404,13 @@ const SecondStepModal = ({
                     />
                     <span className="text-sm font-medium text-gray-800">Stock Images</span>
                   </label>
+
+                  {/* AI-Generated Images */}
                   <label
                     htmlFor="ai-generated"
-                    className={`border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150 ${
-                      formData.imageSource === "ai"
-                        ? "border-blue-600 bg-blue-50"
-                        : "border-gray-300"
-                    } hover:shadow-sm w-full max-w-[220px] relative`}
+                    className={`relative border rounded-lg px-4 py-3 flex items-center justify-center gap-3 cursor-pointer transition-all duration-150
+        ${formData.imageSource === "ai" ? "border-blue-600 bg-blue-50" : "border-gray-300"}
+        hover:shadow-sm w-full`}
                     onClick={(e) => {
                       if (userPlan === "free") {
                         e.preventDefault()
@@ -428,6 +428,7 @@ const SecondStepModal = ({
                       disabled={userPlan === "free" || isAiImagesLimitReached}
                     />
                     <span className="text-sm font-medium text-gray-800">AI-Generated Images</span>
+
                     {userPlan === "free" ? (
                       <Crown className="w-4 h-4 text-yellow-500 absolute top-2 right-2" />
                     ) : (
@@ -442,18 +443,18 @@ const SecondStepModal = ({
                             },
                           }}
                         >
-                          <TriangleAlert className="text-yellow-400 ml-4" size={15} />
+                          <TriangleAlert className="text-yellow-400 ml-2" size={15} />
                         </Tooltip>
                       )
                     )}
                   </label>
+
+                  {/* Custom Image */}
                   {/* <label
                     htmlFor="customImage"
-                    className={`border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150 ${
-                      formData.imageSource === "customImage"
-                        ? "border-blue-600 bg-blue-50"
-                        : "border-gray-300"
-                    } hover:shadow-sm w-full max-w-[220px] relative`}
+                    className={`border rounded-lg px-4 py-3 flex items-center justify-center gap-3 cursor-pointer transition-all duration-150
+        ${formData.imageSource === "customImage" ? "border-blue-600 bg-blue-50" : "border-gray-300"}
+        hover:shadow-sm w-full`}
                   >
                     <input
                       type="radio"
@@ -462,14 +463,13 @@ const SecondStepModal = ({
                       checked={formData.imageSource === "customImage"}
                       onChange={() => handleImageSourceChange("customImage")}
                       className="hidden"
-                      disabled={userPlan === "free" || isAiImagesLimitReached}
                     />
                     <span className="text-sm font-medium text-gray-800">Use Custom Image</span>
                   </label> */}
                 </div>
               </div>
             )}
-
+            {/* 
             {formData.imageSource === "customImage" && (
               <div className="mt-4">
                 <label className="block text-sm font-semibold text-gray-700 mb-3">
@@ -526,29 +526,29 @@ const SecondStepModal = ({
                   </div>
                 )}
               </div>
-            )}
-
-            {/* {formData.imageSource !== "customImage" && (
-              <div className="pt-4 w-full">
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  Number of Images
-                </label>
-                <p className="text-xs text-gray-500 mb-2">
-                  Enter the number of images (0 = AI will decide)
-                </p>
-                <input
-                  type="number"
-                  name="numberOfImages"
-                  min="0"
-                  max="20"
-                  value={formData.numberOfImages}
-                  onChange={handleInputChange}
-                  onWheel={(e) => e.currentTarget.blur()}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm placeholder-gray-400 transition"
-                  placeholder="e.g., 5"
-                />
-              </div>
             )} */}
+
+            <div className="pt-4 w-full">
+              <label className="block text-sm font-semibold text-gray-700 mb-1">
+                Number of Images
+              </label>
+              <p className="text-xs text-gray-500 mb-2">
+                Enter the number of images (0 = AI will decide)
+              </p>
+              <input
+                type="number"
+                name="numberOfImages"
+                min="0"
+                max="20"
+                value={formData.numberOfImages}
+                onChange={handleInputChange}
+                onWheel={(e) => e.currentTarget.blur()}
+                inputMode="numeric" // shows numeric keypad
+                pattern="[0-9]*" // fallback for iOS
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm placeholder-gray-400 transition"
+                placeholder="e.g., 5"
+              />
+            </div>
           </div>
 
           {/* Quick Summary Toggle */}
@@ -577,7 +577,7 @@ const SecondStepModal = ({
 
           {/* Brand Voice Section */}
           <div>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="text-sm font-medium text-gray-700">Write with Brand Voice</span>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
@@ -601,19 +601,20 @@ const SecondStepModal = ({
                 <div className="w-12 h-6 bg-gray-300 rounded-full peer peer-checked:after:translate-x-6 peer-checked:bg-[#1B6FC9] after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-transform duration-300" />
               </label>
             </div>
+
             {formData.isCheckedBrand && (
-              <div className="mt-3 p-4 rounded-md border border-gray-200 bg-gray-50">
+              <div className="mt-3 p-3 sm:p-4 rounded-md border border-gray-200 bg-gray-50">
                 {loadingBrands ? (
                   <div className="text-gray-500 text-sm">Loading brand voices...</div>
                 ) : brandError ? (
                   <div className="text-red-500 text-sm font-medium">{brandError}</div>
                 ) : brands?.length > 0 ? (
                   <div className="max-h-48 overflow-y-auto pr-1">
-                    <div className="grid gap-3">
+                    <div className="grid gap-3 sm:grid-cols-1">
                       {brands.map((voice) => (
                         <label
                           key={voice._id}
-                          className={`flex items-start gap-2 p-3 rounded-md cursor-pointer ${
+                          className={`flex flex-col sm:flex-row sm:items-start gap-2 p-3 rounded-md cursor-pointer transition ${
                             formData.brandId === voice._id
                               ? "bg-blue-100 border-blue-300"
                               : "bg-white border border-gray-200"

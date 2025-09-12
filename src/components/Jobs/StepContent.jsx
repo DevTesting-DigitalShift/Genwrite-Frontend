@@ -642,21 +642,40 @@ const StepContent = ({
               </Select>
             </div>
             <div className="mb-6">
-              <label className="block text-sm font-semibold text-gray-700 mb-3">AI Model</label>
-              <div className="flex gap-4 flex-wrap">
-                {aiModels.map((model) => (
+              <label className="block text-sm font-semibold text-gray-700 mb-3">
+                Select AI Model
+              </label>
+
+              {/* Responsive grid: 1 col (mobile), 2 cols (tablet), 3 cols (desktop) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
+                {[
+                  {
+                    id: "gemini",
+                    label: "Gemini",
+                    logo: "/Images/gemini.png",
+                    restricted: false,
+                  },
+                  {
+                    id: "chatgpt",
+                    label: "ChatGPT",
+                    logo: "/Images/chatgpt.png",
+                  },
+                  {
+                    id: "claude",
+                    label: "Claude",
+                    logo: "/Images/claude.png",
+                  },
+                ].map((model) => (
                   <label
                     key={model.id}
                     htmlFor={model.id}
-                    className={`border rounded-lg px-4 py-3 flex items-center gap-3 cursor-pointer transition-all duration-150 ${
-                      newJob.blogs.aiModel === model.value
-                        ? "border-blue-600 bg-blue-50"
-                        : "border-gray-300"
-                    } hover:shadow-sm w-full max-w-[220px] relative`}
+                    className={`relative border rounded-lg px-4 py-3 flex items-center gap-3 cursor-pointer transition-all duration-150
+          ${formData.aiModel === model.id ? "border-blue-600 bg-blue-50" : "border-gray-300"}
+          hover:shadow-sm w-full`}
                     onClick={(e) => {
                       if (model.restricted) {
                         e.preventDefault()
-                        openUpgradePopup({ featureName: model.featureName, navigate })
+                        openUpgradePopup({ featureName: model.label, navigate })
                       }
                     }}
                   >
@@ -664,14 +683,12 @@ const StepContent = ({
                       type="radio"
                       id={model.id}
                       name="aiModel"
-                      value={model.value}
-                      checked={newJob.blogs.aiModel === model.value}
-                      onChange={() => {
+                      value={model.id}
+                      checked={formData.aiModel === model.id}
+                      onChange={(e) => {
                         if (!model.restricted) {
-                          setNewJob({
-                            ...newJob,
-                            blogs: { ...newJob.blogs, aiModel: model.value },
-                          })
+                          setFormData((prev) => ({ ...prev, aiModel: e.target.value }))
+                          setData((prev) => ({ ...prev, aiModel: e.target.value }))
                         }
                       }}
                       className="hidden"
@@ -685,6 +702,7 @@ const StepContent = ({
                 ))}
               </div>
             </div>
+
             <div className="flex justify-between items-center">
               <label className="block text-sm font-semibold text-gray-700 mb-2">Add Image</label>
               <div className="flex items-center">
@@ -826,12 +844,14 @@ const StepContent = ({
                 )}
               </div>
             )}
-            {newJob.blogs.isCheckedGeneratedImages && !newJob.blogs.isCheckedCustomImages  && (
+            {newJob.blogs.isCheckedGeneratedImages && !newJob.blogs.isCheckedCustomImages && (
               <div className="mb-6">
                 <label className="block text-sm font-semibold text-gray-700 mb-3">
                   Image Source
                 </label>
-                <div className="flex gap-4 flex-wrap">
+
+                {/* Responsive grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full">
                   {imageSources.map((source) => {
                     const isAiRestricted =
                       source.value === "ai-generated" && source.isAiImagesLimitReached
@@ -842,15 +862,15 @@ const StepContent = ({
                       <label
                         key={source.id}
                         htmlFor={source.id}
-                        className={`border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150
-                          ${
-                            newJob.blogs.imageSource === source.value
-                              ? "border-blue-600 bg-blue-50"
-                              : "border-gray-300"
-                          }
-                          hover:shadow-sm w-full max-w-[220px] relative
-                          ${isBlocked ? "opacity-50 cursor-not-allowed" : ""}
-                        `}
+                        className={`relative border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150
+              ${
+                newJob.blogs.imageSource === source.value
+                  ? "border-blue-600 bg-blue-50"
+                  : "border-gray-300"
+              }
+              hover:shadow-sm w-full
+              ${isBlocked ? "opacity-50 cursor-not-allowed" : ""}
+            `}
                         onClick={(e) => {
                           if (isBlocked) {
                             e.preventDefault()
@@ -885,7 +905,7 @@ const StepContent = ({
                 </div>
               </div>
             )}
-            {/* {newJob.blogs.isCheckedGeneratedImages &&
+
             <div className="pt-4 w-full">
               <label className="block text-sm font-semibold text-gray-700 mb-1">
                 Number of Images
@@ -905,7 +925,6 @@ const StepContent = ({
                 placeholder="e.g., 5"
               />
             </div>
-            } */}
           </div>
         </motion.div>
       )
