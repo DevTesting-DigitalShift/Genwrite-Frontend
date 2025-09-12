@@ -1520,61 +1520,6 @@ const TextEditor = ({
             />
           </Suspense>
         )
-
-        /*const diff = computeLineDiff(editorContent || "", humanizedContent || "")
-        return (
-          <div className="p-4 bg-white h-screen overflow-auto">
-            <div className="flex flex-row gap-4">
-              <div className="flex-1">
-                <h3 className="text-lg font-bold mb-2 text-gray-900">Original Content</h3>
-                <div className="border rounded-lg p-2 bg-gray-50">
-                  {diff.map((line, index) => (
-                    <div
-                      key={`original-${index}`}
-                      className={`flex items-start p-1 text-sm font-mono ${
-                        line.type === "removed"
-                          ? "bg-red-100"
-                          : line.type === "added"
-                          ? "bg-gray-100 opacity-50"
-                          : ""
-                      }`}
-                    >
-                      <span className="w-8 text-right text-gray-500 pr-2">{line.lineNumber}</span>
-                      <span className="flex-1 whitespace-pre-wrap">{line.oldLine || "\u00A0"}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-bold mb-2 text-gray-900">AI Improved Content</h3>
-                <div className="border rounded-lg p-2 bg-gray-50">
-                  {diff.map((line, index) => (
-                    <div
-                      key={`humanized-${index}`}
-                      className={`flex items-start p-1 text-sm font-mono ${
-                        line.type === "added"
-                          ? "bg-green-100"
-                          : line.type === "removed"
-                          ? "bg-gray-100 opacity-50"
-                          : ""
-                      }`}
-                    >
-                      <span className="w-8 text-right text-gray-500 pr-2">{line.lineNumber}</span>
-                      <span className="flex-1 whitespace-pre-wrap">{line.newLine || "\u00A0"}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 mt-4">
-              <Button onClick={handleAcceptOriginalContent}>Keep Original</Button>
-              <Button type="primary" onClick={handleAcceptHumanizedContentModified}>
-                Accept Humanized
-              </Button>
-            </div>
-          </div>
-        )
-          */
       } else {
         return (
           <div className="h-screen overflow-auto custom-scroll">

@@ -6,7 +6,7 @@ import axiosInstance from "../../api"
 import { createManualBlog, fetchBlogById, updateBlogById } from "../../store/slices/blogSlice"
 import TextEditor from "../generateBlog/TextEditor"
 import TextEditorSidebar from "../generateBlog/TextEditorSidebar"
-import { Loader2, FileText, Eye, Save, RefreshCw } from "lucide-react"
+import { Loader2, FileText, Eye, Save, RefreshCw, PanelRightOpen } from "lucide-react"
 import { Helmet } from "react-helmet"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
@@ -15,6 +15,7 @@ import { Button, message, Modal, Typography } from "antd"
 import { htmlToText } from "html-to-text"
 import { sendRetryLines } from "@api/blogApi"
 import TemplateModal from "@components/generateBlog/ManualBlogEditor.jsx/TemplateModal"
+import { OpenAIFilled } from "@ant-design/icons"
 
 const ToolBox = () => {
   const { id } = useParams()
@@ -38,6 +39,8 @@ const ToolBox = () => {
   const [humanizedContent, setHumanizedContent] = useState("")
   const [isHumanizing, setIsHumanizing] = useState(false)
   const [humanizePrompt, setHumanizePrompt] = useState("")
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const toggleSidebar = () => setIsSidebarOpen((prev) => !prev)
   const user = useSelector((state) => state.auth.user)
   const userPlan = user?.plan ?? user?.subscription?.plan
   const navigate = useNavigate()
@@ -438,11 +441,11 @@ const ToolBox = () => {
           <div className="flex-1 flex flex-col min-w-0">
             <header className="bg-white shadow-lg border rounded-tl-lg border-gray-200 p-4 sm:p-6">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-4 mt-5 lg:mt-0">
+                <div className="flex items-center gap-4 mt-5 lg:mt-0 w-full">
                   <div className="w-8 sm:w-10 h-8 sm:h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
                     <FileText className="w-4 sm:w-5 h-4 sm:h-5 text-white" />
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">
                       {id ? "Edit Blog" : "Create New Blog"}
                     </h2>
@@ -450,7 +453,11 @@ const ToolBox = () => {
                       Write and optimize your content
                     </p>
                   </div>
+                  <button onClick={toggleSidebar} className="md:hidden ml-auto">
+                    {!isSidebarOpen && <PanelRightOpen />}
+                  </button>
                 </div>
+
                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
                   {pathDetect && (
                     <button
@@ -556,31 +563,75 @@ const ToolBox = () => {
               </motion.div>
             </AnimatePresence>
           </div>
-          <TextEditorSidebar
-            blog={blog}
-            keywords={keywords}
-            setKeywords={setKeywords}
-            onPost={handlePostToWordPress}
-            activeTab={activeTab}
-            handleReplace={handleReplace}
-            proofreadingResults={proofreadingResults}
-            setProofreadingResults={setProofreadingResults}
-            handleSave={handleOptimizeSave}
-            handleSubmit={handleSave}
-            posted={isPosted}
-            isPosting={isPosting}
-            formData={formData}
-            title={editorTitle}
-            setEditorContent={setEditorContent}
-            editorContent={editorContent}
-            className="w-full md:w-80 border-l border-gray-200"
-            humanizePrompt={humanizePrompt}
-            setHumanizePrompt={setHumanizePrompt}
-            setIsHumanizing={setIsHumanizing}
-            isHumanizing={isHumanizing}
-            setHumanizedContent={setHumanizedContent}
-            setIsHumanizeModalOpen={setIsHumanizeModalOpen}
-          />
+          <div className="hidden md:block border-l border-gray-200 overflow-y-auto">
+            <TextEditorSidebar
+              blog={blog}
+              keywords={keywords}
+              setKeywords={setKeywords}
+              onPost={handlePostToWordPress}
+              activeTab={activeTab}
+              handleReplace={handleReplace}
+              proofreadingResults={proofreadingResults}
+              setProofreadingResults={setProofreadingResults}
+              handleSave={handleOptimizeSave}
+              handleSubmit={handleSave}
+              posted={isPosted}
+              isPosting={isPosting}
+              formData={formData}
+              title={editorTitle}
+              setEditorContent={setEditorContent}
+              editorContent={editorContent}
+              humanizePrompt={humanizePrompt}
+              setHumanizePrompt={setHumanizePrompt}
+              setIsHumanizing={setIsHumanizing}
+              isHumanizing={isHumanizing}
+              setHumanizedContent={setHumanizedContent}
+              setIsHumanizeModalOpen={setIsHumanizeModalOpen}
+            />
+          </div>
+
+          <AnimatePresence>
+            {isSidebarOpen && (
+              <motion.div
+                initial={{ x: "100%" }}
+                animate={{ x: 0 }}
+                exit={{ x: "100%" }}
+                transition={{ duration: 0.3 }}
+                className="fixed inset-y-0 right-0 w-4/5 max-w-xs bg-white shadow-lg z-50 overflow-y-auto md:hidden"
+              >
+                <TextEditorSidebar
+                  blog={blog}
+                  keywords={keywords}
+                  setKeywords={setKeywords}
+                  onPost={handlePostToWordPress}
+                  activeTab={activeTab}
+                  handleReplace={handleReplace}
+                  proofreadingResults={proofreadingResults}
+                  setProofreadingResults={setProofreadingResults}
+                  handleSave={handleOptimizeSave}
+                  handleSubmit={handleSave}
+                  posted={isPosted}
+                  isPosting={isPosting}
+                  formData={formData}
+                  title={editorTitle}
+                  setEditorContent={setEditorContent}
+                  editorContent={editorContent}
+                  humanizePrompt={humanizePrompt}
+                  setHumanizePrompt={setHumanizePrompt}
+                  setIsHumanizing={setIsHumanizing}
+                  isHumanizing={isHumanizing}
+                  setHumanizedContent={setHumanizedContent}
+                  setIsHumanizeModalOpen={setIsHumanizeModalOpen}
+                />
+                <button
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="absolute top-2 right-2 text-gray-600"
+                >
+                  ✖
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         <TemplateModal

@@ -777,7 +777,7 @@ const TextEditorSidebar = ({
         initial={{ x: "100%" }}
         animate={{ x: 0 }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className="w-96 bg-white shadow-xl flex flex-col"
+        className="w-full md:w-96 bg-white shadow-xl flex flex-col"
       >
         <div className="p-4 border border-l-0 bg-gradient-to-r rounded-tr-md from-blue-50 to-purple-50">
           <div className="flex items-center justify-between mb-2">
@@ -793,13 +793,16 @@ const TextEditorSidebar = ({
                   </Dropdown>
                 </Tooltip>
               )}
-              <Tooltip title="Minimize sidebar" placement="left">
-                <Button
-                  size="small"
-                  icon={<Minimize2 className="w-4 h-4" />}
-                  onClick={() => setIsMinimized(true)}
-                />
-              </Tooltip>
+              <div className="hidden sm:inline">
+                <Tooltip title="Minimize sidebar" placement="left">
+                  <Button
+                    size="small"
+                    icon={<Minimize2 className="w-4 h-4" />}
+                    onClick={() => setIsMinimized(true)}
+                  />
+                </Tooltip>
+              </div>
+
               <Tooltip title="Content settings">
                 <Button
                   size="small"
@@ -810,7 +813,7 @@ const TextEditorSidebar = ({
             </div>
           </div>
 
-          <div className="flex justify-between items-center mt-6 px-2">
+          <div className="flex gap-2 mt-6 px-2">
             {[
               { key: "overview", label: "Overview", icon: BarChart3 },
               { key: "analysis", label: "Analysis", icon: TrendingUp },
@@ -824,15 +827,19 @@ const TextEditorSidebar = ({
               <button
                 key={key}
                 onClick={() => setActiveSection(key)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-150
+                className={`flex items-center justify-center gap-2 px-3 py-2 rounded-full text-sm font-medium transition-all duration-150 flex-shrink-0
         ${
           activeSection === key
             ? "bg-blue-600 text-white shadow-md"
             : "bg-gray-100 text-gray-700 hover:bg-gray-200"
         }`}
               >
+                {/* Always show icon */}
                 <Icon className="w-4 h-4" />
-                {label}
+
+                {/* Show label only on sm+ screens */}
+                <span className="hidden sm:inline">{label}</span>
+
                 {badge > 0 && (
                   <span className="ml-1 inline-flex items-center justify-center w-5 h-5 text-xs font-semibold text-white bg-red-500 rounded-full">
                     {badge}
