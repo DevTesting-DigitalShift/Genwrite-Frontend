@@ -832,7 +832,6 @@ const TextEditor = ({
         }
       })
       if (deleted) {
-        message.success("Image deleted.")
         setEditImageModalOpen(false)
         setSelectedImage(null)
         setImageAlt("")
@@ -850,7 +849,6 @@ const TextEditor = ({
         setUnsavedChanges(true)
         return newContent
       })
-      message.success("Image deleted.")
       setEditImageModalOpen(false)
       setSelectedImage(null)
       setImageAlt("")
@@ -868,7 +866,6 @@ const TextEditor = ({
         setUnsavedChanges(true)
         return newContent
       })
-      message.success("Image deleted.")
       setEditImageModalOpen(false)
       setSelectedImage(null)
       setImageAlt("")

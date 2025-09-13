@@ -239,7 +239,6 @@ const MyProjects = () => {
     },
     onError: (error) => {
       console.error("Failed to archive blog:", error)
-      message.error("Failed to archive blog.")
     },
   })
 
