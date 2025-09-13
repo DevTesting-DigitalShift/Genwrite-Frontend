@@ -36,7 +36,7 @@ import {
   Legend,
 } from "chart.js"
 import GoThrough from "./GoThrough"
-import { letsBegin, quickTools } from "./dashData/dash"
+import { letsBegin, quickTools } from "./dashData/dash.jsx";
 import ContentEnhancements from "./multipleStepModal/ContentEnhancements"
 
 ChartJS.register(
