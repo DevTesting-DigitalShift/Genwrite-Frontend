@@ -471,7 +471,7 @@ const ToolBox = () => {
                   )}
                   <button
                     onClick={() => handleSave({ metadata })}
-                    className={`px-3 sm:px-4 py-2 rounded-lg font-semibold flex items-center gap-2 transition-all duration-300 text-base lg:text- text-center justify-center ${
+                    className={`px-3 sm:px-4 py-2 min-w-[130px] rounded-lg font-semibold flex items-center gap-2 justify-center transition-all duration-300 ${
                       isSaving ||
                       !editorTitle.trim() ||
                       !editorContent.trim() ||
@@ -485,7 +485,6 @@ const ToolBox = () => {
                       !editorContent.trim() ||
                       getWordCount(editorTitle) > 60
                     }
-                    aria-label="Save blog"
                   >
                     {isSaving ? (
                       <>
@@ -563,7 +562,7 @@ const ToolBox = () => {
               </motion.div>
             </AnimatePresence>
           </div>
-          <div className="hidden md:block border-l border-gray-200 overflow-y-auto">
+          <div className="hidden md:block border-l border-gray-200 overflow-y-auto custom-scroll">
             <TextEditorSidebar
               blog={blog}
               keywords={keywords}

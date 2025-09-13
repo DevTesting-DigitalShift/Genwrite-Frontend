@@ -1212,7 +1212,7 @@ const TextEditorSidebar = ({
                     )}
                   </Collapse>
                 ) : (
-                  <div className="text-center py-8">
+                  <div className="text-center py-8 h-screen">
                     <TrendingUp className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                     <p className="text-sm text-gray-600 mb-2">No analysis results yet</p>
                     <p className="text-xs text-gray-500">
@@ -1278,7 +1278,7 @@ const TextEditorSidebar = ({
                     </div>
                   </>
                 ) : (
-                  <div className="text-center py-8">
+                  <div className="text-center py-8 h-screen">
                     <FileText className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                     <p className="text-sm text-gray-600 mb-2">No suggestions available</p>
                     <p className="text-xs text-gray-500">Run AI proofreading to get suggestions</p>
