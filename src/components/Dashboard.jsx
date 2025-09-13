@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react"
 import Modal from "../utils/Modal"
 import SelectTemplateModal from "./multipleStepModal/SelectTemplateModal"
-import FirstStepModal from "./multipleStepModal/FirstStepModal"
 import SecondStepModal from "./multipleStepModal/SecondStepModal"
 import { DashboardBox, QuickBox, Blogs } from "../utils/DashboardBox"
 import { useDispatch, useSelector } from "react-redux"
@@ -9,17 +8,12 @@ import { createNewBlog, fetchAllBlogs, fetchBlogs } from "@store/slices/blogSlic
 import { useNavigate } from "react-router-dom"
 import MultiStepModal from "./multipleStepModal/DaisyUi"
 import DaisyUIModal from "./DaisyUIModal"
-import QuickBlogModal from "./multipleStepModal/QuickBlogModal"
-import CompetitiveAnalysisModal from "./CompetitiveAnalysisModal"
-import PerformanceMonitoringModal from "./PerformanceMonitoringModal"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { AnimatePresence, motion } from "framer-motion"
 import { loadAuthenticatedUser, selectUser } from "@store/slices/authSlice"
 import { Clock, Sparkles } from "lucide-react"
 import { Helmet } from "react-helmet"
-import SeoAnalysisModal from "./SeoAnalysisModal"
-import KeywordResearchModel from "./KeywordResearchModel"
 import { SkeletonDashboardCard, SkeletonGridCard } from "./Projects/SkeletonLoader"
 import { openJobModal } from "@store/slices/jobSlice"
 import { message } from "antd"
@@ -36,8 +30,13 @@ import {
   Legend,
 } from "chart.js"
 import GoThrough from "./GoThrough"
-import { letsBegin, quickTools } from "./dashData/dash.jsx";
-import ContentEnhancements from "./multipleStepModal/ContentEnhancements"
+import { letsBegin, quickTools } from "./dashData/dash"
+import SeoAnalysisModal from "./SeoAnalysisModal"
+import CompetitiveAnalysisModal from "./CompetitiveAnalysisModal"
+import PerformanceMonitoringModal from "./PerformanceMonitoringModal"
+import FirstStepModal from "./multipleStepModal/FirstStepModal"
+import KeywordResearchModel from "./KeywordResearchModel"
+import QuickBlogModal from "./multipleStepModal/QuickBlogModal"
 
 ChartJS.register(
   ArcElement,
@@ -233,16 +232,6 @@ const Dashboard = () => {
             handleSubmit={handleSubmit}
           />
         )}
-         {/* {currentStep === 3 && (
-          <ContentEnhancements
-            handleNext={handleNext}
-            handlePrevious={handlePrev}
-            handleClose={handleCancel}
-            data={modelData}
-            setData={setModelData}
-            handleSubmit={handleSubmit}
-          />
-        )} */}
         <div className="flex items-center justify-center mt-4">
           <progress className="w-full max-w-md" max="3" value={currentStep}></progress>
         </div>
@@ -282,7 +271,7 @@ const Dashboard = () => {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="mt-10 md:mt-5 ml-10"
+        className="mt-5 ml-10"
       >
         <h1 className="bg-clip-text bg-gradient-to-r font-bold from-blue-600 md:text-4xl text-3xl text-transparent to-purple-600">
           Let's Begin <span className="ml-2 text-2xl text-yellow-400">✨</span>
