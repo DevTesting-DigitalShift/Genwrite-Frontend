@@ -1519,7 +1519,7 @@ const TextEditor = ({
         )
       } else {
         return (
-          <div className="h-[320px] md:h-screen overflow-auto custom-scroll">
+          <div className="h-[500px] md:h-screen overflow-auto custom-scroll">
             {normalEditor && (
               <BubbleMenu
                 editor={normalEditor}

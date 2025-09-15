@@ -186,7 +186,7 @@ const HumanizeContent = () => {
               className="w-full h-60 p-4 border-2 border-gray-200 rounded-xl resize-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all duration-300 text-gray-800 placeholder-gray-500"
             />
             <div className="flex justify-end items-center">
-              <p className={`text-sm mb-2 ${wordCount < 300 ? "text-red-500" : "text-green-600"}`}>
+              <p className={`text-sm mb-2 ${wordCount < 300 ? "text-yellow-500" : "text-green-600"}`}>
                 Word count: {wordCount} {wordCount < 300 ? "(Minimum 300 words required)" : ""}
               </p>
             </div>

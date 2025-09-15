@@ -22,19 +22,16 @@ const GoThrough = ({ onClose }) => {
       </div>
 
       <div className="relative rounded-lg overflow-hidden m-6 mt-4">
-        {/* The video will only render when the modal is open */}
-        {open && (
-          <iframe
-            width="560"
-            height="315"
-            src="https://www.youtube.com/embed/Yq9WDkzi39U?autoplay=0&mute=1&loop=1&playlist=Yq9WDkzi39U"
-            title="YouTube video player"
-            frameborder="0"
-            allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowfullscreen
-            className="w-full h-64 sm:h-80 md:h-96 lg:h-[500px] rounded-lg"
-          ></iframe>
-        )}
+        <iframe
+          width="560"
+          height="315"
+          src="https://www.youtube.com/embed/Yq9WDkzi39U?autoplay=0&mute=1&loop=1&playlist=Yq9WDkzi39U"
+          title="YouTube video player"
+          frameborder="0"
+          allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen
+          className="w-full h-64 sm:h-80 md:h-96 lg:h-[500px] rounded-lg"
+        ></iframe>
       </div>
     </Modal>
   )

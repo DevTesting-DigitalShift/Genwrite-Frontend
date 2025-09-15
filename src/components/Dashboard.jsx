@@ -79,15 +79,20 @@ const Dashboard = () => {
   const showCompetitiveAnalysis = () => setCompetitiveAnalysisModal(true)
   const hideCompetitiveAnalysis = () => setCompetitiveAnalysisModal(false)
 
+  // Consolidated useEffect for GoThrough modal logic
   useEffect(() => {
     const currentUser = user
-    if (currentUser && !currentUser.lastLogin) {
+    const hasSeenGoThrough = sessionStorage.getItem("hasSeenGoThrough") === "true"
+    if (currentUser && !currentUser.lastLogin && !hasSeenGoThrough) {
       setShowWhatsNew(true)
+    } else {
+      setShowWhatsNew(false) // Explicitly set to false to prevent reappearing
     }
   }, [user])
 
   const handleCloseModal = () => {
     setShowWhatsNew(false)
+    sessionStorage.setItem("hasSeenGoThrough", "true")
   }
 
   const openSecondStepModal = () => {
@@ -104,7 +109,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     dispatch(fetchBlogs())
-  }, [])
+  }, [dispatch])
 
   // Initialize data and fetch
   useEffect(() => {

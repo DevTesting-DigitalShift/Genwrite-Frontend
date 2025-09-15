@@ -165,7 +165,6 @@ const GenerateMetaData = () => {
                 <path d="M16 17H8"></path>
               </svg>
               <h2 className="text-xl font-semibold text-gray-900">Content</h2>
-              <span className="text-sm text-gray-500">({wordCount()} words)</span>
             </div>
             <TextArea
               value={content}
@@ -174,6 +173,12 @@ const GenerateMetaData = () => {
               rows={12}
               className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 custom-scroll"
             />
+          </div>
+
+          <div className="flex justify-end items-center">
+            <p className={`text-sm mb-2 ${wordCount() < 300 ? "text-yellow-500" : "text-green-600"}`}>
+              Word count: {wordCount()} {wordCount() < 300 ? "(Minimum 60 words required)" : ""}
+            </p>
           </div>
 
           <Button
