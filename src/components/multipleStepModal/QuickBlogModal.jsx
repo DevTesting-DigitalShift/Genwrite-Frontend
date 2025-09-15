@@ -315,7 +315,7 @@ const QuickBlogModal = ({ closeFnc }) => {
       transitionName=""
       maskTransitionName=""
     >
-      <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
+      <div className="p-2 md:p-4 lg:p-6 space-y-6 max-h-[80vh] overflow-y-auto">
         {currentStep === 0 && (
           <div>
             {/* Mobile View: Vertical Scrolling Layout */}

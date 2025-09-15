@@ -8,6 +8,8 @@ import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { createMultiBlog } from "@store/slices/blogSlice"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { Modal, Select, Tooltip, message } from "antd"
+import { fetchBrands } from "@store/slices/brandSlice"
+import { useQuery } from "@tanstack/react-query"
 
 const MultiStepModal = ({ closeFnc }) => {
   const dispatch = useDispatch()
@@ -54,6 +56,19 @@ const MultiStepModal = ({ closeFnc }) => {
     isCheckedGeneratedImages: true,
     addOutBoundLinks: false,
     blogImages: [],
+  })
+
+  const {
+    data: brands = [],
+    isLoading: loadingBrands,
+    error: brandError,
+  } = useQuery({
+    queryKey: ["brands"],
+    queryFn: async () => {
+      const response = await dispatch(fetchBrands()).unwrap()
+      return response
+    },
+    enabled: formData.isCheckedBrand,
   })
 
   useEffect(() => {
@@ -116,10 +131,10 @@ const MultiStepModal = ({ closeFnc }) => {
       return
     }
 
-    // if (formData.numberOfBlogs < 1 || formData.numberOfBlogs > 10) {
-    //   message.error("Number of blogs must be between 1 and 10.")
-    //   return
-    // }
+    if (formData.numberOfBlogs < 1 || formData.numberOfBlogs > 10) {
+      message.error("Number of blogs must be between 1 and 10.")
+      return
+    }
 
     // if (formData.numberOfImages < 1 || formData.numberOfImages > 10) {
     //   message.error("Number of images must be between 1 and 10.")
@@ -609,29 +624,38 @@ const MultiStepModal = ({ closeFnc }) => {
                   </div>
                 </Tooltip>
               </label>
+
               <p className="text-xs text-gray-500 mb-2">Enter the main topics for your blogs.</p>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={formData.topicInput}
-                  onChange={handleTopicInputChange}
-                  onKeyDown={handleTopicKeyPress}
-                  className={`flex-1 px-3 py-2 border ${
-                    errors.topics ? "border-red-500" : "border-gray-300"
-                  } rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-50`}
-                  placeholder="e.g., digital marketing trends, AI in business"
-                />
+
+              {/* Input field always full width */}
+              <input
+                type="text"
+                value={formData.topicInput}
+                onChange={handleTopicInputChange}
+                onKeyDown={handleTopicKeyPress}
+                className={`w-full px-3 py-2 border ${
+                  errors.topics ? "border-red-500" : "border-gray-300"
+                } rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-50`}
+                placeholder="e.g., digital marketing trends, AI in business"
+              />
+
+              {/* Add + Upload in same row */}
+              <div className="flex gap-2 mt-2">
                 <button
                   onClick={handleAddTopic}
-                  className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm hover:bg-[#1B6FC9]/90"
+                  className="flex-1 sm:flex-none px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm hover:bg-[#1B6FC9]/90"
                 >
                   Add
                 </button>
-                <label className="px-4 py-2 bg-gray-100 text-gray-700 border rounded-md text-sm cursor-pointer flex items-center gap-1 hover:bg-gray-200">
+
+                <label className="flex-1 sm:flex-none px-4 py-2 bg-gray-100 text-gray-700 border rounded-md text-sm cursor-pointer flex items-center justify-center gap-1 hover:bg-gray-200">
                   <Upload size={16} />
                   <input type="file" accept=".csv" onChange={handleCSVUpload} hidden />
+                  Upload
                 </label>
               </div>
+
+              {/* Topics chips */}
               <div className="flex flex-wrap gap-2 mt-2 min-h-[28px]">
                 {(showAllTopics
                   ? formData.topics
@@ -675,6 +699,7 @@ const MultiStepModal = ({ closeFnc }) => {
                 )}
               </div>
             </div>
+
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-gray-700">
                 Perform Keyword Research?
@@ -827,7 +852,8 @@ const MultiStepModal = ({ closeFnc }) => {
               <label className="block text-sm font-semibold text-gray-700 mb-3">
                 Select AI Model
               </label>
-              <div className="flex gap-4 flex-wrap">
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                 {[
                   {
                     id: "gemini",
@@ -851,17 +877,11 @@ const MultiStepModal = ({ closeFnc }) => {
                   <label
                     key={model.id}
                     htmlFor={model.id}
-                    className={`border rounded-lg px-4 py-3 flex items-center gap-3 cursor-pointer transition-all duration-150 ${
+                    className={`relative border rounded-lg px-4 py-3 flex items-center gap-3 cursor-pointer transition-all duration-150 ${
                       formData.aiModel === model.id
                         ? "border-blue-600 bg-blue-50"
                         : "border-gray-300"
-                    } hover:shadow-sm w-full max-w-[220px]`}
-                    // onClick={(e) => {
-                    //   if (model.restricted) {
-                    //     e.preventDefault()
-                    //     openUpgradePopup({ featureName: model.label, navigate })
-                    //   }
-                    // }}
+                    } hover:shadow-sm`}
                   >
                     <input
                       type="radio"
@@ -869,21 +889,16 @@ const MultiStepModal = ({ closeFnc }) => {
                       name="aiModel"
                       value={model.id}
                       checked={formData.aiModel === model.id}
-                      onChange={(e) => {
-                        // if (!model.restricted) {
+                      onChange={(e) =>
                         setFormData((prev) => ({
                           ...prev,
                           aiModel: e.target.value,
                         }))
-                        // }
-                      }}
+                      }
                       className="hidden"
                     />
                     <img src={model.logo} alt={model.label} className="w-6 h-6 object-contain" />
                     <span className="text-sm font-medium text-gray-800">{model.label}</span>
-                    {/* {model.restricted && (
-                    <Crown className="w-4 h-4 text-yellow-500 absolute top-2 right-2" />
-                  )} */}
                   </label>
                 ))}
               </div>
@@ -956,7 +971,8 @@ const MultiStepModal = ({ closeFnc }) => {
                   <label className="block text-sm font-semibold text-gray-700 mb-3">
                     Image Source
                   </label>
-                  <div className="flex gap-4 flex-wrap">
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {[
                       {
                         id: "unsplash",
@@ -980,11 +996,11 @@ const MultiStepModal = ({ closeFnc }) => {
                       <label
                         key={source.id}
                         htmlFor={source.id}
-                        className={`border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150 ${
+                        className={`border rounded-lg px-4 py-3 flex items-center justify-center gap-3 cursor-pointer transition-all duration-150 ${
                           formData.imageSource === source.value
                             ? "border-blue-600 bg-blue-50"
                             : "border-gray-300"
-                        } hover:shadow-sm w-full max-w-[220px]`}
+                        } hover:shadow-sm`}
                       >
                         <input
                           type="radio"
@@ -1060,29 +1076,128 @@ const MultiStepModal = ({ closeFnc }) => {
               </div>
             )}
 
-            {/* {formData.imageSource !== "customImages" && (
-              <div className="pt-4 w-full ">
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  Number of Images
-                </label>
-                <p className="text-xs text-gray-500 mb-2">
-                  Enter the number of images (0 = AI will decide)
-                </p>
-                <input
-                  type="number"
-                  name="numberOfImages"
-                  min="0"
-                  max="20"
-                  value={formData.numberOfImages}
-                  onChange={handleInputChange}
-                  onWheel={(e) => e.currentTarget.blur()} // prevent scroll changes
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm placeholder-gray-400 transition"
-                  placeholder="e.g., 5"
-                />
-              </div>
-            )} */}
+            <div className="pt-4 w-full">
+              <label className="block text-sm font-semibold text-gray-700 mb-1">
+                Number of Images
+              </label>
+              <p className="text-xs text-gray-500 mb-2">
+                Enter the number of images (0 = AI will decide)
+              </p>
+              <input
+                type="tel" // opens numeric keypad on mobile
+                inputMode="numeric" // ensures numeric intent
+                name="numberOfImages"
+                min="0"
+                max="20"
+                value={formData.numberOfImages}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm placeholder-gray-400 transition"
+                placeholder="e.g., 5"
+              />
+            </div>
 
             <div className="space-y-4 pt-4 border-t border-gray-200">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">Write with Brand Voice</span>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.isCheckedBrand}
+                      onChange={() => {
+                        setFormData((prev) => ({
+                          ...prev,
+                          isCheckedBrand: !prev.isCheckedBrand,
+                          brandId: null,
+                        }))
+                        setData((prev) => ({
+                          ...prev,
+                          isCheckedBrand: !prev.isCheckedBrand,
+                          brandId: null,
+                        }))
+                      }}
+                      className="sr-only peer"
+                      aria-checked={formData.isCheckedBrand}
+                    />
+                    <div className="w-12 h-6 bg-gray-300 rounded-full peer peer-checked:after:translate-x-6 peer-checked:bg-[#1B6FC9] after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-transform duration-300" />
+                  </label>
+                </div>
+                {formData.isCheckedBrand && (
+                  <div className="mt-3 p-4 rounded-md border border-gray-200 bg-gray-50">
+                    {loadingBrands ? (
+                      <div className="text-gray-500 text-sm">Loading brand voices...</div>
+                    ) : brandError ? (
+                      <div className="text-red-500 text-sm font-medium">{brandError}</div>
+                    ) : brands?.length > 0 ? (
+                      <div className="max-h-48 overflow-y-auto pr-1">
+                        <div className="grid gap-3">
+                          {brands.map((voice) => (
+                            <label
+                              key={voice._id}
+                              className={`flex items-start gap-2 p-3 rounded-md cursor-pointer ${
+                                formData.brandId === voice._id
+                                  ? "bg-blue-100 border-blue-300"
+                                  : "bg-white border border-gray-200"
+                              }`}
+                            >
+                              <input
+                                type="radio"
+                                name="selectedBrandVoice"
+                                value={voice._id}
+                                checked={formData.brandId === voice._id}
+                                onChange={() => {
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    brandId: voice._id,
+                                  }))
+                                  setData((prev) => ({
+                                    ...prev,
+                                    brandId: voice._id,
+                                  }))
+                                }}
+                                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-600"
+                              />
+                              <div className="flex-1">
+                                <div className="font-medium text-gray-700">{voice.nameOfVoice}</div>
+                                <p className="text-sm text-gray-600 mt-1">{voice.describeBrand}</p>
+                              </div>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-gray-500 text-sm italic">
+                        No brand voices available. Create one to get started.
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {formData.isCheckedBrand && (
+                  <div className="flex items-center justify-between mt-3">
+                    <span className="text-sm font-medium text-gray-700">Add CTA at the End</span>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.addCTA}
+                        onChange={() => {
+                          setFormData((prev) => ({
+                            ...prev,
+                            addCTA: !prev.addCTA,
+                          }))
+                          setData((prev) => ({
+                            ...prev,
+                            addCTA: !prev.addCTA,
+                          }))
+                        }}
+                        className="sr-only peer"
+                        aria-checked={formData.addCTA}
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]" />
+                    </label>
+                  </div>
+                )}
+              </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-700">
                   Include Interlinks
@@ -1205,8 +1320,10 @@ const MultiStepModal = ({ closeFnc }) => {
                   How many blogs to generate based on the topics provided.
                 </p>
                 <input
-                  type="number"
+                  // type="number"
                   name="numberOfBlogs"
+                  type="tel" // opens numeric keypad on mobile
+                  inputMode="numeric" // ensures numeric intent
                   min="1"
                   max="10"
                   value={formData.numberOfBlogs === 0 ? "" : formData.numberOfBlogs}
