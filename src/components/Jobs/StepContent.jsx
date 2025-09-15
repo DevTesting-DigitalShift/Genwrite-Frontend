@@ -44,7 +44,18 @@ const StepContent = ({
     },
   })
 
-  const tones = ["Professional", "Casual", "Friendly", "Formal", "Technical"]
+  const tones = [
+    "Professional",
+    "Casual",
+    "Friendly",
+    "Formal",
+    "Conversational",
+    "Witty",
+    "Informative",
+    "Inspirational",
+    "Persuasive",
+    "Empathetic",
+  ]
   const wordLengths = [500, 1000, 1500, 2000, 3000]
   const MAX_BLOGS = 100
   const isAiImagesLimitReached = user?.usage?.aiImages >= user?.usageLimits?.aiImages
@@ -53,7 +64,7 @@ const StepContent = ({
   // Clean up object URLs to prevent memory leaks
   useEffect(() => {
     return () => {
-      newJob.blogs.blogImages.forEach((image) => {
+      newJob?.blogs?.blogImages?.forEach((image) => {
         if (image instanceof File) {
           URL.revokeObjectURL(URL.createObjectURL(image))
         }
@@ -604,42 +615,61 @@ const StepContent = ({
                 )}
               </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Tone of Voice</label>
-              <Select
-                value={newJob.blogs.tone}
-                onChange={(value) =>
-                  setNewJob({ ...newJob, blogs: { ...newJob.blogs, tone: value } })
-                }
-                className="w-full"
-                aria-label="Select tone of voice"
-              >
-                {tones.map((tone) => (
-                  <Option key={tone} value={tone}>
-                    {tone}
-                  </Option>
-                ))}
-              </Select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Length</label>
-              <Select
-                value={newJob.blogs.userDefinedLength}
-                onChange={(value) =>
-                  setNewJob({
-                    ...newJob,
-                    blogs: { ...newJob.blogs, userDefinedLength: parseInt(value) },
-                  })
-                }
-                className="w-full"
-                aria-label="Select blog length"
-              >
-                {wordLengths.map((length) => (
-                  <Option key={length} value={length}>
-                    {length} words
-                  </Option>
-                ))}
-              </Select>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label htmlFor="tone" className="block text-sm font-medium text-gray-700 mb-2">
+                  Tone of Voice <span className="text-red-500">*</span>
+                </label>
+                <Select
+                  className="w-full"
+                  value={newJob.blogs.tone}
+                  onChange={(value) =>
+                    setNewJob({ ...newJob, blogs: { ...newJob.blogs, tone: value } })
+                  }
+                  placeholder="Select tone"
+                  status={errors.tone ? "error" : ""}
+                >
+                  <Option value="">Select Tone</Option>
+                  <Option value="professional">Professional</Option>
+                  <Option value="casual">Casual</Option>
+                  <Option value="friendly">Friendly</Option>
+                  <Option value="formal">Formal</Option>
+                  <Option value="conversational">Conversational</Option>
+                  <Option value="witty">Witty</Option>
+                  <Option value="informative">Informative</Option>
+                  <Option value="inspirational">Inspirational</Option>
+                  <Option value="persuasive">Persuasive</Option>
+                  <Option value="empathetic">Empathetic</Option>
+                </Select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Approx. Blog Length (Words)
+                </label>
+                <div className="relative">
+                  <input
+                    type="range"
+                    min="500"
+                    max="5000"
+                    value={newJob.blogs.userDefinedLength}
+                    className="w-full h-1 rounded-lg appearance-none cursor-pointer bg-gradient-to-r from-[#1B6FC9] to-gray-100 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#1B6FC9]"
+                    style={{
+                      background: `linear-gradient(to right, #1B6FC9 ${
+                        ((newJob.blogs.userDefinedLength - 500) / 4500) * 100
+                      }%, #E5E7EB ${((newJob.blogs.userDefinedLength - 500) / 4500) * 100}%)`,
+                    }}
+                    onChange={(e) =>
+                      setNewJob({
+                        ...newJob,
+                        blogs: { ...newJob.blogs, userDefinedLength: parseInt(e.target.value) },
+                      })
+                    }
+                  />
+                  <span className="mt-2 text-sm text-gray-600 block">
+                    {newJob.blogs.userDefinedLength} words
+                  </span>
+                </div>
+              </div>
             </div>
             <div className="mb-6">
               <label className="block text-sm font-semibold text-gray-700 mb-3">
@@ -845,24 +875,25 @@ const StepContent = ({
               </div>
             )}
             {newJob.blogs.isCheckedGeneratedImages && !newJob.blogs.isCheckedCustomImages && (
-              <div className="mb-6">
-                <label className="block text-sm font-semibold text-gray-700 mb-3">
-                  Image Source
-                </label>
+              <>
+                <div className="mb-6">
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">
+                    Image Source
+                  </label>
 
-                {/* Responsive grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full">
-                  {imageSources.map((source) => {
-                    const isAiRestricted =
-                      source.value === "ai-generated" && source.isAiImagesLimitReached
+                  {/* Responsive grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full">
+                    {imageSources.map((source) => {
+                      const isAiRestricted =
+                        source.value === "ai-generated" && source.isAiImagesLimitReached
 
-                    const isBlocked = source.restricted || isAiRestricted
+                      const isBlocked = source.restricted || isAiRestricted
 
-                    return (
-                      <label
-                        key={source.id}
-                        htmlFor={source.id}
-                        className={`relative border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150
+                      return (
+                        <label
+                          key={source.id}
+                          htmlFor={source.id}
+                          className={`relative border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150
               ${
                 newJob.blogs.imageSource === source.value
                   ? "border-blue-600 bg-blue-50"
@@ -871,60 +902,60 @@ const StepContent = ({
               hover:shadow-sm w-full
               ${isBlocked ? "opacity-50 cursor-not-allowed" : ""}
             `}
-                        onClick={(e) => {
-                          if (isBlocked) {
-                            e.preventDefault()
-                            openUpgradePopup({
-                              featureName: source.featureName || "AI-Generated Images",
-                              navigate,
-                            })
-                          }
-                        }}
-                      >
-                        <input
-                          type="radio"
-                          id={source.id}
-                          name="imageSource"
-                          value={source.value}
-                          checked={newJob.blogs.imageSource === source.value}
-                          onChange={() => {
-                            if (!isBlocked) {
-                              handleImageSourceChange(source.value)
+                          onClick={(e) => {
+                            if (isBlocked) {
+                              e.preventDefault()
+                              openUpgradePopup({
+                                featureName: source.featureName || "AI-Generated Images",
+                                navigate,
+                              })
                             }
                           }}
-                          className="hidden"
-                          disabled={isBlocked}
-                        />
-                        <span className="text-sm font-medium text-gray-800">{source.label}</span>
-                        {(source.restricted || isAiRestricted) && (
-                          <Crown className="w-4 h-4 text-yellow-500 absolute top-2 right-2" />
-                        )}
-                      </label>
-                    )
-                  })}
+                        >
+                          <input
+                            type="radio"
+                            id={source.id}
+                            name="imageSource"
+                            value={source.value}
+                            checked={newJob.blogs.imageSource === source.value}
+                            onChange={() => {
+                              if (!isBlocked) {
+                                handleImageSourceChange(source.value)
+                              }
+                            }}
+                            className="hidden"
+                            disabled={isBlocked}
+                          />
+                          <span className="text-sm font-medium text-gray-800">{source.label}</span>
+                          {(source.restricted || isAiRestricted) && (
+                            <Crown className="w-4 h-4 text-yellow-500 absolute top-2 right-2" />
+                          )}
+                        </label>
+                      )
+                    })}
+                  </div>
                 </div>
-              </div>
+                <div className="w-full">
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">
+                    Number of Images
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">
+                    Enter the number of images (0 = AI will decide)
+                  </p>
+                  <input
+                    type="number"
+                    name="numberOfImages"
+                    min="0"
+                    max="20"
+                    value={newJob.blogs.numberOfImages}
+                    onChange={handleInputChange}
+                    onWheel={(e) => e.currentTarget.blur()}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm placeholder-gray-400 transition"
+                    placeholder="e.g., 5"
+                  />
+                </div>
+              </>
             )}
-
-            <div className="pt-4 w-full">
-              <label className="block text-sm font-semibold text-gray-700 mb-1">
-                Number of Images
-              </label>
-              <p className="text-xs text-gray-500 mb-2">
-                Enter the number of images (0 = AI will decide)
-              </p>
-              <input
-                type="number"
-                name="numberOfImages"
-                min="0"
-                max="20"
-                value={newJob.blogs.numberOfImages}
-                onChange={handleInputChange}
-                onWheel={(e) => e.currentTarget.blur()}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm placeholder-gray-400 transition"
-                placeholder="e.g., 5"
-              />
-            </div>
           </div>
         </motion.div>
       )

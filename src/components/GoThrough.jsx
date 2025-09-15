@@ -14,7 +14,7 @@ const GoThrough = ({ onClose }) => {
       destroyOnClose // Resets video state when modal is closed
       styles={{ mask: { backdropFilter: "blur(4px)" } }}
     >
-      <div className="p-6 pb-0 text-center">
+      <div className="p-3 md:p-6 pb-0 text-center">
         <h2 className="text-3xl font-bold text-gray-900">Here’s How We Make Things Easy</h2>
         <p className="mt-2 text-md text-gray-600">
           See how each feature helps you get more done, faster.

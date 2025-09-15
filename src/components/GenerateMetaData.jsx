@@ -111,21 +111,28 @@ const GenerateMetaData = () => {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 p-5">
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl text-white flex items-center justify-center">
-              <Sparkles className="w-6 h-6" />
+          {/* Left section */}
+          <div className="flex items-start sm:items-center gap-3 flex-1 min-w-0">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0">
+              <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">SEO Metadata Generator</h1>
-              <p className="text-gray-600">Create SEO-friendly metadata for your content</p>
+            <div className="min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+                SEO Metadata Generator
+              </h1>
+              <p className="text-sm sm:text-base text-gray-600">
+                Create SEO-friendly metadata for your content
+              </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+
+          {/* Reset button row for mobile */}
+          <div className="flex justify-end mt-2 lg:mt-0 flex-shrink-0">
             <button
               onClick={handleReset}
-              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
               title="Reset all content"
             >
               <RefreshCw className="w-4 h-4" />

@@ -434,7 +434,7 @@ const MyProjects = () => {
   const funnelMenuOptions = useMemo(
     () => [
       {
-        label: "All Statuses",
+        label: "All Status",
         icon: <CheckCircleOutlined />,
         onClick: () => {
           setStatusFilter("all")

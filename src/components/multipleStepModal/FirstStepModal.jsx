@@ -415,7 +415,7 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
             </div>
 
             {generatedTitles.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2 items-center">
+              <div className="flex flex-wrap gap-2 mt-2 items-center overflow-x-auto">
                 {generatedTitles.map((title, index) => {
                   const isSelected = data.title === title
                   return (
@@ -426,7 +426,7 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
                           setData((prev) => ({ ...prev, title }))
                           setErrors((prev) => ({ ...prev, title: false }))
                         }}
-                        className={`px-3 py-1 rounded-full text-sm sm:text-base border transition w-full truncate
+                        className={`px-3 py-1 rounded-full text-sm sm:text-base border transition w-full max-w-[270px] truncate
                 ${
                   isSelected
                     ? "bg-[#1B6FC9] text-white border-[#1B6FC9]"

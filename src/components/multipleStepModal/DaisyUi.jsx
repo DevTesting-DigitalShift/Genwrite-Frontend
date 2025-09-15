@@ -245,7 +245,7 @@ const MultiStepModal = ({ closeFnc }) => {
 
     if (newTopics.length === 0) {
       setErrors((prev) => ({ ...prev, topics: true }))
-      message.error("Please enter valid, non-duplicate topics separated by commas.")
+      // message.warning("Please enter non-duplicate topics.")
       setFormData((prev) => ({ ...prev, topicInput: "" }))
       return false
     }
@@ -788,7 +788,7 @@ const MultiStepModal = ({ closeFnc }) => {
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label htmlFor="tone" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="tone" className="block text-sm font-medium text-gray-700 mb-2">
                   Tone of Voice <span className="text-red-500">*</span>
                 </label>
                 <Select

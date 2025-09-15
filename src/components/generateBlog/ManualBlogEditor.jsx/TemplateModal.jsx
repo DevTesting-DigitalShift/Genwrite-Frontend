@@ -209,7 +209,8 @@ const TemplateModal = ({
       <div className="p-2">
         {currentStep === 0 && (
           <div className="p-3">
-            <Carousel>
+            {/* Mobile view → Grid with 2 cols */}
+            <div className="grid grid-cols-2 gap-3 sm:hidden">
               {packages.map((pkg, index) => (
                 <div
                   key={index}
@@ -227,18 +228,51 @@ const TemplateModal = ({
                       />
                     </div>
                     <div className="p-2 mt-2">
-                      <h3 className="font-medium text-gray-900 mb-1">{pkg.name}</h3>
-                      <p className="text-sm text-gray-500 line-clamp-2">{pkg.description}</p>
+                      <h3 className="font-medium text-gray-900 mb-1 text-xs sm:text-sm">
+                        {pkg.name}
+                      </h3>
+                      <p className="text-xs text-gray-500 line-clamp-2">{pkg.description}</p>
                     </div>
                   </div>
                 </div>
               ))}
-            </Carousel>
+            </div>
+
+            {/* Desktop / tablet view → Carousel */}
+            <div className="hidden sm:block">
+              <Carousel>
+                {packages.map((pkg, index) => (
+                  <div
+                    key={index}
+                    className={`cursor-pointer transition-all duration-200 ${
+                      selectedTemplate === pkg.name ? "border-gray-300 border-2 rounded-lg" : ""
+                    }`}
+                    onClick={() => handlePackageSelect(index)}
+                  >
+                    <div className="bg-white rounded-lg overflow-hidden shadow-sm">
+                      <div className="relative">
+                        <img
+                          src={pkg.imgSrc || "/placeholder.svg"}
+                          alt={pkg.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="p-2 mt-2">
+                        <h3 className="font-medium text-gray-900 mb-1">{pkg.name}</h3>
+                        <p className="text-sm text-gray-500 line-clamp-2">{pkg.description}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </Carousel>
+            </div>
+
             {errors.template && (
               <p className="text-red-500 text-sm mt-2">Please select a template.</p>
             )}
           </div>
         )}
+
         {currentStep === 1 && (
           <div className="space-y-6">
             <div>

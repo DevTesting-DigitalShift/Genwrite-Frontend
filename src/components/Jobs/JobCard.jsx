@@ -1,53 +1,51 @@
-// @components/Jobs/JobCard.jsx
-import React, { useState } from "react";
-import { motion } from "framer-motion";
-import { useDispatch } from "react-redux";
-import { Popconfirm, message } from "antd";
-import { FiCalendar, FiFileText, FiSettings, FiEdit } from "react-icons/fi";
-import { QuestionCircleOutlined } from "@ant-design/icons";
-import {
-  toggleJobStatusThunk,
-  deleteJobThunk,
-  openJobModal,
-} from "@store/slices/jobSlice";
+import React, { memo, useState } from "react"
+import { motion } from "framer-motion"
+import { useDispatch } from "react-redux"
+import { Popconfirm, message } from "antd"
+import { FiCalendar, FiFileText, FiSettings, FiEdit } from "react-icons/fi"
+import { QuestionCircleOutlined } from "@ant-design/icons"
+import { toggleJobStatusThunk, deleteJobThunk, openJobModal } from "@store/slices/jobSlice"
 
-const JobCard = ({ job, setCurrentPage, paginatedJobs }) => {
-  const dispatch = useDispatch();
-  const [showAllTopics, setShowAllTopics] = useState(false);
+const JobCard = memo(({ job, setCurrentPage, paginatedJobs }) => {
+  const dispatch = useDispatch()
+  const [showAllTopics, setShowAllTopics] = useState(false)
 
   const handleStartJob = (jobId) => {
-    const job = paginatedJobs.find((j) => j._id === jobId);
+    const job = paginatedJobs.find((j) => j._id === jobId)
     if (!job) {
-      message.error("Job not found.");
-      return;
+      message.error("Job not found.")
+      return
     }
-    dispatch(toggleJobStatusThunk({ jobId, currentStatus: job.status }));
-  };
+    dispatch(toggleJobStatusThunk({ jobId, currentStatus: job.status }))
+  }
 
   const handleDeleteJob = (jobId) => {
-    dispatch(deleteJobThunk(jobId));
+    dispatch(deleteJobThunk(jobId))
     if (paginatedJobs.length === 1 && currentPage > 1) {
-      setCurrentPage((prev) => prev - 1);
+      setCurrentPage((prev) => prev - 1)
     }
-  };
+  }
 
   const handleEditJob = (job) => {
     if (!job?._id) {
-      message.error("Invalid job ID.");
-      return;
+      message.error("Invalid job ID.")
+      return
     }
     if (job.status === "active") {
-      message.warning("Please pause the job before editing.");
-      return;
+      message.warning("Please pause the job before editing.")
+      return
     }
-    dispatch(openJobModal(job)); // Pass the job object
-  };
+    dispatch(openJobModal(job)) // Pass the job object
+  }
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 20, transition: { duration: 0.3 } }} 
+      transition={{ duration: 0.4, ease: "easeOut" }} 
       className="bg-white rounded-xl shadow-lg hover:shadow-xl p-6 transition-all duration-200"
+      layout 
     >
       <div className="flex justify-between items-start mb-4">
         <div>
@@ -188,7 +186,7 @@ const JobCard = ({ job, setCurrentPage, paginatedJobs }) => {
         </Popconfirm>
       </div>
     </motion.div>
-  );
-};
+  )
+})
 
-export default JobCard;
+export default JobCard

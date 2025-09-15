@@ -381,76 +381,77 @@ const SecondStepModal = ({
 
             {/* Image Source and Custom Upload */}
             {formData.isCheckedGeneratedImages && (
-              <div className="mt-4">
-                <label className="block text-sm font-semibold text-gray-700 mb-3">
-                  Image Source
-                </label>
+              <>
+                <div className="mt-4">
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">
+                    Image Source
+                  </label>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full">
-                  {/* Stock Images */}
-                  <label
-                    htmlFor="unsplash"
-                    className={`border rounded-lg px-4 py-3 flex items-center justify-center gap-3 cursor-pointer transition-all duration-150
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full">
+                    {/* Stock Images */}
+                    <label
+                      htmlFor="unsplash"
+                      className={`border rounded-lg px-4 py-3 flex items-center justify-center gap-3 cursor-pointer transition-all duration-150
         ${formData.imageSource === "unsplash" ? "border-blue-600 bg-blue-50" : "border-gray-300"}
         hover:shadow-sm w-full`}
-                  >
-                    <input
-                      type="radio"
-                      id="unsplash"
-                      name="imageSource"
-                      checked={formData.imageSource === "unsplash"}
-                      onChange={() => handleImageSourceChange("unsplash")}
-                      className="hidden"
-                    />
-                    <span className="text-sm font-medium text-gray-800">Stock Images</span>
-                  </label>
+                    >
+                      <input
+                        type="radio"
+                        id="unsplash"
+                        name="imageSource"
+                        checked={formData.imageSource === "unsplash"}
+                        onChange={() => handleImageSourceChange("unsplash")}
+                        className="hidden"
+                      />
+                      <span className="text-sm font-medium text-gray-800">Stock Images</span>
+                    </label>
 
-                  {/* AI-Generated Images */}
-                  <label
-                    htmlFor="ai-generated"
-                    className={`relative border rounded-lg px-4 py-3 flex items-center justify-center gap-3 cursor-pointer transition-all duration-150
+                    {/* AI-Generated Images */}
+                    <label
+                      htmlFor="ai-generated"
+                      className={`relative border rounded-lg px-4 py-3 flex items-center justify-center gap-3 cursor-pointer transition-all duration-150
         ${formData.imageSource === "ai" ? "border-blue-600 bg-blue-50" : "border-gray-300"}
         hover:shadow-sm w-full`}
-                    onClick={(e) => {
-                      if (userPlan === "free") {
-                        e.preventDefault()
-                        openUpgradePopup({ featureName: "AI-Generated Images", navigate })
-                      }
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      id="ai-generated"
-                      name="imageSource"
-                      checked={formData.imageSource === "ai"}
-                      onChange={() => handleImageSourceChange("ai")}
-                      className="hidden"
-                      disabled={userPlan === "free" || isAiImagesLimitReached}
-                    />
-                    <span className="text-sm font-medium text-gray-800">AI-Generated Images</span>
+                      onClick={(e) => {
+                        if (userPlan === "free") {
+                          e.preventDefault()
+                          openUpgradePopup({ featureName: "AI-Generated Images", navigate })
+                        }
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        id="ai-generated"
+                        name="imageSource"
+                        checked={formData.imageSource === "ai"}
+                        onChange={() => handleImageSourceChange("ai")}
+                        className="hidden"
+                        disabled={userPlan === "free" || isAiImagesLimitReached}
+                      />
+                      <span className="text-sm font-medium text-gray-800">AI-Generated Images</span>
 
-                    {userPlan === "free" ? (
-                      <Crown className="w-4 h-4 text-yellow-500 absolute top-2 right-2" />
-                    ) : (
-                      isAiImagesLimitReached && (
-                        <Tooltip
-                          title="You've reached your AI image generation limit. It'll reset in the next billing cycle."
-                          styles={{
-                            body: {
-                              backgroundColor: "#FEF9C3",
-                              border: "1px solid #FACC15",
-                              color: "#78350F",
-                            },
-                          }}
-                        >
-                          <TriangleAlert className="text-yellow-400 ml-2" size={15} />
-                        </Tooltip>
-                      )
-                    )}
-                  </label>
+                      {userPlan === "free" ? (
+                        <Crown className="w-4 h-4 text-yellow-500 absolute top-2 right-2" />
+                      ) : (
+                        isAiImagesLimitReached && (
+                          <Tooltip
+                            title="You've reached your AI image generation limit. It'll reset in the next billing cycle."
+                            styles={{
+                              body: {
+                                backgroundColor: "#FEF9C3",
+                                border: "1px solid #FACC15",
+                                color: "#78350F",
+                              },
+                            }}
+                          >
+                            <TriangleAlert className="text-yellow-400 ml-2" size={15} />
+                          </Tooltip>
+                        )
+                      )}
+                    </label>
 
-                  {/* Custom Image */}
-                  {/* <label
+                    {/* Custom Image */}
+                    {/* <label
                     htmlFor="customImage"
                     className={`border rounded-lg px-4 py-3 flex items-center justify-center gap-3 cursor-pointer transition-all duration-150
         ${formData.imageSource === "customImage" ? "border-blue-600 bg-blue-50" : "border-gray-300"}
@@ -466,8 +467,30 @@ const SecondStepModal = ({
                     />
                     <span className="text-sm font-medium text-gray-800">Use Custom Image</span>
                   </label> */}
+                  </div>
                 </div>
-              </div>
+                <div className="pt-4 w-full">
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">
+                    Number of Images
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">
+                    Enter the number of images (0 = AI will decide)
+                  </p>
+                  <input
+                    type="number"
+                    name="numberOfImages"
+                    min="0"
+                    max="20"
+                    value={formData.numberOfImages}
+                    onChange={handleInputChange}
+                    onWheel={(e) => e.currentTarget.blur()}
+                    inputMode="numeric" // shows numeric keypad
+                    pattern="[0-9]*" // fallback for iOS
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm placeholder-gray-400 transition"
+                    placeholder="e.g., 5"
+                  />
+                </div>
+              </>
             )}
             {/* 
             {formData.imageSource === "customImage" && (
@@ -527,28 +550,6 @@ const SecondStepModal = ({
                 )}
               </div>
             )} */}
-
-            <div className="pt-4 w-full">
-              <label className="block text-sm font-semibold text-gray-700 mb-1">
-                Number of Images
-              </label>
-              <p className="text-xs text-gray-500 mb-2">
-                Enter the number of images (0 = AI will decide)
-              </p>
-              <input
-                type="number"
-                name="numberOfImages"
-                min="0"
-                max="20"
-                value={formData.numberOfImages}
-                onChange={handleInputChange}
-                onWheel={(e) => e.currentTarget.blur()}
-                inputMode="numeric" // shows numeric keypad
-                pattern="[0-9]*" // fallback for iOS
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm placeholder-gray-400 transition"
-                placeholder="e.g., 5"
-              />
-            </div>
           </div>
 
           {/* Quick Summary Toggle */}

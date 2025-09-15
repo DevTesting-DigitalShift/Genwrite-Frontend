@@ -202,12 +202,12 @@ const Auth = ({ path }) => {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="absolute top-8 left-1/2 transform -translate-x-1/2 z-10"
+        className="absolute top-8 left-1/2 transform -translate-x-1/2 z-10 mb-2"
       >
         <img src="/Images/logo_genwrite_2.png" alt="GenWrite Logo" className="w-40 h-auto" />
       </motion.div>
 
-      <div className="flex items-center justify-center min-h-screen px-4 pt-20 pb-8">
+      <div className="flex items-center justify-center min-h-screen px-4 pt-28 pb-8">
         <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-12 items-center">
           {/* Left Side - Features & Branding */}
           <motion.div

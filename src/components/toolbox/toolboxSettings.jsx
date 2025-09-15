@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom"
 import { Card, Tabs, Input, Button, Table, Tag, message } from "antd"
 import {
   SearchOutlined,
-  ThunderboltOutlined,
   GlobalOutlined,
   CloseOutlined,
   DownloadOutlined,
@@ -16,7 +15,7 @@ import { useDispatch, useSelector } from "react-redux"
 import { analyzeKeywordsThunk, clearKeywordAnalysis } from "@store/slices/analysisSlice"
 import { Helmet } from "react-helmet"
 import { ImMagicWand } from "react-icons/im"
-import { Keyboard, WholeWord, Workflow } from "lucide-react"
+import { Keyboard, Search, WholeWord, Workflow, Zap } from "lucide-react"
 import { selectUser } from "@store/slices/authSlice"
 import { Crown } from "lucide-react"
 import { Flex } from "antd"
@@ -355,7 +354,7 @@ export default function ToolboxPage() {
                   className="flex items-center gap-2 font-medium text-xs sm:text-sm"
                   whileHover={{ scale: 1.05 }}
                 >
-                  <ThunderboltOutlined className="text-blue-500 size-4 sm:size-5" />
+                  <Zap className="text-blue-500 h-4 w-4" />
                   <span>Content Tools</span>
                 </motion.div>
               ),
@@ -380,7 +379,7 @@ export default function ToolboxPage() {
                   className="flex items-center gap-2 font-medium text-xs sm:text-sm"
                   whileHover={{ scale: 1.05 }}
                 >
-                  <SearchOutlined className="text-purple-500 size-4 sm:size-5" />
+                  <Search className="text-purple-500 h-4 w-4" />
                   <span>SEO Tools</span>
                 </motion.div>
               ),

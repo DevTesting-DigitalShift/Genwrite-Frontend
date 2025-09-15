@@ -6,7 +6,7 @@ import axiosInstance from "../../api"
 import { createManualBlog, fetchBlogById, updateBlogById } from "../../store/slices/blogSlice"
 import TextEditor from "../generateBlog/TextEditor"
 import TextEditorSidebar from "../generateBlog/TextEditorSidebar"
-import { Loader2, FileText, Eye, Save, RefreshCw, PanelRightOpen } from "lucide-react"
+import { Loader2, FileText, Eye, Save, RefreshCw, PanelRightOpen, X } from "lucide-react"
 import { Helmet } from "react-helmet"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
@@ -273,7 +273,7 @@ const ToolBox = () => {
       !templateFormData.keywords ||
       templateFormData.keywords.length === 0
 
-    if (isEmpty && !id) navigate("/blogs")
+    if (isEmpty && !id) navigate("/toolbox")
     setShowTemplateModal(false)
   }
 
@@ -621,13 +621,8 @@ const ToolBox = () => {
                   isHumanizing={isHumanizing}
                   setHumanizedContent={setHumanizedContent}
                   setIsHumanizeModalOpen={setIsHumanizeModalOpen}
+                  setIsSidebarOpen={setIsSidebarOpen}
                 />
-                <button
-                  onClick={() => setIsSidebarOpen(false)}
-                  className="absolute top-2 right-2 text-gray-600"
-                >
-                  ✖
-                </button>
               </motion.div>
             )}
           </AnimatePresence>

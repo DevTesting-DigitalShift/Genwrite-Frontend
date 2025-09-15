@@ -234,7 +234,7 @@ const Trashcan = () => {
               placeholder="Filter by status"
               disabled={isLoading}
             >
-              <Option value="all">All Statuses</Option>
+              <Option value="all">All Status</Option>
               <Option value="complete">Complete</Option>
               <Option value="failed">Failed</Option>
               <Option value="pending">Pending</Option>

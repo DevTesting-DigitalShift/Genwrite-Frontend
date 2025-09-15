@@ -235,11 +235,11 @@ const QuickBlogModal = ({ closeFnc }) => {
       }
     }
 
-    if (validNewLinks.length === 0) {
-      setErrors((prev) => ({ ...prev, [errorKey]: true }))
-      message.error(`No valid, unique ${isVideo ? "video" : "other"} URLs found.`)
-      return
-    }
+    // if (validNewLinks.length === 0) {
+    //   setErrors((prev) => ({ ...prev, [errorKey]: true }))
+    //   message.error(`No valid, unique ${isVideo ? "video" : "other"} URLs found.`)
+    //   return
+    // }
 
     if (existingLinks.length + validNewLinks.length > maxLinks) {
       setErrors((prev) => ({ ...prev, [errorKey]: true }))
@@ -380,9 +380,9 @@ const QuickBlogModal = ({ closeFnc }) => {
                   </div>
                 ))}
               </Carousel>
-              {errors.template && (
+              {/* {errors.template && (
                 <p className="text-red-500 text-sm mt-2">Please select a template.</p>
-              )}
+              )} */}
             </div>
           </div>
         )}
@@ -458,11 +458,6 @@ const QuickBlogModal = ({ closeFnc }) => {
                   <Plus size={16} />
                 </button>
               </div>
-              {errors.keywords && (
-                <p className="text-red-500 text-sm mt-1">
-                  Please add at least one secondary keyword.
-                </p>
-              )}
               <div className="flex flex-wrap gap-2 mt-2">
                 {formData.keywords.map((keyword, index) => (
                   <span
@@ -508,11 +503,6 @@ const QuickBlogModal = ({ closeFnc }) => {
                   <Plus size={16} />
                 </button>
               </div>
-              {errors.videoLinks && (
-                <p className="text-red-500 text-sm mt-1">
-                  Please add at least one valid video link (up to 3 allowed).
-                </p>
-              )}
               <div className="flex flex-wrap gap-2 mt-2">
                 {videoLinks.map((link, index) => (
                   <span
@@ -578,11 +568,6 @@ const QuickBlogModal = ({ closeFnc }) => {
                       <Plus size={16} />
                     </button>
                   </div>
-                  {errors.otherLinks && (
-                    <p className="text-red-500 text-sm">
-                      Please add at least one valid other link (up to 3 allowed).
-                    </p>
-                  )}
                   <div className="flex flex-wrap gap-2">
                     {otherLinks.map((link, index) => (
                       <span

@@ -143,21 +143,26 @@ const HumanizeContent = () => {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/50">
       <div className="max-w-7xl mx-auto space-y-6 p-5">
         {/* Header */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6">
+          <div className="flex flex-col gap-2">
+            {/* Top row: icon + heading */}
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-                <Sparkles className="w-6 h-6 text-white" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Humanize Content</h1>
-                <p className="text-gray-600">Transform your content with AI-powered processing</p>
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Humanize Content</h1>
+                <p className="text-sm sm:text-base text-gray-600">
+                  Transform your content with AI-powered processing
+                </p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+
+            {/* Bottom row: reset button aligned right */}
+            <div className="flex justify-end">
               <button
                 onClick={handleReset}
-                className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
                 title="Reset all content"
               >
                 <RefreshCw className="w-4 h-4" />
@@ -184,29 +189,26 @@ const HumanizeContent = () => {
               <p className={`text-sm mb-2 ${wordCount < 300 ? "text-red-500" : "text-green-600"}`}>
                 Word count: {wordCount} {wordCount < 300 ? "(Minimum 300 words required)" : ""}
               </p>
-
             </div>
-              <Button
-                onClick={handleMagicWandClick}
-                disabled={isLoading || !inputContent.trim() || wordCount < 300}
-                className={`flex items-center justify-center gap-2 px-6 py-3 w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl transition-all duration-300 hover:shadow-lg ${
-                  !inputContent.trim() || wordCount < 300
-                    ? "opacity-50 cursor-not-allowed"
-                    : "hover:from-blue-700 hover:to-purple-700 hover:scale-105"
-                }`}
-              >
-                
-                Process Content
-               
-                {!isLoading && (
-                  <Tooltip title="This action will deduct 5 credits">
-                    <div className="flex items-center gap-1 ml-2">
-                      <span className="text-yellow-300 font-semibold">5</span>
-                      <Coins className="w-4 h-4 text-yellow-400" />
-                    </div>
-                  </Tooltip>
-                )}
-              </Button>
+            <Button
+              onClick={handleMagicWandClick}
+              disabled={isLoading || !inputContent.trim() || wordCount < 300}
+              className={`flex items-center justify-center gap-2 px-6 py-3 w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl transition-all duration-300 hover:shadow-lg ${
+                !inputContent.trim() || wordCount < 300
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:from-blue-700 hover:to-purple-700 hover:scale-105"
+              }`}
+            >
+              Process Content
+              {!isLoading && (
+                <Tooltip title="This action will deduct 5 credits">
+                  <div className="flex items-center gap-1 ml-2">
+                    <span className="text-yellow-300 font-semibold">5</span>
+                    <Coins className="w-4 h-4 text-yellow-400" />
+                  </div>
+                </Tooltip>
+              )}
+            </Button>
           </div>
         </div>
 

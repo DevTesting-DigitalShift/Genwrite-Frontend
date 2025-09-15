@@ -1126,7 +1126,7 @@ const TextEditor = ({
   }
 
   const renderToolbar = () => (
-    <div className="bg-white border-x border-gray-200 shadow-sm px-2 sm:px-4 py-2 flex flex-wrap items-center gap-1 sm:gap-2 overflow-x-auto">
+    <div className="bg-white border-x border-gray-200 shadow-sm px-2 sm:px-4 py-2 flex flex-wrap items-center justify-start gap-y-2 overflow-x-auto">
       {/* Headings */}
       <div className="flex gap-1 flex-shrink-0">
         {[1, 2, 3].map((level) => (
@@ -1519,7 +1519,7 @@ const TextEditor = ({
         )
       } else {
         return (
-          <div className="h-screen overflow-auto custom-scroll">
+          <div className="h-[320px] md:h-screen overflow-auto custom-scroll">
             {normalEditor && (
               <BubbleMenu
                 editor={normalEditor}
@@ -1781,7 +1781,7 @@ const TextEditor = ({
     }
 
     return (
-      <div className="bg-white border rounded-lg rounded-t-none shadow-sm">
+      <div className="bg-white border rounded-lg rounded-t-none shadow-sm h-[10vh] sm:h-[70vh] md:h-[80vh]">
         {activeTab === "Markdown" && (
           <MarkdownEditor
             content={safeContent}
@@ -1789,6 +1789,7 @@ const TextEditor = ({
               setContent(newContent)
               setUnsavedChanges(true)
             }}
+            className="h-full"
           />
         )}
         {activeTab === "HTML" && (
@@ -1799,6 +1800,7 @@ const TextEditor = ({
               setContent(htmlToMarkdown(newHtml))
               setUnsavedChanges(true)
             }}
+            className="h-full"
           />
         )}
       </div>

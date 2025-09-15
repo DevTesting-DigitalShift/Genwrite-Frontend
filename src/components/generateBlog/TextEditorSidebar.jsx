@@ -58,6 +58,7 @@ const TextEditorSidebar = ({
   isHumanizing,
   setHumanizedContent,
   setIsHumanizeModalOpen,
+  setIsSidebarOpen,
 }) => {
   const [newKeyword, setNewKeyword] = useState("")
   const [isAnalyzingProofreading, setIsAnalyzingProofreading] = useState(false)
@@ -810,6 +811,12 @@ const TextEditorSidebar = ({
                   onClick={() => setOpen(true)}
                 />
               </Tooltip>
+
+              <Button
+                size="small"
+                icon={<X className="w-4 h-4" />}
+                onClick={() => setIsSidebarOpen(false)}
+              />
             </div>
           </div>
 
