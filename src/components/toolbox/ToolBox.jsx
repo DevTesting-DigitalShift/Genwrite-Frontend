@@ -15,7 +15,7 @@ import { sendRetryLines } from "@api/blogApi"
 import TemplateModal from "@components/generateBlog/ManualBlogEditor.jsx/TemplateModal"
 import { OpenAIFilled } from "@ant-design/icons"
 import TextEditorSidebar from "@components/generateBlog/TextEditorSidebar/TextEditorSidebar"
-import TextEditor from "@components/generateBlog/TextEditor/TextEditor"
+import TextEditor from "@components/generateBlog/TextEditor"
 
 const ToolBox = () => {
   const { id } = useParams()
