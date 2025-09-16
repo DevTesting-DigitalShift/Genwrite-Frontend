@@ -4,8 +4,6 @@ import { useDispatch, useSelector } from "react-redux"
 import { motion, AnimatePresence } from "framer-motion"
 import axiosInstance from "../../api"
 import { createManualBlog, fetchBlogById, updateBlogById } from "../../store/slices/blogSlice"
-import TextEditor from "../generateBlog/TextEditor"
-import TextEditorSidebar from "../generateBlog/TextEditorSidebar"
 import { Loader2, FileText, Eye, Save, RefreshCw, PanelRightOpen, X } from "lucide-react"
 import { Helmet } from "react-helmet"
 import ReactMarkdown from "react-markdown"
@@ -16,6 +14,8 @@ import { htmlToText } from "html-to-text"
 import { sendRetryLines } from "@api/blogApi"
 import TemplateModal from "@components/generateBlog/ManualBlogEditor.jsx/TemplateModal"
 import { OpenAIFilled } from "@ant-design/icons"
+import TextEditorSidebar from "@components/generateBlog/TextEditorSidebar/TextEditorSidebar"
+import TextEditor from "@components/generateBlog/TextEditor/TextEditor"
 
 const ToolBox = () => {
   const { id } = useParams()
