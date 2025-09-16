@@ -8,6 +8,7 @@ import { useDispatch } from "react-redux"
 import { useQuery } from "@tanstack/react-query"
 import { fetchBrands } from "@store/slices/brandSlice"
 import { useNavigate } from "react-router-dom"
+import clsx from "clsx"
 
 const { Option } = Select
 
@@ -51,8 +52,8 @@ const OutlineEditor = () => {
   } = useQuery({
     queryKey: ["brands"],
     queryFn: async () => {
-      const response = await dispatch(fetchBrands()).unwrap() // Dispatch and unwrap the payload
-      return response // Return the brands data
+      const response = await dispatch(fetchBrands()).unwrap()
+      return response
     },
     enabled: formData.isCheckedBrand,
   })
@@ -297,14 +298,16 @@ const OutlineEditor = () => {
   const visibleKeywords = showAllKeywords ? formData.keywords : formData.keywords.slice(0, 18)
 
   return (
-    <div>
+    <div className="px-4 sm:px-6 lg:px-8">
       <Modal
         title={
-          currentStep === 0
-            ? "Select Template"
-            : currentStep === 1
-            ? "Tell us about your blog, we'll outline it for you!"
-            : "Brand Voice & Resources"
+          <span className="text-lg sm:text-xl font-semibold">
+            {currentStep === 0
+              ? "Select Template"
+              : currentStep === 1
+              ? "Tell us about your blog, we'll outline it for you!"
+              : "Brand Voice & Resources"}
+          </span>
         }
         open={isOpen}
         onCancel={handleClose}
@@ -314,7 +317,7 @@ const OutlineEditor = () => {
                 <button
                   key="next"
                   onClick={handleNext}
-                  className="px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90"
+                  className="px-4 py-2 sm:px-6 sm:py-2.5 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 text-sm sm:text-base"
                   aria-label="Proceed to next step"
                 >
                   Next
@@ -325,7 +328,7 @@ const OutlineEditor = () => {
                 <button
                   key="previous"
                   onClick={handlePrev}
-                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
+                  className="px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 text-sm sm:text-base"
                   aria-label="Go to previous step"
                 >
                   Previous
@@ -333,7 +336,7 @@ const OutlineEditor = () => {
                 <button
                   key="next"
                   onClick={handleNext}
-                  className="px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 ml-3"
+                  className="px-4 py-2 sm:px-6 sm:py-2.5 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 ml-2 sm:ml-3 text-sm sm:text-base"
                   aria-label="Proceed to brand and resources"
                 >
                   Next
@@ -344,7 +347,7 @@ const OutlineEditor = () => {
                 <button
                   key="previous"
                   onClick={handlePrev}
-                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
+                  className="px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 text-sm sm:text-base"
                   aria-label="Go to previous step"
                 >
                   Previous
@@ -352,7 +355,7 @@ const OutlineEditor = () => {
                 <button
                   key="submit"
                   onClick={handleSubmit}
-                  className="px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 ml-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 sm:px-6 sm:py-2.5 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 ml-2 sm:ml-3 text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={isSubmitting}
                   aria-label="Submit blog"
                 >
@@ -363,7 +366,7 @@ const OutlineEditor = () => {
                 <button
                   key="export"
                   onClick={handleExportMarkdown}
-                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                  className="px-4 py-2 sm:px-6 sm:py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm sm:text-base"
                   aria-label="Export as Markdown"
                 >
                   Export as Markdown
@@ -371,46 +374,48 @@ const OutlineEditor = () => {
                 <button
                   key="close"
                   onClick={handleClose}
-                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 ml-3"
+                  className="px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 ml-2 sm:ml-3 text-sm sm:text-base"
                   aria-label="Close modal"
                 >
                   Close
                 </button>,
               ]
         }
-        width={800}
+        width="90vw"
+        style={{ maxWidth: "800px" }}
         centered
-        bodyStyle={{ background: "rgba(255, 255, 255, 0.95)", backdropFilter: "blur(8px)" }}
+        bodyStyle={{
+          background: "rgba(255, 255, 255, 0.95)",
+          backdropFilter: "blur(8px)",
+          padding: "1rem",
+        }}
         maskStyle={{ background: "rgba(0, 0, 0, 0.5)", backdropFilter: "blur(4px)" }}
       >
-        <div className="p-2">
+        <div className="px-2 sm:px-4">
           {currentStep === 0 && (
-            <div className="p-3">
+            <div className="py-2 sm:py-3">
               {/* Mobile view: grid with 2 templates per row */}
-              <div className="grid grid-cols-2 gap-3 sm:hidden">
+              <div className="grid grid-cols-2 gap-2 sm:gap-3 sm:hidden">
                 {packages.map((pkg, index) => (
                   <div
                     key={index}
-                    className={`cursor-pointer transition-all duration-200 ${
-                      selectedTemplate === pkg.name ? "border-blue-600 border-2 rounded-lg" : ""
-                    }`}
+                    className={clsx(
+                      "cursor-pointer transition-all duration-200",
+                      selectedTemplate === pkg.name && "border-blue-600 border-2 rounded-lg"
+                    )}
                     onClick={() => handlePackageSelect(index)}
                   >
                     <div className="bg-white rounded-lg overflow-hidden shadow-sm">
-                      <div className="relative">
+                      <div className="relative aspect-w-16 aspect-h-9">
                         <img
                           src={pkg.imgSrc || "/placeholder.svg"}
                           alt={pkg.name}
                           className="w-full h-full object-cover"
                         />
                       </div>
-                      <div className="p-2 mt-2">
-                        <h3 className="font-medium text-gray-900 mb-1 text-xs sm:text-sm">
-                          {pkg.name}
-                        </h3>
-                        <p className="text-xs sm:text-sm text-gray-500 line-clamp-2">
-                          {pkg.description}
-                        </p>
+                      <div className="p-2">
+                        <h3 className="font-medium text-gray-900 mb-1 text-xs">{pkg.name}</h3>
+                        <p className="text-xs text-gray-500 line-clamp-2">{pkg.description}</p>
                       </div>
                     </div>
                   </div>
@@ -423,21 +428,24 @@ const OutlineEditor = () => {
                   {packages.map((pkg, index) => (
                     <div
                       key={index}
-                      className={`cursor-pointer transition-all duration-200 ${
-                        selectedTemplate === pkg.name ? "border-blue-600 border-2 rounded-lg" : ""
-                      }`}
+                      className={clsx(
+                        "cursor-pointer transition-all duration-200",
+                        selectedTemplate === pkg.name && "border-blue-600 border-2 rounded-lg"
+                      )}
                       onClick={() => handlePackageSelect(index)}
                     >
                       <div className="bg-white rounded-lg overflow-hidden shadow-sm">
-                        <div className="relative">
+                        <div className="relative aspect-w-16 aspect-h-9">
                           <img
                             src={pkg.imgSrc || "/placeholder.svg"}
                             alt={pkg.name}
                             className="w-full h-full object-cover"
                           />
                         </div>
-                        <div className="p-2 mt-2">
-                          <h3 className="font-medium text-gray-900 mb-1">{pkg.name}</h3>
+                        <div className="p-3">
+                          <h3 className="font-medium text-gray-900 mb-1 text-sm sm:text-base">
+                            {pkg.name}
+                          </h3>
                           <p className="text-sm text-gray-500 line-clamp-2">{pkg.description}</p>
                         </div>
                       </div>
@@ -447,12 +455,12 @@ const OutlineEditor = () => {
               </div>
 
               {errors.template && (
-                <p className="text-red-500 text-sm mt-2">Please select a template.</p>
+                <p className="text-red-500 text-xs sm:text-sm mt-2">Please select a template.</p>
               )}
             </div>
           )}
           {currentStep === 1 && (
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Topic <span className="text-red-500">*</span>
@@ -461,13 +469,14 @@ const OutlineEditor = () => {
                   value={formData.topic}
                   onChange={(e) => handleInputChange(e, "topic")}
                   placeholder="Enter blog topic..."
-                  className={`w-full px-3 py-2 border ${
-                    errors.topic ? "border-red-500" : "border-gray-200"
-                  } rounded-md text-sm focus:ring-2 focus:ring-blue-600`}
+                  className={clsx(
+                    "w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-600",
+                    errors.topic && "border-red-500"
+                  )}
                   aria-label="Blog topic"
                 />
                 {errors.topic && (
-                  <p className="text-red-500 text-sm mt-1">Topic cannot be empty.</p>
+                  <p className="text-red-500 text-xs sm:text-sm mt-1">Topic cannot be empty.</p>
                 )}
               </div>
               <div>
@@ -477,7 +486,7 @@ const OutlineEditor = () => {
                 <Select
                   value={formData.tone}
                   onChange={handleSelectChange}
-                  className={`w-full ${errors.tone ? "border-red-500" : ""}`}
+                  className={clsx("w-full", errors.tone && "border-red-500")}
                   aria-label="Blog tone"
                   placeholder="Select tone"
                 >
@@ -487,7 +496,9 @@ const OutlineEditor = () => {
                   <Option value="Persuasive">Persuasive</Option>
                   <Option value="Humorous">Humorous</Option>
                 </Select>
-                {errors.tone && <p className="text-red-500 text-sm mt-1">Please select a tone.</p>}
+                {errors.tone && (
+                  <p className="text-red-500 text-xs sm:text-sm mt-1">Please select a tone.</p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -499,14 +510,15 @@ const OutlineEditor = () => {
                     onChange={(e) => handleKeywordInputChange(e, "focusKeywords")}
                     onKeyDown={(e) => handleKeyPress(e, "focusKeywords")}
                     placeholder="Enter focus keywords, separated by commas"
-                    className={`flex-1 px-3 py-2 border ${
-                      errors.focusKeywords ? "border-red-500" : "border-gray-200"
-                    } rounded-md text-sm focus:ring-2 focus:ring-blue-600`}
+                    className={clsx(
+                      "flex-1 px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-600",
+                      errors.focusKeywords && "border-red-500"
+                    )}
                     aria-label="Focus keywords"
                   />
                   <button
                     onClick={() => handleAddKeyword("focusKeywords")}
-                    className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm flex items-center"
+                    className="px-3 py-2 sm:px-4 bg-[#1B6FC9] text-white rounded-md text-sm flex items-center"
                     aria-label="Add focus keyword"
                   >
                     <Plus size={16} />
@@ -516,7 +528,7 @@ const OutlineEditor = () => {
                   {formData.focusKeywords.map((keyword, index) => (
                     <span
                       key={index}
-                      className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
+                      className="inline-flex items-center px-2 py-1 rounded-full text-xs sm:text-sm font-medium bg-blue-50 text-blue-700"
                     >
                       {keyword}
                       <button
@@ -524,13 +536,13 @@ const OutlineEditor = () => {
                         className="ml-1 text-blue-400 hover:text-blue-600"
                         aria-label={`Remove focus keyword ${keyword}`}
                       >
-                        <X size={16} />
+                        <X size={14} />
                       </button>
                     </span>
                   ))}
                 </div>
                 {errors.focusKeywords && (
-                  <p className="text-red-500 text-sm mt-1">
+                  <p className="text-red-500 text-xs sm:text-sm mt-1">
                     At least one focus keyword is required (max 3).
                   </p>
                 )}
@@ -545,14 +557,15 @@ const OutlineEditor = () => {
                     onChange={(e) => handleKeywordInputChange(e, "keywords")}
                     onKeyDown={(e) => handleKeyPress(e, "keywords")}
                     placeholder="Enter secondary keywords, separated by commas"
-                    className={`flex-1 px-3 py-2 border ${
-                      errors.keywords ? "border-red-500" : "border-gray-200"
-                    } rounded-md text-sm focus:ring-2 focus:ring-blue-600`}
+                    className={clsx(
+                      "flex-1 px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-600",
+                      errors.keywords && "border-red-500"
+                    )}
                     aria-label="Secondary keywords"
                   />
                   <button
                     onClick={() => handleAddKeyword("keywords")}
-                    className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm flex items-center"
+                    className="px-3 py-2 sm:px-4 bg-[#1B6FC9] text-white rounded-md text-sm flex items-center"
                     aria-label="Add keyword"
                   >
                     <Plus size={16} />
@@ -562,7 +575,7 @@ const OutlineEditor = () => {
                   {visibleKeywords.map((keyword, index) => (
                     <span
                       key={`${keyword}-${index}`}
-                      className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
+                      className="inline-flex items-center px-2 py-1 rounded-full text-xs sm:text-sm font-medium bg-blue-50 text-blue-700"
                     >
                       {keyword}
                       <button
@@ -570,14 +583,14 @@ const OutlineEditor = () => {
                         className="ml-1 text-blue-400 hover:text-blue-600"
                         aria-label={`Remove keyword ${keyword}`}
                       >
-                        <X size={16} />
+                        <X size={14} />
                       </button>
                     </span>
                   ))}
                   {formData.keywords.length > 18 && (
                     <span
                       onClick={() => setShowAllKeywords((prev) => !prev)}
-                      className="text-xs font-medium text-blue-600 self-center cursor-pointer flex items-center gap-1"
+                      className="text-xs sm:text-sm font-medium text-blue-600 self-center cursor-pointer flex items-center gap-1"
                     >
                       {showAllKeywords ? (
                         <>Show less</>
@@ -588,7 +601,9 @@ const OutlineEditor = () => {
                   )}
                 </div>
                 {errors.keywords && (
-                  <p className="text-red-500 text-sm mt-1">At least one keyword is required.</p>
+                  <p className="text-red-500 text-xs sm:text-sm mt-1">
+                    At least one keyword is required.
+                  </p>
                 )}
               </div>
               <div>
@@ -600,14 +615,15 @@ const OutlineEditor = () => {
                     value={formData.title}
                     onChange={(e) => handleInputChange(e, "title")}
                     placeholder="Enter blog title..."
-                    className={`w-full px-3 flex-1 py-2 border ${
-                      errors.title ? "border-red-500" : "border-gray-200"
-                    } rounded-md text-sm focus:ring-2 focus:ring-blue-600`}
+                    className={clsx(
+                      "w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-600",
+                      errors.title && "border-red-500"
+                    )}
                     aria-label="Blog title"
                   />
                 </div>
                 {errors.title && (
-                  <p className="text-red-500 text-sm mt-1">Title cannot be empty.</p>
+                  <p className="text-red-500 text-xs sm:text-sm mt-1">Title cannot be empty.</p>
                 )}
               </div>
               <div>
@@ -620,7 +636,6 @@ const OutlineEditor = () => {
                   max="5000"
                   value={formData.userDefinedLength ?? 1000}
                   onChange={(e) => handleInputChange(e, "userDefinedLength")}
-                  placeholder="Enter desired word count..."
                   className="w-full h-1 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#1B6FC9]"
                   style={{
                     background: `linear-gradient(to right, #1B6FC9 ${
@@ -629,30 +644,31 @@ const OutlineEditor = () => {
                   }}
                   aria-label="Desired word count"
                 />
-                <span className="mt-2 text-sm text-gray-600 block">
+                <span className="mt-2 text-xs sm:text-sm text-gray-600 block">
                   {formData?.userDefinedLength ?? 1000} words
                 </span>
               </div>
             </div>
           )}
           {currentStep === 2 && (
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Select Brand Voice
                 </label>
-                <div className="mt-3 p-4 rounded-md border border-gray-200 bg-gray-50">
+                <div className="mt-2 p-3 sm:p-4 rounded-md border border-gray-200 bg-gray-50">
                   {brands?.length > 0 ? (
                     <div className="max-h-48 overflow-y-auto pr-1">
-                      <div className="grid gap-3">
+                      <div className="grid gap-2 sm:gap-3">
                         {brands.map((voice) => (
                           <label
                             key={voice._id}
-                            className={`flex items-start gap-2 p-3 rounded-md cursor-pointer ${
+                            className={clsx(
+                              "flex items-start gap-2 p-2 sm:p-3 rounded-md cursor-pointer",
                               formData.brandId === voice._id
                                 ? "bg-blue-100 border-blue-300"
                                 : "bg-white border border-gray-200"
-                            }`}
+                            )}
                           >
                             <input
                               type="radio"
@@ -663,15 +679,19 @@ const OutlineEditor = () => {
                               className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-600"
                             />
                             <div className="flex-1">
-                              <div className="font-medium text-gray-700">{voice.nameOfVoice}</div>
-                              <p className="text-sm text-gray-600 mt-1">{voice.describeBrand}</p>
+                              <div className="font-medium text-gray-700 text-sm sm:text-base">
+                                {voice.nameOfVoice}
+                              </div>
+                              <p className="text-xs sm:text-sm text-gray-600 mt-1">
+                                {voice.describeBrand}
+                              </p>
                             </div>
                           </label>
                         ))}
                       </div>
                     </div>
                   ) : (
-                    <div className="text-gray-500 text-sm italic">
+                    <div className="text-gray-500 text-xs sm:text-sm italic">
                       <Empty /> No brand voices available. Create one to get started.
                     </div>
                   )}
@@ -687,14 +707,15 @@ const OutlineEditor = () => {
                     onChange={(e) => handleKeywordInputChange(e, "resources")}
                     onKeyDown={(e) => handleKeyPress(e, "resources")}
                     placeholder="Enter resource links (YouTube or others), separated by commas"
-                    className={`flex-1 px-3 py-2 border ${
-                      errors.resources ? "border-red-500" : "border-gray-200"
-                    } rounded-md text-sm focus:ring-2 focus:ring-blue-600`}
+                    className={clsx(
+                      "flex-1 px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-600",
+                      errors.resources && "border-red-500"
+                    )}
                     aria-label="Resource links"
                   />
                   <button
                     onClick={() => handleAddKeyword("resources")}
-                    className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm flex items-center"
+                    className="px-3 py-2 sm:px-4 bg-[#1B6FC9] text-white rounded-md text-sm flex items-center"
                     aria-label="Add resource link"
                   >
                     <Plus size={16} />
@@ -704,20 +725,20 @@ const OutlineEditor = () => {
                   {formData.resources.map((resource, index) => (
                     <div
                       key={index}
-                      className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
+                      className="inline-flex items-center px-2 py-1 rounded-full text-xs sm:text-sm font-medium bg-blue-50 text-blue-700"
                     >
                       {isImageUrl(resource) ? (
                         <img
                           src={resource}
                           alt={`Resource ${index + 1}`}
-                          className="h-16 w-auto object-contain rounded mr-2 hover:opacity-80 transition-opacity"
+                          className="h-12 sm:h-16 w-auto object-contain rounded mr-2 hover:opacity-80 transition-opacity"
                         />
                       ) : (
                         <a
                           href={resource}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-700 hover:underline mr-2 truncate max-w-[150px]"
+                          className="text-blue-700 hover:underline mr-2 truncate max-w-[100px] sm:max-w-[150px]"
                         >
                           {resource}
                         </a>
@@ -727,13 +748,13 @@ const OutlineEditor = () => {
                         className="ml-1 text-blue-400 hover:text-blue-600"
                         aria-label={`Remove resource ${resource}`}
                       >
-                        <X size={16} />
+                        <X size={14} />
                       </button>
                     </div>
                   ))}
                 </div>
                 {errors.resources && (
-                  <p className="text-red-500 text-sm mt-1">
+                  <p className="text-red-500 text-xs sm:text-sm mt-1">
                     Please enter valid resource links (max 4).
                   </p>
                 )}
@@ -741,11 +762,13 @@ const OutlineEditor = () => {
             </div>
           )}
           {currentStep === 3 && (
-            <div className="p-4 bg-white rounded-lg shadow-sm">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">Generated Blog Outline</h2>
+            <div className="p-3 sm:p-4 bg-white rounded-lg shadow-sm">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">
+                Generated Blog Outline
+              </h2>
               {markdownContent ? (
                 <div
-                  className="prose prose-sm max-w-none text-gray-700"
+                  className="prose prose-sm max-w-none text-gray-700 text-sm sm:text-base"
                   dangerouslySetInnerHTML={{
                     __html: markdownContent
                       .replace(/^#+\s+/gm, (match) => `<h${match.length}>`)
@@ -757,46 +780,48 @@ const OutlineEditor = () => {
                   }}
                 />
               ) : (
-                <p className="text-gray-500 text-sm">No content available to display.</p>
+                <p className="text-gray-500 text-xs sm:text-sm">No content available to display.</p>
               )}
             </div>
           )}
         </div>
       </Modal>
-      <div className="rounded-lg p-6 min-h-[600px] flex flex-col">
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-3xl font-bold bg-gradient-to-r mb-2 from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Blog Outline Editor
-          </h1>
-          <button
-            onClick={handleExportMarkdown}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium flex items-center gap-2"
-            aria-label="Export as Markdown"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-              />
-            </svg>
-            Export as Markdown
-          </button>
-        </div>
+      <div className="py-6 min-h-[100vh] flex flex-col">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6 px-4 sm:px-0">
+  <h1 className="text-xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent text-center sm:text-left">
+    Blog Outline Editor
+  </h1>
+
+  <button
+    onClick={handleExportMarkdown}
+    className="w-full sm:w-auto px-3 py-2 sm:px-4 sm:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm sm:text-base font-medium flex justify-center items-center gap-2"
+    aria-label="Export as Markdown"
+  >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      className="h-4 sm:h-5 w-4 sm:w-5"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+      />
+    </svg>
+    Export as Markdown
+  </button>
+</div>
+
         {markdownContent ? (
-          <div className="flex-1 flex space-x-4">
-            <div className="w-1/2">
-              <h3 className="text-lg font-semibold text-gray-700 mb-3 px-3 tracking-wide">
+          <div className="flex-1 flex flex-col sm:flex-row sm:space-x-4">
+            <div className="w-full sm:w-1/2 mb-4 sm:mb-0">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-2 sm:mb-3 px-3 tracking-wide">
                 Preview
               </h3>
-              <div className="w-full h-screen p-4 border border-gray-200 rounded-lg bg-white overflow-y-auto prose prose-sm max-w-none text-gray-700 shadow-sm">
+              <div className="w-full h-[50vh] sm:h-[70vh] p-3 sm:p-4 border border-gray-200 rounded-lg bg-white overflow-y-auto prose prose-sm max-w-none text-gray-700 shadow-sm text-xs sm:text-sm">
                 <div
                   dangerouslySetInnerHTML={{
                     __html: markdownContent
@@ -806,21 +831,21 @@ const OutlineEditor = () => {
                       .replace(/\*(.*?)\*/g, "<em>$1</em>")
                       .replace(/^- (.*)$/gm, "<li>$1</li>")
                       .replace(/(<li>.*<\/li>)/g, "<ul>$1</ul>")
-                      .replace(/^(<h[1-6]>.*<\/h[1-6]>)$/gm, '<div class="mt-4">$1</div>')
+                      .replace(/^(<h[1-6]>.*<\/h[1-6]>)$/gm, '<div class="mt-3 sm:mt-4">$1</div>')
                       .replace(/^(<ul>.*<\/ul>)$/gm, '<div class="mt-2">$1</div>'),
                   }}
                 />
               </div>
             </div>
-            <div className="w-1/2">
-              <h3 className="text-lg font-semibold text-gray-700 mb-3 px-3 tracking-wide">
+            <div className="w-full sm:w-1/2">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-2 sm:mb-3 px-3 tracking-wide">
                 Edit Your Blog Outline
               </h3>
               <textarea
                 id="outline-editor"
                 value={markdownContent}
                 onChange={handleContentChange}
-                className="w-full h-screen p-4 border border-gray-200 rounded-lg text-sm font-mono bg-white focus:ring-2 focus:ring-blue-600 resize-none shadow-sm"
+                className="w-full h-[50vh] sm:h-[70vh] p-3 sm:p-4 border border-gray-200 rounded-lg text-xs sm:text-sm font-mono bg-white focus:ring-2 focus:ring-blue-600 resize-none shadow-sm"
                 aria-label="Edit blog outline"
                 placeholder="Edit your blog outline here..."
               />
@@ -828,7 +853,7 @@ const OutlineEditor = () => {
           </div>
         ) : (
           <div className="flex-1 flex items-center justify-center">
-            <p className="text-gray-500 text-sm">No content available to display.</p>
+            <p className="text-gray-500 text-xs sm:text-sm">No content available to display.</p>
           </div>
         )}
       </div>
