@@ -52,6 +52,8 @@ dayjs.extend(isBetween)
 
 const { RangePicker } = DatePicker
 
+const INITIAL_LIMIT = 100
+
 const MyProjects = () => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
@@ -84,6 +86,7 @@ const MyProjects = () => {
   const { handlePopup } = useConfirmPopup()
   const TRUNCATE_LENGTH = 120
   const [totalBlogs, setTotalBlogs] = useState(0)
+  const [limit, setLimit] = useState(INITIAL_LIMIT)
 
   useEffect(() => {
     const filters = {
@@ -124,6 +127,7 @@ const MyProjects = () => {
     setActivePresetLabel("Last 7 days")
     setSearchTerm("")
     setCurrentPage(1)
+    setLimit(INITIAL_LIMIT)
     sessionStorage.removeItem(`user_${userId}_filters`)
   }, [userId])
 
@@ -182,10 +186,11 @@ const MyProjects = () => {
         : presetDateRange[1]
         ? dayjs(presetDateRange[1]).endOf("day").toISOString()
         : undefined,
+      limit,
     }
     const response = await dispatch(fetchAllBlogs(queryParams)).unwrap()
     return response.data || []
-  }, [dispatch, dateRange, presetDateRange])
+  }, [dispatch, dateRange, presetDateRange, limit])
 
   const { data: allBlogs = [], isLoading } = useQuery({
     queryKey: [
@@ -194,6 +199,7 @@ const MyProjects = () => {
       dateRange[1]?.toISOString() ?? null,
       presetDateRange[0]?.toISOString() ?? null,
       presetDateRange[1]?.toISOString() ?? null,
+      limit,
     ],
     queryFn: fetchBlogsQuery,
     onError: (error) => {
@@ -212,7 +218,11 @@ const MyProjects = () => {
 
     socket.on("blog:statusChanged", (data) => {
       console.debug("Blog status changed:", data)
-      queryClient.invalidateQueries({ queryKey: ["blogs"], exact: false })
+      queryClient.invalidateQueries({ queryKey: ["blogs"] })
+      if (data.blogId) {
+        // Assuming the socket data includes the blog ID
+        queryClient.invalidateQueries({ queryKey: ["blog", data.blogId] }) // Invalidate single blog if fetched separately
+      }
     })
 
     return () => {
@@ -484,6 +494,7 @@ const MyProjects = () => {
           setActivePresetLabel("Last 7 Days")
           setCurrentPage(1)
           setIsCustomDatePickerOpen(false)
+          setLimit(INITIAL_LIMIT)
         },
       },
       {
@@ -495,6 +506,7 @@ const MyProjects = () => {
           setActivePresetLabel("Last 30 Days")
           setCurrentPage(1)
           setIsCustomDatePickerOpen(false)
+          setLimit(INITIAL_LIMIT)
         },
       },
       {
@@ -506,6 +518,7 @@ const MyProjects = () => {
           setActivePresetLabel("Last 3 Months")
           setCurrentPage(1)
           setIsCustomDatePickerOpen(false)
+          setLimit(INITIAL_LIMIT)
         },
       },
       {
@@ -517,6 +530,7 @@ const MyProjects = () => {
           setActivePresetLabel("Last 6 Months")
           setCurrentPage(1)
           setIsCustomDatePickerOpen(false)
+          setLimit(INITIAL_LIMIT)
         },
       },
       {
@@ -528,6 +542,7 @@ const MyProjects = () => {
           setActivePresetLabel("This Year")
           setCurrentPage(1)
           setIsCustomDatePickerOpen(false)
+          setLimit(INITIAL_LIMIT)
         },
       },
     ],
@@ -744,6 +759,7 @@ const MyProjects = () => {
               setPresetDateRange([null, null])
               setActivePresetLabel("")
               setCurrentPage(1)
+              setLimit(INITIAL_LIMIT)
             }}
             className={clsx(
               "w-full rounded-lg border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-300 text-xs sm:text-sm",
@@ -1019,6 +1035,13 @@ const MyProjects = () => {
               />
             </div>
           )}
+          {allBlogs.length === limit &&
+            limit !== -1 &&
+            currentPage === Math.ceil(totalBlogs / itemsPerPage) && (
+              <div className="flex justify-center mt-4">
+                <Button onClick={() => setLimit(-1)}>Load More</Button>
+              </div>
+            )}
         </>
       )}
     </div>

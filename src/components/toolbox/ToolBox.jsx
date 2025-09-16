@@ -286,6 +286,9 @@ const ToolBox = () => {
       keywords: templateFormData.keywords,
       userDefinedLength: Number(templateFormData.userDefinedLength),
       template: templateFormData.template,
+      aiModel: "gemini",
+      isCheckedGeneratedImages: false,
+      isUnsplashActive: false,
     }
 
     const newErrors = {}

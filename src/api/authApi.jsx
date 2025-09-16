@@ -3,7 +3,6 @@ const getIP = async () => {
   try {
     const res = await fetch("https://api64.ipify.org?format=json")
     const { ip } = await res.json()
-    console.debug(ip)
     return ip
   } catch (err) {
     console.error("IP Fecth Error", err)

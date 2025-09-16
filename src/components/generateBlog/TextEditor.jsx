@@ -56,6 +56,7 @@ import { lazy } from "react"
 import { Suspense } from "react"
 import { createPortal } from "react-dom"
 import { getLinkPreview } from "link-preview-js" // Assume this library is installed via npm i link-preview-js
+import { useQueryClient } from "@tanstack/react-query"
 
 const ContentDiffViewer = lazy(() => import("./ContentDiffViewer"))
 
@@ -184,6 +185,7 @@ const TextEditor = ({
   const [linkPreviewUrl, setLinkPreviewUrl] = useState(null)
   const [linkPreviewElement, setLinkPreviewElement] = useState(null)
   const hideTimeout = useRef(null)
+  const queryClient = useQueryClient()
 
   const safeContent = content ?? blog?.content ?? ""
 
@@ -752,6 +754,8 @@ const TextEditor = ({
 
     try {
       await dispatch(retryBlog({ id: blog._id, payload }))
+      queryClient.invalidateQueries({ queryKey: ["blogs"] })
+      queryClient.invalidateQueries({ queryKey: ["blog", blog._id] })
       navigate("/blogs")
     } catch (error) {
       console.error("Retry failed:", error)
