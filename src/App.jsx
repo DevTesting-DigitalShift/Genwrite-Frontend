@@ -1,7 +1,7 @@
 import { Suspense, useEffect } from "react"
 import { RouterProvider } from "react-router-dom"
 import router from "./router"
-import Loading from "@components/Loading"
+import Loading from "@components/UI/Loading"
 import { ConfirmPopupProvider } from "@/context/ConfirmPopupContext"
 import { Helmet } from "react-helmet"
 import { connectSocket } from "@utils/socket"

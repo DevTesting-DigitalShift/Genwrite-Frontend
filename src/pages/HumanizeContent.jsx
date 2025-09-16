@@ -13,7 +13,7 @@ import { Button, message } from "antd"
 import { useDispatch, useSelector } from "react-redux"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { generateHumanizedContent, resetHumanizeState } from "@store/slices/humanizeSlice"
-import Loading from "@components/Loading"
+import Loading from "@components/UI/Loading"
 import { Tooltip } from "antd"
 import { Coins } from "lucide-react"
 

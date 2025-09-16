@@ -41,8 +41,7 @@ import TurndownService from "turndown"
 import { useLocation, useNavigate } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { ProofreadingDecoration } from "@/extensions/ProofreadingDecoration"
-import { useProofreadingUI } from "./useProofreadingUI"
-import Loading from "@components/Loading"
+import Loading from "@components/UI/Loading"
 import { ReloadOutlined } from "@ant-design/icons"
 import { sendRetryLines } from "@api/blogApi"
 import { retryBlog } from "@store/slices/blogSlice"
@@ -57,8 +56,9 @@ import { Suspense } from "react"
 import { createPortal } from "react-dom"
 import { getLinkPreview } from "link-preview-js" // Assume this library is installed via npm i link-preview-js
 import { useQueryClient } from "@tanstack/react-query"
+import { useProofreadingUI } from "@/layout/Editor/useProofreadingUI"
 
-const ContentDiffViewer = lazy(() => import("./ContentDiffViewer"))
+const ContentDiffViewer = lazy(() => import("@/layout/Editor/ContentDiffViewer"))
 
 marked.setOptions({
   gfm: true,

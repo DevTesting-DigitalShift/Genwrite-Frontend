@@ -1,7 +1,7 @@
 import React, { memo, useEffect } from "react"
 import { Modal, Button, message } from "antd"
 import Carousel from "./Carousel"
-import { packages } from "@constants/templates"
+import { packages } from "@/data/templates"
 
 const SelectTemplateModal = ({ handleNext, handleClose, data, setData }) => {
   const [selectedPackage, setSelectedPackage] = React.useState(null)

@@ -1,27 +1,25 @@
 import { lazy, Suspense } from "react"
 import { createBrowserRouter, Navigate } from "react-router-dom"
-import { previewBlogLoader } from "@pages/preview/previewLoader"
-import Loading from "@components/Loading"
+import Loading from "@components/UI/Loading"
 const CreditLogsTable = lazy(() => import("@pages/CreditLogs"))
 const Transactions = lazy(() => import("@pages/Transactions"))
-const ErrorBoundary = lazy(() => import("@components/ErrorBoundary"))
-const PublicRoutesLayout = lazy(() => import("@components/layout/PublicRoutesLayout"))
-const PrivateRoutesLayout = lazy(() => import("@components/layout/PrivateRoutesLayout"))
-const Dashboard = lazy(() => import("@components/Dashboard"))
-const ToolBox = lazy(() => import("@components/toolbox/ToolBox"))
-const ToolboxSettings = lazy(() => import("@components/toolbox/toolboxSettings"))
-const MyProjects = lazy(() => import("@components/Projects/MyProjects"))
-const PluginsMain = lazy(() => import("@components/plugins/PluginsMain"))
-const BrandVoice = lazy(() => import("@components/brandvoice/BrandVoice"))
-const PreviewBlog = lazy(() => import("@pages/preview/PreviewBlog"))
+const ErrorBoundary = lazy(() => import("./layout/error/ErrorBoundary"))
+const PublicRoutesLayout = lazy(() => import("./layout/PublicRoutesLayout"))
+const PrivateRoutesLayout = lazy(() => import("./layout/PrivateRoutesLayout"))
+const Dashboard = lazy(() => import("@pages/Dashboard"))
+const ToolBox = lazy(() => import("@pages/MainEditorPage"))
+const ToolboxSettings = lazy(() => import("@pages/ToolboxPage"))
+const MyProjects = lazy(() => import("@pages/MyProjects"))
+const PluginsMain = lazy(() => import("@pages/PluginsMain"))
+const BrandVoice = lazy(() => import("@pages/BrandVoice"))
 const jobs = lazy(() => import("@pages/Jobs"))
 const trashcan = lazy(() => import("@pages/Trashcan"))
 const pricing = lazy(() => import("@pages/Upgrade"))
 const Profile = lazy(() => import("@pages/Profile"))
-const Login = lazy(() => import("@components/auth/Login"))
-const ForgotPassword = lazy(() => import("@components/auth/ForgotPassword"))
-const ResetPassword = lazy(() => import("@components/auth/ResetPassword"))
-const ErrorPage = lazy(() => import("@components/ErrorPage"))
+const Login = lazy(() => import("@pages/auth/Login"))
+const ForgotPassword = lazy(() => import("@pages/auth/ForgotPassword"))
+const ResetPassword = lazy(() => import("@pages/auth/ResetPassword"))
+const ErrorPage = lazy(() => import("./layout/error/ErrorPage"))
 const SuccessPage = lazy(() => import("@pages/payment/SuccessPage"))
 const CancelPage = lazy(() => import("@pages/payment/CancelPage"))
 const ContactUs = lazy(() => import("@pages/ContactUs"))
@@ -30,11 +28,11 @@ const TermsAndConditions = lazy(() => import("@pages/TermsAndConditions"))
 const PrivacyPolicy = lazy(() => import("@pages/Privacy"))
 const HumanizeContent = lazy(() => import("@pages/HumanizeContent"))
 const CancellationPage = lazy(() => import("@pages/CancellationPage"))
-const AnalyticsPage = lazy(() => import("@components/AnalyticsPage"))
+const AnalyticsPage = lazy(() => import("@pages/AnalyticsPage"))
 const OutlineEditor = lazy(() => import("@pages/OutlineEditor"))
-const GenerateMetaData = lazy(() => import("@components/GenerateMetaData"))
-const PromptContent = lazy(() => import("@components/PromptContent"))
-const UnsubscribeEmail = lazy(() => import("@components/UnsubscribeEmail"))
+const GenerateMetaData = lazy(() => import("@pages/GenerateMetaData"))
+const PromptContent = lazy(() => import("@pages/PromptContent"))
+const UnsubscribeEmail = lazy(() => import("@pages/UnsubscribeEmail"))
 
 /**
  * Wraps a component in React.Suspense with fallback support.
@@ -82,7 +80,6 @@ const router = createBrowserRouter([
       { path: "analytics", element: withSuspense(AnalyticsPage) },
       { path: "generate-metadata", element: withSuspense(GenerateMetaData) },
       { path: "prompt-content", element: withSuspense(PromptContent) },
-      { path: "unsubscribe", element: withSuspense(UnsubscribeEmail) },
       {
         path: "payment",
         children: [
@@ -104,18 +101,13 @@ const router = createBrowserRouter([
     errorElement: withSuspense(ErrorBoundary),
     children: [
       { path: "login", element: withSuspense(Login, { path: "login" }) },
+      { path: "unsubscribe", element: withSuspense(UnsubscribeEmail) },
       { path: "signup", element: withSuspense(Login, { path: "signup" }) },
       { path: "forgot-password", element: withSuspense(ForgotPassword) },
       { path: "reset-password", element: withSuspense(ResetPassword) },
       { path: "privacy-policy", element: withSuspense(PrivacyPolicy) },
       { path: "terms-and-conditions", element: withSuspense(TermsAndConditions) },
       { path: "*", element: withSuspense(ErrorPage) },
-      {
-        path: "preview/:blogId",
-        element: withSuspense(PreviewBlog),
-        loader: previewBlogLoader,
-        hydrateFallbackElement: <Loading />,
-      },
     ],
   },
 ])

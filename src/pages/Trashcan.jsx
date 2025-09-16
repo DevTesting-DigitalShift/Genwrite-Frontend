@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from "react"
 import { Button, Tooltip, Popconfirm, Badge, Pagination, Input, Select, message } from "antd"
-import { RefreshCcw, Trash2, Search } from "lucide-react"
+import { RefreshCcw, Trash2, Search, ArchiveRestore } from "lucide-react"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { QuestionCircleOutlined } from "@ant-design/icons"
 import { motion } from "framer-motion"
 import { Helmet } from "react-helmet"
 import { useDispatch } from "react-redux"
-import SkeletonLoader from "@components/Projects/SkeletonLoader"
+import SkeletonLoader from "@components/UI/SkeletonLoader"
 import { getAllBlogs } from "@api/blogApi"
 import { deleteAllUserBlogs, restoreTrashedBlog } from "@store/slices/blogSlice"
 import { debounce } from "lodash"
@@ -436,13 +436,7 @@ const Trashcan = () => {
                           onConfirm={() => handleRestore(_id)}
                         >
                           <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                            <img
-                              src="Images/restore.svg"
-                              alt="Restore"
-                              width={16}
-                              height={16}
-                              className="cursor-pointer restore-icon"
-                            />
+                            <ArchiveRestore className="w-5 h-5 cursor-pointer" />
                           </motion.div>
                         </Popconfirm>
                       </div>

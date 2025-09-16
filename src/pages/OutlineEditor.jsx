@@ -1,5 +1,5 @@
 import Carousel from "@components/multipleStepModal/Carousel"
-import { packages } from "@constants/templates"
+import { packages } from "@/data/templates"
 import { createOutlineThunk } from "@store/slices/otherSlice"
 import { Empty, Input, Select, Modal } from "antd"
 import { Bold, Italic, List, Plus, Sparkles, X } from "lucide-react"
