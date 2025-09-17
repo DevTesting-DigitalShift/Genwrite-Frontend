@@ -74,7 +74,7 @@ const FONT_OPTIONS = [
   { label: "Comic Sans", value: "font-comic" },
 ]
 
-const MarkdownEditor = ({ content, onChange, className }) => {
+const MarkdownEditor = ({ content, onChange, className, setUnsavedChanges }) => {
   const containerRef = useRef(null)
 
   useEffect(() => {
@@ -89,6 +89,7 @@ const MarkdownEditor = ({ content, onChange, className }) => {
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {
               onChange(update.state.doc.toString())
+              setUnsavedChanges(true)
             }
           }),
         ],
@@ -96,12 +97,12 @@ const MarkdownEditor = ({ content, onChange, className }) => {
       view = new EditorView({ state, parent: containerRef.current })
     }
     return () => view?.destroy()
-  }, [content, onChange])
+  }, [content, onChange, setUnsavedChanges])
 
   return <div ref={containerRef} className={`w-full h-full ${className}`} />
 }
 
-const HtmlEditor = ({ content, onChange, className }) => {
+const HtmlEditor = ({ content, onChange, className, setUnsavedChanges }) => {
   const containerRef = useRef(null)
 
   useEffect(() => {
@@ -116,6 +117,7 @@ const HtmlEditor = ({ content, onChange, className }) => {
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {
               onChange(update.state.doc.toString())
+              setUnsavedChanges(true)
             }
           }),
         ],
@@ -123,7 +125,7 @@ const HtmlEditor = ({ content, onChange, className }) => {
       view = new EditorView({ state, parent: containerRef.current })
     }
     return () => view?.destroy()
-  }, [content, onChange])
+  }, [content, onChange, setUnsavedChanges])
 
   return <div ref={containerRef} className={`h-screen ${className}`} />
 }
@@ -143,6 +145,8 @@ const TextEditor = ({
   handleAcceptHumanizedContent,
   handleAcceptOriginalContent,
   editorContent,
+  unsavedChanges,
+  setUnsavedChanges,
 }) => {
   const [isEditorLoading, setIsEditorLoading] = useState(true)
   const [selectedFont, setSelectedFont] = useState(FONT_OPTIONS[0].value)
@@ -160,8 +164,6 @@ const TextEditor = ({
   const [selectionRange, setSelectionRange] = useState({ from: 0, to: 0 })
   const [retryModalOpen, setRetryModalOpen] = useState(false)
   const [hoveredSuggestion, setHoveredSuggestion] = useState(null)
-  const [unsavedChanges, setUnsavedChanges] = useState(false)
-  const [tabSwitchWarning, setTabSwitchWarning] = useState(null)
   const [htmlContent, setHtmlContent] = useState("")
   const htmlEditorRef = useRef(null)
   const mdEditorRef = useRef(null)
@@ -286,10 +288,9 @@ const TextEditor = ({
       onUpdate: ({ editor }) => {
         const html = editor.getHTML()
         const markdown = htmlToMarkdown(html)
-        if (markdown !== safeContent) {
-          setContent(markdown)
-          setUnsavedChanges(true)
-        }
+        setContent(markdown) // Update Markdown content
+        setHtmlContent(html.replace(/>\s*</g, ">\n<")) // Update HTML content
+        setUnsavedChanges(true)
       },
       editorProps: {
         attributes: {
@@ -301,7 +302,7 @@ const TextEditor = ({
         setSelectionRange({ from, to })
       },
     },
-    [selectedFont, proofreadingResults, htmlToMarkdown, setContent]
+    [selectedFont, proofreadingResults, htmlToMarkdown, setContent, setUnsavedChanges]
   )
 
   const { activeSpan, bubbleRef, applyChange, rejectChange } = useProofreadingUI(normalEditor)
@@ -639,6 +640,54 @@ const TextEditor = ({
     }
   }
 
+  const handleReGenerate = async () => {
+    if (!blog?._id) {
+      message.error("Blog ID is missing.")
+      return
+    }
+
+    const proceedWithRegenerate = async () => {
+      const payload = {
+        createNew: true,
+      }
+      try {
+        await dispatch(retryBlog({ id: blog._id, payload }))
+        queryClient.invalidateQueries({ queryKey: ["blogs"] })
+        queryClient.invalidateQueries({ queryKey: ["blog", blog._id] })
+        setUnsavedChanges(false) // Reset unsaved changes after regeneration
+        navigate("/blogs")
+      } catch (error) {
+        console.error("Retry failed:", error)
+        message.error(error.message || "Retry failed.")
+      }
+    }
+
+    if (unsavedChanges) {
+      handlePopup({
+        title: "Unsaved Changes",
+        description: (
+          <>
+            You have unsaved changes. Regenerating the blog will discard these changes. Would you
+            like to save them first?
+          </>
+        ),
+        confirmText: "Save and Regenerate",
+        cancelText: "Regenerate without Saving",
+        onConfirm: async () => {
+          try {
+            await handleSave()
+            await proceedWithRegenerate()
+          } catch (error) {
+            message.error("Failed to save changes. Please try again.")
+          }
+        },
+        onCancel: proceedWithRegenerate,
+      })
+    } else {
+      await proceedWithRegenerate()
+    }
+  }
+
   const handleConfirmLink = useCallback(() => {
     if (!linkUrl || !/https?:\/\//i.test(linkUrl)) {
       message.error("Enter a valid URL.")
@@ -722,44 +771,51 @@ const TextEditor = ({
     const payload = {
       contentPart: selectedText.trim(),
     }
-    if (normalEditor) {
-      normalEditor.commands.blur()
-    }
-    try {
-      setIsRetrying(true)
-      const res = await sendRetryLines(blog._id, payload)
-      if (res.data) {
-        setRetryContent(res.data)
-        setRetryModalOpen(true)
-      } else {
-        message.error("No content received from retry.")
+
+    const proceedWithRetry = async () => {
+      if (normalEditor) {
+        normalEditor.commands.blur()
       }
-    } catch (error) {
-      console.error("Retry failed:", error)
-      message.error(error.message || "Retry failed.")
-    } finally {
-      setIsRetrying(false)
+      try {
+        setIsRetrying(true)
+        const res = await sendRetryLines(blog._id, payload)
+        if (res.data) {
+          setRetryContent(res.data)
+          setRetryModalOpen(true)
+        } else {
+          message.error("No content received from retry.")
+        }
+      } catch (error) {
+        console.error("Retry failed:", error)
+        message.error(error.message || "Retry failed.")
+      } finally {
+        setIsRetrying(false)
+      }
     }
-  }
 
-  const handleReGenerate = async () => {
-    if (!blog?._id) {
-      message.error("Blog ID is missing.")
-      return
-    }
-
-    const payload = {
-      createNew: true,
-    }
-
-    try {
-      await dispatch(retryBlog({ id: blog._id, payload }))
-      queryClient.invalidateQueries({ queryKey: ["blogs"] })
-      queryClient.invalidateQueries({ queryKey: ["blog", blog._id] })
-      navigate("/blogs")
-    } catch (error) {
-      console.error("Retry failed:", error)
-      message.error(error.message || "Retry failed.")
+    if (unsavedChanges) {
+      handlePopup({
+        title: "Unsaved Changes",
+        description: (
+          <>
+            You have unsaved changes. Rewriting the selected text may affect your current changes.
+            Would you like to save them first?
+          </>
+        ),
+        confirmText: "Save and Retry",
+        cancelText: "Retry without Saving",
+        onConfirm: async () => {
+          try {
+            await handleSave()
+            await proceedWithRetry()
+          } catch (error) {
+            message.error("Failed to save changes. Please try again.")
+          }
+        },
+        onCancel: proceedWithRetry,
+      })
+    } else {
+      await proceedWithRetry()
     }
   }
 
@@ -802,6 +858,12 @@ const TextEditor = ({
       setEditImageModalOpen(true)
     }
   }, [])
+
+  useEffect(() => {
+    if (blog?.content && (content == null || content === "")) {
+      setContent(blog.content)
+    }
+  }, [blog, content, setContent])
 
   useEffect(() => {
     if (blog?.images?.length > 0) {
@@ -955,27 +1017,6 @@ const TextEditor = ({
   const escapeRegExp = (string) => {
     return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
   }
-
-  const handleTabSwitch = useCallback(
-    (tab) => {
-      if (unsavedChanges) {
-        setTabSwitchWarning(tab)
-      } else {
-        setActiveTab(tab)
-      }
-    },
-    [unsavedChanges, setActiveTab]
-  )
-
-  const handleConfirmTabSwitch = useCallback(() => {
-    setUnsavedChanges(false)
-    setActiveTab(tabSwitchWarning)
-    setTabSwitchWarning(null)
-  }, [tabSwitchWarning, setActiveTab])
-
-  const handleCancelTabSwitch = useCallback(() => {
-    setTabSwitchWarning(null)
-  }, [])
 
   const hasScriptTag = (content) => {
     const parser = new DOMParser()
@@ -1791,9 +1832,11 @@ const TextEditor = ({
             content={safeContent}
             onChange={(newContent) => {
               setContent(newContent)
+              setHtmlContent(markdownToHtml(newContent).replace(/>\s*</g, ">\n<"))
               setUnsavedChanges(true)
             }}
             className="h-full"
+            setUnsavedChanges={setUnsavedChanges}
           />
         )}
         {activeTab === "HTML" && (
@@ -1805,6 +1848,7 @@ const TextEditor = ({
               setUnsavedChanges(true)
             }}
             className="h-full"
+            setUnsavedChanges={setUnsavedChanges}
           />
         )}
       </div>
@@ -1909,42 +1953,11 @@ const TextEditor = ({
           </div>
         </motion.div>
       )}
-      {tabSwitchWarning && (
-        <Modal
-          title="Unsaved Changes"
-          open={true}
-          onCancel={handleCancelTabSwitch}
-          centered
-          className="rounded-lg"
-          footer={
-            <div className="flex justify-end gap-2">
-              <Button
-                onClick={handleCancelTabSwitch}
-                className="rounded-lg border border-gray-300 hover:bg-gray-100"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="primary"
-                onClick={handleConfirmTabSwitch}
-                className="rounded-lg bg-blue-600 hover:bg-blue-700"
-              >
-                Continue without Saving
-              </Button>
-            </div>
-          }
-        >
-          <p className="text-gray-700">
-            You have unsaved changes. Switching tabs may cause you to lose your work. Are you sure
-            you want to continue?
-          </p>
-        </Modal>
-      )}
       <div className="flex border-b bg-white shadow-sm border-x">
         {["Normal", "Markdown", "HTML"].map((tab) => (
           <button
             key={tab}
-            onClick={() => handleTabSwitch(tab)}
+            onClick={() => setActiveTab(tab)}
             className={`editor-tab ${activeTab === tab ? "active" : ""}`}
           >
             {tab}
@@ -1965,10 +1978,10 @@ const TextEditor = ({
               borderRadius: "0.5rem",
               padding: "0.75rem",
               boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-              zIndex: 1000, // Increased zIndex to avoid conflicts
+              zIndex: 1000,
               maxWidth: "300px",
               minWidth: "200px",
-              display: "block", // Explicitly ensure visibility
+              display: "block",
             }}
             onMouseEnter={() => {
               if (hideTimeout.current) clearTimeout(hideTimeout.current)
@@ -1996,20 +2009,41 @@ const TextEditor = ({
                     style={{ width: "100%", height: "auto", marginTop: "8px", borderRadius: "4px" }}
                   />
                 )}
-                <Button
-                  onClick={() => {
-                    handleRemoveLink()
-                  }}
-                  size="small"
-                  danger
-                  style={{
-                    marginTop: "8px",
-                    width: "100%",
-                    display: "block", // Ensure button is visible
-                  }}
-                >
-                  Remove Link
-                </Button>
+                <div className="flex gap-2 mt-2">
+                  <Button
+                    onClick={() => {
+                      handleRemoveLink()
+                    }}
+                    size="small"
+                    danger
+                    style={{
+                      flex: 1,
+                      display: "block",
+                    }}
+                  >
+                    Remove Link
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      const pos = normalEditor.view.posAtDOM(linkPreviewElement, 0)
+                      const end = pos + (linkPreviewElement.textContent?.length || 0)
+                      normalEditor.chain().focus().setTextSelection({ from: pos, to: end }).run()
+                      setLinkUrl(linkPreviewUrl)
+                      setLinkModalOpen(true)
+                      setLinkPreview(null)
+                      setLinkPreviewPos(null)
+                      setLinkPreviewUrl(null)
+                      setLinkPreviewElement(null)
+                    }}
+                    size="small"
+                    style={{
+                      flex: 1,
+                      display: "block",
+                    }}
+                  >
+                    Edit Link
+                  </Button>
+                </div>
               </>
             ) : (
               <p className="text-xs">Loading preview...</p>
