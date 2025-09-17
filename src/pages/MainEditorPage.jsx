@@ -47,6 +47,7 @@ const MainEditorPage = () => {
   const location = useLocation()
   const pathDetect = location.pathname === `/blog-editor/${blog?._id}`
   const [isPreviewOpen, setIsPreviewOpen] = useState(false)
+  const [unsavedChanges, setUnsavedChanges] = useState(false)
   const [templateFormData, setTemplateFormData] = useState({
     title: "",
     topic: "",
@@ -67,6 +68,18 @@ const MainEditorPage = () => {
     userDefinedLength: false,
     template: false,
   })
+
+  useEffect(() => {
+    const handleBeforeUnload = (event) => {
+      if (unsavedChanges) {
+        event.preventDefault()
+        event.returnValue = "You have unsaved changes. Are you sure you want to leave?"
+      }
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload)
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload)
+  }, [unsavedChanges])
 
   useEffect(() => {
     if (id) {
@@ -99,6 +112,7 @@ const MainEditorPage = () => {
         includeTableOfContents: blog.includeTableOfContents || false,
         title: blog.title || "",
       })
+      setUnsavedChanges(false) // Reset unsavedChanges when blog is loaded
     }
   }, [blog])
 
@@ -189,6 +203,7 @@ const MainEditorPage = () => {
       ).unwrap()
 
       message.success("Blog updated successfully")
+      setUnsavedChanges(false) // Reset unsavedChanges after save
 
       setIsLoading(true)
       setTimeout(() => {
@@ -230,6 +245,7 @@ const MainEditorPage = () => {
       } else {
         message.error("No content received from retry.")
       }
+      setUnsavedChanges(false) // Reset unsavedChanges after save
     } catch (error) {
       console.error("Error updating the blog:", error)
       message.error("Failed to save blog.")
@@ -323,6 +339,7 @@ const MainEditorPage = () => {
     if (getWordCount(newTitle) <= 60) {
       setEditorTitle(newTitle)
       setFormData((prev) => ({ ...prev, title: newTitle }))
+      setUnsavedChanges(true) // Set unsavedChanges to true
     } else {
       message.error("Title exceeds 60 words.")
     }
@@ -560,6 +577,8 @@ const MainEditorPage = () => {
                     handleAcceptHumanizedContent={handleAcceptHumanizedContent}
                     handleAcceptOriginalContent={handleAcceptOriginalContent}
                     editorContent={editorContent}
+                    unsavedChanges={unsavedChanges}
+                    setUnsavedChanges={setUnsavedChanges}
                   />
                 )}
               </motion.div>
@@ -589,6 +608,7 @@ const MainEditorPage = () => {
               isHumanizing={isHumanizing}
               setHumanizedContent={setHumanizedContent}
               setIsHumanizeModalOpen={setIsHumanizeModalOpen}
+              unsavedChanges={unsavedChanges}
             />
           </div>
 
@@ -625,6 +645,7 @@ const MainEditorPage = () => {
                   setHumanizedContent={setHumanizedContent}
                   setIsHumanizeModalOpen={setIsHumanizeModalOpen}
                   setIsSidebarOpen={setIsSidebarOpen}
+                  unsavedChanges={unsavedChanges}
                 />
               </motion.div>
             )}
