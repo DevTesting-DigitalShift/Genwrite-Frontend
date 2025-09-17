@@ -43,9 +43,10 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
   const [currentStep, setCurrentStep] = useState(1)
   const [newJob, setNewJob] = useState(initialJob)
   const [formData, setFormData] = useState({
-    keywords: [],
+    keywords: initialJob.blogs.keywords || [],
     keywordInput: "",
-    performKeywordResearch: true,
+    performKeywordResearch: initialJob.options.performKeywordResearch, // 👈 now false by default
+    aiModel: initialJob.blogs.aiModel,
   })
   const [errors, setErrors] = useState({})
   const [recentlyUploadedCount, setRecentlyUploadedCount] = useState(null)
@@ -53,6 +54,20 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
   const [showAllKeywords, setShowAllKeywords] = useState(false)
 
   const MAX_BLOGS = 100
+
+  console.log({ selectedJob })
+
+  useEffect(() => {
+    if (selectedJob) {
+      setFormData((prev) => ({
+        ...prev,
+        aiModel: selectedJob.blogs?.aiModel || initialJob.blogs.aiModel,
+        performKeywordResearch:
+          selectedJob.options?.performKeywordResearch ?? initialJob.options.performKeywordResearch,
+        keywords: selectedJob.blogs?.keywords ?? initialJob.blogs.keywords,
+      }))
+    }
+  }, [selectedJob])
 
   useEffect(() => {
     setNewJob((prev) => {
@@ -109,6 +124,8 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
       }))
     }
   }, [selectedKeywords])
+
+  console.log(formData.aiModel)
 
   const validateSteps = (step) => {
     const errors = {}
@@ -175,7 +192,7 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
     if (!validateSteps(2) || !validateSteps(3)) return
     const jobPayload = {
       ...newJob,
-      blogs: { ...newJob.blogs, keywords: formData.keywords },
+      blogs: { ...newJob.blogs, keywords: formData.keywords, aiModel: formData.aiModel },
       options: {
         ...newJob.options,
         performKeywordResearch: formData.performKeywordResearch,
@@ -205,7 +222,7 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
     if (!validateSteps(2) || !validateSteps(3)) return
     const jobPayload = {
       ...newJob,
-      blogs: { ...newJob.blogs, keywords: formData.keywords },
+      blogs: { ...newJob.blogs, keywords: formData.keywords, aiModel: formData.aiModel },
       options: {
         ...newJob.options,
         performKeywordResearch: formData.performKeywordResearch,

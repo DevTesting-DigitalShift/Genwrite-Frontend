@@ -258,7 +258,7 @@ const StepContent = ({
       message.error(
         "Please connect your WordPress account in your profile before enabling automatic posting."
       )
-      navigate("/profile")
+      // navigate("/profile")
       return
     }
     setNewJob((prev) => ({
@@ -531,8 +531,8 @@ const StepContent = ({
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700 mb-2 flex gap-2 items-center">
-                Keywords
-                <Tooltip title="Upload a .csv file in the format: `Keyword` as header">
+                Topics
+                <Tooltip title="Upload a .csv file in the format: `Topics` as header">
                   <Info size={16} className="text-blue-500 cursor-pointer" />
                 </Tooltip>
               </label>
@@ -671,298 +671,6 @@ const StepContent = ({
                 </div>
               </div>
             </div>
-            <div className="mb-6">
-              <label className="block text-sm font-semibold text-gray-700 mb-3">
-                Select AI Model
-              </label>
-
-              {/* Responsive grid: 1 col (mobile), 2 cols (tablet), 3 cols (desktop) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
-                {[
-                  {
-                    id: "gemini",
-                    label: "Gemini",
-                    logo: "/Images/gemini.png",
-                    restricted: false,
-                  },
-                  {
-                    id: "chatgpt",
-                    label: "ChatGPT",
-                    logo: "/Images/chatgpt.png",
-                  },
-                  {
-                    id: "claude",
-                    label: "Claude",
-                    logo: "/Images/claude.png",
-                  },
-                ].map((model) => (
-                  <label
-                    key={model.id}
-                    htmlFor={model.id}
-                    className={`relative border rounded-lg px-4 py-3 flex items-center gap-3 cursor-pointer transition-all duration-150
-          ${formData.aiModel === model.id ? "border-blue-600 bg-blue-50" : "border-gray-300"}
-          hover:shadow-sm w-full`}
-                    onClick={(e) => {
-                      if (model.restricted) {
-                        e.preventDefault()
-                        openUpgradePopup({ featureName: model.label, navigate })
-                      }
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      id={model.id}
-                      name="aiModel"
-                      value={model.id}
-                      checked={formData.aiModel === model.id}
-                      onChange={(e) => {
-                        if (!model.restricted) {
-                          setFormData((prev) => ({ ...prev, aiModel: e.target.value }))
-                          setData((prev) => ({ ...prev, aiModel: e.target.value }))
-                        }
-                      }}
-                      className="hidden"
-                    />
-                    <img src={model.logo} alt={model.label} className="w-6 h-6 object-contain" />
-                    <span className="text-sm font-medium text-gray-800">{model.label}</span>
-                    {model.restricted && (
-                      <Crown className="w-4 h-4 text-yellow-500 absolute top-2 right-2" />
-                    )}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex justify-between items-center">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Add Image</label>
-              <div className="flex items-center">
-                <label htmlFor="add-image-toggle" className="relative inline-block w-12 h-6">
-                  <input
-                    type="checkbox"
-                    id="add-image-toggle"
-                    className="sr-only peer"
-                    checked={newJob.blogs.isCheckedGeneratedImages}
-                    onChange={(e) => {
-                      const checked = e.target.checked
-                      setNewJob((prev) => ({
-                        ...prev,
-                        blogs: {
-                          ...prev.blogs,
-                          isCheckedGeneratedImages: checked,
-                          imageSource: checked ? prev.blogs.imageSource : "unsplash",
-                        },
-                      }))
-                    }}
-                  />
-                  <div
-                    className={`w-12 h-6 rounded-full transition-all duration-300 ${
-                      newJob.blogs.isCheckedGeneratedImages ? "bg-[#1B6FC9]" : "bg-gray-300"
-                    }`}
-                  />
-                  <div
-                    className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-300 ${
-                      newJob.blogs.isCheckedGeneratedImages ? "translate-x-6" : ""
-                    }`}
-                  />
-                </label>
-                {newJob.blogs.isCheckedGeneratedImages && isAiImagesLimitReached && (
-                  <Tooltip
-                    title="You've reached your AI image generation limit. It'll reset in the next billing cycle."
-                    overlayInnerStyle={{
-                      backgroundColor: "#FEF9C3",
-                      border: "1px solid #FACC15",
-                      color: "#78350F",
-                    }}
-                  >
-                    <TriangleAlert className="text-yellow-400 ml-4" size={15} />
-                  </Tooltip>
-                )}
-              </div>
-            </div>
-            {/* {newJob.blogs.isCheckedGeneratedImages && 
-            <div className="flex justify-between items-center mt-4">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Use Custom Images
-              </label>
-              <div className="flex items-center">
-                <label htmlFor="custom-images-toggle" className="relative inline-block w-12 h-6">
-                  <input
-                    type="checkbox"
-                    id="custom-images-toggle"
-                    className="sr-only peer"
-                    checked={newJob.blogs.isCheckedCustomImages}
-                    onChange={(e) => {
-                      const checked = e.target.checked
-                      setNewJob((prev) => ({
-                        ...prev,
-                        blogs: {
-                          ...prev.blogs,
-                          isCheckedCustomImages: checked,
-                          blogImages: checked ? prev.blogs.blogImages : [],
-                        },
-                      }))
-                    }}
-                  />
-                  <div
-                    className={`w-12 h-6 rounded-full transition-all duration-300 ${
-                      newJob.blogs.isCheckedCustomImages ? "bg-[#1B6FC9]" : "bg-gray-300"
-                    }`}
-                  />
-                  <div
-                    className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-300 ${
-                      newJob.blogs.isCheckedCustomImages ? "translate-x-6" : ""
-                    }`}
-                  />
-                </label>
-              </div>
-            </div>
-            } */}
-            {newJob.blogs.isCheckedCustomImages && (
-              <div className="mt-4">
-                <label className="block text-sm font-semibold text-gray-700 mb-3">
-                  Upload Custom Images (Max 15, each 5MB)
-                </label>
-                <div
-                  className={`border-2 border-dashed rounded-lg p-6 text-center ${
-                    formData.isDragging
-                      ? "border-blue-600 bg-blue-50"
-                      : "border-gray-300 bg-gray-50"
-                  }`}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                >
-                  <p className="text-sm text-gray-600 mb-2">
-                    Drag and drop images here or click to select
-                  </p>
-                  <button
-                    className="px-4 py-2 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white rounded-md text-sm"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    Select Images
-                  </button>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    accept="image/jpeg,image/png,image/webp"
-                    multiple
-                    className="hidden"
-                  />
-                </div>
-                {newJob.blogs.blogImages.length > 0 && (
-                  <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
-                    {newJob.blogs.blogImages.map((image, index) => (
-                      <div key={index} className="relative group">
-                        <img
-                          src={image instanceof File ? URL.createObjectURL(image) : image}
-                          alt={image instanceof File ? image.name : `Image ${index + 1}`}
-                          className="w-full h-24 object-cover rounded-md"
-                        />
-                        <button
-                          onClick={() => handleRemoveImage(index)}
-                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                        <p className="text-xs text-gray-600 truncate mt-1">
-                          {image instanceof File ? image.name : `Image ${index + 1}`}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-            {newJob.blogs.isCheckedGeneratedImages && !newJob.blogs.isCheckedCustomImages && (
-              <>
-                <div className="mb-6">
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">
-                    Image Source
-                  </label>
-
-                  {/* Responsive grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full">
-                    {imageSources.map((source) => {
-                      const isAiRestricted =
-                        source.value === "ai-generated" && source.isAiImagesLimitReached
-
-                      const isBlocked = source.restricted || isAiRestricted
-
-                      return (
-                        <label
-                          key={source.id}
-                          htmlFor={source.id}
-                          className={`relative border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150
-              ${
-                newJob.blogs.imageSource === source.value
-                  ? "border-blue-600 bg-blue-50"
-                  : "border-gray-300"
-              }
-              hover:shadow-sm w-full
-              ${isBlocked ? "opacity-50 cursor-not-allowed" : ""}
-            `}
-                          onClick={(e) => {
-                            if (isBlocked) {
-                              e.preventDefault()
-                              openUpgradePopup({
-                                featureName: source.featureName || "AI-Generated Images",
-                                navigate,
-                              })
-                            }
-                          }}
-                        >
-                          <input
-                            type="radio"
-                            id={source.id}
-                            name="imageSource"
-                            value={source.value}
-                            checked={newJob.blogs.imageSource === source.value}
-                            onChange={() => {
-                              if (!isBlocked) {
-                                handleImageSourceChange(source.value)
-                              }
-                            }}
-                            className="hidden"
-                            disabled={isBlocked}
-                          />
-                          <span className="text-sm font-medium text-gray-800">{source.label}</span>
-                          {(source.restricted || isAiRestricted) && (
-                            <Crown className="w-4 h-4 text-yellow-500 absolute top-2 right-2" />
-                          )}
-                        </label>
-                      )
-                    })}
-                  </div>
-                </div>
-                <div className="w-full">
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">
-                    Number of Images
-                  </label>
-                  <p className="text-xs text-gray-500 mb-2">
-                    Enter the number of images (0 = AI will decide)
-                  </p>
-                  <input
-                    type="number"
-                    name="numberOfImages"
-                    min="0"
-                    max="20"
-                    value={newJob.blogs.numberOfImages}
-                    onChange={handleInputChange}
-                    onWheel={(e) => e.currentTarget.blur()}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm placeholder-gray-400 transition"
-                    placeholder="e.g., 5"
-                  />
-                </div>
-              </>
-            )}
-          </div>
-        </motion.div>
-      )
-    case 3:
-      return (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-10">
-          <div className="space-y-6">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-gray-700">
                 Perform Keyword Research?
@@ -1061,145 +769,377 @@ const StepContent = ({
                 </div>
               </div>
             )}
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Schedule Type
-                </label>
-                <Select
-                  value={newJob.schedule.type}
-                  onChange={(value) => {
-                    setNewJob({
-                      ...newJob,
-                      schedule: {
-                        ...newJob.schedule,
-                        type: value,
-                        daysOfWeek: value === "weekly" ? [] : newJob.schedule.daysOfWeek,
-                        daysOfMonth: value === "monthly" ? [] : newJob.schedule.daysOfMonth,
-                        customDates: value === "custom" ? [] : newJob.schedule.customDates,
-                      },
-                    })
-                    setErrors((prev) => ({
+          </div>
+        </motion.div>
+      )
+    case 3:
+      return (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+          <div className="flex justify-between items-center">
+            <label className="block text-sm font-semibold text-gray-700">Add Image</label>
+            <div className="flex items-center">
+              <label htmlFor="add-image-toggle" className="relative inline-block w-12 h-6">
+                <input
+                  type="checkbox"
+                  id="add-image-toggle"
+                  className="sr-only peer"
+                  checked={newJob.blogs.isCheckedGeneratedImages}
+                  onChange={(e) => {
+                    const checked = e.target.checked
+                    setNewJob((prev) => ({
                       ...prev,
-                      daysOfWeek: false,
-                      daysOfMonth: false,
-                      customDates: false,
+                      blogs: {
+                        ...prev.blogs,
+                        isCheckedGeneratedImages: checked,
+                        imageSource: checked ? prev.blogs.imageSource : "unsplash",
+                      },
                     }))
                   }}
-                  className="w-full"
-                >
-                  <Option value="daily">Daily</Option>
-                  <Option value="weekly">Weekly</Option>
-                  <Option value="monthly">Monthly</Option>
-                  <Option value="custom">Custom</Option>
-                </Select>
-              </div>
-              {newJob.schedule.type === "weekly" && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Days of Week
-                  </label>
-                  <div className="flex gap-2 flex-wrap">
-                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        className={`px-2 py-1 rounded ${
-                          newJob.schedule.daysOfWeek?.includes(i)
-                            ? "bg-[#1B6FC9] text-white"
-                            : "bg-gray-200 text-gray-700"
-                        } ${errors.daysOfWeek ? "border-2 border-red-500" : ""}`}
-                        onClick={() => {
-                          setNewJob((prev) => {
-                            const daysOfWeek = prev.schedule.daysOfWeek?.includes(i)
-                              ? prev.schedule.daysOfWeek.filter((day) => day !== i)
-                              : [...(prev.schedule.daysOfWeek || []), i]
-                            return { ...prev, schedule: { ...prev.schedule, daysOfWeek } }
-                          })
-                          setErrors((prev) => ({ ...prev, daysOfWeek: false }))
-                        }}
-                      >
-                        {d}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {newJob.schedule.type === "monthly" && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Dates of Month
-                  </label>
-                  <div className="flex gap-2 flex-wrap">
-                    {Array.from({ length: 31 }, (_, i) => i + 1).map((date) => (
-                      <button
-                        key={date}
-                        type="button"
-                        className={`px-2 py-1 rounded ${
-                          newJob.schedule.daysOfMonth?.includes(date)
-                            ? "bg-[#1B6FC9] text-white"
-                            : "bg-gray-200 text-gray-700"
-                        } ${errors.daysOfMonth ? "border-2 border-red-500" : ""}`}
-                        onClick={() => {
-                          setNewJob((prev) => {
-                            const daysOfMonth = prev.schedule.daysOfMonth?.includes(date)
-                              ? prev.schedule.daysOfMonth.filter((d) => d !== date)
-                              : [...(prev.schedule.daysOfMonth || []), date]
-                            return { ...prev, schedule: { ...prev.schedule, daysOfMonth } }
-                          })
-                          setErrors((prev) => ({ ...prev, daysOfMonth: false }))
-                        }}
-                      >
-                        {date}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {newJob.schedule.type === "custom" && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Dates
-                  </label>
-                  <div className={errors.customDates ? "border-2 border-red-500 rounded-lg" : ""}>
-                    <MultiDatePicker
-                      value={newJob.schedule.customDates}
-                      onChange={(dates) => {
-                        setNewJob({
-                          ...newJob,
-                          schedule: {
-                            ...newJob.schedule,
-                            customDates: dates,
-                            daysOfWeek: [],
-                            daysOfMonth: [],
-                          },
-                        })
-                        setErrors((prev) => ({ ...prev, customDates: false }))
-                      }}
-                      multiple
-                      format="YYYY-MM-DD"
-                      className="w-full"
-                      inputClass="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-              )}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Number of Blogs
-                </label>
-                <input
-                  type="number"
-                  value={newJob.blogs.numberOfBlogs}
-                  onChange={handleNumberOfBlogsChange}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                    errors.numberOfBlogs ? "border-red-500" : "border-gray-200"
+                />
+                <div
+                  className={`w-12 h-6 rounded-full transition-all duration-300 ${
+                    newJob.blogs.isCheckedGeneratedImages ? "bg-[#1B6FC9]" : "bg-gray-300"
                   }`}
-                  placeholder="Enter the number of blogs"
-                  min="1"
-                  max={MAX_BLOGS}
+                />
+                <div
+                  className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-300 ${
+                    newJob.blogs.isCheckedGeneratedImages ? "translate-x-6" : ""
+                  }`}
+                />
+              </label>
+              {newJob.blogs.isCheckedGeneratedImages && isAiImagesLimitReached && (
+                <Tooltip
+                  title="You've reached your AI image generation limit. It'll reset in the next billing cycle."
+                  overlayInnerStyle={{
+                    backgroundColor: "#FEF9C3",
+                    border: "1px solid #FACC15",
+                    color: "#78350F",
+                  }}
+                >
+                  <TriangleAlert className="text-yellow-400 ml-4" size={15} />
+                </Tooltip>
+              )}
+            </div>
+          </div>
+          {newJob.blogs.isCheckedCustomImages && (
+            <div className="mt-4">
+              <label className="block text-sm font-semibold text-gray-700 mb-3">
+                Upload Custom Images (Max 15, each 5MB)
+              </label>
+              <div
+                className={`border-2 border-dashed rounded-lg p-6 text-center ${
+                  formData.isDragging ? "border-blue-600 bg-blue-50" : "border-gray-300 bg-gray-50"
+                }`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                <p className="text-sm text-gray-600 mb-2">
+                  Drag and drop images here or click to select
+                </p>
+                <button
+                  className="px-4 py-2 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white rounded-md text-sm"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  Select Images
+                </button>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  accept="image/jpeg,image/png,image/webp"
+                  multiple
+                  className="hidden"
                 />
               </div>
+              {newJob.blogs.blogImages.length > 0 && (
+                <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  {newJob.blogs.blogImages.map((image, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={image instanceof File ? URL.createObjectURL(image) : image}
+                        alt={image instanceof File ? image.name : `Image ${index + 1}`}
+                        className="w-full h-24 object-cover rounded-md"
+                      />
+                      <button
+                        onClick={() => handleRemoveImage(index)}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                      <p className="text-xs text-gray-600 truncate mt-1">
+                        {image instanceof File ? image.name : `Image ${index + 1}`}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          {newJob.blogs.isCheckedGeneratedImages && !newJob.blogs.isCheckedCustomImages && (
+            <>
+              <div className="mb-6">
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  Image Source
+                </label>
+
+                {/* Responsive grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full">
+                  {imageSources.map((source) => {
+                    const isAiRestricted =
+                      source.value === "ai-generated" && source.isAiImagesLimitReached
+
+                    const isBlocked = source.restricted || isAiRestricted
+
+                    return (
+                      <label
+                        key={source.id}
+                        htmlFor={source.id}
+                        className={`relative border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150
+              ${
+                newJob.blogs.imageSource === source.value
+                  ? "border-blue-600 bg-blue-50"
+                  : "border-gray-300"
+              }
+              hover:shadow-sm w-full
+              ${isBlocked ? "opacity-50 cursor-not-allowed" : ""}
+            `}
+                        onClick={(e) => {
+                          if (isBlocked) {
+                            e.preventDefault()
+                            openUpgradePopup({
+                              featureName: source.featureName || "AI-Generated Images",
+                              navigate,
+                            })
+                          }
+                        }}
+                      >
+                        <input
+                          type="radio"
+                          id={source.id}
+                          name="imageSource"
+                          value={source.value}
+                          checked={newJob.blogs.imageSource === source.value}
+                          onChange={() => {
+                            if (!isBlocked) {
+                              handleImageSourceChange(source.value)
+                            }
+                          }}
+                          className="hidden"
+                          disabled={isBlocked}
+                        />
+                        <span className="text-sm font-medium text-gray-800">{source.label}</span>
+                        {(source.restricted || isAiRestricted) && (
+                          <Crown className="w-4 h-4 text-yellow-500 absolute top-2 right-2" />
+                        )}
+                      </label>
+                    )
+                  })}
+                </div>
+              </div>
+              <div className="w-full">
+                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                  Number of Images
+                </label>
+                <p className="text-xs text-gray-500 mb-2">
+                  Enter the number of images (0 = AI will decide)
+                </p>
+                <input
+                  type="number"
+                  name="numberOfImages"
+                  min="0"
+                  max="20"
+                  value={newJob.blogs.numberOfImages}
+                  onChange={handleInputChange}
+                  onWheel={(e) => e.currentTarget.blur()}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm placeholder-gray-400 transition"
+                  placeholder="e.g., 5"
+                />
+              </div>
+            </>
+          )}
+
+          <div className="mb-6">
+            <label className="block text-sm font-semibold text-gray-700 mb-3">
+              Select AI Model
+            </label>
+            {/* Responsive grid: 1 col (mobile), 2 cols (tablet), 3 cols (desktop) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
+              {[
+                { id: "gemini", label: "Gemini", logo: "/Images/gemini.png", restricted: false },
+                { id: "chatgpt", label: "ChatGPT", logo: "/Images/chatgpt.png" },
+                { id: "claude", label: "Claude", logo: "/Images/claude.png" },
+              ].map((model) => (
+                <label
+                  key={model.id}
+                  htmlFor={model.id}
+                  className={`relative border rounded-lg px-4 py-3 flex items-center gap-3 cursor-pointer transition-all duration-150
+      ${formData.aiModel === model.id ? "border-blue-600 bg-blue-50" : "border-gray-300"}
+      hover:shadow-sm w-full`}
+                  onClick={(e) => {
+                    if (model.restricted) {
+                      e.preventDefault()
+                      openUpgradePopup({ featureName: model.label, navigate })
+                    }
+                  }}
+                >
+                  <input
+                    type="radio"
+                    id={model.id}
+                    name="aiModel"
+                    value={model.id}
+                    checked={formData.aiModel === model.id}
+                    onChange={(e) => {
+                      if (!model.restricted) {
+                        setFormData((prev) => ({ ...prev, aiModel: e.target.value }))
+                      }
+                    }}
+                    className="hidden"
+                  />
+                  <img src={model.logo} alt={model.label} className="w-6 h-6 object-contain" />
+                  <span className="text-sm font-medium text-gray-800">{model.label}</span>
+                  {model.restricted && (
+                    <Crown className="w-4 h-4 text-yellow-500 absolute top-2 right-2" />
+                  )}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Schedule Type</label>
+              <Select
+                value={newJob.schedule.type}
+                onChange={(value) => {
+                  setNewJob({
+                    ...newJob,
+                    schedule: {
+                      ...newJob.schedule,
+                      type: value,
+                      daysOfWeek: value === "weekly" ? [] : newJob.schedule.daysOfWeek,
+                      daysOfMonth: value === "monthly" ? [] : newJob.schedule.daysOfMonth,
+                      customDates: value === "custom" ? [] : newJob.schedule.customDates,
+                    },
+                  })
+                  setErrors((prev) => ({
+                    ...prev,
+                    daysOfWeek: false,
+                    daysOfMonth: false,
+                    customDates: false,
+                  }))
+                }}
+                className="w-full"
+              >
+                <Option value="daily">Daily</Option>
+                <Option value="weekly">Weekly</Option>
+                <Option value="monthly">Monthly</Option>
+                <Option value="custom">Custom</Option>
+              </Select>
+            </div>
+            {newJob.schedule.type === "weekly" && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Days of Week
+                </label>
+                <div className="flex gap-2 flex-wrap">
+                  {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      className={`px-2 py-1 rounded ${
+                        newJob.schedule.daysOfWeek?.includes(i)
+                          ? "bg-[#1B6FC9] text-white"
+                          : "bg-gray-200 text-gray-700"
+                      } ${errors.daysOfWeek ? "border-2 border-red-500" : ""}`}
+                      onClick={() => {
+                        setNewJob((prev) => {
+                          const daysOfWeek = prev.schedule.daysOfWeek?.includes(i)
+                            ? prev.schedule.daysOfWeek.filter((day) => day !== i)
+                            : [...(prev.schedule.daysOfWeek || []), i]
+                          return { ...prev, schedule: { ...prev.schedule, daysOfWeek } }
+                        })
+                        setErrors((prev) => ({ ...prev, daysOfWeek: false }))
+                      }}
+                    >
+                      {d}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {newJob.schedule.type === "monthly" && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Dates of Month
+                </label>
+                <div className="flex gap-2 flex-wrap">
+                  {Array.from({ length: 31 }, (_, i) => i + 1).map((date) => (
+                    <button
+                      key={date}
+                      type="button"
+                      className={`px-2 py-1 rounded ${
+                        newJob.schedule.daysOfMonth?.includes(date)
+                          ? "bg-[#1B6FC9] text-white"
+                          : "bg-gray-200 text-gray-700"
+                      } ${errors.daysOfMonth ? "border-2 border-red-500" : ""}`}
+                      onClick={() => {
+                        setNewJob((prev) => {
+                          const daysOfMonth = prev.schedule.daysOfMonth?.includes(date)
+                            ? prev.schedule.daysOfMonth.filter((d) => d !== date)
+                            : [...(prev.schedule.daysOfMonth || []), date]
+                          return { ...prev, schedule: { ...prev.schedule, daysOfMonth } }
+                        })
+                        setErrors((prev) => ({ ...prev, daysOfMonth: false }))
+                      }}
+                    >
+                      {date}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {newJob.schedule.type === "custom" && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Select Dates</label>
+                <div className={errors.customDates ? "border-2 border-red-500 rounded-lg" : ""}>
+                  <MultiDatePicker
+                    value={newJob.schedule.customDates}
+                    onChange={(dates) => {
+                      setNewJob({
+                        ...newJob,
+                        schedule: {
+                          ...newJob.schedule,
+                          customDates: dates,
+                          daysOfWeek: [],
+                          daysOfMonth: [],
+                        },
+                      })
+                      setErrors((prev) => ({ ...prev, customDates: false }))
+                    }}
+                    multiple
+                    format="YYYY-MM-DD"
+                    className="w-full"
+                    inputClass="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Number of Blogs
+              </label>
+              <input
+                type="number"
+                value={newJob.blogs.numberOfBlogs}
+                onChange={handleNumberOfBlogsChange}
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                  errors.numberOfBlogs ? "border-red-500" : "border-gray-200"
+                }`}
+                placeholder="Enter the number of blogs"
+                min="1"
+                max={MAX_BLOGS}
+              />
             </div>
           </div>
         </motion.div>

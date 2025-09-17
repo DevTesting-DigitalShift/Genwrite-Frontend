@@ -16,6 +16,7 @@ import {
   Sparkles,
   Eye,
   Maximize2,
+  ExternalLink,
 } from "lucide-react"
 import { Button, Tooltip, message, Tabs, Badge, Collapse, Dropdown, Menu, Tag, Input } from "antd"
 import { fetchProofreadingSuggestions, fetchBlogPrompt } from "@store/slices/blogSlice"
@@ -1068,7 +1069,7 @@ const TextEditorSidebar = ({
               disabled={isPosting}
               className="w-full h-12 text-base font-semibold bg-gradient-to-r from-green-600 to-emerald-600 border-0 hover:shadow-lg"
             >
-              {isPosting ? "Posting..." : blog?.wordpress ? "Re-Post" : "Post Blog"}
+              {isPosting ? "Posting..." : posted?.link ? "Re-Post" : "Post Blog"}
             </Button>
           </motion.div>
 
