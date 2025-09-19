@@ -290,7 +290,7 @@ const TextEditor = ({
         const markdown = htmlToMarkdown(html)
         setContent(markdown)
         setHtmlContent(html.replace(/>\s*</g, ">\n<"))
-        setUnsavedChanges(true)
+        // setUnsavedChanges(true)
       },
       editorProps: {
         attributes: {
@@ -308,22 +308,22 @@ const TextEditor = ({
   const { activeSpan, bubbleRef, applyChange, rejectChange } = useProofreadingUI(normalEditor)
 
   // this part 
-  useEffect(() => {
-  if (activeTab === "Normal" && normalEditor && !normalEditor.isDestroyed) {
-    const currentHtml = normalEditor.getHTML();
-    const newHtml = markdownToHtml(safeContent);
-    if (currentHtml !== newHtml) {
-      const { from, to } = normalEditor.state.selection;
-      normalEditor.commands.setContent(newHtml, false);
-      normalEditor.commands.setTextSelection({ from, to });
-    }
-  } else if (activeTab === "HTML") {
-    const newHtml = markdownToHtml(safeContent).replace(/>\s*</g, ">\n<");
-    if (htmlContent !== newHtml) {
-      setHtmlContent(newHtml);
-    }
-  }
-}, [safeContent, activeTab, normalEditor, markdownToHtml, htmlContent]);
+//   useEffect(() => {
+//   if (activeTab === "Normal" && normalEditor && !normalEditor.isDestroyed) {
+//     const currentHtml = normalEditor.getHTML();
+//     const newHtml = markdownToHtml(safeContent);
+//     if (currentHtml !== newHtml) {
+//       const { from, to } = normalEditor.state.selection;
+//       normalEditor.commands.setContent(newHtml, false);
+//       normalEditor.commands.setTextSelection({ from, to });
+//     }
+//   } else if (activeTab === "HTML") {
+//     const newHtml = markdownToHtml(safeContent).replace(/>\s*</g, ">\n<");
+//     if (htmlContent !== newHtml) {
+//       setHtmlContent(newHtml);
+//     }
+//   }
+// }, [safeContent, activeTab, normalEditor, markdownToHtml, htmlContent]);
 
   useEffect(() => {
     const scrollToTop = () => {

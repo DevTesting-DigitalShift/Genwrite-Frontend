@@ -1,10 +1,10 @@
-"use client";
+"use client"
 
-import { useState, useEffect, useRef } from "react";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
-import { RxAvatar } from "react-icons/rx";
-import { FiMenu } from "react-icons/fi";
+import { useState, useEffect, useRef } from "react"
+import { NavLink, useLocation, useNavigate } from "react-router-dom"
+import { useDispatch, useSelector } from "react-redux"
+import { RxAvatar } from "react-icons/rx"
+import { FiMenu } from "react-icons/fi"
 import {
   Box,
   Briefcase,
@@ -18,37 +18,37 @@ import {
   TrendingUp,
   UsersRound,
   Zap,
-} from "lucide-react";
-import { loadAuthenticatedUser, logoutUser, selectUser } from "../store/slices/authSlice";
-import { Tooltip, Dropdown, Avatar } from "antd";
-import { RiCoinsFill } from "react-icons/ri";
-import NotificationDropdown from "@components/NotificationDropdown";
-import GoProButton from "@components/GoProButton";
-import { getSocket } from "@utils/socket";
-import WhatsNewModal from "./dashboardModals/HowToModel";
+} from "lucide-react"
+import { loadAuthenticatedUser, logoutUser, selectUser } from "../store/slices/authSlice"
+import { Tooltip, Dropdown, Avatar } from "antd"
+import { RiCoinsFill } from "react-icons/ri"
+import NotificationDropdown from "@components/NotificationDropdown"
+import GoProButton from "@components/GoProButton"
+import { getSocket } from "@utils/socket"
+import WhatsNewModal from "./dashboardModals/HowToModel"
 
 const SideBar_Header = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isUserLoaded, setIsUserLoaded] = useState(false);
-  const [showWhatsNew, setShowWhatsNew] = useState(false);
-  const user = useSelector(selectUser);
-  const location = useLocation();
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
-  const sidebarRef = useRef(null); // Ref for sidebar
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [isUserLoaded, setIsUserLoaded] = useState(false)
+  const [showWhatsNew, setShowWhatsNew] = useState(false)
+  const user = useSelector(selectUser)
+  const location = useLocation()
+  const dispatch = useDispatch()
+  const navigate = useNavigate()
+  const sidebarRef = useRef(null) // Ref for sidebar
 
   const fetchCurrentUser = async () => {
     try {
-      await dispatch(loadAuthenticatedUser()).unwrap();
+      await dispatch(loadAuthenticatedUser()).unwrap()
     } catch (err) {
-      console.error("User load failed:", err);
-      navigate("/login");
+      console.error("User load failed:", err)
+      navigate("/login")
     }
-  };
+  }
 
   const handleCloseModal = () => {
-    setShowWhatsNew(false);
-  };
+    setShowWhatsNew(false)
+  }
 
   // Handle outside click to close sidebar
   useEffect(() => {
@@ -59,38 +59,38 @@ const SideBar_Header = () => {
         !sidebarRef.current.contains(event.target) &&
         window.innerWidth < 768 // Only close on mobile (md breakpoint)
       ) {
-        setSidebarOpen(false);
+        setSidebarOpen(false)
       }
-    };
+    }
 
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside)
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [sidebarOpen]);
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [sidebarOpen])
 
   useEffect(() => {
-    const socket = getSocket();
-    if (!socket) return;
+    const socket = getSocket()
+    if (!socket) return
 
-    socket.on("user:credits", fetchCurrentUser);
-    socket.on("user:notification", fetchCurrentUser);
+    socket.on("user:credits", fetchCurrentUser)
+    socket.on("user:notification", fetchCurrentUser)
 
     return () => {
-      socket.off("user:credits", fetchCurrentUser);
-      socket.off("user:notification", fetchCurrentUser);
-    };
-  }, []);
+      socket.off("user:credits", fetchCurrentUser)
+      socket.off("user:notification", fetchCurrentUser)
+    }
+  }, [])
 
   useEffect(() => {
-    fetchCurrentUser();
-  }, [dispatch, navigate]);
+    fetchCurrentUser()
+  }, [dispatch, navigate])
 
   useEffect(() => {
     if (user?.name || user?.credits) {
-      setIsUserLoaded(true);
+      setIsUserLoaded(true)
     }
-  }, [user]);
+  }, [user])
 
   const Menus = [
     { title: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
@@ -101,16 +101,16 @@ const SideBar_Header = () => {
     { title: "Integrations", icon: Plug, path: "/integrations" },
     { title: "Brand Voice", icon: Megaphone, path: "/brand-voice" },
     { title: "TrashCan", icon: Trash2, path: "/trashcan" },
-  ];
+  ]
 
-  const path = location.pathname;
+  const path = location.pathname
 
   const handleLogout = async () => {
     try {
-      await dispatch(logoutUser()).unwrap();
-      navigate("/login");
+      await dispatch(logoutUser()).unwrap()
+      navigate("/login")
     } catch (error) {
-      console.error("Logout error:", error);
+      console.error("Logout error:", error)
     }
   }
 
@@ -162,7 +162,7 @@ const SideBar_Header = () => {
         }`}
         onMouseEnter={() => setSidebarOpen(true)}
         onMouseLeave={() => {
-          if (window.innerWidth >= 768) setSidebarOpen(false); // Only close on hover for desktop
+          if (window.innerWidth >= 768) setSidebarOpen(false) // Only close on hover for desktop
         }}
       >
         {/* Logo or menu icon */}
@@ -199,12 +199,12 @@ const SideBar_Header = () => {
         {/* Navigation Menu */}
         <ul className="space-y-3">
           {Menus.map((Menu, index) => {
-            const isActive = location.pathname.startsWith(Menu.path);
-            const Icon = Menu.icon;
-            const isSearchConsole = Menu.title === "";
-            const isContentAgent = Menu.title === "";
-            const isPro = ["pro", "enterprise"].includes(user?.subscription?.plan);
-            const isFreeUser = user?.plan === "free" || user?.subscription?.plan === "free";
+            const isActive = location.pathname.startsWith(Menu.path)
+            const Icon = Menu.icon
+            const isSearchConsole = Menu.title === ""
+            const isContentAgent = Menu.title === ""
+            const isPro = ["pro", "enterprise"].includes(user?.subscription?.plan)
+            const isFreeUser = user?.plan === "free" || user?.subscription?.plan === "free"
 
             return (
               <li key={index} className="flex items-center gap-2">
@@ -235,7 +235,7 @@ const SideBar_Header = () => {
                   </button>
                 )}
               </li>
-            );
+            )
           })}
         </ul>
 
@@ -291,6 +291,11 @@ const SideBar_Header = () => {
             <img src="/Images/logo_genwrite_2.png" loading="lazy" alt="Logo" className="w-36" />
           </div>
           <div className="flex items-center space-x-4">
+            <a href="/pricing">
+              <button className="bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white font-semibold py-2 px-3 rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg flex items-center justify-center gap-2 group capitalize">
+                <Crown className="w-5 h-5" /> Upgrade
+              </button>
+            </a>
             {isUserLoaded ? (
               <>
                 <Tooltip title="User Credits" className="hidden md:flex">
@@ -339,4 +344,4 @@ const SideBar_Header = () => {
   )
 }
 
-export default SideBar_Header;
+export default SideBar_Header

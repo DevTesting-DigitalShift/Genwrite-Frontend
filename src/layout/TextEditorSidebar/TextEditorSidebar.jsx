@@ -64,6 +64,7 @@ const TextEditorSidebar = ({
   setHumanizedContent,
   setIsHumanizeModalOpen,
   setIsSidebarOpen,
+  unsavedChanges
 }) => {
   const [newKeyword, setNewKeyword] = useState("")
   const [isAnalyzingProofreading, setIsAnalyzingProofreading] = useState(false)
@@ -510,8 +511,33 @@ const TextEditorSidebar = ({
   )
 
   const handlePostClick = useCallback(() => {
-    setIsCategoryModalOpen(true)
-  }, [])
+    if (unsavedChanges) {
+      handlePopup({
+        title: "Unsaved Changes",
+        description: (
+          <>
+            You have unsaved changes in your blog content. Would you like to save these changes
+            before posting? If you proceed without saving, your changes will be lost.
+          </>
+        ),
+        confirmText: "Continue without Saving",
+        cancelText: "Close",
+        onConfirm: async () => {
+          try {
+            setIsCategoryModalOpen(true)
+          } catch (error) {
+            console.error("Failed to save changes:", error)
+            message.error("Failed to save changes. Please try again.")
+          }
+        },
+        onCancel: () => {
+          setIsCategoryModalOpen(true)
+        },
+      })
+    } else {
+      setIsCategoryModalOpen(true)
+    }
+  }, [unsavedChanges, handlePopup])
 
   if (isAnalyzingCompetitive) {
     return (
