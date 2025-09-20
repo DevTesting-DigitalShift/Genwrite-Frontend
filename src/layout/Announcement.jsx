@@ -1,5 +1,3 @@
-"use client"
-
 import React, { useState, useMemo } from "react"
 import { Megaphone, X, Puzzle, Wand2, AlertTriangle } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
@@ -40,6 +38,7 @@ const fetchAnnouncements = async () => {
     throw new Error(`Failed to fetch announcements: ${response.statusText}`)
   }
   const data = await response.json()
+  console.log(data)
   return data
 }
 

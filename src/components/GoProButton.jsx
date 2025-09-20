@@ -3,8 +3,9 @@ import { CrownOutlined } from "@ant-design/icons"
 import { motion } from "framer-motion"
 import { useSelector } from "react-redux"
 import { useEffect, useState } from "react"
+import { Crown } from "lucide-react"
 
-const GoProButton = ({ onClick }) => {
+const GoProButton = () => {
   const { user } = useSelector((state) => state.auth)
   const [userPlan, setUserPlan] = useState("")
 
@@ -20,13 +21,11 @@ const GoProButton = ({ onClick }) => {
       hidden={userPlan === "enterprise"}
     >
       <Button
-        type="primary"
-        icon={<CrownOutlined size={24} />}
-        onClick={onClick}
+        href="/pricing"
         size="large"
-        className="go-pro-button backdrop-blur-md px-6 py-2 font-semibold text-white tracking-wider border-none shadow-lg"
+        className="!bg-gradient-to-r !from-yellow-400 !to-orange-500 !hover:from-yellow-500 !hover:to-orange-600 !text-white !font-bold font-montserrat tracking-wide py-2 px-3 rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg flex items-center justify-center gap-2 group capitalize"
       >
-        {userPlan === "pro" ? "Upgrade" : "Go Pro"}
+        <Crown className="size-5" /> {userPlan === "pro" ? "Upgrade" : "Go Pro"}
       </Button>
       <div className="shimmer absolute inset-0 rounded-full pointer-events-none" />
     </motion.div>

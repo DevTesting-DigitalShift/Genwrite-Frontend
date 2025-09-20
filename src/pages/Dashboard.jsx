@@ -36,6 +36,7 @@ import PerformanceMonitoringModal from "../components/dashboardModals/Performanc
 import FirstStepModal from "../components/multipleStepModal/FirstStepModal"
 import KeywordResearchModel from "../components/dashboardModals/KeywordResearchModel"
 import QuickBlogModal from "../components/multipleStepModal/QuickBlogModal"
+import InlineAnnouncementBanner from "@/layout/InlineAnnouncementBanner"
 
 ChartJS.register(
   ArcElement,
@@ -63,6 +64,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true)
   const { blogs, error, allBlogs } = useSelector((state) => state.blog)
   const [showWhatsNew, setShowWhatsNew] = useState(false)
+  const [showAnnouncementBanner, setShowAnnouncementBanner] = useState(true)
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const user = useSelector(selectUser)
@@ -89,9 +91,22 @@ const Dashboard = () => {
     }
   }, [user])
 
+  // useEffect for announcement banner visibility
+  useEffect(() => {
+    const hasSeenAnnouncementBanner = sessionStorage.getItem("hasSeenAnnouncementBanner") === "true"
+    if (hasSeenAnnouncementBanner) {
+      setShowAnnouncementBanner(false)
+    }
+  }, [])
+
   const handleCloseModal = () => {
     setShowWhatsNew(false)
     sessionStorage.setItem("hasSeenGoThrough", "true")
+  }
+
+  const handleCloseAnnouncementBanner = () => {
+    setShowAnnouncementBanner(false)
+    sessionStorage.setItem("hasSeenAnnouncementBanner", "true")
   }
 
   const openSecondStepModal = () => {
@@ -277,6 +292,9 @@ const Dashboard = () => {
         transition={{ duration: 0.5 }}
         className="mt-5 ml-10"
       >
+        {showAnnouncementBanner && (
+          <InlineAnnouncementBanner onClose={handleCloseAnnouncementBanner} />
+        )}
         <h1 className="bg-clip-text bg-gradient-to-r font-bold from-blue-600 md:text-4xl text-3xl text-transparent to-purple-600">
           Let's Begin <span className="ml-2 text-2xl text-yellow-400">✨</span>
         </h1>
