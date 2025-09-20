@@ -238,16 +238,22 @@ const TextEditor = ({
 
   const markdownToHtml = useCallback((markdown) => {
     if (!markdown) return "<p></p>"
+    console.log("Cleaned HTML:", markdown)
     try {
       const html = marked.parse(
         markdown
           .replace(/!\[(["'""])(.*?)\1\]\((.*?)\)/g, (_, __, alt, url) => `![${alt}](${url})`)
-          .replace(/'/g, "&apos;")
+          .replace(/'/g, "&apos;"),
+        {
+          breaks: true,
+        }
       )
       const parser = new DOMParser()
       const doc = parser.parseFromString(html, "text/html")
       doc.querySelectorAll("script").forEach((script) => script.remove())
-      return doc.body.innerHTML
+      const cleanHtml = DOMPurify.sanitize(doc.body.innerHTML)
+      console.log("Cleaned HTML:", cleanHtml)
+      return cleanHtml
     } catch (error) {
       console.warn("Failed to parse markdown:", error)
       return `<p>${markdown}</p>`

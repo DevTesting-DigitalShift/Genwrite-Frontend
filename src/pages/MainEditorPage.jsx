@@ -97,15 +97,20 @@ const MainEditorPage = () => {
       setKeywords(blog.keywords || [])
       setEditorTitle(blog.title || "")
       setEditorContent(
-        blog.content
-          ? htmlToText(blog.content, {
-              wordwrap: false,
-              selectors: [
-                { selector: "a", options: { baseUrl: "" } },
-                { selector: "img", format: "skip" },
-              ],
-            })
-          : ""
+        blog.content ?? ""
+        // ? htmlToText(blog.content, {
+        //     wordwrap: false,
+        //     selectors: [
+        //       { selector: "a", options: { baseUrl: "" } },
+        //       { selector: "img", format: "skip" },
+        //       { selector: "p", options: { leadingLineBreaks: 1, trailingLineBreaks: 1 } },
+        //       { selector: "h1", options: { leadingLineBreaks: 2, trailingLineBreaks: 2 } },
+        //       { selector: "h2", options: { leadingLineBreaks: 2, trailingLineBreaks: 1 } },
+        //       { selector: "h3", options: { leadingLineBreaks: 2, trailingLineBreaks: 1 } },
+        //     ],
+        //     preserveNewLines: true,
+        //   })
+        // : ""
       )
       setIsPosted(blog.wordpress || null)
       setFormData({

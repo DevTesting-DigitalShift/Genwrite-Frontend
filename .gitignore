@@ -24,3 +24,6 @@ node_modules
 anupDoc.md
 .envdist/
 dist/
+
+*.env
+.env
