@@ -64,7 +64,7 @@ const TextEditorSidebar = ({
   setHumanizedContent,
   setIsHumanizeModalOpen,
   setIsSidebarOpen,
-  unsavedChanges
+  unsavedChanges,
 }) => {
   const [newKeyword, setNewKeyword] = useState("")
   const [isAnalyzingProofreading, setIsAnalyzingProofreading] = useState(false)
