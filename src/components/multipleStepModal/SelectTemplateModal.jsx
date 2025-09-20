@@ -3,7 +3,7 @@ import { Modal, Button, message } from "antd"
 import Carousel from "./Carousel"
 import { packages } from "@/data/templates"
 
-const SelectTemplateModal = ({ handleNext, handleClose, data, setData }) => {
+const SelectTemplateModal = ({ handleNext, handleClose, data, setData, isModalVisible }) => {
   const [selectedPackage, setSelectedPackage] = React.useState(null)
   const [formData, setFormData] = React.useState({
     userDefinedLength: 0,
@@ -20,6 +20,19 @@ const SelectTemplateModal = ({ handleNext, handleClose, data, setData }) => {
     focusKeywordInput: "",
     keywordInput: "",
   })
+
+   const handleModalClose = () => {
+    // setFormData({
+    //   focusKeywordInput: "",
+    //   focusKeywords: [],
+    //   keywordInput: "",
+    //   keywords: [],
+    // })
+    // setTopic("")
+    // setGeneratedTitles([])
+    // setHasGeneratedTitles(false)
+    handleClose()
+  }
 
   const handlePackageSelect = (index) => {
     setSelectedPackage(index)
@@ -55,7 +68,7 @@ const SelectTemplateModal = ({ handleNext, handleClose, data, setData }) => {
   return (
     <Modal
       title="Step 1: Select Template"
-      open={true}
+      open={isModalVisible}
       onCancel={handleClose}
       footer={[
         <Button
