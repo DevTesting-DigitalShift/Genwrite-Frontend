@@ -74,58 +74,102 @@ const FONT_OPTIONS = [
   { label: "Comic Sans", value: "font-comic" },
 ]
 
-const MarkdownEditor = ({ content, onChange, className, setUnsavedChanges }) => {
+const MarkdownEditor = ({ content: propContent, onChange, className, setUnsavedChanges }) => {
   const containerRef = useRef(null)
+  const viewRef = useRef(null)
+  const [internalContent, setInternalContent] = useState(propContent)
 
   useEffect(() => {
-    let view
-    if (containerRef.current) {
-      const state = EditorState.create({
-        doc: content,
+    if (containerRef.current && !viewRef.current) {
+      const startState = EditorState.create({
+        doc: propContent,
         extensions: [
           basicSetup,
           EditorView.lineWrapping,
           markdown({ base: markdownLanguage, codeLanguages: languages }),
           EditorView.updateListener.of((update) => {
-            if (update.docChanged) {
-              onChange(update.state.doc.toString())
+            if (
+              update.docChanged &&
+              update.transactions.some((tr) => tr.isUserEvent("input") || tr.isUserEvent("delete"))
+            ) {
+              const newDoc = update.state.doc.toString()
+              setInternalContent(newDoc)
+              onChange(newDoc)
               setUnsavedChanges(true)
             }
           }),
         ],
       })
-      view = new EditorView({ state, parent: containerRef.current })
+      viewRef.current = new EditorView({ state: startState, parent: containerRef.current })
     }
-    return () => view?.destroy()
-  }, [content, onChange, setUnsavedChanges])
+
+    return () => {
+      if (viewRef.current) {
+        viewRef.current.destroy()
+        viewRef.current = null
+      }
+    }
+  }, [onChange, setUnsavedChanges])
+
+  useEffect(() => {
+    if (viewRef.current && propContent !== internalContent) {
+      const transaction = viewRef.current.state.update({
+        changes: { from: 0, to: viewRef.current.state.doc.length, insert: propContent },
+      })
+      viewRef.current.dispatch(transaction)
+      setInternalContent(propContent)
+    }
+  }, [propContent, internalContent])
 
   return <div ref={containerRef} className={`w-full h-full ${className}`} />
 }
 
-const HtmlEditor = ({ content, onChange, className, setUnsavedChanges }) => {
+const HtmlEditor = ({ content: propContent, onChange, className, setUnsavedChanges }) => {
   const containerRef = useRef(null)
+  const viewRef = useRef(null)
+  const [internalContent, setInternalContent] = useState(propContent)
 
   useEffect(() => {
-    let view
-    if (containerRef.current) {
-      const state = EditorState.create({
-        doc: content,
+    if (containerRef.current && !viewRef.current) {
+      const startState = EditorState.create({
+        doc: propContent,
         extensions: [
           basicSetup,
           html(),
           EditorView.lineWrapping,
           EditorView.updateListener.of((update) => {
-            if (update.docChanged) {
-              onChange(update.state.doc.toString())
+            if (
+              update.docChanged &&
+              update.transactions.some((tr) => tr.isUserEvent("input") || tr.isUserEvent("delete"))
+            ) {
+              const newDoc = update.state.doc.toString()
+              setInternalContent(newDoc)
+              onChange(newDoc)
               setUnsavedChanges(true)
             }
           }),
         ],
       })
-      view = new EditorView({ state, parent: containerRef.current })
+      viewRef.current = new EditorView({ state: startState, parent: containerRef.current })
     }
-    return () => view?.destroy()
-  }, [content, onChange, setUnsavedChanges])
+
+    return () => {
+      if (viewRef.current) {
+        viewRef.current.destroy()
+        viewRef.current = null
+      }
+    }
+  }, [onChange, setUnsavedChanges])
+
+  useEffect(() => {
+    if (viewRef.current && propContent !== internalContent) {
+      const transaction = viewRef.current.state.update({
+        changes: { from: 0, to: viewRef.current.state.doc.length, insert: propContent },
+      })
+      viewRef.current.dispatch(transaction)
+      setInternalContent(propContent)
+    }
+  }, [propContent, internalContent])
 
   return <div ref={containerRef} className={`h-screen ${className}`} />
 }
@@ -188,6 +232,7 @@ const TextEditor = ({
   const [linkPreviewElement, setLinkPreviewElement] = useState(null)
   const hideTimeout = useRef(null)
   const queryClient = useQueryClient()
+  const [lastSavedContent, setLastSavedContent] = useState("")
 
   const safeContent = content ?? blog?.content ?? ""
 
@@ -290,7 +335,7 @@ const TextEditor = ({
         const markdown = htmlToMarkdown(html)
         setContent(markdown)
         setHtmlContent(html.replace(/>\s*</g, ">\n<"))
-        // setUnsavedChanges(true)
+        setUnsavedChanges(true)
       },
       editorProps: {
         attributes: {
@@ -307,23 +352,22 @@ const TextEditor = ({
 
   const { activeSpan, bubbleRef, applyChange, rejectChange } = useProofreadingUI(normalEditor)
 
-  // this part 
-//   useEffect(() => {
-//   if (activeTab === "Normal" && normalEditor && !normalEditor.isDestroyed) {
-//     const currentHtml = normalEditor.getHTML();
-//     const newHtml = markdownToHtml(safeContent);
-//     if (currentHtml !== newHtml) {
-//       const { from, to } = normalEditor.state.selection;
-//       normalEditor.commands.setContent(newHtml, false);
-//       normalEditor.commands.setTextSelection({ from, to });
-//     }
-//   } else if (activeTab === "HTML") {
-//     const newHtml = markdownToHtml(safeContent).replace(/>\s*</g, ">\n<");
-//     if (htmlContent !== newHtml) {
-//       setHtmlContent(newHtml);
-//     }
-//   }
-// }, [safeContent, activeTab, normalEditor, markdownToHtml, htmlContent]);
+  useEffect(() => {
+    if (activeTab === "Normal" && normalEditor && !normalEditor.isDestroyed) {
+      const currentHtml = normalEditor.getHTML()
+      const newHtml = markdownToHtml(safeContent)
+      if (currentHtml !== newHtml) {
+        const { from, to } = normalEditor.state.selection
+        normalEditor.commands.setContent(newHtml, false)
+        normalEditor.commands.setTextSelection({ from, to })
+      }
+    } else if (activeTab === "HTML") {
+      const newHtml = markdownToHtml(safeContent).replace(/>\s*</g, ">\n<")
+      if (htmlContent !== newHtml) {
+        setHtmlContent(newHtml)
+      }
+    }
+  }, [safeContent, activeTab, normalEditor, markdownToHtml, htmlContent])
 
   useEffect(() => {
     const scrollToTop = () => {
@@ -495,27 +539,28 @@ const TextEditor = ({
   }, [])
 
   useEffect(() => {
+    setLastSavedContent(blog?.content ?? "")
+  }, [blog])
+
+  const normalizeContent = useCallback((str) => str.replace(/\s+/g, " ").trim(), [])
+
+  useEffect(() => {
+    const normCurrent = normalizeContent(content ?? "")
+    const normSaved = normalizeContent(lastSavedContent ?? "")
+    setUnsavedChanges(normCurrent !== normSaved)
+  }, [content, lastSavedContent, normalizeContent, setUnsavedChanges])
+
+  useEffect(() => {
     if (normalEditor && editorReady && blog?.content) {
       const html = normalEditor.getHTML()
       const normalizedMd = htmlToMarkdown(html)
       if (normalizedMd !== safeContent) {
         setContent(normalizedMd)
         setHtmlContent(markdownToHtml(normalizedMd).replace(/>\s*</g, ">\n<"))
+        // Remove setLastSavedContent(normalizedMd)
       }
     }
   }, [normalEditor, editorReady, blog, htmlToMarkdown, markdownToHtml, safeContent, setContent])
-
-  useEffect(() => {
-    if (normalEditor && activeTab === "Normal" && !normalEditor.isDestroyed) {
-      const currentHtml = normalEditor.getHTML()
-      const newHtml = markdownToHtml(safeContent)
-      if (currentHtml !== newHtml) {
-        const { from, to } = normalEditor.state.selection
-        normalEditor.commands.setContent(newHtml, false)
-        normalEditor.commands.setTextSelection({ from, to })
-      }
-    }
-  }, [safeContent, activeTab, normalEditor, markdownToHtml])
 
   useEffect(() => {
     if (normalEditor) {
@@ -545,35 +590,6 @@ const TextEditor = ({
       requestAnimationFrame(() => Prism.highlightAll())
     }
   }, [safeContent, activeTab, markdownPreview])
-
-  useEffect(() => {
-    const initialContent = blog?.content ?? ""
-    if (safeContent !== initialContent) {
-      setContent(initialContent)
-      setUnsavedChanges(false)
-    }
-    if (normalEditor && !normalEditor.isDestroyed && activeTab === "Normal") {
-      const htmlContent = initialContent
-        ? marked.parse(
-            initialContent
-              .replace(/!\[(["'""])(.*?)\1\]\((.*?)\)/g, (_, __, alt, url) => `![${alt}](${url})`)
-              .replace(/'/g, "&apos;"),
-            { gfm: true }
-          )
-        : "<p></p>"
-      if (normalEditor.getHTML() !== htmlContent) {
-        const { from, to } = normalEditor.state.selection
-        normalEditor.commands.setContent(htmlContent, false)
-        normalEditor.commands.setTextSelection({ from, to })
-      }
-    }
-  }, [blog, normalEditor, activeTab, setContent])
-
-  useEffect(() => {
-    if (activeTab === "HTML") {
-      setHtmlContent(markdownToHtml(safeContent).replace(/>\s*</g, ">\n<"))
-    }
-  }, [safeContent, activeTab, markdownToHtml])
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -857,7 +873,6 @@ const TextEditor = ({
     setRetryContent(null)
     setOriginalContent(null)
     setSelectionRange({ from: 0, to: 0 })
-    setUnsavedChanges(true)
   }
 
   const handleRejectRetry = () => {
@@ -897,7 +912,7 @@ const TextEditor = ({
         }
       })
       setContent(updatedContent)
-      // setUnsavedChanges(false)
+      setLastSavedContent(updatedContent)
     }
   }, [blog, safeContent, setContent])
 
@@ -919,7 +934,6 @@ const TextEditor = ({
         setEditImageModalOpen(false)
         setSelectedImage(null)
         setImageAlt("")
-        setUnsavedChanges(true)
       } else {
         message.error("Failed to delete image.")
       }
@@ -930,7 +944,6 @@ const TextEditor = ({
       )
       setContent((prev) => {
         const newContent = prev.replace(markdownImageRegex, "")
-        setUnsavedChanges(true)
         return newContent
       })
       setEditImageModalOpen(false)
@@ -947,7 +960,6 @@ const TextEditor = ({
         const html = markdownToHtml(prev)
         const updatedHtml = html.replace(htmlImageRegex, "")
         const newContent = htmlToMarkdown(updatedHtml)
-        setUnsavedChanges(true)
         return newContent
       })
       setEditImageModalOpen(false)
@@ -991,7 +1003,6 @@ const TextEditor = ({
         setEditImageModalOpen(false)
         setSelectedImage(null)
         setImageAlt("")
-        setUnsavedChanges(true)
       } else {
         message.error("Failed to update image alt text.")
       }
@@ -1003,7 +1014,6 @@ const TextEditor = ({
       const newMarkdownImage = `![${imageAlt}](${selectedImage.src})`
       setContent((prev) => {
         const newContent = prev.replace(markdownImageRegex, newMarkdownImage)
-        setUnsavedChanges(true)
         return newContent
       })
       message.success("Image alt text updated.")
@@ -1022,7 +1032,6 @@ const TextEditor = ({
         const html = markdownToHtml(prev)
         const updatedHtml = html.replace(htmlImageRegex, newHtmlImage)
         const newContent = htmlToMarkdown(updatedHtml)
-        setUnsavedChanges(true)
         return newContent
       })
       message.success("Image alt text updated.")
@@ -1065,7 +1074,6 @@ const TextEditor = ({
           return
         }
         setContent(fileContent)
-        setUnsavedChanges(true)
         message.success(`${file.name} imported successfully!`)
       }
       reader.onerror = () => {
@@ -1107,7 +1115,6 @@ const TextEditor = ({
         normalEditor.commands.setContent(htmlContent, false)
       }
       setHtmlContent(markdownToHtml(humanizedContent).replace(/>\s*</g, ">\n<"))
-      setUnsavedChanges(true)
       handleAcceptHumanizedContent()
     }
   }, [
@@ -1851,7 +1858,6 @@ const TextEditor = ({
             onChange={(newContent) => {
               setContent(newContent)
               setHtmlContent(markdownToHtml(newContent).replace(/>\s*</g, ">\n<"))
-              setUnsavedChanges(true)
             }}
             className="h-full"
             setUnsavedChanges={setUnsavedChanges}
@@ -1863,7 +1869,6 @@ const TextEditor = ({
             onChange={(newHtml) => {
               setHtmlContent(newHtml)
               setContent(htmlToMarkdown(newHtml))
-              setUnsavedChanges(true)
             }}
             className="h-full"
             setUnsavedChanges={setUnsavedChanges}

@@ -21,8 +21,10 @@ const StepContent = ({
   setFormData,
   errors,
   setErrors,
-  recentlyUploadedCount,
-  setRecentlyUploadedCount,
+  recentlyUploadedTopicsCount,
+  setRecentlyUploadedTopicsCount,
+  recentlyUploadedKeywordsCount,
+  setRecentlyUploadedKeywordsCount,
   showAllTopics,
   setShowAllTopics,
   showAllKeywords,
@@ -186,7 +188,10 @@ const StepContent = ({
 
   const handleCSVUpload = (e, type) => {
     const file = e.target.files?.[0]
-    if (!file) return
+    if (!file) {
+      message.error("No file selected. Please choose a valid CSV file.")
+      return
+    }
 
     if (!file.name.toLowerCase().endsWith(".csv")) {
       message.error("Invalid file type. Please upload a .csv file.")
@@ -194,7 +199,7 @@ const StepContent = ({
       return
     }
 
-    const maxSizeInBytes = 20 * 1024
+    const maxSizeInBytes = 20 * 1024 // 20KB
     if (file.size > maxSizeInBytes) {
       message.error("File size exceeds 20KB limit. Please upload a smaller file.")
       e.target.value = null
@@ -204,27 +209,58 @@ const StepContent = ({
     const reader = new FileReader()
     reader.onload = (event) => {
       const text = event.target?.result
-      if (!text) return
+      if (!text || typeof text !== "string") {
+        message.error("Failed to read the CSV file. Please ensure it is valid.")
+        return
+      }
 
-      const lines = text.trim().split(/\r?\n/).slice(1)
+      // Split the CSV content into lines
+      let lines = text.trim().split(/\r?\n/)
+      if (lines.length === 0) {
+        message.error("The CSV file is empty. Please provide a valid CSV with topics or keywords.")
+        return
+      }
+
+      // Check if first line is header and skip if it matches the type
+      const headerKey = type.charAt(0).toUpperCase() + type.slice(1) // "Topics" or "Keywords"
+      if (lines[0].toLowerCase().includes(type)) {
+        lines = lines.slice(1)
+      }
+
+      // Extract items from the CSV (taking the first non-empty column)
       const items = lines
         .map((line) => {
           const parts = line.split(",")
-          return parts.length >= 2 ? parts[1].trim() : null
+          return parts.map((part) => part.trim()).find((part) => part) || null
         })
-        .filter(Boolean)
+        .filter((item) => item && item.trim().length > 0)
 
+      if (items.length === 0) {
+        message.warning(`No valid ${type} found in the CSV file.`)
+        return
+      }
+
+      // Compare with existing items (case-insensitive)
       const existing =
         type === "topics"
           ? newJob.blogs.topics.map((t) => t.toLowerCase().trim())
           : formData.keywords.map((k) => k.toLowerCase().trim())
-      const uniqueNewItems = items.filter((item) => !existing.includes(item.toLowerCase().trim()))
+      const seen = new Set()
+      const uniqueNewItems = items.filter((item) => {
+        const lower = item.toLowerCase().trim()
+        if (!item || seen.has(lower) || existing.includes(lower)) return false
+        seen.add(lower)
+        return true
+      })
 
       if (uniqueNewItems.length === 0) {
-        message.warning(`No new ${type} found in the CSV.`)
+        message.warning(
+          `No new ${type} found in the CSV. All provided items are either duplicates or already exist.`
+        )
         return
       }
 
+      // Update state with new items
       if (type === "topics") {
         setNewJob((prev) => ({
           ...prev,
@@ -243,11 +279,23 @@ const StepContent = ({
         setErrors((prev) => ({ ...prev, keywords: false }))
       }
 
-      if (uniqueNewItems.length > 8) {
-        setRecentlyUploadedCount(uniqueNewItems.length)
-        setTimeout(() => setRecentlyUploadedCount(null), 5000)
+      // Notify user of successful upload
+      message.success(`${uniqueNewItems.length} new ${type} added from CSV.`)
+
+      // Update recently uploaded count based on type
+      if (type === "topics") {
+        setRecentlyUploadedTopicsCount(uniqueNewItems.length)
+        setTimeout(() => setRecentlyUploadedTopicsCount(null), 5000)
+      } else {
+        setRecentlyUploadedKeywordsCount(uniqueNewItems.length)
+        setTimeout(() => setRecentlyUploadedKeywordsCount(null), 5000)
       }
     }
+
+    reader.onerror = () => {
+      message.error("An error occurred while reading the CSV file.")
+    }
+
     reader.readAsText(file)
     e.target.value = null
   }
@@ -598,7 +646,7 @@ const StepContent = ({
                     </span>
                   )
                 })}
-                {(newJob.blogs.topics.length > 18 || recentlyUploadedCount) && (
+                {(newJob.blogs.topics.length > 18 || recentlyUploadedTopicsCount) && (
                   <span
                     onClick={() => setShowAllTopics((prev) => !prev)}
                     className="text-xs font-medium text-blue-600 self-center cursor-pointer flex items-center gap-1"
@@ -607,8 +655,10 @@ const StepContent = ({
                       <>Show less</>
                     ) : (
                       <>
-                        +{newJob.blogs.topics.length - 18} more
-                        {recentlyUploadedCount && ` (+${recentlyUploadedCount} uploaded)`}
+                        {newJob.blogs.topics.length > 18 &&
+                          `+${newJob.blogs.topics.length - 18} more`}
+                        {recentlyUploadedTopicsCount &&
+                          ` (+${recentlyUploadedTopicsCount} uploaded)`}
                       </>
                     )}
                   </span>
@@ -691,7 +741,12 @@ const StepContent = ({
             </div>
             {!formData.performKeywordResearch && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Keywords</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex gap-2 items-center">
+                  Keywords
+                  <Tooltip title="Upload a .csv file in the format: `Keywords` as header">
+                    <Info size={16} className="text-blue-500 cursor-pointer" />
+                  </Tooltip>
+                </label>
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -751,7 +806,7 @@ const StepContent = ({
                       </span>
                     )
                   })}
-                  {(formData.keywords.length > 18 || recentlyUploadedCount) && (
+                  {(formData.keywords.length > 18 || recentlyUploadedKeywordsCount) && (
                     <span
                       onClick={() => setShowAllKeywords((prev) => !prev)}
                       className="text-xs font-medium text-blue-600 self-center cursor-pointer flex items-center gap-1"
@@ -760,8 +815,10 @@ const StepContent = ({
                         <>Show less</>
                       ) : (
                         <>
-                          +{formData.keywords.length - 18} more
-                          {recentlyUploadedCount && ` (+${recentlyUploadedCount} uploaded)`}
+                          {formData.keywords.length > 18 &&
+                            `+${formData.keywords.length - 18} more`}
+                          {recentlyUploadedKeywordsCount &&
+                            ` (+${recentlyUploadedKeywordsCount} uploaded)`}
                         </>
                       )}
                     </span>
