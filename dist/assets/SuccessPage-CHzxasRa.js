@@ -1,0 +1,1 @@
+import{z as e,j as s,B as a}from"./index-Cir5fXWr.js";import{R as r}from"./index-CxnA0-Fp.js";function c(){const t=e();return s.jsx(r,{status:"success",title:"Payment Successful!",subTitle:"Your subscription or credit purchase has been processed.",extra:[s.jsx(a,{type:"primary",onClick:()=>t("/"),children:"Go to Dashboard"})]})}export{c as default};
