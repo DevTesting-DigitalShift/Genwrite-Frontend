@@ -291,11 +291,7 @@ const SideBar_Header = () => {
             <img src="/Images/logo_genwrite_2.png" loading="lazy" alt="Logo" className="w-36" />
           </div>
           <div className="flex items-center space-x-4">
-            <a href="/pricing">
-              <button className="bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white font-semibold py-2 px-3 rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg flex items-center justify-center gap-2 group capitalize">
-                <Crown className="w-5 h-5" /> Upgrade
-              </button>
-            </a>
+            <GoProButton />
             {isUserLoaded ? (
               <>
                 <Tooltip title="User Credits" className="hidden md:flex">

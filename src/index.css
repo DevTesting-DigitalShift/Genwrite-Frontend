@@ -114,16 +114,6 @@ code {
   margin: 2em 0;
 }
 
-.go-pro-button {
-  @apply bg-gradient-to-r from-blue-500 to-purple-600 rounded-full;
-  background-clip: padding-box;
-  position: relative;
-  overflow: hidden;
-}
-
-.go-pro-button:hover {
-  @apply !bg-gradient-to-r !from-blue-600 !to-purple-700 rounded-full;
-}
 
 /* Shimmer effect */
 .shimmer::before {

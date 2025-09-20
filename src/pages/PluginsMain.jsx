@@ -1,192 +1,362 @@
-"use client"
-
-import { useState, useEffect, useMemo } from "react"
-import DifferentPlugins from "../layout/DifferentPlugins"
-import Modal from "react-modal"
-import { CiGlobe } from "react-icons/ci"
-import { ImGithub } from "react-icons/im"
-import { RiCloseLine } from "react-icons/ri"
+import { useState, useEffect, useMemo, useRef } from "react"
+import { Tabs, Button, Card, Flex, Row, Col, Divider, Typography, message } from "antd"
+import { Server, Zap, Download, User, Calendar, Shield, Clock, Tag } from "lucide-react"
 import { pluginsData } from "@/data/pluginsData"
 import { motion } from "framer-motion"
 import { Helmet } from "react-helmet"
 import axiosInstance from "@api/index"
+import { gsap } from "gsap"
 
-Modal.setAppElement("#root")
+const { Title, Text, Paragraph } = Typography
 
 const PluginsMain = () => {
-  const [selectedPlugin, setSelectedPlugin] = useState(null)
   const [wordpressStatus, setWordpressStatus] = useState({})
+  const [activeTab, setActiveTab] = useState(null)
   const plugins = useMemo(() => pluginsData(setWordpressStatus), [])
+  const tabContentRef = useRef(null)
+  const headerRef = useRef(null)
 
   useEffect(() => {
-    const checkAllPlugins = async () => {
-      for (const plugin of plugins) {
-        if (wordpressStatus[plugin.id]?.success) continue
-
-        try {
-          const res = await axiosInstance.get("/wordpress/check")
-          setWordpressStatus((prev) => ({
-            ...prev,
-            [plugin.id]: {
-              status: res.data.status,
-              message: res.data.message,
-              success: res.data.success,
-            },
-          }))
-        } catch (err) {
-          console.error(`Error checking plugin ${plugin.pluginName}:`, err)
-          setWordpressStatus((prev) => ({
-            ...prev,
-            [plugin.id]: {
-              status: err.response?.status || "error",
-              message:
-                err.response?.status === 400
-                  ? "No wordpress link found. Add wordpress link into your profile."
-                  : err.response?.status === 502
-                  ? "Wordpress connection failed, check plugin is installed & active"
-                  : "Wordpress Connection Error",
-              success: false,
-            },
-          }))
-        }
-      }
+    if (plugins.length > 0 && !activeTab) {
+      setActiveTab(plugins[0].id.toString())
+      checkPlugin(plugins[0])
     }
 
-    checkAllPlugins()
+    // GSAP animation for header
+    if (headerRef.current) {
+      gsap.fromTo(
+        headerRef.current,
+        { opacity: 0, y: -30 },
+        { opacity: 1, y: 0, duration: 0.8, ease: "power3.out" }
+      )
+    }
   }, [plugins])
 
-  const handlePluginClick = (plugin) => {
-    setSelectedPlugin(plugin)
+  const checkPlugin = async (plugin) => {
+    if (plugin.id === 112) return // No check for coming soon
+    if (wordpressStatus[plugin.id]?.success) return
+
+    try {
+      const result = await plugin.onCheck()
+      setWordpressStatus((prev) => ({
+        ...prev,
+        [plugin.id]: {
+          status: result.status,
+          message: result.message,
+          success: result.success,
+        },
+      }))
+    } catch (err) {
+      console.error(`Error checking plugin ${plugin.pluginName}:`, err)
+      setWordpressStatus((prev) => ({
+        ...prev,
+        [plugin.id]: {
+          status: err.response?.status || "error",
+          message:
+            err.response?.status === 400
+              ? "No wordpress link found. Add wordpress link into your profile."
+              : err.response?.status === 502
+              ? "Wordpress connection failed, check plugin is installed & active"
+              : "Wordpress Connection Error",
+          success: false,
+        },
+      }))
+    }
   }
 
-  const closeModal = () => {
-    setSelectedPlugin(null)
+  const handleTabChange = (key) => {
+    if (tabContentRef.current) {
+      gsap.to(tabContentRef.current, {
+        duration: 0.3,
+        opacity: 0,
+        y: 20,
+        ease: "power2.in",
+        onComplete: () => {
+          setActiveTab(key)
+          const plugin = plugins.find((p) => p.id.toString() === key)
+          if (plugin) {
+            checkPlugin(plugin)
+          }
+          gsap.fromTo(
+            tabContentRef.current,
+            { opacity: 0, y: 20 },
+            { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" }
+          )
+        },
+      })
+    } else {
+      setActiveTab(key)
+      const plugin = plugins.find((p) => p.id.toString() === key)
+      if (plugin) {
+        checkPlugin(plugin)
+      }
+    }
   }
+
+  const handleConnectClick = async (plugin) => {
+    if (plugin.id === 112) return // No action for coming soon
+
+    try {
+      const result = await plugin.onCheck()
+      setWordpressStatus((prev) => ({
+        ...prev,
+        [plugin.id]: {
+          status: result.status,
+          message: result.message,
+          success: result.success,
+        },
+      }))
+
+      // Show message to user when they click the button
+      if (result.success) {
+        message.success(result.message)
+      } else {
+        message.error(result.message)
+      }
+    } catch (err) {
+      console.error(`Error connecting plugin ${plugin.pluginName}:`, err)
+      setWordpressStatus((prev) => ({
+        ...prev,
+        [plugin.id]: {
+          status: err.response?.status || "error",
+          message:
+            err.response?.status === 400
+              ? "No wordpress link found. Add wordpress link into your profile."
+              : err.response?.status === 502
+              ? "Wordpress connection failed, check plugin is installed & active"
+              : "Wordpress Connection Error",
+          success: false,
+        },
+      }))
+
+      message.error("Wordpress Connection Error")
+    }
+  }
+
+  const PluginTabContent = ({ plugin }) => {
+    if (plugin.id === 112) {
+      return (
+        <Card className="h-full flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 border-0">
+          <Flex vertical align="center" justify="center" className="h-full py-12">
+            <motion.div
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+            >
+              <Server size={64} className="text-blue-500 mb-4" />
+            </motion.div>
+            <Title level={2} className="text-gray-800 mb-2 text-center">
+              {plugin.pluginName}
+            </Title>
+            <Paragraph className="text-gray-600 mb-6 text-center max-w-md text-lg">
+              {plugin.message}
+            </Paragraph>
+            <Button
+              type="primary"
+              size="large"
+              className="bg-blue-600 hover:bg-blue-700 border-0"
+              disabled
+            >
+              Coming Soon
+            </Button>
+          </Flex>
+        </Card>
+      )
+    }
+
+    return (
+      <div ref={tabContentRef} className="h-full">
+        <Card className="h-full border-0 bg-transparent">
+          <Flex vertical gap="large" className="h-full">
+            {/* Header Section */}
+            <Row gutter={[24, 24]} className="mb-4">
+              <Col xs={24} lg={16}>
+                <Flex align="center" gap="large">
+                  <motion.img
+                    src={plugin.pluginImage}
+                    alt={plugin.pluginName}
+                    className="h-20 w-20 object-contain"
+                    initial={{ scale: 0, rotate: -180 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                  />
+                  <Flex vertical gap="small">
+                    <Title level={1} className="text-gray-900 m-0">
+                      {plugin.pluginName}
+                    </Title>
+                    <Text className="text-xl text-gray-600">{plugin.description}</Text>
+                    <div className="flex items-center gap-4 mt-2">
+                      <div className="flex items-center gap-2">
+                        <Tag size={16} className="text-blue-500" />
+                        <Text className="text-lg text-blue-600 font-medium">
+                          Version {plugin.version}
+                        </Text>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock size={16} className="text-green-500" />
+                        <Text className="text-lg text-green-600 font-medium">
+                          Updated {plugin.updatedDate}
+                        </Text>
+                      </div>
+                    </div>
+                  </Flex>
+                </Flex>
+              </Col>
+              <Col xs={24} lg={8}>
+                <Flex vertical gap="middle" className="h-full justify-center">
+                  <Button
+                    type="default"
+                    size="large"
+                    onClick={() => handleConnectClick(plugin)}
+                    className={`transition-colors duration-200 !text-white ${
+                      wordpressStatus[plugin.id]?.success
+                        ? "!bg-green-700 hover:!bg-green-500"
+                        : "!bg-blue-700 hover:!bg-blue-500 hover:!text-black"
+                    }`}
+                  >
+                    {wordpressStatus[plugin.id]?.success ? "Connected" : "Connect"}
+                  </Button>
+                  <a href={plugin.downloadLink} download>
+                    <Button
+                      type="default"
+                      size="large"
+                      icon={<Download size={16} />}
+                      className="w-full border-blue-600 text-blue-600 hover:!bg-blue-50 hover:!text-black"
+                    >
+                      Download Plugin
+                    </Button>
+                  </a>
+                </Flex>
+              </Col>
+            </Row>
+
+            <Divider className="my-2" />
+
+            {/* Description Section */}
+            <Row>
+              <Col span={24}>
+                <Card size="small" className="bg-gray-50 border-0">
+                  <Paragraph className="text-base text-gray-700 leading-relaxed mb-0 p-1 rounded-md">
+                    {plugin.message}
+                  </Paragraph>
+                </Card>
+              </Col>
+            </Row>
+          </Flex>
+        </Card>
+      </div>
+    )
+  }
+
+  const renderTabBar = (props, DefaultTabBar) => (
+    <DefaultTabBar {...props} className="custom-tab-bar" />
+  )
+
+  const tabItems = plugins.map((plugin) => ({
+    key: plugin.id.toString(),
+    label: (
+      <Flex align="center" gap="small" className="font-montserrat tracking-wider">
+        {<plugin.icon size={24} />}
+        {plugin.name}
+      </Flex>
+    ),
+    children: (
+      <div ref={tabContentRef} className="h-full">
+        <PluginTabContent plugin={plugin} />
+      </div>
+    ),
+  }))
 
   return (
-    <div className="p-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex flex-col">
+      <style jsx>{`
+        .custom-tabs .ant-tabs-tab {
+          border-radius: 8px 8px 0 0 !important;
+          margin-right: 4px !important;
+          background: #f8fafc !important;
+          color: #1f2937 !important;
+          font-weight: 500;
+          font-size: 14px;
+          padding: 12px 16px !important;
+          border: 1px solid #e5e7eb !important;
+          border-bottom: none !important;
+          transition: background-color 0.2s ease, color 0.2s ease;
+          transform: translateY(0);
+          overflow: auto hidden;
+        }
+        .custom-tabs .ant-tabs-tab:hover {
+          background: #f9fafb !important;
+          color: #1a73e8 !important;
+          transform: translateY(-1px);
+        }
+        .custom-tabs .ant-tabs-tab-active {
+          background: #ffffff !important;
+          color: #1a73e8 !important;
+          border-bottom: 2px solid #1a73e8 !important;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .custom-tabs .ant-tabs-content-holder {
+          height: calc(100% - 50px);
+          background: white;
+          border-radius: 0 0 8px 8px;
+          border: 1px solid #e5e7eb;
+          border-top: none;
+        }
+        .custom-tabs .ant-tabs-content {
+          height: 100%;
+          padding: 0;
+        }
+        .custom-tabs .ant-tabs-tabpane {
+          height: 100%;
+          padding: 0;
+        }
+        .custom-tabs .ant-tabs-nav {
+          margin: 0 !important;
+          padding: 0;
+        }
+        .custom-tabs .ant-tabs-ink-bar {
+          display: none !important;
+        }
+      `}</style>
       <Helmet>
         <title>Plugins | GenWrite</title>
       </Helmet>
-      <motion.h1
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.2 }}
-        className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
-      >
-        Plugins
-      </motion.h1>
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.3 }}
-        className="text-gray-600 text-sm sm:text-base max-w-full sm:max-w-xl mt-2 mb-4 sm:mb-6 md:mb-8"
-      >
-        Seamlessly integrate tools and features that work exactly how you need them.
-      </motion.p>
 
-      <div className="flex flex-col space-y-4">
-        {plugins.map((item) => (
-          <DifferentPlugins
-            key={item.id}
-            pluginImage={item.pluginImage}
-            pluginName={item.pluginName}
-            pluginTitle={item.pluginTitle}
-            name={item.name}
-            updatedDate={item.updatedDate}
-            pluginLink={item.pluginLink}
-            onClick={() => handlePluginClick(item)}
-            onCheck={item.onCheck}
-            wordpressStatus={wordpressStatus[item.id]}
-          />
-        ))}
-      </div>
+      {/* Header Section */}
+      <motion.div
+        ref={headerRef}
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="my-5 ml-6 sm:ml-10"
+      >
+        <h1 className="bg-gradient-to-tl from-blue-600 to-purple-600 text-transparent bg-clip-text font-bold text-4xl  mb-2">
+          Plugin Center <span className="ml-2 text-2xl text-yellow-400">⚡</span>
+        </h1>
+        <p className="text-gray-600 text-lg mt-2 max-w-2xl">
+          Seamlessly integrate powerful tools and features that enhance your workflow
+        </p>
+      </motion.div>
 
-      {selectedPlugin && (
-        <Modal
-          isOpen={true}
-          onRequestClose={closeModal}
-          contentLabel="Plugin Details"
-          className="fixed inset-0 flex items-center justify-center z-50 p-4 sm:p-6"
-          overlayClassName="fixed inset-0 bg-black bg-opacity-50 z-40"
+      {/* Main Content */}
+      <div className="flex-1 px-6 sm:px-8 pb-8 mt-5">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.6, ease: "easeOut" }}
+          className="h-full bg-white rounded-xl shadow-xl overflow-hidden border border-gray-100"
         >
-          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg w-full max-w-md sm:max-w-lg mx-auto relative">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <img
-                  src={selectedPlugin.pluginImage}
-                  alt=""
-                  className="h-8 w-8 sm:h-10 sm:w-10 object-contain"
-                />
-                <div className="flex flex-col">
-                  <h3 className="text-xl sm:text-2xl font-medium text-[#000000]">
-                    {selectedPlugin.pluginName}
-                  </h3>
-                  <span className="text-sm sm:text-base font-normal text-[#454545]">
-                    {selectedPlugin.name}
-                  </span>
-                </div>
-              </div>
-              <button
-                onClick={closeModal}
-                className="bg-transparent border-none text-[#000000] hover:text-red-500 focus:outline-none absolute top-4 right-4 sm:static"
-              >
-                <RiCloseLine size={20} className="sm:h-6 sm:w-6" />
-              </button>
-            </div>
-            <p className="text-sm sm:text-base font-normal text-[#454545] mb-4">
-              Prototype content blur draft italic strikethrough undo. Underline arrow rectangle
-              opacity connection figma. Pencil layer slice ipsum layout flatten asset selection
-              union editor. Text library fill fill rotate list. Distribute share figma figma
-              underline editor main flatten frame draft.
-            </p>
-            <div className="mb-4">
-              <h3 className="text-base sm:text-lg font-medium mb-2">More about us</h3>
-              <div className="flex items-center gap-3 sm:gap-4">
-                <a
-                  href="https://example.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#F8F9F9] flex items-center justify-center hover:bg-gray-200"
-                >
-                  <CiGlobe size={20} className="sm:h-6 sm:w-6" />
-                </a>
-                <a
-                  href="https://github.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#F8F9F9] flex items-center justify-center hover:bg-gray-200"
-                >
-                  <ImGithub size={20} className="sm:h-6 sm:w-6" />
-                </a>
-              </div>
-            </div>
-            <p className="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4">
-              Created by: {selectedPlugin.name}
-            </p>
-            <p className="text-sm sm:text-base text-[#454545] mb-2">
-              Last Updated {selectedPlugin.updatedDate} months ago
-            </p>
-            <p className="text-xs sm:text-sm text-[#454545] mb-2">Support: aryans@gmail.com</p>
-            <p className="text-xs sm:text-sm mb-3 sm:mb-4">
-              License under{" "}
-              <a href="https://companylicense.com" className="text-[#2790F9] underline">
-                Community free license
-              </a>
-            </p>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-2 gap-3 sm:gap-0">
-              <span className="text-xs sm:text-sm font-medium text-[#454545] underline cursor-pointer hover:text-[#2790F9]">
-                Report an issue
-              </span>
-              <a href={selectedPlugin.pluginInstallUrl} target="_blank" rel="noopener noreferrer">
-                <button className="bg-[#1B71CC] text-white py-2 px-4 sm:px-6 rounded hover:bg-[#155a9c] w-full sm:w-auto text-sm sm:text-base">
-                  Install
-                </button>
-              </a>
-            </div>
-          </div>
-        </Modal>
-      )}
+          <Tabs
+            activeKey={activeTab}
+            onChange={handleTabChange}
+            type="card"
+            size="large"
+            className="h-full custom-tabs"
+            renderTabBar={renderTabBar}
+            items={tabItems}
+          />
+        </motion.div>
+      </div>
     </div>
   )
 }
