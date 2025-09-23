@@ -1,11 +1,10 @@
 import { useState, useEffect, useMemo, useRef } from "react"
 import { Tabs, Button, Card, Flex, Row, Col, Divider, Typography, message } from "antd"
-import { Server, Zap, Download, User, Calendar, Shield, Clock, Tag } from "lucide-react"
+import { Server, Download, Tag, Clock } from "lucide-react"
 import { pluginsData } from "@/data/pluginsData"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { Helmet } from "react-helmet"
 import axiosInstance from "@api/index"
-import { gsap } from "gsap"
 
 const { Title, Text, Paragraph } = Typography
 
@@ -13,22 +12,11 @@ const PluginsMain = () => {
   const [wordpressStatus, setWordpressStatus] = useState({})
   const [activeTab, setActiveTab] = useState(null)
   const plugins = useMemo(() => pluginsData(setWordpressStatus), [])
-  const tabContentRef = useRef(null)
-  const headerRef = useRef(null)
 
   useEffect(() => {
     if (plugins.length > 0 && !activeTab) {
       setActiveTab(plugins[0].id.toString())
       checkPlugin(plugins[0])
-    }
-
-    // GSAP animation for header
-    if (headerRef.current) {
-      gsap.fromTo(
-        headerRef.current,
-        { opacity: 0, y: -30 },
-        { opacity: 1, y: 0, duration: 0.8, ease: "power3.out" }
-      )
     }
   }, [plugins])
 
@@ -65,31 +53,10 @@ const PluginsMain = () => {
   }
 
   const handleTabChange = (key) => {
-    if (tabContentRef.current) {
-      gsap.to(tabContentRef.current, {
-        duration: 0.3,
-        opacity: 0,
-        y: 20,
-        ease: "power2.in",
-        onComplete: () => {
-          setActiveTab(key)
-          const plugin = plugins.find((p) => p.id.toString() === key)
-          if (plugin) {
-            checkPlugin(plugin)
-          }
-          gsap.fromTo(
-            tabContentRef.current,
-            { opacity: 0, y: 20 },
-            { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" }
-          )
-        },
-      })
-    } else {
-      setActiveTab(key)
-      const plugin = plugins.find((p) => p.id.toString() === key)
-      if (plugin) {
-        checkPlugin(plugin)
-      }
+    setActiveTab(key)
+    const plugin = plugins.find((p) => p.id.toString() === key)
+    if (plugin) {
+      checkPlugin(plugin)
     }
   }
 
@@ -106,8 +73,6 @@ const PluginsMain = () => {
           success: result.success,
         },
       }))
-
-      // Show message to user when they click the button
       if (result.success) {
         message.success(result.message)
       } else {
@@ -128,7 +93,6 @@ const PluginsMain = () => {
           success: false,
         },
       }))
-
       message.error("Wordpress Connection Error")
     }
   }
@@ -136,83 +100,87 @@ const PluginsMain = () => {
   const PluginTabContent = ({ plugin }) => {
     if (plugin.id === 112) {
       return (
-        <Card className="h-full flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 border-0">
+        <div className="h-full flex flex-col items-center justify-center bg-gradient-to-br from-teal-50 to-blue-100 rounded-2xl">
           <Flex vertical align="center" justify="center" className="h-full py-12">
             <motion.div
-              initial={{ scale: 0, rotate: -180 }}
-              animate={{ scale: 1, rotate: 0 }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
             >
-              <Server size={64} className="text-blue-500 mb-4" />
+              <Server size={48} className="text-teal-500 mb-4" />
             </motion.div>
-            <Title level={2} className="text-gray-800 mb-2 text-center">
+            <Title level={3} className="text-gray-800 mb-2 text-center font-semibold">
               {plugin.pluginName}
             </Title>
-            <Paragraph className="text-gray-600 mb-6 text-center max-w-md text-lg">
+            <Paragraph className="text-gray-600 mb-6 text-center max-w-md text-base">
               {plugin.message}
             </Paragraph>
             <Button
               type="primary"
               size="large"
-              className="bg-blue-600 hover:bg-blue-700 border-0"
+              className="bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600 border-0 rounded-lg"
               disabled
             >
               Coming Soon
             </Button>
           </Flex>
-        </Card>
+        </div>
       )
     }
 
     return (
-      <div ref={tabContentRef} className="h-full">
-        <Card className="h-full border-0 bg-transparent">
-          <Flex vertical gap="large" className="h-full">
-            {/* Header Section */}
-            <Row gutter={[24, 24]} className="mb-4">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        className="h-full"
+      >
+        <div>
+          <Flex vertical gap="large" className="h-full p-6">
+            <Row gutter={[24, 24]} align="middle">
               <Col xs={24} lg={16}>
                 <Flex align="center" gap="large">
                   <motion.img
                     src={plugin.pluginImage}
                     alt={plugin.pluginName}
-                    className="h-20 w-20 object-contain"
-                    initial={{ scale: 0, rotate: -180 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    transition={{ duration: 0.5, delay: 0.2 }}
+                    className="h-16 w-16 object-contain rounded-lg"
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ duration: 0.4, delay: 0.1 }}
                   />
                   <Flex vertical gap="small">
-                    <Title level={1} className="text-gray-900 m-0">
+                    <Title level={2} className="text-gray-900 m-0 font-bold">
                       {plugin.pluginName}
                     </Title>
-                    <Text className="text-xl text-gray-600">{plugin.description}</Text>
-                    <div className="flex items-center gap-4 mt-2">
-                      <div className="flex items-center gap-2">
-                        <Tag size={16} className="text-blue-500" />
-                        <Text className="text-lg text-blue-600 font-medium">
+                    <Text className="text-lg text-gray-600">{plugin.description}</Text>
+                    <Flex gap="middle" className="mt-2">
+                      <Flex align="center" gap="small">
+                        <Tag size={16} className="text-teal-500" />
+                        <Text className="text-base text-teal-600 font-medium">
                           Version {plugin.version}
                         </Text>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Clock size={16} className="text-green-500" />
-                        <Text className="text-lg text-green-600 font-medium">
+                      </Flex>
+                      <Flex align="center" gap="small">
+                        <Clock size={16} className="text-blue-500" />
+                        <Text className="text-base text-blue-600 font-medium">
                           Updated {plugin.updatedDate}
                         </Text>
-                      </div>
-                    </div>
+                      </Flex>
+                    </Flex>
                   </Flex>
                 </Flex>
               </Col>
               <Col xs={24} lg={8}>
                 <Flex vertical gap="middle" className="h-full justify-center">
                   <Button
-                    type="default"
+                    type="primary"
                     size="large"
                     onClick={() => handleConnectClick(plugin)}
-                    className={`transition-colors duration-200 !text-white ${
+                    className={`w-full rounded-lg transition-all duration-300 ${
                       wordpressStatus[plugin.id]?.success
-                        ? "!bg-green-700 hover:!bg-green-500"
-                        : "!bg-blue-700 hover:!bg-blue-500 hover:!text-black"
-                    }`}
+                        ? "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+                        : "bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600"
+                    } text-white border-0`}
                   >
                     {wordpressStatus[plugin.id]?.success ? "Connected" : "Connect"}
                   </Button>
@@ -221,7 +189,7 @@ const PluginsMain = () => {
                       type="default"
                       size="large"
                       icon={<Download size={16} />}
-                      className="w-full border-blue-600 text-blue-600 hover:!bg-blue-50 hover:!text-black"
+                      className="w-full border-teal-500 text-teal-600 hover:bg-teal-50 rounded-lg"
                     >
                       Download Plugin
                     </Button>
@@ -230,21 +198,20 @@ const PluginsMain = () => {
               </Col>
             </Row>
 
-            <Divider className="my-2" />
+            <Divider className="my-4 border-gray-200" />
 
-            {/* Description Section */}
             <Row>
               <Col span={24}>
-                <Card size="small" className="bg-gray-50 border-0">
-                  <Paragraph className="text-base text-gray-700 leading-relaxed mb-0 p-1 rounded-md">
+                <Card className="bg-gray-50 border-0 rounded-lg">
+                  <Paragraph className="text-base text-gray-700 leading-relaxed mb-0">
                     {plugin.message}
                   </Paragraph>
                 </Card>
               </Col>
             </Row>
           </Flex>
-        </Card>
-      </div>
+        </div>
+      </motion.div>
     )
   }
 
@@ -255,64 +222,60 @@ const PluginsMain = () => {
   const tabItems = plugins.map((plugin) => ({
     key: plugin.id.toString(),
     label: (
-      <Flex align="center" gap="small" className="font-montserrat tracking-wider">
-        {<plugin.icon size={24} />}
+      <Flex align="center" gap="small" className="font-sans font-medium text-base">
+        {<plugin.icon size={20} />}
         {plugin.name}
       </Flex>
     ),
-    children: (
-      <div ref={tabContentRef} className="h-full">
-        <PluginTabContent plugin={plugin} />
-      </div>
-    ),
+    children: <PluginTabContent plugin={plugin} />,
   }))
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex flex-col">
+    <div className="min-h-screen flex flex-col">
       <style jsx>{`
         .custom-tabs .ant-tabs-tab {
-          border-radius: 8px 8px 0 0 !important;
-          margin-right: 4px !important;
-          background: #f8fafc !important;
-          color: #1f2937 !important;
-          font-weight: 500;
-          font-size: 14px;
-          padding: 12px 16px !important;
-          border: 1px solid #e5e7eb !important;
-          border-bottom: none !important;
-          transition: background-color 0.2s ease, color 0.2s ease;
-          transform: translateY(0);
-          overflow: auto hidden;
+          padding: 12px 24px;
+          background: transparent !important;
+          color: #4b5563 !important;
+          font-weight: 600;
+          font-size: 16px;
+          border: none !important;
+          transition: color 0.3s ease, transform 0.2s ease;
+          position: relative;
         }
         .custom-tabs .ant-tabs-tab:hover {
-          background: #f9fafb !important;
-          color: #1a73e8 !important;
-          transform: translateY(-1px);
+          color: #1e40af !important;
+          transform: translateY(-2px);
         }
         .custom-tabs .ant-tabs-tab-active {
-          background: #ffffff !important;
-          color: #1a73e8 !important;
-          border-bottom: 2px solid #1a73e8 !important;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          color: #1e40af !important;
         }
-        .custom-tabs .ant-tabs-content-holder {
-          height: calc(100% - 50px);
-          background: white;
-          border-radius: 0 0 8px 8px;
-          border: 1px solid #e5e7eb;
-          border-top: none;
-        }
-        .custom-tabs .ant-tabs-content {
-          height: 100%;
-          padding: 0;
-        }
-        .custom-tabs .ant-tabs-tabpane {
-          height: 100%;
-          padding: 0;
+        .custom-tabs .ant-tabs-tab-active::after {
+          content: "";
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          width: 100%;
+          height: 3px;
+          background: linear-gradient(to right, #3b82f6, #10b981);
+          border-radius: 2px;
         }
         .custom-tabs .ant-tabs-nav {
           margin: 0 !important;
-          padding: 0;
+          padding: 0 16px;
+          background: white;
+          border-bottom: 1px solid #e5e7eb;
+        }
+        .custom-tabs .ant-tabs-content-holder {
+          background: white;
+          border-radius: 0 0 12px 12px;
+          padding: 16px;
+        }
+        .custom-tabs .ant-tabs-content {
+          height: 100%;
+        }
+        .custom-tabs .ant-tabs-tabpane {
+          height: 100%;
         }
         .custom-tabs .ant-tabs-ink-bar {
           display: none !important;
@@ -322,29 +285,26 @@ const PluginsMain = () => {
         <title>Plugins | GenWrite</title>
       </Helmet>
 
-      {/* Header Section */}
       <motion.div
-        ref={headerRef}
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="my-5 ml-6 sm:ml-10"
+        className="my-6 ml-6 sm:ml-10"
       >
-        <h1 className="bg-gradient-to-tl from-blue-600 to-purple-600 text-transparent bg-clip-text font-bold text-4xl  mb-2">
-          Plugin Center <span className="ml-2 text-2xl text-yellow-400">⚡</span>
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          Plugin Center
         </h1>
-        <p className="text-gray-600 text-lg mt-2 max-w-2xl">
-          Seamlessly integrate powerful tools and features that enhance your workflow
+        <p className="text-gray-600 max-w-xl mt-2 text-base">
+          Discover and integrate powerful tools to supercharge your workflow
         </p>
       </motion.div>
 
-      {/* Main Content */}
-      <div className="flex-1 px-6 sm:px-8 pb-8 mt-5">
+      <div className="flex-1 px-6 sm:px-8 pb-8">
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.6, ease: "easeOut" }}
-          className="h-full bg-white rounded-xl shadow-xl overflow-hidden border border-gray-100"
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="h-full bg-white rounded-xl shadow-lg overflow-hidden"
         >
           <Tabs
             activeKey={activeTab}

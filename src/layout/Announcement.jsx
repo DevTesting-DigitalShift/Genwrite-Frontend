@@ -38,7 +38,6 @@ const fetchAnnouncements = async () => {
     throw new Error(`Failed to fetch announcements: ${response.statusText}`)
   }
   const data = await response.json()
-  console.log(data)
   return data
 }
 

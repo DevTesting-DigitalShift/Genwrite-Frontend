@@ -48,7 +48,6 @@ const MainEditorPage = () => {
   const pathDetect = location.pathname === `/blog-editor/${blog?._id}`
   const [isPreviewOpen, setIsPreviewOpen] = useState(false)
   const [unsavedChanges, setUnsavedChanges] = useState(false)
-  console.log("unsavedChanges", unsavedChanges)
   const [templateFormData, setTemplateFormData] = useState({
     title: "",
     topic: "",

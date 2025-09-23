@@ -238,7 +238,6 @@ const TextEditor = ({
 
   const markdownToHtml = useCallback((markdown) => {
     if (!markdown) return "<p></p>"
-    console.log("Cleaned HTML:", markdown)
     try {
       const html = marked.parse(
         markdown
@@ -252,7 +251,6 @@ const TextEditor = ({
       const doc = parser.parseFromString(html, "text/html")
       doc.querySelectorAll("script").forEach((script) => script.remove())
       const cleanHtml = DOMPurify.sanitize(doc.body.innerHTML)
-      console.log("Cleaned HTML:", cleanHtml)
       return cleanHtml
     } catch (error) {
       console.warn("Failed to parse markdown:", error)

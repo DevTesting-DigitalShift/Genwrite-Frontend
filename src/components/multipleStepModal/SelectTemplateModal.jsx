@@ -21,7 +21,7 @@ const SelectTemplateModal = ({ handleNext, handleClose, data, setData, isModalVi
     keywordInput: "",
   })
 
-   const handleModalClose = () => {
+  const handleModalClose = () => {
     // setFormData({
     //   focusKeywordInput: "",
     //   focusKeywords: [],
@@ -53,17 +53,6 @@ const SelectTemplateModal = ({ handleNext, handleClose, data, setData, isModalVi
       message.error("Please select a template before proceeding.")
     }
   }
-
-  useEffect(() => {
-    if (open) {
-      document.body.style.overflow = "hidden"
-    } else {
-      document.body.style.overflow = "auto"
-    }
-    return () => {
-      document.body.style.overflow = "auto"
-    }
-  }, [])
 
   return (
     <Modal

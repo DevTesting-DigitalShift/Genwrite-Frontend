@@ -55,8 +55,6 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
 
   const MAX_BLOGS = 100
 
-  console.log({ selectedJob })
-
   useEffect(() => {
     if (selectedJob) {
       setFormData((prev) => ({
@@ -125,7 +123,6 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
     }
   }, [selectedKeywords])
 
-  console.log(formData.aiModel)
 
   const validateSteps = (step) => {
     const errors = {}

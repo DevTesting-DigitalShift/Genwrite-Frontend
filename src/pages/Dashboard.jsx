@@ -221,6 +221,9 @@ const Dashboard = () => {
         <title>Home | GenWrite</title>
       </Helmet>
       {showWhatsNew && <GoThrough onClose={handleCloseModal} />}
+      {showAnnouncementBanner && (
+        <InlineAnnouncementBanner onClose={handleCloseAnnouncementBanner} />
+      )}
 
       {currentStep === 0 && (
         <SelectTemplateModal
@@ -426,9 +429,6 @@ const Dashboard = () => {
               </div>
             )}
           </div>
-        )}
-        {showAnnouncementBanner && (
-          <InlineAnnouncementBanner onClose={handleCloseAnnouncementBanner} />
         )}
         {/* Feedback Button */}
         <a
