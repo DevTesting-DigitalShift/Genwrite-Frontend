@@ -610,7 +610,6 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
         body: { maxHeight: "80vh", overflowY: "auto" },
         content: { maxWidth: "900px", margin: "0 auto" },
       }}
-      className="rounded-lg sm:rounded-2xl shadow-lg"
     >
       <div className="p-0 sm:p-4 space-y-4 sm:space-y-6">
         <motion.div

@@ -191,6 +191,7 @@ const TextEditor = ({
   editorContent,
   unsavedChanges,
   setUnsavedChanges,
+  wordpressMetadata,
 }) => {
   const [isEditorLoading, setIsEditorLoading] = useState(true)
   const [selectedFont, setSelectedFont] = useState(FONT_OPTIONS[0].value)
@@ -692,7 +693,7 @@ const TextEditor = ({
         await dispatch(retryBlog({ id: blog._id, payload }))
         queryClient.invalidateQueries({ queryKey: ["blogs"] })
         queryClient.invalidateQueries({ queryKey: ["blog", blog._id] })
-        setUnsavedChanges(false) // Reset unsaved changes after regeneration
+        setUnsavedChanges(false)
         navigate("/blogs")
       } catch (error) {
         console.error("Retry failed:", error)
@@ -713,7 +714,7 @@ const TextEditor = ({
         cancelText: "Regenerate without Saving",
         onConfirm: async () => {
           try {
-            await handleSave()
+            await handleSubmit({ wordpressMetadata })
             await proceedWithRegenerate()
           } catch (error) {
             message.error("Failed to save changes. Please try again.")
@@ -829,31 +830,6 @@ const TextEditor = ({
       } finally {
         setIsRetrying(false)
       }
-    }
-
-    if (unsavedChanges) {
-      handlePopup({
-        title: "Unsaved Changes",
-        description: (
-          <>
-            You have unsaved changes. Rewriting the selected text may affect your current changes.
-            Would you like to save them first?
-          </>
-        ),
-        confirmText: "Save and Retry",
-        cancelText: "Retry without Saving",
-        onConfirm: async () => {
-          try {
-            await handleSave()
-            await proceedWithRetry()
-          } catch (error) {
-            message.error("Failed to save changes. Please try again.")
-          }
-        },
-        onCancel: proceedWithRetry,
-      })
-    } else {
-      await proceedWithRetry()
     }
   }
 
@@ -1094,7 +1070,32 @@ const TextEditor = ({
     return text.trim().startsWith("<!DOCTYPE html>") || text.trim().startsWith("<html")
   }, [])
 
-  const handleRewrite = () => {
+  const handleRewrite = async () => {
+    if (unsavedChanges) {
+      handlePopup({
+        title: "Unsaved Changes",
+        description: (
+          <>
+            You have unsaved changes. Rewriting the selected text may affect your current changes.
+            Would you like to save them first?
+          </>
+        ),
+        confirmText: "Save and Retry",
+        cancelText: "Retry without Saving",
+        onConfirm: async () => {
+          try {
+            await handleSubmit({ wordpressMetadata })
+            await handleRetry()
+          } catch (error) {
+            message.error("Failed to save changes. Please try again.")
+          }
+        },
+        onCancel: handleRetry,
+      })
+    } else {
+      await handleRetry()
+    }
+
     if (userPlan === "free" || userPlan === "basic") {
       navigate("/pricing")
     } else {
@@ -1135,16 +1136,14 @@ const TextEditor = ({
     const editorDom = normalEditor.view.dom
 
     const handleMouseOver = async (e) => {
-      // Check if the target or its parent is an <a> tag
       const link = e.target.closest("a")
+      if (!link) return // <-- exit if no <a> found
 
       const url = link.href
-
       const rect = link.getBoundingClientRect()
       const scrollY = window.scrollY || window.pageYOffset
       const scrollX = window.scrollX || window.pageXOffset
 
-      // Set position for the preview
       const pos = {
         top: rect.bottom + scrollY + 8,
         left: rect.left + scrollX,
@@ -1980,17 +1979,19 @@ const TextEditor = ({
           </div>
         </motion.div>
       )}
-      <div className="flex border-b bg-white shadow-sm border-x">
-        {["Normal", "Markdown", "HTML"].map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`editor-tab ${activeTab === tab ? "active" : ""}`}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
+      {!blog.isManuallyEdited && (
+        <div className="flex border-b bg-white shadow-sm border-x">
+          {["Normal", "Markdown", "HTML"].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`editor-tab ${activeTab === tab ? "active" : ""}`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+      )}
       {renderToolbar()}
       {renderContentArea()}
       {linkPreviewPos &&

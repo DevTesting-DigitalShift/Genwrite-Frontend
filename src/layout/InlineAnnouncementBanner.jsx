@@ -56,7 +56,7 @@ const fetchAnnouncements = async () => {
 // Inline Announcement Banner Component
 const InlineAnnouncementBanner = ({ onClose }) => {
   // Fetch announcements using TanStack Query
-  const { data, isLoading, error } = useQuery({
+  const { data, error } = useQuery({
     queryKey: ["announcements"],
     queryFn: fetchAnnouncements,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
@@ -87,25 +87,6 @@ const InlineAnnouncementBanner = ({ onClose }) => {
       day: "numeric",
     })
   }, [announcement?.date])
-
-  // Handle loading state
-  if (isLoading) {
-    return (
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6 animate-pulse">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gray-200 rounded-full"></div>
-            <div className="space-y-2">
-              <div className="h-4 bg-gray-200 rounded w-32"></div>
-              <div className="h-3 bg-gray-200 rounded w-24"></div>
-            </div>
-          </div>
-          <div className="w-6 h-6 bg-gray-200 rounded"></div>
-        </div>
-        <div className="mt-3 h-4 bg-gray-200 rounded w-full"></div>
-      </div>
-    )
-  }
 
   // Handle error state
   if (error || !announcement) {

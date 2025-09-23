@@ -461,7 +461,7 @@ const MainEditorPage = () => {
           />
         </Modal>
 
-        <div className="flex flex-col md:flex-row flex-grow overflow-hidden">
+        <div className="flex flex-col md:flex-row flex-grow overflow-hidden"> 
           <div className="flex-1 flex flex-col min-w-0">
             <header className="bg-white shadow-lg border rounded-tl-lg border-gray-200 p-4 sm:p-6">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -583,6 +583,7 @@ const MainEditorPage = () => {
                     editorContent={editorContent}
                     unsavedChanges={unsavedChanges}
                     setUnsavedChanges={setUnsavedChanges}
+                    wordpressMetadata={metadata}
                   />
                 )}
               </motion.div>
@@ -613,6 +614,7 @@ const MainEditorPage = () => {
               setHumanizedContent={setHumanizedContent}
               setIsHumanizeModalOpen={setIsHumanizeModalOpen}
               unsavedChanges={unsavedChanges}
+              wordpressMetadata={metadata}
             />
           </div>
 
@@ -650,6 +652,7 @@ const MainEditorPage = () => {
                   setIsHumanizeModalOpen={setIsHumanizeModalOpen}
                   setIsSidebarOpen={setIsSidebarOpen}
                   unsavedChanges={unsavedChanges}
+                  wordpressMetadata={metadata}
                 />
               </motion.div>
             )}

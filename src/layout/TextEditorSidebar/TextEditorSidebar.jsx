@@ -520,10 +520,11 @@ const TextEditorSidebar = ({
             before posting? If you proceed without saving, your changes will be lost.
           </>
         ),
-        confirmText: "Continue without Saving",
-        cancelText: "Close",
+        confirmText: "Save and Proceed",
+        cancelText: "Proceed without Saving",
         onConfirm: async () => {
           try {
+            await handleSubmit({ metadata })
             setIsCategoryModalOpen(true)
           } catch (error) {
             console.error("Failed to save changes:", error)
@@ -537,7 +538,7 @@ const TextEditorSidebar = ({
     } else {
       setIsCategoryModalOpen(true)
     }
-  }, [unsavedChanges, handlePopup])
+  }, [unsavedChanges, handlePopup, handleSubmit])
 
   if (isAnalyzingCompetitive) {
     return (
@@ -623,7 +624,6 @@ const TextEditorSidebar = ({
                 key: "suggestions",
                 label: "Suggestions",
                 icon: Lightbulb,
-                badge: proofreadingResults.length,
               },
             ].map(({ key, label, icon: Icon, badge }) => (
               <button
@@ -718,7 +718,7 @@ const TextEditorSidebar = ({
                       onChange={(e) => setNewKeyword(e.target.value)}
                       onKeyDown={handleKeyDown}
                       placeholder="Add keywords..."
-                      className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                     <Button
                       size="small"
@@ -752,7 +752,6 @@ const TextEditorSidebar = ({
                       <div className="text-xs text-purple-600">Keywords</div>
                     </div>
                   </div>
-
                   <div className="space-y-5">
                     <ScoreCard title="Content Score" score={blog?.blogScore} icon={FileText} />
                     <ScoreCard
@@ -967,7 +966,7 @@ const TextEditorSidebar = ({
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="p-4 space-y-4"
+                className="p-4 space-y-4 h-screen"
               >
                 {competitiveAnalysisResults || result ? (
                   <Collapse defaultActiveKey={["1"]} ghost expandIconPosition="end">
