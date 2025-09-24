@@ -26,3 +26,25 @@ export function pushToDataLayer(eventData) {
     window.dataLayer.push(transformedData)
   })
 }
+
+/**
+ * Hash a given ID to SHA-256 hex using Web Crypto API
+ * @param {string|number} id - ID to hash
+ * @returns {Promise<string>} - SHA-256 hash in hex
+ */
+async function getHashedId(id) {
+  if (!id) return null
+
+  // Convert string to Uint8Array
+  const encoder = new TextEncoder()
+  const data = encoder.encode(id.toString())
+
+  // Compute SHA-256 hash
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data)
+
+  // Convert ArrayBuffer to hex string
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("")
+
+  return hashHex
+}
