@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import SelectTemplateModal from "../components/multipleStepModal/SelectTemplateModal"
 import SecondStepModal from "../components/multipleStepModal/SecondStepModal"
 import { DashboardBox, QuickBox, Blogs } from "../utils/DashboardBox"
@@ -37,6 +37,7 @@ import FirstStepModal from "../components/multipleStepModal/FirstStepModal"
 import KeywordResearchModel from "../components/dashboardModals/KeywordResearchModel"
 import QuickBlogModal from "../components/multipleStepModal/QuickBlogModal"
 import InlineAnnouncementBanner from "@/layout/InlineAnnouncementBanner"
+import dayjs from "dayjs"
 
 ChartJS.register(
   ArcElement,
@@ -79,6 +80,38 @@ const Dashboard = () => {
   const hideQuickBlogModal = () => setQuickBlogModal(false)
   const showCompetitiveAnalysis = () => setCompetitiveAnalysisModal(true)
   const hideCompetitiveAnalysis = () => setCompetitiveAnalysisModal(false)
+
+  const [dateRange, setDateRange] = useState([undefined, undefined])
+  const [presetDateRange, setPresetDateRange] = useState([undefined, undefined])
+  const [limit, setLimit] = useState(100)
+
+  // Dynamic fetch function
+  const fetchBlogsQuery = useCallback(async () => {
+    const startDate =
+      dateRange[0] || presetDateRange[0] || dayjs().subtract(1, "year").startOf("day")
+    const endDate = dateRange[1] || presetDateRange[1] || dayjs().endOf("day")
+
+    const queryParams = {
+      start: startDate.toISOString(),
+      end: endDate.toISOString(),
+      limit,
+    }
+
+    try {
+      const response = await dispatch(fetchAllBlogs(queryParams)).unwrap()
+      setBlogs(response.data || [])
+    } catch (error) {
+      console.error("Failed to fetch blogs:", error)
+      setBlogs([])
+    } finally {
+      setLoading(false)
+    }
+  }, [dispatch, dateRange, presetDateRange, limit])
+
+  // Fetch blogs on mount
+  useEffect(() => {
+    fetchBlogsQuery()
+  }, [fetchBlogsQuery])
 
   // Consolidated useEffect for GoThrough modal logic
   useEffect(() => {
@@ -125,13 +158,6 @@ const Dashboard = () => {
     dispatch(fetchBlogs())
   }, [dispatch])
 
-  // Initialize data and fetch
-  useEffect(() => {
-    dispatch(fetchAllBlogs())
-    const timer = setTimeout(() => setLoading(false), 1200)
-    return () => clearTimeout(timer)
-  }, [dispatch])
-
   useEffect(() => {
     const initUser = async () => {
       const token = localStorage.getItem("token")
@@ -155,19 +181,36 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (blogs?.data && Array.isArray(blogs.data)) {
-      const recent = blogs.data.filter((b) => b.isArchived === false).slice(0, 3)
-      setRecentBlogData(recent)
+      const now = dayjs()
+      const sevenDaysAgo = now.subtract(7, "day")
+      const oneMonthAgo = now.subtract(1, "month")
+
+      // Step 1: Get non-archived blogs
+      const activeBlogs = blogs.data.filter((b) => !b.isArchived)
+
+      // Step 2: Filter blogs within last 7 days
+      const recent7Days = activeBlogs.filter((b) => dayjs(b.createdAt).isAfter(sevenDaysAgo))
+
+      let finalBlogs = []
+
+      if (recent7Days.length > 0) {
+        // If there are new blogs in last 7 days → show them first, sorted DESC
+        finalBlogs = recent7Days.sort(
+          (a, b) => dayjs(b.createdAt).valueOf() - dayjs(a.createdAt).valueOf()
+        )
+      } else {
+        // If no blogs in last 7 days → fallback to last month (or older)
+        finalBlogs = activeBlogs
+          .filter((b) => dayjs(b.createdAt).isAfter(oneMonthAgo)) // optional: you can remove this line to take all older blogs
+          .sort((a, b) => dayjs(a.createdAt).valueOf() - dayjs(b.createdAt).valueOf()) // ASC order
+      }
+
+      // Take top 3 blogs
+      setRecentBlogData(finalBlogs.slice(0, 3))
     } else {
       setRecentBlogData([])
     }
   }, [blogs])
-
-  // Handle errors
-  useEffect(() => {
-    if (error) {
-      message.error(error)
-    }
-  }, [error])
 
   const handleSubmit = async (updatedData) => {
     try {

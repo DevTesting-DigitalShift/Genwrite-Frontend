@@ -14,8 +14,9 @@ import { htmlToText } from "html-to-text"
 import { sendRetryLines } from "@api/blogApi"
 import TemplateModal from "@components/generateBlog/TemplateModal"
 import { OpenAIFilled } from "@ant-design/icons"
-import TextEditor from "@components/generateBlog/TextEditor"
 import TextEditorSidebar from "@/layout/TextEditorSidebar/TextEditorSidebar"
+import TextEditor from "@/layout/TextEditor/TextEditor"
+import "../layout/TextEditor/editor.css"
 
 const MainEditorPage = () => {
   const { id } = useParams()
@@ -48,6 +49,7 @@ const MainEditorPage = () => {
   const pathDetect = location.pathname === `/blog-editor/${blog?._id}`
   const [isPreviewOpen, setIsPreviewOpen] = useState(false)
   const [unsavedChanges, setUnsavedChanges] = useState(false)
+  const { Title } = Typography
   const [templateFormData, setTemplateFormData] = useState({
     title: "",
     topic: "",
@@ -95,22 +97,7 @@ const MainEditorPage = () => {
     if (blog) {
       setKeywords(blog.keywords || [])
       setEditorTitle(blog.title || "")
-      setEditorContent(
-        blog.content ?? ""
-        // ? htmlToText(blog.content, {
-        //     wordwrap: false,
-        //     selectors: [
-        //       { selector: "a", options: { baseUrl: "" } },
-        //       { selector: "img", format: "skip" },
-        //       { selector: "p", options: { leadingLineBreaks: 1, trailingLineBreaks: 1 } },
-        //       { selector: "h1", options: { leadingLineBreaks: 2, trailingLineBreaks: 2 } },
-        //       { selector: "h2", options: { leadingLineBreaks: 2, trailingLineBreaks: 1 } },
-        //       { selector: "h3", options: { leadingLineBreaks: 2, trailingLineBreaks: 1 } },
-        //     ],
-        //     preserveNewLines: true,
-        //   })
-        // : ""
-      )
+      setEditorContent(blog.content ?? "")
       setIsPosted(blog.wordpress || null)
       setFormData({
         category: blog.category || "",
@@ -259,8 +246,6 @@ const MainEditorPage = () => {
     }
   }
 
-  const { Title } = Typography
-
   const handleAcceptSave = () => {
     if (saveContent) {
       setEditorContent(saveContent)
@@ -385,7 +370,7 @@ const MainEditorPage = () => {
       <Helmet>
         <title>Blog Editor | GenWrite</title>
       </Helmet>
-      <div className={`flex flex-col h-screen ${showTemplateModal ? "blur-sm" : ""}`}>
+      <div className={`flex flex-col max-h-screen overflow-y-hidden ${showTemplateModal ? "blur-sm" : ""}`}>
         <Modal
           open={saveModalOpen}
           centered
@@ -461,7 +446,7 @@ const MainEditorPage = () => {
           />
         </Modal>
 
-        <div className="flex flex-col md:flex-row flex-grow overflow-hidden"> 
+        <div className="flex flex-col md:flex-row flex-grow overflow-hidden">
           <div className="flex-1 flex flex-col min-w-0">
             <header className="bg-white shadow-lg border rounded-tl-lg border-gray-200 p-4 sm:p-6">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -547,49 +532,40 @@ const MainEditorPage = () => {
                 </div>
               )}
             </header>
-            <AnimatePresence>
-              <motion.div
-                key={activeTab}
-                initial="hidden"
-                animate="visible"
-                exit="hidden"
-                variants={tabVariants}
-                transition={{ duration: 0.3 }}
-                className="flex-grow overflow-auto min-h-[calc(100vh-200px)] sm:min-h-[calc(100vh-220px)]"
-              >
-                {isLoading ? (
-                  <div className="flex justify-center items-center h-[calc(100vh-120px)]">
-                    <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
-                  </div>
-                ) : (
-                  <TextEditor
-                    keywords={keywords}
-                    setKeywords={setKeywords}
-                    blog={blog}
-                    activeTab={activeTab}
-                    setActiveTab={setActiveTab}
-                    proofreadingResults={proofreadingResults}
-                    handleReplace={handleReplace}
-                    content={editorContent}
-                    setContent={setEditorContent}
-                    title={editorTitle}
-                    setTitle={setEditorTitle}
-                    isSavingKeyword={isSaving}
-                    className="w-full"
-                    humanizedContent={humanizedContent}
-                    showDiff={isHumanizeModalOpen}
-                    handleAcceptHumanizedContent={handleAcceptHumanizedContent}
-                    handleAcceptOriginalContent={handleAcceptOriginalContent}
-                    editorContent={editorContent}
-                    unsavedChanges={unsavedChanges}
-                    setUnsavedChanges={setUnsavedChanges}
-                    wordpressMetadata={metadata}
-                  />
-                )}
-              </motion.div>
-            </AnimatePresence>
+            <div key={activeTab} className="flex-grow overflow-auto max-h-[800px]">
+              {isLoading ? (
+                <div className="flex justify-center items-center h-[calc(100vh-120px)]">
+                  <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
+                </div>
+              ) : (
+                <TextEditor
+                  keywords={keywords}
+                  setKeywords={setKeywords}
+                  blog={blog}
+                  activeTab={activeTab}
+                  setActiveTab={setActiveTab}
+                  proofreadingResults={proofreadingResults}
+                  handleReplace={handleReplace}
+                  content={editorContent}
+                  setContent={setEditorContent}
+                  title={editorTitle}
+                  setTitle={setEditorTitle}
+                  isSavingKeyword={isSaving}
+                  handleSubmit={handleSave}
+                  className="w-full"
+                  humanizedContent={humanizedContent}
+                  showDiff={isHumanizeModalOpen}
+                  handleAcceptHumanizedContent={handleAcceptHumanizedContent}
+                  handleAcceptOriginalContent={handleAcceptOriginalContent}
+                  editorContent={editorContent}
+                  unsavedChanges={unsavedChanges}
+                  setUnsavedChanges={setUnsavedChanges}
+                  wordpressMetadata={metadata}
+                />
+              )}
+            </div>
           </div>
-          <div className="hidden md:block border-l border-gray-200 overflow-y-auto custom-scroll">
+          <div className="hidden md:block border-l border-gray-200 overflow-y-auto custom-scroll max-h-[900px]">
             <TextEditorSidebar
               blog={blog}
               keywords={keywords}
@@ -670,53 +646,6 @@ const MainEditorPage = () => {
           className="w-full max-w-lg"
         />
       </div>
-      <style>
-        {`
-          .ant-modal-content {
-            border-radius: 8px !important;
-            padding: 16px !important;
-          }
-          .ant-modal-header {
-            border-radius: 8px 8px 0 0 !important;
-          }
-          .ant-input {
-            border-radius: 8px !important;
-            border: 1px solid #d1d5db !important;
-            padding: 6px 12px !important;
-          }
-          .ant-input:focus,
-          .ant-input:hover {
-            border-color: #3b82f6 !important;
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
-          }
-          .ant-btn {
-            display: flex;
-            align-items: center;
-          }
-          @media (max-width: 640px) {
-            .ant-modal-content {
-              padding: 12px !important;
-            }
-            .ant-input {
-              font-size: 12px !important;
-              padding: 4px 8px !important;
-            }
-            .ant-btn {
-              font-size: 12px !important;
-              padding: 4px 8px !important;
-            }
-            .prose {
-              font-size: 14px !important;
-            }
-          }
-          @media (max-width: 768px) {
-            .ant-modal {
-              width: 100% !important;
-              margin: 8px !important;
-            }
-          }
-        `}
-      </style>
     </>
   )
 }

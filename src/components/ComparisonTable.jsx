@@ -1,103 +1,105 @@
-import { motion } from "framer-motion"
-import { X } from "lucide-react"
-import { Check } from "lucide-react"
+"use client"
+
 import React from "react"
 
-const featureCategories = [
-  {
-    index: 1,
-    name: "Blog Creation",
-    features: [
-      {
-        name: "Single blog",
-        available: ["basic", "pro", "enterprise", "credits"],
-      },
-      { name: "Multiple blogs", available: ["pro", "enterprise", "credits"] },
-      {
-        name: "Quick blog",
-        available: ["basic", "pro", "enterprise", "credits"],
-      },
-      {
-        name: "Automated job runs",
-        available: ["pro", "enterprise", "credits"],
-        details: {
-          basic: "10 Jobs",
-          pro: "50 Jobs",
-          enterprise: "50 Jobs",
-        },
-      },
-    ],
-  },
-  {
-    index: 2,
-    name: "AI Features",
-    features: [
-      {
-        name: "AI-generated blogs",
-        available: ["basic", "pro", "enterprise", "credits"],
-        details: {
-          basic: "10 Images",
-          pro: "50 Images",
-          enterprise: "50 Images",
-        },
-      },
-      {
-        name: "AI images with blogs",
-        available: ["basic", "pro", "enterprise", "credits"],
-      },
-      { name: "Proofreading", available: ["pro", "enterprise", "credits"] },
-      {
-        name: "Custom AI Model",
-        available: ["pro", "enterprise", "credits"],
-      },
-    ],
-  },
-  {
-    index: 3,
-    name: "Data & Analytics",
-    features: [
-      {
-        name: "Google Search Console data",
-        available: ["basic", "pro", "enterprise", "credits"],
-      },
-      {
-        name: "Competitive analysis",
-        available: ["pro", "enterprise", "credits"],
-      },
-    ],
-  },
-  {
-    index: 4,
-    name: "Blog Improvisation",
-    features: [
-      {
-        name: "Retry Blogs Generation",
-        available: ["pro", "enterprise", "credits"],
-      },
-      {
-        name: "Re-Write Blogs/Lines",
-        available: ["basic", "pro", "enterprise", "credits"],
-      },
-      {
-        name: "Re-Generate Blogs Generation",
-        available: ["pro", "enterprise", "credits"],
-      },
-    ],
-  },
-  {
-    index: 5,
-    name: "Exports & Posting",
-    features: [
-      { name: "Export blogs", available: ["pro", "enterprise", "credits"] },
-      {
-        name: "Automatic Wordpress Posting",
-        available: ["pro", "enterprise", "credits"],
-      },
-    ],
-  },
-]
+import { Check, X } from "lucide-react"
+import { motion } from "framer-motion"
 
 const ComparisonTable = ({ plans }) => {
+  const featureCategories = [
+    {
+      index: 1,
+      name: "Blog Creation",
+      features: [
+        {
+          name: "Single blog",
+          available: ["basic", "pro", "enterprise", "credits"],
+        },
+        { name: "Multiple blogs", available: ["pro", "enterprise", "credits"] },
+        {
+          name: "Quick blog",
+          available: ["basic", "pro", "enterprise", "credits"],
+        },
+        {
+          name: "Automated job runs",
+          available: ["pro", "enterprise", "basic"],
+          details: {
+            basic: "1 Jobs",
+            pro: "5 Jobs",
+            enterprise: "Unlimited Jobs",
+          },
+        },
+      ],
+    },
+    {
+      index: 2,
+      name: "AI Features",
+      features: [
+        {
+          name: "AI-generated blogs",
+          available: ["basic", "pro", "enterprise", "credits"],
+        },
+        {
+          name: "AI images with blogs",
+          available: ["basic", "pro", "enterprise", "credits"],
+          details: {
+            basic: "50 Images",
+            pro: "200 Images",
+            enterprise: "Unlimited Images",
+          },
+        },
+        { name: "Proofreading", available: ["pro", "enterprise"] },
+        {
+          name: "Custom AI Model",
+          available: ["pro", "enterprise"],
+        },
+      ],
+    },
+    {
+      index: 3,
+      name: "Data & Analytics",
+      features: [
+        {
+          name: "Google Search Console data",
+          available: ["basic", "pro", "enterprise", "credits"],
+        },
+        {
+          name: "Competitive analysis",
+          available: ["pro", "enterprise", "credits"],
+        },
+      ],
+    },
+    {
+      index: 4,
+      name: "Blog Improvisation",
+      features: [
+        {
+          name: "Retry Blogs Generation",
+          available: ["pro", "enterprise", "credits"],
+        },
+        {
+          name: "Re-Write Blogs/Lines",
+          available: ["basic", "pro", "enterprise", "credits"],
+        },
+        {
+          name: "Re-Generate Blogs Generation",
+          available: ["pro", "enterprise", "credits"],
+        },
+      ],
+    },
+    {
+      index: 5,
+      name: "Exports & Posting",
+      features: [
+        { name: "Export blogs", available: ["pro", "enterprise", "credits"] },
+        {
+          name: "Automatic Wordpress Posting",
+          available: ["pro", "enterprise", "credits"],
+        },
+      ],
+    },
+  ]
+
   const getPlanStyles = (tier) => {
     switch (tier) {
       case "basic":
@@ -121,16 +123,8 @@ const ComparisonTable = ({ plans }) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="mx-auto py-8 sm:py-10 md:py-12 px-4 sm:px-6 md:px-8 mt-20"
+      className="mx-auto py-8 sm:py-10 md:py-12 px-4 sm:px-6 md:px-8 rounded-2xl"
     >
-      <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-center mt-6 mb-40 tracking-tight bg-gradient-to-r from-purple-600 via-blue-600 to-pink-500 bg-clip-text text-transparent">
-        Compare Our{" "}
-        <span className="bg-gradient-to-r from-orange-500 to-pink-400 bg-clip-text text-transparent">
-          GenWrite
-        </span>{" "}
-        Plans
-      </h1>
-
       <div className="rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse min-w-[600px]">
@@ -147,13 +141,13 @@ const ComparisonTable = ({ plans }) => {
                       <div className={`text-lg sm:text-xl md:text-2xl font-bold ${styles.text}`}>
                         {plan.name}
                       </div>
-                      {plan.seats && (
+                      {plan?.seats && (
                         <div className="text-xs sm:text-sm text-gray-500 mt-1">
                           {plan.seats} seats
-                          {plan.extraSeatsMonthly && (
+                          {plan?.extraSeatsMonthly && (
                             <span>
                               , +${plan.extraSeatsMonthly}/mo per extra seat
-                              {plan.extraSeatsAnnual && (
+                              {plan?.extraSeatsAnnual && (
                                 <span className="text-gray-400">
                                   (${plan.extraSeatsAnnual}/mo, billed yearly)
                                 </span>
@@ -175,11 +169,12 @@ const ComparisonTable = ({ plans }) => {
                       colSpan={plans.length + 1}
                       className={`p-2 sm:p-3 md:p-4 uppercase tracking-widest font-bold text-gray-700 text-sm sm:text-base md:text-lg ${
                         category.index > 1 ? "pt-6 sm:pt-8 md:pt-10" : ""
-                      }`}
+                      } sticky left-0 bg-white z-30`} // 👈 add this
                     >
                       {category.name}
                     </td>
                   </tr>
+
                   {category.features.map((feature, featIndex) => {
                     const globalIndex =
                       featureCategories
@@ -195,9 +190,13 @@ const ComparisonTable = ({ plans }) => {
                           globalIndex % 2 === 0 ? "bg-white" : "bg-gray-50"
                         } hover:bg-gray-100 transition-all duration-200`}
                       >
-                        <td className="p-2 sm:p-3 md:p-4 text-gray-700 text-xs sm:text-sm md:text-base">
+                        <td
+                          className="p-2 sm:p-3 md:p-4 text-gray-700 text-xs sm:text-sm md:text-base
+             sticky left-0 bg-white z-20" // 👈 add this
+                        >
                           {feature.name}
                         </td>
+
                         {plans.map((plan) => {
                           const styles = getPlanStyles(plan.tier)
                           return (

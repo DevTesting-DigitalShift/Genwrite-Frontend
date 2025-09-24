@@ -19,7 +19,11 @@ export const ConfirmPopupProvider = ({ children }) => {
 
   const handleClose = () => {
     setVisible(false)
-    options?.onClose?.()
+    if (options?.onCancel) {
+      options.onCancel()
+    } else {
+      options?.onClose?.()
+    }
   }
 
   const handleConfirm = () => {

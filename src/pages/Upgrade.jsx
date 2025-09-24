@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import axiosInstance from "@api/index"
 import { loadStripe } from "@stripe/stripe-js"
-import { Check, Coins, Crown, Mail, Shield, Star, X, Zap } from "lucide-react"
+import { Check, Coins, Crown, Mail, Shield, Star, Zap } from "lucide-react"
 import { Helmet } from "react-helmet"
 import { SkeletonCard } from "@components/UI/SkeletonLoader"
 import { message } from "antd"
@@ -10,7 +10,15 @@ import { sendStripeGTMEvent } from "@utils/stripeGTMEvents"
 import { useSelector } from "react-redux"
 import ComparisonTable from "@components/ComparisonTable"
 
-const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
+const PricingCard = ({
+  plan,
+  index,
+  onBuy,
+  billingPeriod,
+  userPlan,
+  userStatus,
+  userStartDate,
+}) => {
   const [customCredits, setCustomCredits] = useState(500)
 
   const handleCustomCreditsChange = (e) => {
@@ -29,57 +37,77 @@ const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
       ? plan.priceAnnual
       : plan.priceMonthly
 
+  // Determine if the plan should be disabled based on active status
+  const isWithinBillingCycle = userStatus === "active"
+
+  const isDisabled =
+    isWithinBillingCycle &&
+    plan.type !== "credit_purchase" &&
+    (userPlan === "enterprise" ||
+      (userPlan === "pro" && (plan.tier === "basic" || plan.tier === "pro")) ||
+      (userPlan === "basic" && plan.tier === "basic"))
+
   const getCardStyles = () => {
+    const baseStyles = {
+      container: isDisabled
+        ? `bg-white border border-gray-200 opacity-80 cursor-not-allowed`
+        : `bg-white border border-gray-200 hover:border-gray-300 hover:shadow-lg`,
+      icon: `bg-gray-50 text-gray-600`,
+      price: `text-gray-900`,
+      button: isDisabled
+        ? `bg-gray-300 text-white cursor-not-allowed`
+        : `bg-gray-900 hover:bg-gray-800 text-white`,
+      accent: `text-gray-600`,
+    }
+
     switch (plan.tier) {
       case "basic":
-        return {
-          container: "bg-white border border-gray-200 hover:border-gray-300 hover:shadow-lg",
-          icon: "bg-gray-50 text-gray-600",
-          price: "text-gray-900",
-          button: "bg-gray-900 hover:bg-gray-800 text-white",
-          accent: "text-gray-600",
-        }
+        return baseStyles
       case "pro":
         return {
-          container:
-            "bg-white border-2 border-blue-200 hover:border-blue-300 hover:shadow-xl shadow-lg",
-          icon: "bg-blue-50 text-blue-600",
-          price: "text-blue-600",
-          button: "bg-blue-600 hover:bg-blue-700 text-white",
-          accent: "text-blue-600",
+          ...baseStyles,
+          container: isDisabled
+            ? `bg-white border-2 border-blue-200 opacity-80 cursor-not-allowed`
+            : `bg-white border-2 border-blue-200 hover:border-blue-300 hover:shadow-xl shadow-lg`,
+          icon: `bg-blue-50 text-blue-600`,
+          price: `text-blue-600`,
+          button: isDisabled
+            ? `bg-blue-300 text-white cursor-not-allowed`
+            : `bg-blue-600 hover:bg-blue-700 text-white`,
+          accent: `text-blue-600`,
         }
       case "enterprise":
         return {
-          container: "bg-white border border-purple-200 hover:border-purple-300 hover:shadow-lg",
-          icon: "bg-purple-50 text-purple-600",
-          price: "text-purple-600",
-          button: "bg-purple-600 hover:bg-purple-700 text-white",
-          accent: "text-purple-600",
+          ...baseStyles,
+          container: isDisabled
+            ? `bg-white border border-purple-200 opacity-80 cursor-not-allowed`
+            : `bg-white border border-purple-200 hover:border-purple-300 hover:shadow-lg`,
+          icon: `bg-purple-50 text-purple-600`,
+          price: `text-purple-600`,
+          button: isDisabled
+            ? `bg-purple-300 text-white cursor-not-allowed`
+            : `bg-purple-600 hover:bg-purple-700 text-white`,
+          accent: `text-purple-600`,
         }
       case "credits":
         return {
-          container: "bg-white border border-emerald-200 hover:border-emerald-300 hover:shadow-lg",
-          icon: "bg-emerald-50 text-emerald-600",
-          price: "text-emerald-600",
-          button: "bg-emerald-600 hover:bg-emerald-700 text-white",
-          accent: "text-emerald-600",
+          ...baseStyles,
+          container: `bg-white border border-emerald-200 hover:border-emerald-300 hover:shadow-lg`,
+          icon: `bg-emerald-50 text-emerald-600`,
+          price: `text-emerald-600`,
+          button: `bg-emerald-600 hover:bg-emerald-700 text-white`,
+          accent: `text-emerald-600`,
         }
       default:
-        return {
-          container: "bg-white border border-gray-200",
-          icon: "bg-gray-50 text-gray-600",
-          price: "text-gray-900",
-          button: "bg-gray-900 hover:bg-gray-800 text-white",
-          accent: "text-gray-600",
-        }
+        return baseStyles
     }
   }
 
   const styles = getCardStyles()
 
   return (
-    <div className={`relative group ${plan.featured ? "lg:scale-105" : ""}`}>
-      {plan.featured && (
+    <div className={`relative group ${plan.featured && !isDisabled ? "lg:scale-105" : ""}`}>
+      {plan.featured && !isDisabled && (
         <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
           <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-1">
             <Star className="w-4 h-4" />
@@ -89,7 +117,9 @@ const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
       )}
 
       <div
-        className={`relative rounded-2xl transition-all duration-300 hover:scale-[1.02] ${styles.container} overflow-hidden p-8 h-full flex flex-col`}
+        className={`relative rounded-2xl transition-all duration-300 ${
+          isDisabled ? "" : "hover:scale-[1.02]"
+        } ${styles.container} overflow-hidden p-8 h-full flex flex-col`}
       >
         <div className="text-center mb-8">
           <div
@@ -174,29 +204,30 @@ const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
 
         <button
           onClick={() => {
+            if (isDisabled) return
             if (plan.type === "credit_purchase") {
               if (customCredits < 500) return
               onBuy(plan, customCredits, billingPeriod)
             } else if (plan.name.toLowerCase().includes("enterprise")) {
               window.open(
-                `https://mail.google.com/mail/?view=cm&fs=1&to= support@genwrite.com&su=GenWrite Enterprise Subscription&body=I'm interested in the Enterprise plan.`,
+                `https://mail.google.com/mail/?view=cm&fs=1&to=support@genwrite.com&su=GenWrite Enterprise Subscription&body=I'm interested in the Enterprise plan.`,
                 "_blank"
               )
             } else {
               onBuy(plan, plan.credits, billingPeriod)
             }
           }}
-          className={`w-full py-4 px-6 rounded-lg font-semibold transition-all duration-300 hover:transform hover:scale-105 hover:shadow-lg ${
-            styles.button
-          } ${
+          className={`w-full py-4 px-6 rounded-lg font-semibold transition-all duration-300 ${
+            isDisabled ? "" : "hover:transform hover:scale-105 hover:shadow-lg"
+          } ${styles.button} ${
             plan.type === "credit_purchase" && customCredits < 500
               ? "opacity-50 cursor-not-allowed"
               : ""
           } flex items-center justify-center gap-2`}
-          disabled={plan.type === "credit_purchase" && customCredits < 500}
+          disabled={isDisabled || (plan.type === "credit_purchase" && customCredits < 500)}
         >
           {plan.name.toLowerCase().includes("enterprise") && <Mail className="w-4 h-4" />}
-          {plan.cta}
+          {isDisabled ? "Current Plan" : plan.cta}
         </button>
       </div>
     </div>
@@ -214,7 +245,8 @@ const Upgrade = () => {
     return () => clearTimeout(timer)
   }, [])
 
-  const getPlans = (billingPeriod) => {
+  const getPlans = (billingPeriod, userPlan) => {
+    const isProUser = userPlan === "pro"
     return [
       {
         name: "GenWrite Basic",
@@ -234,7 +266,6 @@ const Upgrade = () => {
           "Standard templates",
           "Automatic WordPress Posting",
           "Basic content analytics",
-          // "5GB cloud storage",
         ],
         cta: "Get Started",
         type: "subscription",
@@ -266,18 +297,13 @@ const Upgrade = () => {
           "AI content suggestions",
           "Automatic WordPress Posting",
           "Custom AI models & workflows",
-          // "Text-to-image generation",
-          // "Real-time collaboration",
-          // "Commenting and feedback",
-          // "Third-party integrations",
           "Advanced content insights",
-          // "100GB cloud storage",
         ],
         cta: "Upgrade to Pro",
         type: "subscription",
         icon: <Shield className="w-8 h-8" />,
         tier: "pro",
-        featured: true,
+        featured: !isProUser && userPlan !== "enterprise",
       },
       {
         name: "GenWrite Enterprise",
@@ -291,25 +317,15 @@ const Upgrade = () => {
           "Flexible usage based on your needs",
           "Dedicated support manager",
           "Custom integrations",
-          // "SSO & advanced security",
-          // "Training & onboarding",
-          // "SLA guarantee",
           "Early access to beta tools",
           "Automatic WordPress Posting",
           "Approval workflows",
-          // "Team asset library",
-          // "Role-based access control",
-          // "Team performance reports",
-          // "ISO 27001 certification",
-          // "SOC 2 Type II compliance",
-          // "Multi-factor authentication (MFA)",
-          // "1TB cloud storage",
         ],
         cta: "Contact Sales",
         type: "subscription",
         icon: <Crown className="w-8 h-8" />,
         tier: "enterprise",
-        featured: false,
+        featured: isProUser || userPlan === "basic",
       },
       {
         name: "Credit Pack",
@@ -330,7 +346,6 @@ const Upgrade = () => {
           "Humanize pasted content",
           "Email support",
           "Basic content analytics",
-          // "Cloud storage based on usage",
         ],
         cta: "Buy Credits",
         type: "credit_purchase",
@@ -341,23 +356,17 @@ const Upgrade = () => {
     ]
   }
 
-  const plans = getPlans(billingPeriod)
+  const plans = getPlans(billingPeriod, user?.subscription?.plan)
 
   function getGaClientId() {
-    // Find the _ga cookie, it looks something like: "GAx.Y.123456789.9876543210"
-    // Where 123456789.9876543210 is the client ID (or similar depending on GA4 cookie format)
     const gaCookie = document.cookie.split("; ").find((row) => row.startsWith("_ga="))
     if (gaCookie) {
-      // For GA4, the client ID is usually the last two segments of the _ga cookie value.
-      // Example: _ga=GA1.2.123456789.9638527410
-      // We need '123456789.9638527410'
       const parts = gaCookie.split(".")
-      // Check if it's a valid GA4 _ga cookie format
       if (parts.length > 2) {
-        return parts[2] + "." + parts[3] // The last two parts are the client ID
+        return parts[2] + "." + parts[3]
       }
     }
-    return null // Client ID not found
+    return null
   }
 
   const handleBuy = async (plan, credits, billingPeriod) => {
@@ -396,6 +405,18 @@ const Upgrade = () => {
         <title>Subscription | GenWrite</title>
       </Helmet>
       <div className="mx-auto">
+        {user?.subscription?.plan === "enterprise" && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center mb-8"
+          >
+            <p className="text-lg font-semibold text-purple-600">
+              You are at the top tier with our Enterprise plan! Contact our dedicated support team
+              for any tailored solutions you require.
+            </p>
+          </motion.div>
+        )}
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center mb-16">
           <motion.div initial={{ y: -20 }} animate={{ y: 0 }} className="inline-block mb-4">
             <motion.h1
@@ -455,6 +476,9 @@ const Upgrade = () => {
                     index={index}
                     onBuy={handleBuy}
                     billingPeriod={billingPeriod}
+                    userPlan={user?.subscription?.plan}
+                    userStatus={user?.subscription?.status}
+                    userStartDate={user?.subscription?.startDate}
                   />
                 ))}
           </AnimatePresence>
@@ -477,7 +501,7 @@ const Upgrade = () => {
         <div className="flex justify-end mt-4 mr-20">
           <a
             href="/cancel-subscription"
-            className="text-sm text-gray-700 hover:text-purple-500 transition-colors bg-gray-100 rounded-lg hover:bg-gray-200/50 p-5"
+            className="text-sm font-medium text-gray-700 hover:text-purple-600 transition-colors bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 px-4 py-2 shadow-sm"
           >
             Thinking of leaving GenWrite?
           </a>
