@@ -108,6 +108,10 @@ const MainEditorPage = () => {
     }
   }, [blog])
 
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [])
+
   const handleReplace = (original, change) => {
     if (typeof original !== "string" || typeof change !== "string") {
       message.error("Invalid suggestion format.")
@@ -370,55 +374,67 @@ const MainEditorPage = () => {
       <Helmet>
         <title>Blog Editor | GenWrite</title>
       </Helmet>
-      <div className={`flex flex-col max-h-screen overflow-y-hidden ${showTemplateModal ? "blur-sm" : ""}`}>
+      <div
+        className={`flex flex-col max-h-screen overflow-y-hidden ${
+          showTemplateModal ? "blur-sm" : ""
+        }`}
+      >
         <Modal
           open={saveModalOpen}
           centered
           footer={[
-            <Button
-              key="reject"
-              onClick={handleRejectSave}
-              className="px-3 sm:px-4 py-2 bg-gray-100 text-gray-600 hover:bg-gray-200"
-            >
-              Reject
-            </Button>,
-            <Button
-              key="accept"
-              type="primary"
-              onClick={handleAcceptSave}
-              className="px-3 sm:px-4 py-2"
-            >
-              Accept
-            </Button>,
+            <div className="flex justify-end gap-3 w-full" key="footer">
+              <Button
+                key="reject"
+                onClick={handleRejectSave}
+                className="px-3 sm:px-4 py-2 bg-gray-100 text-gray-600 hover:bg-gray-200 rounded-md"
+              >
+                Reject
+              </Button>
+              <Button
+                key="accept"
+                type="primary"
+                onClick={handleAcceptSave}
+                className="px-3 sm:px-4 py-2 rounded-md"
+              >
+                Accept
+              </Button>
+            </div>,
           ]}
           onCancel={handleRejectSave}
           width="100%"
           className="rounded-lg max-w-[600px] sm:max-w-[700px] md:max-w-[800px]"
         >
-          <Title level={3} className="text-base sm:text-lg mb-4">
-            Suggested Content
-          </Title>
-          <div className="p-4 sm:p-6 bg-gray-100 rounded-md mb-4">
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              rehypePlugins={[rehypeRaw]}
-              className="prose prose-sm sm:prose-base"
-              components={{
-                a: ({ href, children }) => (
-                  <a
-                    href={href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-500 hover:underline"
-                  >
-                    {children}
-                  </a>
-                ),
-                strong: ({ children }) => <strong className="font-bold">{children}</strong>,
-              }}
-            >
-              {saveContent}
-            </ReactMarkdown>
+          <div className="flex flex-col gap-4">
+            <Title level={3} className="text-lg ml-5 sm:text-xl !mb-0 text-gray-800">
+              Suggested Content
+            </Title>
+
+            <div className="p-5 custom-scroll border border-gray-200 rounded-lg shadow-inner max-h-[70vh] overflow-y-auto prose prose-sm sm:prose-base leading-relaxed text-gray-700">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeRaw]}
+                components={{
+                  a: ({ href, children }) => (
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 font-medium hover:underline"
+                    >
+                      {children}
+                    </a>
+                  ),
+                  strong: ({ children }) => (
+                    <strong className="font-semibold text-gray-900">{children}</strong>
+                  ),
+                  p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
+                  li: ({ children }) => <li className="mb-1">{children}</li>,
+                }}
+              >
+                {saveContent}
+              </ReactMarkdown>
+            </div>
           </div>
         </Modal>
 

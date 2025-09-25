@@ -38,7 +38,7 @@ import { useDispatch, useSelector } from "react-redux"
 import { Input, Modal, Tooltip, message, Select, Button } from "antd"
 import { marked } from "marked"
 import TurndownService from "turndown"
-import { useLocation, useNavigate } from "react-router-dom"
+import { useBlocker, useLocation, useNavigate } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { ProofreadingDecoration } from "@/extensions/ProofreadingDecoration"
 import Loading from "@components/UI/Loading"
@@ -63,7 +63,6 @@ import "./editor.css"
 const MarkdownEditor = React.lazy(() =>
   import("./OtherEditors").then((m) => ({ default: m.MarkdownEditor }))
 )
-
 const HtmlEditor = React.lazy(() =>
   import("./OtherEditors").then((m) => ({ default: m.HtmlEditor }))
 )
@@ -190,12 +189,6 @@ const TextEditor = ({
         attributes: {
           class: `prose max-w-none focus:outline-none p-4 min-h-[400px] ${selectedFont} blog-content editor-container`,
         },
-      },
-
-      onTransaction: ({ transaction }) => {
-        if (transaction.steps.length > 0 || transaction.docChanged) {
-          setUnsavedChanges(true)
-        }
       },
 
       onUpdate: ({ editor }) => {
@@ -642,6 +635,10 @@ const TextEditor = ({
     }
   }
 
+  const handleTabClick = (tab) => {
+    setActiveTab(tab)
+  }
+
   const handleAcceptHumanizedContentModified = useCallback(() => {
     if (humanizedContent) {
       setContent(humanizedContent)
@@ -660,6 +657,70 @@ const TextEditor = ({
     setHtmlContent,
     handleAcceptHumanizedContent,
   ])
+
+  const handleDeleteImage = useCallback(() => {
+    if (!selectedImage) return
+    if (activeTab === "Normal" && normalEditor) {
+      let deleted = false
+      normalEditor.state.doc.descendants((node, pos) => {
+        if (node.type.name === "image" && node.attrs.src === selectedImage.src) {
+          normalEditor
+            .chain()
+            .focus()
+            .deleteRange({ from: pos, to: pos + 1 })
+            .run()
+          deleted = true
+        }
+      })
+      if (deleted) {
+        setEditImageModalOpen(false)
+        setSelectedImage(null)
+        setImageAlt("")
+      } else {
+        message.error("Failed to delete image.")
+      }
+    } else if (activeTab === "Markdown") {
+      const markdownImageRegex = new RegExp(
+        `!\\[${escapeRegExp(selectedImage.alt || "")}\\]\\(${escapeRegExp(selectedImage.src)}\\)`,
+        "g"
+      )
+      setContent((prev) => {
+        const newContent = prev.replace(markdownImageRegex, "")
+        return newContent
+      })
+      setEditImageModalOpen(false)
+      setSelectedImage(null)
+      setImageAlt("")
+    } else if (activeTab === "HTML") {
+      const htmlImageRegex = new RegExp(
+        `<img\\s+src="${escapeRegExp(selectedImage.src)}"\\s+alt="${escapeRegExp(
+          selectedImage.alt || ""
+        )}"\\s*/>`,
+        "g"
+      )
+      setContent((prev) => {
+        const html = markdownToHtml(prev)
+        const updatedHtml = html.replace(htmlImageRegex, "")
+        const newContent = htmlToMarkdown(updatedHtml)
+        return newContent
+      })
+      setEditImageModalOpen(false)
+      setSelectedImage(null)
+      setImageAlt("")
+    }
+  }, [selectedImage, normalEditor, activeTab, setContent, markdownToHtml, htmlToMarkdown])
+
+  function useNavigationBlocker(when) {
+    const blocker = useBlocker(
+      ({ currentLocation, nextLocation }) =>
+        when && currentLocation.pathname !== nextLocation.pathname
+    )
+    return blocker
+  }
+
+  const blocker = useNavigationBlocker(unsavedChanges)
+
+  console.log("unsavedChanges", unsavedChanges)
 
   useEffect(() => {
     if (normalEditor && blog?.content) {
@@ -779,58 +840,6 @@ const TextEditor = ({
     }
   }, [blog, safeContent, setContent])
 
-  const handleDeleteImage = useCallback(() => {
-    if (!selectedImage) return
-    if (activeTab === "Normal" && normalEditor) {
-      let deleted = false
-      normalEditor.state.doc.descendants((node, pos) => {
-        if (node.type.name === "image" && node.attrs.src === selectedImage.src) {
-          normalEditor
-            .chain()
-            .focus()
-            .deleteRange({ from: pos, to: pos + 1 })
-            .run()
-          deleted = true
-        }
-      })
-      if (deleted) {
-        setEditImageModalOpen(false)
-        setSelectedImage(null)
-        setImageAlt("")
-      } else {
-        message.error("Failed to delete image.")
-      }
-    } else if (activeTab === "Markdown") {
-      const markdownImageRegex = new RegExp(
-        `!\\[${escapeRegExp(selectedImage.alt || "")}\\]\\(${escapeRegExp(selectedImage.src)}\\)`,
-        "g"
-      )
-      setContent((prev) => {
-        const newContent = prev.replace(markdownImageRegex, "")
-        return newContent
-      })
-      setEditImageModalOpen(false)
-      setSelectedImage(null)
-      setImageAlt("")
-    } else if (activeTab === "HTML") {
-      const htmlImageRegex = new RegExp(
-        `<img\\s+src="${escapeRegExp(selectedImage.src)}"\\s+alt="${escapeRegExp(
-          selectedImage.alt || ""
-        )}"\\s*/>`,
-        "g"
-      )
-      setContent((prev) => {
-        const html = markdownToHtml(prev)
-        const updatedHtml = html.replace(htmlImageRegex, "")
-        const newContent = htmlToMarkdown(updatedHtml)
-        return newContent
-      })
-      setEditImageModalOpen(false)
-      setSelectedImage(null)
-      setImageAlt("")
-    }
-  }, [selectedImage, normalEditor, activeTab, setContent, markdownToHtml, htmlToMarkdown])
-
   useEffect(() => {
     if (activeTab === "Normal" && normalEditor && normalEditor?.view?.dom) {
       const editorElement = normalEditor.view.dom
@@ -895,6 +904,39 @@ const TextEditor = ({
       if (hideTimeout.current) clearTimeout(hideTimeout.current)
     }
   }, [activeTab, normalEditor])
+
+  useEffect(() => {
+    if (blocker.state === "blocked") {
+      if (window.confirm("You have unsaved changes, are you sure you want to leave?")) {
+        blocker.proceed()
+      } else {
+        blocker.reset()
+      }
+    }
+  }, [blocker])
+
+  useEffect(() => {
+    if (!blog?.content) return
+
+    const currentMarkdown = htmlToMarkdown(normalEditor ? normalEditor.getHTML() : content ?? "")
+    const normCurrent = normalizeContent(currentMarkdown)
+    const normOriginal = normalizeContent(blog.content ?? "")
+
+    setUnsavedChanges(normCurrent !== normOriginal)
+  }, [content, blog?.content, normalEditor, htmlToMarkdown, normalizeContent])
+
+  useEffect(() => {
+    if (!normalEditor || normalEditor.isDestroyed) return
+
+    const html = markdownToHtml(content)
+    if (normalEditor.getHTML() !== html) {
+      const editorDom = normalEditor.view.dom
+
+      const selection = normalEditor.state.selection
+      normalEditor.commands.setContent(html, false)
+      normalEditor.commands.setTextSelection({ from: selection.from, to: selection.to })
+    }
+  }, [content, normalEditor, markdownToHtml])
 
   const renderToolbar = () => (
     <div className="bg-white border-x border-gray-200 shadow-sm px-2 sm:px-4 py-2 flex flex-wrap items-center justify-start gap-y-2 overflow-x-auto">
@@ -1089,6 +1131,7 @@ const TextEditor = ({
             <Undo2 className="w-4 h-4" />
           </button>
         </Tooltip>
+
         <Tooltip title="Redo">
           <button
             onClick={() => safeEditorAction(() => normalEditor?.chain().focus().redo().run())}
@@ -1099,6 +1142,7 @@ const TextEditor = ({
             <Redo2 className="w-4 h-4" />
           </button>
         </Tooltip>
+
         {!pathDetect && (
           <Tooltip title="Rewrite">
             <button
@@ -1249,26 +1293,6 @@ const TextEditor = ({
     } catch (error) {
       console.error("computeLineDiff error:", error)
       return [{ lineNumber: 1, oldLine: "", newLine: "", type: "unchanged" }]
-    }
-  }
-
-  const handleTabClick = (tab) => {
-    if (unsavedChanges) {
-      handlePopup({
-        title: "Unsaved Changes",
-        description: (
-          <>You have unsaved changes. Switching tabs will discard them. Do you want to continue?</>
-        ),
-        confirmText: "Save and Change Tab",
-        cancelText: "Go without Saving",
-        onConfirm: () => {
-          handleSubmit({ wordpressMetadata })
-          setActiveTab(tab)
-        },
-        onCancel: () => setActiveTab(tab),
-      })
-    } else {
-      setActiveTab(tab)
     }
   }
 
@@ -1565,7 +1589,7 @@ const TextEditor = ({
     }
 
     return (
-      <div className="bg-white border rounded-lg rounded-t-none shadow-sm h-screen">
+      <>
         {activeTab === "Markdown" && (
           <MarkdownEditor
             content={safeContent}
@@ -1573,7 +1597,6 @@ const TextEditor = ({
               setContent(newContent)
               setHtmlContent(markdownToHtml(newContent).replace(/>\s*</g, ">\n<"))
             }}
-            className="h-full"
             setUnsavedChanges={setUnsavedChanges}
           />
         )}
@@ -1584,11 +1607,10 @@ const TextEditor = ({
               setHtmlContent(newHtml)
               setContent(htmlToMarkdown(newHtml))
             }}
-            className="h-full"
             setUnsavedChanges={setUnsavedChanges}
           />
         )}
-      </div>
+      </>
     )
   }
 
@@ -1600,13 +1622,9 @@ const TextEditor = ({
       transition={{ duration: 0.4 }}
     >
       {(isRetrying || isSavingKeyword) && (
-        <motion.div
-          className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-        >
+        <div className="bg-white flex items-center justify-center z-50">
           <Loading />
-        </motion.div>
+        </div>
       )}
       {retryModalOpen && (
         <motion.div

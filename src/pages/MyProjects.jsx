@@ -244,11 +244,9 @@ const MyProjects = () => {
     mutationFn: (id) => dispatch(retryBlog({ id })).unwrap(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["blogs"], exact: false })
-      message.success("Blog retry initiated.")
     },
     onError: (error) => {
       console.error("Failed to retry blog:", error)
-      message.error("Failed to retry blog.")
     },
   })
 

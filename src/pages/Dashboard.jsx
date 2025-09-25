@@ -81,19 +81,24 @@ const Dashboard = () => {
   const showCompetitiveAnalysis = () => setCompetitiveAnalysisModal(true)
   const hideCompetitiveAnalysis = () => setCompetitiveAnalysisModal(false)
 
+  // Default state
   const [dateRange, setDateRange] = useState([undefined, undefined])
-  const [presetDateRange, setPresetDateRange] = useState([undefined, undefined])
+  const [presetDateRange, setPresetDateRange] = useState([
+    dayjs().subtract(1, "year").startOf("day"), // start: 1 year ago
+    dayjs().endOf("day"), // end: today
+  ])
+
   const [limit, setLimit] = useState(100)
 
-  // Dynamic fetch function
+  // Fetch function
   const fetchBlogsQuery = useCallback(async () => {
     const startDate =
       dateRange[0] || presetDateRange[0] || dayjs().subtract(1, "year").startOf("day")
     const endDate = dateRange[1] || presetDateRange[1] || dayjs().endOf("day")
 
     const queryParams = {
-      start: startDate.toISOString(),
-      end: endDate.toISOString(),
+      start: dayjs(startDate).startOf("day").toISOString(),
+      end: dayjs(endDate).endOf("day").toISOString(),
       limit,
     }
 
@@ -107,6 +112,25 @@ const Dashboard = () => {
       setLoading(false)
     }
   }, [dispatch, dateRange, presetDateRange, limit])
+
+  // Process blogs to get top 3 non-archived by createdAt ASC
+  // Process blogs to get top 3 most recent non-archived blogs
+  useEffect(() => {
+    if (!blogs?.data || !Array.isArray(blogs.data)) {
+      setRecentBlogData([])
+      return
+    }
+
+    const activeBlogs = blogs.data.filter((b) => !b.isArchived)
+
+    // Sort DESC → newest first
+    const sortedBlogs = activeBlogs.sort(
+      (a, b) => dayjs(b.updatedAt).valueOf() - dayjs(a.updatedAt).valueOf()
+    )
+
+    // Take top 3
+    setRecentBlogData(sortedBlogs.slice(0, 3))
+  }, [blogs])
 
   // Fetch blogs on mount
   useEffect(() => {
@@ -178,39 +202,6 @@ const Dashboard = () => {
     }
     initUser()
   }, [dispatch, navigate])
-
-  useEffect(() => {
-    if (blogs?.data && Array.isArray(blogs.data)) {
-      const now = dayjs()
-      const sevenDaysAgo = now.subtract(7, "day")
-      const oneMonthAgo = now.subtract(1, "month")
-
-      // Step 1: Get non-archived blogs
-      const activeBlogs = blogs.data.filter((b) => !b.isArchived)
-
-      // Step 2: Filter blogs within last 7 days
-      const recent7Days = activeBlogs.filter((b) => dayjs(b.createdAt).isAfter(sevenDaysAgo))
-
-      let finalBlogs = []
-
-      if (recent7Days.length > 0) {
-        // If there are new blogs in last 7 days → show them first, sorted DESC
-        finalBlogs = recent7Days.sort(
-          (a, b) => dayjs(b.createdAt).valueOf() - dayjs(a.createdAt).valueOf()
-        )
-      } else {
-        // If no blogs in last 7 days → fallback to last month (or older)
-        finalBlogs = activeBlogs
-          .filter((b) => dayjs(b.createdAt).isAfter(oneMonthAgo)) // optional: you can remove this line to take all older blogs
-          .sort((a, b) => dayjs(a.createdAt).valueOf() - dayjs(b.createdAt).valueOf()) // ASC order
-      }
-
-      // Take top 3 blogs
-      setRecentBlogData(finalBlogs.slice(0, 3))
-    } else {
-      setRecentBlogData([])
-    }
-  }, [blogs])
 
   const handleSubmit = async (updatedData) => {
     try {

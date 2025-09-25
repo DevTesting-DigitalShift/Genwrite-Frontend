@@ -5,7 +5,7 @@ import { loadStripe } from "@stripe/stripe-js"
 import { Check, Coins, Crown, Mail, Shield, Star, Zap } from "lucide-react"
 import { Helmet } from "react-helmet"
 import { SkeletonCard } from "@components/UI/SkeletonLoader"
-import { message } from "antd"
+import { message, Modal } from "antd"
 import { sendStripeGTMEvent } from "@utils/stripeGTMEvents"
 import { useSelector } from "react-redux"
 import ComparisonTable from "@components/ComparisonTable"
@@ -18,8 +18,13 @@ const PricingCard = ({
   userPlan,
   userStatus,
   userStartDate,
+  userSubscription,
+  user,
 }) => {
   const [customCredits, setCustomCredits] = useState(500)
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [pendingPlan, setPendingPlan] = useState(null)
+  const [pendingCredits, setPendingCredits] = useState(0)
 
   const handleCustomCreditsChange = (e) => {
     const value = parseInt(e.target.value, 10)
@@ -40,12 +45,27 @@ const PricingCard = ({
   // Determine if the plan should be disabled based on active status
   const isWithinBillingCycle = userStatus === "active"
 
-  const isDisabled =
-    isWithinBillingCycle &&
-    plan.type !== "credit_purchase" &&
-    (userPlan === "enterprise" ||
-      (userPlan === "pro" && (plan.tier === "basic" || plan.tier === "pro")) ||
-      (userPlan === "basic" && plan.tier === "basic"))
+  const isDisabled = (() => {
+    const sub = userSubscription
+    if (!sub || plan.type === "credit_purchase") return false
+
+    // No renewal date
+    if (!sub.renewalDate) {
+      return plan.tier === userPlan.toLowerCase()
+    }
+
+    // With renewal date
+    if (userStatus === "active") {
+      const start = new Date(sub.startDate)
+      const renewal = new Date(sub.renewalDate)
+      const diffDays = (renewal - start) / (1000 * 60 * 60 * 24)
+      const userBillingPeriod = diffDays > 60 ? "annual" : "monthly"
+
+      return plan.tier === userPlan.toLowerCase() && billingPeriod === userBillingPeriod
+    }
+
+    return false
+  })()
 
   const getCardStyles = () => {
     const baseStyles = {
@@ -105,16 +125,62 @@ const PricingCard = ({
 
   const styles = getCardStyles()
 
+  const handleButtonClick = () => {
+    if (isDisabled) return
+
+    if (plan.type === "credit_purchase" && customCredits < 500) return
+
+    // Skip modal for credit purchase
+    if (plan.type === "credit_purchase") {
+      onBuy(plan, customCredits, billingPeriod)
+      return
+    }
+
+    // Show modal only if user has an active subscription and trying to upgrade
+    if (
+      userSubscription?.status === "active" &&
+      plan.tier !== userSubscription.plan.toLowerCase()
+    ) {
+      setPendingPlan(plan)
+      setPendingCredits(plan.type === "credit_purchase" ? customCredits : plan.credits)
+      setShowConfirmModal(true)
+    } else {
+      proceedToBuy(plan)
+    }
+  }
+
+  const proceedToBuy = (planToBuy) => {
+    if (planToBuy.type === "credit_purchase") {
+      onBuy(planToBuy, pendingCredits, billingPeriod)
+    } else if (planToBuy.name.toLowerCase().includes("enterprise")) {
+      window.open(
+        `https://mail.google.com/mail/?view=cm&fs=1&to=support@genwrite.com&su=GenWrite Enterprise Subscription&body=I'm interested in the Enterprise plan.`,
+        "_blank"
+      )
+    } else {
+      onBuy(planToBuy, pendingCredits || planToBuy.credits, billingPeriod)
+    }
+  }
+
   return (
     <div className={`relative group ${plan.featured && !isDisabled ? "lg:scale-105" : ""}`}>
-      {plan.featured && !isDisabled && (
-        <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
-          <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-1">
-            <Star className="w-4 h-4" />
-            Most Popular
+      {plan.featured &&
+        !isDisabled &&
+        (userSubscription?.plan?.toLowerCase() === "basic" && plan.tier === "pro" ? (
+          <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
+            <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-1">
+              <Star className="w-4 h-4" />
+              Most Popular
+            </div>
           </div>
-        </div>
-      )}
+        ) : userSubscription?.plan?.toLowerCase() === "pro" && plan.tier === "enterprise" ? (
+          <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
+            <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-1">
+              <Star className="w-4 h-4" />
+              Most Popular
+            </div>
+          </div>
+        ) : null)}
 
       <div
         className={`relative rounded-2xl transition-all duration-300 ${
@@ -203,20 +269,7 @@ const PricingCard = ({
         </div>
 
         <button
-          onClick={() => {
-            if (isDisabled) return
-            if (plan.type === "credit_purchase") {
-              if (customCredits < 500) return
-              onBuy(plan, customCredits, billingPeriod)
-            } else if (plan.name.toLowerCase().includes("enterprise")) {
-              window.open(
-                `https://mail.google.com/mail/?view=cm&fs=1&to=support@genwrite.com&su=GenWrite Enterprise Subscription&body=I'm interested in the Enterprise plan.`,
-                "_blank"
-              )
-            } else {
-              onBuy(plan, plan.credits, billingPeriod)
-            }
-          }}
+          onClick={handleButtonClick}
           className={`w-full py-4 px-6 rounded-lg font-semibold transition-all duration-300 ${
             isDisabled ? "" : "hover:transform hover:scale-105 hover:shadow-lg"
           } ${styles.button} ${
@@ -230,6 +283,37 @@ const PricingCard = ({
           {isDisabled ? "Current Plan" : plan.cta}
         </button>
       </div>
+      <Modal
+        title={<span className="text-lg">Confirm Purchase</span>}
+        open={showConfirmModal}
+        onCancel={() => setShowConfirmModal(false)}
+        onOk={() => {
+          setShowConfirmModal(false)
+          proceedToBuy(pendingPlan)
+        }}
+        okText="Confirm"
+        cancelText="Cancel"
+        centered
+        bodyStyle={{ padding: "10px", fontSize: "16px" }}
+        okButtonProps={{ className: "bg-blue-600 hover:bg-blue-700 text-white font-semibold" }}
+        cancelButtonProps={{ className: "border border-gray-300 font-medium" }}
+      >
+        <p className="text-gray-700">
+          You already have an active subscription:{" "}
+          <span className="font-bold text-gray-900">{userSubscription?.plan}</span>.
+        </p>
+        <p className="text-gray-700">
+          The new plan: <span className="font-bold text-gray-900">{pendingPlan?.name}</span> will
+          start on{" "}
+          <span className="font-bold text-gray-900">
+            {userSubscription?.renewalDate
+              ? new Date(userSubscription.renewalDate).toLocaleDateString()
+              : "immediately"}
+          </span>
+          .
+        </p>
+        <p className="text-gray-600 mt-2 text-sm italic">Please confirm to proceed with your purchase.</p>
+      </Modal>
     </div>
   )
 }
@@ -471,6 +555,7 @@ const Upgrade = () => {
               ? Array.from({ length: 4 }).map((_, idx) => <SkeletonCard key={idx} />)
               : plans.map((plan, index) => (
                   <PricingCard
+                    user
                     key={plan.name}
                     plan={plan}
                     index={index}
@@ -479,6 +564,7 @@ const Upgrade = () => {
                     userPlan={user?.subscription?.plan}
                     userStatus={user?.subscription?.status}
                     userStartDate={user?.subscription?.startDate}
+                    userSubscription={user?.subscription}
                   />
                 ))}
           </AnimatePresence>

@@ -2,16 +2,18 @@ import React, { useEffect } from "react"
 import { Button, Typography, Space, ConfigProvider, message } from "antd"
 import { MailMinus } from "lucide-react"
 import { useDispatch, useSelector } from "react-redux"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import { resetUnsubscribe, unsubscribeThunk } from "@store/slices/otherSlice"
-import { selectUser } from "@store/slices/authSlice"
 const { Title, Paragraph, Text } = Typography
 
 const UnsubscribeEmail = () => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
-  const user = useSelector(selectUser)
+  const [searchParams] = useSearchParams()
   const { loading, successMessage, error } = useSelector((state) => state.wordpress)
+
+  // Get email from URL query parameter
+  const email = searchParams.get("email")
 
   // Reset unsubscribe state when component unmounts
   useEffect(() => {
@@ -24,28 +26,38 @@ const UnsubscribeEmail = () => {
   useEffect(() => {
     if (successMessage) {
       message.success(successMessage)
-      // Optionally redirect after successful unsubscribe
-      setTimeout(() => navigate("/"), 2000) // Redirect to home after 2 seconds
+      // Redirect to home after 2 seconds
+      setTimeout(() => navigate("/"), 2000)
     }
     if (error) {
       message.error(error)
     }
   }, [successMessage, error, navigate])
 
+  // Validate email format
+  const isValidEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return email && emailRegex.test(email)
+  }
+
   const handleUnsubscribe = async () => {
-    if (!user?.email) {
-      message.error("User email not found. Please log in and try again.")
+    if (!email) {
+      message.error("Email not provided in the URL. Please check the link and try again.")
+      return
+    }
+    if (!isValidEmail(email)) {
+      message.error("Invalid email format. Please provide a valid email address.")
       return
     }
     try {
-      await dispatch(unsubscribeThunk(user.email)).unwrap()
+      await dispatch(unsubscribeThunk(email)).unwrap()
     } catch (err) {
       // Error is handled by useEffect
     }
   }
 
   const handleStaySubscribed = () => {
-    navigate("/dashboard") // Redirect to dashboard or another relevant page
+    navigate("/dashboard") // Redirect to dashboard
   }
 
   return (
@@ -91,7 +103,7 @@ const UnsubscribeEmail = () => {
               shape="round"
               className="!bg-transparent !h-12 !px-8 !text-base !font-semibold !text-purple-800 !border-purple-300 hover:!bg-purple-100 hover:!border-purple-400"
               onClick={handleUnsubscribe}
-              disabled={loading}
+              disabled={loading || !email || !isValidEmail(email)}
             >
               Unsubscribe
             </Button>
