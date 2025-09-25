@@ -531,8 +531,10 @@ const TextEditorSidebar = ({
             message.error("Failed to save changes. Please try again.")
           }
         },
-        onCancel: () => {
-          setIsCategoryModalOpen(true)
+        onCancel: (e) => {
+          if (e?.source == "button") {
+            setIsCategoryModalOpen(true)
+          }
         },
       })
     } else {

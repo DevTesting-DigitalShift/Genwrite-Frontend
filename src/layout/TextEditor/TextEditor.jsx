@@ -149,7 +149,12 @@ const TextEditor = ({
 
   const markdownToHtml = useCallback((markdown) => {
     if (!markdown) return "<p></p>"
-    const html = marked.parse(markdown, { breaks: true })
+    const html = marked.parse(
+      markdown
+        .replace(/!\[(["'""])(.*?)\1\]\((.*?)\)/g, (_, __, alt, url) => `![${alt}](${url})`) // remove quotes from alt
+        .replace(/'/g, "'"),
+      { breaks: true, gfm: true }
+    )
     return DOMPurify.sanitize(html)
   }, [])
 
@@ -318,7 +323,11 @@ const TextEditor = ({
             message.error("Failed to save changes. Please try again.")
           }
         },
-        onCancel: proceedWithRegenerate,
+        onCancel: (e) => {
+          if (e?.source == "button") {
+            proceedWithRegenerate()
+          }
+        },
       })
     } else {
       await proceedWithRegenerate()
@@ -626,8 +635,10 @@ const TextEditor = ({
             message.error("Failed to save changes. Please try again.")
           }
         },
-        onCancel: () => {
-          proceedRewrite()
+        onCancel: (e) => {
+          if (e?.source == "button") {
+            proceedRewrite()
+          }
         },
       })
     } else {
