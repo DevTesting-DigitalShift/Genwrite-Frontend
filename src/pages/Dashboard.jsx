@@ -322,7 +322,7 @@ const Dashboard = () => {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="mt-5 ml-10"
+        className="mt-10 md:mt-5 ml-5 md:ml-10"
       >
         <h1 className="bg-clip-text bg-gradient-to-r font-bold from-blue-600 md:text-4xl text-3xl text-transparent to-purple-600">
           Let's Begin <span className="ml-2 text-2xl text-yellow-400">✨</span>
@@ -332,7 +332,7 @@ const Dashboard = () => {
         </p>
       </motion.div>
 
-      <div className="min-h-screen bg-gray-50 p-6 relative">
+      <div className="min-h-screen bg-gray-50 p-2 md:p-6 relative">
         {loading ? (
           <div className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

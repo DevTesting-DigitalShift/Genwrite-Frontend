@@ -179,7 +179,7 @@ const PluginsMain = () => {
 
     if (plugin.id === 112) {
       return (
-        <div className="h-full flex flex-col items-center justify-center bg-gradient-to-br from-teal-50 to-blue-100 rounded-2xl">
+        <div className="h-full m-2 flex flex-col items-center justify-center bg-gradient-to-br from-teal-50 to-blue-100 rounded-2xl">
           <Flex vertical align="center" justify="center" className="h-full py-12">
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
@@ -216,30 +216,30 @@ const PluginsMain = () => {
       >
         <Flex vertical gap="large" className="h-full p-6">
           {/* Plugin Header */}
-          <Flex align="center" gap="large">
+          <Flex className="flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-6">
             <motion.img
               src={plugin.pluginImage}
               alt={plugin.pluginName}
-              className="h-16 w-16 object-contain rounded-lg shadow-sm"
+              className="h-16 w-16 md:h-20 md:w-20 object-contain rounded-lg shadow-sm"
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.4, delay: 0.1 }}
             />
-            <Flex vertical gap="small">
-              <Title level={2} className="text-gray-900 m-0 font-bold">
+            <Flex className="flex flex-col gap-1 md:gap-2">
+              <Title level={2} className="text-gray-900 m-0 font-bold text-lg md:text-2xl">
                 {plugin.pluginName}
               </Title>
-              <Text className="text-lg text-gray-600">{plugin.description}</Text>
-              <Flex gap="middle" className="mt-2">
-                <Flex align="center" gap="small">
+              <Text className="text-gray-600 text-sm md:text-base">{plugin.description}</Text>
+              <Flex className="flex flex-wrap gap-4 mt-2">
+                <Flex className="flex items-center gap-1 md:gap-2">
                   <Tag size={16} className="text-teal-500" />
-                  <Text className="text-base text-teal-600 font-medium">
+                  <Text className="text-teal-600 font-medium text-sm md:text-base">
                     Version {plugin.version}
                   </Text>
                 </Flex>
-                <Flex align="center" gap="small">
+                <Flex className="flex items-center gap-1 md:gap-2">
                   <Clock size={16} className="text-blue-500" />
-                  <Text className="text-base text-blue-600 font-medium">
+                  <Text className="text-blue-600 font-medium text-sm md:text-base">
                     Updated {plugin.updatedDate}
                   </Text>
                 </Flex>
@@ -340,7 +340,7 @@ const PluginsMain = () => {
           <div className="my-6 border-gray-200" />
 
           <Card className="bg-gray-50 border-0 rounded-lg shadow-sm">
-            <Paragraph className="text-base text-gray-700 leading-relaxed mb-0">
+            <Paragraph className="text-sm md:text-base text-gray-700 leading-relaxed mb-0">
               {plugin.message}
             </Paragraph>
           </Card>
@@ -350,7 +350,7 @@ const PluginsMain = () => {
   }
 
   const renderTabBar = (props, DefaultTabBar) => (
-    <DefaultTabBar {...props} className="custom-tab-bar bg-gray-50 p-2 rounded-t-lg" />
+    <DefaultTabBar {...props} className="custom-tab-bar rounded-t-lg" />
   )
 
   const tabItems = plugins.map((plugin) => ({
@@ -376,18 +376,15 @@ const PluginsMain = () => {
         transition={{ duration: 0.5 }}
         className="my-6 ml-6 sm:ml-10"
       >
-        <Title
-          level={1}
-          className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
-        >
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
           Plugin Center
-        </Title>
-        <Paragraph className="text-gray-600 max-w-xl mt-2 text-base">
+        </h1>
+        <p className="text-gray-500 text-sm mt-2 max-w-md">
           Discover and integrate powerful tools to supercharge your workflow
-        </Paragraph>
+        </p>
       </motion.div>
 
-      <div className="flex-1 px-6 sm:px-8 pb-8">
+      <div className="flex-1 px-2 md:px-6 pb-8">
         <motion.div
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}

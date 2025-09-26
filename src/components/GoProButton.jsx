@@ -17,7 +17,7 @@ const GoProButton = () => {
     <motion.div
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
-      className="relative"
+      className="relative hidden sm:block"
       hidden={userPlan === "enterprise"}
     >
       <Button

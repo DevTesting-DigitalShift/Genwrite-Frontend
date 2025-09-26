@@ -130,7 +130,7 @@ const SideBar_Header = () => {
           >
             {user?.name}
           </Tooltip>
-        ),
+        ),  
         disabled: true,
       },
       { type: "divider" },
