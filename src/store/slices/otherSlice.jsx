@@ -125,7 +125,7 @@ export const createIntegrationThunk = createAsyncThunk(
 const wordpressSlice = createSlice({
   name: "wordpress",
   initialState: {
-    data: null,
+    data: [],
     loading: false,
     error: null,
     success: false,
@@ -224,13 +224,52 @@ const wordpressSlice = createSlice({
       })
 
       // PING
+      //    .addCase(pingIntegrationThunk.pending, (state) => {
+      //   state.loading = true
+      //   state.error = null
+      //   state.ping = null
+      // })
       .addCase(pingIntegrationThunk.fulfilled, (state, action) => {
+        state.loading = false
         state.ping = action.payload
+        state.error = null
+      })
+      // .addCase(pingIntegrationThunk.rejected, (state, action) => {
+      //   state.loading = false
+      //   state.error = action.payload || "Failed to ping integration"
+      //   state.ping = null
+      // })
+
+      // CREATE Integration
+      .addCase(createIntegrationThunk.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(createIntegrationThunk.fulfilled, (state, action) => {
+        state.loading = false
+        state.error = null
+
+        // Make sure state.data is an array
+        if (!Array.isArray(state.data)) {
+          state.data = []
+        }
+
+        // Convert payload to array element if necessary
+        const integrationEntry = action.payload.integrations
+          ? Object.entries(action.payload.integrations).map(([type, value]) => ({
+              type,
+              ...value,
+            }))
+          : action.payload
+
+        state.data.push(
+          ...(Array.isArray(integrationEntry) ? integrationEntry : [integrationEntry])
+        )
       })
 
-      // CREATE
-      .addCase(createIntegrationThunk.fulfilled, (state, action) => {
-        state.data.push(action.payload)
+      .addCase(createIntegrationThunk.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload || "Failed to create integration"
       })
   },
 })

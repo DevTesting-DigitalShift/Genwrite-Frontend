@@ -354,7 +354,7 @@ const SearchConsole = () => {
         ctr: `${item.ctr}%`,
         position: item.position,
       }
-      
+
       worksheet.addRow(rowData)
     })
 
@@ -384,18 +384,18 @@ const SearchConsole = () => {
       </Helmet>
 
       {!!user?.gsc ? (
-        <div className="p-6 bg-gray-50 min-h-screen">
-          <div className="bg-white rounded-xl shadow-sm p-6 mb-6 border border-gray-200">
+        <div className="p-2 md:p-6 bg-gray-50 min-h-screen">
+          <div className="bg-white rounded-xl shadow-sm p-2 md:p-6 mb-6 border border-gray-200">
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
               <h1 className="text-2xl font-bold text-gray-900">Search Performance</h1>
-              <div className="flex gap-3 items-center">
+              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center w-full">
                 <Button
                   icon={<Download className="size-4 mr-2" />}
                   title="Export"
                   onClick={handleExport}
                   disabled={isLoading}
                   type="dashed"
-                  className="bg-gradient-to-l from-blue-400 to-purple-300 hover:!bg-gradient-to-r hover:!from-purple-500 hover:!to-blue-400 hover:!text-white rounded-lg h-10 text-base font-semibold"
+                  className="w-full sm:w-auto bg-gradient-to-l from-blue-400 to-purple-300 hover:!bg-gradient-to-r hover:!from-purple-500 hover:!to-blue-400 hover:!text-white rounded-lg h-10 text-base font-semibold"
                 >
                   Export
                 </Button>
@@ -404,51 +404,73 @@ const SearchConsole = () => {
                   onClick={() => refetch()}
                   disabled={isLoading}
                   type="dashed"
-                  className="bg-gradient-to-l from-blue-300 to-purple-400 hover:!bg-gradient-to-r hover:!from-purple-600 hover:!to-blue-400 hover:!text-white rounded-lg h-10 text-base font-semibold"
+                  className="w-full sm:w-auto bg-gradient-to-l from-blue-300 to-purple-400 hover:!bg-gradient-to-r hover:!from-purple-600 hover:!to-blue-400 hover:!text-white rounded-lg h-10 text-base font-semibold"
                 >
                   Refresh
                 </Button>
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
               <Card
-                title={<span className="text-sm font-semibold text-gray-600">Total Clicks</span>}
-                className="rounded-lg text-center p-4 shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-gradient-to-br from-blue-100/70 to-blue-50/70"
+                title={
+                  <span className="text-xs sm:text-sm font-semibold text-gray-600">
+                    Total Clicks
+                  </span>
+                }
+                className="rounded-lg text-center p-2 sm:p-4 md:p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-gradient-to-br from-blue-100/70 to-blue-50/70"
               >
-                <p className="text-2xl font-bold text-blue-600">
+                <p className="text-xl sm:text-2xl font-bold text-blue-600">
                   {new Intl.NumberFormat().format(metrics.totalClicks)}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">Total clicks on filtered data</p>
+                <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
+                  Total clicks on filtered data
+                </p>
               </Card>
+
               <Card
                 title={
-                  <span className="text-sm font-semibold text-gray-600">Total Impressions</span>
+                  <span className="text-xs sm:text-sm font-semibold text-gray-600">
+                    Total Impressions
+                  </span>
                 }
-                className="rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-gradient-to-br from-purple-100/70 to-purple-50/70"
-                style={{ padding: "16px", textAlign: "center" }}
+                className="rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-gradient-to-br from-purple-100/70 to-purple-50/70 p-2 sm:p-4 md:p-6 text-center"
               >
-                <p className="text-2xl font-bold text-blue-600">
+                <p className="text-xl sm:text-2xl font-bold text-purple-600">
                   {new Intl.NumberFormat().format(metrics.totalImpressions)}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">Total impressions on filtered data</p>
+                <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
+                  Total impressions on filtered data
+                </p>
               </Card>
-              <Card
-                title={<span className="text-sm font-semibold text-gray-600">Average CTR</span>}
-                className="rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-gradient-to-br from-teal-100/70 to-teal-50/70"
-                style={{ padding: "16px", textAlign: "center" }}
-              >
-                <p className="text-2xl font-bold text-blue-600">{metrics.avgCtr}%</p>
-                <p className="text-xs text-gray-500 mt-1">Average click-through rate</p>
-              </Card>
+
               <Card
                 title={
-                  <span className="text-sm font-semibold text-gray-600">Average Position</span>
+                  <span className="text-xs sm:text-sm font-semibold text-gray-600">
+                    Average CTR
+                  </span>
                 }
-                className="rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-gradient-to-br from-amber-100/70 to-amber-50/70"
-                style={{ padding: "16px", textAlign: "center" }}
+                className="rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-gradient-to-br from-teal-100/70 to-teal-50/70 p-2 sm:p-4 md:p-6 text-center"
               >
-                <p className="text-2xl font-bold text-blue-600">{metrics.avgPosition}</p>
-                <p className="text-xs text-gray-500 mt-1">Average search result position</p>
+                <p className="text-xl sm:text-2xl font-bold text-teal-600">{metrics.avgCtr}%</p>
+                <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
+                  Average click-through rate
+                </p>
+              </Card>
+
+              <Card
+                title={
+                  <span className="text-xs sm:text-sm font-semibold text-gray-600">
+                    Average Position
+                  </span>
+                }
+                className="rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-gradient-to-br from-amber-100/70 to-amber-50/70 p-2 sm:p-4 md:p-6 text-center"
+              >
+                <p className="text-xl sm:text-2xl font-bold text-amber-600">
+                  {metrics.avgPosition}
+                </p>
+                <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
+                  Average search result position
+                </p>
               </Card>
             </div>
 

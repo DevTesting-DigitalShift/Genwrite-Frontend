@@ -555,7 +555,7 @@ const TextEditorSidebar = ({
       <motion.div
         initial={{ x: "100%" }}
         animate={{ x: "calc(100% - 60px)" }}
-        className="fixed top-[17.5rem] right-0 transform -translate-y-1/2 z-50"
+        className="fixed top-[14.7rem] right-0 transform -translate-y-1/2 z-50"
       >
         <Tooltip title="Maximize Sidebar" placement="left">
           <Button

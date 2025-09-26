@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
-import { Tabs, Button, Card, Flex, Typography, message, Input, Space } from "antd"
+import { Tabs, Button, Card, Flex, Typography, message, Input, Space, Spin } from "antd"
 import { Server, Download, Tag, Clock, CheckCircle, Edit } from "lucide-react"
 import { pluginsData } from "@/data/pluginsData"
 import { motion } from "framer-motion"
@@ -20,7 +20,6 @@ const PluginsMain = () => {
   const dispatch = useDispatch()
   const { data: integrations, loading, error } = useSelector((state) => state.wordpress)
 
-  // Fetch integrations on component mount
   useEffect(() => {
     dispatch(getIntegrationsThunk())
     if (plugins.length > 0 && !activeTab) {
@@ -30,7 +29,7 @@ const PluginsMain = () => {
   }, [plugins, dispatch])
 
   const checkPlugin = async (plugin) => {
-    if (plugin.id === 112) return // No check for coming soon
+    if (plugin.id === 112) return
     if (wordpressStatus[plugin.id]?.success) return
 
     try {
@@ -73,7 +72,7 @@ const PluginsMain = () => {
   }
 
   const handleConnectClick = async (plugin) => {
-    if (plugin.id === 112) return // No action for coming soon
+    if (plugin.id === 112) return
 
     try {
       const result = await plugin.onCheck()
@@ -116,6 +115,7 @@ const PluginsMain = () => {
     const [url, setUrl] = useState(wordpressInt?.url || "")
     const [isValid, setIsValid] = useState(!!wordpressInt)
     const [isEditing, setIsEditing] = useState(!wordpressInt)
+    const [localLoading, setLocalLoading] = useState(false) // Local loading state
 
     useEffect(() => {
       if (wordpressInt) {
@@ -143,24 +143,37 @@ const PluginsMain = () => {
     }
 
     const handleConnect = async () => {
-      if (!isValid || loading) return
+      if (!isValid || loading || localLoading) return
+      setLocalLoading(true)
       try {
-        await dispatch(createIntegrationThunk({ type: "WORDPRESS", url })).unwrap()
+        const result = await dispatch(createIntegrationThunk({ type: "WORDPRESS", url })).unwrap()
+        console.log("Integration result:", result) // check backend response
+
         message.success("WordPress integration updated successfully")
-        dispatch(getIntegrationsThunk())
+
+        const integrations = await dispatch(getIntegrationsThunk()).unwrap()
+        console.log("Updated integrations:", integrations)
+
         setIsEditing(false)
-      } catch (error) {
-        message.error(error || "Failed to update WordPress integration")
+      } catch (err) {
+        // err could be an object, so stringify it
+        const errorMsg = typeof err === "string" ? err : err.message || JSON.stringify(err)
+        message.error(errorMsg)
+      } finally {
+        setLocalLoading(false)
       }
     }
 
     const handlePing = async () => {
-      if (loading) return
+      if (loading || localLoading) return
+      setLocalLoading(true)
       try {
         const result = await dispatch(pingIntegrationThunk("WORDPRESS")).unwrap()
         message.success(result.message)
       } catch (error) {
         message.error(error || "Failed to check connection status")
+      } finally {
+        setLocalLoading(false)
       }
     }
 
@@ -235,94 +248,84 @@ const PluginsMain = () => {
           </Flex>
 
           {/* WordPress Integration Controls */}
-            <Card className="mt-6 bg-gray-50 border-0 rounded-lg shadow-sm">
-              <Flex vertical gap="middle">
-                <Flex align="center" gap="small">
-                  <Text strong>WordPress Integration</Text>
-                  {wordpressInt && !isEditing && (
-                    <Flex align="center" gap="small">
-                      <CheckCircle size={16} className="text-green-500" />
-                      <Text className="text-green-600">Connected</Text>
-                    </Flex>
-                  )}
-                </Flex>
-                <Space.Compact style={{ width: "100%" }}>
-                  <Input
-                    placeholder="Enter your WordPress URL (e.g., https://example.com)"
-                    value={url}
-                    onChange={handleUrlChange}
-                    status={url && !isValid ? "error" : ""}
-                    disabled={!isEditing || loading}
-                    className="rounded-l-lg border-r-0"
-                    prefix={<Server size={16} className="text-gray-400" />}
-                  />
-                  {isEditing ? (
-                    <Button
-                      type="primary"
-                      size="large"
-                      onClick={handleConnect}
-                      disabled={!isValid || loading}
-                      className="rounded-r-lg bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600 border-0"
-                    >
-                      Connect
-                    </Button>
-                  ) : (
-                    <Button
-                      type="primary"
-                      size="large"
-                      onClick={handlePing}
-                      disabled={loading}
-                      className="rounded-r-lg bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 border-0"
-                    >
-                      Check Status
-                    </Button>
-                  )}
-                </Space.Compact>
-                {url && !isValid && (
-                  <Text type="danger" className="text-sm">
-                    Please enter a valid URL (e.g., https://example.com)
-                  </Text>
-                )}
+          <Card className="mt-6 bg-gray-50 border-0 rounded-lg shadow-sm">
+            <Flex vertical gap="middle">
+              <Flex align="center" gap="small">
+                <Text strong>WordPress Integration</Text>
                 {wordpressInt && !isEditing && (
                   <Flex align="center" gap="small">
-                    <Text className="text-gray-600">
-                      Connected URL: <strong>{wordpressInt.url}</strong>
-                    </Text>
-                    <Button
-                      type="link"
-                      icon={<Edit size={16} />}
-                      onClick={handleEdit}
-                      className="p-0"
-                    >
-                      Edit
-                    </Button>
+                    <CheckCircle size={16} className="text-green-500" />
+                    <Text className="text-green-600">Connected</Text>
                   </Flex>
                 )}
-                {error && (
-                  <Text type="danger" className="text-sm">
-                    {error}
-                  </Text>
-                )}
               </Flex>
-            </Card>
+              <Space.Compact style={{ width: "100%" }}>
+                <Input
+                  placeholder="Enter your WordPress URL (e.g., https://example.com)"
+                  value={url}
+                  onChange={handleUrlChange}
+                  status={url && !isValid ? "error" : ""}
+                  disabled={!isEditing || loading || localLoading}
+                  className="rounded-l-lg border-r-0"
+                  prefix={<Server size={16} className="text-gray-400" />}
+                />
+                {isEditing ? (
+                  <Button
+                    type="primary"
+                    size="large"
+                    onClick={handleConnect}
+                    disabled={!isValid || loading || localLoading}
+                    loading={localLoading} // Show loading state on button
+                    className="rounded-r-lg bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600 border-0"
+                  >
+                    Connect
+                  </Button>
+                ) : (
+                  <Button
+                    type="primary"
+                    size="large"
+                    onClick={handlePing}
+                    disabled={loading || localLoading}
+                    loading={localLoading} // Show loading state on button
+                    className="rounded-r-lg bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 border-0"
+                  >
+                    Check Status
+                  </Button>
+                )}
+              </Space.Compact>
+              {localLoading && (
+                <Flex justify="center" className="mt-4">
+                  <Spin tip="Updating integration..." />
+                </Flex>
+              )}
+              {url && !isValid && (
+                <Text type="danger" className="text-sm">
+                  Please enter a valid URL (e.g., https://example.com)
+                </Text>
+              )}
+              {wordpressInt && !isEditing && (
+                <Flex align="center" gap="small">
+                  <Text className="text-gray-600">
+                    Connected URL: <strong>{wordpressInt.url}</strong>
+                  </Text>
+                  <Button
+                    type="link"
+                    icon={<Edit size={16} />}
+                    onClick={handleEdit}
+                    className="p-0"
+                  >
+                    Edit
+                  </Button>
+                </Flex>
+              )}
+              {error && (
+                <Text type="danger" className="text-sm">
+                  {error}
+                </Text>
+              )}
+            </Flex>
+          </Card>
 
-          {/* Non-WordPress Connect Button */}
-          {/* {!isWordpress && (
-            <Button
-              type="primary"
-              size="large"
-              onClick={() => handleConnectClick(plugin)}
-              className={`w-full mt-6 rounded-lg transition-all duration-300 ${
-                wordpressStatus[plugin.id]?.success
-                  ? "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
-                  : "bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600"
-              } text-white border-0 shadow-sm`}
-            >
-              {wordpressStatus[plugin.id]?.success ? "Connected" : "Connect"}
-            </Button>
-          )} */}
-
-          {/* Download Button */}
           <a href={plugin.downloadLink} download>
             <Button
               type="default"
@@ -336,7 +339,6 @@ const PluginsMain = () => {
 
           <div className="my-6 border-gray-200" />
 
-          {/* Plugin Description */}
           <Card className="bg-gray-50 border-0 rounded-lg shadow-sm">
             <Paragraph className="text-base text-gray-700 leading-relaxed mb-0">
               {plugin.message}

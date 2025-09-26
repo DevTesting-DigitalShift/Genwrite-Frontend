@@ -144,41 +144,47 @@ export default function GSCAnalyticsTabs({
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-      <Tabs
-        items={items.map((item) => ({
-          key: item.key,
-          label: <span className="text-base font-medium">{item.label}</span>,
-          children: (
-            <Table
-              columns={getColumns(item.key)}
-              dataSource={filteredData}
-              rowKey="id"
-              loading={isLoading}
-              pagination={{
-                showSizeChanger: true,
-                showTotal: (total) => `Total ${total} items`,
-                position: ["topRight"],
-                rootClassName: `absolute z-10 right-4 ${activeTab == "country" ? "-top-[14.5%]" : "-top-[12.5%]"} bg-white rounded-xl`
-              }}
-              locale={{
-                emptyText: <Empty />,
-              }}
-              className="custom-table relative"
-            />
-          ),
-        }))}
-        defaultActiveKey={items[0].key}
-        activeKey={activeTab}
-        onChange={handleTabChange}
-        className="custom-tabs"
-        tabBarStyle={{
-          background: "#f8fafc",
-          padding: "12px 16px",
-          borderBottom: "1px solid #e5e7eb",
-          margin: 0,
-        }}
-      ></Tabs>
-    </div>
+<div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+  <Tabs
+    items={items.map((item) => ({
+      key: item.key,
+      label: <span className="text-base font-medium">{item.label}</span>,
+      children: (
+        <div className="overflow-x-auto">
+          <Table
+            columns={getColumns(item.key)}
+            dataSource={filteredData}
+            rowKey="id"
+            loading={isLoading}
+            pagination={{
+              showSizeChanger: true,
+              showTotal: (total) => `Total ${total} items`,
+              position: ["topRight"],
+              rootClassName: `absolute z-10 right-4 ${
+                activeTab === "country" ? "-top-[14.5%]" : "-top-[12.5%]"
+              } bg-white rounded-xl`,
+            }}
+            locale={{
+              emptyText: <Empty />,
+            }}
+            className="custom-table min-w-[600px] sm:min-w-full relative"
+            scroll={{ x: 'max-content' }} // optional, ensures smooth horizontal scroll on mobile
+          />
+        </div>
+      ),
+    }))}
+    defaultActiveKey={items[0].key}
+    activeKey={activeTab}
+    onChange={handleTabChange}
+    className="custom-tabs"
+    tabBarStyle={{
+      background: "#f8fafc",
+      padding: "12px 16px",
+      borderBottom: "1px solid #e5e7eb",
+      margin: 0,
+    }}
+  />
+</div>
+
   )
 }

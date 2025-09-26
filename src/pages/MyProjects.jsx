@@ -83,22 +83,47 @@ const MyProjects = () => {
   const [totalBlogs, setTotalBlogs] = useState(0)
   const [limit, setLimit] = useState(INITIAL_LIMIT)
 
+  // Clear data on user change or logout
+  useEffect(() => {
+    if (!user) {
+      // Clear sessionStorage and query cache on logout
+      sessionStorage.removeItem(`user_${userId}_filters`)
+      queryClient.clear()
+      setFilteredBlogs([])
+      setCurrentPage(1)
+      setSortType("updatedAt")
+      setSortOrder("desc")
+      setStatusFilter("all")
+      setDateRange([null, null])
+      setPresetDateRange([dayjs().startOf("year").startOf("day"), dayjs().endOf("day")])
+      setActivePresetLabel("All")
+      setSearchTerm("")
+      setLimit(INITIAL_LIMIT)
+    } else {
+      // Invalidate queries when user changes
+      queryClient.invalidateQueries({ queryKey: ["blogs", userId] })
+    }
+  }, [user, userId, queryClient])
+
   // Save filters to sessionStorage
   useEffect(() => {
-    const filters = {
-      sortType,
-      sortOrder,
-      statusFilter,
-      searchTerm,
-      activePresetLabel,
-      dateRangeStart: dateRange[0] ? dateRange[0].toISOString() : null,
-      dateRangeEnd: dateRange[1] ? dateRange[1].toISOString() : null,
-      presetDateRangeStart: presetDateRange[0] ? presetDateRange[0].toISOString() : null,
-      presetDateRangeEnd: presetDateRange[1] ? presetDateRange[1].toISOString() : null,
-      currentPage,
+    if (user) {
+      const filters = {
+        sortType,
+        sortOrder,
+        statusFilter,
+        searchTerm,
+        activePresetLabel,
+        dateRangeStart: dateRange[0] ? dateRange[0].toISOString() : null,
+        dateRangeEnd: dateRange[1] ? dateRange[1].toISOString() : null,
+        presetDateRangeStart: presetDateRange[0] ? presetDateRange[0].toISOString() : null,
+        presetDateRangeEnd: presetDateRange[1] ? presetDateRange[1].toISOString() : null,
+        currentPage,
+      }
+      sessionStorage.setItem(`user_${userId}_filters`, JSON.stringify(filters))
     }
-    sessionStorage.setItem(`user_${userId}_filters`, JSON.stringify(filters))
   }, [
+    user,
     userId,
     sortType,
     sortOrder,
@@ -127,7 +152,8 @@ const MyProjects = () => {
     setCurrentPage(1)
     setLimit(INITIAL_LIMIT)
     sessionStorage.removeItem(`user_${userId}_filters`)
-  }, [userId])
+    queryClient.invalidateQueries({ queryKey: ["blogs", userId] })
+  }, [userId, queryClient])
 
   // Clear search term
   const clearSearch = useCallback(() => {
@@ -198,9 +224,14 @@ const MyProjects = () => {
     return response.data || []
   }, [dispatch, dateRange, presetDateRange, limit])
 
-  const { data: allBlogs = [], isLoading } = useQuery({
+  const {
+    data: allBlogs = [],
+    isLoading,
+    isFetching,
+  } = useQuery({
     queryKey: [
       "blogs",
+      userId,
       dateRange[0]?.toISOString() ?? null,
       dateRange[1]?.toISOString() ?? null,
       presetDateRange[0]?.toISOString() ?? null,
@@ -211,6 +242,7 @@ const MyProjects = () => {
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
     gcTime: 7 * 24 * 60 * 60 * 1000, // Garbage collect after 7 days
     refetchOnWindowFocus: false, // Prevent refetch on window focus
+    enabled: !!user, // Only fetch if user is logged in
     onError: (error) => {
       console.error("Failed to fetch blogs:", {
         error: error.message,
@@ -224,11 +256,11 @@ const MyProjects = () => {
   // Socket for real-time updates
   useEffect(() => {
     const socket = getSocket()
-    if (!socket) return
+    if (!socket || !user) return
 
     socket.on("blog:statusChanged", (data) => {
       console.debug("Blog status changed:", data)
-      queryClient.invalidateQueries({ queryKey: ["blogs"] })
+      queryClient.invalidateQueries({ queryKey: ["blogs", userId] })
       if (data.blogId) {
         queryClient.invalidateQueries({ queryKey: ["blog", data.blogId] })
       }
@@ -237,13 +269,13 @@ const MyProjects = () => {
     return () => {
       socket.off("blog:statusChanged")
     }
-  }, [queryClient])
+  }, [queryClient, user, userId])
 
   // Retry and archive mutations
   const retryMutation = useMutation({
     mutationFn: (id) => dispatch(retryBlog({ id })).unwrap(),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["blogs"], exact: false })
+      queryClient.invalidateQueries({ queryKey: ["blogs", userId], exact: false })
     },
     onError: (error) => {
       console.error("Failed to retry blog:", error)
@@ -253,7 +285,7 @@ const MyProjects = () => {
   const archiveMutation = useMutation({
     mutationFn: (id) => dispatch(archiveBlog(id)).unwrap(),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["blogs"], exact: false })
+      queryClient.invalidateQueries({ queryKey: ["blogs", userId], exact: false })
     },
     onError: (error) => {
       console.error("Failed to archive blog:", error)
@@ -705,7 +737,7 @@ const MyProjects = () => {
             <Button
               type="default"
               icon={<RefreshCcw className="w-4 sm:w-5 h-4 sm:h-5" />}
-              onClick={() => queryClient.invalidateQueries(["blogs"])}
+              onClick={() => queryClient.invalidateQueries(["blogs", userId])}
               className="p-2 sm:p-3 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100 w-full sm:w-auto text-xs sm:text-sm"
             >
               Refresh
@@ -754,7 +786,7 @@ const MyProjects = () => {
         </div>
       </div>
 
-      {isLoading ? (
+      {isLoading || isFetching ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
           {[...Array(itemsPerPage)].map((_, index) => (
             <div key={index} className="bg-white shadow-md rounded-lg p-4 sm:p-6">
@@ -1012,7 +1044,7 @@ const MyProjects = () => {
                 responsive={true}
                 showSizeChanger={false}
                 pageSizeOptions={["6", "12", "15"]}
-                disabled={isLoading}
+                disabled={isLoading || isFetching}
                 className="text-xs sm:text-sm"
               />
             </div>
@@ -1023,7 +1055,7 @@ const MyProjects = () => {
               <div className="flex justify-center mt-4">
                 <Button
                   onClick={() => setLimit((prev) => prev + INITIAL_LIMIT)}
-                  disabled={isLoading}
+                  disabled={isLoading || isFetching}
                 >
                   Load More
                 </Button>
