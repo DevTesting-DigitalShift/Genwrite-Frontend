@@ -24,8 +24,7 @@ export const pluginsData = (setWordpressStatus) => [
           message: res.data.message,
           success: res.data.success,
         }
-      } catch (err) {
-        console.error(err)
+      } catch (err) { 
         return {
           status: err.response?.status || "error",
           message:

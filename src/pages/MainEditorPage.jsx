@@ -122,47 +122,49 @@ const MainEditorPage = () => {
     setProofreadingResults((prev) => prev.filter((s) => s.original !== original))
   }
 
-  const handlePostToWordPress = async (postData) => {
-    setIsPosting(true)
-    if (!editorTitle) {
-      message.error("Blog title is missing.")
-      setIsPosting(false)
-      return
-    }
-    if (!editorContent.trim()) {
-      message.error("Blog content is empty.")
-      setIsPosting(false)
-      return
-    }
-    if (!postData.categories) {
-      message.error("Please select a category.")
-      setIsPosting(false)
-      return
-    }
-    try {
-      const requestData = {
-        blogId: blog._id,
-        title: editorTitle,
-        content: editorContent,
-        categories: postData.categories,
-        includeTableOfContents: postData.includeTableOfContents,
-        seoMetadata: metadata, // Include metadata in WordPress post
-      }
+const handlePostToWordPress = async (postData) => {
+  setIsPosting(true)
 
-      const response = isPosted
-        ? await axiosInstance.put("/wordpress", requestData)
-        : await axiosInstance.post("/wordpress", requestData)
-
-      setIsPosted(response?.data)
-      message.success(`Blog ${isPosted ? "updated" : "posted"} successfully!`)
-    } catch (error) {
-      message.error(
-        error.response?.data?.message || `Failed to ${isPosted ? "update" : "post to"} WordPress.`
-      )
-    } finally {
-      setIsPosting(false)
-    }
+  if (!editorTitle) {
+    message.error("Blog title is missing.")
+    setIsPosting(false)
+    return
   }
+  if (!editorContent.trim()) {
+    message.error("Blog content is empty.")
+    setIsPosting(false)
+    return
+  }
+  if (!postData.category) {   // 🔄 changed from categories → category
+    message.error("Please select a category.")
+    setIsPosting(false)
+    return
+  }
+
+  try {
+    const requestData = {
+      type: "WORDPRESS", // 🔑 backend needs type
+      blogId: blog._id,
+      includeTableOfContents: postData.includeTableOfContents ?? false,
+      category: postData.category,   // 🔄 match backend param
+      removeWaterMark: postData.removeWaterMark ?? false,
+    }
+
+    const response = isPosted
+      ? await axiosInstance.put("/integrations/post", requestData)
+      : await axiosInstance.post("/integrations/post", requestData)
+
+    setIsPosted(response?.data)
+    message.success(`Blog ${isPosted ? "updated" : "posted"} successfully!`)
+  } catch (error) {
+    message.error(
+      error.response?.data?.message || `Failed to ${isPosted ? "update" : "post to"} WordPress.`
+    )
+  } finally {
+    setIsPosting(false)
+  }
+}
+
 
   const getWordCount = (text) => {
     return text

@@ -38,11 +38,13 @@ const CategoriesModal = ({
   const [categoryError, setCategoryError] = useState(false)
   const { categories, error: wordpressError } = useSelector((state) => state.wordpress)
 
+  console.log(categories)
+
   // Handle adding a category (custom or predefined)
   const handleCategoryAdd = useCallback(
     (category) => {
       if (selectedCategory) {
-        message.error("Only one category can be selected.")
+        // message.error("Only one category can be selected.")
         return
       }
       setSelectedCategory(category)
@@ -167,26 +169,26 @@ const CategoriesModal = ({
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-y-auto p-3 rounded-md border border-indigo-200 bg-indigo-50 max-h-96">
               {categories.map((category) => (
                 <motion.div
-                  key={category.id || category.name}
-                  onClick={() => handleCategoryAdd(category.name)}
+                  key={category}
+                  onClick={() => handleCategoryAdd(category)}
                   whileHover={{ scale: 1.02, backgroundColor: "#e0e7ff" }}
                   className={`flex items-center justify-between p-3 rounded-md bg-white border ${
                     categoryError && !selectedCategory ? "border-red-500" : "border-indigo-200"
                   } text-sm font-medium cursor-pointer transition-all duration-200 ${
-                    selectedCategory === category.name
+                    selectedCategory === category
                       ? "bg-indigo-100 border-indigo-400"
                       : selectedCategory
                       ? "opacity-50 cursor-not-allowed"
                       : ""
                   }`}
                 >
-                  <span className="truncate">{category.name}</span>
+                  <span className="truncate">{category}</span>
                   {!selectedCategory && (
                     <motion.button
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
                       className="text-indigo-600 hover:text-indigo-700"
-                      aria-label={`Add category ${category.name}`}
+                      aria-label={`Add category ${category}`}
                     >
                       <Plus size={16} />
                     </motion.button>
