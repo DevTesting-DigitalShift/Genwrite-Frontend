@@ -323,11 +323,11 @@ const PluginsMain = () => {
                   Please enter your WordPress site URL to connect the integration.
                 </Text>
               )}
-              {error && (
+              {/* {error && (
                 <Text type="danger" className="text-sm">
                   {error.message || "An error occurred while processing the integration"}
                 </Text>
-              )}
+              )} */}
             </Flex>
           </Card>
 
