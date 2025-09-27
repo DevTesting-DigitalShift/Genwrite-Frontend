@@ -115,7 +115,7 @@ const PluginsMain = () => {
     const [url, setUrl] = useState(wordpressInt?.url || "")
     const [isValid, setIsValid] = useState(!!wordpressInt)
     const [isEditing, setIsEditing] = useState(!wordpressInt)
-    const [localLoading, setLocalLoading] = useState(false) // Local loading state
+    const [localLoading, setLocalLoading] = useState(false)
 
     useEffect(() => {
       if (wordpressInt) {
@@ -123,6 +123,8 @@ const PluginsMain = () => {
         setIsValid(true)
         setIsEditing(false)
       } else {
+        setUrl("")
+        setIsValid(false)
         setIsEditing(true)
       }
     }, [wordpressInt])
@@ -147,17 +149,11 @@ const PluginsMain = () => {
       setLocalLoading(true)
       try {
         const result = await dispatch(createIntegrationThunk({ type: "WORDPRESS", url })).unwrap()
-        console.log("Integration result:", result) // check backend response
-
         message.success("WordPress integration updated successfully")
-
-        const integrations = await dispatch(getIntegrationsThunk()).unwrap()
-        console.log("Updated integrations:", integrations)
-
+        await dispatch(getIntegrationsThunk()).unwrap()
         setIsEditing(false)
       } catch (err) {
-        // err could be an object, so stringify it
-        const errorMsg = typeof err === "string" ? err : err.message || JSON.stringify(err)
+        const errorMsg = err.message || "Failed to update WordPress integration"
         message.error(errorMsg)
       } finally {
         setLocalLoading(false)
@@ -170,8 +166,9 @@ const PluginsMain = () => {
       try {
         const result = await dispatch(pingIntegrationThunk("WORDPRESS")).unwrap()
         message.success(result.message)
-      } catch (error) {
-        message.error(error || "Failed to check connection status")
+      } catch (err) {
+        const errorMsg = err.message || "Failed to check connection status"
+        message.error(errorMsg)
       } finally {
         setLocalLoading(false)
       }
@@ -258,6 +255,9 @@ const PluginsMain = () => {
                     <Text className="text-green-600">Connected</Text>
                   </Flex>
                 )}
+                {!wordpressInt && !isEditing && (
+                  <Text className="text-gray-600">No integration found</Text>
+                )}
               </Flex>
               <Space.Compact style={{ width: "100%" }}>
                 <Input
@@ -275,10 +275,10 @@ const PluginsMain = () => {
                     size="large"
                     onClick={handleConnect}
                     disabled={!isValid || loading || localLoading}
-                    loading={localLoading} // Show loading state on button
+                    loading={localLoading}
                     className="rounded-r-lg bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600 border-0"
                   >
-                    Connect
+                    {wordpressInt ? "Update" : "Connect"}
                   </Button>
                 ) : (
                   <Button
@@ -286,7 +286,7 @@ const PluginsMain = () => {
                     size="large"
                     onClick={handlePing}
                     disabled={loading || localLoading}
-                    loading={localLoading} // Show loading state on button
+                    loading={localLoading}
                     className="rounded-r-lg bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 border-0"
                   >
                     Check Status
@@ -295,7 +295,7 @@ const PluginsMain = () => {
               </Space.Compact>
               {localLoading && (
                 <Flex justify="center" className="mt-4">
-                  <Spin tip="Updating integration..." />
+                  <Spin tip="Processing integration..." />
                 </Flex>
               )}
               {url && !isValid && (
@@ -318,9 +318,14 @@ const PluginsMain = () => {
                   </Button>
                 </Flex>
               )}
+              {!wordpressInt && isEditing && (
+                <Text className="text-gray-600 text-sm">
+                  Please enter your WordPress site URL to connect the integration.
+                </Text>
+              )}
               {error && (
                 <Text type="danger" className="text-sm">
-                  {error}
+                  {error.message || "An error occurred while processing the integration"}
                 </Text>
               )}
             </Flex>

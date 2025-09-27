@@ -339,12 +339,15 @@ const TextEditor = ({
       message.error("Enter a valid URL.")
       return
     }
+
+    const safeUrl = decodeURIComponent(linkUrl) // clean it
+
     if (normalEditor) {
       const { from, to } = normalEditor.state.selection
       normalEditor
         .chain()
         .focus()
-        .setLink({ href: linkUrl, target: "_blank", rel: "noopener noreferrer" })
+        .setLink({ href: safeUrl, target: "_blank", rel: "noopener noreferrer" })
         .setTextSelection({ from, to })
         .run()
       setLinkModalOpen(false)
@@ -731,14 +734,19 @@ const TextEditor = ({
 
   const blocker = useNavigationBlocker(unsavedChanges)
 
-  console.log("unsavedChanges", unsavedChanges)
-
   useEffect(() => {
     if (normalEditor && blog?.content) {
       const html = markdownToHtml(blog.content)
       normalEditor.commands.setContent(html, false)
       setContent(blog.content)
       setLastSavedContent(blog.content)
+
+      requestAnimationFrame(() => {
+        if (normalEditor.view.dom) {
+          normalEditor.view.dom.scrollTop = 0
+          normalEditor.commands.setTextSelection(0) // put caret at start
+        }
+      })
     }
   }, [normalEditor, blog, markdownToHtml])
 
@@ -868,28 +876,29 @@ const TextEditor = ({
 
     const handleMouseOver = async (e) => {
       const link = e.target.closest("a")
-      if (!link) return // <-- exit if no <a> found
+      if (!link) return
 
-      const url = link.href
+      // 🛠 Fix encoding
+      const rawUrl = link.href
+      const decodedUrl = decodeURIComponent(rawUrl)
+
       const rect = link.getBoundingClientRect()
       const scrollY = window.scrollY || window.pageYOffset
       const scrollX = window.scrollX || window.pageXOffset
 
-      const pos = {
+      setLinkPreviewPos({
         top: rect.bottom + scrollY + 8,
         left: rect.left + scrollX,
-      }
-
-      setLinkPreviewPos(pos)
-      setLinkPreviewUrl(url)
+      })
+      setLinkPreviewUrl(decodedUrl)
       setLinkPreviewElement(link)
 
       try {
-        const data = await getLinkPreview(url)
-        setLinkPreview(data || { title: url, description: "" })
+        const data = await getLinkPreview(decodedUrl) // use clean version
+        setLinkPreview(data || { title: decodedUrl, description: "" })
       } catch (err) {
         console.error("Failed to fetch link preview:", err)
-        setLinkPreview({ title: url, description: "" })
+        setLinkPreview({ title: decodedUrl, description: "" })
       }
     }
 
@@ -926,15 +935,21 @@ const TextEditor = ({
     }
   }, [blocker])
 
+  // useEffect(() => {
+  //   if (!blog?.content) return
+
+  //   const currentMarkdown = htmlToMarkdown(normalEditor ? normalEditor.getHTML() : content ?? "")
+  //   const normCurrent = normalizeContent(currentMarkdown)
+  //   const normOriginal = normalizeContent(blog.content ?? "")
+
+  //   setUnsavedChanges(normCurrent !== normOriginal)
+  // }, [content, blog?.content, normalEditor, htmlToMarkdown, normalizeContent])
+  console.log(unsavedChanges)
   useEffect(() => {
-    if (!blog?.content) return
-
-    const currentMarkdown = htmlToMarkdown(normalEditor ? normalEditor.getHTML() : content ?? "")
-    const normCurrent = normalizeContent(currentMarkdown)
-    const normOriginal = normalizeContent(blog.content ?? "")
-
-    setUnsavedChanges(normCurrent !== normOriginal)
-  }, [content, blog?.content, normalEditor, htmlToMarkdown, normalizeContent])
+    const normCurrent = normalizeContent(content ?? "")
+    const normSaved = normalizeContent(lastSavedContent ?? "")
+    setUnsavedChanges(normCurrent !== normSaved)
+  }, [content, lastSavedContent, normalizeContent])
 
   useEffect(() => {
     if (!normalEditor || normalEditor.isDestroyed) return

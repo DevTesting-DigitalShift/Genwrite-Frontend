@@ -132,7 +132,6 @@ export const sendBrand = async (formData) => {
 }
 
 export const sendRetryLines = async (id, payload) => {
-  console.log({id}, {payload}, "hit")
   try {
     const response = await axiosInstance.post(`/blogs/${id}/rewrite`, payload)
     return response

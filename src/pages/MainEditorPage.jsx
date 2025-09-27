@@ -147,7 +147,7 @@ const handlePostToWordPress = async (postData) => {
       blogId: blog._id,
       includeTableOfContents: postData.includeTableOfContents ?? false,
       category: postData.category,   // 🔄 match backend param
-      removeWaterMark: postData.removeWaterMark ?? false,
+      removeWaterMark: postData.removeWaterMark ?? true,
     }
 
     const response = isPosted

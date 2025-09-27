@@ -38,8 +38,6 @@ const CategoriesModal = ({
   const [categoryError, setCategoryError] = useState(false)
   const { categories, error: wordpressError } = useSelector((state) => state.wordpress)
 
-  console.log(categories)
-
   // Handle adding a category (custom or predefined)
   const handleCategoryAdd = useCallback(
     (category) => {

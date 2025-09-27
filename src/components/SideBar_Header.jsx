@@ -130,7 +130,7 @@ const SideBar_Header = () => {
           >
             {user?.name}
           </Tooltip>
-        ),  
+        ),
         disabled: true,
       },
       { type: "divider" },
@@ -152,7 +152,9 @@ const SideBar_Header = () => {
   }
 
   return (
-    <div className={`z-[999] ${path.includes("signup") || path.includes("login") ? "hidden" : "flex"}`}>
+    <div
+      className={`md:z-[999] ${path.includes("signup") || path.includes("login") ? "hidden" : "flex"}`}
+    >
       {/* Sidebar */}
       {showWhatsNew && <WhatsNewModal onClose={handleCloseModal} />}
       <div
@@ -291,7 +293,7 @@ const SideBar_Header = () => {
             <img src="/Images/logo_genwrite_2.png" loading="lazy" alt="Logo" className="w-36" />
           </div>
           <div className="flex items-center space-x-4">
-            <GoProButton />
+            {user?.subscription?.plan !== "enterprise" && <GoProButton />}
             {isUserLoaded ? (
               <>
                 <Tooltip title="User Credits" className="hidden md:flex">

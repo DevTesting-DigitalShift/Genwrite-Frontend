@@ -83,38 +83,58 @@ const Dashboard = () => {
 
   // Default state
   const [dateRange, setDateRange] = useState([undefined, undefined])
-  const [presetDateRange, setPresetDateRange] = useState([
-    dayjs().subtract(1, "year").startOf("day"), // start: 1 year ago
-    dayjs().endOf("day"), // end: today
-  ])
 
-  const [limit, setLimit] = useState(100)
-
+  let limit = 5
+  let sort = "updatedAt:desc"
   // Fetch function
   const fetchBlogsQuery = useCallback(async () => {
-    const startDate =
-      dateRange[0] || presetDateRange[0] || dayjs().subtract(1, "year").startOf("day")
-    const endDate = dateRange[1] || presetDateRange[1] || dayjs().endOf("day")
+    if (!user?.createdAt) return
+
+    setLoading(true)
+
+    const startDate = user.createdAt
+    const endDate = dateRange[1] || dayjs().endOf("day")
 
     const queryParams = {
-      start: dayjs(startDate).startOf("day").toISOString(),
+      start: dayjs(startDate).toISOString(),
       end: dayjs(endDate).endOf("day").toISOString(),
       limit,
+      sort, // just this one
     }
 
     try {
       const response = await dispatch(fetchAllBlogs(queryParams)).unwrap()
-      setBlogs(response.data || [])
+
+      const activeBlogs = (response.data || []).filter((b) => !b.isArchived)
+
+      // Sort only if `sort` is provided
+      let sortedBlogs = activeBlogs
+      if (sort) {
+        sortedBlogs = [...activeBlogs].sort((a, b) => {
+          const aValue = a[sort]
+          const bValue = b[sort]
+
+          // Check if values are dates
+          if (dayjs(aValue).isValid() && dayjs(bValue).isValid()) {
+            return dayjs(bValue).valueOf() - dayjs(aValue).valueOf() // default desc
+          }
+          // fallback for numbers/strings
+          if (typeof aValue === "number" && typeof bValue === "number") return bValue - aValue
+          if (typeof aValue === "string" && typeof bValue === "string")
+            return bValue.localeCompare(aValue)
+          return 0
+        })
+      }
+
+      setRecentBlogData(sortedBlogs.slice(0, 3))
     } catch (error) {
       console.error("Failed to fetch blogs:", error)
-      setBlogs([])
+      setRecentBlogData([])
     } finally {
       setLoading(false)
     }
-  }, [dispatch, dateRange, presetDateRange, limit])
+  }, [dispatch, dateRange, limit, user?.createdAt, sort])
 
-  // Process blogs to get top 3 non-archived by createdAt ASC
-  // Process blogs to get top 3 most recent non-archived blogs
   useEffect(() => {
     if (!blogs?.data || !Array.isArray(blogs.data)) {
       setRecentBlogData([])
