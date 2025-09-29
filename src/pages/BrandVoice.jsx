@@ -14,6 +14,7 @@ import {
   updateBrandVoiceThunk,
   resetSiteInfo,
 } from "@store/slices/brandSlice"
+import BrandVoicesComponent from "@components/BrandVoiceComponent"
 
 const BrandVoice = () => {
   const user = useSelector((state) => state.auth.user)
@@ -527,7 +528,7 @@ const BrandVoice = () => {
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  className="flex-grow p-2 sm:p-3 bg-transparent border-none outline-none text-sm sm:text-base"
+                  className="flex-grow bg-transparent border-none outline-none text-sm sm:text-base"
                   placeholder="Type a keyword and press Enter"
                   aria-describedby={errors.keywords ? "keywords-error" : undefined}
                 />
@@ -678,7 +679,7 @@ const BrandVoice = () => {
             </div>
           ) : brands.length > 0 ? (
             brands.map((item) => (
-              <YourVoicesComponent
+              <BrandVoicesComponent
                 key={item._id}
                 id={item._id}
                 brandName={item.nameOfVoice}
@@ -702,123 +703,6 @@ const BrandVoice = () => {
           )}
         </div>
       </motion.div>
-      <style>
-        {`
-          .ant-modal-content {
-            border-radius: 8px !important;
-            padding: 12px sm:p-16px !important;
-          }
-          .ant-modal-header {
-            border-radius: 8px 8px 0 0 !important;
-          }
-          .ant-input, .ant-input-textarea {
-            border-radius: 8px !important;
-            border: 1px solid #d1d5db !important;
-            padding: 6px 12px !important;
-          }
-          .ant-input:focus,
-          .ant-input:hover,
-          .ant-input-textarea:focus,
-          .ant-input-textarea:hover {
-            border-color: #3b82f6 !important;
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
-          }
-          .ant-btn {
-            display: flex;
-            align-items: center;
-          }
-          @media (max-width: 640px) {
-            .ant-modal-content {
-              padding: 12px !important;
-            }
-            .ant-input, .ant-input-textarea {
-              font-size: 12px !important;
-              padding: 4px 8px !important;
-            }
-            .ant-btn {
-              font-size: 12px !important;
-              padding: 4px 8px !important;
-            }
-          }
-          @media (max-width: 768px) {
-            .ant-modal {
-              width: 100% !important;
-              margin: 8px !important;
-              max-width: 400px !important;
-            }
-          }
-        `}
-      </style>
-    </motion.div>
-  )
-}
-
-const YourVoicesComponent = ({
-  id,
-  brandName,
-  brandVoice,
-  onSelect,
-  isSelected,
-  onEdit,
-  onDelete,
-}) => {
-  return (
-    <motion.div
-      className={`p-4 mt-2 rounded-xl cursor-pointer transition-all ${
-        isSelected
-          ? "bg-gradient-to-r from-indigo-100 to-purple-100 border-2 border-indigo-300 shadow-md"
-          : "bg-white border border-gray-200 hover:bg-gray-50"
-      }`}
-      onClick={onSelect}
-      whileHover={{
-        y: -2,
-        boxShadow: "0 4px 15px rgba(99, 64, 241, 0.1)",
-      }}
-      whileTap={{ scale: 0.98 }}
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2 }}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault()
-          onSelect()
-        }
-      }}
-      aria-label={`Select ${brandName} brand voice`}
-    >
-      <div className="flex justify-between items-center">
-        <h3
-          className={`font-medium text-sm ${
-            isSelected ? "text-indigo-700" : "text-gray-700"
-          } truncate max-w-[70%]`}
-        >
-          {brandName}
-        </h3>
-        <div className="flex space-x-2">
-          <motion.button
-            className="text-indigo-500 hover:text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-300 rounded"
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={onEdit}
-            aria-label={`Edit ${brandName}`}
-            title="Edit"
-          >
-            <FaEdit className="w-4 h-4" />
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={onDelete}
-            aria-label={`Delete ${brandName}`}
-            title="Delete"
-          >
-            <Trash className="w-4 h-4 text-red-400" />
-          </motion.button>
-        </div>
-      </div>
-      <p className="text-xs text-gray-600 mt-1 line-clamp-3">{brandVoice}</p>
     </motion.div>
   )
 }

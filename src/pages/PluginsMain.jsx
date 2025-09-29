@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react"
 import { Tabs, Button, Card, Flex, Typography, message, Input, Space, Spin } from "antd"
-import { Server, Download, Tag, Clock, CheckCircle, Edit } from "lucide-react"
+import { Server, Download, Tag, Clock, CheckCircle, Edit, Globe } from "lucide-react"
 import { pluginsData } from "@/data/pluginsData"
 import { motion } from "framer-motion"
 import { Helmet } from "react-helmet"
@@ -260,15 +260,18 @@ const PluginsMain = () => {
                 )}
               </Flex>
               <Space.Compact style={{ width: "100%" }}>
-                <Input
-                  placeholder="Enter your WordPress URL (e.g., https://example.com)"
-                  value={url}
-                  onChange={handleUrlChange}
-                  status={url && !isValid ? "error" : ""}
-                  disabled={!isEditing || loading || localLoading}
-                  className="rounded-l-lg border-r-0"
-                  prefix={<Server size={16} className="text-gray-400" />}
-                />
+                <div className="relative w-full">
+                  <input
+                    placeholder="Enter your WordPress URL (e.g., https://example.com)"
+                    value={url}
+                    onChange={handleUrlChange}
+                    status={url && !isValid ? "error" : ""}
+                    disabled={!isEditing || loading || localLoading}
+                    className="w-full rounded-lg rounded-r-none border border-gray-300 px-10 py-[9px] text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                    prefix={<Server size={16} className="text-gray-400" />}
+                  />
+                   <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                </div>
                 {isEditing ? (
                   <Button
                     type="primary"

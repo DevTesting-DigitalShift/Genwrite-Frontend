@@ -271,14 +271,10 @@ input[type="number"] {
 }
 .custom-tabs .ant-tabs-nav {
   margin: 0 !important;
-  padding: 0 16px;
-  background: white;
-  border-bottom: 1px solid #e5e7eb;
 }
 .custom-tabs .ant-tabs-content-holder {
   background: white;
   border-radius: 0 0 12px 12px;
-  padding: 16px;
 }
 .custom-tabs .ant-tabs-content {
   height: 100%;
@@ -288,4 +284,96 @@ input[type="number"] {
 }
 .custom-tabs .ant-tabs-ink-bar {
   display: none !important;
+}
+
+.ant-input-search .ant-input {
+  border-radius: 8px !important;
+  border: 1px solid #d1d5db !important;
+  padding: 6px 12px !important;
+}
+.ant-input-search .ant-input:focus,
+.ant-input-search .ant-input:hover {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+}
+.ant-input-search .ant-input-prefix {
+  display: flex;
+  align-items: center;
+  margin-right: 8px;
+}
+.ant-select-selector {
+  border-radius: 8px !important;
+  border: 1px solid #d1d5db !important;
+}
+@media (max-width: 640px) {
+  .ant-input {
+    font-size: 12px !important;
+    padding: 4px 8px !important;
+  }
+  .ant-select-selector {
+    font-size: 12px !important;
+    padding: 4px 8px !important;
+  }
+  .ant-btn {
+    font-size: 12px !important;
+    padding: 4px 8px !important;
+  }
+  .ant-badge .ant-ribbon {
+    font-size: 10px !important;
+    padding: 2px 4px !important;
+  }
+}
+@media (min-width: 768px) and (max-width: 1024px) {
+  .grid {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+  }
+  .grid > div {
+    min-width: 0 !important;
+  }
+}
+
+.ant-modal-content {
+  border-radius: 8px !important;
+  padding: 12px !important;
+}
+.ant-modal-header {
+  border-radius: 8px 8px 0 0 !important;
+}
+.ant-input,
+.ant-input-textarea {
+  border-radius: 8px !important;
+  border: 1px solid #d1d5db !important;
+  padding: 6px 12px !important;
+}
+.ant-input:focus,
+.ant-input:hover,
+.ant-input-textarea:focus,
+.ant-input-textarea:hover {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+}
+.ant-btn {
+  display: flex;
+  align-items: center;
+}
+@media (max-width: 640px) {
+  .ant-modal-content {
+    padding: 12px !important;
+  }
+  .ant-input,
+  .ant-input-textarea {
+    font-size: 12px !important;
+    padding: 4px 8px !important;
+  }
+  .ant-btn {
+    font-size: 12px !important;
+    padding: 4px 8px !important;
+  }
+}
+@media (max-width: 768px) {
+  .ant-modal {
+    width: 100% !important;
+    margin: 8px !important;
+    max-width: 400px !important;
+  }
 }

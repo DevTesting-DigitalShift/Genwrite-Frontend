@@ -86,7 +86,6 @@ const MyProjects = () => {
   // Clear data on user change or logout
   useEffect(() => {
     if (!user) {
-      // Clear sessionStorage and query cache on logout
       sessionStorage.removeItem(`user_${userId}_filters`)
       queryClient.clear()
       setFilteredBlogs([])
@@ -100,7 +99,6 @@ const MyProjects = () => {
       setSearchTerm("")
       setLimit(INITIAL_LIMIT)
     } else {
-      // Invalidate queries when user changes
       queryClient.invalidateQueries({ queryKey: ["blogs", userId] })
     }
   }, [user, userId, queryClient])
@@ -239,8 +237,9 @@ const MyProjects = () => {
       limit,
     ],
     queryFn: fetchBlogsQuery,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-    gcTime: 7 * 24 * 60 * 60 * 1000, // Garbage collect after 7 days
+    staleTime: Infinity, // Data never becomes stale
+    gcTime: Infinity, // Cache persists for the session
+    refetchOnMount: false, // Prevent refetch on component mount
     refetchOnWindowFocus: false, // Prevent refetch on window focus
     enabled: !!user, // Only fetch if user is logged in
     onError: (error) => {
@@ -617,24 +616,24 @@ const MyProjects = () => {
       </div>
 
       {/* Filter and Sort Bar */}
-      <div className="flex flex-col sm:flex-row gap-4 border border-gray-100 shadow-sm p-4 sm:p-6 rounded-lg mb-6">
+      <div className="flex flex-col sm:flex-row gap-4 p-4 sm:p-6 rounded-lg mb-6">
         <div className="flex-1 flex items-center gap-2">
-          <Input
-            placeholder="Search blogs..."
-            value={searchTerm}
-            onChange={(e) => debouncedSetSearchTerm(e.target.value)}
-            prefix={<Search className="w-4 sm:w-5 h-4 sm:h-5 text-gray-500" />}
-            suffix={
-              searchTerm ? (
-                <X
-                  className="w-4 sm:w-5 h-4 sm:h-5 text-gray-500 cursor-pointer"
-                  onClick={clearSearch}
-                />
-              ) : null
-            }
-            className="rounded-lg border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-300 text-xs sm:text-sm"
-            aria-label="Search blogs"
-          />
+          <div className="relative w-full">
+            <input
+              placeholder="Search blogs..."
+              value={searchTerm}
+              onChange={(e) => debouncedSetSearchTerm(e.target.value)}
+              className="w-full rounded-lg border border-gray-300 px-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 py-2"
+              aria-label="Search blogs"
+            />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+            {searchTerm && (
+              <X
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 cursor-pointer"
+                onClick={clearSearch}
+              />
+            )}
+          </div>
         </div>
         <div className="flex flex-wrap gap-2 sm:gap-3 items-center">
           {/* Sort */}

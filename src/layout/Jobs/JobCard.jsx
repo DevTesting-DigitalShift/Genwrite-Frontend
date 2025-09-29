@@ -5,10 +5,40 @@ import { Popconfirm, message } from "antd"
 import { FiCalendar, FiFileText, FiSettings, FiEdit } from "react-icons/fi"
 import { QuestionCircleOutlined } from "@ant-design/icons"
 import { toggleJobStatusThunk, deleteJobThunk, openJobModal } from "@store/slices/jobSlice"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 
 const JobCard = memo(({ job, setCurrentPage, paginatedJobs }) => {
   const dispatch = useDispatch()
+  const queryClient = useQueryClient()
   const [showAllTopics, setShowAllTopics] = useState(false)
+
+  const toggleJobStatusMutation = useMutation({
+    mutationFn: ({ jobId, currentStatus }) =>
+      dispatch(toggleJobStatusThunk({ jobId, currentStatus })).unwrap(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["jobs"], exact: false })
+      message.success("Job status updated successfully")
+    },
+    onError: (error) => {
+      console.error("Failed to toggle job status:", error)
+      message.error("Failed to update job status. Please try again.")
+    },
+  })
+
+  const deleteJobMutation = useMutation({
+    mutationFn: (jobId) => dispatch(deleteJobThunk(jobId)).unwrap(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["jobs"], exact: false })
+      if (paginatedJobs.length === 1 && currentPage > 1) {
+        setCurrentPage((prev) => prev - 1)
+      }
+      message.success("Job deleted successfully")
+    },
+    onError: (error) => {
+      console.error("Failed to delete job:", error)
+      message.error("Failed to delete job. Please try again.")
+    },
+  })
 
   const handleStartJob = (jobId) => {
     const job = paginatedJobs.find((j) => j._id === jobId)
@@ -16,14 +46,11 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs }) => {
       message.error("Job not found.")
       return
     }
-    dispatch(toggleJobStatusThunk({ jobId, currentStatus: job.status }))
+    toggleJobStatusMutation.mutate({ jobId, currentStatus: job.status })
   }
 
   const handleDeleteJob = (jobId) => {
-    dispatch(deleteJobThunk(jobId))
-    if (paginatedJobs.length === 1 && currentPage > 1) {
-      setCurrentPage((prev) => prev - 1)
-    }
+    deleteJobMutation.mutate(jobId)
   }
 
   const handleEditJob = (job) => {
@@ -42,10 +69,10 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs }) => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 20, transition: { duration: 0.3 } }} 
-      transition={{ duration: 0.4, ease: "easeOut" }} 
+      exit={{ opacity: 0, y: 20, transition: { duration: 0.3 } }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
       className="bg-white rounded-xl shadow-lg hover:shadow-xl p-6 transition-all duration-200"
-      layout 
+      layout
     >
       <div className="flex justify-between items-start mb-4">
         <div>
