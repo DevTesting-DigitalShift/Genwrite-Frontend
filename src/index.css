@@ -334,7 +334,7 @@ input[type="number"] {
 
 .ant-modal-content {
   border-radius: 8px !important;
-  padding: 12px !important;
+  padding: 16px !important;
 }
 .ant-modal-header {
   border-radius: 8px 8px 0 0 !important;

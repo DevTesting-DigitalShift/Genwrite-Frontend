@@ -512,7 +512,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
       maskTransitionName=""
       styles={{ body: { maxHeight: "80vh", overflowY: "auto", padding: "12px sm:16px" } }}
     >
-      <div className="space-y-4 sm:space-y-6">
+      <div className="space-y-4 sm:space-y-6 p-5">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}

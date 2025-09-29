@@ -125,7 +125,7 @@ const Transactions = () => {
         className="p-8 bg-white rounded-xl shadow-md max-w-full"
       >
         <div className="flex flex-row justify-between items-center mb-4 sm:mb-6 gap-3">
-          <h2 className="text-lg sm:text-xl md:text-2xl font-semibold text-gray-800">
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             Your Transactions
           </h2>
           <Tooltip title="Refresh">

@@ -326,11 +326,6 @@ const PluginsMain = () => {
                   Please enter your WordPress site URL to connect the integration.
                 </Text>
               )}
-              {/* {error && (
-                <Text type="danger" className="text-sm">
-                  {error.message || "An error occurred while processing the integration"}
-                </Text>
-              )} */}
             </Flex>
           </Card>
 
@@ -344,8 +339,6 @@ const PluginsMain = () => {
               Download Plugin
             </Button>
           </a>
-
-          <div className="my-6 border-gray-200" />
 
           <Card className="bg-gray-50 border-0 rounded-lg shadow-sm">
             <Paragraph className="text-sm md:text-base text-gray-700 leading-relaxed mb-0">
@@ -373,7 +366,7 @@ const PluginsMain = () => {
   }))
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-100">
+    <div className="min-h-screen flex flex-col">
       <Helmet>
         <title>Plugins | GenWrite</title>
       </Helmet>

@@ -60,13 +60,15 @@ const SelectTemplateModal = ({ handleNext, handleClose, data, setData, isModalVi
       open={isModalVisible}
       onCancel={handleClose}
       footer={[
-        <Button
-          key="next"
-          onClick={handleNextClick}
-          className="px-4 sm:px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 ml-2 sm:ml-3 text-sm sm:text-base"
-        >
-          Next
-        </Button>,
+        <div className="flex justify-end w-full">
+          <Button
+            key="next"
+            onClick={handleNextClick}
+            className="px-4 sm:px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 ml-2 sm:ml-3 text-sm sm:text-base"
+          >
+            Next
+          </Button>
+        </div>,
       ]}
       centered
       width="90vw"

@@ -2,9 +2,9 @@ import React, { useState, useEffect, useCallback, useMemo } from "react"
 import { motion } from "framer-motion"
 import { FaEdit, FaTimes } from "react-icons/fa"
 import { useDispatch, useSelector } from "react-redux"
-import { Info, Loader2, Trash, Upload } from "lucide-react"
+import { Info, Loader2, Trash, Upload, RefreshCcw } from "lucide-react"
 import { Helmet } from "react-helmet"
-import { Modal, Tooltip, message } from "antd"
+import { Modal, Tooltip, message, Button } from "antd"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   createBrandVoiceThunk,
@@ -47,6 +47,10 @@ const BrandVoice = () => {
       const response = await dispatch(fetchBrands()).unwrap()
       return response
     },
+    staleTime: Infinity, // Data never becomes stale
+    gcTime: Infinity, // Cache persists for the session
+    refetchOnMount: false, // Prevent refetch on component mount
+    refetchOnWindowFocus: false, // Prevent refetch on window focus
   })
 
   useEffect(() => {
@@ -244,8 +248,10 @@ const BrandVoice = () => {
     try {
       if (formData._id) {
         await dispatch(updateBrandVoiceThunk({ id: formData._id, payload })).unwrap()
+        message.success("Brand voice updated successfully")
       } else {
         await dispatch(createBrandVoiceThunk({ payload })).unwrap()
+        message.success("Brand voice created successfully")
       }
       resetForm()
       queryClient.invalidateQueries(["brands"])
@@ -291,6 +297,7 @@ const BrandVoice = () => {
               oldBrands.filter((b) => b._id !== brand._id)
             )
             await dispatch(deleteBrandVoiceThunk({ id: brand._id })).unwrap()
+            message.success("Brand voice deleted successfully")
             queryClient.invalidateQueries(["brands"])
             if (formData.selectedVoice?._id === brand._id) {
               resetForm()
@@ -298,6 +305,7 @@ const BrandVoice = () => {
             }
           } catch (error) {
             console.error("Failed to delete brand voice:", error)
+            message.error("Failed to delete brand voice.")
             queryClient.invalidateQueries(["brands"])
           }
         },
@@ -339,6 +347,10 @@ const BrandVoice = () => {
       }))
     }
   }, [formData.postLink, lastScrapedUrl, dispatch])
+
+  const handleRefresh = () => {
+    queryClient.invalidateQueries(["brands"])
+  }
 
   const renderKeywords = useMemo(() => {
     const maxInitialKeywords = 12
@@ -398,9 +410,22 @@ const BrandVoice = () => {
         initial={{ x: -20 }}
         animate={{ x: 0 }}
       >
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
-          Create Your Brand Voice
-        </h1>
+        <div className="flex justify-between items-center mb-4 sm:mb-6">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Create Your Brand Voice
+          </h1>
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Button
+              type="default"
+              icon={<RefreshCcw className="w-4 sm:w-5 h-4 sm:h-5" />}
+              onClick={handleRefresh}
+              disabled={isLoading}
+              className="text-xs sm:text-sm px-4 py-2"
+            >
+              Refresh
+            </Button>
+          </motion.div>
+        </div>
         <p className="text-gray-600 text-sm mb-4 sm:mb-6">
           Define your brand's unique tone and style to ensure consistent content creation.
         </p>
@@ -669,9 +694,22 @@ const BrandVoice = () => {
         initial={{ x: 20 }}
         animate={{ x: 0 }}
       >
-        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 mb-4">
-          Your Brand Voices
-        </h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800">
+            Your Brand Voices
+          </h2>
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Button
+              type="default"
+              icon={<RefreshCcw className="w-4 sm:w-5 h-4 sm:h-5" />}
+              onClick={handleRefresh}
+              disabled={isLoading}
+              className="text-xs sm:text-sm px-4 py-2"
+            >
+              Refresh
+            </Button>
+          </motion.div>
+        </div>
         <div className="space-y-3 overflow-y-auto max-h-[calc(100vh-300px)] sm:max-h-[calc(100vh-250px)]">
           {isLoading ? (
             <div className="flex justify-center items-center h-32">
