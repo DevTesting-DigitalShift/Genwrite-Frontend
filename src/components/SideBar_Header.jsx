@@ -268,12 +268,10 @@ const SideBar_Header = () => {
         )}
 
         {/* Contact Us - Stick to bottom */}
-        <div className="mt-auto px-2 pt-4">
+        <div className="absolute bottom-4 w-full pr-4">
           <NavLink
             to="/contact"
-            className={`flex items-center ${
-              sidebarOpen ? "justify-start gap-3 px-3 py-2" : "justify-center py-3"
-            } rounded-md text-white hover:bg-white/10 transition-all duration-300`}
+            className="flex items-center gap-3 px-3 py-2 rounded-md transition-colors duration-200 text-white hover:bg-white/10"
           >
             <UsersRound
               className={`transition-all duration-300 ${

@@ -3,8 +3,9 @@ import { motion } from "framer-motion"
 import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import { Helmet } from "react-helmet"
-import { Pagination } from "antd"
+import { Pagination, Button } from "antd"
 import { FiPlus } from "react-icons/fi"
+import { RefreshCcw } from "lucide-react"
 import { fetchJobs, openJobModal } from "@store/slices/jobSlice"
 import { selectUser } from "@store/slices/authSlice"
 import SkeletonLoader from "@components/UI/SkeletonLoader"
@@ -13,14 +14,15 @@ import { openUpgradePopup } from "@utils/UpgardePopUp"
 import JobModal from "@/layout/Jobs/JobModal"
 import JobCard from "@/layout/Jobs/JobCard"
 import { AlertTriangle } from "lucide-react"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 
 const PAGE_SIZE = 15
 
 const Jobs = () => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
-  const { jobs, loading: isLoading, showJobModal } = useSelector((state) => state.jobs)
+  const queryClient = useQueryClient()
+  const { showJobModal } = useSelector((state) => state.jobs)
   const { selectedKeywords } = useSelector((state) => state.analysis)
   const user = useSelector(selectUser)
   const userPlan = (user?.plan || user?.subscription?.plan || "free").toLowerCase()
@@ -31,12 +33,16 @@ const Jobs = () => {
   const usageLimit = user?.usageLimits?.createdJobs
 
   // TanStack Query for fetching jobs
-  const { data: queryJobs, isLoading: queryLoading } = useQuery({
+  const { data: queryJobs = [], isLoading: queryLoading } = useQuery({
     queryKey: ["jobs"],
     queryFn: async () => {
       const response = await dispatch(fetchJobs()).unwrap() // Dispatch and unwrap the payload
       return response // Return the jobs data
     },
+    staleTime: Infinity, // Data never becomes stale
+    gcTime: Infinity, // Cache persists for the session
+    refetchOnMount: false, // Prevent refetch on component mount
+    refetchOnWindowFocus: false, // Prevent refetch on window focus
   })
 
   const checkJobLimit = () => {
@@ -55,6 +61,10 @@ const Jobs = () => {
     dispatch(openJobModal(null)) // Pass null for new job
   }
 
+  const handleRefresh = () => {
+    queryClient.invalidateQueries(["jobs"])
+  }
+
   useEffect(() => {
     setIsUserLoaded(!!(user?.name || user?.credits))
   }, [user])
@@ -63,12 +73,12 @@ const Jobs = () => {
     window.scrollTo({ top: 0, behavior: "smooth" })
   }, [currentPage])
 
-  const totalPages = useMemo(() => Math.ceil(jobs.length / PAGE_SIZE), [jobs])
+  const totalPages = useMemo(() => Math.ceil(queryJobs.length / PAGE_SIZE), [queryJobs])
 
   const paginatedJobs = useMemo(() => {
     const startIndex = (currentPage - 1) * PAGE_SIZE
-    return jobs.slice(startIndex, startIndex + PAGE_SIZE)
-  }, [jobs, currentPage])
+    return queryJobs.slice(startIndex, startIndex + PAGE_SIZE)
+  }, [queryJobs, currentPage])
 
   if (userPlan === "free") {
     return <UpgradeModal featureName="Content Agent" />
@@ -92,15 +102,28 @@ const Jobs = () => {
               </motion.h1>
               <p className="text-gray-600 mt-2">Manage your automated content generation jobs</p>
             </div>
-            {usage === usageLimit && (
-              <button
-                onClick={() => setShowWarning((prev) => !prev)}
-                className="text-yellow-500 hover:text-yellow-600 transition"
-                title="View usage warning"
-              >
-                <AlertTriangle className="w-6 h-6" />
-              </button>
-            )}
+            <div className="flex gap-2">
+              {usage === usageLimit && (
+                <button
+                  onClick={() => setShowWarning((prev) => !prev)}
+                  className="text-yellow-500 hover:text-yellow-600 transition"
+                  title="View usage warning"
+                >
+                  <AlertTriangle className="w-6 h-6" />
+                </button>
+              )}
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  type="default"
+                  icon={<RefreshCcw className="w-4 sm:w-5 h-4 sm:h-5" />}
+                  onClick={handleRefresh}
+                  disabled={queryLoading}
+                  className="text-xs sm:text-sm px-4 py-2"
+                >
+                  Refresh
+                </Button>
+              </motion.div>
+            </div>
           </div>
 
           {showWarning && usage === usageLimit && (
@@ -139,17 +162,17 @@ const Jobs = () => {
             </div>
           </motion.div>
 
-          {jobs.length > 0 && (
+          {queryJobs.length > 0 && (
             <h2 className="text-xl font-semibold text-gray-800 mb-6">Active Jobs</h2>
           )}
 
-          {queryLoading || isLoading ? (
+          {queryLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[...Array(PAGE_SIZE)].map((_, index) => (
                 <SkeletonLoader key={index} />
               ))}
             </div>
-          ) : jobs.length === 0 ? (
+          ) : queryJobs.length === 0 ? (
             <div
               className="flex flex-col justify-center items-center"
               style={{ minHeight: "calc(100vh - 250px)" }}
@@ -173,7 +196,7 @@ const Jobs = () => {
               <Pagination
                 current={currentPage}
                 pageSize={PAGE_SIZE}
-                total={jobs.length}
+                total={queryJobs.length}
                 onChange={(page) => setCurrentPage(page)}
                 showSizeChanger={false}
                 responsive
@@ -194,3 +217,4 @@ const Jobs = () => {
 }
 
 export default Jobs
+  

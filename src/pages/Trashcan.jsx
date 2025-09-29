@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react"
 import { Button, Tooltip, Popconfirm, Badge, Pagination, Input, Select, message } from "antd"
-import { RefreshCcw, Trash2, Search, ArchiveRestore } from "lucide-react"
+import { RefreshCcw, Trash2, Search, ArchiveRestore, X } from "lucide-react"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { QuestionCircleOutlined } from "@ant-design/icons"
 import { motion } from "framer-motion"
@@ -23,6 +23,10 @@ const Trashcan = () => {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [dateRange, setDateRange] = useState([null, null])
+
+  const clearSearch = useCallback(() => {
+    setSearchTerm("")
+  }, [])
 
   const { handlePopup } = useConfirmPopup()
   const dispatch = useDispatch()
@@ -63,6 +67,10 @@ const Trashcan = () => {
       }
     },
     keepPreviousData: true,
+    staleTime: Infinity, // Data never becomes stale
+    gcTime: Infinity, // Cache persists for the session
+    refetchOnMount: false, // Prevent refetch on component mount
+    refetchOnWindowFocus: false, // Prevent refetch on window focus
   })
 
   const trashedBlogs = data?.trashedBlogs || []
@@ -73,7 +81,7 @@ const Trashcan = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["trashedBlogs"], exact: false })
       queryClient.invalidateQueries({ queryKey: ["blogs"], exact: false })
-      // message.success("Blog restored successfully")
+      message.success("Blog restored successfully")
     },
     onError: (error) => {
       console.error("Failed to restore blog:", error)
@@ -86,7 +94,7 @@ const Trashcan = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["trashedBlogs"], exact: false })
       setCurrentPage(1)
-      // message.success("All trashed blogs deleted successfully")
+      message.success("All trashed blogs deleted successfully")
     },
     onError: (error) => {
       console.error("Failed to delete all blogs:", error)
@@ -161,7 +169,7 @@ const Trashcan = () => {
               days.
             </motion.p>
           </div>
-          <div className="flex  gap-2">
+          <div className="flex gap-2">
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Button
                 type="default"
@@ -215,15 +223,17 @@ const Trashcan = () => {
           className="bg-white/90 p-4 sm:p-6 mb-6"
         >
           <div className="flex flex-col sm:flex-row gap-4">
-            <Input
-              placeholder="Search by title or keywords..."
-              onChange={(e) => debouncedSearch(e.target.value)}
-              prefix={<Search className="w-4 sm:w-5 h-4 sm:h-5 text-gray-400 mr-2 sm:mr-3" />}
-              allowClear
-              className="w-full rounded-lg focus:ring-0 focus:ring-blue-300 text-xs sm:text-sm shadow-none"
-              disabled={isLoading}
-            />
-
+            <div className="relative w-full">
+              <input
+                placeholder="Search by title or keywords..."
+                onChange={(e) => debouncedSearch(e.target.value)}
+                prefix={<Search className="w-4 sm:w-5 h-4 sm:h-5 text-gray-400 mr-2 sm:mr-3" />}
+                allowClear
+                className="w-full rounded-lg border border-gray-300 px-10 py-[5px] text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                disabled={isLoading}
+              />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+            </div>
             <Select
               value={statusFilter}
               onChange={(value) => {
@@ -343,7 +353,6 @@ const Trashcan = () => {
                           dateStyle: "medium",
                         })}
                       </div>
-
                       {isManualEditor ? (
                         <div
                           className="cursor-pointer"
@@ -490,55 +499,6 @@ const Trashcan = () => {
           </>
         )}
       </div>
-      <style>
-        {`
-          .ant-input-search .ant-input {
-            border-radius: 8px !important;
-            border: 1px solid #d1d5db !important;
-            padding: 6px 12px !important;
-          }
-          .ant-input-search .ant-input:focus,
-          .ant-input-search .ant-input:hover {
-            border-color: #3b82f6 !important;
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
-          }
-          .ant-input-search .ant-input-prefix {
-            display: flex;
-            align-items: center;
-            margin-right: 8px;
-          }
-          .ant-select-selector {
-            border-radius: 8px !important;
-            border: 1px solid #d1d5db !important;
-          }
-          @media (max-width: 640px) {
-            .ant-input {
-              font-size: 12px !important;
-              padding: 4px 8px !important;
-            }
-            .ant-select-selector {
-              font-size: 12px !important;
-              padding: 4px 8px !important;
-            }
-            .ant-btn {
-              font-size: 12px !important;
-              padding: 4px 8px !important;
-            }
-            .ant-badge .ant-ribbon {
-              font-size: 10px !important;
-              padding: 2px 4px !important;
-            }
-          }
-          @media (min-width: 768px) and (max-width: 1024px) {
-            .grid {
-              grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
-            }
-            .grid > div {
-              min-width: 0 !important;
-            }
-          }
-        `}
-      </style>
     </div>
   )
 }

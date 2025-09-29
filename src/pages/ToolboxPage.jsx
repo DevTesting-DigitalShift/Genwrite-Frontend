@@ -341,9 +341,7 @@ export default function ToolboxPage() {
           onChange={setActiveTab}
           className="custom-tabs"
           tabBarStyle={{
-            background: "#f9fafb",
             padding: "0 8px sm:0 16px",
-            borderRadius: "12px",
             marginBottom: "16px sm:24px",
           }}
           items={[
