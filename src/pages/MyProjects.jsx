@@ -1,17 +1,9 @@
-import { useState, useEffect, useCallback, useMemo } from "react"
+"use client"
+
+import React, { useState, useEffect, useCallback, useMemo } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import SkeletonLoader from "../components/UI/SkeletonLoader"
-import {
-  Badge,
-  Button,
-  Input,
-  Popconfirm,
-  Tooltip,
-  Popover,
-  Pagination,
-  DatePicker,
-  message,
-} from "antd"
+import { Badge, Button, Input, Popconfirm, Tooltip, Popover, Pagination, message } from "antd"
 import {
   ArrowDownUp,
   Calendar,
@@ -32,7 +24,6 @@ import {
   CloseCircleOutlined,
   SortDescendingOutlined,
   FieldTimeOutlined,
-  ClockCircleOutlined,
   ArrowUpOutlined,
   ArrowDownOutlined,
 } from "@ant-design/icons"
@@ -46,11 +37,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { getSocket } from "@utils/socket"
 import isBetween from "dayjs/plugin/isBetween"
 import clsx from "clsx"
+import { debounce } from "lodash"
 import DateRangePicker from "@components/UI/DateRangePicker"
 
 dayjs.extend(isBetween)
-
-const { RangePicker } = DatePicker
 
 const INITIAL_LIMIT = 100
 
@@ -61,6 +51,7 @@ const MyProjects = () => {
   const user = useSelector(selectUser)
   const userId = user?.id || "guest"
 
+  // Initialize filters from sessionStorage or default to "All" preset
   const initialFilters = JSON.parse(sessionStorage.getItem(`user_${userId}_filters`)) || {}
   const [filteredBlogs, setFilteredBlogs] = useState([])
   const [currentPage, setCurrentPage] = useState(initialFilters.currentPage || 1)
@@ -73,36 +64,66 @@ const MyProjects = () => {
     initialFilters.dateRangeEnd ? dayjs(initialFilters.dateRangeEnd) : null,
   ])
   const [presetDateRange, setPresetDateRange] = useState([
-    initialFilters.presetDateRangeStart ? dayjs(initialFilters.presetDateRangeStart) : null,
-    initialFilters.presetDateRangeEnd ? dayjs(initialFilters.presetDateRangeEnd) : null,
+    initialFilters.presetDateRangeStart
+      ? dayjs(initialFilters.presetDateRangeStart)
+      : dayjs().startOf("year").startOf("day"),
+    initialFilters.presetDateRangeEnd
+      ? dayjs(initialFilters.presetDateRangeEnd)
+      : dayjs().endOf("day"),
   ])
+  const [activePresetLabel, setActivePresetLabel] = useState(
+    initialFilters.activePresetLabel || "All"
+  )
   const [searchTerm, setSearchTerm] = useState(initialFilters.searchTerm || "")
   const [isMenuOpen, setMenuOpen] = useState(false)
   const [isFunnelMenuOpen, setFunnelMenuOpen] = useState(false)
   const [isCustomDatePickerOpen, setIsCustomDatePickerOpen] = useState(false)
-  const [activePresetLabel, setActivePresetLabel] = useState(
-    initialFilters.activePresetLabel || "Last 7 Days"
-  )
   const { handlePopup } = useConfirmPopup()
   const TRUNCATE_LENGTH = 120
   const [totalBlogs, setTotalBlogs] = useState(0)
   const [limit, setLimit] = useState(INITIAL_LIMIT)
 
+  // Clear data on user change or logout
   useEffect(() => {
-    const filters = {
-      sortType,
-      sortOrder,
-      statusFilter,
-      searchTerm,
-      activePresetLabel,
-      dateRangeStart: dateRange[0] ? dateRange[0].toISOString() : null,
-      dateRangeEnd: dateRange[1] ? dateRange[1].toISOString() : null,
-      presetDateRangeStart: presetDateRange[0] ? presetDateRange[0].toISOString() : null,
-      presetDateRangeEnd: presetDateRange[1] ? presetDateRange[1].toISOString() : null,
-      currentPage,
+    if (!user) {
+      // Clear sessionStorage and query cache on logout
+      sessionStorage.removeItem(`user_${userId}_filters`)
+      queryClient.clear()
+      setFilteredBlogs([])
+      setCurrentPage(1)
+      setSortType("updatedAt")
+      setSortOrder("desc")
+      setStatusFilter("all")
+      setDateRange([null, null])
+      setPresetDateRange([dayjs().startOf("year").startOf("day"), dayjs().endOf("day")])
+      setActivePresetLabel("All")
+      setSearchTerm("")
+      setLimit(INITIAL_LIMIT)
+    } else {
+      // Invalidate queries when user changes
+      queryClient.invalidateQueries({ queryKey: ["blogs", userId] })
     }
-    sessionStorage.setItem(`user_${userId}_filters`, JSON.stringify(filters))
+  }, [user, userId, queryClient])
+
+  // Save filters to sessionStorage
+  useEffect(() => {
+    if (user) {
+      const filters = {
+        sortType,
+        sortOrder,
+        statusFilter,
+        searchTerm,
+        activePresetLabel,
+        dateRangeStart: dateRange[0] ? dateRange[0].toISOString() : null,
+        dateRangeEnd: dateRange[1] ? dateRange[1].toISOString() : null,
+        presetDateRangeStart: presetDateRange[0] ? presetDateRange[0].toISOString() : null,
+        presetDateRangeEnd: presetDateRange[1] ? presetDateRange[1].toISOString() : null,
+        currentPage,
+      }
+      sessionStorage.setItem(`user_${userId}_filters`, JSON.stringify(filters))
+    }
   }, [
+    user,
     userId,
     sortType,
     sortOrder,
@@ -114,45 +135,54 @@ const MyProjects = () => {
     currentPage,
   ])
 
+  // Scroll to top on page change
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" })
   }, [currentPage])
 
+  // Reset filters to default
   const resetFilters = useCallback(() => {
     setSortType("updatedAt")
     setSortOrder("desc")
     setStatusFilter("all")
     setDateRange([null, null])
-    setPresetDateRange([null, null])
-    setActivePresetLabel("Last 7 days")
+    setPresetDateRange([dayjs().startOf("year").startOf("day"), dayjs().endOf("day")])
+    setActivePresetLabel("All")
     setSearchTerm("")
     setCurrentPage(1)
     setLimit(INITIAL_LIMIT)
     sessionStorage.removeItem(`user_${userId}_filters`)
-  }, [userId])
+    queryClient.invalidateQueries({ queryKey: ["blogs", userId] })
+  }, [userId, queryClient])
 
+  // Clear search term
   const clearSearch = useCallback(() => {
     setSearchTerm("")
     setCurrentPage(1)
   }, [])
 
+  // Check for active filters
   const isDefaultSort = sortType === "updatedAt" && sortOrder === "desc"
   const hasActiveFilters = useMemo(
     () =>
-      searchTerm || !isDefaultSort || statusFilter !== "all" || dateRange[0] || presetDateRange[0],
+      searchTerm ||
+      !isDefaultSort ||
+      statusFilter !== "all" ||
+      dateRange[0] ||
+      (presetDateRange[0] && !presetDateRange[0].isSame(dayjs().startOf("year").startOf("day"))),
     [searchTerm, isDefaultSort, statusFilter, dateRange, presetDateRange]
   )
 
+  // Get current sort label
   const getCurrentSortLabel = useCallback(() => {
     if (sortType === "title" && sortOrder === "asc") return "A-Z"
     if (sortType === "title" && sortOrder === "desc") return "Z-A"
-    if (sortType === "updatedAt" && sortOrder === "desc") return "Recently Updated"
-    if (sortType === "updatedAt" && sortOrder === "asc") return "Oldest Updated"
     if (sortType === "createdAt" && sortOrder === "desc") return "Newest"
     if (sortType === "createdAt" && sortOrder === "asc") return "Oldest"
     return "Recently Updated"
   }, [sortType, sortOrder])
 
+  // Get current status label
   const getCurrentStatusLabel = useCallback(() => {
     switch (statusFilter) {
       case "complete":
@@ -166,6 +196,7 @@ const MyProjects = () => {
     }
   }, [statusFilter])
 
+  // Get current date label
   const getCurrentDateLabel = useCallback(() => {
     if (activePresetLabel) return activePresetLabel
     if (dateRange[0] && dateRange[1]) {
@@ -174,6 +205,7 @@ const MyProjects = () => {
     return "All Dates"
   }, [activePresetLabel, dateRange])
 
+  // Fetch blogs with optimized query
   const fetchBlogsQuery = useCallback(async () => {
     const queryParams = {
       start: dateRange[0]
@@ -192,9 +224,14 @@ const MyProjects = () => {
     return response.data || []
   }, [dispatch, dateRange, presetDateRange, limit])
 
-  const { data: allBlogs = [], isLoading } = useQuery({
+  const {
+    data: allBlogs = [],
+    isLoading,
+    isFetching,
+  } = useQuery({
     queryKey: [
       "blogs",
+      userId,
       dateRange[0]?.toISOString() ?? null,
       dateRange[1]?.toISOString() ?? null,
       presetDateRange[0]?.toISOString() ?? null,
@@ -202,6 +239,10 @@ const MyProjects = () => {
       limit,
     ],
     queryFn: fetchBlogsQuery,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    gcTime: 7 * 24 * 60 * 60 * 1000, // Garbage collect after 7 days
+    refetchOnWindowFocus: false, // Prevent refetch on window focus
+    enabled: !!user, // Only fetch if user is logged in
     onError: (error) => {
       console.error("Failed to fetch blogs:", {
         error: error.message,
@@ -212,46 +253,47 @@ const MyProjects = () => {
     },
   })
 
+  // Socket for real-time updates
   useEffect(() => {
     const socket = getSocket()
-    if (!socket) return
+    if (!socket || !user) return
 
     socket.on("blog:statusChanged", (data) => {
       console.debug("Blog status changed:", data)
-      queryClient.invalidateQueries({ queryKey: ["blogs"] })
+      queryClient.invalidateQueries({ queryKey: ["blogs", userId] })
       if (data.blogId) {
-        // Assuming the socket data includes the blog ID
-        queryClient.invalidateQueries({ queryKey: ["blog", data.blogId] }) // Invalidate single blog if fetched separately
+        queryClient.invalidateQueries({ queryKey: ["blog", data.blogId] })
       }
     })
 
     return () => {
       socket.off("blog:statusChanged")
     }
-  }, [queryClient])
+  }, [queryClient, user, userId])
 
+  // Retry and archive mutations
   const retryMutation = useMutation({
     mutationFn: (id) => dispatch(retryBlog({ id })).unwrap(),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["blogs"], exact: false })
-      message.success("Blog retry initiated.")
+      queryClient.invalidateQueries({ queryKey: ["blogs", userId], exact: false })
     },
     onError: (error) => {
       console.error("Failed to retry blog:", error)
-      message.error("Failed to retry blog.")
     },
   })
 
   const archiveMutation = useMutation({
     mutationFn: (id) => dispatch(archiveBlog(id)).unwrap(),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["blogs"], exact: false })
+      queryClient.invalidateQueries({ queryKey: ["blogs", userId], exact: false })
     },
     onError: (error) => {
       console.error("Failed to archive blog:", error)
+      message.error("Failed to archive blog.")
     },
   })
 
+  // Fuse.js for search
   const fuse = useMemo(() => {
     return new Fuse(allBlogs, {
       keys: [
@@ -265,6 +307,17 @@ const MyProjects = () => {
     })
   }, [allBlogs])
 
+  // Debounced search handler
+  const debouncedSetSearchTerm = useMemo(
+    () =>
+      debounce((value) => {
+        setSearchTerm(value)
+        setCurrentPage(1)
+      }, 300),
+    []
+  )
+
+  // Filtered and sorted blogs
   const filteredBlogsData = useMemo(() => {
     let result = allBlogs
 
@@ -299,26 +352,16 @@ const MyProjects = () => {
       blogs: sortedResult.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage),
       total: sortedResult.length,
     }
-  }, [
-    allBlogs,
-    searchTerm,
-    statusFilter,
-    dateRange,
-    presetDateRange,
-    sortType,
-    sortOrder,
-    currentPage,
-    itemsPerPage,
-    fuse,
-  ])
+  }, [allBlogs, searchTerm, statusFilter, sortType, sortOrder, currentPage, itemsPerPage, fuse])
 
   useEffect(() => {
     setFilteredBlogs(filteredBlogsData.blogs)
     setTotalBlogs(filteredBlogsData.total)
   }, [filteredBlogsData])
 
+  // Responsive items per page with debounced resize handler
   useEffect(() => {
-    const updateItemsPerPage = () => {
+    const updateItemsPerPage = debounce(() => {
       if (window.innerWidth >= 1024) {
         setItemsPerPage(15)
       } else if (window.innerWidth >= 768) {
@@ -327,13 +370,17 @@ const MyProjects = () => {
         setItemsPerPage(6)
       }
       setCurrentPage(1)
-    }
+    }, 200)
 
     updateItemsPerPage()
     window.addEventListener("resize", updateItemsPerPage)
-    return () => window.removeEventListener("resize", updateItemsPerPage)
+    return () => {
+      window.removeEventListener("resize", updateItemsPerPage)
+      updateItemsPerPage.cancel()
+    }
   }, [])
 
+  // Navigation handlers
   const handleBlogClick = useCallback(
     (blog) => {
       navigate(`/toolbox/${blog._id}`)
@@ -362,6 +409,7 @@ const MyProjects = () => {
     [archiveMutation]
   )
 
+  // Utility functions
   const truncateContent = useCallback((content, length = TRUNCATE_LENGTH) => {
     if (!content) return ""
     return content.length > length ? content.substring(0, length) + "..." : content
@@ -375,6 +423,7 @@ const MyProjects = () => {
       ?.trim()
   }, [])
 
+  // Menu options
   const menuOptions = useMemo(
     () => [
       {
@@ -398,27 +447,7 @@ const MyProjects = () => {
         },
       },
       {
-        label: "Recently Updated",
-        icon: <FieldTimeOutlined />,
-        onClick: () => {
-          setSortType("updatedAt")
-          setSortOrder("desc")
-          setMenuOpen(false)
-          setCurrentPage(1)
-        },
-      },
-      {
-        label: "Oldest Updated",
-        icon: <ClockCircleOutlined />,
-        onClick: () => {
-          setSortType("updatedAt")
-          setSortOrder("asc")
-          setMenuOpen(false)
-          setCurrentPage(1)
-        },
-      },
-      {
-        label: "Newest",
+        label: "Newest Blog",
         icon: <ArrowUpOutlined />,
         onClick: () => {
           setSortType("createdAt")
@@ -428,7 +457,7 @@ const MyProjects = () => {
         },
       },
       {
-        label: "Oldest",
+        label: "Oldest Blog",
         icon: <ArrowDownOutlined />,
         onClick: () => {
           setSortType("createdAt")
@@ -441,6 +470,7 @@ const MyProjects = () => {
     []
   )
 
+  // Funnel menu options
   const funnelMenuOptions = useMemo(
     () => [
       {
@@ -483,6 +513,7 @@ const MyProjects = () => {
     []
   )
 
+  // Date presets
   const datePresets = useMemo(
     () => [
       {
@@ -534,12 +565,12 @@ const MyProjects = () => {
         },
       },
       {
-        label: "This Year",
+        label: "All",
         value: [dayjs().startOf("year").startOf("day"), dayjs().endOf("day")],
         onClick: () => {
           setPresetDateRange([dayjs().startOf("year").startOf("day"), dayjs().endOf("day")])
           setDateRange([null, null])
-          setActivePresetLabel("This Year")
+          setActivePresetLabel("All")
           setCurrentPage(1)
           setIsCustomDatePickerOpen(false)
           setLimit(INITIAL_LIMIT)
@@ -586,15 +617,12 @@ const MyProjects = () => {
       </div>
 
       {/* Filter and Sort Bar */}
-      <div className="flex flex-col sm:flex-row gap-4 bg-white p-4 sm:p-6 rounded-lg mb-6">
+      <div className="flex flex-col sm:flex-row gap-4 border border-gray-100 shadow-sm p-4 sm:p-6 rounded-lg mb-6">
         <div className="flex-1 flex items-center gap-2">
           <Input
             placeholder="Search blogs..."
             value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value)
-              setCurrentPage(1)
-            }}
+            onChange={(e) => debouncedSetSearchTerm(e.target.value)}
             prefix={<Search className="w-4 sm:w-5 h-4 sm:h-5 text-gray-500" />}
             suffix={
               searchTerm ? (
@@ -702,28 +730,14 @@ const MyProjects = () => {
                 ))}
               </div>
             }
-          >
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button
-                type="default"
-                icon={<Calendar className="w-4 sm:w-5 h-4 sm:h-5" />}
-                className={`p-2 sm:p-3 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100 w-full sm:w-auto text-xs sm:text-sm ${
-                  dateRange[0] || presetDateRange[0]
-                    ? "border-purple-400 bg-purple-50 text-purple-600"
-                    : ""
-                }`}
-              >
-                Date: {getCurrentDateLabel()}
-              </Button>
-            </motion.div>
-          </Popover>
+          ></Popover>
 
           {/* Refresh */}
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <Button
               type="default"
               icon={<RefreshCcw className="w-4 sm:w-5 h-4 sm:h-5" />}
-              onClick={() => queryClient.invalidateQueries(["blogs"])}
+              onClick={() => queryClient.invalidateQueries(["blogs", userId])}
               className="p-2 sm:p-3 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100 w-full sm:w-auto text-xs sm:text-sm"
             >
               Refresh
@@ -746,7 +760,7 @@ const MyProjects = () => {
         </div>
 
         <div className="flex-1">
-          <RangePicker
+          <DateRangePicker
             value={dateRange}
             minDate={user?.createdAt ? dayjs(user?.createdAt) : undefined}
             maxDate={dayjs()}
@@ -772,7 +786,7 @@ const MyProjects = () => {
         </div>
       </div>
 
-      {isLoading ? (
+      {isLoading || isFetching ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
           {[...Array(itemsPerPage)].map((_, index) => (
             <div key={index} className="bg-white shadow-md rounded-lg p-4 sm:p-6">
@@ -1030,7 +1044,7 @@ const MyProjects = () => {
                 responsive={true}
                 showSizeChanger={false}
                 pageSizeOptions={["6", "12", "15"]}
-                disabled={isLoading}
+                disabled={isLoading || isFetching}
                 className="text-xs sm:text-sm"
               />
             </div>
@@ -1039,7 +1053,12 @@ const MyProjects = () => {
             limit !== -1 &&
             currentPage === Math.ceil(totalBlogs / itemsPerPage) && (
               <div className="flex justify-center mt-4">
-                <Button onClick={() => setLimit(-1)}>Load More</Button>
+                <Button
+                  onClick={() => setLimit((prev) => prev + INITIAL_LIMIT)}
+                  disabled={isLoading || isFetching}
+                >
+                  Load More
+                </Button>
               </div>
             )}
         </>

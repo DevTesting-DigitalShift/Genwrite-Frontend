@@ -16,6 +16,7 @@ import {
   Sparkles,
   Eye,
   Maximize2,
+  ExternalLink,
 } from "lucide-react"
 import { Button, Tooltip, message, Tabs, Badge, Collapse, Dropdown, Menu, Tag, Input } from "antd"
 import { fetchProofreadingSuggestions, fetchBlogPrompt } from "@store/slices/blogSlice"
@@ -63,6 +64,7 @@ const TextEditorSidebar = ({
   setHumanizedContent,
   setIsHumanizeModalOpen,
   setIsSidebarOpen,
+  unsavedChanges,
 }) => {
   const [newKeyword, setNewKeyword] = useState("")
   const [isAnalyzingProofreading, setIsAnalyzingProofreading] = useState(false)
@@ -509,8 +511,36 @@ const TextEditorSidebar = ({
   )
 
   const handlePostClick = useCallback(() => {
-    setIsCategoryModalOpen(true)
-  }, [])
+    if (unsavedChanges) {
+      handlePopup({
+        title: "Unsaved Changes",
+        description: (
+          <>
+            You have unsaved changes in your blog content. Would you like to save these changes
+            before posting? If you proceed without saving, your changes will be lost.
+          </>
+        ),
+        confirmText: "Save and Proceed",
+        cancelText: "Proceed without Saving",
+        onConfirm: async () => {
+          try {
+            await handleSubmit({ metadata })
+            setIsCategoryModalOpen(true)
+          } catch (error) {
+            console.error("Failed to save changes:", error)
+            message.error("Failed to save changes. Please try again.")
+          }
+        },
+        onCancel: (e) => {
+          if (e?.source == "button") {
+            setIsCategoryModalOpen(true)
+          }
+        },
+      })
+    } else {
+      setIsCategoryModalOpen(true)
+    }
+  }, [unsavedChanges, handlePopup, handleSubmit])
 
   if (isAnalyzingCompetitive) {
     return (
@@ -525,7 +555,7 @@ const TextEditorSidebar = ({
       <motion.div
         initial={{ x: "100%" }}
         animate={{ x: "calc(100% - 60px)" }}
-        className="fixed top-[17.5rem] right-0 transform -translate-y-1/2 z-50"
+        className="fixed top-[14.7rem] right-0 transform -translate-y-1/2 z-50"
       >
         <Tooltip title="Maximize Sidebar" placement="left">
           <Button
@@ -546,82 +576,83 @@ const TextEditorSidebar = ({
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
         className="w-full md:w-96 bg-white shadow-xl flex flex-col"
       >
-        <div className="p-4 border border-l-0 bg-gradient-to-r rounded-tr-md from-blue-50 to-purple-50">
-          <div className="flex items-center justify-between mb-2">
-            <div>
-              <h2 className="text-lg font-bold">Content Analysis</h2>
-              <p className="text-xs text-gray-600">Optimize your content performance</p>
-            </div>
-            <div className="flex items-center gap-2">
-              {!["free", "basic"].includes(userPlan?.toLowerCase?.()) && (
-                <Tooltip title="Export Content" placement="left">
-                  <Dropdown overlay={exportMenu} trigger={["click"]}>
-                    <Button size="small" icon={<Download className="w-4 h-4" />} />
-                  </Dropdown>
-                </Tooltip>
-              )}
-              <div className="hidden sm:inline">
-                <Tooltip title="Minimize sidebar" placement="left">
+        <div className="sticky top-0 z-50 bg-white border-b border-gray-200">
+          <div className="p-4 border border-l-0 bg-gradient-to-r rounded-tr-md from-blue-50 to-purple-50">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <h2 className="text-lg font-bold">Content Analysis</h2>
+                <p className="text-xs text-gray-600">Optimize your content performance</p>
+              </div>
+              <div className="flex items-center gap-2">
+                {!["free", "basic"].includes(userPlan?.toLowerCase?.()) && (
+                  <Tooltip title="Export Content" placement="left">
+                    <Dropdown overlay={exportMenu} trigger={["click"]}>
+                      <Button size="small" icon={<Download className="w-4 h-4" />} />
+                    </Dropdown>
+                  </Tooltip>
+                )}
+                <div className="hidden sm:inline">
+                  <Tooltip title="Minimize sidebar" placement="left">
+                    <Button
+                      size="small"
+                      icon={<Minimize2 className="w-4 h-4" />}
+                      onClick={() => setIsMinimized(true)}
+                    />
+                  </Tooltip>
+                </div>
+
+                <Tooltip title="Content settings">
                   <Button
                     size="small"
-                    icon={<Minimize2 className="w-4 h-4" />}
-                    onClick={() => setIsMinimized(true)}
+                    icon={<SlidersHorizontal className="w-4 h-4" />}
+                    onClick={() => setOpen(true)}
                   />
                 </Tooltip>
-              </div>
 
-              <Tooltip title="Content settings">
-                <Button
-                  size="small"
-                  icon={<SlidersHorizontal className="w-4 h-4" />}
-                  onClick={() => setOpen(true)}
-                />
-              </Tooltip>
-
-              <div className="block md:hidden">
-                <Button
-                  size="small"
-                  icon={<X className="w-4 h-4" />}
-                  onClick={() => setIsSidebarOpen(false)}
-                />
+                <div className="block md:hidden">
+                  <Button
+                    size="small"
+                    icon={<X className="w-4 h-4" />}
+                    onClick={() => setIsSidebarOpen(false)}
+                  />
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="flex gap-2 mt-6 px-2">
-            {[
-              { key: "overview", label: "Overview", icon: BarChart3 },
-              { key: "analysis", label: "Analysis", icon: TrendingUp },
-              {
-                key: "suggestions",
-                label: "Suggestions",
-                icon: Lightbulb,
-                badge: proofreadingResults.length,
-              },
-            ].map(({ key, label, icon: Icon, badge }) => (
-              <button
-                key={key}
-                onClick={() => setActiveSection(key)}
-                className={`flex items-center justify-center gap-2 px-3 py-2 rounded-full text-sm font-medium transition-all duration-150 flex-shrink-0
+            <div className="flex gap-2 mt-6 px-2">
+              {[
+                { key: "overview", label: "Overview", icon: BarChart3 },
+                { key: "analysis", label: "Analysis", icon: TrendingUp },
+                {
+                  key: "suggestions",
+                  label: "Suggestions",
+                  icon: Lightbulb,
+                },
+              ].map(({ key, label, icon: Icon, badge }) => (
+                <button
+                  key={key}
+                  onClick={() => setActiveSection(key)}
+                  className={`flex items-center justify-center gap-2 px-3 py-2 rounded-full text-sm font-medium transition-all duration-150 flex-shrink-0
         ${
           activeSection === key
             ? "bg-blue-600 text-white shadow-md"
             : "bg-gray-100 text-gray-700 hover:bg-gray-200"
         }`}
-              >
-                <Icon className="w-4 h-4" />
-                <span className="hidden sm:inline">{label}</span>
-                {badge > 0 && (
-                  <span className="ml-1 inline-flex items-center justify-center w-5 h-5 text-xs font-semibold text-white bg-red-500 rounded-full">
-                    {badge}
-                  </span>
-                )}
-              </button>
-            ))}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span className="hidden sm:inline">{label}</span>
+                  {badge > 0 && (
+                    <span className="ml-1 inline-flex items-center justify-center w-5 h-5 text-xs font-semibold text-white bg-red-500 rounded-full">
+                      {badge}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
-        <div className="flex-1 max-h-screen overflow-y-auto custom-scroll border-r">
+        <div className="flex-1 overflow-y-auto custom-scroll border-r">
           <AnimatePresence mode="wait">
             {activeSection === "overview" && (
               <motion.div
@@ -691,7 +722,7 @@ const TextEditorSidebar = ({
                       onChange={(e) => setNewKeyword(e.target.value)}
                       onKeyDown={handleKeyDown}
                       placeholder="Add keywords..."
-                      className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                     <Button
                       size="small"
@@ -725,7 +756,6 @@ const TextEditorSidebar = ({
                       <div className="text-xs text-purple-600">Keywords</div>
                     </div>
                   </div>
-
                   <div className="space-y-5">
                     <ScoreCard title="Content Score" score={blog?.blogScore} icon={FileText} />
                     <ScoreCard
@@ -940,7 +970,7 @@ const TextEditorSidebar = ({
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="p-4 space-y-4"
+                className="p-4 space-y-4 h-screen"
               >
                 {competitiveAnalysisResults || result ? (
                   <Collapse defaultActiveKey={["1"]} ghost expandIconPosition="end">
@@ -1058,7 +1088,7 @@ const TextEditorSidebar = ({
           </AnimatePresence>
         </div>
 
-        <div className="p-4 border border-l-0 rounded-br-md border-gray-200 bg-gray-50">
+        <div className="sticky bottom-0 z-50 p-4 border-t border-gray-200 bg-gray-50">
           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
             <Button
               type="primary"
@@ -1068,7 +1098,7 @@ const TextEditorSidebar = ({
               disabled={isPosting}
               className="w-full h-12 text-base font-semibold bg-gradient-to-r from-green-600 to-emerald-600 border-0 hover:shadow-lg"
             >
-              {isPosting ? "Posting..." : blog?.wordpress ? "Re-Post" : "Post Blog"}
+              {isPosting ? "Posting..." : posted?.link ? "Re-Post" : "Post Blog"}
             </Button>
           </motion.div>
 

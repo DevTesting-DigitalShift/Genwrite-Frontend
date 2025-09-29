@@ -79,7 +79,7 @@ const Jobs = () => {
       <Helmet>
         <title>Content Agent | GenWrite</title>
       </Helmet>
-      <div className="min-h-screen bg-gray-50 p-6 lg:p-8">
+      <div className="min-h-screen p-6 lg:p-8">
         <div>
           <div className="flex justify-between mt-5 md:mt-0">
             <div className="mb-8">
@@ -123,22 +123,22 @@ const Jobs = () => {
           )}
 
           <motion.div
-            whileHover={{ y: -2 }}
-            className="w-full md:w-1/2 lg:w-1/3 h-48 p-6 bg-white rounded-xl shadow-sm hover:shadow-md cursor-pointer mb-8"
+            className="w-full md:w-1/2 lg:w-1/3 h-52 p-6 bg-white rounded-2xl shadow-lg hover:shadow-xl cursor-pointer mb-8 transition-all duration-300 border border-gray-100"
             onClick={handleOpenJobModal}
           >
             <div className="flex items-center justify-between gap-4">
-              <span className="bg-blue-100 rounded-lg p-3">
-                <FiPlus className="w-6 h-6 text-blue-600" />
+              <span className="bg-blue-50 rounded-2xl p-4 shadow-inner">
+                <FiPlus className="w-7 h-7 text-blue-600" />
               </span>
             </div>
-            <div className="mt-4">
-              <h3 className="text-xl font-semibold text-gray-800">Create New Job</h3>
-              <p className="text-gray-500 mt-2 text-sm">
-                Set up automated content generation with custom templates and scheduling
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold text-gray-900 tracking-wide">Create New Job</h3>
+              <p className="text-gray-500 mt-2 text-sm leading-relaxed">
+                Automate content generation with custom templates and scheduling.
               </p>
             </div>
           </motion.div>
+
           {jobs.length > 0 && (
             <h2 className="text-xl font-semibold text-gray-800 mb-6">Active Jobs</h2>
           )}

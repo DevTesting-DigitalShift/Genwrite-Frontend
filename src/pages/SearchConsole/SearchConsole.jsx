@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from "react-redux"
 import { fetchGscAnalytics, clearAnalytics } from "@store/slices/gscSlice"
 import { selectUser } from "@store/slices/authSlice"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { Button, message, Select, DatePicker, Card } from "antd"
+import { Button, message, Select, DatePicker, Card, Pagination } from "antd"
 import { RefreshCw, Search, Download } from "lucide-react"
 import Fuse from "fuse.js"
 import dayjs from "dayjs"
@@ -32,10 +32,10 @@ const SearchConsole = () => {
   const [filterType, setFilterType] = useState("search")
   const [blogUrlFilter, setBlogUrlFilter] = useState(null)
   const [blogTitleFilter, setBlogTitleFilter] = useState(null)
-  // const [countryFilter, setCountryFilter] = useState(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [userCountry, setUserCountry] = useState(navigator.language.split("-")[1] || "US")
   const [pageSize, setPageSize] = useState(10)
+  const [currentPage, setCurrentPage] = useState(1)
 
   const dispatch = useDispatch()
   const queryClient = useQueryClient()
@@ -49,18 +49,18 @@ const SearchConsole = () => {
       customDateRange[1] !== null ||
       blogUrlFilter ||
       blogTitleFilter ||
-      // countryFilter ||
       searchQuery ||
-      pageSize !== 10
+      pageSize !== 10 ||
+      currentPage !== 1
     )
   }, [
     dateRange,
     customDateRange,
     blogUrlFilter,
     blogTitleFilter,
-    // countryFilter,
     searchQuery,
     pageSize,
+    currentPage,
   ])
 
   // Check authentication immediately on mount
@@ -71,15 +71,6 @@ const SearchConsole = () => {
     }
   }, [user, dispatch, queryClient])
 
-  // Persist TanStack Query cache to IndexedDB
-  // useEffect(() => {
-  //   persistQueryClient({
-  //     queryClient,
-  //     persister,
-  //     maxAge: 1000 * 60 * 60 * 24,
-  //   })
-  // }, [queryClient])
-
   // Update session storage
   useEffect(() => {
     sessionStorage.setItem(
@@ -88,7 +79,6 @@ const SearchConsole = () => {
         filterType,
         blogUrlFilter,
         blogTitleFilter,
-        // countryFilter,
         userCountry,
       })
     )
@@ -136,15 +126,7 @@ const SearchConsole = () => {
     isLoading,
     refetch,
   } = useQuery({
-    queryKey: [
-      "gscAnalytics",
-      activeTab,
-      dateRange,
-      customDateRange,
-      // blogUrlFilter,
-      // blogTitleFilter,
-      // countryFilter,
-    ],
+    queryKey: ["gscAnalytics", activeTab, dateRange, customDateRange],
     queryFn: async () => {
       const dimensions = getDimensions()
       const { from, to } = getDateRangeParams()
@@ -152,9 +134,6 @@ const SearchConsole = () => {
         from,
         to,
         query: JSON.stringify(dimensions),
-        // ...(filterType === "blog" && blogUrlFilter && { blogUrl: blogUrlFilter }),
-        // ...(blogTitleFilter && { blogTitle: blogTitleFilter }),
-        // ...(countryFilter && activeTab === "country" && { country: countryFilter }),
       }
       const data = await dispatch(fetchGscAnalytics(params)).unwrap()
       return data.map((item, index) => ({
@@ -172,8 +151,6 @@ const SearchConsole = () => {
       }))
     },
     enabled: !!user?.gsc,
-    // staleTime: 1000 * 60 * 30,
-    // cacheTime: 1000 * 60 * 60,
     retry: 1,
     onError: (err) => {
       setError(err.message || "Failed to fetch analytics data")
@@ -192,8 +169,8 @@ const SearchConsole = () => {
   // Handle tab change
   const handleTabChange = (key) => {
     setActiveTab(key)
-    // setCountryFilter(null)
     setSearchQuery("")
+    setCurrentPage(1) // Reset to first page on tab change
   }
 
   // Handle date range change
@@ -202,6 +179,7 @@ const SearchConsole = () => {
     setCustomDateRange([null, null])
     setError(null)
     setShowDatePicker(value === "custom")
+    setCurrentPage(1) // Reset to first page on date range change
     refetch()
   }
 
@@ -210,6 +188,7 @@ const SearchConsole = () => {
     if (dates && dates[0] && dates[1]) {
       setCustomDateRange(dates)
       setDateRange("custom")
+      setCurrentPage(1) // Reset to first page on custom date range change
       refetch()
     } else {
       setError("Please select both start and end dates.")
@@ -219,12 +198,13 @@ const SearchConsole = () => {
   // Handle blog title filter change
   const handleBlogTitleChange = (value) => {
     setBlogTitleFilter(value)
-    // refetch()
+    setCurrentPage(1) // Reset to first page on filter change
   }
 
   // Handle search query change
   const handleSearch = (value) => {
     setSearchQuery(value)
+    setCurrentPage(1) // Reset to first page on search
   }
 
   // Reset filters
@@ -232,12 +212,12 @@ const SearchConsole = () => {
     setFilterType("search")
     setBlogUrlFilter("")
     setBlogTitleFilter(null)
-    // setCountryFilter("")
     setSearchQuery("")
     setDateRange("7d")
     setCustomDateRange([dayjs().subtract(6, "days"), dayjs()])
     setShowDatePicker(false)
     setPageSize(10)
+    setCurrentPage(1)
     refetch()
   }
 
@@ -245,7 +225,6 @@ const SearchConsole = () => {
     const grouped = {}
 
     data.forEach((row) => {
-      // Group by country (code) or countryName depending on tab
       const key = row.country
 
       if (!grouped[key]) {
@@ -257,17 +236,12 @@ const SearchConsole = () => {
           position: row.position,
         }
       } else {
-        // sum clicks + impressions
         grouped[key].clicks += row.clicks
         grouped[key].impressions += row.impressions
-
-        // weighted avg position by impressions
         grouped[key].position =
           (grouped[key].position * (grouped[key].impressions - row.impressions) +
             row.position * row.impressions) /
           grouped[key].impressions
-
-        // recompute CTR from totals
         grouped[key].ctr =
           grouped[key].impressions > 0
             ? ((grouped[key].clicks / grouped[key].impressions) * 100).toFixed(2)
@@ -296,6 +270,13 @@ const SearchConsole = () => {
     }
     return result
   }, [blogData, filterType, blogUrlFilter, blogTitleFilter, searchQuery, activeTab])
+
+  // Paginate filtered data
+  const paginatedData = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize
+    const endIndex = startIndex + pageSize
+    return filteredData.slice(startIndex, endIndex)
+  }, [filteredData, currentPage, pageSize])
 
   // Calculate metrics for mini cards
   const metrics = useMemo(() => {
@@ -354,7 +335,7 @@ const SearchConsole = () => {
         ctr: `${item.ctr}%`,
         position: item.position,
       }
-      
+
       worksheet.addRow(rowData)
     })
 
@@ -377,6 +358,12 @@ const SearchConsole = () => {
     window.URL.revokeObjectURL(url)
   }
 
+  // Handle pagination change
+  const handlePaginationChange = (page, pageSizeValue) => {
+    setCurrentPage(page)
+    setPageSize(pageSizeValue)
+  }
+
   return (
     <>
       <Helmet>
@@ -384,18 +371,20 @@ const SearchConsole = () => {
       </Helmet>
 
       {!!user?.gsc ? (
-        <div className="p-6 bg-gray-50 min-h-screen">
-          <div className="bg-white rounded-xl shadow-sm p-6 mb-6 border border-gray-200">
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
-              <h1 className="text-2xl font-bold text-gray-900">Search Performance</h1>
-              <div className="flex gap-3 items-center">
+        <div className="p-2 md:p-6 bg-gray-50 min-h-screen">
+          <div className="bg-white rounded-xl shadow-sm p-2 md:p-6 mb-6 border border-gray-200">
+            <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6 mt-6 md:mt-0">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Search Performance
+              </h1>
+              <div className="flex gap-3 items-stretch sm:items-center mt-2 md:mt-0">
                 <Button
                   icon={<Download className="size-4 mr-2" />}
                   title="Export"
                   onClick={handleExport}
                   disabled={isLoading}
                   type="dashed"
-                  className="bg-gradient-to-l from-blue-400 to-purple-300 hover:!bg-gradient-to-r hover:!from-purple-500 hover:!to-blue-400 hover:!text-white rounded-lg h-10 text-base font-semibold"
+                  className="w-full sm:w-auto bg-gradient-to-l from-blue-400 to-purple-300 hover:!bg-gradient-to-r hover:!from-purple-500 hover:!to-blue-400 hover:!text-white rounded-lg h-10 text-base font-semibold"
                 >
                   Export
                 </Button>
@@ -404,51 +393,73 @@ const SearchConsole = () => {
                   onClick={() => refetch()}
                   disabled={isLoading}
                   type="dashed"
-                  className="bg-gradient-to-l from-blue-300 to-purple-400 hover:!bg-gradient-to-r hover:!from-purple-600 hover:!to-blue-400 hover:!text-white rounded-lg h-10 text-base font-semibold"
+                  className="w-full sm:w-auto bg-gradient-to-l from-blue-300 to-purple-400 hover:!bg-gradient-to-r hover:!from-purple-600 hover:!to-blue-400 hover:!text-white rounded-lg h-10 text-base font-semibold"
                 >
                   Refresh
                 </Button>
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
               <Card
-                title={<span className="text-sm font-semibold text-gray-600">Total Clicks</span>}
-                className="rounded-lg text-center p-4 shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-gradient-to-br from-blue-100/70 to-blue-50/70"
+                title={
+                  <span className="text-xs sm:text-sm font-semibold text-gray-600">
+                    Total Clicks
+                  </span>
+                }
+                className="rounded-lg text-center p-2 sm:p-4 md:p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-gradient-to-br from-blue-100/70 to-blue-50/70"
               >
-                <p className="text-2xl font-bold text-blue-600">
+                <p className="text-xl sm:text-2xl font-bold text-blue-600">
                   {new Intl.NumberFormat().format(metrics.totalClicks)}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">Total clicks on filtered data</p>
+                <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
+                  Total clicks on filtered data
+                </p>
               </Card>
+
               <Card
                 title={
-                  <span className="text-sm font-semibold text-gray-600">Total Impressions</span>
+                  <span className="text-xs sm:text-sm font-semibold text-gray-600">
+                    Total Impressions
+                  </span>
                 }
-                className="rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-gradient-to-br from-purple-100/70 to-purple-50/70"
-                style={{ padding: "16px", textAlign: "center" }}
+                className="rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-gradient-to-br from-purple-100/70 to-purple-50/70 p-2 sm:p-4 md:p-6 text-center"
               >
-                <p className="text-2xl font-bold text-blue-600">
+                <p className="text-xl sm:text-2xl font-bold text-purple-600">
                   {new Intl.NumberFormat().format(metrics.totalImpressions)}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">Total impressions on filtered data</p>
+                <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
+                  Total impressions on filtered data
+                </p>
               </Card>
-              <Card
-                title={<span className="text-sm font-semibold text-gray-600">Average CTR</span>}
-                className="rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-gradient-to-br from-teal-100/70 to-teal-50/70"
-                style={{ padding: "16px", textAlign: "center" }}
-              >
-                <p className="text-2xl font-bold text-blue-600">{metrics.avgCtr}%</p>
-                <p className="text-xs text-gray-500 mt-1">Average click-through rate</p>
-              </Card>
+
               <Card
                 title={
-                  <span className="text-sm font-semibold text-gray-600">Average Position</span>
+                  <span className="text-xs sm:text-sm font-semibold text-gray-600">
+                    Average CTR
+                  </span>
                 }
-                className="rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-gradient-to-br from-amber-100/70 to-amber-50/70"
-                style={{ padding: "16px", textAlign: "center" }}
+                className="rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-gradient-to-br from-teal-100/70 to-teal-50/70 p-2 sm:p-4 md:p-6 text-center"
               >
-                <p className="text-2xl font-bold text-blue-600">{metrics.avgPosition}</p>
-                <p className="text-xs text-gray-500 mt-1">Average search result position</p>
+                <p className="text-xl sm:text-2xl font-bold text-teal-600">{metrics.avgCtr}%</p>
+                <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
+                  Average click-through rate
+                </p>
+              </Card>
+
+              <Card
+                title={
+                  <span className="text-xs sm:text-sm font-semibold text-gray-600">
+                    Average Position
+                  </span>
+                }
+                className="rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow bg-gradient-to-br from-amber-100/70 to-amber-50/70 p-2 sm:p-4 md:p-6 text-center"
+              >
+                <p className="text-xl sm:text-2xl font-bold text-amber-600">
+                  {metrics.avgPosition}
+                </p>
+                <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
+                  Average search result position
+                </p>
               </Card>
             </div>
 
@@ -507,18 +518,6 @@ const SearchConsole = () => {
                 ))}
               </Select>
 
-              {/* <Select
-                value={pageSize}
-                onChange={(value) => setPageSize(value)}
-                className="flex-1 max-w-[100px]"
-                placeholder="Rows per page"
-                style={{ borderRadius: "8px" }}
-              >
-                <Option value={10}>10 rows</Option>
-                <Option value={25}>25 rows</Option>
-                <Option value={50}>50 rows</Option>
-                <Option value={100}>100 rows</Option>
-              </Select> */}
               <Button
                 onClick={handleResetFilters}
                 type="default"
@@ -550,11 +549,22 @@ const SearchConsole = () => {
               { key: "page", label: "Pages" },
               { key: "country", label: "Countries" },
             ]}
-            filteredData={filteredData}
+            filteredData={paginatedData} // Use paginated data instead of filteredData
             activeTab={activeTab}
             handleTabChange={handleTabChange}
             isLoading={isLoading}
           />
+          <div className="mt-6 flex justify-end">
+            <Pagination
+              current={currentPage}
+              pageSize={pageSize}
+              total={filteredData.length}
+              onChange={handlePaginationChange}
+              showSizeChanger
+              pageSizeOptions={["10", "50", "100"]}
+              className="ant-pagination"
+            />
+          </div>
         </div>
       ) : (
         <GSCLogin />

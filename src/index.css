@@ -6,7 +6,7 @@
 
 body {
   font-family: "Lato", sans-serif;
-  background-color: #fafafa;
+  background-color: #fff;
   @apply min-h-screen;
 }
 
@@ -112,17 +112,6 @@ code {
   border: none;
   border-top: 1px solid #ccc;
   margin: 2em 0;
-}
-
-.go-pro-button {
-  @apply bg-gradient-to-r from-blue-500 to-purple-600 rounded-full;
-  background-clip: padding-box;
-  position: relative;
-  overflow: hidden;
-}
-
-.go-pro-button:hover {
-  @apply !bg-gradient-to-r !from-blue-600 !to-purple-700 rounded-full;
 }
 
 /* Shimmer effect */
@@ -251,4 +240,52 @@ input[type="number"] {
 .custom-scroll {
   -ms-overflow-style: none; /* IE + Edge */
   scrollbar-width: none; /* Firefox */
+}
+
+.custom-tabs .ant-tabs-tab {
+  padding: 12px 24px;
+  background: transparent !important;
+  color: #4b5563 !important;
+  font-weight: 600;
+  font-size: 16px;
+  border: none !important;
+  transition: color 0.3s ease, transform 0.2s ease;
+  position: relative;
+}
+.custom-tabs .ant-tabs-tab:hover {
+  color: #1e40af !important;
+  transform: translateY(-2px);
+}
+.custom-tabs .ant-tabs-tab-active {
+  color: #1e40af !important;
+}
+.custom-tabs .ant-tabs-tab-active::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(to right, #3b82f6, #10b981);
+  border-radius: 2px;
+}
+.custom-tabs .ant-tabs-nav {
+  margin: 0 !important;
+  padding: 0 16px;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+}
+.custom-tabs .ant-tabs-content-holder {
+  background: white;
+  border-radius: 0 0 12px 12px;
+  padding: 16px;
+}
+.custom-tabs .ant-tabs-content {
+  height: 100%;
+}
+.custom-tabs .ant-tabs-tabpane {
+  height: 100%;
+}
+.custom-tabs .ant-tabs-ink-bar {
+  display: none !important;
 }

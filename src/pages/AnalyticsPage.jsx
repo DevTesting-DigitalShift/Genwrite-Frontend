@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { useSelector } from "react-redux";
-import { motion } from "framer-motion";
+import React, { useState, useEffect } from "react"
+import { useSelector } from "react-redux"
+import { motion } from "framer-motion"
 import {
   FileText,
   UploadCloud,
@@ -12,18 +12,18 @@ import {
   FilePlus,
   Gauge,
   StopCircle,
-} from "lucide-react";
-import { Select, message, Spin, Button, Progress } from "antd";
-import { Chart as ChartJS, registerables } from "chart.js";
-import { Pie, Doughnut, Bar, Line } from "react-chartjs-2";
-import { useQuery } from "@tanstack/react-query";
-import { getBlogStatus } from "@/api/analysisApi";
-import { selectUser } from "@/store/slices/authSlice";
-import dayjs from "dayjs";
+} from "lucide-react"
+import { Select, message, Spin, Button, Progress } from "antd"
+import { Chart as ChartJS, registerables } from "chart.js"
+import { Pie, Doughnut, Bar, Line } from "react-chartjs-2"
+import { useQuery } from "@tanstack/react-query"
+import { getBlogStatus } from "@/api/analysisApi"
+import { selectUser } from "@/store/slices/authSlice"
+import dayjs from "dayjs"
 
-ChartJS.register(...registerables);
+ChartJS.register(...registerables)
 
-const { Option } = Select;
+const { Option } = Select
 
 const StatsCard = ({ title, value, icon, iconBg, cardBg, ringColor, progress, limit }) => (
   <motion.div
@@ -62,7 +62,7 @@ const StatsCard = ({ title, value, icon, iconBg, cardBg, ringColor, progress, li
       )}
     </div>
   </motion.div>
-);
+)
 
 const ChartCard = ({ title, children, className = "" }) => (
   <div
@@ -75,45 +75,50 @@ const ChartCard = ({ title, children, className = "" }) => (
     </div>
     <div className="h-80">{children}</div>
   </div>
-);
+)
 
 const AnalyticsPage = () => {
-  const user = useSelector(selectUser);
-  const [selectedRange, setSelectedRange] = useState("7days");
+  const user = useSelector(selectUser)
+  const [selectedRange, setSelectedRange] = useState("7days")
 
-  const { data: blogStatus, isLoading: statusLoading, error, refetch } = useQuery({
+  const {
+    data: blogStatus,
+    isLoading: statusLoading,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ["blogStatus", selectedRange],
     queryFn: () => {
-      let params = {};
-      const endDate = dayjs().endOf("day").toISOString();
+      let params = {}
+      const endDate = dayjs().endOf("day").toISOString()
 
       switch (selectedRange) {
         case "7days":
           params = {
             start: dayjs().subtract(6, "days").startOf("day").toISOString(),
             end: endDate,
-          };
-          break;
+          }
+          break
         case "30days":
           params = {
             start: dayjs().subtract(29, "days").startOf("day").toISOString(),
             end: endDate,
-          };
-          break;
+          }
+          break
         case "90days":
           params = {
             start: dayjs().subtract(89, "days").startOf("day").toISOString(),
             end: endDate,
-          };
-          break;
+          }
+          break
         default:
-          params = {};
+          params = {}
       }
-      return getBlogStatus(params);
+      return getBlogStatus(params)
     },
-  });
+  })
 
-  const stats = blogStatus?.stats || {};
+  const stats = blogStatus?.stats || {}
   const {
     totalBlogs = 0,
     postedBlogs = 0,
@@ -123,10 +128,10 @@ const AnalyticsPage = () => {
     blogsByStatus = {},
     imageSources = {},
     templatesUsed = {},
-  } = stats;
+  } = stats
 
-  const usage = user?.usage || { createdJobs: 0, aiImages: 0 };
-  const usageLimits = user?.usageLimits || { createdJobs: 10, aiImages: 50 };
+  const usage = user?.usage || { createdJobs: 0, aiImages: 0 }
+  const usageLimits = user?.usageLimits || { createdJobs: 10, aiImages: 50 }
 
   const chartOptions = {
     maintainAspectRatio: false,
@@ -151,7 +156,7 @@ const AnalyticsPage = () => {
         beginAtZero: true,
       },
     },
-  };
+  }
 
   const barChartOptions = {
     ...chartOptions,
@@ -169,7 +174,7 @@ const AnalyticsPage = () => {
         beginAtZero: true,
       },
     },
-  };
+  }
 
   const lineChartOptions = {
     ...chartOptions,
@@ -188,7 +193,7 @@ const AnalyticsPage = () => {
         beginAtZero: true,
       },
     },
-  };
+  }
 
   const charts = [
     {
@@ -234,15 +239,15 @@ const AnalyticsPage = () => {
               ? Object.keys(blogsByStatus).map((status) => {
                   switch (status.toLowerCase()) {
                     case "pending":
-                      return "#facc15"; // Yellow
+                      return "#facc15" // Yellow
                     case "complete":
-                      return "#22c55e"; // Green
+                      return "#22c55e" // Green
                     case "failed":
-                      return "#ef4444"; // Red
+                      return "#ef4444" // Red
                     case "in-progress":
-                      return "#a78bfa"; // Purple
+                      return "#a78bfa" // Purple
                     default:
-                      return "#6b7280"; // Gray
+                      return "#6b7280" // Gray
                   }
                 })
               : ["#9ca3af"],
@@ -269,7 +274,7 @@ const AnalyticsPage = () => {
         ],
       },
     },
-  ];
+  ]
 
   const statsData = [
     {
@@ -304,7 +309,7 @@ const AnalyticsPage = () => {
       cardBg: "bg-pink-50",
       ringColor: "ring-pink-200",
     },
-  ];
+  ]
 
   const usageData = [
     {
@@ -327,15 +332,15 @@ const AnalyticsPage = () => {
       cardBg: "bg-teal-50",
       ringColor: "ring-teal-200",
     },
-  ];
+  ]
 
   const handleRangeChange = (value) => {
-    setSelectedRange(value);
-  };
+    setSelectedRange(value)
+  }
 
   const handleRetry = () => {
-    refetch();
-  };
+    refetch()
+  }
 
   return (
     <div className="min-h-screen transition-colors duration-300 bg-gray-50">
@@ -466,14 +471,14 @@ const AnalyticsPage = () => {
         )}
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default AnalyticsPage;
+export default AnalyticsPage
 
 const SkeletonLoader = () => {
   return (
-    <div className="p-6">
+    <div className="p-2 md:p-4 lg:p-8 max-w-full">
       {/* Header Skeleton */}
       <motion.div
         initial={{ opacity: 0 }}
@@ -589,5 +594,5 @@ const SkeletonLoader = () => {
         <div className="h-4 w-48 mx-auto bg-gray-200 rounded animate-pulse" />
       </div>
     </div>
-  );
-};
+  )
+}

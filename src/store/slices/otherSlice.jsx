@@ -1,8 +1,11 @@
 import {
+  createIntegration,
   createOutline,
   fetchCategories,
+  fetchIntegrations,
   generateMetadata,
   generatePromptContent,
+  pingIntegration,
   unsubscribeUser,
 } from "@api/otherApi"
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit"
@@ -18,41 +21,6 @@ export const createStripeSession = async (data) => {
     throw new Error(error.response?.data?.message || "Stripe session creation failed")
   }
 }
-
-// WordPress
-export const postToWordPress = createAsyncThunk(
-  "blog/postToWordPress",
-  async ({ blogId, content }, { rejectWithValue }) => {
-    const postingToastId = message.loading("Posting to WordPress...")
-
-    const processedContent = content.replace(
-      /<img[^>]*src="([^"]*)"[^>]*>/g,
-      (match, src) => `
-        <div style="max-width: 600px; margin: 2rem auto; text-align: center;">
-          <img src="${src}" alt="Blog image" style="max-width: 100%; height: auto; display: block; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />
-        </div>`
-    )
-
-    try {
-      const response = await axiosInstance.post("/wordpress", {
-        blogId,
-        includeTableOfContents: true,
-        content: processedContent,
-      })
-
-      message.dismiss(postingToastId)
-      message.success("Post submitted to WordPress!")
-
-      return response.data
-    } catch (error) {
-      const errorMessage =
-        error.response?.data?.error || error.message || "Failed to post to WordPress"
-      message.dismiss(postingToastId)
-      message.error(errorMessage)
-      return rejectWithValue(errorMessage)
-    }
-  }
-)
 
 export const getCategoriesThunk = createAsyncThunk(
   "categories/getAll",
@@ -120,10 +88,44 @@ export const unsubscribeThunk = createAsyncThunk(
   }
 )
 
+export const getIntegrationsThunk = createAsyncThunk(
+  "integrations/getAll",
+  async (_, { rejectWithValue }) => {
+    try {
+      return await fetchIntegrations()
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message)
+    }
+  }
+)
+
+export const pingIntegrationThunk = createAsyncThunk(
+  "integrations/ping",
+  async (type, { rejectWithValue }) => {
+    // <- get type here
+    try {
+      return await pingIntegration(type) // pass type to API
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message)
+    }
+  }
+)
+
+export const createIntegrationThunk = createAsyncThunk(
+  "integrations/create",
+  async (payload, { rejectWithValue }) => {
+    try {
+      return await createIntegration(payload)
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message)
+    }
+  }
+)
+
 const wordpressSlice = createSlice({
   name: "wordpress",
   initialState: {
-    data: null,
+    data: [],
     loading: false,
     error: null,
     success: false,
@@ -142,20 +144,6 @@ const wordpressSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(postToWordPress.pending, (state) => {
-        state.loading = true
-        state.success = false
-        state.error = null
-      })
-      .addCase(postToWordPress.fulfilled, (state) => {
-        state.loading = false
-        state.success = true
-      })
-      .addCase(postToWordPress.rejected, (state, action) => {
-        state.loading = false
-        state.error = action.payload
-      })
-
       .addCase(getCategoriesThunk.pending, (state) => {
         state.loading = true
         state.error = null
@@ -220,6 +208,68 @@ const wordpressSlice = createSlice({
       .addCase(unsubscribeThunk.rejected, (state, action) => {
         state.loading = false
         state.error = action.payload
+      })
+
+      .addCase(getIntegrationsThunk.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(getIntegrationsThunk.fulfilled, (state, action) => {
+        state.loading = false
+        state.data = action.payload
+      })
+      .addCase(getIntegrationsThunk.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload
+      })
+
+      // PING
+      //    .addCase(pingIntegrationThunk.pending, (state) => {
+      //   state.loading = true
+      //   state.error = null
+      //   state.ping = null
+      // })
+      .addCase(pingIntegrationThunk.fulfilled, (state, action) => {
+        state.loading = false
+        state.ping = action.payload
+        state.error = null
+      })
+      // .addCase(pingIntegrationThunk.rejected, (state, action) => {
+      //   state.loading = false
+      //   state.error = action.payload || "Failed to ping integration"
+      //   state.ping = null
+      // })
+
+      // CREATE Integration
+      .addCase(createIntegrationThunk.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(createIntegrationThunk.fulfilled, (state, action) => {
+        state.loading = false
+        state.error = null
+
+        // Make sure state.data is an array
+        if (!Array.isArray(state.data)) {
+          state.data = []
+        }
+
+        // Convert payload to array element if necessary
+        const integrationEntry = action.payload.integrations
+          ? Object.entries(action.payload.integrations).map(([type, value]) => ({
+              type,
+              ...value,
+            }))
+          : action.payload
+
+        state.data.push(
+          ...(Array.isArray(integrationEntry) ? integrationEntry : [integrationEntry])
+        )
+      })
+
+      .addCase(createIntegrationThunk.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload || "Failed to create integration"
       })
   },
 })

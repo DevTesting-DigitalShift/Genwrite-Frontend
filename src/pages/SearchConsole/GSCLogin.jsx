@@ -52,7 +52,7 @@ const GSCLogin = () => {
   }, [dispatch])
 
   return (
-    <Flex align="center" justify="center" className="min-h-[calc(100vh-250px)] p-6 bg-gray-50">
+    <Flex align="center" justify="center" className="h-[80vh] p-6">
       <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full text-center border border-gray-200">
         <FcGoogle size={48} className="mx-auto mb-4" />
         <h2 className="text-2xl font-bold mb-4 text-gray-900">Connect Google Search Console</h2>

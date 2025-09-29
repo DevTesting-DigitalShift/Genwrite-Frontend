@@ -14,8 +14,9 @@ import { htmlToText } from "html-to-text"
 import { sendRetryLines } from "@api/blogApi"
 import TemplateModal from "@components/generateBlog/TemplateModal"
 import { OpenAIFilled } from "@ant-design/icons"
-import TextEditor from "@components/generateBlog/TextEditor"
 import TextEditorSidebar from "@/layout/TextEditorSidebar/TextEditorSidebar"
+import TextEditor from "@/layout/TextEditor/TextEditor"
+import "../layout/TextEditor/editor.css"
 
 const MainEditorPage = () => {
   const { id } = useParams()
@@ -47,6 +48,8 @@ const MainEditorPage = () => {
   const location = useLocation()
   const pathDetect = location.pathname === `/blog-editor/${blog?._id}`
   const [isPreviewOpen, setIsPreviewOpen] = useState(false)
+  const [unsavedChanges, setUnsavedChanges] = useState(false)
+  const { Title } = Typography
   const [templateFormData, setTemplateFormData] = useState({
     title: "",
     topic: "",
@@ -69,6 +72,18 @@ const MainEditorPage = () => {
   })
 
   useEffect(() => {
+    const handleBeforeUnload = (event) => {
+      if (unsavedChanges) {
+        event.preventDefault()
+        event.returnValue = "You have unsaved changes. Are you sure you want to leave?"
+      }
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload)
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload)
+  }, [unsavedChanges])
+
+  useEffect(() => {
     if (id) {
       setIsLoading(true)
       dispatch(fetchBlogById(id))
@@ -82,25 +97,20 @@ const MainEditorPage = () => {
     if (blog) {
       setKeywords(blog.keywords || [])
       setEditorTitle(blog.title || "")
-      setEditorContent(
-        blog.content
-          ? htmlToText(blog.content, {
-              wordwrap: false,
-              selectors: [
-                { selector: "a", options: { baseUrl: "" } },
-                { selector: "img", format: "skip" },
-              ],
-            })
-          : ""
-      )
+      setEditorContent(blog.content ?? "")
       setIsPosted(blog.wordpress || null)
       setFormData({
         category: blog.category || "",
         includeTableOfContents: blog.includeTableOfContents || false,
         title: blog.title || "",
       })
+      setUnsavedChanges(false) // Reset unsavedChanges when blog is loaded
     }
   }, [blog])
+
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [])
 
   const handleReplace = (original, change) => {
     if (typeof original !== "string" || typeof change !== "string") {
@@ -112,47 +122,49 @@ const MainEditorPage = () => {
     setProofreadingResults((prev) => prev.filter((s) => s.original !== original))
   }
 
-  const handlePostToWordPress = async (postData) => {
-    setIsPosting(true)
-    if (!editorTitle) {
-      message.error("Blog title is missing.")
-      setIsPosting(false)
-      return
-    }
-    if (!editorContent.trim()) {
-      message.error("Blog content is empty.")
-      setIsPosting(false)
-      return
-    }
-    if (!postData.categories) {
-      message.error("Please select a category.")
-      setIsPosting(false)
-      return
-    }
-    try {
-      const requestData = {
-        blogId: blog._id,
-        title: editorTitle,
-        content: editorContent,
-        categories: postData.categories,
-        includeTableOfContents: postData.includeTableOfContents,
-        seoMetadata: metadata, // Include metadata in WordPress post
-      }
+const handlePostToWordPress = async (postData) => {
+  setIsPosting(true)
 
-      const response = isPosted
-        ? await axiosInstance.put("/wordpress", requestData)
-        : await axiosInstance.post("/wordpress", requestData)
-
-      setIsPosted(response?.data)
-      message.success(`Blog ${isPosted ? "updated" : "posted"} successfully!`)
-    } catch (error) {
-      message.error(
-        error.response?.data?.message || `Failed to ${isPosted ? "update" : "post to"} WordPress.`
-      )
-    } finally {
-      setIsPosting(false)
-    }
+  if (!editorTitle) {
+    message.error("Blog title is missing.")
+    setIsPosting(false)
+    return
   }
+  if (!editorContent.trim()) {
+    message.error("Blog content is empty.")
+    setIsPosting(false)
+    return
+  }
+  if (!postData.category) {   // 🔄 changed from categories → category
+    message.error("Please select a category.")
+    setIsPosting(false)
+    return
+  }
+
+  try {
+    const requestData = {
+      type: "WORDPRESS", // 🔑 backend needs type
+      blogId: blog._id,
+      includeTableOfContents: postData.includeTableOfContents ?? false,
+      category: postData.category,   // 🔄 match backend param
+      removeWaterMark: postData.removeWaterMark ?? true,
+    }
+
+    const response = isPosted
+      ? await axiosInstance.put("/integrations/post", requestData)
+      : await axiosInstance.post("/integrations/post", requestData)
+
+    setIsPosted(response?.data)
+    message.success(`Blog ${isPosted ? "updated" : "posted"} successfully!`)
+  } catch (error) {
+    message.error(
+      error.response?.data?.message || `Failed to ${isPosted ? "update" : "post to"} WordPress.`
+    )
+  } finally {
+    setIsPosting(false)
+  }
+}
+
 
   const getWordCount = (text) => {
     return text
@@ -189,6 +201,7 @@ const MainEditorPage = () => {
       ).unwrap()
 
       message.success("Blog updated successfully")
+      setUnsavedChanges(false) // Reset unsavedChanges after save
 
       setIsLoading(true)
       setTimeout(() => {
@@ -230,6 +243,7 @@ const MainEditorPage = () => {
       } else {
         message.error("No content received from retry.")
       }
+      setUnsavedChanges(false) // Reset unsavedChanges after save
     } catch (error) {
       console.error("Error updating the blog:", error)
       message.error("Failed to save blog.")
@@ -237,8 +251,6 @@ const MainEditorPage = () => {
       setIsSaving(false)
     }
   }
-
-  const { Title } = Typography
 
   const handleAcceptSave = () => {
     if (saveContent) {
@@ -364,55 +376,67 @@ const MainEditorPage = () => {
       <Helmet>
         <title>Blog Editor | GenWrite</title>
       </Helmet>
-      <div className={`flex flex-col h-screen ${showTemplateModal ? "blur-sm" : ""}`}>
+      <div
+        className={`flex flex-col max-h-screen overflow-y-hidden ${
+          showTemplateModal ? "blur-sm" : ""
+        }`}
+      >
         <Modal
           open={saveModalOpen}
           centered
           footer={[
-            <Button
-              key="reject"
-              onClick={handleRejectSave}
-              className="px-3 sm:px-4 py-2 bg-gray-100 text-gray-600 hover:bg-gray-200"
-            >
-              Reject
-            </Button>,
-            <Button
-              key="accept"
-              type="primary"
-              onClick={handleAcceptSave}
-              className="px-3 sm:px-4 py-2"
-            >
-              Accept
-            </Button>,
+            <div className="flex justify-end gap-3 w-full" key="footer">
+              <Button
+                key="reject"
+                onClick={handleRejectSave}
+                className="px-3 sm:px-4 py-2 bg-gray-100 text-gray-600 hover:bg-gray-200 rounded-md"
+              >
+                Reject
+              </Button>
+              <Button
+                key="accept"
+                type="primary"
+                onClick={handleAcceptSave}
+                className="px-3 sm:px-4 py-2 rounded-md"
+              >
+                Accept
+              </Button>
+            </div>,
           ]}
           onCancel={handleRejectSave}
           width="100%"
           className="rounded-lg max-w-[600px] sm:max-w-[700px] md:max-w-[800px]"
         >
-          <Title level={3} className="text-base sm:text-lg mb-4">
-            Suggested Content
-          </Title>
-          <div className="p-4 sm:p-6 bg-gray-100 rounded-md mb-4">
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              rehypePlugins={[rehypeRaw]}
-              className="prose prose-sm sm:prose-base"
-              components={{
-                a: ({ href, children }) => (
-                  <a
-                    href={href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-500 hover:underline"
-                  >
-                    {children}
-                  </a>
-                ),
-                strong: ({ children }) => <strong className="font-bold">{children}</strong>,
-              }}
-            >
-              {saveContent}
-            </ReactMarkdown>
+          <div className="flex flex-col gap-4">
+            <Title level={3} className="text-lg ml-5 sm:text-xl !mb-0 text-gray-800">
+              Suggested Content
+            </Title>
+
+            <div className="p-5 custom-scroll border border-gray-200 rounded-lg shadow-inner max-h-[70vh] overflow-y-auto prose prose-sm sm:prose-base leading-relaxed text-gray-700">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeRaw]}
+                components={{
+                  a: ({ href, children }) => (
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 font-medium hover:underline"
+                    >
+                      {children}
+                    </a>
+                  ),
+                  strong: ({ children }) => (
+                    <strong className="font-semibold text-gray-900">{children}</strong>
+                  ),
+                  p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
+                  li: ({ children }) => <li className="mb-1">{children}</li>,
+                }}
+              >
+                {saveContent}
+              </ReactMarkdown>
+            </div>
           </div>
         </Modal>
 
@@ -526,46 +550,40 @@ const MainEditorPage = () => {
                 </div>
               )}
             </header>
-            <AnimatePresence>
-              <motion.div
-                key={activeTab}
-                initial="hidden"
-                animate="visible"
-                exit="hidden"
-                variants={tabVariants}
-                transition={{ duration: 0.3 }}
-                className="flex-grow overflow-auto min-h-[calc(100vh-200px)] sm:min-h-[calc(100vh-220px)]"
-              >
-                {isLoading ? (
-                  <div className="flex justify-center items-center h-[calc(100vh-120px)]">
-                    <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
-                  </div>
-                ) : (
-                  <TextEditor
-                    keywords={keywords}
-                    setKeywords={setKeywords}
-                    blog={blog}
-                    activeTab={activeTab}
-                    setActiveTab={setActiveTab}
-                    proofreadingResults={proofreadingResults}
-                    handleReplace={handleReplace}
-                    content={editorContent}
-                    setContent={setEditorContent}
-                    title={editorTitle}
-                    setTitle={setEditorTitle}
-                    isSavingKeyword={isSaving}
-                    className="w-full"
-                    humanizedContent={humanizedContent}
-                    showDiff={isHumanizeModalOpen}
-                    handleAcceptHumanizedContent={handleAcceptHumanizedContent}
-                    handleAcceptOriginalContent={handleAcceptOriginalContent}
-                    editorContent={editorContent}
-                  />
-                )}
-              </motion.div>
-            </AnimatePresence>
+            <div key={activeTab} className="flex-grow overflow-auto max-h-[800px]">
+              {isLoading ? (
+                <div className="flex justify-center items-center h-[calc(100vh-120px)]">
+                  <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
+                </div>
+              ) : (
+                <TextEditor
+                  keywords={keywords}
+                  setKeywords={setKeywords}
+                  blog={blog}
+                  activeTab={activeTab}
+                  setActiveTab={setActiveTab}
+                  proofreadingResults={proofreadingResults}
+                  handleReplace={handleReplace}
+                  content={editorContent}
+                  setContent={setEditorContent}
+                  title={editorTitle}
+                  setTitle={setEditorTitle}
+                  isSavingKeyword={isSaving}
+                  handleSubmit={handleSave}
+                  className="w-full"
+                  humanizedContent={humanizedContent}
+                  showDiff={isHumanizeModalOpen}
+                  handleAcceptHumanizedContent={handleAcceptHumanizedContent}
+                  handleAcceptOriginalContent={handleAcceptOriginalContent}
+                  editorContent={editorContent}
+                  unsavedChanges={unsavedChanges}
+                  setUnsavedChanges={setUnsavedChanges}
+                  wordpressMetadata={metadata}
+                />
+              )}
+            </div>
           </div>
-          <div className="hidden md:block border-l border-gray-200 overflow-y-auto custom-scroll">
+          <div className="hidden md:block border-l border-gray-200 overflow-y-auto custom-scroll max-h-[900px]">
             <TextEditorSidebar
               blog={blog}
               keywords={keywords}
@@ -589,6 +607,8 @@ const MainEditorPage = () => {
               isHumanizing={isHumanizing}
               setHumanizedContent={setHumanizedContent}
               setIsHumanizeModalOpen={setIsHumanizeModalOpen}
+              unsavedChanges={unsavedChanges}
+              wordpressMetadata={metadata}
             />
           </div>
 
@@ -625,6 +645,8 @@ const MainEditorPage = () => {
                   setHumanizedContent={setHumanizedContent}
                   setIsHumanizeModalOpen={setIsHumanizeModalOpen}
                   setIsSidebarOpen={setIsSidebarOpen}
+                  unsavedChanges={unsavedChanges}
+                  wordpressMetadata={metadata}
                 />
               </motion.div>
             )}
@@ -642,53 +664,6 @@ const MainEditorPage = () => {
           className="w-full max-w-lg"
         />
       </div>
-      <style>
-        {`
-          .ant-modal-content {
-            border-radius: 8px !important;
-            padding: 16px !important;
-          }
-          .ant-modal-header {
-            border-radius: 8px 8px 0 0 !important;
-          }
-          .ant-input {
-            border-radius: 8px !important;
-            border: 1px solid #d1d5db !important;
-            padding: 6px 12px !important;
-          }
-          .ant-input:focus,
-          .ant-input:hover {
-            border-color: #3b82f6 !important;
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
-          }
-          .ant-btn {
-            display: flex;
-            align-items: center;
-          }
-          @media (max-width: 640px) {
-            .ant-modal-content {
-              padding: 12px !important;
-            }
-            .ant-input {
-              font-size: 12px !important;
-              padding: 4px 8px !important;
-            }
-            .ant-btn {
-              font-size: 12px !important;
-              padding: 4px 8px !important;
-            }
-            .prose {
-              font-size: 14px !important;
-            }
-          }
-          @media (max-width: 768px) {
-            .ant-modal {
-              width: 100% !important;
-              margin: 8px !important;
-            }
-          }
-        `}
-      </style>
     </>
   )
 }

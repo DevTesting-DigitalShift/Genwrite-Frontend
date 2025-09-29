@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import SelectTemplateModal from "../components/multipleStepModal/SelectTemplateModal"
 import SecondStepModal from "../components/multipleStepModal/SecondStepModal"
 import { DashboardBox, QuickBox, Blogs } from "../utils/DashboardBox"
@@ -36,6 +36,8 @@ import PerformanceMonitoringModal from "../components/dashboardModals/Performanc
 import FirstStepModal from "../components/multipleStepModal/FirstStepModal"
 import KeywordResearchModel from "../components/dashboardModals/KeywordResearchModel"
 import QuickBlogModal from "../components/multipleStepModal/QuickBlogModal"
+import InlineAnnouncementBanner from "@/layout/InlineAnnouncementBanner"
+import dayjs from "dayjs"
 
 ChartJS.register(
   ArcElement,
@@ -63,6 +65,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true)
   const { blogs, error, allBlogs } = useSelector((state) => state.blog)
   const [showWhatsNew, setShowWhatsNew] = useState(false)
+  const [showAnnouncementBanner, setShowAnnouncementBanner] = useState(true)
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const user = useSelector(selectUser)
@@ -78,6 +81,82 @@ const Dashboard = () => {
   const showCompetitiveAnalysis = () => setCompetitiveAnalysisModal(true)
   const hideCompetitiveAnalysis = () => setCompetitiveAnalysisModal(false)
 
+  // Default state
+  const [dateRange, setDateRange] = useState([undefined, undefined])
+
+  let limit = 5
+  let sort = "updatedAt:desc"
+  // Fetch function
+  const fetchBlogsQuery = useCallback(async () => {
+    if (!user?.createdAt) return
+
+    setLoading(true)
+
+    const startDate = user.createdAt
+    const endDate = dateRange[1] || dayjs().endOf("day")
+
+    const queryParams = {
+      start: dayjs(startDate).toISOString(),
+      end: dayjs(endDate).endOf("day").toISOString(),
+      limit,
+      sort, // just this one
+    }
+
+    try {
+      const response = await dispatch(fetchAllBlogs(queryParams)).unwrap()
+
+      const activeBlogs = (response.data || []).filter((b) => !b.isArchived)
+
+      // Sort only if `sort` is provided
+      let sortedBlogs = activeBlogs
+      if (sort) {
+        sortedBlogs = [...activeBlogs].sort((a, b) => {
+          const aValue = a[sort]
+          const bValue = b[sort]
+
+          // Check if values are dates
+          if (dayjs(aValue).isValid() && dayjs(bValue).isValid()) {
+            return dayjs(bValue).valueOf() - dayjs(aValue).valueOf() // default desc
+          }
+          // fallback for numbers/strings
+          if (typeof aValue === "number" && typeof bValue === "number") return bValue - aValue
+          if (typeof aValue === "string" && typeof bValue === "string")
+            return bValue.localeCompare(aValue)
+          return 0
+        })
+      }
+
+      setRecentBlogData(sortedBlogs.slice(0, 3))
+    } catch (error) {
+      console.error("Failed to fetch blogs:", error)
+      setRecentBlogData([])
+    } finally {
+      setLoading(false)
+    }
+  }, [dispatch, dateRange, limit, user?.createdAt, sort])
+
+  useEffect(() => {
+    if (!blogs?.data || !Array.isArray(blogs.data)) {
+      setRecentBlogData([])
+      return
+    }
+
+    const activeBlogs = blogs.data.filter((b) => !b.isArchived)
+
+    // Sort DESC → newest first
+    const sortedBlogs = activeBlogs.sort(
+      (a, b) => dayjs(b.updatedAt).valueOf() - dayjs(a.updatedAt).valueOf()
+    )
+
+    // Take top 3
+    setRecentBlogData(sortedBlogs.slice(0, 3))
+  }, [blogs])
+
+  // Fetch blogs on mount
+  useEffect(() => {
+    fetchBlogsQuery()
+  }, [fetchBlogsQuery])
+
   // Consolidated useEffect for GoThrough modal logic
   useEffect(() => {
     const currentUser = user
@@ -89,9 +168,22 @@ const Dashboard = () => {
     }
   }, [user])
 
+  // useEffect for announcement banner visibility
+  useEffect(() => {
+    const hasSeenAnnouncementBanner = sessionStorage.getItem("hasSeenAnnouncementBanner") === "true"
+    if (hasSeenAnnouncementBanner) {
+      setShowAnnouncementBanner(false)
+    }
+  }, [])
+
   const handleCloseModal = () => {
     setShowWhatsNew(false)
     sessionStorage.setItem("hasSeenGoThrough", "true")
+  }
+
+  const handleCloseAnnouncementBanner = () => {
+    setShowAnnouncementBanner(false)
+    sessionStorage.setItem("hasSeenAnnouncementBanner", "true")
   }
 
   const openSecondStepModal = () => {
@@ -108,13 +200,6 @@ const Dashboard = () => {
 
   useEffect(() => {
     dispatch(fetchBlogs())
-  }, [dispatch])
-
-  // Initialize data and fetch
-  useEffect(() => {
-    dispatch(fetchAllBlogs())
-    const timer = setTimeout(() => setLoading(false), 1200)
-    return () => clearTimeout(timer)
   }, [dispatch])
 
   useEffect(() => {
@@ -137,22 +222,6 @@ const Dashboard = () => {
     }
     initUser()
   }, [dispatch, navigate])
-
-  useEffect(() => {
-    if (blogs?.data && Array.isArray(blogs.data)) {
-      const recent = blogs.data.filter((b) => b.isArchived === false).slice(0, 3)
-      setRecentBlogData(recent)
-    } else {
-      setRecentBlogData([])
-    }
-  }, [blogs])
-
-  // Handle errors
-  useEffect(() => {
-    if (error) {
-      message.error(error)
-    }
-  }, [error])
 
   const handleSubmit = async (updatedData) => {
     try {
@@ -188,12 +257,15 @@ const Dashboard = () => {
   }
 
   const handleCancel = () => {
-    setIsModalVisible(false)
-    setCurrentStep(0)
-    setModelData({})
+    setIsModalVisible(false) // first, close modal
     dispatch(clearSelectedKeywords())
-  }
 
+    // reset steps after modal closes (optional, safe)
+    setTimeout(() => {
+      setCurrentStep(0)
+      setModelData({})
+    }, 200) // 200ms matches the modal close animation
+  }
   const handleNext = () => setCurrentStep(currentStep + 1)
   const handlePrev = () => setCurrentStep(currentStep - 1)
 
@@ -203,43 +275,38 @@ const Dashboard = () => {
         <title>Home | GenWrite</title>
       </Helmet>
       {showWhatsNew && <GoThrough onClose={handleCloseModal} />}
-      <Modal
-        title={`Step ${currentStep}/3`}
-        visible={isModalVisible}
-        onCancel={handleCancel}
-        className="max-h-[90vh] overflow-scroll"
-      >
-        {currentStep === 0 && (
-          <SelectTemplateModal
-            handleNext={handleNext}
-            handleClose={handleCancel}
-            data={modelData}
-            setData={setModelData}
-          />
-        )}
-        {currentStep === 1 && (
-          <FirstStepModal
-            handleNext={handleNext}
-            handleClose={handleCancel}
-            handlePrevious={handlePrev}
-            data={modelData}
-            setData={setModelData}
-          />
-        )}
-        {currentStep === 2 && (
-          <SecondStepModal
-            handleNext={handleNext}
-            handlePrevious={handlePrev}
-            handleClose={handleCancel}
-            data={modelData}
-            setData={setModelData}
-            handleSubmit={handleSubmit}
-          />
-        )}
-        <div className="flex items-center justify-center mt-4">
-          <progress className="w-full max-w-md" max="3" value={currentStep}></progress>
-        </div>
-      </Modal>
+      {showAnnouncementBanner && (
+        <InlineAnnouncementBanner onClose={handleCloseAnnouncementBanner} />
+      )}
+
+      {currentStep === 0 && (
+        <SelectTemplateModal
+          handleNext={handleNext}
+          handleClose={handleCancel}
+          data={modelData}
+          setData={setModelData}
+          isModalVisible={isModalVisible}
+        />
+      )}
+      {currentStep === 1 && (
+        <FirstStepModal
+          handleNext={handleNext}
+          handleClose={handleCancel}
+          handlePrevious={handlePrev}
+          data={modelData}
+          setData={setModelData}
+        />
+      )}
+      {currentStep === 2 && (
+        <SecondStepModal
+          handleNext={handleNext}
+          handlePrevious={handlePrev}
+          handleClose={handleCancel}
+          data={modelData}
+          setData={setModelData}
+          handleSubmit={handleSubmit}
+        />
+      )}
 
       {daisyUIModal && <DaisyUIModal closeFnc={hideDaisy} />}
       {multiStepModal && <MultiStepModal closeFnc={hideMultiStepModal} />}
@@ -275,7 +342,7 @@ const Dashboard = () => {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="mt-5 ml-10"
+        className="mt-10 md:mt-5 ml-5 md:ml-10"
       >
         <h1 className="bg-clip-text bg-gradient-to-r font-bold from-blue-600 md:text-4xl text-3xl text-transparent to-purple-600">
           Let's Begin <span className="ml-2 text-2xl text-yellow-400">✨</span>
@@ -285,7 +352,7 @@ const Dashboard = () => {
         </p>
       </motion.div>
 
-      <div className="min-h-screen bg-gray-50 p-6 relative">
+      <div className="min-h-screen p-2 md:p-6 relative">
         {loading ? (
           <div className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -417,7 +484,6 @@ const Dashboard = () => {
             )}
           </div>
         )}
-
         {/* Feedback Button */}
         <a
           href="https://docs.google.com/forms/d/e/1FAIpQLScIdA2aVtugx-zMGON8LJKD4IRWtLZqiiurw-jU6wRYfOv7EA/viewform?usp=sharing&ouid=117159793210831255816"

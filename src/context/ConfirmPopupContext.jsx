@@ -17,9 +17,13 @@ export const ConfirmPopupProvider = ({ children }) => {
     setVisible(true)
   }, [])
 
-  const handleClose = () => {
+  const handleClose = (e) => {
     setVisible(false)
-    options?.onClose?.()
+    if (options?.onCancel) {
+      options.onCancel(e)
+    } else {
+      options?.onClose?.(e)
+    }
   }
 
   const handleConfirm = () => {
@@ -51,7 +55,7 @@ export const ConfirmPopupProvider = ({ children }) => {
           <Modal
             open={visible}
             footer={null}
-            onCancel={handleClose}
+            onCancel={() => handleClose({ source: "mask" })}
             centered
             closable={false}
             maskClosable
@@ -79,7 +83,12 @@ export const ConfirmPopupProvider = ({ children }) => {
               </div>
             </div>
             <div className="flex justify-end gap-2 mt-6">
-              <Button type="text" danger onClick={handleClose} {...cancelProps}>
+              <Button
+                type="text"
+                danger
+                onClick={() => handleClose({ source: "button" })}
+                {...cancelProps}
+              >
                 {cancelText}
               </Button>
               <Button type="primary" loading={loading} onClick={handleConfirm} {...confirmProps}>

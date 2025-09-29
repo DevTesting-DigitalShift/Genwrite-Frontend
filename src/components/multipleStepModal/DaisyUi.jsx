@@ -18,11 +18,13 @@ const MultiStepModal = ({ closeFnc }) => {
   const user = useSelector((state) => state.auth.user)
   const userPlan = user?.subscription?.plan || user?.plan
   const [showAllTopics, setShowAllTopics] = useState(false)
+  const [showAllKeywords, setShowAllKeywords] = useState(false)
   const isAiImagesLimitReached = user?.usage?.aiImages >= user?.usageLimits?.aiImages
   const fileInputRef = useRef(null)
 
   const [currentStep, setCurrentStep] = useState(0)
-  const [recentlyUploadedCount, setRecentlyUploadedCount] = useState(null)
+  const [recentlyUploadedTopicsCount, setRecentlyUploadedTopicsCount] = useState(null)
+  const [recentlyUploadedKeywordsCount, setRecentlyUploadedKeywordsCount] = useState(null)
   const { Option } = Select
   const [errors, setErrors] = useState({
     topics: false,
@@ -337,36 +339,63 @@ const MultiStepModal = ({ closeFnc }) => {
     const reader = new FileReader()
     reader.onload = (event) => {
       const text = event.target?.result
-      if (!text) return
+      if (!text || typeof text !== "string") {
+        message.error("Failed to read the CSV file. Please ensure it is valid.")
+        return
+      }
 
-      const lines = text.trim().split(/\r?\n/).slice(1)
-      const keywords = lines
+      let lines = text.trim().split(/\r?\n/)
+      if (lines.length === 0) {
+        message.error("The CSV file is empty. Please provide a valid CSV with topics.")
+        return
+      }
+
+      // Skip header if present
+      if (lines[0].toLowerCase().includes("topics") || lines[0].toLowerCase().includes("keyword")) {
+        lines = lines.slice(1)
+      }
+
+      const items = lines
         .map((line) => {
           const parts = line.split(",")
-          return parts.length >= 2 ? parts[1].trim() : null
+          return parts.map((part) => part.trim()).find((part) => part) || null
         })
-        .filter(Boolean)
+        .filter((item) => item && item.trim().length > 0)
 
-      const existingTopics = formData.topics.map((t) => t.toLowerCase().trim())
-      const uniqueNewTopics = keywords.filter(
-        (kw) => !existingTopics.includes(kw.toLowerCase().trim())
-      )
+      if (items.length === 0) {
+        message.warning("No valid topics found in the CSV file.")
+        return
+      }
 
-      if (uniqueNewTopics.length === 0) {
-        message.error("No new topics found in the CSV.")
+      const existing = formData.topics.map((t) => t.toLowerCase().trim())
+      const seen = new Set()
+      const uniqueNewItems = items.filter((item) => {
+        const lower = item.toLowerCase().trim()
+        if (!item || seen.has(lower) || existing.includes(lower)) return false
+        seen.add(lower)
+        return true
+      })
+
+      if (uniqueNewItems.length === 0) {
+        message.warning(
+          "No new topics found in the CSV. All provided items are either duplicates or already exist."
+        )
         return
       }
 
       setFormData((prev) => ({
         ...prev,
-        topics: [...prev.topics, ...uniqueNewTopics],
+        topics: [...prev.topics, ...uniqueNewItems],
       }))
       setErrors((prev) => ({ ...prev, topics: false }))
 
-      if (uniqueNewTopics.length > 8) {
-        setRecentlyUploadedCount(uniqueNewTopics.length)
-        setTimeout(() => setRecentlyUploadedCount(null), 5000)
-      }
+      message.success(`${uniqueNewItems.length} new topics added from CSV.`)
+
+      setRecentlyUploadedTopicsCount(uniqueNewItems.length)
+      setTimeout(() => setRecentlyUploadedTopicsCount(null), 5000)
+    }
+    reader.onerror = () => {
+      message.error("An error occurred while reading the CSV file.")
     }
     reader.readAsText(file)
     e.target.value = null
@@ -376,39 +405,82 @@ const MultiStepModal = ({ closeFnc }) => {
     const file = e.target.files?.[0]
     if (!file) return
 
+    if (!file.name.toLowerCase().endsWith(".csv")) {
+      message.error("Invalid file type. Please upload a .csv file.")
+      e.target.value = null
+      return
+    }
+
+    const maxSizeInBytes = 20 * 1024
+    if (file.size > maxSizeInBytes) {
+      message.error("File size exceeds 20KB limit. Please upload a smaller file.")
+      e.target.value = null
+      return
+    }
+
     const reader = new FileReader()
     reader.onload = (event) => {
       const text = event.target?.result
-      if (!text) return
+      if (!text || typeof text !== "string") {
+        message.error("Failed to read the CSV file. Please ensure it is valid.")
+        return
+      }
 
-      const lines = text.trim().split(/\r?\n/).slice(1)
-      const keywords = lines
+      let lines = text.trim().split(/\r?\n/)
+      if (lines.length === 0) {
+        message.error("The CSV file is empty. Please provide a valid CSV with keywords.")
+        return
+      }
+
+      // Skip header if present
+      if (
+        lines[0].toLowerCase().includes("keywords") ||
+        lines[0].toLowerCase().includes("keyword")
+      ) {
+        lines = lines.slice(1)
+      }
+
+      const items = lines
         .map((line) => {
           const parts = line.split(",")
-          return parts.length >= 2 ? parts[1].trim() : null
+          return parts.map((part) => part.trim()).find((part) => part) || null
         })
-        .filter(Boolean)
+        .filter((item) => item && item.trim().length > 0)
 
-      const existingKeywords = formData.keywords.map((t) => t.toLowerCase().trim())
-      const uniqueNewKeywords = keywords.filter(
-        (kw) => !existingKeywords.includes(kw.toLowerCase().trim())
-      )
+      if (items.length === 0) {
+        message.warning("No valid keywords found in the CSV file.")
+        return
+      }
 
-      if (uniqueNewKeywords.length === 0) {
-        message.error("No new keywords found in the CSV.")
+      const existing = formData.keywords.map((k) => k.toLowerCase().trim())
+      const seen = new Set()
+      const uniqueNewItems = items.filter((item) => {
+        const lower = item.toLowerCase().trim()
+        if (!item || seen.has(lower) || existing.includes(lower)) return false
+        seen.add(lower)
+        return true
+      })
+
+      if (uniqueNewItems.length === 0) {
+        message.warning(
+          "No new keywords found in the CSV. All provided items are either duplicates or already exist."
+        )
         return
       }
 
       setFormData((prev) => ({
         ...prev,
-        keywords: [...prev.keywords, ...uniqueNewKeywords],
+        keywords: [...prev.keywords, ...uniqueNewItems],
       }))
       setErrors((prev) => ({ ...prev, keywords: false }))
 
-      if (uniqueNewKeywords.length > 8) {
-        setRecentlyUploadedCount(uniqueNewKeywords.length)
-        setTimeout(() => setRecentlyUploadedCount(null), 5000)
-      }
+      message.success(`${uniqueNewItems.length} new keywords added from CSV.`)
+
+      setRecentlyUploadedKeywordsCount(uniqueNewItems.length)
+      setTimeout(() => setRecentlyUploadedKeywordsCount(null), 5000)
+    }
+    reader.onerror = () => {
+      message.error("An error occurred while reading the CSV file.")
     }
     reader.readAsText(file)
     e.target.value = null
@@ -456,13 +528,8 @@ const MultiStepModal = ({ closeFnc }) => {
         ...prev,
         blogImages: [...prev.blogImages, ...validFiles],
       }))
-      setData((prev) => ({
-        ...prev,
-        blogImages: (Array.isArray(prev.blogImages) ? prev.blogImages : []).filter(
-          (_, i) => i !== index
-        ),
-      }))
-      // message.success(`${validFiles.length} image(s) added successfully!`)
+      // Note: setData seems to be a typo or unused, assuming it's formData
+      message.success(`${validFiles.length} image(s) added successfully!`)
     }
     if (fileInputRef.current) {
       fileInputRef.current.value = "" // Reset input
@@ -483,10 +550,6 @@ const MultiStepModal = ({ closeFnc }) => {
         ...prev,
         blogImages: [...prev.blogImages, ...validFiles],
       }))
-      setData((prev) => ({
-        ...prev,
-        blogImages: [...prev.blogImages, ...validFiles],
-      }))
       message.success(`${validFiles.length} image(s) added successfully!`)
     }
   }
@@ -504,14 +567,7 @@ const MultiStepModal = ({ closeFnc }) => {
   }
 
   const handleRemoveImage = (index) => {
-    setFormData((prev) => {
-      const newImages = prev.blogImages.filter((_, i) => i !== index)
-      return {
-        ...prev,
-        blogImages: newImages,
-      }
-    })
-    setData((prev) => ({
+    setFormData((prev) => ({
       ...prev,
       blogImages: prev.blogImages.filter((_, i) => i !== index),
     }))
@@ -618,7 +674,7 @@ const MultiStepModal = ({ closeFnc }) => {
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
                 Topics <span className="text-red-500">*</span>
-                <Tooltip title="Upload a .csv file in the format: `Keyword` as header">
+                <Tooltip title="Upload a .csv file in the format: `Topics` as header">
                   <div className="cursor-pointer">
                     <Info size={16} className="text-blue-500" />
                   </div>
@@ -628,19 +684,19 @@ const MultiStepModal = ({ closeFnc }) => {
               <p className="text-xs text-gray-500 mb-2">Enter the main topics for your blogs.</p>
 
               {/* Input field always full width */}
-              <input
-                type="text"
-                value={formData.topicInput}
-                onChange={handleTopicInputChange}
-                onKeyDown={handleTopicKeyPress}
-                className={`w-full px-3 py-2 border ${
-                  errors.topics ? "border-red-500" : "border-gray-300"
-                } rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-50`}
-                placeholder="e.g., digital marketing trends, AI in business"
-              />
-
-              {/* Add + Upload in same row */}
               <div className="flex gap-2 mt-2">
+                <input
+                  type="text"
+                  value={formData.topicInput}
+                  onChange={handleTopicInputChange}
+                  onKeyDown={handleTopicKeyPress}
+                  className={`w-full px-3 py-2 border ${
+                    errors.topics ? "border-red-500" : "border-gray-300"
+                  } rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-50`}
+                  placeholder="e.g., digital marketing trends, AI in business"
+                />
+
+                {/* Add + Upload in same row */}
                 <button
                   onClick={handleAddTopic}
                   className="flex-1 sm:flex-none px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm hover:bg-[#1B6FC9]/90"
@@ -651,20 +707,19 @@ const MultiStepModal = ({ closeFnc }) => {
                 <label className="flex-1 sm:flex-none px-4 py-2 bg-gray-100 text-gray-700 border rounded-md text-sm cursor-pointer flex items-center justify-center gap-1 hover:bg-gray-200">
                   <Upload size={16} />
                   <input type="file" accept=".csv" onChange={handleCSVUpload} hidden />
-                  Upload
                 </label>
               </div>
 
               {/* Topics chips */}
               <div className="flex flex-wrap gap-2 mt-2 min-h-[28px]">
                 {(showAllTopics
-                  ? formData.topics
+                  ? formData.topics.slice().reverse()
                   : formData.topics.slice().reverse().slice(0, 18)
-                ).map((topic, index) => {
-                  const actualIndex = showAllTopics ? index : formData.topics.length - 1 - index
+                ).map((topic, reversedIndex) => {
+                  const actualIndex = formData.topics.length - 1 - reversedIndex
                   return (
                     <span
-                      key={`${topic}-${index}`}
+                      key={`${topic}-${actualIndex}`}
                       className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
                     >
                       {topic}
@@ -679,22 +734,20 @@ const MultiStepModal = ({ closeFnc }) => {
                   )
                 })}
 
-                {(formData.topics.length > 18 || recentlyUploadedCount) && !showAllTopics && (
+                {(formData.topics.length > 18 || recentlyUploadedTopicsCount) && (
                   <span
-                    onClick={() => setShowAllTopics(true)}
-                    className="cursor-pointer text-xs font-medium text-blue-600 self-center"
+                    onClick={() => setShowAllTopics((prev) => !prev)}
+                    className="cursor-pointer text-xs font-medium text-blue-600 self-center flex items-center gap-1"
                   >
-                    {formData.topics.length > 18 && `+${formData.topics.length - 18} more `}
-                    {recentlyUploadedCount && `(+${recentlyUploadedCount} uploaded)`}
-                  </span>
-                )}
-
-                {showAllTopics && (
-                  <span
-                    onClick={() => setShowAllTopics(false)}
-                    className="cursor-pointer text-xs font-medium text-red-600 self-center"
-                  >
-                    Show less
+                    {showAllTopics ? (
+                      <>Show less</>
+                    ) : (
+                      <>
+                        {formData.topics.length > 18 && `+${formData.topics.length - 18} more`}
+                        {recentlyUploadedTopicsCount &&
+                          ` (+${recentlyUploadedTopicsCount} uploaded)`}
+                      </>
+                    )}
                   </span>
                 )}
               </div>
@@ -723,7 +776,7 @@ const MultiStepModal = ({ closeFnc }) => {
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
                     Keywords <span className="text-red-500">*</span>
-                    <Tooltip title="Upload a .csv file in the format: `Keyword` as header">
+                    <Tooltip title="Upload a .csv file in the format: `Keywords` as header">
                       <div className="cursor-pointer">
                         <Info size={16} className="text-blue-500" />
                       </div>
@@ -755,31 +808,42 @@ const MultiStepModal = ({ closeFnc }) => {
                     <p className="mt-1 text-sm text-red-500">Please add at least one keyword</p>
                   )}
                   <div className="flex flex-wrap gap-2 mt-2 min-h-[28px]">
-                    {formData.keywords
-                      .slice()
-                      .reverse()
-                      .slice(0, 18)
-                      .map((keyword, index) => (
+                    {(showAllKeywords
+                      ? formData.keywords.slice().reverse()
+                      : formData.keywords.slice().reverse().slice(0, 18)
+                    ).map((keyword, reversedIndex) => {
+                      const actualIndex = formData.keywords.length - 1 - reversedIndex
+                      return (
                         <span
-                          key={`${keyword}-${index}`}
+                          key={`${keyword}-${actualIndex}`}
                           className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
                         >
                           {keyword}
                           <button
                             type="button"
-                            onClick={() =>
-                              handleRemoveKeyword(formData.keywords.length - 1 - index)
-                            }
+                            onClick={() => handleRemoveKeyword(actualIndex)}
                             className="ml-1.5 flex-shrink-0 text-indigo-400 hover:text-indigo-600 focus:outline-none"
                           >
                             <X className="w-3 h-3" />
                           </button>
                         </span>
-                      ))}
-                    {(formData.keywords.length > 18 || recentlyUploadedCount) && (
-                      <span className="text-xs font-medium text-blue-600 self-center">
-                        {formData.keywords.length > 18 && `+${formData.keywords.length - 18} more `}
-                        {recentlyUploadedCount && `(+${recentlyUploadedCount} uploaded)`}
+                      )
+                    })}
+                    {(formData.keywords.length > 18 || recentlyUploadedKeywordsCount) && (
+                      <span
+                        onClick={() => setShowAllKeywords((prev) => !prev)}
+                        className="cursor-pointer text-xs font-medium text-blue-600 self-center flex items-center gap-1"
+                      >
+                        {showAllKeywords ? (
+                          <>Show less</>
+                        ) : (
+                          <>
+                            {formData.keywords.length > 18 &&
+                              `+${formData.keywords.length - 18} more`}
+                            {recentlyUploadedKeywordsCount &&
+                              ` (+${recentlyUploadedKeywordsCount} uploaded)`}
+                          </>
+                        )}
                       </span>
                     )}
                   </div>
@@ -965,7 +1029,7 @@ const MultiStepModal = ({ closeFnc }) => {
 
             {/* Select Image Source */}
             {formData.isCheckedGeneratedImages &&
-              !formData.isCheckedblogImages && // 👈 Hide if custom images ON
+              !formData.isCheckedblogImages &&
               !isAiImagesLimitReached && (
                 <div className="mb-6">
                   <label className="block text-sm font-semibold text-gray-700 mb-3">
@@ -1015,86 +1079,82 @@ const MultiStepModal = ({ closeFnc }) => {
                       </label>
                     ))}
                   </div>
+
+                  <div className="pt-4 w-full">
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">
+                      Number of Images
+                    </label>
+                    <p className="text-xs text-gray-500 mb-2">
+                      Enter the number of images (0 = AI will decide)
+                    </p>
+                    <input
+                      type="tel" // opens numeric keypad on mobile
+                      inputMode="numeric" // ensures numeric intent
+                      name="numberOfImages"
+                      min="0"
+                      max="20"
+                      value={formData.numberOfImages}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm placeholder-gray-400 transition"
+                      placeholder="e.g., 5"
+                    />
+                  </div>
                 </div>
               )}
 
-            {formData.imageSource === "customImages" && (
-              <div className="mt-4">
-                <label className="block text-sm font-semibold text-gray-700 mb-3">
-                  Upload Custom Images (Max 15, each 1GB)
-                </label>
-                <div
-                  className={`border-2 border-dashed rounded-lg p-6 text-center ${
-                    formData.isDragging
-                      ? "border-blue-600 bg-blue-50"
-                      : "border-gray-300 bg-gray-50"
-                  }`}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                >
-                  <p className="text-sm text-gray-600 mb-2">
-                    Drag and drop images here or click to select
-                  </p>
-                  <button
-                    className="px-4 py-2 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white rounded-md text-sm"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    Select Images
-                  </button>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    accept="image/jpeg,image/png,image/gif,image/webp"
-                    multiple
-                    className="hidden"
-                  />
-                </div>
-                {formData.blogImages.length > 0 && (
-                  <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
-                    {formData.blogImages.map((image, index) => (
-                      <div key={index} className="relative group">
-                        <img
-                          src={image instanceof File ? URL.createObjectURL(image) : image}
-                          alt={image instanceof File ? image.name : `Image ${index + 1}`}
-                          className="w-full h-24 object-cover rounded-md"
-                        />
-                        <button
-                          onClick={() => handleRemoveImage(index)}
-                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                        <p className="text-xs text-gray-600 truncate mt-1">
-                          {image instanceof File ? image.name : `Image ${index + 1}`}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div className="pt-4 w-full">
-              <label className="block text-sm font-semibold text-gray-700 mb-1">
-                Number of Images
+            {/* <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-3">
+                Upload Custom Images (Max 15, each 1GB)
               </label>
-              <p className="text-xs text-gray-500 mb-2">
-                Enter the number of images (0 = AI will decide)
-              </p>
-              <input
-                type="tel" // opens numeric keypad on mobile
-                inputMode="numeric" // ensures numeric intent
-                name="numberOfImages"
-                min="0"
-                max="20"
-                value={formData.numberOfImages}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm placeholder-gray-400 transition"
-                placeholder="e.g., 5"
-              />
-            </div>
+              <div
+                className={`border-2 border-dashed rounded-lg p-6 text-center ${
+                  formData.isDragging ? "border-blue-600 bg-blue-50" : "border-gray-300 bg-gray-50"
+                }`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                <p className="text-sm text-gray-600 mb-2">
+                  Drag and drop images here or click to select
+                </p>
+                <button
+                  className="px-4 py-2 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white rounded-md text-sm"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  Select Images
+                </button>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  multiple
+                  className="hidden"
+                />
+              </div>
+              {formData.blogImages.length > 0 && (
+                <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  {formData.blogImages.map((image, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={image instanceof File ? URL.createObjectURL(image) : image}
+                        alt={image instanceof File ? image.name : `Image ${index + 1}`}
+                        className="w-full h-24 object-cover rounded-md"
+                      />
+                      <button
+                        onClick={() => handleRemoveImage(index)}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                      <p className="text-xs text-gray-600 truncate mt-1">
+                        {image instanceof File ? image.name : `Image ${index + 1}`}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div> */}
 
             <div className="space-y-4 pt-4 border-t border-gray-200">
               <div>
@@ -1110,11 +1170,7 @@ const MultiStepModal = ({ closeFnc }) => {
                           isCheckedBrand: !prev.isCheckedBrand,
                           brandId: null,
                         }))
-                        setData((prev) => ({
-                          ...prev,
-                          isCheckedBrand: !prev.isCheckedBrand,
-                          brandId: null,
-                        }))
+                        // Note: setData seems to be a typo or unused, assuming it's formData
                       }}
                       className="sr-only peer"
                       aria-checked={formData.isCheckedBrand}
@@ -1150,10 +1206,7 @@ const MultiStepModal = ({ closeFnc }) => {
                                     ...prev,
                                     brandId: voice._id,
                                   }))
-                                  setData((prev) => ({
-                                    ...prev,
-                                    brandId: voice._id,
-                                  }))
+                                  // Note: setData seems to be a typo or unused
                                 }}
                                 className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-600"
                               />
@@ -1185,10 +1238,7 @@ const MultiStepModal = ({ closeFnc }) => {
                             ...prev,
                             addCTA: !prev.addCTA,
                           }))
-                          setData((prev) => ({
-                            ...prev,
-                            addCTA: !prev.addCTA,
-                          }))
+                          // Note: setData seems to be a typo or unused
                         }}
                         className="sr-only peer"
                         aria-checked={formData.addCTA}

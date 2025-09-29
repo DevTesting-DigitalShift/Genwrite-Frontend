@@ -88,7 +88,6 @@ export const createNewBlog = createAsyncThunk(
         blog_isBriefedByUser: blogData?.brief?.length ? "yes" : "no",
         blog_quickSummary: blogData.isCheckedQuick,
       })
-      navigate("/blogs")
       return blog
     } catch (error) {
       pushToDataLayer({
@@ -114,6 +113,9 @@ export const createNewBlog = createAsyncThunk(
       message.error(error.message)
       console.error("Blog creation error:", error)
       return rejectWithValue(error.message)
+    } finally {
+      // ✅ Always navigate (pending, success, or fail)
+      navigate("/blogs")
     }
   }
 )
@@ -487,10 +489,10 @@ const blogSlice = createSlice({
 
       // Create Blog
       .addCase(createNewBlog.fulfilled, (state, action) => {
-        state.userBlogs.push(action.payload)
+        // state.userBlogs.push(action.payload)
       })
       .addCase(createNewQuickBlog.fulfilled, (state, action) => {
-        state.userBlogs.push(action.payload)
+        // state.userBlogs.push(action.payload)
         state.selectedBlog = action.payload
       })
 
@@ -501,10 +503,10 @@ const blogSlice = createSlice({
 
       // Restore / Retry / Archive
       .addCase(restoreTrashedBlog.fulfilled, (state, action) => {
-        state.userBlogs.push(action.payload)
+        // state.userBlogs.push(action.payload)
       })
       .addCase(retryBlog.fulfilled, (state, action) => {
-        state.userBlogs.push(action.payload)
+        // state.userBlogs.push(action.payload)
       })
       .addCase(archiveBlog.fulfilled, (state, action) => {
         const id = action.meta.arg

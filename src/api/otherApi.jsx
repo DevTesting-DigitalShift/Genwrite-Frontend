@@ -1,23 +1,4 @@
-import axiosInstance from "." // make sure this points to your configured Axios instance
-
-// 🟠 WordPress APIs
-export const postToWordPressAPI = async ({ blogId, content, includeTableOfContents = true }) => {
-  const response = await axiosInstance.post("/wordpress", {
-    blogId,
-    content,
-    includeTableOfContents,
-  })
-  return response.data
-}
-
-export const rePostToWordPressAPI = async ({ blogId, content, includeTableOfContents = true }) => {
-  const response = await axiosInstance.put("/wordpress", {
-    blogId,
-    content,
-    includeTableOfContents,
-  })
-  return response.data
-}
+import axiosInstance from "."
 
 // 🔵 Stripe API
 export const createStripeSession = async (payload) => {
@@ -36,9 +17,24 @@ export const humanizeContentGenerator = async (payload) => {
   return response.data
 }
 
-export const fetchCategories = async () => {
-  const response = await axiosInstance.get("/wordpress/category")
+export const fetchCategories = async (type = "WORDPRESS") => {
+  const response = await axiosInstance.get(`/integrations/category?type=${type}`)
   return response.data
+}
+
+export const fetchIntegrations = async () => {
+  const res = await axiosInstance.get("/integrations")
+  return res.data
+}
+
+export const pingIntegration = async (type) => {
+  const res = await axiosInstance.get(`/integrations/ping?type=${type}`)
+  return res.data
+}
+
+export const createIntegration = async (payload) => {
+  const res = await axiosInstance.post("/integrations", payload)
+  return res.data
 }
 
 export const createOutline = async (payload) => {

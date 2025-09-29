@@ -33,7 +33,7 @@ const PrivateRoutesLayout = () => {
               <RiChatAiLine className="p-2 sm:p-3 size-10 sm:size-12 text-white" />
             </div>
           </Tooltip>
-          <main className="min-h-screen">
+          <main>
             <Outlet />
           </main>
           <ChatBox isOpen={chatOpen} onClose={() => setChatOpen(false)} />

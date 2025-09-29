@@ -200,20 +200,6 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
     handleNext()
   }
 
-  // Clear fields only when modal is closed
-  const handleModalClose = () => {
-    setFormData({
-      focusKeywordInput: "",
-      focusKeywords: [],
-      keywordInput: "",
-      keywords: [],
-    })
-    setTopic("")
-    setGeneratedTitles([])
-    setHasGeneratedTitles(false)
-    handleClose()
-  }
-
   useEffect(() => {
     if (data && !data.isCheckedGeneratedImages) {
       setData((prev) => ({
@@ -228,7 +214,7 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
     <Modal
       title="Step 2: Crucial Details"
       open={true}
-      onCancel={handleModalClose}
+      onCancel={handleClose}
       footer={[
         <button
           key="back"

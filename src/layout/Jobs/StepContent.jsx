@@ -21,8 +21,10 @@ const StepContent = ({
   setFormData,
   errors,
   setErrors,
-  recentlyUploadedCount,
-  setRecentlyUploadedCount,
+  recentlyUploadedTopicsCount,
+  setRecentlyUploadedTopicsCount,
+  recentlyUploadedKeywordsCount,
+  setRecentlyUploadedKeywordsCount,
   showAllTopics,
   setShowAllTopics,
   showAllKeywords,
@@ -186,7 +188,10 @@ const StepContent = ({
 
   const handleCSVUpload = (e, type) => {
     const file = e.target.files?.[0]
-    if (!file) return
+    if (!file) {
+      message.error("No file selected. Please choose a valid CSV file.")
+      return
+    }
 
     if (!file.name.toLowerCase().endsWith(".csv")) {
       message.error("Invalid file type. Please upload a .csv file.")
@@ -194,7 +199,7 @@ const StepContent = ({
       return
     }
 
-    const maxSizeInBytes = 20 * 1024
+    const maxSizeInBytes = 20 * 1024 // 20KB
     if (file.size > maxSizeInBytes) {
       message.error("File size exceeds 20KB limit. Please upload a smaller file.")
       e.target.value = null
@@ -204,27 +209,58 @@ const StepContent = ({
     const reader = new FileReader()
     reader.onload = (event) => {
       const text = event.target?.result
-      if (!text) return
+      if (!text || typeof text !== "string") {
+        message.error("Failed to read the CSV file. Please ensure it is valid.")
+        return
+      }
 
-      const lines = text.trim().split(/\r?\n/).slice(1)
+      // Split the CSV content into lines
+      let lines = text.trim().split(/\r?\n/)
+      if (lines.length === 0) {
+        message.error("The CSV file is empty. Please provide a valid CSV with topics or keywords.")
+        return
+      }
+
+      // Check if first line is header and skip if it matches the type
+      const headerKey = type.charAt(0).toUpperCase() + type.slice(1) // "Topics" or "Keywords"
+      if (lines[0].toLowerCase().includes(type)) {
+        lines = lines.slice(1)
+      }
+
+      // Extract items from the CSV (taking the first non-empty column)
       const items = lines
         .map((line) => {
           const parts = line.split(",")
-          return parts.length >= 2 ? parts[1].trim() : null
+          return parts.map((part) => part.trim()).find((part) => part) || null
         })
-        .filter(Boolean)
+        .filter((item) => item && item.trim().length > 0)
 
+      if (items.length === 0) {
+        message.warning(`No valid ${type} found in the CSV file.`)
+        return
+      }
+
+      // Compare with existing items (case-insensitive)
       const existing =
         type === "topics"
           ? newJob.blogs.topics.map((t) => t.toLowerCase().trim())
           : formData.keywords.map((k) => k.toLowerCase().trim())
-      const uniqueNewItems = items.filter((item) => !existing.includes(item.toLowerCase().trim()))
+      const seen = new Set()
+      const uniqueNewItems = items.filter((item) => {
+        const lower = item.toLowerCase().trim()
+        if (!item || seen.has(lower) || existing.includes(lower)) return false
+        seen.add(lower)
+        return true
+      })
 
       if (uniqueNewItems.length === 0) {
-        message.warning(`No new ${type} found in the CSV.`)
+        message.warning(
+          `No new ${type} found in the CSV. All provided items are either duplicates or already exist.`
+        )
         return
       }
 
+      // Update state with new items
       if (type === "topics") {
         setNewJob((prev) => ({
           ...prev,
@@ -243,11 +279,23 @@ const StepContent = ({
         setErrors((prev) => ({ ...prev, keywords: false }))
       }
 
-      if (uniqueNewItems.length > 8) {
-        setRecentlyUploadedCount(uniqueNewItems.length)
-        setTimeout(() => setRecentlyUploadedCount(null), 5000)
+      // Notify user of successful upload
+      message.success(`${uniqueNewItems.length} new ${type} added from CSV.`)
+
+      // Update recently uploaded count based on type
+      if (type === "topics") {
+        setRecentlyUploadedTopicsCount(uniqueNewItems.length)
+        setTimeout(() => setRecentlyUploadedTopicsCount(null), 5000)
+      } else {
+        setRecentlyUploadedKeywordsCount(uniqueNewItems.length)
+        setTimeout(() => setRecentlyUploadedKeywordsCount(null), 5000)
       }
     }
+
+    reader.onerror = () => {
+      message.error("An error occurred while reading the CSV file.")
+    }
+
     reader.readAsText(file)
     e.target.value = null
   }
@@ -258,7 +306,7 @@ const StepContent = ({
       message.error(
         "Please connect your WordPress account in your profile before enabling automatic posting."
       )
-      navigate("/profile")
+      // navigate("/profile")
       return
     }
     setNewJob((prev) => ({
@@ -531,8 +579,8 @@ const StepContent = ({
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700 mb-2 flex gap-2 items-center">
-                Keywords
-                <Tooltip title="Upload a .csv file in the format: `Keyword` as header">
+                Topics
+                <Tooltip title="Upload a .csv file in the format: `Topics` as header">
                   <Info size={16} className="text-blue-500 cursor-pointer" />
                 </Tooltip>
               </label>
@@ -598,7 +646,7 @@ const StepContent = ({
                     </span>
                   )
                 })}
-                {(newJob.blogs.topics.length > 18 || recentlyUploadedCount) && (
+                {(newJob.blogs.topics.length > 18 || recentlyUploadedTopicsCount) && (
                   <span
                     onClick={() => setShowAllTopics((prev) => !prev)}
                     className="text-xs font-medium text-blue-600 self-center cursor-pointer flex items-center gap-1"
@@ -607,362 +655,16 @@ const StepContent = ({
                       <>Show less</>
                     ) : (
                       <>
-                        +{newJob.blogs.topics.length - 18} more
-                        {recentlyUploadedCount && ` (+${recentlyUploadedCount} uploaded)`}
+                        {newJob.blogs.topics.length > 18 &&
+                          `+${newJob.blogs.topics.length - 18} more`}
+                        {recentlyUploadedTopicsCount &&
+                          ` (+${recentlyUploadedTopicsCount} uploaded)`}
                       </>
                     )}
                   </span>
                 )}
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label htmlFor="tone" className="block text-sm font-medium text-gray-700 mb-2">
-                  Tone of Voice <span className="text-red-500">*</span>
-                </label>
-                <Select
-                  className="w-full"
-                  value={newJob.blogs.tone}
-                  onChange={(value) =>
-                    setNewJob({ ...newJob, blogs: { ...newJob.blogs, tone: value } })
-                  }
-                  placeholder="Select tone"
-                  status={errors.tone ? "error" : ""}
-                >
-                  <Option value="">Select Tone</Option>
-                  <Option value="professional">Professional</Option>
-                  <Option value="casual">Casual</Option>
-                  <Option value="friendly">Friendly</Option>
-                  <Option value="formal">Formal</Option>
-                  <Option value="conversational">Conversational</Option>
-                  <Option value="witty">Witty</Option>
-                  <Option value="informative">Informative</Option>
-                  <Option value="inspirational">Inspirational</Option>
-                  <Option value="persuasive">Persuasive</Option>
-                  <Option value="empathetic">Empathetic</Option>
-                </Select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Approx. Blog Length (Words)
-                </label>
-                <div className="relative">
-                  <input
-                    type="range"
-                    min="500"
-                    max="5000"
-                    value={newJob.blogs.userDefinedLength}
-                    className="w-full h-1 rounded-lg appearance-none cursor-pointer bg-gradient-to-r from-[#1B6FC9] to-gray-100 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#1B6FC9]"
-                    style={{
-                      background: `linear-gradient(to right, #1B6FC9 ${
-                        ((newJob.blogs.userDefinedLength - 500) / 4500) * 100
-                      }%, #E5E7EB ${((newJob.blogs.userDefinedLength - 500) / 4500) * 100}%)`,
-                    }}
-                    onChange={(e) =>
-                      setNewJob({
-                        ...newJob,
-                        blogs: { ...newJob.blogs, userDefinedLength: parseInt(e.target.value) },
-                      })
-                    }
-                  />
-                  <span className="mt-2 text-sm text-gray-600 block">
-                    {newJob.blogs.userDefinedLength} words
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div className="mb-6">
-              <label className="block text-sm font-semibold text-gray-700 mb-3">
-                Select AI Model
-              </label>
-
-              {/* Responsive grid: 1 col (mobile), 2 cols (tablet), 3 cols (desktop) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
-                {[
-                  {
-                    id: "gemini",
-                    label: "Gemini",
-                    logo: "/Images/gemini.png",
-                    restricted: false,
-                  },
-                  {
-                    id: "chatgpt",
-                    label: "ChatGPT",
-                    logo: "/Images/chatgpt.png",
-                  },
-                  {
-                    id: "claude",
-                    label: "Claude",
-                    logo: "/Images/claude.png",
-                  },
-                ].map((model) => (
-                  <label
-                    key={model.id}
-                    htmlFor={model.id}
-                    className={`relative border rounded-lg px-4 py-3 flex items-center gap-3 cursor-pointer transition-all duration-150
-          ${formData.aiModel === model.id ? "border-blue-600 bg-blue-50" : "border-gray-300"}
-          hover:shadow-sm w-full`}
-                    onClick={(e) => {
-                      if (model.restricted) {
-                        e.preventDefault()
-                        openUpgradePopup({ featureName: model.label, navigate })
-                      }
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      id={model.id}
-                      name="aiModel"
-                      value={model.id}
-                      checked={formData.aiModel === model.id}
-                      onChange={(e) => {
-                        if (!model.restricted) {
-                          setFormData((prev) => ({ ...prev, aiModel: e.target.value }))
-                          setData((prev) => ({ ...prev, aiModel: e.target.value }))
-                        }
-                      }}
-                      className="hidden"
-                    />
-                    <img src={model.logo} alt={model.label} className="w-6 h-6 object-contain" />
-                    <span className="text-sm font-medium text-gray-800">{model.label}</span>
-                    {model.restricted && (
-                      <Crown className="w-4 h-4 text-yellow-500 absolute top-2 right-2" />
-                    )}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex justify-between items-center">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Add Image</label>
-              <div className="flex items-center">
-                <label htmlFor="add-image-toggle" className="relative inline-block w-12 h-6">
-                  <input
-                    type="checkbox"
-                    id="add-image-toggle"
-                    className="sr-only peer"
-                    checked={newJob.blogs.isCheckedGeneratedImages}
-                    onChange={(e) => {
-                      const checked = e.target.checked
-                      setNewJob((prev) => ({
-                        ...prev,
-                        blogs: {
-                          ...prev.blogs,
-                          isCheckedGeneratedImages: checked,
-                          imageSource: checked ? prev.blogs.imageSource : "unsplash",
-                        },
-                      }))
-                    }}
-                  />
-                  <div
-                    className={`w-12 h-6 rounded-full transition-all duration-300 ${
-                      newJob.blogs.isCheckedGeneratedImages ? "bg-[#1B6FC9]" : "bg-gray-300"
-                    }`}
-                  />
-                  <div
-                    className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-300 ${
-                      newJob.blogs.isCheckedGeneratedImages ? "translate-x-6" : ""
-                    }`}
-                  />
-                </label>
-                {newJob.blogs.isCheckedGeneratedImages && isAiImagesLimitReached && (
-                  <Tooltip
-                    title="You've reached your AI image generation limit. It'll reset in the next billing cycle."
-                    overlayInnerStyle={{
-                      backgroundColor: "#FEF9C3",
-                      border: "1px solid #FACC15",
-                      color: "#78350F",
-                    }}
-                  >
-                    <TriangleAlert className="text-yellow-400 ml-4" size={15} />
-                  </Tooltip>
-                )}
-              </div>
-            </div>
-            {/* {newJob.blogs.isCheckedGeneratedImages && 
-            <div className="flex justify-between items-center mt-4">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Use Custom Images
-              </label>
-              <div className="flex items-center">
-                <label htmlFor="custom-images-toggle" className="relative inline-block w-12 h-6">
-                  <input
-                    type="checkbox"
-                    id="custom-images-toggle"
-                    className="sr-only peer"
-                    checked={newJob.blogs.isCheckedCustomImages}
-                    onChange={(e) => {
-                      const checked = e.target.checked
-                      setNewJob((prev) => ({
-                        ...prev,
-                        blogs: {
-                          ...prev.blogs,
-                          isCheckedCustomImages: checked,
-                          blogImages: checked ? prev.blogs.blogImages : [],
-                        },
-                      }))
-                    }}
-                  />
-                  <div
-                    className={`w-12 h-6 rounded-full transition-all duration-300 ${
-                      newJob.blogs.isCheckedCustomImages ? "bg-[#1B6FC9]" : "bg-gray-300"
-                    }`}
-                  />
-                  <div
-                    className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-300 ${
-                      newJob.blogs.isCheckedCustomImages ? "translate-x-6" : ""
-                    }`}
-                  />
-                </label>
-              </div>
-            </div>
-            } */}
-            {newJob.blogs.isCheckedCustomImages && (
-              <div className="mt-4">
-                <label className="block text-sm font-semibold text-gray-700 mb-3">
-                  Upload Custom Images (Max 15, each 5MB)
-                </label>
-                <div
-                  className={`border-2 border-dashed rounded-lg p-6 text-center ${
-                    formData.isDragging
-                      ? "border-blue-600 bg-blue-50"
-                      : "border-gray-300 bg-gray-50"
-                  }`}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                >
-                  <p className="text-sm text-gray-600 mb-2">
-                    Drag and drop images here or click to select
-                  </p>
-                  <button
-                    className="px-4 py-2 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white rounded-md text-sm"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    Select Images
-                  </button>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    accept="image/jpeg,image/png,image/webp"
-                    multiple
-                    className="hidden"
-                  />
-                </div>
-                {newJob.blogs.blogImages.length > 0 && (
-                  <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
-                    {newJob.blogs.blogImages.map((image, index) => (
-                      <div key={index} className="relative group">
-                        <img
-                          src={image instanceof File ? URL.createObjectURL(image) : image}
-                          alt={image instanceof File ? image.name : `Image ${index + 1}`}
-                          className="w-full h-24 object-cover rounded-md"
-                        />
-                        <button
-                          onClick={() => handleRemoveImage(index)}
-                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                        <p className="text-xs text-gray-600 truncate mt-1">
-                          {image instanceof File ? image.name : `Image ${index + 1}`}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-            {newJob.blogs.isCheckedGeneratedImages && !newJob.blogs.isCheckedCustomImages && (
-              <>
-                <div className="mb-6">
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">
-                    Image Source
-                  </label>
-
-                  {/* Responsive grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full">
-                    {imageSources.map((source) => {
-                      const isAiRestricted =
-                        source.value === "ai-generated" && source.isAiImagesLimitReached
-
-                      const isBlocked = source.restricted || isAiRestricted
-
-                      return (
-                        <label
-                          key={source.id}
-                          htmlFor={source.id}
-                          className={`relative border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150
-              ${
-                newJob.blogs.imageSource === source.value
-                  ? "border-blue-600 bg-blue-50"
-                  : "border-gray-300"
-              }
-              hover:shadow-sm w-full
-              ${isBlocked ? "opacity-50 cursor-not-allowed" : ""}
-            `}
-                          onClick={(e) => {
-                            if (isBlocked) {
-                              e.preventDefault()
-                              openUpgradePopup({
-                                featureName: source.featureName || "AI-Generated Images",
-                                navigate,
-                              })
-                            }
-                          }}
-                        >
-                          <input
-                            type="radio"
-                            id={source.id}
-                            name="imageSource"
-                            value={source.value}
-                            checked={newJob.blogs.imageSource === source.value}
-                            onChange={() => {
-                              if (!isBlocked) {
-                                handleImageSourceChange(source.value)
-                              }
-                            }}
-                            className="hidden"
-                            disabled={isBlocked}
-                          />
-                          <span className="text-sm font-medium text-gray-800">{source.label}</span>
-                          {(source.restricted || isAiRestricted) && (
-                            <Crown className="w-4 h-4 text-yellow-500 absolute top-2 right-2" />
-                          )}
-                        </label>
-                      )
-                    })}
-                  </div>
-                </div>
-                <div className="w-full">
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">
-                    Number of Images
-                  </label>
-                  <p className="text-xs text-gray-500 mb-2">
-                    Enter the number of images (0 = AI will decide)
-                  </p>
-                  <input
-                    type="number"
-                    name="numberOfImages"
-                    min="0"
-                    max="20"
-                    value={newJob.blogs.numberOfImages}
-                    onChange={handleInputChange}
-                    onWheel={(e) => e.currentTarget.blur()}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm placeholder-gray-400 transition"
-                    placeholder="e.g., 5"
-                  />
-                </div>
-              </>
-            )}
-          </div>
-        </motion.div>
-      )
-    case 3:
-      return (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-10">
-          <div className="space-y-6">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-gray-700">
                 Perform Keyword Research?
@@ -983,7 +685,12 @@ const StepContent = ({
             </div>
             {!formData.performKeywordResearch && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Keywords</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex gap-2 items-center">
+                  Keywords
+                  <Tooltip title="Upload a .csv file in the format: `Keywords` as header">
+                    <Info size={16} className="text-blue-500 cursor-pointer" />
+                  </Tooltip>
+                </label>
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -1043,7 +750,7 @@ const StepContent = ({
                       </span>
                     )
                   })}
-                  {(formData.keywords.length > 18 || recentlyUploadedCount) && (
+                  {(formData.keywords.length > 18 || recentlyUploadedKeywordsCount) && (
                     <span
                       onClick={() => setShowAllKeywords((prev) => !prev)}
                       className="text-xs font-medium text-blue-600 self-center cursor-pointer flex items-center gap-1"
@@ -1052,8 +759,10 @@ const StepContent = ({
                         <>Show less</>
                       ) : (
                         <>
-                          +{formData.keywords.length - 18} more
-                          {recentlyUploadedCount && ` (+${recentlyUploadedCount} uploaded)`}
+                          {formData.keywords.length > 18 &&
+                            `+${formData.keywords.length - 18} more`}
+                          {recentlyUploadedKeywordsCount &&
+                            ` (+${recentlyUploadedKeywordsCount} uploaded)`}
                         </>
                       )}
                     </span>
@@ -1061,145 +770,434 @@ const StepContent = ({
                 </div>
               </div>
             )}
-            <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Schedule Type
+                <label htmlFor="tone" className="block text-sm font-medium text-gray-700 mb-2">
+                  Tone of Voice <span className="text-red-500">*</span>
                 </label>
                 <Select
-                  value={newJob.schedule.type}
-                  onChange={(value) => {
-                    setNewJob({
-                      ...newJob,
-                      schedule: {
-                        ...newJob.schedule,
-                        type: value,
-                        daysOfWeek: value === "weekly" ? [] : newJob.schedule.daysOfWeek,
-                        daysOfMonth: value === "monthly" ? [] : newJob.schedule.daysOfMonth,
-                        customDates: value === "custom" ? [] : newJob.schedule.customDates,
-                      },
-                    })
-                    setErrors((prev) => ({
-                      ...prev,
-                      daysOfWeek: false,
-                      daysOfMonth: false,
-                      customDates: false,
-                    }))
-                  }}
                   className="w-full"
+                  value={newJob.blogs.tone}
+                  onChange={(value) =>
+                    setNewJob({ ...newJob, blogs: { ...newJob.blogs, tone: value } })
+                  }
+                  placeholder="Select tone"
+                  status={errors.tone ? "error" : ""}
                 >
-                  <Option value="daily">Daily</Option>
-                  <Option value="weekly">Weekly</Option>
-                  <Option value="monthly">Monthly</Option>
-                  <Option value="custom">Custom</Option>
+                  <Option value="">Select Tone</Option>
+                  <Option value="professional">Professional</Option>
+                  <Option value="casual">Casual</Option>
+                  <Option value="friendly">Friendly</Option>
+                  <Option value="formal">Formal</Option>
+                  <Option value="conversational">Conversational</Option>
+                  <Option value="witty">Witty</Option>
+                  <Option value="informative">Informative</Option>
+                  <Option value="inspirational">Inspirational</Option>
+                  <Option value="persuasive">Persuasive</Option>
+                  <Option value="empathetic">Empathetic</Option>
                 </Select>
               </div>
-              {newJob.schedule.type === "weekly" && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Days of Week
-                  </label>
-                  <div className="flex gap-2 flex-wrap">
-                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        className={`px-2 py-1 rounded ${
-                          newJob.schedule.daysOfWeek?.includes(i)
-                            ? "bg-[#1B6FC9] text-white"
-                            : "bg-gray-200 text-gray-700"
-                        } ${errors.daysOfWeek ? "border-2 border-red-500" : ""}`}
-                        onClick={() => {
-                          setNewJob((prev) => {
-                            const daysOfWeek = prev.schedule.daysOfWeek?.includes(i)
-                              ? prev.schedule.daysOfWeek.filter((day) => day !== i)
-                              : [...(prev.schedule.daysOfWeek || []), i]
-                            return { ...prev, schedule: { ...prev.schedule, daysOfWeek } }
-                          })
-                          setErrors((prev) => ({ ...prev, daysOfWeek: false }))
-                        }}
-                      >
-                        {d}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {newJob.schedule.type === "monthly" && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Dates of Month
-                  </label>
-                  <div className="flex gap-2 flex-wrap">
-                    {Array.from({ length: 31 }, (_, i) => i + 1).map((date) => (
-                      <button
-                        key={date}
-                        type="button"
-                        className={`px-2 py-1 rounded ${
-                          newJob.schedule.daysOfMonth?.includes(date)
-                            ? "bg-[#1B6FC9] text-white"
-                            : "bg-gray-200 text-gray-700"
-                        } ${errors.daysOfMonth ? "border-2 border-red-500" : ""}`}
-                        onClick={() => {
-                          setNewJob((prev) => {
-                            const daysOfMonth = prev.schedule.daysOfMonth?.includes(date)
-                              ? prev.schedule.daysOfMonth.filter((d) => d !== date)
-                              : [...(prev.schedule.daysOfMonth || []), date]
-                            return { ...prev, schedule: { ...prev.schedule, daysOfMonth } }
-                          })
-                          setErrors((prev) => ({ ...prev, daysOfMonth: false }))
-                        }}
-                      >
-                        {date}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {newJob.schedule.type === "custom" && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Dates
-                  </label>
-                  <div className={errors.customDates ? "border-2 border-red-500 rounded-lg" : ""}>
-                    <MultiDatePicker
-                      value={newJob.schedule.customDates}
-                      onChange={(dates) => {
-                        setNewJob({
-                          ...newJob,
-                          schedule: {
-                            ...newJob.schedule,
-                            customDates: dates,
-                            daysOfWeek: [],
-                            daysOfMonth: [],
-                          },
-                        })
-                        setErrors((prev) => ({ ...prev, customDates: false }))
-                      }}
-                      multiple
-                      format="YYYY-MM-DD"
-                      className="w-full"
-                      inputClass="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Number of Blogs
+                  Approx. Blog Length (Words)
                 </label>
+                <div className="relative">
+                  <input
+                    type="range"
+                    min="500"
+                    max="5000"
+                    value={newJob.blogs.userDefinedLength}
+                    className="w-full h-1 rounded-lg appearance-none cursor-pointer bg-gradient-to-r from-[#1B6FC9] to-gray-100 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#1B6FC9]"
+                    style={{
+                      background: `linear-gradient(to right, #1B6FC9 ${
+                        ((newJob.blogs.userDefinedLength - 500) / 4500) * 100
+                      }%, #E5E7EB ${((newJob.blogs.userDefinedLength - 500) / 4500) * 100}%)`,
+                    }}
+                    onChange={(e) =>
+                      setNewJob({
+                        ...newJob,
+                        blogs: { ...newJob.blogs, userDefinedLength: parseInt(e.target.value) },
+                      })
+                    }
+                  />
+                  <span className="mt-2 text-sm text-gray-600 block">
+                    {newJob.blogs.userDefinedLength} words
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )
+    case 3:
+      return (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+          <div className="flex justify-between items-center">
+            <label className="block text-sm font-semibold text-gray-700">Add Image</label>
+            <div className="flex items-center">
+              <label htmlFor="add-image-toggle" className="relative inline-block w-12 h-6">
                 <input
-                  type="number"
-                  value={newJob.blogs.numberOfBlogs}
-                  onChange={handleNumberOfBlogsChange}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                    errors.numberOfBlogs ? "border-red-500" : "border-gray-200"
+                  type="checkbox"
+                  id="add-image-toggle"
+                  className="sr-only peer"
+                  checked={newJob.blogs.isCheckedGeneratedImages}
+                  onChange={(e) => {
+                    const checked = e.target.checked
+                    setNewJob((prev) => ({
+                      ...prev,
+                      blogs: {
+                        ...prev.blogs,
+                        isCheckedGeneratedImages: checked,
+                        imageSource: checked ? prev.blogs.imageSource : "unsplash",
+                      },
+                    }))
+                  }}
+                />
+                <div
+                  className={`w-12 h-6 rounded-full transition-all duration-300 ${
+                    newJob.blogs.isCheckedGeneratedImages ? "bg-[#1B6FC9]" : "bg-gray-300"
                   }`}
-                  placeholder="Enter the number of blogs"
-                  min="1"
-                  max={MAX_BLOGS}
+                />
+                <div
+                  className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-300 ${
+                    newJob.blogs.isCheckedGeneratedImages ? "translate-x-6" : ""
+                  }`}
+                />
+              </label>
+              {newJob.blogs.isCheckedGeneratedImages && isAiImagesLimitReached && (
+                <Tooltip
+                  title="You've reached your AI image generation limit. It'll reset in the next billing cycle."
+                  overlayInnerStyle={{
+                    backgroundColor: "#FEF9C3",
+                    border: "1px solid #FACC15",
+                    color: "#78350F",
+                  }}
+                >
+                  <TriangleAlert className="text-yellow-400 ml-4" size={15} />
+                </Tooltip>
+              )}
+            </div>
+          </div>
+          {newJob.blogs.isCheckedCustomImages && (
+            <div className="mt-4">
+              <label className="block text-sm font-semibold text-gray-700 mb-3">
+                Upload Custom Images (Max 15, each 5MB)
+              </label>
+              <div
+                className={`border-2 border-dashed rounded-lg p-6 text-center ${
+                  formData.isDragging ? "border-blue-600 bg-blue-50" : "border-gray-300 bg-gray-50"
+                }`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                <p className="text-sm text-gray-600 mb-2">
+                  Drag and drop images here or click to select
+                </p>
+                <button
+                  className="px-4 py-2 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white rounded-md text-sm"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  Select Images
+                </button>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  accept="image/jpeg,image/png,image/webp"
+                  multiple
+                  className="hidden"
                 />
               </div>
+              {newJob.blogs.blogImages.length > 0 && (
+                <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  {newJob.blogs.blogImages.map((image, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={image instanceof File ? URL.createObjectURL(image) : image}
+                        alt={image instanceof File ? image.name : `Image ${index + 1}`}
+                        className="w-full h-24 object-cover rounded-md"
+                      />
+                      <button
+                        onClick={() => handleRemoveImage(index)}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                      <p className="text-xs text-gray-600 truncate mt-1">
+                        {image instanceof File ? image.name : `Image ${index + 1}`}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          {newJob.blogs.isCheckedGeneratedImages && !newJob.blogs.isCheckedCustomImages && (
+            <>
+              <div className="mb-6">
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  Image Source
+                </label>
+
+                {/* Responsive grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full">
+                  {imageSources.map((source) => {
+                    const isAiRestricted =
+                      source.value === "ai-generated" && source.isAiImagesLimitReached
+
+                    const isBlocked = source.restricted || isAiRestricted
+
+                    return (
+                      <label
+                        key={source.id}
+                        htmlFor={source.id}
+                        className={`relative border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150
+              ${
+                newJob.blogs.imageSource === source.value
+                  ? "border-blue-600 bg-blue-50"
+                  : "border-gray-300"
+              }
+              hover:shadow-sm w-full
+              ${isBlocked ? "opacity-50 cursor-not-allowed" : ""}
+            `}
+                        onClick={(e) => {
+                          if (isBlocked) {
+                            e.preventDefault()
+                            openUpgradePopup({
+                              featureName: source.featureName || "AI-Generated Images",
+                              navigate,
+                            })
+                          }
+                        }}
+                      >
+                        <input
+                          type="radio"
+                          id={source.id}
+                          name="imageSource"
+                          value={source.value}
+                          checked={newJob.blogs.imageSource === source.value}
+                          onChange={() => {
+                            if (!isBlocked) {
+                              handleImageSourceChange(source.value)
+                            }
+                          }}
+                          className="hidden"
+                          disabled={isBlocked}
+                        />
+                        <span className="text-sm font-medium text-gray-800">{source.label}</span>
+                        {(source.restricted || isAiRestricted) && (
+                          <Crown className="w-4 h-4 text-yellow-500 absolute top-2 right-2" />
+                        )}
+                      </label>
+                    )
+                  })}
+                </div>
+              </div>
+              <div className="w-full">
+                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                  Number of Images
+                </label>
+                <p className="text-xs text-gray-500 mb-2">
+                  Enter the number of images (0 = AI will decide)
+                </p>
+                <input
+                  type="number"
+                  name="numberOfImages"
+                  min="0"
+                  max="20"
+                  value={newJob.blogs.numberOfImages}
+                  onChange={handleInputChange}
+                  onWheel={(e) => e.currentTarget.blur()}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm placeholder-gray-400 transition"
+                  placeholder="e.g., 5"
+                />
+              </div>
+            </>
+          )}
+
+          <div className="mb-6">
+            <label className="block text-sm font-semibold text-gray-700 mb-3">
+              Select AI Model
+            </label>
+            {/* Responsive grid: 1 col (mobile), 2 cols (tablet), 3 cols (desktop) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
+              {[
+                { id: "gemini", label: "Gemini", logo: "/Images/gemini.png", restricted: false },
+                { id: "chatgpt", label: "ChatGPT", logo: "/Images/chatgpt.png" },
+                { id: "claude", label: "Claude", logo: "/Images/claude.png" },
+              ].map((model) => (
+                <label
+                  key={model.id}
+                  htmlFor={model.id}
+                  className={`relative border rounded-lg px-4 py-3 flex items-center gap-3 cursor-pointer transition-all duration-150
+      ${formData.aiModel === model.id ? "border-blue-600 bg-blue-50" : "border-gray-300"}
+      hover:shadow-sm w-full`}
+                  onClick={(e) => {
+                    if (model.restricted) {
+                      e.preventDefault()
+                      openUpgradePopup({ featureName: model.label, navigate })
+                    }
+                  }}
+                >
+                  <input
+                    type="radio"
+                    id={model.id}
+                    name="aiModel"
+                    value={model.id}
+                    checked={formData.aiModel === model.id}
+                    onChange={(e) => {
+                      if (!model.restricted) {
+                        setFormData((prev) => ({ ...prev, aiModel: e.target.value }))
+                      }
+                    }}
+                    className="hidden"
+                  />
+                  <img src={model.logo} alt={model.label} className="w-6 h-6 object-contain" />
+                  <span className="text-sm font-medium text-gray-800">{model.label}</span>
+                  {model.restricted && (
+                    <Crown className="w-4 h-4 text-yellow-500 absolute top-2 right-2" />
+                  )}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Schedule Type</label>
+              <Select
+                value={newJob.schedule.type}
+                onChange={(value) => {
+                  setNewJob({
+                    ...newJob,
+                    schedule: {
+                      ...newJob.schedule,
+                      type: value,
+                      daysOfWeek: value === "weekly" ? [] : newJob.schedule.daysOfWeek,
+                      daysOfMonth: value === "monthly" ? [] : newJob.schedule.daysOfMonth,
+                      customDates: value === "custom" ? [] : newJob.schedule.customDates,
+                    },
+                  })
+                  setErrors((prev) => ({
+                    ...prev,
+                    daysOfWeek: false,
+                    daysOfMonth: false,
+                    customDates: false,
+                  }))
+                }}
+                className="w-full"
+              >
+                <Option value="daily">Daily</Option>
+                <Option value="weekly">Weekly</Option>
+                <Option value="monthly">Monthly</Option>
+                <Option value="custom">Custom</Option>
+              </Select>
+            </div>
+            {newJob.schedule.type === "weekly" && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Days of Week
+                </label>
+                <div className="flex gap-2 flex-wrap">
+                  {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      className={`px-2 py-1 rounded ${
+                        newJob.schedule.daysOfWeek?.includes(i)
+                          ? "bg-[#1B6FC9] text-white"
+                          : "bg-gray-200 text-gray-700"
+                      } ${errors.daysOfWeek ? "border-2 border-red-500" : ""}`}
+                      onClick={() => {
+                        setNewJob((prev) => {
+                          const daysOfWeek = prev.schedule.daysOfWeek?.includes(i)
+                            ? prev.schedule.daysOfWeek.filter((day) => day !== i)
+                            : [...(prev.schedule.daysOfWeek || []), i]
+                          return { ...prev, schedule: { ...prev.schedule, daysOfWeek } }
+                        })
+                        setErrors((prev) => ({ ...prev, daysOfWeek: false }))
+                      }}
+                    >
+                      {d}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {newJob.schedule.type === "monthly" && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Dates of Month
+                </label>
+                <div className="flex gap-2 flex-wrap">
+                  {Array.from({ length: 31 }, (_, i) => i + 1).map((date) => (
+                    <button
+                      key={date}
+                      type="button"
+                      className={`px-2 py-1 rounded ${
+                        newJob.schedule.daysOfMonth?.includes(date)
+                          ? "bg-[#1B6FC9] text-white"
+                          : "bg-gray-200 text-gray-700"
+                      } ${errors.daysOfMonth ? "border-2 border-red-500" : ""}`}
+                      onClick={() => {
+                        setNewJob((prev) => {
+                          const daysOfMonth = prev.schedule.daysOfMonth?.includes(date)
+                            ? prev.schedule.daysOfMonth.filter((d) => d !== date)
+                            : [...(prev.schedule.daysOfMonth || []), date]
+                          return { ...prev, schedule: { ...prev.schedule, daysOfMonth } }
+                        })
+                        setErrors((prev) => ({ ...prev, daysOfMonth: false }))
+                      }}
+                    >
+                      {date}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {newJob.schedule.type === "custom" && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Select Dates</label>
+                <div className={errors.customDates ? "border-2 border-red-500 rounded-lg" : ""}>
+                  <MultiDatePicker
+                    value={newJob.schedule.customDates}
+                    onChange={(dates) => {
+                      setNewJob({
+                        ...newJob,
+                        schedule: {
+                          ...newJob.schedule,
+                          customDates: dates,
+                          daysOfWeek: [],
+                          daysOfMonth: [],
+                        },
+                      })
+                      setErrors((prev) => ({ ...prev, customDates: false }))
+                    }}
+                    multiple
+                    format="YYYY-MM-DD"
+                    className="w-full"
+                    inputClass="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Number of Blogs
+              </label>
+              <input
+                type="number"
+                value={newJob.blogs.numberOfBlogs}
+                onChange={handleNumberOfBlogsChange}
+                onWheel={(e) => e.currentTarget.blur()} // 👈 this prevents scroll changing value
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                  errors.numberOfBlogs ? "border-red-500" : "border-gray-200"
+                }`}
+                placeholder="Enter the number of blogs"
+                min="1"
+                max={MAX_BLOGS}
+              />
             </div>
           </div>
         </motion.div>

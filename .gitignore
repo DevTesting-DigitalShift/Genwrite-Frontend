@@ -22,5 +22,8 @@ node_modules
 *.sw?
 
 anupDoc.md
-.envdist/
-dist/
+.env
+
+
+*.env
+.env

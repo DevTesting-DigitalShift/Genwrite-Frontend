@@ -1,5 +1,6 @@
 import { objectToFormData } from "@utils/usableFunctions"
 import axiosInstance from "."
+import { message } from "antd"
 
 // Create a new blog
 export const createQuickBlog = async (blogData) => {
@@ -8,6 +9,7 @@ export const createQuickBlog = async (blogData) => {
     const blog = response.data.blog
     return blog
   } catch (error) {
+    message.error(error.response?.data?.message)
     console.error("Quick Blog creation API error:", error)
     throw new Error(error.response?.data?.message || "Failed to create quickBlog")
   }

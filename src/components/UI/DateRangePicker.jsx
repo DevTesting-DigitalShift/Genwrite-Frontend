@@ -77,6 +77,7 @@ export default function DateRangePicker({
         format="YYYY-MM-DD"
         placeholder={["Start date", "End date"]}
         className="w-full rounded-lg border-gray-300 shadow-sm"
+        allowClear={false}
       />
     </div>
   );

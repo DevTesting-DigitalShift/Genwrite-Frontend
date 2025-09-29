@@ -38,7 +38,7 @@ import { useDispatch, useSelector } from "react-redux"
 import { Input, Modal, Tooltip, message, Select, Button } from "antd"
 import { marked } from "marked"
 import TurndownService from "turndown"
-import { useLocation, useNavigate } from "react-router-dom"
+import { useBlocker, useLocation, useNavigate } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { ProofreadingDecoration } from "@/extensions/ProofreadingDecoration"
 import Loading from "@components/UI/Loading"
@@ -57,8 +57,15 @@ import { createPortal } from "react-dom"
 import { getLinkPreview } from "link-preview-js" // Assume this library is installed via npm i link-preview-js
 import { useQueryClient } from "@tanstack/react-query"
 import { useProofreadingUI } from "@/layout/Editor/useProofreadingUI"
+import ContentDiffViewer from "../Editor/ContentDiffViewer"
+import "./editor.css"
 
-const ContentDiffViewer = lazy(() => import("@/layout/Editor/ContentDiffViewer"))
+const MarkdownEditor = React.lazy(() =>
+  import("./OtherEditors").then((m) => ({ default: m.MarkdownEditor }))
+)
+const HtmlEditor = React.lazy(() =>
+  import("./OtherEditors").then((m) => ({ default: m.HtmlEditor }))
+)
 
 marked.setOptions({
   gfm: true,
@@ -73,60 +80,6 @@ const FONT_OPTIONS = [
   { label: "Mono", value: "font-mono" },
   { label: "Comic Sans", value: "font-comic" },
 ]
-
-const MarkdownEditor = ({ content, onChange, className }) => {
-  const containerRef = useRef(null)
-
-  useEffect(() => {
-    let view
-    if (containerRef.current) {
-      const state = EditorState.create({
-        doc: content,
-        extensions: [
-          basicSetup,
-          EditorView.lineWrapping,
-          markdown({ base: markdownLanguage, codeLanguages: languages }),
-          EditorView.updateListener.of((update) => {
-            if (update.docChanged) {
-              onChange(update.state.doc.toString())
-            }
-          }),
-        ],
-      })
-      view = new EditorView({ state, parent: containerRef.current })
-    }
-    return () => view?.destroy()
-  }, [content, onChange])
-
-  return <div ref={containerRef} className={`w-full h-full ${className}`} />
-}
-
-const HtmlEditor = ({ content, onChange, className }) => {
-  const containerRef = useRef(null)
-
-  useEffect(() => {
-    let view
-    if (containerRef.current) {
-      const state = EditorState.create({
-        doc: content,
-        extensions: [
-          basicSetup,
-          html(),
-          EditorView.lineWrapping,
-          EditorView.updateListener.of((update) => {
-            if (update.docChanged) {
-              onChange(update.state.doc.toString())
-            }
-          }),
-        ],
-      })
-      view = new EditorView({ state, parent: containerRef.current })
-    }
-    return () => view?.destroy()
-  }, [content, onChange])
-
-  return <div ref={containerRef} className={`h-screen ${className}`} />
-}
 
 const TextEditor = ({
   blog,
@@ -143,6 +96,10 @@ const TextEditor = ({
   handleAcceptHumanizedContent,
   handleAcceptOriginalContent,
   editorContent,
+  unsavedChanges,
+  setUnsavedChanges,
+  wordpressMetadata,
+  handleSubmit,
 }) => {
   const [isEditorLoading, setIsEditorLoading] = useState(true)
   const [selectedFont, setSelectedFont] = useState(FONT_OPTIONS[0].value)
@@ -160,8 +117,6 @@ const TextEditor = ({
   const [selectionRange, setSelectionRange] = useState({ from: 0, to: 0 })
   const [retryModalOpen, setRetryModalOpen] = useState(false)
   const [hoveredSuggestion, setHoveredSuggestion] = useState(null)
-  const [unsavedChanges, setUnsavedChanges] = useState(false)
-  const [tabSwitchWarning, setTabSwitchWarning] = useState(null)
   const [htmlContent, setHtmlContent] = useState("")
   const htmlEditorRef = useRef(null)
   const mdEditorRef = useRef(null)
@@ -186,80 +141,37 @@ const TextEditor = ({
   const [linkPreviewElement, setLinkPreviewElement] = useState(null)
   const hideTimeout = useRef(null)
   const queryClient = useQueryClient()
+  const [lastSavedContent, setLastSavedContent] = useState("")
+
+  const normalizeContent = useCallback((str) => str.replace(/\s+/g, " ").trim(), [])
 
   const safeContent = content ?? blog?.content ?? ""
 
   const markdownToHtml = useCallback((markdown) => {
     if (!markdown) return "<p></p>"
-    try {
-      const html = marked.parse(
-        markdown
-          .replace(/!\[(["'""])(.*?)\1\]\((.*?)\)/g, (_, __, alt, url) => `![${alt}](${url})`)
-          .replace(/'/g, "&apos;")
-      )
-      const parser = new DOMParser()
-      const doc = parser.parseFromString(html, "text/html")
-      doc.querySelectorAll("script").forEach((script) => script.remove())
-      return doc.body.innerHTML
-    } catch (error) {
-      console.warn("Failed to parse markdown:", error)
-      return `<p>${markdown}</p>`
-    }
+    const html = marked.parse(
+      markdown
+        .replace(/!\[(["'""])(.*?)\1\]\((.*?)\)/g, (_, __, alt, url) => `![${alt}](${url})`) // remove quotes from alt
+        .replace(/'/g, "'"),
+      { breaks: true, gfm: true }
+    )
+    return DOMPurify.sanitize(html)
   }, [])
 
   const htmlToMarkdown = useCallback((html) => {
     if (!html) return ""
-    try {
-      const parser = new DOMParser()
-      const doc = parser.parseFromString(html, "text/html")
-      doc.querySelectorAll("script").forEach((script) => script.remove())
-      const cleanHtml = doc.body.innerHTML
-      const turndownService = new TurndownService({
-        strongDelimiter: "**",
-        emDelimiter: "*",
-        headingStyle: "atx",
-        bulletListMarker: "-",
-        codeDelimiter: "```",
-        fence: "```",
-        hr: "---",
-      })
-
-      turndownService.addRule("heading", {
-        filter: ["h1", "h2", "h3", "h4", "h5", "h6"],
-        replacement: function (content, node) {
-          const level = parseInt(node.nodeName.charAt(1))
-          return "\n" + "#".repeat(level) + " " + content + "\n\n"
-        },
-      })
-
-      turndownService.addRule("list", {
-        filter: ["ul", "ol"],
-        replacement: function (content, node) {
-          return "\n" + content + "\n"
-        },
-      })
-
-      turndownService.addRule("listItem", {
-        filter: "li",
-        replacement: function (content, node) {
-          const parent = node.parentNode
-          const isOrdered = parent.nodeName === "OL"
-          const marker = isOrdered ? "1. " : "- "
-          return marker + content.trim() + "\n"
-        },
-      })
-
-      const markdown = turndownService.turndown(cleanHtml)
-      return markdown
-    } catch (error) {
-      console.warn("Failed to convert HTML to markdown:", error)
-      return html
-    }
+    const turndownService = new TurndownService({
+      headingStyle: "atx",
+      bulletListMarker: "-",
+    })
+    return turndownService.turndown(html)
   }, [])
 
   const initialContent = useMemo(() => {
     return safeContent ? marked.parse(safeContent, { gfm: true }) : "<p></p>"
   }, [safeContent])
+
+  const lastNormalizedSavedContent = useRef(normalizeContent(lastSavedContent ?? ""))
 
   const normalEditor = useEditor(
     {
@@ -272,309 +184,34 @@ const TextEditor = ({
           link: { HTMLAttributes: { class: "text-blue-600 underline" } },
         }),
         Image.configure({
-          HTMLAttributes: {
-            class: "rounded-lg mx-auto w-3/4 h-auto object-contain",
-            style: "display: block;",
-          },
+          HTMLAttributes: { class: "rounded-lg mx-auto w-3/4 h-auto object-contain" },
         }),
         TextAlign.configure({ types: ["heading", "paragraph", "right"] }),
-        ProofreadingDecoration.configure({
-          suggestions: proofreadingResults,
-        }),
+        ProofreadingDecoration.configure({ suggestions: proofreadingResults }),
       ],
-      content: initialContent,
+      content: "<p></p>",
+      editorProps: {
+        attributes: {
+          class: `prose max-w-none focus:outline-none p-4 min-h-[400px] ${selectedFont} blog-content editor-container`,
+        },
+      },
+
       onUpdate: ({ editor }) => {
         const html = editor.getHTML()
         const markdown = htmlToMarkdown(html)
-        if (markdown !== safeContent) {
-          setContent(markdown)
-          setUnsavedChanges(true)
-        }
-      },
-      editorProps: {
-        attributes: {
-          class: `prose max-w-none focus:outline-none p-4 min-h-[400px] opacity-100 ${selectedFont} blog-content editor-container`,
-        },
-      },
-      onSelectionUpdate: ({ editor }) => {
-        const { from, to } = editor.state.selection
-        setSelectionRange({ from, to })
+
+        setContent(markdown)
+        setHtmlContent(html.replace(/>\s*</g, ">\n<"))
+
+        const normCurrent = normalizeContent(markdown)
+        const unsaved = normCurrent !== lastNormalizedSavedContent.current
+        setUnsavedChanges(unsaved)
       },
     },
-    [selectedFont, proofreadingResults, htmlToMarkdown, setContent]
+    [selectedFont, proofreadingResults, htmlToMarkdown, setContent, setUnsavedChanges]
   )
 
   const { activeSpan, bubbleRef, applyChange, rejectChange } = useProofreadingUI(normalEditor)
-
-  useEffect(() => {
-    const scrollToTop = () => {
-      if (activeTab === "Normal" && normalEditor && normalEditor?.view?.dom) {
-        const editorElement = normalEditor.view.dom
-        if (editorElement) {
-          editorElement.scrollTop = 0
-        }
-      }
-    }
-    scrollToTop()
-  }, [activeTab, normalEditor])
-
-  useEffect(() => {
-    setIsEditorLoading(true)
-    const timer = setTimeout(() => {
-      setIsEditorLoading(false)
-      if (normalEditor && activeTab === "Normal") {
-        normalEditor.commands.focus()
-      }
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [activeTab, normalEditor])
-
-  useEffect(() => {
-    if (blog?.status === "failed" && !hasShownToast.current) {
-      message.error("Your blog generation failed. You can write blog manually.")
-      hasShownToast.current = true
-    }
-  }, [blog?.status])
-
-  useEffect(() => {
-    const styleElement = document.createElement("style")
-    styleElement.id = "text-editor-styles"
-    styleElement.textContent = `
-      .font-arial { font-family: Arial, sans-serif; }
-      .font-georgia { font-family: Georgia, serif; }
-      .font-mono { font-family: 'SF Mono', monospace; }
-      .font-comic { font-family: "Comic Sans MS", cursive; }
-      .bubble-menu {
-        background: white;
-        border: 1px solid #e5e7eb;
-        border-radius: 0.5rem;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        padding: 0.25rem;
-        display: flex;
-        gap: 0.25rem;
-        z-index: 50;
-      }
-      .cm-content {
-        white-space: pre-wrap; 
-        word-break: break-word;
-      }
-      .suggestion-highlight {
-        background: #fefcbf;
-        cursor: pointer;
-      }
-      .editor-container {
-        width: 100% !important;
-        background: white;
-      }
-      .editor-container h1 {
-        font-size: 1.5rem;
-      }
-      .editor-container h2 {
-        font-size: 1.25rem;
-      }
-      .editor-container h3 {
-        font-size: 1rem;
-      }
-      .editor-container ul, .editor-container ol {
-        margin: 1rem 0;
-        padding-left: 1.5rem;
-      }
-      .editor-container ul {
-        list-style-type: disc;
-      }
-      .editor-container ol {
-        list-style-type: decimal;
-      }
-      .editor-container li {
-        margin: 0.5rem 0;
-      }
-      .editor-container p {
-        color: #374151;
-      }
-      .editor-container strong {
-        font-weight: bold;
-        color: #1f2937;
-      }
-      .editor-container em {
-        font-style: italic;
-      }
-      .editor-container a {
-        color: #2563eb;
-        text-decoration: underline;
-        position: relative;
-      }
-      .editor-container a:hover {
-        color: #1d4ed8;
-      }
-      .editor-container img {
-        display: block;
-        margin: 1.5rem auto;
-        max-width: 100%;
-        height: auto;
-        border-radius: 0.5rem;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      }
-      .editor-tab {
-        padding: 0.75rem 1.5rem;
-        font-weight: 500;
-        border-bottom: 2px solid transparent;
-        color: #6b7280;
-        transition: all 0.2s ease;
-        cursor: pointer;
-      }
-      .editor-tab:hover {
-        color: #3b82f6;
-        background: #f8fafc;
-      }
-      .editor-tab.active {
-        color: #3b82f6;
-        border-bottom-color: #3b82f6;
-        background: white;
-      }
-      .code-textarea {
-        font-family: 'SF Mono', monospace;
-        font-size: 14px;
-        border: none;
-        outline: none;
-        resize: none;
-        background: #f8fafc;
-        color: #1f2937;
-        padding: 1.5rem;
-        border-radius: 0.5rem;
-        white-space: pre-wrap;
-      }
-      .code-textarea:focus {
-        background: white;
-        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-      }
-      .suggestion-tooltip {
-        background: white;
-        border: 1px solid #e5e7eb;
-        border-radius: 0.5rem;
-        padding: 0.75rem;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        z-index: 60;
-        max-width: 300px;
-        font-size: 0.875rem;
-      }
-      .proof-ui-bubble {
-        background: white;
-        border: 1px solid #e5e7eb;
-        border-radius: 0.5rem;
-        padding: 0.5rem;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        z-index: 60;
-      }
-    `
-    document.head.appendChild(styleElement)
-    return () => {
-      const existingStyle = document.getElementById("text-editor-styles")
-      if (existingStyle && existingStyle.parentNode) {
-        existingStyle.parentNode.removeChild(existingStyle)
-      }
-    }
-  }, [])
-
-  useEffect(() => {
-    if (normalEditor && editorReady && blog?.content) {
-      const html = normalEditor.getHTML()
-      const normalizedMd = htmlToMarkdown(html)
-      if (normalizedMd !== safeContent) {
-        setContent(normalizedMd)
-        setHtmlContent(markdownToHtml(normalizedMd).replace(/>\s*</g, ">\n<"))
-      }
-    }
-  }, [normalEditor, editorReady, blog, htmlToMarkdown, markdownToHtml, safeContent, setContent])
-
-  useEffect(() => {
-    if (normalEditor && activeTab === "Normal" && !normalEditor.isDestroyed) {
-      const currentHtml = normalEditor.getHTML()
-      const newHtml = markdownToHtml(safeContent)
-      if (currentHtml !== newHtml) {
-        const { from, to } = normalEditor.state.selection
-        normalEditor.commands.setContent(newHtml, false)
-        normalEditor.commands.setTextSelection({ from, to })
-      }
-    }
-  }, [safeContent, activeTab, normalEditor, markdownToHtml])
-
-  useEffect(() => {
-    if (normalEditor) {
-      const ext = normalEditor.extensionManager.extensions.find(
-        (e) => e.name === "proofreadingDecoration"
-      )
-      if (ext) {
-        ext.options.suggestions = proofreadingResults
-        normalEditor.view.dispatch(normalEditor.view.state.tr)
-      }
-    }
-  }, [proofreadingResults, normalEditor])
-
-  useEffect(() => {
-    if (normalEditor) {
-      setEditorReady(true)
-      return () => {
-        if (!normalEditor.isDestroyed) {
-          normalEditor.destroy()
-        }
-      }
-    }
-  }, [normalEditor])
-
-  useEffect(() => {
-    if (activeTab === "HTML" && !markdownPreview) {
-      requestAnimationFrame(() => Prism.highlightAll())
-    }
-  }, [safeContent, activeTab, markdownPreview])
-
-  useEffect(() => {
-    const initialContent = blog?.content ?? ""
-    if (safeContent !== initialContent) {
-      setContent(initialContent)
-      setUnsavedChanges(false)
-    }
-    if (normalEditor && !normalEditor.isDestroyed && activeTab === "Normal") {
-      const htmlContent = initialContent
-        ? marked.parse(
-            initialContent
-              .replace(/!\[(["'""])(.*?)\1\]\((.*?)\)/g, (_, __, alt, url) => `![${alt}](${url})`)
-              .replace(/'/g, "&apos;"),
-            { gfm: true }
-          )
-        : "<p></p>"
-      if (normalEditor.getHTML() !== htmlContent) {
-        const { from, to } = normalEditor.state.selection
-        normalEditor.commands.setContent(htmlContent, false)
-        normalEditor.commands.setTextSelection({ from, to })
-      }
-    }
-  }, [blog, normalEditor, activeTab, setContent])
-
-  useEffect(() => {
-    if (activeTab === "HTML") {
-      setHtmlContent(markdownToHtml(safeContent).replace(/>\s*</g, ">\n<"))
-    }
-  }, [safeContent, activeTab, markdownToHtml])
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setShowModelDropdown(false)
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [])
-
-  useLayoutEffect(() => {
-    if (activeSpan instanceof HTMLElement && bubbleRef.current) {
-      const spanRect = activeSpan.getBoundingClientRect()
-      const bubbleHeight = bubbleRef.current.offsetHeight
-      const top = spanRect.top + window.scrollY - bubbleHeight - 8
-      const left = spanRect.left + window.scrollX
-      setBubblePos({ top, left })
-    }
-  }, [activeSpan])
 
   const showUpgradePopup = () => {
     handlePopup({
@@ -622,10 +259,38 @@ const TextEditor = ({
     })
   }, [safeEditorAction])
 
-  const handleRegenerate = () => {
+  const handleReGenerate = async () => {
+    if (!blog?._id) {
+      message.error("Blog ID is missing.")
+      return
+    }
+
+    const proceedWithRegenerate = async () => {
+      const payload = {
+        createNew: true,
+      }
+      try {
+        await dispatch(retryBlog({ id: blog._id, payload }))
+        queryClient.invalidateQueries({ queryKey: ["blogs"] })
+        queryClient.invalidateQueries({ queryKey: ["blog", blog._id] })
+        setUnsavedChanges(false)
+        navigate("/blogs")
+      } catch (error) {
+        console.error("Retry failed:", error)
+        message.error(error.message || "Retry failed.")
+      }
+    }
+
+    await proceedWithRegenerate()
+  }
+
+  const handleRegenerate = async () => {
     if (userPlan === "free" || userPlan === "basic") {
       navigate("/pricing")
-    } else {
+      return
+    }
+
+    const proceedWithRegenerate = async () => {
       handlePopup({
         title: "Retry Blog Generation",
         description: (
@@ -637,6 +302,36 @@ const TextEditor = ({
         onConfirm: handleReGenerate,
       })
     }
+
+    if (unsavedChanges) {
+      handlePopup({
+        title: "Unsaved Changes",
+        description: (
+          <>
+            You have unsaved changes. Regenerating the blog will discard these changes. Would you
+            like to save them first?
+          </>
+        ),
+        confirmText: "Save and Regenerate",
+        cancelText: "Regenerate without Saving",
+        onConfirm: async () => {
+          try {
+            await handleSubmit({ wordpressMetadata })
+            await proceedWithRegenerate()
+          } catch (error) {
+            console.error(error)
+            message.error("Failed to save changes. Please try again.")
+          }
+        },
+        onCancel: (e) => {
+          if (e?.source == "button") {
+            proceedWithRegenerate()
+          }
+        },
+      })
+    } else {
+      await proceedWithRegenerate()
+    }
   }
 
   const handleConfirmLink = useCallback(() => {
@@ -644,22 +339,21 @@ const TextEditor = ({
       message.error("Enter a valid URL.")
       return
     }
+
+    const safeUrl = decodeURIComponent(linkUrl) // clean it
+
     if (normalEditor) {
       const { from, to } = normalEditor.state.selection
       normalEditor
         .chain()
         .focus()
-        .setLink({ href: linkUrl, target: "_blank", rel: "noopener noreferrer" })
+        .setLink({ href: safeUrl, target: "_blank", rel: "noopener noreferrer" })
         .setTextSelection({ from, to })
         .run()
       setLinkModalOpen(false)
       message.success("Link added.")
     }
   }, [linkUrl, normalEditor])
-
-  const insertText = useCallback((before, after, editorRef) => {
-    // Adjusted for CodeMirror, but since FloatingToolbar is removed for simplicity, this is not used
-  }, [])
 
   const handleConfirmImage = useCallback(() => {
     if (!imageUrl || !/https?:\/\//i.test(imageUrl)) {
@@ -689,8 +383,136 @@ const TextEditor = ({
     }
   }, [imageUrl, imageAlt, normalEditor, activeTab])
 
-  const handleTextSelection = useCallback((e) => {
-    // Removed for CodeMirror compatibility, as FloatingToolbar is not implemented
+  const handleImageClick = useCallback((event) => {
+    if (event.target.tagName === "IMG") {
+      const { src, alt } = event.target
+      setSelectedImage({ src, alt: alt || "" })
+      setImageAlt(alt || "")
+      setEditImageModalOpen(true)
+    }
+  }, [])
+
+  const handleConfirmEditImage = useCallback(() => {
+    if (!selectedImage || !imageAlt) {
+      message.error("Alt text is required.")
+      return
+    }
+    if (activeTab === "Normal" && normalEditor) {
+      let updated = false
+      normalEditor.state.doc.descendants((node, pos) => {
+        if (node.type.name === "image" && node.attrs.src === selectedImage.src) {
+          normalEditor
+            .chain()
+            .focus()
+            .setNodeSelection(pos)
+            .setImage({ src: selectedImage.src, alt: imageAlt })
+            .run()
+          updated = true
+        }
+      })
+      if (updated) {
+        message.success("Image alt text updated.")
+        setEditImageModalOpen(false)
+        setSelectedImage(null)
+        setImageAlt("")
+      } else {
+        message.error("Failed to update image alt text.")
+      }
+    } else if (activeTab === "Markdown") {
+      const markdownImageRegex = new RegExp(
+        `!\\[${escapeRegExp(selectedImage.alt || "")}\\]\\(${escapeRegExp(selectedImage.src)}\\)`,
+        "g"
+      )
+      const newMarkdownImage = `![${imageAlt}](${selectedImage.src})`
+      setContent((prev) => {
+        const newContent = prev.replace(markdownImageRegex, newMarkdownImage)
+        return newContent
+      })
+      message.success("Image alt text updated.")
+      setEditImageModalOpen(false)
+      setSelectedImage(null)
+      setImageAlt("")
+    } else if (activeTab === "HTML") {
+      const htmlImageRegex = new RegExp(
+        `<img\\s+src="${escapeRegExp(selectedImage.src)}"\\s+alt="${escapeRegExp(
+          selectedImage.alt || ""
+        )}"\\s*/>`,
+        "g"
+      )
+      const newHtmlImage = `<img src="${selectedImage.src}" alt="${imageAlt}" />`
+      setContent((prev) => {
+        const html = markdownToHtml(prev)
+        const updatedHtml = html.replace(htmlImageRegex, newHtmlImage)
+        const newContent = htmlToMarkdown(updatedHtml)
+        return newContent
+      })
+      message.success("Image alt text updated.")
+      setEditImageModalOpen(false)
+      setSelectedImage(null)
+      setImageAlt("")
+    }
+  }, [selectedImage, imageAlt, normalEditor, activeTab, setContent, markdownToHtml, htmlToMarkdown])
+
+  const escapeRegExp = (string) => {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+  }
+
+  const hasScriptTag = (content) => {
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(content, "text/html")
+    return !!doc.querySelector("script")
+  }
+
+  const handleRemoveLink = () => {
+    if (!linkPreviewElement || !normalEditor) return
+
+    const pos = normalEditor.view.posAtDOM(linkPreviewElement, 0)
+    const end = pos + (linkPreviewElement.textContent?.length || 0)
+    normalEditor.chain().focus().setTextSelection({ from: pos, to: end }).unsetLink().run()
+
+    setLinkPreview(null)
+    setLinkPreviewPos(null)
+    setLinkPreviewUrl(null)
+    setLinkPreviewElement(null)
+  }
+
+  const handleFileImport = useCallback(
+    (event) => {
+      const file = event.target.files[0]
+      if (!file) return
+
+      const isMarkdown = activeTab === "Markdown" && file.name.endsWith(".md")
+      const isHtml = activeTab === "HTML" && file.name.endsWith(".html")
+
+      if (!isMarkdown && !isHtml) {
+        message.error(`Please upload a ${activeTab === "Markdown" ? ".md" : ".html"} file.`)
+        return
+      }
+
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        let fileContent = e.target.result
+        if (isHtml && hasScriptTag(fileContent)) {
+          message.error(
+            "Script tags are not allowed in imported HTML content for security reasons."
+          )
+          return
+        }
+        setContent(fileContent)
+        message.success(`${file.name} imported successfully!`)
+      }
+      reader.onerror = () => {
+        message.error("Failed to read the file.")
+      }
+      reader.readAsText(file)
+
+      event.target.value = null
+    },
+    [activeTab, setContent]
+  )
+
+  const isFullHtmlDocument = useCallback((text) => {
+    return text.trim().startsWith("<!DOCTYPE html>") || text.trim().startsWith("<html")
   }, [])
 
   const handleRetry = async () => {
@@ -722,45 +544,29 @@ const TextEditor = ({
     const payload = {
       contentPart: selectedText.trim(),
     }
-    if (normalEditor) {
-      normalEditor.commands.blur()
-    }
-    try {
-      setIsRetrying(true)
-      const res = await sendRetryLines(blog._id, payload)
-      if (res.data) {
-        setRetryContent(res.data)
-        setRetryModalOpen(true)
-      } else {
-        message.error("No content received from retry.")
+
+    const proceedWithRetry = async () => {
+      if (normalEditor) {
+        normalEditor.commands.blur()
       }
-    } catch (error) {
-      console.error("Retry failed:", error)
-      message.error(error.message || "Retry failed.")
-    } finally {
-      setIsRetrying(false)
+      try {
+        setIsRetrying(true)
+        const res = await sendRetryLines(blog._id, payload)
+        if (res.data) {
+          setRetryContent(res.data)
+          setRetryModalOpen(true)
+        } else {
+          message.error("No content received from retry.")
+        }
+      } catch (error) {
+        console.error("Retry failed:", error)
+        message.error(error.message || "Retry failed.")
+      } finally {
+        setIsRetrying(false)
+      }
     }
-  }
 
-  const handleReGenerate = async () => {
-    if (!blog?._id) {
-      message.error("Blog ID is missing.")
-      return
-    }
-
-    const payload = {
-      createNew: true,
-    }
-
-    try {
-      await dispatch(retryBlog({ id: blog._id, payload }))
-      queryClient.invalidateQueries({ queryKey: ["blogs"] })
-      queryClient.invalidateQueries({ queryKey: ["blog", blog._id] })
-      navigate("/blogs")
-    } catch (error) {
-      console.error("Retry failed:", error)
-      message.error(error.message || "Retry failed.")
-    }
+    await proceedWithRetry()
   }
 
   const handleAcceptRetry = () => {
@@ -783,7 +589,6 @@ const TextEditor = ({
     setRetryContent(null)
     setOriginalContent(null)
     setSelectionRange({ from: 0, to: 0 })
-    setUnsavedChanges(true)
   }
 
   const handleRejectRetry = () => {
@@ -794,32 +599,78 @@ const TextEditor = ({
     message.info("Retry content discarded.")
   }
 
-  const handleImageClick = useCallback((event) => {
-    if (event.target.tagName === "IMG") {
-      const { src, alt } = event.target
-      setSelectedImage({ src, alt: alt || "" })
-      setImageAlt(alt || "")
-      setEditImageModalOpen(true)
+  const handleRewrite = async () => {
+    if (userPlan === "free" || userPlan === "basic") {
+      navigate("/pricing")
+      return
     }
-  }, [])
 
-  useEffect(() => {
-    if (blog?.images?.length > 0) {
-      let updatedContent = safeContent
-      const imagePlaceholders = safeContent.match(/{Image:.*?}/g) || []
-      imagePlaceholders.forEach((placeholder, index) => {
-        const imageData = blog.images[index]
-        if (imageData?.url) {
-          updatedContent = updatedContent.replace(
-            placeholder,
-            `![${imageData.alt || "Image"}](${imageData.url})`
-          )
-        }
+    const proceedRewrite = async () => {
+      // Show confirmation popup about rewrite limits
+      handlePopup({
+        title: "Rewrite Selected Lines",
+        description: (
+          <>
+            Do you want to rewrite the selected lines?{" "}
+            <span className="font-bold">You can rewrite only 3 times.</span>
+          </>
+        ),
+        onConfirm: handleRetry,
       })
-      setContent(updatedContent)
-      // setUnsavedChanges(false)
     }
-  }, [blog, safeContent, setContent])
+
+    if (unsavedChanges) {
+      handlePopup({
+        title: "Unsaved Changes",
+        description: (
+          <>
+            You have unsaved changes. Rewriting the selected text may affect your current changes.
+            Would you like to save them first?
+          </>
+        ),
+        confirmText: "Save First and Retry",
+        cancelText: "Retry without Saving",
+        onConfirm: async () => {
+          try {
+            await proceedRewrite()
+          } catch (error) {
+            console.error(error)
+            message.error("Failed to save changes. Please try again.")
+          }
+        },
+        onCancel: (e) => {
+          if (e?.source == "button") {
+            proceedRewrite()
+          }
+        },
+      })
+    } else {
+      await proceedRewrite()
+    }
+  }
+
+  const handleTabClick = (tab) => {
+    setActiveTab(tab)
+  }
+
+  const handleAcceptHumanizedContentModified = useCallback(() => {
+    if (humanizedContent) {
+      setContent(humanizedContent)
+      if (normalEditor && !normalEditor.isDestroyed) {
+        const htmlContent = markdownToHtml(humanizedContent)
+        normalEditor.commands.setContent(htmlContent, false)
+      }
+      setHtmlContent(markdownToHtml(humanizedContent).replace(/>\s*</g, ">\n<"))
+      handleAcceptHumanizedContent()
+    }
+  }, [
+    humanizedContent,
+    setContent,
+    normalEditor,
+    markdownToHtml,
+    setHtmlContent,
+    handleAcceptHumanizedContent,
+  ])
 
   const handleDeleteImage = useCallback(() => {
     if (!selectedImage) return
@@ -839,7 +690,6 @@ const TextEditor = ({
         setEditImageModalOpen(false)
         setSelectedImage(null)
         setImageAlt("")
-        setUnsavedChanges(true)
       } else {
         message.error("Failed to delete image.")
       }
@@ -850,7 +700,6 @@ const TextEditor = ({
       )
       setContent((prev) => {
         const newContent = prev.replace(markdownImageRegex, "")
-        setUnsavedChanges(true)
         return newContent
       })
       setEditImageModalOpen(false)
@@ -867,7 +716,6 @@ const TextEditor = ({
         const html = markdownToHtml(prev)
         const updatedHtml = html.replace(htmlImageRegex, "")
         const newContent = htmlToMarkdown(updatedHtml)
-        setUnsavedChanges(true)
         return newContent
       })
       setEditImageModalOpen(false)
@@ -875,6 +723,141 @@ const TextEditor = ({
       setImageAlt("")
     }
   }, [selectedImage, normalEditor, activeTab, setContent, markdownToHtml, htmlToMarkdown])
+
+  function useNavigationBlocker(when) {
+    const blocker = useBlocker(
+      ({ currentLocation, nextLocation }) =>
+        when && currentLocation.pathname !== nextLocation.pathname
+    )
+    return blocker
+  }
+
+  const blocker = useNavigationBlocker(unsavedChanges)
+
+  useEffect(() => {
+    if (normalEditor && blog?.content) {
+      const html = markdownToHtml(blog.content)
+      normalEditor.commands.setContent(html, false)
+      setContent(blog.content)
+      setLastSavedContent(blog.content)
+
+      requestAnimationFrame(() => {
+        if (normalEditor.view.dom) {
+          normalEditor.view.dom.scrollTop = 0
+          normalEditor.commands.setTextSelection(0) // put caret at start
+        }
+      })
+    }
+  }, [normalEditor, blog, markdownToHtml])
+
+  useEffect(() => {
+    const scrollToTop = () => {
+      if (activeTab === "Normal" && normalEditor && normalEditor?.view?.dom) {
+        const editorElement = normalEditor.view.dom
+        if (editorElement) {
+          editorElement.scrollTop = 0
+        }
+      }
+    }
+    scrollToTop()
+  }, [activeTab, normalEditor])
+
+  useEffect(() => {
+    setIsEditorLoading(true)
+    const timer = setTimeout(() => {
+      setIsEditorLoading(false)
+      if (normalEditor && activeTab === "Normal") {
+        normalEditor.commands.focus()
+      }
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [activeTab, normalEditor])
+
+  useEffect(() => {
+    if (blog?.status === "failed" && !hasShownToast.current) {
+      message.error("Your blog generation failed. You can write blog manually.")
+      hasShownToast.current = true
+    }
+  }, [blog?.status])
+
+  useEffect(() => {
+    const normCurrent = normalizeContent(content ?? "")
+    const normSaved = normalizeContent(lastSavedContent ?? "")
+    setUnsavedChanges(normCurrent !== normSaved)
+  }, [content, lastSavedContent, normalizeContent, setUnsavedChanges])
+
+  useEffect(() => {
+    if (normalEditor) {
+      const ext = normalEditor.extensionManager.extensions.find(
+        (e) => e.name === "proofreadingDecoration"
+      )
+      if (ext) {
+        ext.options.suggestions = proofreadingResults
+        normalEditor.view.dispatch(normalEditor.view.state.tr)
+      }
+    }
+  }, [proofreadingResults, normalEditor])
+
+  useEffect(() => {
+    if (normalEditor) {
+      setEditorReady(true)
+      return () => {
+        if (!normalEditor.isDestroyed) {
+          normalEditor.destroy()
+        }
+      }
+    }
+  }, [normalEditor])
+
+  useEffect(() => {
+    if (activeTab === "HTML" && !markdownPreview) {
+      requestAnimationFrame(() => Prism.highlightAll())
+    }
+  }, [safeContent, activeTab, markdownPreview])
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowModelDropdown(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
+  useLayoutEffect(() => {
+    if (activeSpan instanceof HTMLElement && bubbleRef.current) {
+      const spanRect = activeSpan.getBoundingClientRect()
+      const bubbleHeight = bubbleRef.current.offsetHeight
+      const top = spanRect.top + window.scrollY - bubbleHeight - 8
+      const left = spanRect.left + window.scrollX
+      setBubblePos({ top, left })
+    }
+  }, [activeSpan])
+
+  useEffect(() => {
+    if (blog?.content && (content == null || content === "")) {
+      setContent(blog.content)
+    }
+  }, [blog, content, setContent])
+
+  useEffect(() => {
+    if (blog?.images?.length > 0) {
+      let updatedContent = safeContent
+      const imagePlaceholders = safeContent.match(/{Image:.*?}/g) || []
+      imagePlaceholders.forEach((placeholder, index) => {
+        const imageData = blog.images[index]
+        if (imageData?.url) {
+          updatedContent = updatedContent.replace(
+            placeholder,
+            `![${imageData.alt || "Image"}](${imageData.url})`
+          )
+        }
+      })
+      setContent(updatedContent)
+      // setLastSavedContent(updatedContent)
+    }
+  }, [blog, safeContent, setContent])
 
   useEffect(() => {
     if (activeTab === "Normal" && normalEditor && normalEditor?.view?.dom) {
@@ -888,208 +871,34 @@ const TextEditor = ({
     }
   }, [normalEditor, activeTab, handleImageClick])
 
-  const handleConfirmEditImage = useCallback(() => {
-    if (!selectedImage || !imageAlt) {
-      message.error("Alt text is required.")
-      return
-    }
-    if (activeTab === "Normal" && normalEditor) {
-      let updated = false
-      normalEditor.state.doc.descendants((node, pos) => {
-        if (node.type.name === "image" && node.attrs.src === selectedImage.src) {
-          normalEditor
-            .chain()
-            .focus()
-            .setNodeSelection(pos)
-            .setImage({ src: selectedImage.src, alt: imageAlt })
-            .run()
-          updated = true
-        }
-      })
-      if (updated) {
-        message.success("Image alt text updated.")
-        setEditImageModalOpen(false)
-        setSelectedImage(null)
-        setImageAlt("")
-        setUnsavedChanges(true)
-      } else {
-        message.error("Failed to update image alt text.")
-      }
-    } else if (activeTab === "Markdown") {
-      const markdownImageRegex = new RegExp(
-        `!\\[${escapeRegExp(selectedImage.alt || "")}\\]\\(${escapeRegExp(selectedImage.src)}\\)`,
-        "g"
-      )
-      const newMarkdownImage = `![${imageAlt}](${selectedImage.src})`
-      setContent((prev) => {
-        const newContent = prev.replace(markdownImageRegex, newMarkdownImage)
-        setUnsavedChanges(true)
-        return newContent
-      })
-      message.success("Image alt text updated.")
-      setEditImageModalOpen(false)
-      setSelectedImage(null)
-      setImageAlt("")
-    } else if (activeTab === "HTML") {
-      const htmlImageRegex = new RegExp(
-        `<img\\s+src="${escapeRegExp(selectedImage.src)}"\\s+alt="${escapeRegExp(
-          selectedImage.alt || ""
-        )}"\\s*/>`,
-        "g"
-      )
-      const newHtmlImage = `<img src="${selectedImage.src}" alt="${imageAlt}" />`
-      setContent((prev) => {
-        const html = markdownToHtml(prev)
-        const updatedHtml = html.replace(htmlImageRegex, newHtmlImage)
-        const newContent = htmlToMarkdown(updatedHtml)
-        setUnsavedChanges(true)
-        return newContent
-      })
-      message.success("Image alt text updated.")
-      setEditImageModalOpen(false)
-      setSelectedImage(null)
-      setImageAlt("")
-    }
-  }, [selectedImage, imageAlt, normalEditor, activeTab, setContent, markdownToHtml, htmlToMarkdown])
-
-  const escapeRegExp = (string) => {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-  }
-
-  const handleTabSwitch = useCallback(
-    (tab) => {
-      if (unsavedChanges) {
-        setTabSwitchWarning(tab)
-      } else {
-        setActiveTab(tab)
-      }
-    },
-    [unsavedChanges, setActiveTab]
-  )
-
-  const handleConfirmTabSwitch = useCallback(() => {
-    setUnsavedChanges(false)
-    setActiveTab(tabSwitchWarning)
-    setTabSwitchWarning(null)
-  }, [tabSwitchWarning, setActiveTab])
-
-  const handleCancelTabSwitch = useCallback(() => {
-    setTabSwitchWarning(null)
-  }, [])
-
-  const hasScriptTag = (content) => {
-    const parser = new DOMParser()
-    const doc = parser.parseFromString(content, "text/html")
-    return !!doc.querySelector("script")
-  }
-
-  const handleFileImport = useCallback(
-    (event) => {
-      const file = event.target.files[0]
-      if (!file) return
-
-      const isMarkdown = activeTab === "Markdown" && file.name.endsWith(".md")
-      const isHtml = activeTab === "HTML" && file.name.endsWith(".html")
-
-      if (!isMarkdown && !isHtml) {
-        message.error(`Please upload a ${activeTab === "Markdown" ? ".md" : ".html"} file.`)
-        return
-      }
-
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        let fileContent = e.target.result
-        if (isHtml && hasScriptTag(fileContent)) {
-          message.error(
-            "Script tags are not allowed in imported HTML content for security reasons."
-          )
-          return
-        }
-        setContent(fileContent)
-        setUnsavedChanges(true)
-        message.success(`${file.name} imported successfully!`)
-      }
-      reader.onerror = () => {
-        message.error("Failed to read the file.")
-      }
-      reader.readAsText(file)
-
-      event.target.value = null
-    },
-    [activeTab, setContent]
-  )
-
-  const isFullHtmlDocument = useCallback((text) => {
-    return text.trim().startsWith("<!DOCTYPE html>") || text.trim().startsWith("<html")
-  }, [])
-
-  const handleRewrite = () => {
-    if (userPlan === "free" || userPlan === "basic") {
-      navigate("/pricing")
-    } else {
-      handlePopup({
-        title: "Rewrite Selected Lines",
-        description: (
-          <>
-            Do you want to rewrite the selected lines?{" "}
-            <span className="font-bold">You can rewrite only 3 times.</span>
-          </>
-        ),
-        onConfirm: handleRetry,
-      })
-    }
-  }
-
-  const handleAcceptHumanizedContentModified = useCallback(() => {
-    if (humanizedContent) {
-      setContent(humanizedContent)
-      if (normalEditor && !normalEditor.isDestroyed) {
-        const htmlContent = markdownToHtml(humanizedContent)
-        normalEditor.commands.setContent(htmlContent, false)
-      }
-      setHtmlContent(markdownToHtml(humanizedContent).replace(/>\s*</g, ">\n<"))
-      setUnsavedChanges(true)
-      handleAcceptHumanizedContent()
-    }
-  }, [
-    humanizedContent,
-    setContent,
-    normalEditor,
-    markdownToHtml,
-    setHtmlContent,
-    handleAcceptHumanizedContent,
-  ])
-
-  // New effect for link hover preview and remove button
   useEffect(() => {
     const editorDom = normalEditor.view.dom
 
     const handleMouseOver = async (e) => {
-      // Check if the target or its parent is an <a> tag
       const link = e.target.closest("a")
+      if (!link) return
 
-      const url = link.href
+      // 🛠 Fix encoding
+      const rawUrl = link.href
+      const decodedUrl = decodeURIComponent(rawUrl)
 
       const rect = link.getBoundingClientRect()
       const scrollY = window.scrollY || window.pageYOffset
       const scrollX = window.scrollX || window.pageXOffset
 
-      // Set position for the preview
-      const pos = {
+      setLinkPreviewPos({
         top: rect.bottom + scrollY + 8,
         left: rect.left + scrollX,
-      }
-
-      setLinkPreviewPos(pos)
-      setLinkPreviewUrl(url)
+      })
+      setLinkPreviewUrl(decodedUrl)
       setLinkPreviewElement(link)
 
       try {
-        const data = await getLinkPreview(url)
-        setLinkPreview(data || { title: url, description: "" })
+        const data = await getLinkPreview(decodedUrl) // use clean version
+        setLinkPreview(data || { title: decodedUrl, description: "" })
       } catch (err) {
         console.error("Failed to fetch link preview:", err)
-        setLinkPreview({ title: url, description: "" })
+        setLinkPreview({ title: decodedUrl, description: "" })
       }
     }
 
@@ -1116,18 +925,44 @@ const TextEditor = ({
     }
   }, [activeTab, normalEditor])
 
-  const handleRemoveLink = () => {
-    if (!linkPreviewElement || !normalEditor) return
+  useEffect(() => {
+    if (blocker.state === "blocked") {
+      if (window.confirm("You have unsaved changes, are you sure you want to leave?")) {
+        blocker.proceed()
+      } else {
+        blocker.reset()
+      }
+    }
+  }, [blocker])
 
-    const pos = normalEditor.view.posAtDOM(linkPreviewElement, 0)
-    const end = pos + (linkPreviewElement.textContent?.length || 0)
-    normalEditor.chain().focus().setTextSelection({ from: pos, to: end }).unsetLink().run()
+  // useEffect(() => {
+  //   if (!blog?.content) return
 
-    setLinkPreview(null)
-    setLinkPreviewPos(null)
-    setLinkPreviewUrl(null)
-    setLinkPreviewElement(null)
-  }
+  //   const currentMarkdown = htmlToMarkdown(normalEditor ? normalEditor.getHTML() : content ?? "")
+  //   const normCurrent = normalizeContent(currentMarkdown)
+  //   const normOriginal = normalizeContent(blog.content ?? "")
+
+  //   setUnsavedChanges(normCurrent !== normOriginal)
+  // }, [content, blog?.content, normalEditor, htmlToMarkdown, normalizeContent])
+  console.log(unsavedChanges)
+  useEffect(() => {
+    const normCurrent = normalizeContent(content ?? "")
+    const normSaved = normalizeContent(lastSavedContent ?? "")
+    setUnsavedChanges(normCurrent !== normSaved)
+  }, [content, lastSavedContent, normalizeContent])
+
+  useEffect(() => {
+    if (!normalEditor || normalEditor.isDestroyed) return
+
+    const html = markdownToHtml(content)
+    if (normalEditor.getHTML() !== html) {
+      const editorDom = normalEditor.view.dom
+
+      const selection = normalEditor.state.selection
+      normalEditor.commands.setContent(html, false)
+      normalEditor.commands.setTextSelection({ from: selection.from, to: selection.to })
+    }
+  }, [content, normalEditor, markdownToHtml])
 
   const renderToolbar = () => (
     <div className="bg-white border-x border-gray-200 shadow-sm px-2 sm:px-4 py-2 flex flex-wrap items-center justify-start gap-y-2 overflow-x-auto">
@@ -1322,6 +1157,7 @@ const TextEditor = ({
             <Undo2 className="w-4 h-4" />
           </button>
         </Tooltip>
+
         <Tooltip title="Redo">
           <button
             onClick={() => safeEditorAction(() => normalEditor?.chain().focus().redo().run())}
@@ -1332,17 +1168,11 @@ const TextEditor = ({
             <Redo2 className="w-4 h-4" />
           </button>
         </Tooltip>
+
         {!pathDetect && (
           <Tooltip title="Rewrite">
             <button
-              onClick={() =>
-                handlePopup({
-                  title: "Rewrite Selected Lines",
-                  description:
-                    "Do you want to rewrite the selected lines? You can rewrite only 3 times.",
-                  onConfirm: handleRetry,
-                })
-              }
+              onClick={handleRewrite}
               className="p-2 rounded-md hover:bg-gray-100 flex-shrink-0 flex items-center justify-center"
               aria-label="Rewrite"
               type="button"
@@ -1523,7 +1353,7 @@ const TextEditor = ({
         )
       } else {
         return (
-          <div className="h-[500px] md:h-screen overflow-auto custom-scroll">
+          <div className="overflow-auto custom-scroll">
             {normalEditor && (
               <BubbleMenu
                 editor={normalEditor}
@@ -1785,15 +1615,15 @@ const TextEditor = ({
     }
 
     return (
-      <div className="bg-white border rounded-lg rounded-t-none shadow-sm h-[10vh] sm:h-[70vh] md:h-[80vh]">
+      <>
         {activeTab === "Markdown" && (
           <MarkdownEditor
             content={safeContent}
             onChange={(newContent) => {
               setContent(newContent)
-              setUnsavedChanges(true)
+              setHtmlContent(markdownToHtml(newContent).replace(/>\s*</g, ">\n<"))
             }}
-            className="h-full"
+            setUnsavedChanges={setUnsavedChanges}
           />
         )}
         {activeTab === "HTML" && (
@@ -1802,12 +1632,11 @@ const TextEditor = ({
             onChange={(newHtml) => {
               setHtmlContent(newHtml)
               setContent(htmlToMarkdown(newHtml))
-              setUnsavedChanges(true)
             }}
-            className="h-full"
+            setUnsavedChanges={setUnsavedChanges}
           />
         )}
-      </div>
+      </>
     )
   }
 
@@ -1819,13 +1648,9 @@ const TextEditor = ({
       transition={{ duration: 0.4 }}
     >
       {(isRetrying || isSavingKeyword) && (
-        <motion.div
-          className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-        >
+        <div className="bg-white flex items-center justify-center z-50">
           <Loading />
-        </motion.div>
+        </div>
       )}
       {retryModalOpen && (
         <motion.div
@@ -1909,50 +1734,29 @@ const TextEditor = ({
           </div>
         </motion.div>
       )}
-      {tabSwitchWarning && (
-        <Modal
-          title="Unsaved Changes"
-          open={true}
-          onCancel={handleCancelTabSwitch}
-          centered
-          className="rounded-lg"
-          footer={
-            <div className="flex justify-end gap-2">
-              <Button
-                onClick={handleCancelTabSwitch}
-                className="rounded-lg border border-gray-300 hover:bg-gray-100"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="primary"
-                onClick={handleConfirmTabSwitch}
-                className="rounded-lg bg-blue-600 hover:bg-blue-700"
-              >
-                Continue without Saving
-              </Button>
+      <div className="flex flex-col h-full">
+        {/* Sticky header: Tabs + Toolbar */}
+        <div className="sticky top-0 z-50 bg-white shadow-sm">
+          {!blog.isManuallyEdited && (
+            <div className="flex border-b bg-white shadow-sm border-x">
+              {["Normal", "Markdown", "HTML"].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => handleTabClick(tab)}
+                  className={`editor-tab ${activeTab === tab ? "active" : ""}`}
+                >
+                  {tab}
+                </button>
+              ))}
             </div>
-          }
-        >
-          <p className="text-gray-700">
-            You have unsaved changes. Switching tabs may cause you to lose your work. Are you sure
-            you want to continue?
-          </p>
-        </Modal>
-      )}
-      <div className="flex border-b bg-white shadow-sm border-x">
-        {["Normal", "Markdown", "HTML"].map((tab) => (
-          <button
-            key={tab}
-            onClick={() => handleTabSwitch(tab)}
-            className={`editor-tab ${activeTab === tab ? "active" : ""}`}
-          >
-            {tab}
-          </button>
-        ))}
+          )}
+          {renderToolbar()}
+        </div>
+
+        {/* Scrollable content area */}
+        <div className="flex-1 overflow-auto">{renderContentArea()}</div>
       </div>
-      {renderToolbar()}
-      {renderContentArea()}
+
       {linkPreviewPos &&
         createPortal(
           <div
@@ -1965,10 +1769,10 @@ const TextEditor = ({
               borderRadius: "0.5rem",
               padding: "0.75rem",
               boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-              zIndex: 1000, // Increased zIndex to avoid conflicts
+              zIndex: 1000,
               maxWidth: "300px",
               minWidth: "200px",
-              display: "block", // Explicitly ensure visibility
+              display: "block",
             }}
             onMouseEnter={() => {
               if (hideTimeout.current) clearTimeout(hideTimeout.current)
@@ -1996,20 +1800,41 @@ const TextEditor = ({
                     style={{ width: "100%", height: "auto", marginTop: "8px", borderRadius: "4px" }}
                   />
                 )}
-                <Button
-                  onClick={() => {
-                    handleRemoveLink()
-                  }}
-                  size="small"
-                  danger
-                  style={{
-                    marginTop: "8px",
-                    width: "100%",
-                    display: "block", // Ensure button is visible
-                  }}
-                >
-                  Remove Link
-                </Button>
+                <div className="flex gap-2 mt-2">
+                  <Button
+                    onClick={() => {
+                      handleRemoveLink()
+                    }}
+                    size="small"
+                    danger
+                    style={{
+                      flex: 1,
+                      display: "block",
+                    }}
+                  >
+                    Remove Link
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      const pos = normalEditor.view.posAtDOM(linkPreviewElement, 0)
+                      const end = pos + (linkPreviewElement.textContent?.length || 0)
+                      normalEditor.chain().focus().setTextSelection({ from: pos, to: end }).run()
+                      setLinkUrl(linkPreviewUrl)
+                      setLinkModalOpen(true)
+                      setLinkPreview(null)
+                      setLinkPreviewPos(null)
+                      setLinkPreviewUrl(null)
+                      setLinkPreviewElement(null)
+                    }}
+                    size="small"
+                    style={{
+                      flex: 1,
+                      display: "block",
+                    }}
+                  >
+                    Edit Link
+                  </Button>
+                </div>
               </>
             ) : (
               <p className="text-xs">Loading preview...</p>
@@ -2103,6 +1928,7 @@ const TextEditor = ({
           </div>
         )}
       </Modal>
+
       <Modal
         title="Insert Image"
         open={imageModalOpen}

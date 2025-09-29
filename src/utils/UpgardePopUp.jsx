@@ -1,7 +1,7 @@
-import { Modal } from "antd"
+import { Modal, Button } from "antd"
 
 export const openUpgradePopup = ({ featureName = "", navigate, fromPage = false, onCancel }) => {
-  Modal.confirm({
+  const modal = Modal.info({
     title: "Upgrade Required",
     content: (
       <>
@@ -11,12 +11,34 @@ export const openUpgradePopup = ({ featureName = "", navigate, fromPage = false,
         <p>Upgrade your plan to unlock it.</p>
       </>
     ),
-    okText: "Buy Now",
-    cancelText: "Cancel",
-    onOk: () => navigate?.("/pricing"),
-    onCancel: () => {
-      if (fromPage && navigate) navigate(-1)
-      if (onCancel) onCancel()
-    },
+    icon: null,
+    okButtonProps: { style: { display: "none" } }, // hide default OK button
+    closable: false,
+   centered: true,
+  })
+
+  modal.update({
+    footer: (
+      <div className="flex justify-center gap-4 mt-4">
+        <Button
+          onClick={() => {
+            navigate?.("/pricing")
+            modal.destroy()
+          }}
+          type="primary"
+        >
+          Buy Now
+        </Button>
+        <Button
+          onClick={() => {
+            if (fromPage && navigate) navigate(-1)
+            if (onCancel) onCancel()
+            modal.destroy()
+          }}
+        >
+          Cancel
+        </Button>
+      </div>
+    ),
   })
 }
