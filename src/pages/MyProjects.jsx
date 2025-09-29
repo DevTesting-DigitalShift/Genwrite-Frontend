@@ -617,7 +617,7 @@ const MyProjects = () => {
       </div>
 
       {/* Filter and Sort Bar */}
-      <div className="flex flex-col sm:flex-row gap-4 bg-white p-4 sm:p-6 rounded-lg mb-6">
+      <div className="flex flex-col sm:flex-row gap-4 border border-gray-100 shadow-sm p-4 sm:p-6 rounded-lg mb-6">
         <div className="flex-1 flex items-center gap-2">
           <Input
             placeholder="Search blogs..."

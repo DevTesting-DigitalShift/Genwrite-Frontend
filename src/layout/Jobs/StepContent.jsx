@@ -665,62 +665,6 @@ const StepContent = ({
                 )}
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label htmlFor="tone" className="block text-sm font-medium text-gray-700 mb-2">
-                  Tone of Voice <span className="text-red-500">*</span>
-                </label>
-                <Select
-                  className="w-full"
-                  value={newJob.blogs.tone}
-                  onChange={(value) =>
-                    setNewJob({ ...newJob, blogs: { ...newJob.blogs, tone: value } })
-                  }
-                  placeholder="Select tone"
-                  status={errors.tone ? "error" : ""}
-                >
-                  <Option value="">Select Tone</Option>
-                  <Option value="professional">Professional</Option>
-                  <Option value="casual">Casual</Option>
-                  <Option value="friendly">Friendly</Option>
-                  <Option value="formal">Formal</Option>
-                  <Option value="conversational">Conversational</Option>
-                  <Option value="witty">Witty</Option>
-                  <Option value="informative">Informative</Option>
-                  <Option value="inspirational">Inspirational</Option>
-                  <Option value="persuasive">Persuasive</Option>
-                  <Option value="empathetic">Empathetic</Option>
-                </Select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Approx. Blog Length (Words)
-                </label>
-                <div className="relative">
-                  <input
-                    type="range"
-                    min="500"
-                    max="5000"
-                    value={newJob.blogs.userDefinedLength}
-                    className="w-full h-1 rounded-lg appearance-none cursor-pointer bg-gradient-to-r from-[#1B6FC9] to-gray-100 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#1B6FC9]"
-                    style={{
-                      background: `linear-gradient(to right, #1B6FC9 ${
-                        ((newJob.blogs.userDefinedLength - 500) / 4500) * 100
-                      }%, #E5E7EB ${((newJob.blogs.userDefinedLength - 500) / 4500) * 100}%)`,
-                    }}
-                    onChange={(e) =>
-                      setNewJob({
-                        ...newJob,
-                        blogs: { ...newJob.blogs, userDefinedLength: parseInt(e.target.value) },
-                      })
-                    }
-                  />
-                  <span className="mt-2 text-sm text-gray-600 block">
-                    {newJob.blogs.userDefinedLength} words
-                  </span>
-                </div>
-              </div>
-            </div>
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-gray-700">
                 Perform Keyword Research?
@@ -826,6 +770,62 @@ const StepContent = ({
                 </div>
               </div>
             )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label htmlFor="tone" className="block text-sm font-medium text-gray-700 mb-2">
+                  Tone of Voice <span className="text-red-500">*</span>
+                </label>
+                <Select
+                  className="w-full"
+                  value={newJob.blogs.tone}
+                  onChange={(value) =>
+                    setNewJob({ ...newJob, blogs: { ...newJob.blogs, tone: value } })
+                  }
+                  placeholder="Select tone"
+                  status={errors.tone ? "error" : ""}
+                >
+                  <Option value="">Select Tone</Option>
+                  <Option value="professional">Professional</Option>
+                  <Option value="casual">Casual</Option>
+                  <Option value="friendly">Friendly</Option>
+                  <Option value="formal">Formal</Option>
+                  <Option value="conversational">Conversational</Option>
+                  <Option value="witty">Witty</Option>
+                  <Option value="informative">Informative</Option>
+                  <Option value="inspirational">Inspirational</Option>
+                  <Option value="persuasive">Persuasive</Option>
+                  <Option value="empathetic">Empathetic</Option>
+                </Select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Approx. Blog Length (Words)
+                </label>
+                <div className="relative">
+                  <input
+                    type="range"
+                    min="500"
+                    max="5000"
+                    value={newJob.blogs.userDefinedLength}
+                    className="w-full h-1 rounded-lg appearance-none cursor-pointer bg-gradient-to-r from-[#1B6FC9] to-gray-100 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#1B6FC9]"
+                    style={{
+                      background: `linear-gradient(to right, #1B6FC9 ${
+                        ((newJob.blogs.userDefinedLength - 500) / 4500) * 100
+                      }%, #E5E7EB ${((newJob.blogs.userDefinedLength - 500) / 4500) * 100}%)`,
+                    }}
+                    onChange={(e) =>
+                      setNewJob({
+                        ...newJob,
+                        blogs: { ...newJob.blogs, userDefinedLength: parseInt(e.target.value) },
+                      })
+                    }
+                  />
+                  <span className="mt-2 text-sm text-gray-600 block">
+                    {newJob.blogs.userDefinedLength} words
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         </motion.div>
       )

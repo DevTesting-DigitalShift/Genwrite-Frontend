@@ -451,22 +451,22 @@ const SecondStepModal = ({
                     </label>
 
                     {/* Custom Image */}
-                    {/* <label
-                    htmlFor="customImage"
-                    className={`border rounded-lg px-4 py-3 flex items-center justify-center gap-3 cursor-pointer transition-all duration-150
+                    <label
+                      htmlFor="customImage"
+                      className={`border rounded-lg px-4 py-3 flex items-center justify-center gap-3 cursor-pointer transition-all duration-150
         ${formData.imageSource === "customImage" ? "border-blue-600 bg-blue-50" : "border-gray-300"}
         hover:shadow-sm w-full`}
-                  >
-                    <input
-                      type="radio"
-                      id="customImage"
-                      name="imageSource"
-                      checked={formData.imageSource === "customImage"}
-                      onChange={() => handleImageSourceChange("customImage")}
-                      className="hidden"
-                    />
-                    <span className="text-sm font-medium text-gray-800">Use Custom Image</span>
-                  </label> */}
+                    >
+                      <input
+                        type="radio"
+                        id="customImage"
+                        name="imageSource"
+                        checked={formData.imageSource === "customImage"}
+                        onChange={() => handleImageSourceChange("customImage")}
+                        className="hidden"
+                      />
+                      <span className="text-sm font-medium text-gray-800">Use Custom Image</span>
+                    </label>
                   </div>
                 </div>
                 <div className="pt-4 w-full">

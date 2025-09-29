@@ -423,7 +423,7 @@ const TemplateModal = ({
                   }`}
                 >
                   {isGeneratingTitles ? (
-                    <Spin size="small" />
+                    <Spin size="small text-white" />
                   ) : hasGeneratedTitles ? (
                     <>
                       <RefreshCcw size={16} className="mr-2" />

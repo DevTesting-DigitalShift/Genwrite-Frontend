@@ -352,7 +352,7 @@ const Dashboard = () => {
         </p>
       </motion.div>
 
-      <div className="min-h-screen bg-gray-50 p-2 md:p-6 relative">
+      <div className="min-h-screen p-2 md:p-6 relative">
         {loading ? (
           <div className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

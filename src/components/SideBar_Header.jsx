@@ -153,7 +153,9 @@ const SideBar_Header = () => {
 
   return (
     <div
-      className={`md:z-[999] ${path.includes("signup") || path.includes("login") ? "hidden" : "flex"}`}
+      className={`md:z-[999] ${
+        path.includes("signup") || path.includes("login") ? "hidden" : "flex"
+      }`}
     >
       {/* Sidebar */}
       {showWhatsNew && <WhatsNewModal onClose={handleCloseModal} />}
@@ -285,7 +287,10 @@ const SideBar_Header = () => {
 
       {/* Main Content */}
       <div className="flex-1 md:ml-16">
-        <header className="fixed top-0 z-40 bg-gray-50 p-4 flex items-center justify-between border-b border-gray-200 w-full md:w-[calc(100%-4rem)]">
+        <header
+          className="fixed top-0 z-40 p-4 flex items-center justify-between border-b bg-gradient-to-r from-white/60 via-white/30 to-white/60 backdrop-blur-lg
+ border-gray-200 w-full md:w-[calc(100%-4rem)]"
+        >
           <div className="flex items-center gap-2">
             <button className="md:hidden" onClick={() => setSidebarOpen(!sidebarOpen)}>
               <FiMenu size={24} className="text-gray-700" />

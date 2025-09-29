@@ -118,11 +118,17 @@ const NotificationDropdown = ({ notifications }) => {
       onOpenChange={handleOpenChange}
       menu={{
         items: menuItems,
-        className: "w-[30vw] max-h-[60vh] top-1 !pb-2",
+        className: `
+      w-full sm:w-[90vw] md:w-[70vw] lg:w-[40vw] xl:w-[30vw] 
+      max-w-[500px] max-h-[65vh] 
+      overflow-y-auto 
+      !pb-2
+      left-1/2 transform -translate-x-1/2 sm:left-auto sm:transform-none
+    `,
         title: "Notifications",
       }}
-      placement="bottomRight"
-      rootClassName="!bg-gray-50 shadow-xl rounded-xl"
+      placement="bottom"
+      rootClassName="shadow-xl rounded-xl"
     >
       <Badge
         count={unreadCount}
@@ -131,13 +137,11 @@ const NotificationDropdown = ({ notifications }) => {
           backgroundColor: "#1B6FC9",
           color: "#fff",
           fontWeight: "600",
-          fontSize: "0.75rem", // ~12px
+          fontSize: "0.75rem",
           lineHeight: "20px",
-          // minWidth: "10px",
-          // height: "20px",
           width: "10px",
           padding: "0 6px",
-          borderRadius: "100%", // 🔵 Make it a circle
+          borderRadius: "100%",
           boxShadow: "0 0 0 1px #1B6FC9",
           display: "flex",
           alignItems: "center",
@@ -148,8 +152,8 @@ const NotificationDropdown = ({ notifications }) => {
       >
         <BellOutlined
           className={`text-2xl cursor-pointer transition-colors duration-200 ease-in-out 
-      ${unreadCount > 0 ? "text-blue-600" : "text-gray-700 hover:text-blue-600"}
-    `}
+        ${unreadCount > 0 ? "text-blue-600" : "text-gray-700 hover:text-blue-600"}
+      `}
         />
       </Badge>
     </Dropdown>
