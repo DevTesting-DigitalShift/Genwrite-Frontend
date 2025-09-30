@@ -935,16 +935,6 @@ const TextEditor = ({
     }
   }, [blocker])
 
-  // useEffect(() => {
-  //   if (!blog?.content) return
-
-  //   const currentMarkdown = htmlToMarkdown(normalEditor ? normalEditor.getHTML() : content ?? "")
-  //   const normCurrent = normalizeContent(currentMarkdown)
-  //   const normOriginal = normalizeContent(blog.content ?? "")
-
-  //   setUnsavedChanges(normCurrent !== normOriginal)
-  // }, [content, blog?.content, normalEditor, htmlToMarkdown, normalizeContent])
-  console.log(unsavedChanges)
   useEffect(() => {
     const normCurrent = normalizeContent(content ?? "")
     const normSaved = normalizeContent(lastSavedContent ?? "")

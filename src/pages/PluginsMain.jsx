@@ -328,7 +328,6 @@ const PluginsMain = () => {
               )}
             </Flex>
           </Card>
-
           <a href={plugin.downloadLink} download>
             <Button
               type="default"

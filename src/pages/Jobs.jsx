@@ -1,4 +1,6 @@
-import { useState, useEffect, useMemo } from "react"
+"use client"
+
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { motion } from "framer-motion"
 import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
@@ -15,6 +17,7 @@ import JobModal from "@/layout/Jobs/JobModal"
 import JobCard from "@/layout/Jobs/JobCard"
 import { AlertTriangle } from "lucide-react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { getSocket } from "@utils/socket"
 
 const PAGE_SIZE = 15
 
@@ -34,18 +37,80 @@ const Jobs = () => {
 
   // TanStack Query for fetching jobs
   const { data: queryJobs = [], isLoading: queryLoading } = useQuery({
-    queryKey: ["jobs"],
+    queryKey: ["jobs", user?.id],
     queryFn: async () => {
-      const response = await dispatch(fetchJobs()).unwrap() // Dispatch and unwrap the payload
-      return response // Return the jobs data
+      const response = await dispatch(fetchJobs()).unwrap()
+      return response || []
     },
     staleTime: Infinity, // Data never becomes stale
     gcTime: Infinity, // Cache persists for the session
-    refetchOnMount: false, // Prevent refetch on component mount
+    refetchOnMount: "always", // Fetch only if cache is empty
     refetchOnWindowFocus: false, // Prevent refetch on window focus
+    enabled: !!user, // Only fetch if user is logged in
   })
 
-  const checkJobLimit = () => {
+  // Socket for real-time updates
+  useEffect(() => {
+    const socket = getSocket()
+    if (!socket || !user) return
+
+    const handleJobChange = (data, eventType) => {
+      console.debug(`Job event: ${eventType}`, data)
+      const queryKey = ["jobs", user.id]
+
+      if (eventType === "job:deleted") {
+        // Remove from cache if deleted
+        queryClient.setQueryData(queryKey, (old = []) =>
+          old.filter((job) => job._id !== data.jobId)
+        )
+        queryClient.removeQueries({ queryKey: ["job", data.jobId] })
+      } else if (eventType === "job:created") {
+        // Invalidate for new jobs to ensure fresh data
+        queryClient.invalidateQueries({ queryKey: ["jobs", user.id], exact: false })
+      } else {
+        // Update or add the job in the list cache
+        queryClient.setQueryData(queryKey, (old = []) => {
+          const index = old.findIndex((job) => job._id === data.jobId)
+          if (index > -1) {
+            // Update existing job
+            old[index] = { ...old[index], ...data }
+            return [...old]
+          } else {
+            // Add new job (if not handled by job:created)
+            return [data, ...old]
+          }
+        })
+        // Update single job query if exists
+        queryClient.setQueryData(["job", data.jobId], (old) => ({ ...old, ...data }))
+      }
+    }
+
+    socket.on("job:statusChanged", (data) => handleJobChange(data, "job:statusChanged"))
+    socket.on("job:updated", (data) => handleJobChange(data, "job:updated"))
+    socket.on("job:created", (data) => handleJobChange(data, "job:created"))
+    socket.on("job:deleted", (data) => handleJobChange(data, "job:deleted"))
+
+    return () => {
+      socket.off("job:statusChanged")
+      socket.off("job:updated")
+      socket.off("job:created")
+      socket.off("job:deleted")
+    }
+  }, [queryClient, user])
+
+  // Clear cache on user logout
+  useEffect(() => {
+    if (!user) {
+      queryClient.removeQueries({ queryKey: ["jobs"] })
+      setCurrentPage(1)
+      setShowWarning(false)
+      setIsUserLoaded(false)
+    } else {
+      setIsUserLoaded(!!(user?.name || user?.credits))
+    }
+  }, [user, queryClient])
+
+  const checkJobLimit = useCallback(() => {
     if (usage >= usageLimit) {
       openUpgradePopup({
         featureName: "Additional Jobs",
@@ -54,20 +119,16 @@ const Jobs = () => {
       return false
     }
     return true
-  }
+  }, [usage, usageLimit, navigate])
 
-  const handleOpenJobModal = () => {
+  const handleOpenJobModal = useCallback(() => {
     if (!checkJobLimit()) return
     dispatch(openJobModal(null)) // Pass null for new job
-  }
+  }, [dispatch, checkJobLimit])
 
-  const handleRefresh = () => {
-    queryClient.invalidateQueries(["jobs"])
-  }
-
-  useEffect(() => {
-    setIsUserLoaded(!!(user?.name || user?.credits))
-  }, [user])
+  const handleRefresh = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["jobs", user?.id] })
+  }, [queryClient, user])
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" })
@@ -103,7 +164,7 @@ const Jobs = () => {
               <p className="text-gray-600 mt-2">Manage your automated content generation jobs</p>
             </div>
             <div className="flex gap-2">
-              {usage === usageLimit && (
+              {usage >= usageLimit && (
                 <button
                   onClick={() => setShowWarning((prev) => !prev)}
                   className="text-yellow-500 hover:text-yellow-600 transition"
@@ -126,7 +187,7 @@ const Jobs = () => {
             </div>
           </div>
 
-          {showWarning && usage === usageLimit && (
+          {showWarning && usage >= usageLimit && (
             <div className="flex items-start mb-10 gap-3 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg shadow-sm text-sm">
               <div className="pt-1 text-yellow-500">
                 <AlertTriangle className="w-5 h-5" />
@@ -217,4 +278,3 @@ const Jobs = () => {
 }
 
 export default Jobs
-  

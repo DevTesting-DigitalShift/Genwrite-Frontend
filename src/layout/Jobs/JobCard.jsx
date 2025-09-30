@@ -1,15 +1,17 @@
 import React, { memo, useState } from "react"
 import { motion } from "framer-motion"
 import { useDispatch } from "react-redux"
-import { Popconfirm, message } from "antd"
+import { message } from "antd"
 import { FiCalendar, FiFileText, FiSettings, FiEdit } from "react-icons/fi"
 import { QuestionCircleOutlined } from "@ant-design/icons"
 import { toggleJobStatusThunk, deleteJobThunk, openJobModal } from "@store/slices/jobSlice"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 
 const JobCard = memo(({ job, setCurrentPage, paginatedJobs }) => {
   const dispatch = useDispatch()
   const queryClient = useQueryClient()
+  const { handlePopup } = useConfirmPopup()
   const [showAllTopics, setShowAllTopics] = useState(false)
 
   const toggleJobStatusMutation = useMutation({
@@ -17,11 +19,9 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs }) => {
       dispatch(toggleJobStatusThunk({ jobId, currentStatus })).unwrap(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["jobs"], exact: false })
-      message.success("Job status updated successfully")
     },
     onError: (error) => {
       console.error("Failed to toggle job status:", error)
-      message.error("Failed to update job status. Please try again.")
     },
   })
 
@@ -32,11 +32,9 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs }) => {
       if (paginatedJobs.length === 1 && currentPage > 1) {
         setCurrentPage((prev) => prev - 1)
       }
-      message.success("Job deleted successfully")
     },
     onError: (error) => {
       console.error("Failed to delete job:", error)
-      message.error("Failed to delete job. Please try again.")
     },
   })
 
@@ -194,23 +192,35 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs }) => {
           <FiEdit />
           Edit
         </motion.button>
-        <Popconfirm
-          title="Delete Job"
-          description="Are you sure you want to delete this job?"
-          icon={<QuestionCircleOutlined style={{ color: "red" }} />}
-          okText="Yes"
-          cancelText="No"
-          onConfirm={() => handleDeleteJob(job._id)}
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
+          aria-label="Delete job"
+          onClick={() =>
+            handlePopup({
+              title: "Delete Job",
+              description: (
+                <span className="my-2">
+                  Are you sure you want to delete <b className="capitalize">{job.name}</b> job?
+                </span>
+              ),
+              confirmText: "Delete",
+              onConfirm: () => {
+                handleDeleteJob(job._id)
+              },
+              confirmProps: {
+                type: "text",
+                className: "border-red-500 hover:bg-red-500 bg-red-100 text-red-600",
+              },
+              cancelProps: {
+                danger: false,
+              },
+            })
+          }
         >
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200"
-            aria-label="Delete job"
-          >
-            Delete
-          </motion.button>
-        </Popconfirm>
+          Delete
+        </motion.button>
       </div>
     </motion.div>
   )

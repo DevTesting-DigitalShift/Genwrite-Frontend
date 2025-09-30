@@ -257,18 +257,69 @@ const MyProjects = () => {
     const socket = getSocket()
     if (!socket || !user) return
 
-    socket.on("blog:statusChanged", (data) => {
-      console.debug("Blog status changed:", data)
-      queryClient.invalidateQueries({ queryKey: ["blogs", userId] })
-      if (data.blogId) {
+    const handleBlogChange = (data, eventType) => {
+      console.debug(`Blog event: ${eventType}`, data)
+      if (eventType === "blog:deleted" || eventType === "blog:archived") {
+        // Remove from cache if deleted or archived
+        queryClient.setQueryData(
+          [
+            "blogs",
+            userId,
+            dateRange[0]?.toISOString() ?? null,
+            dateRange[1]?.toISOString() ?? null,
+            presetDateRange[0]?.toISOString() ?? null,
+            presetDateRange[1]?.toISOString() ?? null,
+            limit,
+          ],
+          (old = []) => old.filter((blog) => blog._id !== data.blogId)
+        )
         queryClient.invalidateQueries({ queryKey: ["blog", data.blogId] })
+      } else {
+        // Update or add the blog in the list cache
+        queryClient.setQueryData(
+          [
+            "blogs",
+            userId,
+            dateRange[0]?.toISOString() ?? null,
+            dateRange[1]?.toISOString() ?? null,
+            presetDateRange[0]?.toISOString() ?? null,
+            presetDateRange[1]?.toISOString() ?? null,
+            limit,
+          ],
+          (old = []) => {
+            const index = old.findIndex((blog) => blog._id === data.blogId)
+            if (index > -1) {
+              old[index] = { ...old[index], ...data }
+              return [...old]
+            } else {
+              // If new blog and within date range, add it
+              const blogDate = dayjs(data.updatedAt || data.createdAt)
+              const start = dateRange[0] || presetDateRange[0]
+              const end = dateRange[1] || presetDateRange[1]
+              if (!start || !end || blogDate.isBetween(start, end, "day", "[]")) {
+                return [data, ...old]
+              }
+              return old
+            }
+          }
+        )
+        // Update single blog query if exists
+        queryClient.setQueryData(["blog", data.blogId], (old) => ({ ...old, ...data }))
       }
-    })
+    }
+
+    socket.on("blog:statusChanged", (data) => handleBlogChange(data, "blog:statusChanged"))
+    socket.on("blog:updated", (data) => handleBlogChange(data, "blog:updated"))
+    socket.on("blog:deleted", (data) => handleBlogChange(data, "blog:deleted"))
+    socket.on("blog:archived", (data) => handleBlogChange(data, "blog:archived"))
 
     return () => {
       socket.off("blog:statusChanged")
+      socket.off("blog:updated")
+      socket.off("blog:deleted")
+      socket.off("blog:archived")
     }
-  }, [queryClient, user, userId])
+  }, [queryClient, user, userId, dateRange, presetDateRange, limit])
 
   // Retry and archive mutations
   const retryMutation = useMutation({
@@ -288,7 +339,6 @@ const MyProjects = () => {
     },
     onError: (error) => {
       console.error("Failed to archive blog:", error)
-      message.error("Failed to archive blog.")
     },
   })
 
@@ -955,24 +1005,34 @@ const MyProjects = () => {
                         ))}
                       </div>
                       {status === "failed" && (
-                        <Popconfirm
-                          title="Retry Blog Generation"
-                          description="Are you sure you want to retry generating this blog?"
-                          icon={
-                            <RotateCcw style={{ color: "red" }} size={15} className="mt-1 mr-1" />
+                        <Button
+                          type="text"
+                          className="p-2 hover:!border-blue-500 hover:text-blue-500"
+                          aria-label="Retry Blog Generation"
+                          onClick={() =>
+                            handlePopup({
+                              title: "Retry Blog Generation",
+                              description: (
+                                <span className="my-2">
+                                  Are you sure you want to retry generating <b>{title}</b> blog?
+                                </span>
+                              ),
+                              confirmText: "Yes",
+                              onConfirm: () => {
+                                handleRetry(_id)
+                              },
+                              confirmProps: {
+                                type: "text",
+                                  className: "border-green-500 bg-green-50 text-green-600",
+                              },
+                              cancelProps: {
+                                danger: false,
+                              },
+                            })
                           }
-                          okText="Yes"
-                          cancelText="No"
-                          onConfirm={() => handleRetry(_id)}
                         >
-                          <Button
-                            type="text"
-                            className="p-2 hover:!border-blue-500 hover:text-blue-500"
-                            aria-label="Retry blog generation"
-                          >
-                            <RotateCcw className="w-4 sm:w-5 h-4 sm:h-5" />
-                          </Button>
-                        </Popconfirm>
+                          <RotateCcw className="w-4 sm:w-5 h-4 sm:h-5" />
+                        </Button>
                       )}
                       <Button
                         type="text"
@@ -992,7 +1052,7 @@ const MyProjects = () => {
                             },
                             confirmProps: {
                               type: "text",
-                              className: "border-red-500 hover:bg-red-500 hover:text-white",
+                              className: "border-red-500 hover:bg-red-500 bg-red-100 text-red-600",
                             },
                             cancelProps: {
                               danger: false,

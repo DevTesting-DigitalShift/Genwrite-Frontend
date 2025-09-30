@@ -15,6 +15,7 @@ import {
   resetSiteInfo,
 } from "@store/slices/brandSlice"
 import BrandVoicesComponent from "@components/BrandVoiceComponent"
+import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 
 const BrandVoice = () => {
   const user = useSelector((state) => state.auth.user)
@@ -22,6 +23,7 @@ const BrandVoice = () => {
   const queryClient = useQueryClient()
   const [inputValue, setInputValue] = useState("")
   const [isUploading, setIsUploading] = useState(false)
+  const { handlePopup } = useConfirmPopup()
   const [formData, setFormData] = useState({
     nameOfVoice: "",
     postLink: "",
@@ -248,19 +250,14 @@ const BrandVoice = () => {
     try {
       if (formData._id) {
         await dispatch(updateBrandVoiceThunk({ id: formData._id, payload })).unwrap()
-        message.success("Brand voice updated successfully")
       } else {
         await dispatch(createBrandVoiceThunk({ payload })).unwrap()
-        message.success("Brand voice created successfully")
       }
       resetForm()
       queryClient.invalidateQueries(["brands"])
       dispatch(resetSiteInfo())
     } catch (error) {
       console.error("Error saving brand voice:", error)
-      message.error(
-        formData._id ? "Failed to update brand voice." : "Failed to create brand voice."
-      )
     } finally {
       setIsUploading(false)
     }
@@ -284,30 +281,37 @@ const BrandVoice = () => {
 
   const handleDelete = useCallback(
     (brand) => {
-      Modal.confirm({
+      handlePopup({
         title: "Delete Brand Voice?",
-        content: "Are you sure you want to delete this brand voice? This action cannot be undone.",
-        okText: "Delete",
-        cancelText: "Cancel",
-        okButtonProps: { danger: true, className: "px-3 sm:px-4 py-2" },
-        cancelButtonProps: { className: "px-3 sm:px-4 py-2" },
-        onOk: async () => {
+        description: (
+          <span className="my-2">
+            Are you sure you want to delete <b>{brand.name}</b>? This action cannot be undone.
+          </span>
+        ),
+        confirmText: "Delete",
+        onConfirm: async () => {
           try {
             queryClient.setQueryData(["brands"], (oldBrands = []) =>
               oldBrands.filter((b) => b._id !== brand._id)
             )
             await dispatch(deleteBrandVoiceThunk({ id: brand._id })).unwrap()
-            message.success("Brand voice deleted successfully")
             queryClient.invalidateQueries(["brands"])
+
             if (formData.selectedVoice?._id === brand._id) {
               resetForm()
               dispatch(resetSiteInfo())
             }
           } catch (error) {
             console.error("Failed to delete brand voice:", error)
-            message.error("Failed to delete brand voice.")
             queryClient.invalidateQueries(["brands"])
           }
+        },
+        confirmProps: {
+          type: "text",
+          className: "border-red-500 hover:bg-red-500 bg-red-100 text-red-600",
+        },
+        cancelProps: {
+          danger: false,
         },
       })
     },
@@ -414,17 +418,6 @@ const BrandVoice = () => {
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             Create Your Brand Voice
           </h1>
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Button
-              type="default"
-              icon={<RefreshCcw className="w-4 sm:w-5 h-4 sm:h-5" />}
-              onClick={handleRefresh}
-              disabled={isLoading}
-              className="text-xs sm:text-sm px-4 py-2"
-            >
-              Refresh
-            </Button>
-          </motion.div>
         </div>
         <p className="text-gray-600 text-sm mb-4 sm:mb-6">
           Define your brand's unique tone and style to ensure consistent content creation.
@@ -701,13 +694,11 @@ const BrandVoice = () => {
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <Button
               type="default"
-              icon={<RefreshCcw className="w-4 sm:w-5 h-4 sm:h-5" />}
+              icon={<RefreshCcw className="w-4 h-4" />}
               onClick={handleRefresh}
               disabled={isLoading}
               className="text-xs sm:text-sm px-4 py-2"
-            >
-              Refresh
-            </Button>
+            />
           </motion.div>
         </div>
         <div className="space-y-3 overflow-y-auto max-h-[calc(100vh-300px)] sm:max-h-[calc(100vh-250px)]">

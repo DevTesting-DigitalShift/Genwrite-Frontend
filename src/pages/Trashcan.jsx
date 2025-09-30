@@ -1,18 +1,22 @@
+"use client"
+
 import React, { useState, useEffect, useCallback } from "react"
-import { Button, Tooltip, Popconfirm, Badge, Pagination, Input, Select, message } from "antd"
+import { Button, Tooltip, Badge, Pagination, Input, Select, message } from "antd"
 import { RefreshCcw, Trash2, Search, ArchiveRestore, X } from "lucide-react"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { QuestionCircleOutlined } from "@ant-design/icons"
 import { motion } from "framer-motion"
 import { Helmet } from "react-helmet"
-import { useDispatch } from "react-redux"
+import { useDispatch, useSelector } from "react-redux"
 import SkeletonLoader from "@components/UI/SkeletonLoader"
 import { getAllBlogs } from "@api/blogApi"
 import { deleteAllUserBlogs, restoreTrashedBlog } from "@store/slices/blogSlice"
+import { selectUser } from "@store/slices/authSlice"
 import { debounce } from "lodash"
 import dayjs from "dayjs"
 import { useNavigate } from "react-router-dom"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { getSocket } from "@utils/socket"
 
 const { Search: AntSearch } = Input
 const { Option } = Select
@@ -24,17 +28,21 @@ const Trashcan = () => {
   const [statusFilter, setStatusFilter] = useState("all")
   const [dateRange, setDateRange] = useState([null, null])
 
-  const clearSearch = useCallback(() => {
-    setSearchTerm("")
-  }, [])
-
-  const { handlePopup } = useConfirmPopup()
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const user = useSelector(selectUser)
+  const userId = user?.id || "guest"
 
   const TRUNCATE_LENGTH = 85
   const PAGE_SIZE_OPTIONS = [10, 15, 20, 50]
+
+  const clearSearch = useCallback(() => {
+    setSearchTerm("")
+    setCurrentPage(1)
+  }, [])
+
+  const { handlePopup } = useConfirmPopup()
 
   const debouncedSearch = useCallback(
     debounce(
@@ -48,8 +56,18 @@ const Trashcan = () => {
     []
   )
 
+  // TanStack Query for fetching trashed blogs
   const { data, isLoading } = useQuery({
-    queryKey: ["trashedBlogs", statusFilter, searchTerm, dateRange, currentPage, pageSize],
+    queryKey: [
+      "trashedBlogs",
+      userId,
+      statusFilter,
+      searchTerm,
+      dateRange[0]?.toISOString() ?? null,
+      dateRange[1]?.toISOString() ?? null,
+      currentPage,
+      pageSize,
+    ],
     queryFn: async () => {
       const queryParams = {
         isArchived: true,
@@ -69,36 +87,127 @@ const Trashcan = () => {
     keepPreviousData: true,
     staleTime: Infinity, // Data never becomes stale
     gcTime: Infinity, // Cache persists for the session
-    refetchOnMount: false, // Prevent refetch on component mount
+    refetchOnMount: "always", // Fetch only if cache is empty
     refetchOnWindowFocus: false, // Prevent refetch on window focus
+    enabled: !!user, // Only fetch if user is logged in
+    onError: (error) => {
+      console.error("Failed to fetch trashed blogs:", error)
+    },
   })
 
   const trashedBlogs = data?.trashedBlogs || []
   const totalBlogs = data?.totalBlogs || 0
 
+  // Socket for real-time updates
+  useEffect(() => {
+    const socket = getSocket()
+    if (!socket || !user) return
+
+    const handleBlogChange = (data, eventType) => {
+      console.debug(`Blog event: ${eventType}`, data)
+      const queryKey = [
+        "trashedBlogs",
+        userId,
+        statusFilter,
+        searchTerm,
+        dateRange[0]?.toISOString() ?? null,
+        dateRange[1]?.toISOString() ?? null,
+        currentPage,
+        pageSize,
+      ]
+
+      if (eventType === "blog:deleted" || eventType === "blog:restored") {
+        // Remove from cache if deleted or restored
+        queryClient.setQueryData(queryKey, (old = { trashedBlogs: [], totalBlogs: 0 }) => ({
+          trashedBlogs: old.trashedBlogs.filter((blog) => blog._id !== data.blogId),
+          totalBlogs: old.totalBlogs - 1,
+        }))
+        queryClient.removeQueries({ queryKey: ["blog", data.blogId] })
+      } else if (eventType === "blog:archived") {
+        // Invalidate for newly archived blogs to ensure fresh data
+        queryClient.invalidateQueries({ queryKey: ["trashedBlogs", userId], exact: false })
+        queryClient.invalidateQueries({ queryKey: ["blogs", userId], exact: false })
+      } else {
+        // Update existing blog in the cache
+        queryClient.setQueryData(queryKey, (old = { trashedBlogs: [], totalBlogs: 0 }) => {
+          const index = old.trashedBlogs.findIndex((blog) => blog._id === data.blogId)
+          if (index > -1) {
+            // Check if blog still matches filters
+            const blogDate = dayjs(data.archiveDate || data.updatedAt)
+            const matchesStatus = statusFilter === "all" || data.status === statusFilter
+            const matchesDate =
+              !dateRange[0] ||
+              !dateRange[1] ||
+              blogDate.isBetween(dayjs(dateRange[0]), dayjs(dateRange[1]), "day", "[]")
+            const matchesSearch =
+              !searchTerm || data.title?.toLowerCase().includes(searchTerm.toLowerCase())
+
+            if (matchesStatus && matchesDate && matchesSearch) {
+              old.trashedBlogs[index] = { ...old.trashedBlogs[index], ...data }
+              return { ...old, trashedBlogs: [...old.trashedBlogs] }
+            } else {
+              // Remove if no longer matches filters
+              return {
+                trashedBlogs: old.trashedBlogs.filter((blog) => blog._id !== data.blogId),
+                totalBlogs: old.totalBlogs - 1,
+              }
+            }
+          }
+          return old
+        })
+        // Update single blog query if exists
+        queryClient.setQueryData(["blog", data.blogId], (old) => ({ ...old, ...data }))
+      }
+    }
+
+    socket.on("blog:statusChanged", (data) => handleBlogChange(data, "blog:statusChanged"))
+    socket.on("blog:updated", (data) => handleBlogChange(data, "blog:updated"))
+    socket.on("blog:archived", (data) => handleBlogChange(data, "blog:archived"))
+    socket.on("blog:deleted", (data) => handleBlogChange(data, "blog:deleted"))
+    socket.on("blog:restored", (data) => handleBlogChange(data, "blog:restored"))
+
+    return () => {
+      socket.off("blog:statusChanged")
+      socket.off("blog:updated")
+      socket.off("blog:archived")
+      socket.off("blog:deleted")
+      socket.off("blog:restored")
+    }
+  }, [queryClient, user, userId, statusFilter, searchTerm, dateRange, currentPage, pageSize])
+
+  // Clear cache on user logout
+  useEffect(() => {
+    if (!user) {
+      queryClient.removeQueries({ queryKey: ["trashedBlogs"] })
+      setCurrentPage(1)
+      setPageSize(15)
+      setSearchTerm("")
+      setStatusFilter("all")
+      setDateRange([null, null])
+    }
+  }, [user, queryClient])
+
+  // Restore mutation with optimistic update
   const restoreMutation = useMutation({
     mutationFn: (id) => dispatch(restoreTrashedBlog(id)).unwrap(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["trashedBlogs"], exact: false })
       queryClient.invalidateQueries({ queryKey: ["blogs"], exact: false })
-      message.success("Blog restored successfully")
     },
     onError: (error) => {
       console.error("Failed to restore blog:", error)
-      message.error("Failed to restore blog. Please try again.")
     },
   })
 
+  // Bulk delete mutation with optimistic update
   const bulkDeleteMutation = useMutation({
     mutationFn: () => dispatch(deleteAllUserBlogs()).unwrap(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["trashedBlogs"], exact: false })
       setCurrentPage(1)
-      message.success("All trashed blogs deleted successfully")
     },
     onError: (error) => {
       console.error("Failed to delete all blogs:", error)
-      message.error("Failed to delete all blogs. Please try again.")
     },
   })
 
@@ -106,30 +215,30 @@ const Trashcan = () => {
     window.scrollTo({ top: 0, behavior: "smooth" })
   }, [currentPage])
 
-  const truncateContent = (content, length = TRUNCATE_LENGTH) => {
+  const truncateContent = useCallback((content, length = TRUNCATE_LENGTH) => {
     if (!content) return ""
     return content.length > length ? content.substring(0, length) + "..." : content
-  }
+  }, [])
 
-  const stripMarkdown = (text) => {
+  const stripMarkdown = useCallback((text) => {
     return text
       ?.replace(/<[^>]*>/g, "")
       ?.replace(/[\\*#=_~`>\-]+/g, "")
       ?.replace(/\s{2,}/g, " ")
       ?.trim()
-  }
+  }, [])
 
   const handleRestore = (id) => {
     restoreMutation.mutate(id)
   }
 
-  const handleBulkDelete = () => {
+  const handleBulkDelete = useCallback(() => {
     bulkDeleteMutation.mutate()
-  }
+  }, [bulkDeleteMutation])
 
-  const handleRefresh = () => {
-    queryClient.invalidateQueries(["trashedBlogs"])
-  }
+  const handleRefresh = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["trashedBlogs", userId] })
+  }, [queryClient, userId])
 
   const handleBlogClick = useCallback(
     (blog) => {
@@ -138,9 +247,12 @@ const Trashcan = () => {
     [navigate]
   )
 
-  const handleManualBlogClick = (blog) => {
-    navigate(`/blog-editor/${blog._id}`)
-  }
+  const handleManualBlogClick = useCallback(
+    (blog) => {
+      navigate(`/blog-editor/${blog._id}`)
+    },
+    [navigate]
+  )
 
   return (
     <div className="p-2 md:p-4 lg:p-8 max-w-full">
@@ -195,10 +307,11 @@ const Trashcan = () => {
                           be undone.
                         </span>
                       ),
-                      confirmText: "Delete All",
+                      
                       onConfirm: handleBulkDelete,
                       confirmProps: {
-                        className: "border-red-500 hover:bg-red-500 hover:text-white",
+                        type: "text",
+                         className: "border-red-500 hover:bg-red-500 bg-red-100 text-red-600",
                       },
                       cancelProps: {
                         danger: false,
@@ -359,7 +472,7 @@ const Trashcan = () => {
                           onClick={() => handleManualBlogClick(blog)}
                           role="button"
                           tabIndex={0}
-                          onKeyDown={(e) => e.key === "Enter" && navigate(`/blog-editor`)}
+                          onKeyDown={(e) => e.key === "Enter" && handleManualBlogClick(blog)}
                           aria-label={`View blog ${title}`}
                         >
                           <div className="flex flex-col gap-4 items-center justify-between mb-2">
@@ -436,18 +549,33 @@ const Trashcan = () => {
                             </span>
                           ))}
                         </div>
-                        <Popconfirm
-                          title="Restore Blog"
-                          description="Are you sure to restore this blog?"
-                          icon={<QuestionCircleOutlined style={{ color: "red" }} />}
-                          okText="Yes"
-                          cancelText="No"
-                          onConfirm={() => handleRestore(_id)}
+                        <motion.div
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() =>
+                            handlePopup({
+                              title: "Restore Blog",
+                              description: (
+                                <span className="my-2">
+                                  Are you sure to restore <b>{title}</b> blog?
+                                </span>
+                              ),
+                              confirmText: "Yes",
+                              onConfirm: () => {
+                                handleRestore(_id)
+                              },
+                              confirmProps: {
+                                type: "text",
+                                  className: "border-green-500 bg-green-50 text-green-600",
+                              },
+                              cancelProps: {
+                                danger: false,
+                              },
+                            })
+                          }
                         >
-                          <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                            <ArchiveRestore className="w-5 h-5 cursor-pointer" />
-                          </motion.div>
-                        </Popconfirm>
+                          <ArchiveRestore className="w-5 h-5 cursor-pointer" />
+                        </motion.div>
                       </div>
                       <div className="mt-3 mb-2 flex justify-end text-xs sm:text-sm text-right text-gray-500 font-medium">
                         {wordpress?.postedOn && (
@@ -470,7 +598,7 @@ const Trashcan = () => {
                 )
               })}
             </motion.div>
-            {totalBlogs > 15 && (
+            {totalBlogs > pageSize && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -489,7 +617,7 @@ const Trashcan = () => {
                       setCurrentPage(1)
                     }
                   }}
-                  showSizeChanger={false}
+                  showSizeChanger
                   showTotal={(total) => `Total ${total} blogs`}
                   responsive={true}
                   disabled={isLoading}
