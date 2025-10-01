@@ -10,12 +10,14 @@ import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { Modal, Select, Tooltip, message } from "antd"
 import { fetchBrands } from "@store/slices/brandSlice"
 import { useQuery } from "@tanstack/react-query"
+import { getIntegrationsThunk } from "@store/slices/otherSlice"
 
 const MultiStepModal = ({ closeFnc }) => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
   const user = useSelector((state) => state.auth.user)
+  const { data: integrations } = useSelector((state) => state.wordpress)
   const userPlan = user?.subscription?.plan || user?.plan
   const [showAllTopics, setShowAllTopics] = useState(false)
   const [showAllKeywords, setShowAllKeywords] = useState(false)
@@ -30,6 +32,7 @@ const MultiStepModal = ({ closeFnc }) => {
     topics: false,
     keywords: false,
     tone: false,
+    integration: false, // New error for integration selection
   })
 
   const [formData, setFormData] = useState({
@@ -58,6 +61,7 @@ const MultiStepModal = ({ closeFnc }) => {
     isCheckedGeneratedImages: true,
     addOutBoundLinks: false,
     blogImages: [],
+    selectedIntegration: null, // New field for selected integration
   })
 
   const {
@@ -74,11 +78,15 @@ const MultiStepModal = ({ closeFnc }) => {
   })
 
   useEffect(() => {
+    dispatch(getIntegrationsThunk())
+  }, [dispatch])
+
+  useEffect(() => {
     if (isAiImagesLimitReached && formData.isCheckedGeneratedImages) {
       setFormData((prev) => ({
         ...prev,
         isCheckedGeneratedImages: false,
-        imageSource: "unsplash", // Default to unsplash when AI images are disabled
+        imageSource: "unsplash",
       }))
     }
   }, [isAiImagesLimitReached, formData.isCheckedGeneratedImages])
@@ -98,6 +106,7 @@ const MultiStepModal = ({ closeFnc }) => {
           formData.keywords.length === 0 &&
           formData.keywordInput.trim() === "",
         tone: !formData.tone,
+        integration: false,
       }
       setErrors(newErrors)
       if (Object.values(newErrors).some((error) => error)) {
@@ -124,6 +133,10 @@ const MultiStepModal = ({ closeFnc }) => {
         formData.keywords.length === 0 &&
         formData.keywordInput.trim() === "",
       tone: !formData.tone,
+      integration:
+        formData.wordpressPostStatus &&
+        Object.keys(integrations).length > 0 &&
+        !formData.selectedIntegration,
     }
 
     setErrors(newErrors)
@@ -138,15 +151,8 @@ const MultiStepModal = ({ closeFnc }) => {
       return
     }
 
-    // if (formData.numberOfImages < 1 || formData.numberOfImages > 10) {
-    //   message.error("Number of images must be between 1 and 10.")
-    //   return
-    // }
-
-    // ✅ Include aiModel in cost calculation
-    const model = formData.aiModel || "gemini" // fallback just in case
+    const model = formData.aiModel || "gemini"
     const blogCost = getEstimatedCost("blog.single", model)
-
     const totalCost = formData.numberOfBlogs * blogCost
 
     handlePopup({
@@ -199,23 +205,20 @@ const MultiStepModal = ({ closeFnc }) => {
   const handleCheckboxChange = async (e) => {
     const { name, checked } = e.target
     if (name === "wordpressPostStatus" && checked) {
-      try {
-        if (!user?.wordpressLink) {
-          message.error(
-            "Please connect your WordPress account in your profile before enabling automatic posting."
-          )
-          navigate("/profile")
-          return
-        }
-      } catch {
-        message.error("Failed to check profile. Please try again.")
+      const hasAnyIntegration = Object.keys(integrations?.integrations || {}).length > 0
+
+      if (!hasAnyIntegration) {
+        message.error("Please connect your account in plugins.")
         return
       }
     }
-    setFormData({
-      ...formData,
+    setFormData((prev) => ({
+      ...prev,
       [name]: checked,
-    })
+      // Reset selectedIntegration if disabling wordpressPostStatus
+      selectedIntegration:
+        name === "wordpressPostStatus" && !checked ? null : prev.selectedIntegration,
+    }))
     if (name === "performKeywordResearch") {
       setErrors((prev) => ({ ...prev, keywords: false }))
     }
@@ -247,7 +250,6 @@ const MultiStepModal = ({ closeFnc }) => {
 
     if (newTopics.length === 0) {
       setErrors((prev) => ({ ...prev, topics: true }))
-      // message.warning("Please enter non-duplicate topics.")
       setFormData((prev) => ({ ...prev, topicInput: "" }))
       return false
     }
@@ -319,6 +321,14 @@ const MultiStepModal = ({ closeFnc }) => {
     setFormData((prev) => ({ ...prev, imageSource: source }))
   }
 
+  const handleIntegrationChange = (platform, url) => {
+    setFormData((prev) => ({
+      ...prev,
+      selectedIntegration: { platform, url },
+    }))
+    setErrors((prev) => ({ ...prev, integration: false }))
+  }
+
   const handleCSVUpload = (e) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -350,7 +360,6 @@ const MultiStepModal = ({ closeFnc }) => {
         return
       }
 
-      // Skip header if present
       if (lines[0].toLowerCase().includes("topics") || lines[0].toLowerCase().includes("keyword")) {
         lines = lines.slice(1)
       }
@@ -432,7 +441,6 @@ const MultiStepModal = ({ closeFnc }) => {
         return
       }
 
-      // Skip header if present
       if (
         lines[0].toLowerCase().includes("keywords") ||
         lines[0].toLowerCase().includes("keyword")
@@ -486,8 +494,6 @@ const MultiStepModal = ({ closeFnc }) => {
     e.target.value = null
   }
 
-  const steps = ["Select Template's", "Add Details", "Blog Options"]
-
   const validateImages = (files) => {
     const maxImages = 15
     const maxSize = 5 * 1024 * 1024 // 5 MB in bytes
@@ -528,11 +534,10 @@ const MultiStepModal = ({ closeFnc }) => {
         ...prev,
         blogImages: [...prev.blogImages, ...validFiles],
       }))
-      // Note: setData seems to be a typo or unused, assuming it's formData
       message.success(`${validFiles.length} image(s) added successfully!`)
     }
     if (fileInputRef.current) {
-      fileInputRef.current.value = "" // Reset input
+      fileInputRef.current.value = ""
     }
   }
 
@@ -573,6 +578,8 @@ const MultiStepModal = ({ closeFnc }) => {
     }))
   }
 
+  const steps = ["Select Template's", "Add Details", "Blog Options"]
+
   return (
     <Modal
       title={`Step ${currentStep + 1} : ${steps[currentStep]}`}
@@ -607,7 +614,6 @@ const MultiStepModal = ({ closeFnc }) => {
             <p className="text-sm text-gray-600 mb-3 sm:mb-4">
               Select up to 3 templates for the types of blogs you want to generate.
             </p>
-            {/* Mobile View: Vertical Scrolling Layout */}
             <div className="sm:hidden grid grid-cols-2 gap-4">
               {packages.map((pkg, index) => (
                 <div
@@ -635,8 +641,6 @@ const MultiStepModal = ({ closeFnc }) => {
                 </div>
               ))}
             </div>
-
-            {/* Desktop View: Carousel Layout */}
             <div className="hidden sm:block">
               <Carousel className="flex flex-row gap-4">
                 {packages.map((pkg, index) => (
@@ -668,7 +672,6 @@ const MultiStepModal = ({ closeFnc }) => {
             </div>
           </div>
         )}
-
         {currentStep === 1 && (
           <div className="space-y-6">
             <div>
@@ -680,10 +683,7 @@ const MultiStepModal = ({ closeFnc }) => {
                   </div>
                 </Tooltip>
               </label>
-
               <p className="text-xs text-gray-500 mb-2">Enter the main topics for your blogs.</p>
-
-              {/* Input field always full width */}
               <div className="flex gap-2 mt-2">
                 <input
                   type="text"
@@ -695,22 +695,17 @@ const MultiStepModal = ({ closeFnc }) => {
                   } rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 bg-gray-50`}
                   placeholder="e.g., digital marketing trends, AI in business"
                 />
-
-                {/* Add + Upload in same row */}
                 <button
                   onClick={handleAddTopic}
                   className="flex-1 sm:flex-none px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm hover:bg-[#1B6FC9]/90"
                 >
                   Add
                 </button>
-
                 <label className="flex-1 sm:flex-none px-4 py-2 bg-gray-100 text-gray-700 border rounded-md text-sm cursor-pointer flex items-center justify-center gap-1 hover:bg-gray-200">
                   <Upload size={16} />
                   <input type="file" accept=".csv" onChange={handleCSVUpload} hidden />
                 </label>
               </div>
-
-              {/* Topics chips */}
               <div className="flex flex-wrap gap-2 mt-2 min-h-[28px]">
                 {(showAllTopics
                   ? formData.topics.slice().reverse()
@@ -733,7 +728,6 @@ const MultiStepModal = ({ closeFnc }) => {
                     </span>
                   )
                 })}
-
                 {(formData.topics.length > 18 || recentlyUploadedTopicsCount) && (
                   <span
                     onClick={() => setShowAllTopics((prev) => !prev)}
@@ -752,7 +746,6 @@ const MultiStepModal = ({ closeFnc }) => {
                 )}
               </div>
             </div>
-
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-gray-700">
                 Perform Keyword Research?
@@ -911,12 +904,10 @@ const MultiStepModal = ({ closeFnc }) => {
         )}
         {currentStep === 2 && (
           <div className="space-y-6">
-            {/* Select AI Model */}
             <div className="mb-6">
               <label className="block text-sm font-semibold text-gray-700 mb-3">
                 Select AI Model
               </label>
-
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                 {[
                   {
@@ -967,7 +958,6 @@ const MultiStepModal = ({ closeFnc }) => {
                 ))}
               </div>
             </div>
-
             <div className="flex justify-between items-center">
               <label className="block text-sm font-semibold text-gray-700 mb-2">Add Image</label>
               <div className="flex items-center">
@@ -996,7 +986,6 @@ const MultiStepModal = ({ closeFnc }) => {
                       }))
                     }}
                   />
-
                   <div
                     className={`w-12 h-6 rounded-full transition-all duration-300 ${
                       formData.isCheckedGeneratedImages && !isAiImagesLimitReached
@@ -1016,9 +1005,9 @@ const MultiStepModal = ({ closeFnc }) => {
                   <Tooltip
                     title="You've reached your AI image generation limit. It'll reset in the next billing cycle."
                     overlayInnerStyle={{
-                      backgroundColor: "#FEF9C3", // light yellow
-                      border: "1px solid #FACC15", // yellow-400 border
-                      color: "#78350F", // dark yellow text
+                      backgroundColor: "#FEF9C3",
+                      border: "1px solid #FACC15",
+                      color: "#78350F",
                     }}
                   >
                     <TriangleAlert className="text-yellow-400 ml-4" size={15} />
@@ -1026,8 +1015,6 @@ const MultiStepModal = ({ closeFnc }) => {
                 )}
               </div>
             </div>
-
-            {/* Select Image Source */}
             {formData.isCheckedGeneratedImages &&
               !formData.isCheckedblogImages &&
               !isAiImagesLimitReached && (
@@ -1035,7 +1022,6 @@ const MultiStepModal = ({ closeFnc }) => {
                   <label className="block text-sm font-semibold text-gray-700 mb-3">
                     Image Source
                   </label>
-
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {[
                       {
@@ -1050,12 +1036,6 @@ const MultiStepModal = ({ closeFnc }) => {
                         value: "ai",
                         restricted: userPlan === "free",
                       },
-                      // {
-                      //   id: "customImages",
-                      //   label: "Use Custom Images",
-                      //   value: "customImages",
-                      //   restricted: false,
-                      // },
                     ].map((source) => (
                       <label
                         key={source.id}
@@ -1079,7 +1059,6 @@ const MultiStepModal = ({ closeFnc }) => {
                       </label>
                     ))}
                   </div>
-
                   <div className="pt-4 w-full">
                     <label className="block text-sm font-semibold text-gray-700 mb-1">
                       Number of Images
@@ -1088,8 +1067,8 @@ const MultiStepModal = ({ closeFnc }) => {
                       Enter the number of images (0 = AI will decide)
                     </p>
                     <input
-                      type="tel" // opens numeric keypad on mobile
-                      inputMode="numeric" // ensures numeric intent
+                      type="tel"
+                      inputMode="numeric"
                       name="numberOfImages"
                       min="0"
                       max="20"
@@ -1101,61 +1080,6 @@ const MultiStepModal = ({ closeFnc }) => {
                   </div>
                 </div>
               )}
-
-            {/* <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-3">
-                Upload Custom Images (Max 15, each 1GB)
-              </label>
-              <div
-                className={`border-2 border-dashed rounded-lg p-6 text-center ${
-                  formData.isDragging ? "border-blue-600 bg-blue-50" : "border-gray-300 bg-gray-50"
-                }`}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-              >
-                <p className="text-sm text-gray-600 mb-2">
-                  Drag and drop images here or click to select
-                </p>
-                <button
-                  className="px-4 py-2 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white rounded-md text-sm"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  Select Images
-                </button>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileChange}
-                  accept="image/jpeg,image/png,image/gif,image/webp"
-                  multiple
-                  className="hidden"
-                />
-              </div>
-              {formData.blogImages.length > 0 && (
-                <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {formData.blogImages.map((image, index) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={image instanceof File ? URL.createObjectURL(image) : image}
-                        alt={image instanceof File ? image.name : `Image ${index + 1}`}
-                        className="w-full h-24 object-cover rounded-md"
-                      />
-                      <button
-                        onClick={() => handleRemoveImage(index)}
-                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                      <p className="text-xs text-gray-600 truncate mt-1">
-                        {image instanceof File ? image.name : `Image ${index + 1}`}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div> */}
-
             <div className="space-y-4 pt-4 border-t border-gray-200">
               <div>
                 <div className="flex items-center justify-between">
@@ -1170,7 +1094,6 @@ const MultiStepModal = ({ closeFnc }) => {
                           isCheckedBrand: !prev.isCheckedBrand,
                           brandId: null,
                         }))
-                        // Note: setData seems to be a typo or unused, assuming it's formData
                       }}
                       className="sr-only peer"
                       aria-checked={formData.isCheckedBrand}
@@ -1206,7 +1129,6 @@ const MultiStepModal = ({ closeFnc }) => {
                                     ...prev,
                                     brandId: voice._id,
                                   }))
-                                  // Note: setData seems to be a typo or unused
                                 }}
                                 className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-600"
                               />
@@ -1225,7 +1147,6 @@ const MultiStepModal = ({ closeFnc }) => {
                     )}
                   </div>
                 )}
-
                 {formData.isCheckedBrand && (
                   <div className="flex items-center justify-between mt-3">
                     <span className="text-sm font-medium text-gray-700">Add CTA at the End</span>
@@ -1238,7 +1159,6 @@ const MultiStepModal = ({ closeFnc }) => {
                             ...prev,
                             addCTA: !prev.addCTA,
                           }))
-                          // Note: setData seems to be a typo or unused
                         }}
                         className="sr-only peer"
                         aria-checked={formData.addCTA}
@@ -1287,6 +1207,79 @@ const MultiStepModal = ({ closeFnc }) => {
             </div>
             <div className="flex items-center justify-between mt-4">
               <span className="text-sm font-medium text-gray-700">
+                Enable Automatic Posting
+                <p className="text-xs text-gray-500">
+                  Automatically post blogs on the selected dates.
+                </p>
+              </span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="wordpressPostStatus"
+                  checked={formData.wordpressPostStatus}
+                  onChange={handleCheckboxChange}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]"></div>
+              </label>
+            </div>
+            {formData.wordpressPostStatus &&
+              integrations?.integrations &&
+              Object.keys(integrations.integrations).length > 0 && (
+                <div>
+                  <span className="text-sm font-medium text-gray-700">
+                    Select Your Publishing Platform
+                    <p className="text-xs text-gray-500">
+                      Post your blog automatically to connected platforms only.
+                    </p>
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+                    {Object.entries(integrations.integrations).map(([platform, details]) => (
+                      <label
+                        key={platform}
+                        className={`border rounded-lg px-4 py-3 flex items-center justify-center gap-2 cursor-pointer transition-all duration-150 ${
+                          formData.selectedIntegration?.platform === platform
+                            ? "border-blue-600 bg-blue-50"
+                            : "border-gray-300"
+                        } hover:shadow-sm`}
+                      >
+                        <input
+                          type="radio"
+                          name="selectedIntegration"
+                          value={platform}
+                          checked={formData.selectedIntegration?.platform === platform}
+                          onChange={() => handleIntegrationChange(platform, details.url)}
+                          className="hidden"
+                        />
+                        <span className="text-sm font-medium text-gray-800">{platform}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+            {formData.wordpressPostStatus && (
+              <div className="flex items-center justify-between py-2 border-b">
+                <span className="text-sm font-medium text-gray-700">
+                  Include Table of Contents
+                  <p className="text-xs text-gray-500">
+                    Generate a table of contents for each blog.
+                  </p>
+                </span>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="includeTableOfContents"
+                    checked={formData.includeTableOfContents}
+                    onChange={handleCheckboxChange}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]"></div>
+                </label>
+              </div>
+            )}
+            <div className="flex items-center justify-between mt-4">
+              <span className="text-sm font-medium text-gray-700">
                 Enable Competitive Research
                 <p className="text-xs text-gray-500">
                   Perform competitive research to analyze similar blogs.
@@ -1323,44 +1316,6 @@ const MultiStepModal = ({ closeFnc }) => {
                 </label>
               </div>
             )}
-            <div className="flex items-center justify-between mt-6">
-              <span className="text-sm font-medium text-gray-700">
-                Enable Automatic Posting
-                <p className="text-xs text-gray-500">
-                  Automatically post blogs on the selected dates.
-                </p>
-              </span>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  name="wordpressPostStatus"
-                  checked={formData.wordpressPostStatus}
-                  onChange={handleCheckboxChange}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]"></div>
-              </label>
-            </div>
-            {formData.wordpressPostStatus && (
-              <div className="flex items-center justify-between py-2 border-b">
-                <span className="text-sm font-medium text-gray-700">
-                  Include Table of Contents
-                  <p className="text-xs text-gray-500">
-                    Generate a table of contents for each blog.
-                  </p>
-                </span>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="includeTableOfContents"
-                    checked={formData.includeTableOfContents}
-                    onChange={handleCheckboxChange}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]"></div>
-                </label>
-              </div>
-            )}
             <div className="pt-4 border-t border-gray-200">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1370,10 +1325,9 @@ const MultiStepModal = ({ closeFnc }) => {
                   How many blogs to generate based on the topics provided.
                 </p>
                 <input
-                  // type="number"
+                  type="tel"
+                  inputMode="numeric"
                   name="numberOfBlogs"
-                  type="tel" // opens numeric keypad on mobile
-                  inputMode="numeric" // ensures numeric intent
                   min="1"
                   max="10"
                   value={formData.numberOfBlogs === 0 ? "" : formData.numberOfBlogs}

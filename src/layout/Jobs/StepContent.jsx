@@ -5,11 +5,12 @@ import MultiDatePicker from "react-multi-date-picker"
 import Carousel from "@components/multipleStepModal/Carousel"
 import { packages } from "@/data/templates"
 import { Crown, Info, Plus, TriangleAlert, Upload, X } from "lucide-react"
-import { useDispatch } from "react-redux"
+import { useDispatch, useSelector } from "react-redux"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
 import { useNavigate } from "react-router-dom"
 import { fetchBrands } from "@store/slices/brandSlice"
 import { useQuery } from "@tanstack/react-query"
+import { getIntegrationsThunk } from "@store/slices/otherSlice"
 
 const { Option } = Select
 
@@ -34,6 +35,7 @@ const StepContent = ({
 }) => {
   const dispatch = useDispatch()
   const fileInputRef = useRef(null)
+  const { data: integrations } = useSelector((state) => state.wordpress)
   const {
     data: brands = [],
     isLoading: loadingBrands,
@@ -62,6 +64,10 @@ const StepContent = ({
   const MAX_BLOGS = 100
   const isAiImagesLimitReached = user?.usage?.aiImages >= user?.usageLimits?.aiImages
   const navigate = useNavigate()
+
+  useEffect(() => {
+    dispatch(getIntegrationsThunk())
+  }, [dispatch])
 
   // Clean up object URLs to prevent memory leaks
   useEffect(() => {
@@ -302,12 +308,13 @@ const StepContent = ({
 
   const handleCheckboxChange = (e) => {
     const { name, checked } = e.target
-    if (name === "wordpressPosting" && checked && !user?.wordpressLink) {
-      message.error(
-        "Please connect your WordPress account in your profile before enabling automatic posting."
-      )
-      // navigate("/profile")
-      return
+    if (name === "wordpressPostStatus" && checked) {
+      const hasAnyIntegration = Object.keys(integrations?.integrations || {}).length > 0
+
+      if (!hasAnyIntegration) {
+        message.error("Please connect your account in plugins.")
+        return
+      }
     }
     setNewJob((prev) => ({
       ...prev,
@@ -1232,9 +1239,9 @@ const StepContent = ({
                 desc: "Add internal links between your blogs for better SEO.",
               },
               {
-                label: "WordPress Automatic Posting",
+                label: "Enable Automatic Posting",
                 name: "wordpressPosting",
-                desc: "Automatically post the blog to your connected WordPress site.",
+                desc: "Automatically post the blog to your connected plugins.",
               },
               ...(newJob.options.wordpressPosting
                 ? [
@@ -1263,7 +1270,67 @@ const StepContent = ({
                 </label>
               </div>
             ))}
+
+            {/* Only show integration options if wordpressPosting is true AND integrations exist */}
+            {newJob.options.wordpressPosting &&
+              Object.keys(integrations?.integrations || {}).length > 0 && (
+                <div className="mt-5">
+                  <span className="text-sm font-medium text-gray-700">
+                    Select Your Publishing Platform
+                    <p className="text-xs text-gray-500">
+                      Post your blog automatically to connected platforms only.
+                    </p>
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+                    {Object.entries(integrations.integrations).map(([platform, details]) => (
+                      <label
+                        key={platform}
+                        className={`border rounded-lg px-4 py-3 flex items-center justify-center gap-2 cursor-pointer transition-all duration-150 ${
+                          formData.selectedIntegration?.platform === platform
+                            ? "border-blue-600 bg-blue-50"
+                            : "border-gray-300"
+                        } hover:shadow-sm`}
+                      >
+                        <input
+                          type="radio"
+                          name="selectedIntegration"
+                          value={platform}
+                          checked={formData.selectedIntegration?.platform === platform}
+                          onChange={() => handleIntegrationChange(platform, details.url)}
+                          className="hidden"
+                        />
+                        <span className="text-sm font-medium text-gray-800">{platform}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
           </div>
+
+          {formData.wordpressPostStatus && Object.keys(integrations).length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {Object.entries(integrations?.integrations || {}).map(([platform, details]) => (
+                <label
+                  key={platform}
+                  className={`border rounded-lg px-4 py-3 flex items-center justify-center gap-2 cursor-pointer transition-all duration-150 ${
+                    formData.selectedIntegration?.platform === platform
+                      ? "border-blue-600 bg-blue-50"
+                      : "border-gray-300"
+                  } hover:shadow-sm`}
+                >
+                  <input
+                    type="radio"
+                    name="selectedIntegration"
+                    value={platform}
+                    checked={formData.selectedIntegration?.platform === platform}
+                    onChange={() => handleIntegrationChange(platform, details.url)}
+                    className="hidden"
+                  />
+                  <span className="text-sm font-medium text-gray-800">{platform}</span>
+                </label>
+              ))}
+            </div>
+          )}
           <div>
             <div className="flex items-center justify-between mt-3">
               <span className="text-sm font-medium text-gray-700">Write with Brand Voice</span>

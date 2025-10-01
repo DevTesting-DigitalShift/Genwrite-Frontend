@@ -19,6 +19,7 @@ const PluginsMain = () => {
   const plugins = useMemo(() => pluginsData(setWordpressStatus), [])
   const dispatch = useDispatch()
   const { data: integrations, loading, error } = useSelector((state) => state.wordpress)
+  console.log(integrations)
 
   useEffect(() => {
     dispatch(getIntegrationsThunk())
@@ -267,7 +268,7 @@ const PluginsMain = () => {
                     onChange={handleUrlChange}
                     status={url && !isValid ? "error" : ""}
                     disabled={!isEditing || loading || localLoading}
-                    className="w-full rounded-lg rounded-r-none border border-gray-300 px-10 py-[9px] text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                    className="w-full rounded-lg rounded-r-none border border-gray-300 px-10 py-[9px] text-sm"
                     prefix={<Server size={16} className="text-gray-400" />}
                   />
                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />

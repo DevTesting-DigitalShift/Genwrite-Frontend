@@ -29,6 +29,7 @@ const CategoriesModal = ({
   onSubmit,
   initialCategory = "",
   initialIncludeTableOfContents = false,
+  integrations,
 }) => {
   const [customCategory, setCustomCategory] = useState("")
   const [selectedCategory, setSelectedCategory] = useState(initialCategory)
@@ -37,6 +38,11 @@ const CategoriesModal = ({
   )
   const [categoryError, setCategoryError] = useState(false)
   const { categories, error: wordpressError } = useSelector((state) => state.wordpress)
+  const [selectedIntegration, setSelectedIntegration] = useState(null)
+
+  const handleIntegrationChange = (platform, url) => {
+    setSelectedIntegration({ platform, url })
+  }
 
   // Handle adding a category (custom or predefined)
   const handleCategoryAdd = useCallback(
@@ -249,6 +255,39 @@ const CategoriesModal = ({
             <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
           </label>
         </div>
+        {integrations?.integrations && Object.keys(integrations.integrations).length > 0 && (
+          <div>
+            <span className="text-sm font-medium text-gray-700">
+              Select Your Publishing Platform
+              <p className="text-xs text-gray-500 mt-1">
+                Post your blog automatically to connected platforms only.
+              </p>
+            </span>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+              {Object.entries(integrations.integrations).map(([platform, details]) => (
+                <label
+                  key={platform}
+                  className={`border rounded-lg px-4 py-3 flex items-center justify-center gap-2 cursor-pointer transition-all duration-150 ${
+                    selectedIntegration?.platform === platform
+                      ? "border-blue-600 bg-blue-50"
+                      : "border-gray-300"
+                  } hover:shadow-sm`}
+                >
+                  <input
+                    type="radio"
+                    name="selectedIntegration"
+                    value={platform}
+                    checked={selectedIntegration?.platform === platform}
+                    onChange={() => handleIntegrationChange(platform, details.url)}
+                    className="hidden"
+                  />
+                  <span className="text-sm font-medium text-gray-800">{platform}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </Modal>
   )

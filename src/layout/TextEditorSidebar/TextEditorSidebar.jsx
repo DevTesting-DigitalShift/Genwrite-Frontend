@@ -21,7 +21,11 @@ import {
 import { Button, Tooltip, message, Tabs, Badge, Collapse, Dropdown, Menu, Tag, Input } from "antd"
 import { fetchProofreadingSuggestions, fetchBlogPrompt } from "@store/slices/blogSlice"
 import { fetchCompetitiveAnalysisThunk } from "@store/slices/analysisSlice"
-import { getCategoriesThunk, generateMetadataThunk } from "@store/slices/otherSlice"
+import {
+  getCategoriesThunk,
+  generateMetadataThunk,
+  getIntegrationsThunk,
+} from "@store/slices/otherSlice"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useNavigate } from "react-router-dom"
 import { useDispatch, useSelector } from "react-redux"
@@ -73,6 +77,7 @@ const TextEditorSidebar = ({
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
   const [activeSection, setActiveSection] = useState("overview")
+  const { data: integrations } = useSelector((state) => state.wordpress)
   const [metadata, setMetadata] = useState({
     title: blog?.seoMetadata?.title || "",
     description: blog?.seoMetadata?.description || "",
@@ -90,6 +95,7 @@ const TextEditorSidebar = ({
   const { analysisResult } = useSelector((state) => state.analysis)
   const blogId = blog?._id
   const result = analysisResult?.[blogId]
+  const isDisabled = isPosting || (formData.wordpressPostStatus && !hasAnyIntegration)
 
   // Reset metadata and history when blog changes
   useEffect(() => {
@@ -150,6 +156,10 @@ const TextEditorSidebar = ({
       }
     }
   }, [reduxMetadata])
+
+  useEffect(() => {
+    dispatch(getIntegrationsThunk())
+  }, [dispatch])
 
   const fetchCompetitiveAnalysis = useCallback(async () => {
     if (!blog || !blog.title || !blog.content) {
@@ -1095,7 +1105,7 @@ const TextEditorSidebar = ({
               size="large"
               onClick={handlePostClick}
               loading={isPosting}
-              disabled={isPosting}
+              disabled={isDisabled}
               className="w-full h-12 text-base font-semibold bg-gradient-to-r from-green-600 to-emerald-600 border-0 hover:shadow-lg"
             >
               {isPosting ? "Posting..." : posted?.link ? "Re-Post" : "Post Blog"}
@@ -1133,13 +1143,13 @@ const TextEditorSidebar = ({
       >
         <FeatureSettingsModal features={blog?.options || {}} />
       </Modal>
-
       <CategoriesModal
         isCategoryModalOpen={isCategoryModalOpen}
         setIsCategoryModalOpen={setIsCategoryModalOpen}
         onSubmit={handleCategorySubmit}
         initialCategory={formData.category}
         initialIncludeTableOfContents={formData.includeTableOfContents}
+        integrations={integrations}
       />
     </>
   )

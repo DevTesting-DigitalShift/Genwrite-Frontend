@@ -25,6 +25,13 @@ const PricingCard = ({
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [pendingPlan, setPendingPlan] = useState(null)
   const [pendingCredits, setPendingCredits] = useState(0)
+  const [modalType, setModalType] = useState(null) // "upgrade" or "downgrade"
+
+  const tierLevels = {
+    basic: 1,
+    pro: 2,
+    enterprise: 3,
+  }
 
   const handleCustomCreditsChange = (e) => {
     const value = parseInt(e.target.value, 10)
@@ -125,28 +132,61 @@ const PricingCard = ({
 
   const styles = getCardStyles()
 
+  let userBillingPeriod = null
+  if (userSubscription && userSubscription.renewalDate && userSubscription.startDate) {
+    const start = new Date(userSubscription.startDate)
+    const renewal = new Date(userSubscription.renewalDate)
+    const diffDays = (renewal - start) / (1000 * 60 * 60 * 24)
+    userBillingPeriod = diffDays > 60 ? "annual" : "monthly"
+  }
+
   const handleButtonClick = () => {
     if (isDisabled) return
 
     if (plan.type === "credit_purchase" && customCredits < 500) return
 
-    // Skip modal for credit purchase
     if (plan.type === "credit_purchase") {
       onBuy(plan, customCredits, billingPeriod)
       return
     }
 
-    // Show modal only if user has an active subscription and trying to upgrade
-    if (
-      userSubscription?.status === "active" &&
-      plan.tier !== userSubscription.plan.toLowerCase()
-    ) {
-      setPendingPlan(plan)
-      setPendingCredits(plan.type === "credit_purchase" ? customCredits : plan.credits)
-      setShowConfirmModal(true)
-    } else {
+    if (plan.name.toLowerCase().includes("enterprise")) {
       proceedToBuy(plan)
+      return
     }
+
+    if (!userSubscription || userSubscription.status !== "active") {
+      onBuy(plan, plan.credits, billingPeriod)
+      return
+    }
+
+    setPendingPlan(plan)
+    setPendingCredits(plan.credits)
+
+    const currentTier = tierLevels[userPlan.toLowerCase()]
+    const newTier = tierLevels[plan.tier]
+    const startDateStr = userSubscription.renewalDate
+      ? new Date(userSubscription.renewalDate).toLocaleDateString()
+      : "immediately"
+
+    let thisModalType = ""
+    let thisStartDate = startDateStr
+
+    const isSameTier = plan.tier === userPlan.toLowerCase()
+
+    if (
+      (!isSameTier && newTier > currentTier) ||
+      (isSameTier && userBillingPeriod === "monthly" && billingPeriod === "annual")
+    ) {
+      thisModalType = "upgrade"
+      thisStartDate = "immediately"
+    } else {
+      thisModalType = "downgrade"
+      thisStartDate = startDateStr
+    }
+
+    setModalType(thisModalType)
+    setShowConfirmModal(true)
   }
 
   const proceedToBuy = (planToBuy) => {
@@ -284,35 +324,58 @@ const PricingCard = ({
         </button>
       </div>
       <Modal
-        title={<span className="text-lg">Confirm Purchase</span>}
+        title={
+          <span className="text-lg">
+            {modalType === "upgrade" ? "Confirm Upgrade" : "Confirm Downgrade"}
+          </span>
+        }
         open={showConfirmModal}
         onCancel={() => setShowConfirmModal(false)}
-        onOk={() => {
-          setShowConfirmModal(false)
-          proceedToBuy(pendingPlan)
-        }}
-        okText="Confirm"
-        cancelText="Cancel"
         centered
         bodyStyle={{ padding: "10px", fontSize: "16px" }}
-        okButtonProps={{ className: "bg-blue-600 hover:bg-blue-700 text-white font-semibold" }}
-        cancelButtonProps={{ className: "border border-gray-300 font-medium" }}
+        footer={
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => setShowConfirmModal(false)}
+              className="border border-gray-300 px-4 py-2 rounded-md font-medium"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                setShowConfirmModal(false)
+                proceedToBuy(pendingPlan)
+              }}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-semibold"
+            >
+              Confirm
+            </button>
+          </div>
+        }
       >
         <p className="text-gray-700">
           You already have an active subscription:{" "}
           <span className="font-bold text-gray-900">{userSubscription?.plan}</span>.
         </p>
         <p className="text-gray-700">
-          The new plan: <span className="font-bold text-gray-900">{pendingPlan?.name}</span> will
-          start on{" "}
+          {modalType === "upgrade"
+            ? "You will lose your current subscription and the new plan "
+            : "The new plan "}
+          <span className="font-bold text-gray-900">{pendingPlan?.name}</span> will start{" "}
+          {modalType === "downgrade" ? "from the next billing cycle " : ""}
+          on{" "}
           <span className="font-bold text-gray-900">
-            {userSubscription?.renewalDate
+            {modalType === "upgrade"
+              ? "immediately"
+              : userSubscription?.renewalDate
               ? new Date(userSubscription.renewalDate).toLocaleDateString()
               : "immediately"}
           </span>
           .
         </p>
-        <p className="text-gray-600 mt-2 text-sm italic">Please confirm to proceed with your purchase.</p>
+        <p className="text-gray-600 mt-2 text-sm italic">
+          Please confirm to proceed with your purchase.
+        </p>
       </Modal>
     </div>
   )
@@ -555,7 +618,7 @@ const Upgrade = () => {
               ? Array.from({ length: 4 }).map((_, idx) => <SkeletonCard key={idx} />)
               : plans.map((plan, index) => (
                   <PricingCard
-                    user
+                    user={user}
                     key={plan.name}
                     plan={plan}
                     index={index}

@@ -245,7 +245,7 @@ const Profile = () => {
           <div className="relative p-4 sm:p-6 md:p-8 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600">
             <div className="relative flex flex-col sm:flex-row items-center gap-4 sm:gap-6 md:gap-8">
               <motion.div
-                className="relative group"
+                className="relative group flex-shrink-0"
                 whileHover="hover"
                 variants={{
                   hover: { scale: 1.03 },
@@ -307,7 +307,7 @@ const Profile = () => {
                     </Tooltip>
                   )}
                 </div>
-                <p className="text-sm sm:text-base md:text-xl font-light opacity-90">
+                <p className="text-sm sm:text-base md:text-xl font-light opacity-90 line-clamp-3">
                   {profileData.personalDetails.bio || <span className="text-gray-300">Bio</span>}
                 </p>
                 <div className="flex flex-wrap justify-center sm:justify-start gap-2 sm:gap-3">
@@ -428,14 +428,6 @@ const Profile = () => {
                     onChange={handleInputChange}
                     placeholder="e.g : I'm a travel enthusiast who loves exploring new cultures."
                     type="textarea"
-                  />
-                  <ProfileField
-                    label="WordPress Link"
-                    name="personalDetails.wordpress"
-                    value={profileData.personalDetails.wordpress}
-                    isEditing={isEditing}
-                    onChange={handleInputChange}
-                    placeholder="eg : https://yourblog.wordpress.com"
                   />
                   <ProfileField
                     label="Phone"
