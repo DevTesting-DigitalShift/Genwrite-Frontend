@@ -7,6 +7,7 @@ import { CrownFilled } from "@ant-design/icons"
 import { ArrowRight, Eye, Gem } from "lucide-react"
 import dayjs from "dayjs"
 import relativeTime from "dayjs/plugin/relativeTime"
+import { useProAction } from "@/hook/useProAction"
 
 dayjs.extend(relativeTime)
 
@@ -14,6 +15,7 @@ export const DashboardBox = ({ title, content, id, functions, icon, gradient }) 
   const user = useSelector((state) => state.auth.user)
   const userPlan = user?.plan ?? user?.subscription?.plan
   const navigate = useNavigate()
+  const { handleProAction } = useProAction()
   const { handlePopup } = useConfirmPopup()
   const showPopup = () => {
     handlePopup({
@@ -27,22 +29,13 @@ export const DashboardBox = ({ title, content, id, functions, icon, gradient }) 
   }
 
   const handleClick = () => {
-    if (id === "A") {
-      functions.showQuickBlogModal?.()
-    } else if (id === 1) {
-      functions.showModal?.()
-    } else if (id === "B") {
-      if (["free", "basic"].includes(userPlan?.toLowerCase())) {
-        // showPopup()
-        navigate("/pricing")
-        return
-      }
-      functions.showMultiStepModal?.()
-    } else if (id === 4) {
-      functions.showCompetitiveAnalysis?.()
-    } else if (id === 3) {
-      functions.showPerformanceMonitoring?.()
-    }
+    handleProAction(() => {
+      if (id === "A") functions.showQuickBlogModal?.()
+      else if (id === 1) functions.showModal?.()
+      else if (id === "B") functions.showMultiStepModal?.()
+      else if (id === 4) functions.showCompetitiveAnalysis?.()
+      else if (id === 3) functions.showPerformanceMonitoring?.()
+    })
   }
 
   return (
@@ -102,6 +95,7 @@ export const QuickBox = ({
   const user = useSelector((state) => state.auth.user)
   const userPlan = user?.plan ?? user?.subscription?.plan
   const { handlePopup } = useConfirmPopup()
+  const { handleProAction } = useProAction()
 
   const showPopup = () => {
     handlePopup({
@@ -120,18 +114,13 @@ export const QuickBox = ({
     }
 
     if (id === 4 && functions?.showCompetitiveAnalysis) {
-      if (["free", "basic"].includes(userPlan?.toLowerCase())) {
-        // showPopup()
-        navigate("/pricing")
-        return
-      }
-      functions.showCompetitiveAnalysis()
+      handleProAction(() => functions.showCompetitiveAnalysis())
     } else if (id === 3 && functions?.showPerformanceMonitoring) {
-      functions.showPerformanceMonitoring()
+      handleProAction(() => functions.showPerformanceMonitoring())
     } else if (id === 2 && functions?.showSeoAnalysis) {
-      functions.showSeoAnalysis()
+      handleProAction(() => functions.showSeoAnalysis())
     } else if (id === 1 && functions?.showKeywordResearch) {
-      functions.showKeywordResearch()
+      handleProAction(() => functions.showKeywordResearch())
     }
   }
 

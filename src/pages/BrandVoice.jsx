@@ -39,6 +39,13 @@ const BrandVoice = () => {
   const [isFormReset, setIsFormReset] = useState(false)
   const [showAllKeywords, setShowAllKeywords] = useState(false)
 
+  const totalCredits = user?.credits?.base + user?.credits?.extra
+
+  const showTrialMessage =
+    totalCredits === 0 &&
+    user?.subscription?.plan === "free" &&
+    user?.subscription?.status === "unpaid"
+
   const {
     data: brands = [],
     isLoading,
@@ -464,7 +471,7 @@ const BrandVoice = () => {
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.98 }}
                 disabled={
-                  siteInfo.loading || (formData.postLink && formData.postLink === lastScrapedUrl)
+                  siteInfo.loading || (formData.postLink && formData.postLink === lastScrapedUrl) || showTrialMessage
                 }
                 aria-label="Fetch Site Info"
               >
@@ -653,7 +660,7 @@ const BrandVoice = () => {
               onClick={handleSave}
               whileHover={{ scale: 1.03, y: -2 }}
               whileTap={{ scale: 0.98 }}
-              disabled={isUploading}
+              disabled={isUploading || showTrialMessage}
               aria-label={formData._id ? "Update Brand Voice" : "Save Brand Voice"}
             >
               {isUploading ? (

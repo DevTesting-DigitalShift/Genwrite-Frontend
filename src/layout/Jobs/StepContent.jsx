@@ -308,7 +308,8 @@ const StepContent = ({
 
   const handleCheckboxChange = (e) => {
     const { name, checked } = e.target
-    if (name === "wordpressPostStatus" && checked) {
+    console.log(name, checked)
+    if (name === "wordpressPosting" && checked) {
       const hasAnyIntegration = Object.keys(integrations?.integrations || {}).length > 0
 
       if (!hasAnyIntegration) {

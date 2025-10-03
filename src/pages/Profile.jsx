@@ -546,7 +546,7 @@ const Profile = () => {
               {/* Subscription & Credits and Notifications */}
               <div className="space-y-4 sm:space-y-6">
                 {/* Subscription & Credits */}
-                <motion.div
+                {/* <motion.div
                   variants={cardVariants}
                   whileHover="hover"
                   className="bg-gradient-to-br from-blue-50 to-purple-50 p-4 sm:p-6 md:p-8 rounded-2xl border-2 border-indigo-100 shadow-lg relative overflow-hidden min-w-fit"
@@ -612,7 +612,7 @@ const Profile = () => {
                       </span>
                     </div>
                   </div>
-                </motion.div>
+                </motion.div> */}
 
                 {/* Notifications */}
                 <motion.div

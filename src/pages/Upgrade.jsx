@@ -5,7 +5,7 @@ import { loadStripe } from "@stripe/stripe-js"
 import { Check, Coins, Crown, Mail, Shield, Star, Zap } from "lucide-react"
 import { Helmet } from "react-helmet"
 import { SkeletonCard } from "@components/UI/SkeletonLoader"
-import { message, Modal } from "antd"
+import { Button, message, Modal } from "antd"
 import { sendStripeGTMEvent } from "@utils/stripeGTMEvents"
 import { useSelector } from "react-redux"
 import ComparisonTable from "@components/ComparisonTable"
@@ -25,7 +25,8 @@ const PricingCard = ({
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [pendingPlan, setPendingPlan] = useState(null)
   const [pendingCredits, setPendingCredits] = useState(0)
-  const [modalType, setModalType] = useState(null) // "upgrade" or "downgrade"
+  const [modalType, setModalType] = useState(null) // "upgrade", "downgrade", or "same-tier"
+  const [modalMessage, setModalMessage] = useState({ title: "", body: "" })
 
   const tierLevels = {
     basic: 1,
@@ -49,19 +50,16 @@ const PricingCard = ({
       ? plan.priceAnnual
       : plan.priceMonthly
 
-  // Determine if the plan should be disabled based on active status
   const isWithinBillingCycle = userStatus === "active"
 
   const isDisabled = (() => {
     const sub = userSubscription
     if (!sub || plan.type === "credit_purchase") return false
 
-    // No renewal date
     if (!sub.renewalDate) {
       return plan.tier === userPlan.toLowerCase()
     }
 
-    // With renewal date
     if (userStatus === "active") {
       const start = new Date(sub.startDate)
       const renewal = new Date(sub.renewalDate)
@@ -170,22 +168,40 @@ const PricingCard = ({
       : "immediately"
 
     let thisModalType = ""
-    let thisStartDate = startDateStr
+    let thisModalMessage = { title: "", body: "" }
 
     const isSameTier = plan.tier === userPlan.toLowerCase()
 
     if (
-      (!isSameTier && newTier > currentTier) ||
-      (isSameTier && userBillingPeriod === "monthly" && billingPeriod === "annual")
+      isSameTier &&
+      userPlan.toLowerCase() === "pro" &&
+      userBillingPeriod === "monthly" &&
+      billingPeriod === "annual"
     ) {
+      // Pro Monthly to Pro Annual: Start at next billing cycle
+      thisModalType = "same-tier"
+      thisModalMessage = {
+        title: "Confirm Plan Change",
+        body: `Your new ${plan.name} plan will start on ${startDateStr} at the beginning of your next billing cycle.`,
+      }
+    } else if (!isSameTier && currentTier < newTier) {
+      // Upgrade (e.g., Basic to Pro, Basic/Pro to Enterprise): Start immediately
       thisModalType = "upgrade"
-      thisStartDate = "immediately"
+      thisModalMessage = {
+        title: "Confirm Upgrade",
+        body: `Your current subscription will be replaced, and your new ${plan.name} plan will start immediately.`,
+      }
     } else {
+      // Downgrade (e.g., Pro to Basic, Enterprise to Pro/Basic): Start at next billing cycle
       thisModalType = "downgrade"
-      thisStartDate = startDateStr
+      thisModalMessage = {
+        title: "Confirm Downgrade",
+        body: `Your new ${plan.name} plan will start on ${startDateStr} at the beginning of your next billing cycle.`,
+      }
     }
 
     setModalType(thisModalType)
+    setModalMessage(thisModalMessage)
     setShowConfirmModal(true)
   }
 
@@ -324,11 +340,7 @@ const PricingCard = ({
         </button>
       </div>
       <Modal
-        title={
-          <span className="text-lg">
-            {modalType === "upgrade" ? "Confirm Upgrade" : "Confirm Downgrade"}
-          </span>
-        }
+        title={<span className="text-lg">{modalMessage.title}</span>}
         open={showConfirmModal}
         onCancel={() => setShowConfirmModal(false)}
         centered
@@ -357,22 +369,7 @@ const PricingCard = ({
           You already have an active subscription:{" "}
           <span className="font-bold text-gray-900">{userSubscription?.plan}</span>.
         </p>
-        <p className="text-gray-700">
-          {modalType === "upgrade"
-            ? "You will lose your current subscription and the new plan "
-            : "The new plan "}
-          <span className="font-bold text-gray-900">{pendingPlan?.name}</span> will start{" "}
-          {modalType === "downgrade" ? "from the next billing cycle " : ""}
-          on{" "}
-          <span className="font-bold text-gray-900">
-            {modalType === "upgrade"
-              ? "immediately"
-              : userSubscription?.renewalDate
-              ? new Date(userSubscription.renewalDate).toLocaleDateString()
-              : "immediately"}
-          </span>
-          .
-        </p>
+        <p className="text-gray-700">{modalMessage.body}</p>
         <p className="text-gray-600 mt-2 text-sm italic">
           Please confirm to proceed with your purchase.
         </p>
@@ -546,12 +543,37 @@ const Upgrade = () => {
     }
   }
 
+  const totalCredits = user?.credits?.base + user?.credits?.extra
+
+  const showTrialMessage =
+    totalCredits === 0 &&
+    user?.subscription?.plan === "free" &&
+    user?.subscription?.status === "unpaid"
+
   return (
     <div className="bg-gray-50 py-10 px-4">
       <Helmet>
         <title>Subscription | GenWrite</title>
       </Helmet>
       <div className="mx-auto">
+        {showTrialMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="mb-8 bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-xl shadow-lg border border-blue-200 max-w-3xl mx-auto"
+          >
+            <div className="flex flex-col items-center text-center">
+              <Star className="w-8 h-8 text-blue-600 mb-4" />
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Start Your 7-Day Free Trial</h2>
+              <p className="text-gray-600 text-lg max-w-xl mb-6">
+                Unlock the full potential of GenWrite with a 7-day free trial. Experience our
+                powerful AI content creation tools at no cost. Select a plan below to begin your
+                trial and elevate your content creation journey.
+              </p>
+            </div>
+          </motion.div>
+        )}
         {user?.subscription?.plan === "enterprise" && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -640,6 +662,7 @@ const Upgrade = () => {
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.3 }}
+              className="mt-20"
             >
               <ComparisonTable plans={plans} billingPeriod={billingPeriod} />
             </motion.div>
@@ -650,7 +673,10 @@ const Upgrade = () => {
         <div className="flex justify-end mt-4 mr-20">
           <a
             href="/cancel-subscription"
-            className="text-sm font-medium text-gray-700 hover:text-purple-600 transition-colors bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 px-4 py-2 shadow-sm"
+            className="text-sm font-medium text-white transition-colors 
+               bg-gradient-to-r from-blue-600 to-purple-600 
+               rounded-lg px-4 py-2 shadow-sm 
+               hover:from-blue-700 hover:to-purple-700"
           >
             Thinking of leaving GenWrite?
           </a>

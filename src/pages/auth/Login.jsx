@@ -102,7 +102,7 @@ const Auth = ({ path }) => {
         .unwrap()
         .then((user) => {
           message.success("Google login successful!")
-          navigate("/dashboard", { replace: true })
+          navigate("/pricing", { replace: true })
         })
         .catch((err) => {
           console.error("Google login error:", err)
@@ -150,7 +150,7 @@ const Auth = ({ path }) => {
 
         message.success(isSignup ? "Signup successful!" : "Login successful!")
         setTimeout(() => {
-          navigate("/dashboard", { replace: true })
+          navigate("/pricing", { replace: true })
         }, 100)
       } catch (err) {
         console.error("Auth error:", err)

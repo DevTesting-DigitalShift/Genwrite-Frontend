@@ -39,6 +39,7 @@ import isBetween from "dayjs/plugin/isBetween"
 import clsx from "clsx"
 import { debounce } from "lodash"
 import DateRangePicker from "@components/UI/DateRangePicker"
+import { useProAction } from "@/hook/useProAction"
 
 dayjs.extend(isBetween)
 
@@ -50,6 +51,7 @@ const MyProjects = () => {
   const queryClient = useQueryClient()
   const user = useSelector(selectUser)
   const userId = user?.id || "guest"
+  const { handleProAction } = useProAction()
 
   // Initialize filters from sessionStorage or default to "All" preset
   const initialFilters = JSON.parse(sessionStorage.getItem(`user_${userId}_filters`)) || {}
@@ -655,13 +657,17 @@ const MyProjects = () => {
           </motion.p>
         </div>
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-          <Link
-            to="/blog-editor"
-            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white rounded-lg transition-colors text-xs sm:text-sm font-medium"
+          <div
+            onClick={() => {
+              handleProAction(() => {
+                navigate("/blog-editor") // only runs for Pro users
+              })
+            }}
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white rounded-lg transition-colors text-xs sm:text-sm font-medium cursor-pointer"
           >
             <Plus className="w-4 sm:w-5 h-4 sm:h-5" />
             New Blog
-          </Link>
+          </div>
         </motion.div>
       </div>
 
@@ -1023,7 +1029,7 @@ const MyProjects = () => {
                               },
                               confirmProps: {
                                 type: "text",
-                                  className: "border-green-500 bg-green-50 text-green-600",
+                                className: "border-green-500 bg-green-50 text-green-600",
                               },
                               cancelProps: {
                                 danger: false,

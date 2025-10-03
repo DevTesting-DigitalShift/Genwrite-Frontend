@@ -377,3 +377,43 @@ input[type="number"] {
     max-width: 400px !important;
   }
 }
+
+.ant-table-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.ant-table-thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #fafafa;
+}
+.ant-table-thead > tr > th {
+  background: #fafafa !important;
+  white-space: nowrap;
+}
+.ant-table-cell {
+  white-space: nowrap;
+}
+@media (max-width: 640px) {
+  .ant-table-tbody > tr > td {
+    padding: 8px !important;
+    font-size: 12px !important;
+  }
+  .ant-table-thead > tr > th {
+    padding: 8px !important;
+    font-size: 12px !important;
+  }
+  .ant-tag {
+    font-size: 12px !important;
+    padding: 2px 6px !important;
+  }
+}
+@media (max-width: 768px) {
+  .ant-table-tbody > tr > td {
+    padding: 10px !important;
+  }
+  .ant-table-thead > tr > th {
+    padding: 10px !important;
+  }
+}

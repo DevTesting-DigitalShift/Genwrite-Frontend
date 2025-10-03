@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react"
 import { Tabs, Button, Card, Flex, Typography, message, Input, Space, Spin } from "antd"
-import { Server, Download, Tag, Clock, CheckCircle, Edit, Globe } from "lucide-react"
+import { Server, Download, Tag, Clock, CheckCircle, Edit, Globe, XCircle } from "lucide-react"
 import { pluginsData } from "@/data/pluginsData"
 import { motion } from "framer-motion"
 import { Helmet } from "react-helmet"
@@ -165,10 +165,31 @@ const PluginsMain = () => {
       if (loading || localLoading) return
       setLocalLoading(true)
       try {
-        const result = await dispatch(pingIntegrationThunk("WORDPRESS")).unwrap()
-        message.success(result.message)
+        const type = plugin.id === 112 ? "SERVERENDPOINT" : "WORDPRESS"
+        const result = await dispatch(pingIntegrationThunk(type)).unwrap()
+        setWordpressStatus((prev) => ({
+          ...prev,
+          [plugin.id]: {
+            status: result.status || "success",
+            message: result.message,
+            success: result.success,
+          },
+        }))
+        if (result.success) {
+          message.success(result.message)
+        } else {
+          message.error(result.message)
+        }
       } catch (err) {
-        const errorMsg = err.message || "Failed to check connection status"
+        const errorMsg = err.message || `Failed to check ${plugin.pluginName} connection status`
+        setWordpressStatus((prev) => ({
+          ...prev,
+          [plugin.id]: {
+            status: "error",
+            message: errorMsg,
+            success: false,
+          },
+        }))
         message.error(errorMsg)
       } finally {
         setLocalLoading(false)
@@ -250,15 +271,19 @@ const PluginsMain = () => {
             <Flex vertical gap="middle">
               <Flex align="center" gap="small">
                 <Text strong>WordPress Integration</Text>
-                {wordpressInt && !isEditing && (
-                  <Flex align="center" gap="small">
-                    <CheckCircle size={16} className="text-green-500" />
-                    <Text className="text-green-600">Connected</Text>
-                  </Flex>
-                )}
-                {!wordpressInt && !isEditing && (
-                  <Text className="text-gray-600">No integration found</Text>
-                )}
+                {integrations?.integrations?.WORDPRESS ? (
+                  wordpressStatus[plugin.id]?.success ? (
+                    <Flex align="center" gap="small">
+                      <CheckCircle size={16} className="text-green-500" />
+                      <Text className="text-green-600">Connected</Text>
+                    </Flex>
+                  ) : (
+                    <Flex align="center" gap="small">
+                      <XCircle size={16} className="text-red-500" />
+                      <Text className="text-red-600">Not Connected</Text>
+                    </Flex>
+                  )
+                ) : null}
               </Flex>
               <Space.Compact style={{ width: "100%" }}>
                 <div className="relative w-full">
@@ -271,7 +296,7 @@ const PluginsMain = () => {
                     className="w-full rounded-lg rounded-r-none border border-gray-300 px-10 py-[9px] text-sm"
                     prefix={<Server size={16} className="text-gray-400" />}
                   />
-                   <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                 </div>
                 {isEditing ? (
                   <Button

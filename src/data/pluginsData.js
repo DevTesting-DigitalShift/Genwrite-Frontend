@@ -8,13 +8,13 @@ export const pluginsData = (setWordpressStatus) => [
     name: "WordPress",
     icon: FaWordpressSimple,
     pluginTitle: "A WordPress plugin to upload blogs using AI",
-    pluginName: "AI Blogger Uploader",
+    pluginName: "AI Blogger Sync",
     pluginImage: "./Images/wordpres.png",
     updatedDate: "18th Sep, 2025",
     version: "3.3.3",
     description: "A WordPress plugin to upload blogs using AI",
     message:
-      "AI Blogger Uploader is a powerful WordPress plugin that let's your wordpress website to connect our genwrite.co domain and let's you upload blogs generated using AI. It is a great tool for bloggers and content creators who want to save time and effort in writing articles. With AI Blogger Uploader, you can easily generate high-quality content with just a few clicks at genwrite.co and post to your wordpress website with ease.",
+      "AI Blogger Sync is a powerful WordPress plugin that let's your wordpress website to connect our genwrite.co domain and let's you upload blogs generated using AI. It is a great tool for bloggers and content creators who want to save time and effort in writing articles. With AI Blogger Sync, you can easily generate high-quality content with just a few clicks at genwrite.co and post to your wordpress website with ease.",
     downloadLink: "/ai-blogger-uploader.zip",
     // onCheck: async () => {
     //   try {
@@ -24,7 +24,7 @@ export const pluginsData = (setWordpressStatus) => [
     //       message: res.data.message,
     //       success: res.data.success,
     //     }
-    //   } catch (err) { 
+    //   } catch (err) {
     //     return {
     //       status: err.response?.status || "error",
     //       message:
