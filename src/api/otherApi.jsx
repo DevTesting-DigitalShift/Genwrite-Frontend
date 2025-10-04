@@ -69,3 +69,8 @@ export const unsubscribeUser = async (email) => {
     throw new Error(error || "Failed to unsubscribe")
   }
 }
+
+export const updateIntegration = async (payload) => {
+  const response = await axiosInstance.put("/integrations/post", payload)
+  return response.data
+}

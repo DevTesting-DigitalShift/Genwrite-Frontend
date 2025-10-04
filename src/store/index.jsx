@@ -9,6 +9,7 @@ import wordpressReducer from "./slices/otherSlice"
 import gscReducer from "./slices/gscSlice"
 import humanizeReducer from "./slices/humanizeSlice"
 import creditLogsReducer from "./slices/creditLogSlice"
+import integrationReducer from "./slices/integrationSlice"
 
 export const store = configureStore({
   reducer: {
@@ -22,5 +23,6 @@ export const store = configureStore({
     gsc: gscReducer,
     humanize: humanizeReducer,
     creditLogs: creditLogsReducer,
+    integration: integrationReducer
   },
 })
