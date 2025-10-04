@@ -505,9 +505,9 @@ const TextEditorSidebar = ({
   )
 
   const handleCategorySubmit = useCallback(
-    ({ category, includeTableOfContents }) => {
+    ({ category, includeTableOfContents, type }) => {
       try {
-        onPost({ ...formData, categories: category, includeTableOfContents })
+        onPost({ ...formData, categories: category, includeTableOfContents, type })
       } catch (error) {
         console.error("Failed to post blog:", {
           error: error.message,
@@ -830,7 +830,7 @@ const TextEditorSidebar = ({
                     <div className="space-y-4 p-4 bg-white rounded-lg shadow-sm border border-gray-200">
                       {metadataHistory.length > 0 && (
                         <Dropdown
-                          overlay={
+                          menu={
                             <Menu
                               onClick={({ key }) => {
                                 if (key.startsWith("delete-")) {

@@ -59,17 +59,16 @@ const SelectTemplateModal = ({ handleNext, handleClose, data, setData, isModalVi
       title="Step 1: Select Template"
       open={isModalVisible}
       onCancel={handleClose}
-      footer={[
-        <div className="flex justify-end w-full">
+      footer={
+        <div className="flex justify-end w-full gap-2">
           <Button
-            key="next"
             onClick={handleNextClick}
             className="px-4 sm:px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 ml-2 sm:ml-3 text-sm sm:text-base"
           >
             Next
           </Button>
-        </div>,
-      ]}
+        </div>
+      }
       centered
       width="90vw"
       styles={{

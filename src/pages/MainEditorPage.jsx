@@ -143,7 +143,7 @@ const handlePostToWordPress = async (postData) => {
 
   try {
     const requestData = {
-      type: "WORDPRESS", // 🔑 backend needs type
+      type: postData.type.platform, 
       blogId: blog._id,
       includeTableOfContents: postData.includeTableOfContents ?? false,
       category: postData.category,   // 🔄 match backend param

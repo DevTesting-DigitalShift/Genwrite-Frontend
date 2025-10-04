@@ -165,7 +165,6 @@ const PluginsMain = () => {
             ? { type: "SERVERENDPOINT", url, frontend, credentials: { authToken } }
             : { type: "WORDPRESS", url }
         const result = await dispatch(createIntegrationThunk(payload)).unwrap()
-        message.success(`${plugin.pluginName} integration created successfully`)
         await dispatch(getIntegrationsThunk()).unwrap()
         setIsEditing(false)
       } catch (err) {
@@ -343,13 +342,15 @@ const PluginsMain = () => {
                     size="large"
                     onClick={isEditing ? handleConnect : handlePing}
                     disabled={
-                      loading ||
-                      localLoading ||
-                      !url ||
-                      !frontend ||
-                      !authToken ||
-                      !isValidUrl ||
-                      !isValidFrontend
+                      isEditing
+                        ? loading ||
+                          localLoading ||
+                          !url ||
+                          !frontend ||
+                          !authToken ||
+                          !isValidUrl ||
+                          !isValidFrontend
+                        : loading || localLoading
                     }
                     loading={localLoading}
                     className={`rounded-lg border-0 ${
@@ -395,7 +396,7 @@ const PluginsMain = () => {
 
                 {localLoading && (
                   <Flex justify="center" className="mt-4">
-                    <Spin tip="Processing integration..." />
+                    <Spin />
                   </Flex>
                 )}
               </Flex>
@@ -508,7 +509,7 @@ const PluginsMain = () => {
               </Space.Compact>
               {localLoading && (
                 <Flex justify="center" className="mt-4">
-                  <Spin tip="Processing integration..." />
+                  <Spin />
                 </Flex>
               )}
               {url && !isValidUrl && (

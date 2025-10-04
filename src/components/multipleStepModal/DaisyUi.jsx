@@ -82,6 +82,13 @@ const MultiStepModal = ({ closeFnc }) => {
   }, [dispatch])
 
   useEffect(() => {
+    // Fire message if brand voices array is empty
+    if (formData.isCheckedBrand && (!brands || brands.length === 0)) {
+      message.warning("No brand voices available. Create one to get started.", 3)
+    }
+  }, [formData.isCheckedBrand, brands])
+
+  useEffect(() => {
     if (isAiImagesLimitReached && formData.isCheckedGeneratedImages) {
       setFormData((prev) => ({
         ...prev,
@@ -1087,8 +1094,15 @@ const MultiStepModal = ({ closeFnc }) => {
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
                       type="checkbox"
-                      checked={formData.isCheckedBrand}
+                      checked={formData.isCheckedBrand && brands?.length > 0}
                       onChange={() => {
+                        if (!brands || brands.length === 0) {
+                          message.warning(
+                            "No brand voices available. Create one to enable this option.",
+                            3
+                          )
+                          return
+                        }
                         setFormData((prev) => ({
                           ...prev,
                           isCheckedBrand: !prev.isCheckedBrand,
@@ -1096,8 +1110,9 @@ const MultiStepModal = ({ closeFnc }) => {
                         }))
                       }}
                       className="sr-only peer"
-                      aria-checked={formData.isCheckedBrand}
+                      aria-checked={formData.isCheckedBrand && brands?.length > 0}
                     />
+
                     <div className="w-12 h-6 bg-gray-300 rounded-full peer peer-checked:after:translate-x-6 peer-checked:bg-[#1B6FC9] after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-transform duration-300" />
                   </label>
                 </div>
@@ -1233,28 +1248,22 @@ const MultiStepModal = ({ closeFnc }) => {
                       Post your blog automatically to connected platforms only.
                     </p>
                   </span>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+
+                  <Select
+                    className="w-full mt-2"
+                    placeholder="Select platform"
+                    value={formData.selectedIntegration?.platform || undefined}
+                    onChange={(platform) => {
+                      const details = integrations.integrations[platform]
+                      handleIntegrationChange(platform, details.url)
+                    }}
+                  >
                     {Object.entries(integrations.integrations).map(([platform, details]) => (
-                      <label
-                        key={platform}
-                        className={`border rounded-lg px-4 py-3 flex items-center justify-center gap-2 cursor-pointer transition-all duration-150 ${
-                          formData.selectedIntegration?.platform === platform
-                            ? "border-blue-600 bg-blue-50"
-                            : "border-gray-300"
-                        } hover:shadow-sm`}
-                      >
-                        <input
-                          type="radio"
-                          name="selectedIntegration"
-                          value={platform}
-                          checked={formData.selectedIntegration?.platform === platform}
-                          onChange={() => handleIntegrationChange(platform, details.url)}
-                          className="hidden"
-                        />
-                        <span className="text-sm font-medium text-gray-800">{platform}</span>
-                      </label>
+                      <Option key={platform} value={platform}>
+                        {platform}
+                      </Option>
                     ))}
-                  </div>
+                  </Select>
                 </div>
               )}
 

@@ -599,55 +599,31 @@ const TextEditor = ({
     message.info("Retry content discarded.")
   }
 
-  const handleRewrite = async () => {
-    if (userPlan === "free" || userPlan === "basic") {
-      navigate("/pricing")
-      return
-    }
-
-    const proceedRewrite = async () => {
-      // Show confirmation popup about rewrite limits
-      handlePopup({
-        title: "Rewrite Selected Lines",
-        description: (
-          <>
-            Do you want to rewrite the selected lines?{" "}
-            <span className="font-bold">You can rewrite only 3 times.</span>
-          </>
-        ),
-        onConfirm: handleRetry,
-      })
-    }
-
-    if (unsavedChanges) {
-      handlePopup({
-        title: "Unsaved Changes",
-        description: (
-          <>
-            You have unsaved changes. Rewriting the selected text may affect your current changes.
-            Would you like to save them first?
-          </>
-        ),
-        confirmText: "Save First and Retry",
-        cancelText: "Retry without Saving",
-        onConfirm: async () => {
-          try {
-            await proceedRewrite()
-          } catch (error) {
-            console.error(error)
-            message.error("Failed to save changes. Please try again.")
-          }
-        },
-        onCancel: (e) => {
-          if (e?.source == "button") {
-            proceedRewrite()
-          }
-        },
-      })
-    } else {
-      await proceedRewrite()
-    }
+const handleRewrite = () => {
+  // Check plan
+  if (userPlan === "free" || userPlan === "basic") {
+    navigate("/pricing");
+    return;
   }
+
+  // Show the rewrite confirmation popup directly
+  handlePopup({
+    title: "Rewrite Selected Lines",
+    description: (
+      <>
+        Do you want to rewrite the selected lines?{" "}
+        <span className="font-bold">You can rewrite only 3 times.</span>
+      </>
+    ),
+    confirmText: "Yes, Rewrite",
+    cancelText: "Cancel",
+    onConfirm: handleRetry, // ✅ directly call your rewrite handler
+    onCancel: () => {
+      console.log("User cancelled rewrite"); // optional
+    },
+  });
+};
+
 
   const handleTabClick = (tab) => {
     setActiveTab(tab)

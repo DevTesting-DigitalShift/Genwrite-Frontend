@@ -134,6 +134,16 @@ const StepContent = ({
     },
   ]
 
+  useEffect(() => {
+    if (newJob.blogs.useBrandVoice && (!brands || brands.length === 0)) {
+      setNewJob((prev) => ({
+        ...prev,
+        blogs: { ...prev.blogs, useBrandVoice: false, brandId: null },
+      }))
+      message.warning("No brand voices available. Create one to enable this option.", 3)
+    }
+  }, [brands, newJob.blogs.useBrandVoice])
+
   const handleAddItems = (input, type) => {
     const trimmedInput = input.trim()
     if (!trimmedInput) return
@@ -1014,7 +1024,7 @@ const StepContent = ({
                   name="numberOfImages"
                   min="0"
                   max="20"
-                  value={newJob.blogs.numberOfImages}
+                  value={newJob.blogs.numberOfImages || 0}
                   onChange={handleInputChange}
                   onWheel={(e) => e.currentTarget.blur()}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm placeholder-gray-400 transition"
@@ -1275,35 +1285,29 @@ const StepContent = ({
             {/* Only show integration options if wordpressPosting is true AND integrations exist */}
             {newJob.options.wordpressPosting &&
               Object.keys(integrations?.integrations || {}).length > 0 && (
-                <div className="mt-5">
+                <div>
                   <span className="text-sm font-medium text-gray-700">
                     Select Your Publishing Platform
                     <p className="text-xs text-gray-500">
                       Post your blog automatically to connected platforms only.
                     </p>
                   </span>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+
+                  <Select
+                    className="w-full mt-2"
+                    placeholder="Select platform"
+                    value={formData.selectedIntegration?.platform || undefined}
+                    onChange={(platform) => {
+                      const details = integrations.integrations[platform]
+                      handleIntegrationChange(platform, details.url)
+                    }}
+                  >
                     {Object.entries(integrations.integrations).map(([platform, details]) => (
-                      <label
-                        key={platform}
-                        className={`border rounded-lg px-4 py-3 flex items-center justify-center gap-2 cursor-pointer transition-all duration-150 ${
-                          formData.selectedIntegration?.platform === platform
-                            ? "border-blue-600 bg-blue-50"
-                            : "border-gray-300"
-                        } hover:shadow-sm`}
-                      >
-                        <input
-                          type="radio"
-                          name="selectedIntegration"
-                          value={platform}
-                          checked={formData.selectedIntegration?.platform === platform}
-                          onChange={() => handleIntegrationChange(platform, details.url)}
-                          className="hidden"
-                        />
-                        <span className="text-sm font-medium text-gray-800">{platform}</span>
-                      </label>
+                      <Option key={platform} value={platform}>
+                        {platform}
+                      </Option>
                     ))}
-                  </div>
+                  </Select>
                 </div>
               )}
           </div>
@@ -1338,8 +1342,15 @@ const StepContent = ({
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={newJob.blogs.useBrandVoice}
+                  checked={newJob.blogs.useBrandVoice && brands?.length > 0}
                   onChange={() => {
+                    if (!brands || brands.length === 0) {
+                      message.warning(
+                        "No brand voices available. Create one to enable this option.",
+                        3
+                      )
+                      return
+                    }
                     setNewJob((prev) => ({
                       ...prev,
                       blogs: {
@@ -1351,8 +1362,9 @@ const StepContent = ({
                     setErrors((prev) => ({ ...prev, brandId: false }))
                   }}
                   className="sr-only peer"
-                  aria-checked={newJob.blogs.useBrandVoice}
+                  aria-checked={newJob.blogs.useBrandVoice && brands?.length > 0}
                 />
+
                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]" />
               </label>
             </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
-import { ExternalLink } from "lucide-react"
+import { Activity, ExternalLink } from "lucide-react"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import {
@@ -21,10 +21,10 @@ import { useDispatch, useSelector } from "react-redux"
 import { fetchCompetitiveAnalysisThunk } from "@store/slices/analysisSlice"
 import { LoadingOutlined } from "@ant-design/icons"
 import Loading from "@components/UI/Loading"
+import { Link as LinkIcon } from "lucide-react"
 import { fetchBlogById, fetchBlogs } from "@store/slices/blogSlice"
 
 const { Panel } = Collapse
-const { TabPane } = Tabs
 
 const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
   const [formData, setFormData] = useState({
@@ -271,21 +271,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
         title={
           <div className="flex items-center gap-2">
             <div className="p-1.5 bg-blue-100 rounded text-blue-500">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <line x1="2" y1="12" x2="22" y2="12" />
-                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-              </svg>
+              <LinkIcon size={20} strokeWidth={2} />
             </div>
             <span className="text-base md:text-lg font-semibold text-gray-800">{title}</span>
           </div>
@@ -336,30 +322,20 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
         title={
           <div className="flex items-center gap-2">
             <div className="p-1.5 bg-purple-100 rounded text-purple-500">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-                <path d="M12 17h.01" />
-              </svg>
+              <Activity size={20} strokeWidth={2} />
             </div>
-            <span className="text-base md:text-lg font-semibold text-gray-800">Competitors Analysis</span>
+            <span className="text-base md:text-lg font-semibold text-gray-800">
+              Competitors Analysis
+            </span>
           </div>
         }
         className="bg-white border border-gray-200 rounded-xl shadow-sm"
       >
         <Collapse key={collapseKey} accordion expandIconPosition="right">
           <Panel
-            header={<span className="font-semibold text-gray-800 text-sm md:text-base">Analysis</span>}
+            header={
+              <span className="font-semibold text-gray-800 text-sm md:text-base">Analysis</span>
+            }
             key="analysis"
           >
             <Collapse accordion>
@@ -372,7 +348,9 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
                     key={key}
                     header={
                       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center w-full pr-2">
-                        <span className="font-medium text-gray-800 text-sm md:text-base">{cleanMarkdown(key)}</span>
+                        <span className="font-medium text-gray-800 text-sm md:text-base">
+                          {cleanMarkdown(key)}
+                        </span>
                         <Tooltip title="Relatable Score">
                           {score && <Tag color="blue">{score.replace("/", " / ")}</Tag>}
                         </Tooltip>
@@ -387,7 +365,9 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
             </Collapse>
           </Panel>
           <Panel
-            header={<span className="font-semibold text-gray-800 text-sm md:text-base">Suggestions</span>}
+            header={
+              <span className="font-semibold text-gray-800 text-sm md:text-base">Suggestions</span>
+            }
             key="suggestions"
           >
             <ul className="list-decimal pl-6 space-y-3 text-sm md:text-base text-gray-700">
@@ -472,7 +452,9 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
               <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
             </svg>
           </div>
-          <h2 className="text-lg md:text-xl font-semibold text-gray-900">Competitive Analysis Dashboard</h2>
+          <h2 className="text-lg md:text-xl font-semibold text-gray-900">
+            Competitive Analysis Dashboard
+          </h2>
         </motion.div>
       }
       onCancel={closeFnc}
@@ -518,7 +500,9 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <label className="block text-sm md:text-base font-medium text-gray-700 mb-2">Select Blog Post</label>
+          <label className="block text-sm md:text-base font-medium text-gray-700 mb-2">
+            Select Blog Post
+          </label>
           <Select
             showSearch
             filterOption={(input, option) =>
@@ -551,7 +535,9 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
               </div>
               <div className="p-3 sm:p-4">
                 <div className="mb-3 sm:mb-4">
-                  <label className="block text-sm md:text-base font-medium text-gray-600 mb-1">Title</label>
+                  <label className="block text-sm md:text-base font-medium text-gray-600 mb-1">
+                    Title
+                  </label>
                   <Input
                     name="title"
                     value={formData.title}
@@ -561,7 +547,9 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
                 </div>
                 {mergedKeywords.length > 0 && (
                   <div className="mb-3 sm:mb-4">
-                    <label className="block text-sm md:text-base font-medium text-gray-600 mb-1">Keywords</label>
+                    <label className="block text-sm md:text-base font-medium text-gray-600 mb-1">
+                      Keywords
+                    </label>
                     <div className="flex flex-wrap gap-2">
                       {mergedKeywords.map((keyword, i) => (
                         <Tag
@@ -621,7 +609,9 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
             animate={{ opacity: 1 }}
             className="text-center py-8 sm:py-10 bg-gray-50 rounded-xl border border-gray-200 shadow-sm"
           >
-            <p className="text-gray-600 text-sm md:text-lg">Select a blog to view details and analysis</p>
+            <p className="text-gray-600 text-sm md:text-lg">
+              Select a blog to view details and analysis
+            </p>
           </motion.div>
         )}
 
@@ -645,7 +635,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
               className="w-full"
             >
               {hasAnalysisResults && (
-                <TabPane
+                <div
                   tab={
                     <span className="flex items-center gap-2 text-sm md:text-base">
                       <svg
@@ -676,18 +666,20 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: 0.2, duration: 0.5 }}
-                      className="flex flex-col items-center"
+                      className="flex flex-col items-center my-10"
                     >
                       <Progress
                         type="dashboard"
-                        percent={parseInt(analysisResults.insights?.blogScore || 0)}
+                        percent={Number(analysisResults.insights?.blogScore ?? 0)}
+                        width={120} 
                         format={(percent) => `${percent} / 100`}
                         strokeColor={{ "0%": "#1B6FC9", "100%": "#4C9FE8" }}
                         trailColor="#e5e7eb"
-                        size={["100%", "100%"]}
-                        className="w-32 sm:w-40 md:w-48"
                       />
-                      <div className="text-gray-800 text-base md:text-lg font-semibold mt-3">Blog SEO Score</div>
+
+                      <div className="text-gray-800 text-base md:text-lg font-semibold mt-3">
+                        Blog SEO Score
+                      </div>
                     </motion.div>
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
@@ -724,10 +716,10 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
                     </motion.div>
                     {renderCompetitorsAnalysis(analysisResults?.insights)}
                   </motion.div>
-                </TabPane>
+                </div>
               )}
               {hasCompetitors && (
-                <TabPane
+                <div
                   tab={
                     <span className="flex items-center gap-2 text-sm md:text-base">
                       <svg
@@ -750,27 +742,13 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
                   key="competitors"
                 >
                   {renderCompetitorsList(mergedCompetitors)}
-                </TabPane>
+                </div>
               )}
               {(hasOutboundLinks || hasInternalLinks) && (
-                <TabPane
+                <div
                   tab={
                     <span className="flex items-center gap-2 text-sm md:text-base">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="2" y1="12" x2="22" y2="12" />
-                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                      </svg>
+                      <Activity size={20} strokeWidth={2} />
                       Links
                     </span>
                   }
@@ -786,34 +764,20 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
                       "Internal Links"
                     )}
                   </div>
-                </TabPane>
+                </div>
               )}
               {hasInitialAnalysis && (
-                <TabPane
+                <div
                   tab={
                     <span className="flex items-center gap-2 text-sm md:text-base">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <circle cx="12" cy="12" r="10" />
-                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-                        <path d="M12 17h.01" />
-                      </svg>
+                      <Activity size={20} strokeWidth={2} />
                       Initial Analysis
                     </span>
                   }
                   key="initial-analysis"
                 >
                   {renderCompetitorsAnalysis(formData?.generatedMetadata?.competitorsAnalysis)}
-                </TabPane>
+                </div>
               )}
             </Tabs>
           </motion.div>

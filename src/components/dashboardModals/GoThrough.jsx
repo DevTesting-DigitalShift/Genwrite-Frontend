@@ -10,7 +10,7 @@ const GoThrough = ({ onClose }) => {
       footer={null}
       closeIcon={<X size={24} className="text-gray-500 hover:text-gray-800 transition-colors" />}
       width={900} // Equivalent to Tailwind's max-w-4xl
-      bodyStyle={{ padding: 0, borderRadius: "12px", overflow: "hidden" }}
+      styles={{ padding: 0, borderRadius: "12px", overflow: "hidden" }}
       destroyOnClose // Resets video state when modal is closed
       styles={{ mask: { backdropFilter: "blur(4px)" } }}
     >

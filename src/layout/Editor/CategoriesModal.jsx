@@ -86,15 +86,22 @@ const CategoriesModal = ({
     if (!selectedCategory) {
       setCategoryError(true)
       message.error("Please select a category.")
+
       return
     }
-    onSubmit({ category: selectedCategory, includeTableOfContents })
+    onSubmit({ category: selectedCategory, includeTableOfContents, type: selectedIntegration })
     setIsCategoryModalOpen(false)
     setSelectedCategory("")
     setIncludeTableOfContents(false)
     setCustomCategory("")
     setCategoryError(false)
-  }, [selectedCategory, includeTableOfContents, onSubmit, setIsCategoryModalOpen])
+  }, [
+    selectedCategory,
+    includeTableOfContents,
+    selectedIntegration,
+    onSubmit,
+    setIsCategoryModalOpen,
+  ])
 
   // Handle modal cancellation
   const handleCancel = useCallback(() => {
@@ -264,28 +271,21 @@ const CategoriesModal = ({
               </p>
             </span>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+            <Select
+              className="w-full mt-2"
+              placeholder="Select platform"
+              value={selectedIntegration?.platform || undefined}
+              onChange={(platform) => {
+                const details = integrations.integrations[platform]
+                handleIntegrationChange(platform, details.url)
+              }}
+            >
               {Object.entries(integrations.integrations).map(([platform, details]) => (
-                <label
-                  key={platform}
-                  className={`border rounded-lg px-4 py-3 flex items-center justify-center gap-2 cursor-pointer transition-all duration-150 ${
-                    selectedIntegration?.platform === platform
-                      ? "border-blue-600 bg-blue-50"
-                      : "border-gray-300"
-                  } hover:shadow-sm`}
-                >
-                  <input
-                    type="radio"
-                    name="selectedIntegration"
-                    value={platform}
-                    checked={selectedIntegration?.platform === platform}
-                    onChange={() => handleIntegrationChange(platform, details.url)}
-                    className="hidden"
-                  />
-                  <span className="text-sm font-medium text-gray-800">{platform}</span>
-                </label>
+                <Option key={platform} value={platform}>
+                  {platform}
+                </Option>
               ))}
-            </div>
+            </Select>
           </div>
         )}
       </div>

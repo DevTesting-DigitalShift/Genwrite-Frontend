@@ -307,11 +307,11 @@ const Trashcan = () => {
                           be undone.
                         </span>
                       ),
-                      
+
                       onConfirm: handleBulkDelete,
                       confirmProps: {
                         type: "text",
-                         className: "border-red-500 hover:bg-red-500 bg-red-100 text-red-600",
+                        className: "border-red-500 hover:bg-red-500 bg-red-100 text-red-600",
                       },
                       cancelProps: {
                         danger: false,
@@ -341,7 +341,6 @@ const Trashcan = () => {
                 placeholder="Search by title or keywords..."
                 onChange={(e) => debouncedSearch(e.target.value)}
                 prefix={<Search className="w-4 sm:w-5 h-4 sm:h-5 text-gray-400 mr-2 sm:mr-3" />}
-                allowClear
                 className="w-full rounded-lg border border-gray-300 px-10 py-[5px] text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
                 disabled={isLoading}
               />
@@ -566,7 +565,7 @@ const Trashcan = () => {
                               },
                               confirmProps: {
                                 type: "text",
-                                  className: "border-green-500 bg-green-50 text-green-600",
+                                className: "border-green-500 bg-green-50 text-green-600",
                               },
                               cancelProps: {
                                 danger: false,

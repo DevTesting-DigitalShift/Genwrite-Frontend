@@ -436,7 +436,7 @@ const BrandVoice = () => {
               Post or Blog Link <span className="text-red-500">*</span>
               <Tooltip
                 title="Add a link of your home page to fetch site info"
-                overlayStyle={{
+                styles={{
                   backgroundColor: "#4169e1",
                   color: "#fff",
                   borderRadius: "8px",
@@ -525,7 +525,7 @@ const BrandVoice = () => {
               Keywords <span className="text-red-500">*</span>
               <Tooltip
                 title="Upload a .csv file in the format: `Keyword` as header"
-                overlayStyle={{
+                styles={{
                   backgroundColor: "#4169e1",
                   color: "#fff",
                   borderRadius: "8px",
@@ -591,7 +591,7 @@ const BrandVoice = () => {
               Sitemap URL <span className="text-red-500">*</span>
               <Tooltip
                 title="Paste the URL of your XML sitemap (e.g., https://example.com/sitemap.xml)"
-                overlayStyle={{
+                styles={{
                   backgroundColor: "#4169e1",
                   color: "#fff",
                   borderRadius: "8px",

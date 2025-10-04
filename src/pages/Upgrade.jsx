@@ -344,7 +344,7 @@ const PricingCard = ({
         open={showConfirmModal}
         onCancel={() => setShowConfirmModal(false)}
         centered
-        bodyStyle={{ padding: "10px", fontSize: "16px" }}
+        styles={{ padding: "10px", fontSize: "16px" }}
         footer={
           <div className="flex justify-end gap-3">
             <button
