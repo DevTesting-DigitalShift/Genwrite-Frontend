@@ -43,11 +43,12 @@ const PricingCard = ({
     return (customCredits * 0.01).toFixed(2)
   }
 
+  // Always display the monthly equivalent price
   const displayPrice =
     plan.type === "credit_purchase"
       ? null
       : billingPeriod === "annual"
-      ? plan.priceAnnual
+      ? plan.priceAnnual // Use the monthly equivalent for annual billing
       : plan.priceMonthly
 
   const isWithinBillingCycle = userStatus === "active"
@@ -178,21 +179,18 @@ const PricingCard = ({
       userBillingPeriod === "monthly" &&
       billingPeriod === "annual"
     ) {
-      // Pro Monthly to Pro Annual: Start at next billing cycle
       thisModalType = "same-tier"
       thisModalMessage = {
         title: "Confirm Plan Change",
         body: `Your new ${plan.name} plan will start on ${startDateStr} at the beginning of your next billing cycle.`,
       }
     } else if (!isSameTier && currentTier < newTier) {
-      // Upgrade (e.g., Basic to Pro, Basic/Pro to Enterprise): Start immediately
       thisModalType = "upgrade"
       thisModalMessage = {
         title: "Confirm Upgrade",
         body: `Your current subscription will be replaced, and your new ${plan.name} plan will start immediately.`,
       }
     } else {
-      // Downgrade (e.g., Pro to Basic, Enterprise to Pro/Basic): Start at next billing cycle
       thisModalType = "downgrade"
       thisModalMessage = {
         title: "Confirm Downgrade",
@@ -287,7 +285,7 @@ const PricingCard = ({
                   {typeof displayPrice === "string" ? displayPrice : `$${displayPrice}`}
                 </span>
                 {typeof displayPrice !== "string" && (
-                  <span className="text-gray-500 text-lg pb-1">/{billingPeriod}</span>
+                  <span className="text-gray-500 text-lg pb-1">/monthly</span>
                 )}
               </div>
               {billingPeriod === "annual" && typeof displayPrice === "number" && (

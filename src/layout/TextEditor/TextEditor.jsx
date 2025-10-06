@@ -291,12 +291,20 @@ const TextEditor = ({
     }
 
     const proceedWithRegenerate = async () => {
+      const modelCostMap = {
+        gemini: 10,
+        chatgpt: 30,
+        claude: 50,
+      }
+
+      const credits = modelCostMap[blog?.aiModel?.toLowerCase()] || 10 // fallback to 10
+
       handlePopup({
-        title: "Retry Blog Generation",
+        title: "Regenerate Blog Generation",
         description: (
           <>
             Are you sure you want to retry generating this blog?{" "}
-            <span className="font-bold">This will cost 10 credits</span>
+            <span className="font-bold">This will cost {credits} credits</span>
           </>
         ),
         onConfirm: handleReGenerate,
@@ -599,31 +607,30 @@ const TextEditor = ({
     message.info("Retry content discarded.")
   }
 
-const handleRewrite = () => {
-  // Check plan
-  if (userPlan === "free" || userPlan === "basic") {
-    navigate("/pricing");
-    return;
+  const handleRewrite = () => {
+    // Check plan
+    if (userPlan === "free" || userPlan === "basic") {
+      navigate("/pricing")
+      return
+    }
+
+    // Show the rewrite confirmation popup directly
+    handlePopup({
+      title: "Rewrite Selected Lines",
+      description: (
+        <>
+          Do you want to rewrite the selected lines?{" "}
+          <span className="font-bold">You can rewrite only 3 times.</span>
+        </>
+      ),
+      confirmText: "Yes, Rewrite",
+      cancelText: "Cancel",
+      onConfirm: handleRetry, // ✅ directly call your rewrite handler
+      onCancel: () => {
+        console.log("User cancelled rewrite") // optional
+      },
+    })
   }
-
-  // Show the rewrite confirmation popup directly
-  handlePopup({
-    title: "Rewrite Selected Lines",
-    description: (
-      <>
-        Do you want to rewrite the selected lines?{" "}
-        <span className="font-bold">You can rewrite only 3 times.</span>
-      </>
-    ),
-    confirmText: "Yes, Rewrite",
-    cancelText: "Cancel",
-    onConfirm: handleRetry, // ✅ directly call your rewrite handler
-    onCancel: () => {
-      console.log("User cancelled rewrite"); // optional
-    },
-  });
-};
-
 
   const handleTabClick = (tab) => {
     setActiveTab(tab)

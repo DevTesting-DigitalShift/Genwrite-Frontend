@@ -2,10 +2,9 @@ import { useState, useEffect, useMemo } from "react"
 import { Tabs, Button, Card, Flex, Typography, message, Space, Spin } from "antd"
 import { Server, Download, Tag, Clock, CheckCircle, Edit, Globe, XCircle } from "lucide-react"
 import { pluginsData } from "@/data/pluginsData"
-import { motion } from "framer-motion"
 import { Helmet } from "react-helmet"
 import { useDispatch, useSelector } from "react-redux"
-import {
+import {  
   createIntegrationThunk,
   getIntegrationsThunk,
   pingIntegrationThunk,
@@ -239,21 +238,13 @@ const PluginsMain = () => {
 
     if (plugin.id === 112) {
       return (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
-          className="h-full p-6"
-        >
+        <div className="h-full p-6">
           <Flex vertical gap="large">
             <Flex className="flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-6">
-              <motion.img
+              <img
                 src={plugin.pluginImage}
                 alt={plugin.pluginName}
                 className="h-16 w-16 md:h-20 md:w-20 object-contain rounded-lg shadow-sm"
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 0.4, delay: 0.1 }}
               />
               <Flex vertical gap="small">
                 <Title level={2} className="text-gray-900 m-0 font-bold text-lg md:text-2xl">
@@ -299,106 +290,111 @@ const PluginsMain = () => {
                 </Flex>
 
                 {/* 🔹 Input fields */}
-                <Flex vertical gap="small">
-                  {/* Server URL */}
-                  <div className="relative w-full">
-                    <input
-                      placeholder="Enter server URL (e.g., http://localhost:4000/blogs)"
-                      value={url}
-                      onChange={handleUrlChange}
-                      disabled={!isEditing || loading || localLoading}
-                      className="w-full rounded-lg border border-gray-300 px-10 py-[9px] text-sm"
-                    />
-                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  </div>
-
-                  {/* Frontend URL */}
-                  <div className="relative w-full">
-                    <input
-                      placeholder="Enter frontend URL (e.g., http://localhost:4000)"
-                      value={frontend}
-                      onChange={handleFrontendChange}
-                      disabled={!isEditing || loading || localLoading}
-                      className="w-full rounded-lg border border-gray-300 px-10 py-[9px] text-sm"
-                    />
-                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  </div>
-
-                  {/* Auth Token */}
-                  <div className="relative w-full">
-                    <input
-                      placeholder="Enter auth token"
-                      value={authToken}
-                      onChange={handleAuthTokenChange}
-                      disabled={!isEditing || loading || localLoading}
-                      className="w-full rounded-lg border border-gray-300 px-10 py-[9px] text-sm"
-                    />
-                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  </div>
-
-                  {/* 🔹 Single Connect / Update Button */}
-                  <Button
-                    type="primary"
-                    size="large"
-                    onClick={isEditing ? handleConnect : handlePing}
-                    disabled={
-                      isEditing
-                        ? loading ||
-                          localLoading ||
-                          !url ||
-                          !frontend ||
-                          !authToken ||
-                          !isValidUrl ||
-                          !isValidFrontend
-                        : loading || localLoading
-                    }
-                    loading={localLoading}
-                    className={`rounded-lg border-0 ${
-                      isEditing
-                        ? "bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600"
-                        : "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
-                    }`}
-                  >
-                    {serverInt
-                      ? isEditing
-                        ? "Update Integration"
-                        : "Check Status"
-                      : "Connect Integration"}
-                  </Button>
-                </Flex>
-
-                {/* 🔹 Connected Info */}
-                {serverInt && !isEditing && (
-                  <Flex align="center" gap="small" className="mt-2">
-                    <Text className="text-gray-600 text-sm">
-                      Connected Server: <strong>{serverInt.url}</strong> | Frontend:{" "}
-                      <strong>{serverInt.frontend}</strong> | Auth Token:{" "}
-                      <strong>{serverInt.credentials?.authToken}</strong>
-                    </Text>
+                <Flex vertical gap="middle" className="w-full">
+                  {/* Header Row */}
+                  <Flex align="center" className="justify-between">
+                    <Text strong>Server Integration</Text>
                     <Button
                       type="link"
                       icon={<Edit size={16} />}
                       onClick={handleEdit}
-                      className="p-0"
+                      className="p-0 text-blue-500 hover:text-blue-600"
                     >
-                      Edit
+                      {isEditing ? "Cancel" : "Edit"}
                     </Button>
                   </Flex>
-                )}
 
-                {/* 🔹 Empty State Message */}
-                {!serverInt && isEditing && (
-                  <Text className="text-gray-600 text-sm">
-                    Please enter your server URL, frontend URL, and auth token to connect the
-                    integration.
-                  </Text>
-                )}
+                  {/* Input Fields */}
+                  <div className="flex flex-col gap-3 w-full">
+                    {/* Server URL */}
+                    <div className="flex flex-col w-full">
+                      <label className="text-sm font-medium text-gray-700 mb-1">Server URL</label>
+                      <div className="relative w-full">
+                        <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <input
+                          placeholder="e.g., http://localhost:4000/blogs"
+                          value={url}
+                          onChange={handleUrlChange}
+                          disabled={!isEditing || loading || localLoading}
+                          className={`w-full rounded-lg border ${
+                            url && !isValidUrl ? "border-red-400" : "border-gray-300"
+                          } px-10 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 disabled:bg-gray-100`}
+                        />
+                      </div>
+                      {url && !isValidUrl && (
+                        <span className="text-red-500 text-xs mt-1">
+                          Please enter a valid Server URL (e.g., http://localhost:4000/blogs)
+                        </span>
+                      )}
+                    </div>
 
-                {localLoading && (
-                  <Flex justify="center" className="mt-4">
-                    <Spin />
-                  </Flex>
-                )}
+                    {/* Frontend URL */}
+                    <div className="flex flex-col w-full">
+                      <label className="text-sm font-medium text-gray-700 mb-1">Frontend URL</label>
+                      <div className="relative w-full">
+                        <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <input
+                          placeholder="e.g., http://localhost:3000"
+                          value={frontend}
+                          onChange={handleFrontendChange}
+                          disabled={!isEditing || loading || localLoading}
+                          className={`w-full rounded-lg border ${
+                            frontend && !isValidFrontend ? "border-red-400" : "border-gray-300"
+                          } px-10 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 disabled:bg-gray-100`}
+                        />
+                      </div>
+                      {frontend && !isValidFrontend && (
+                        <span className="text-red-500 text-xs mt-1">
+                          Please enter a valid Frontend URL (e.g., http://localhost:3000)
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Auth Token */}
+                    <div className="flex flex-col w-full">
+                      <label className="text-sm font-medium text-gray-700 mb-1">Auth Token</label>
+                      <div className="relative w-full">
+                        <input
+                          placeholder="Enter your auth token"
+                          value={authToken}
+                          onChange={handleAuthTokenChange}
+                          disabled={!isEditing || loading || localLoading}
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 disabled:bg-gray-100"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Action Button */}
+                    <Button
+                      type="primary"
+                      size="large"
+                      onClick={isEditing ? handleConnect : handlePing}
+                      disabled={
+                        isEditing
+                          ? loading ||
+                            localLoading ||
+                            !url ||
+                            !frontend ||
+                            !authToken ||
+                            !isValidUrl ||
+                            !isValidFrontend
+                          : loading || localLoading
+                      }
+                      loading={localLoading}
+                      className={`rounded-lg border-0 mt-2 ${
+                        isEditing
+                          ? "bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600"
+                          : "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+                      }`}
+                    >
+                      {serverInt
+                        ? isEditing
+                          ? "Update Integration"
+                          : "Check Status"
+                        : "Connect Integration"}
+                    </Button>
+                  </div>
+                </Flex>
               </Flex>
             </Card>
 
@@ -408,12 +404,12 @@ const PluginsMain = () => {
               </Paragraph>
             </Card>
           </Flex>
-        </motion.div>
+        </div>
       )
     }
 
     return (
-      <motion.div
+      <div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
@@ -421,7 +417,7 @@ const PluginsMain = () => {
       >
         <Flex vertical gap="large" className="h-full p-6">
           <Flex className="flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-6">
-            <motion.img
+            <img
               src={plugin.pluginImage}
               alt={plugin.pluginName}
               className="h-16 w-16 md:h-20 md:w-20 object-contain rounded-lg shadow-sm"
@@ -453,92 +449,104 @@ const PluginsMain = () => {
 
           <Card className="mt-6 bg-gray-50 border-0 rounded-lg shadow-sm">
             <Flex vertical gap="middle">
-              <Flex align="center" gap="small">
-                <Text strong>Server-to-Server Integration</Text>
+              {/* Header */}
+              <Flex align="center" justify="between">
+                <Flex align="center" gap="small">
+                  <Text strong>AI Blogger Sync Integration</Text>
 
-                {integrations?.integrations?.WORDPRESS &&
-                  wordpressStatus[plugin.id]?.success !== undefined &&
-                  (wordpressStatus[plugin.id]?.success ? (
-                    <Flex align="center" gap="small">
-                      <CheckCircle size={16} className="text-green-500" />
-                      <Text className="text-green-600">Connected</Text>
-                    </Flex>
-                  ) : (
-                    <Flex align="center" gap="small">
-                      <XCircle size={16} className="text-red-500" />
-                      <Text className="text-red-600">Not Connected</Text>
-                    </Flex>
-                  ))}
+                  {integrations?.integrations?.WORDPRESS &&
+                    wordpressStatus[plugin.id]?.success !== undefined &&
+                    (wordpressStatus[plugin.id]?.success ? (
+                      <Flex align="center" gap="small">
+                        <CheckCircle size={16} className="text-green-500" />
+                        <Text className="text-green-600">Connected</Text>
+                      </Flex>
+                    ) : (
+                      <Flex align="center" gap="small">
+                        <XCircle size={16} className="text-red-500" />
+                        <Text className="text-red-600">Not Connected</Text>
+                      </Flex>
+                    ))}
+                </Flex>
               </Flex>
 
-              <Space.Compact style={{ width: "100%" }}>
-                <div className="relative w-full">
-                  <input
-                    placeholder="Enter your WordPress URL (e.g., https://example.com)"
-                    value={url}
-                    onChange={handleUrlChange}
-                    status={url && !isValidUrl ? "error" : ""}
-                    disabled={!isEditing || loading || localLoading}
-                    className="w-full rounded-lg rounded-r-none border border-gray-300 px-10 py-[9px] text-sm"
-                  />
-                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+              {/* Input + Button */}
+              <div className="flex flex-col w-full">
+                {/* Label Row */}
+                <label className="flex items-center justify-between text-sm font-medium text-gray-700 mb-2">
+                  <span>Enter your WordPress URL</span>
+                  <Button
+                    type="link"
+                    icon={<Edit size={16} />}
+                    onClick={handleEdit}
+                    className="p-0 text-blue-500 hover:text-blue-600"
+                  >
+                    Edit
+                  </Button>
+                </label>
+
+                {/* Input + Primary Action */}
+                <div className="flex flex-col sm:flex-row w-full gap-2">
+                  <div className="relative flex-1">
+                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <input
+                      placeholder="e.g., https://example.com"
+                      value={url}
+                      onChange={handleUrlChange}
+                      status={url && !isValidUrl ? "error" : ""}
+                      disabled={!isEditing || loading || localLoading}
+                      className="w-full rounded-lg border border-gray-300 px-10 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 disabled:bg-gray-100"
+                    />
+                  </div>
+
+                  {isEditing ? (
+                    <Button
+                      type="primary"
+                      size="large"
+                      onClick={handleConnect}
+                      disabled={!isValidUrl || loading || localLoading}
+                      loading={localLoading}
+                      className="rounded-lg bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600 transition-all duration-200"
+                    >
+                      {wordpressInt ? "Update" : "Connect"}
+                    </Button>
+                  ) : (
+                    <Button
+                      type="primary"
+                      size="large"
+                      onClick={handlePing}
+                      disabled={loading || localLoading}
+                      loading={localLoading}
+                      className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 transition-all duration-200"
+                    >
+                      Check Status
+                    </Button>
+                  )}
                 </div>
-                {isEditing ? (
-                  <Button
-                    type="primary"
-                    size="large"
-                    onClick={handleConnect}
-                    disabled={!isValidUrl || loading || localLoading}
-                    loading={localLoading}
-                    className="rounded-r-lg bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600 border-0"
-                  >
-                    {wordpressInt ? "Update" : "Connect"}
-                  </Button>
-                ) : (
-                  <Button
-                    type="primary"
-                    size="large"
-                    onClick={handlePing}
-                    disabled={loading || localLoading}
-                    loading={localLoading}
-                    className="rounded-r-lg bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 border-0"
-                  >
-                    Check Status
-                  </Button>
+
+                {/* Error message */}
+                {url && !isValidUrl && (
+                  <span className="text-red-500 text-xs mt-1">
+                    Please enter a valid URL (e.g., https://example.com)
+                  </span>
                 )}
-              </Space.Compact>
+              </div>
+
+              {/* Status / Error / Loader */}
               {localLoading && (
                 <Flex justify="center" className="mt-4">
                   <Spin />
                 </Flex>
               )}
+
               {url && !isValidUrl && (
                 <Text type="danger" className="text-sm">
                   Please enter a valid URL (e.g., https://example.com)
                 </Text>
               )}
-              {wordpressInt && !isEditing && (
-                <Flex align="center" gap="small">
-                  <Text className="text-gray-600">
-                    Connected URL: <strong>{wordpressInt.url}</strong>
-                  </Text>
-                  <Button
-                    type="link"
-                    icon={<Edit size={16} />}
-                    onClick={handleEdit}
-                    className="p-0"
-                  >
-                    Edit
-                  </Button>
-                </Flex>
-              )}
-              {!wordpressInt && isEditing && (
-                <Text className="text-gray-600 text-sm">
-                  Please enter your WordPress site URL to connect the integration.
-                </Text>
-              )}
             </Flex>
           </Card>
+
           <a href={plugin.downloadLink} download>
             <Button
               type="default"
@@ -556,7 +564,7 @@ const PluginsMain = () => {
             </Paragraph>
           </Card>
         </Flex>
-      </motion.div>
+      </div>
     )
   }
 
@@ -581,7 +589,7 @@ const PluginsMain = () => {
         <title>Plugins | GenWrite</title>
       </Helmet>
 
-      <motion.div
+      <div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
@@ -593,10 +601,10 @@ const PluginsMain = () => {
         <p className="text-gray-500 text-sm mt-2 max-w-md">
           Discover and integrate powerful tools to supercharge your workflow
         </p>
-      </motion.div>
+      </div>
 
       <div className="flex-1 px-2 md:px-6 pb-8">
-        <motion.div
+        <div
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
@@ -611,7 +619,7 @@ const PluginsMain = () => {
             renderTabBar={renderTabBar}
             items={tabItems}
           />
-        </motion.div>
+        </div>
       </div>
     </div>
   )

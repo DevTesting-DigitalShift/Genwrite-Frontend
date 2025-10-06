@@ -67,10 +67,9 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs }) => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 20, transition: { duration: 0.3 } }}
+      exit={{ opacity: 0, y: 20 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
-      className="bg-white rounded-xl shadow-lg hover:shadow-xl p-6 transition-all duration-200"
-      layout
+      className="bg-white rounded-xl shadow-lg hover:shadow-xl p-6"
     >
       <div className="flex justify-between items-start mb-4">
         <div>

@@ -6,8 +6,6 @@ import { PlusOutlined, CloseOutlined, CopyOutlined } from "@ant-design/icons"
 import { generateMetadataThunk, resetMetadata } from "@store/slices/otherSlice"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { RefreshCw, Sparkles } from "lucide-react"
-import { Tooltip } from "antd"
-import { Coins } from "lucide-react"
 
 const { TextArea } = Input
 
@@ -190,14 +188,6 @@ const GenerateMetaData = () => {
             }`}
           >
             {isGenerating ? "Generating..." : "Generate Metadata"}
-            {!isGenerating && (
-              <Tooltip title="This action will deduct 2 credits">
-                <div className="flex items-center gap-1">
-                  <span className="text-yellow-300 font-semibold">2</span>
-                  <Coins className="w-4 h-4 text-yellow-400" />
-                </div>
-              </Tooltip>
-            )}
           </Button>
         </div>
 

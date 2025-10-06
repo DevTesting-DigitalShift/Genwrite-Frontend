@@ -1,11 +1,12 @@
-import React, { memo, useEffect } from "react"
+import React, { memo, useEffect, useState } from "react"
 import { Modal, Button, message } from "antd"
 import Carousel from "./Carousel"
 import { packages } from "@/data/templates"
 
 const SelectTemplateModal = ({ handleNext, handleClose, data, setData, isModalVisible }) => {
-  const [selectedPackage, setSelectedPackage] = React.useState(null)
-  const [formData, setFormData] = React.useState({
+  // Initialize selectedPackage based on data.template
+  const [selectedPackage, setSelectedPackage] = useState(null)
+  const [formData, setFormData] = useState({
     userDefinedLength: 0,
     tone: "",
     includeInterlink: false,
@@ -20,17 +21,30 @@ const SelectTemplateModal = ({ handleNext, handleClose, data, setData, isModalVi
     focusKeywordInput: "",
     keywordInput: "",
   })
+  const [error, setError] = useState("")
 
+  // Sync selectedPackage and formData.template with data.template when modal opens
+  useEffect(() => {
+    if (isModalVisible && data.template) {
+      const index = packages.findIndex((pkg) => pkg.name === data.template.name)
+      if (index !== -1) {
+        setSelectedPackage(index)
+        setFormData((prev) => ({
+          ...prev,
+          template: [data.template.name],
+        }))
+      }
+    }
+  }, [isModalVisible, data.template])
+
+  // Reset selection when modal closes
   const handleModalClose = () => {
-    // setFormData({
-    //   focusKeywordInput: "",
-    //   focusKeywords: [],
-    //   keywordInput: "",
-    //   keywords: [],
-    // })
-    // setTopic("")
-    // setGeneratedTitles([])
-    // setHasGeneratedTitles(false)
+    setSelectedPackage(null)
+    setFormData((prev) => ({
+      ...prev,
+      template: [],
+    }))
+    setError("")
     handleClose()
   }
 
@@ -41,6 +55,7 @@ const SelectTemplateModal = ({ handleNext, handleClose, data, setData, isModalVi
       ...formData,
       template: [packages[index].name],
     })
+    setError("") // Clear error on selection
   }
 
   const handleNextClick = () => {
@@ -50,6 +65,7 @@ const SelectTemplateModal = ({ handleNext, handleClose, data, setData, isModalVi
       setData(updatedData)
       handleNext()
     } else {
+      setError("Please select a template before proceeding.")
       message.error("Please select a template before proceeding.")
     }
   }
@@ -58,7 +74,7 @@ const SelectTemplateModal = ({ handleNext, handleClose, data, setData, isModalVi
     <Modal
       title="Step 1: Select Template"
       open={isModalVisible}
-      onCancel={handleClose}
+      onCancel={handleModalClose}
       footer={
         <div className="flex justify-end w-full gap-2">
           <Button
@@ -81,12 +97,16 @@ const SelectTemplateModal = ({ handleNext, handleClose, data, setData, isModalVi
     >
       <div className="max-h-[80vh] overflow-y-auto">
         {/* Mobile View: Vertical Scrolling Layout */}
-        <div className="sm:hidden grid grid-cols-2 gap-4">
+        <div
+          className={`sm:hidden grid grid-cols-2 gap-4 ${
+            error ? "border-2 border-red-500 rounded-lg p-2" : ""
+          }`}
+        >
           {packages.map((pkg, index) => (
             <div
               key={index}
               className={`cursor-pointer transition-all duration-200 ${
-                formData.template.includes(pkg.name) ? "border-gray-300 border-2 rounded-lg" : ""
+                selectedPackage === index ? "border-gray-200 border-2 rounded-lg" : ""
               }`}
               onClick={() => handlePackageSelect(index)}
             >
@@ -106,15 +126,16 @@ const SelectTemplateModal = ({ handleNext, handleClose, data, setData, isModalVi
             </div>
           ))}
         </div>
+        {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
 
         {/* Desktop View: Carousel Layout */}
-        <div className="hidden sm:block">
+        <div className={`hidden sm:block ${error ? "border-2 border-red-500 rounded-lg p-2" : ""}`}>
           <Carousel className="flex flex-row gap-4">
             {packages.map((pkg, index) => (
               <div
                 key={index}
-                className={`cursor-pointer transition-all duration-200 w-full h-full${
-                  formData.template.includes(pkg.name) ? "border-gray-300 border-2 rounded-lg" : ""
+                className={`cursor-pointer transition-all duration-200 w-full h-full ${
+                  selectedPackage === index ? "border-gray-200 border-2 rounded-lg" : ""
                 }`}
                 onClick={() => handlePackageSelect(index)}
               >
@@ -135,6 +156,7 @@ const SelectTemplateModal = ({ handleNext, handleClose, data, setData, isModalVi
             ))}
           </Carousel>
         </div>
+        {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
       </div>
     </Modal>
   )

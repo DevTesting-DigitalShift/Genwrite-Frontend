@@ -21,11 +21,7 @@ import {
 import { Button, Tooltip, message, Tabs, Badge, Collapse, Dropdown, Menu, Tag, Input } from "antd"
 import { fetchProofreadingSuggestions, fetchBlogPrompt } from "@store/slices/blogSlice"
 import { fetchCompetitiveAnalysisThunk } from "@store/slices/analysisSlice"
-import {
-  getCategoriesThunk,
-  generateMetadataThunk,
-  getIntegrationsThunk,
-} from "@store/slices/otherSlice"
+import { generateMetadataThunk, getIntegrationsThunk } from "@store/slices/otherSlice"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useNavigate } from "react-router-dom"
 import { useDispatch, useSelector } from "react-redux"
@@ -95,7 +91,12 @@ const TextEditorSidebar = ({
   const { analysisResult } = useSelector((state) => state.analysis)
   const blogId = blog?._id
   const result = analysisResult?.[blogId]
-  const isDisabled = isPosting || (formData.wordpressPostStatus && !hasAnyIntegration)
+  const hasAnyIntegration =
+    integrations && integrations.integrations && Object.keys(integrations.integrations).length > 0
+  const isDisabled =
+    isPosting ||
+    !hasAnyIntegration || // Disable if no integration at all
+    (formData.wordpressPostStatus && !integrations.integrations.WORDPRESS)
 
   // Reset metadata and history when blog changes
   useEffect(() => {
@@ -122,10 +123,6 @@ const TextEditorSidebar = ({
           .filter((word) => word.length > 0).length
       : 0
   }
-
-  useEffect(() => {
-    dispatch(getCategoriesThunk()).unwrap()
-  }, [dispatch])
 
   useEffect(() => {
     setCompetitiveAnalysisResults(null)

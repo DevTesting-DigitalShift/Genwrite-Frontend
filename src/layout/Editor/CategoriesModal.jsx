@@ -1,8 +1,9 @@
-import React, { useState, useCallback } from "react"
+import React, { useState, useCallback, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button, Modal, Select, message } from "antd"
-import { useSelector } from "react-redux"
+import { useDispatch, useSelector } from "react-redux"
 import { Plus, X } from "lucide-react"
+import { getCategoriesThunk } from "@store/slices/otherSlice"
 
 // Popular WordPress categories (limited to 15 for relevance)
 const POPULAR_CATEGORIES = [
@@ -39,6 +40,13 @@ const CategoriesModal = ({
   const [categoryError, setCategoryError] = useState(false)
   const { categories, error: wordpressError } = useSelector((state) => state.wordpress)
   const [selectedIntegration, setSelectedIntegration] = useState(null)
+  const dispatch = useDispatch()
+
+  useEffect(() => {
+    if (selectedIntegration?.platform) {
+      dispatch(getCategoriesThunk(selectedIntegration.platform)).unwrap()
+    }
+  }, [dispatch, selectedIntegration?.platform])
 
   const handleIntegrationChange = (platform, url) => {
     setSelectedIntegration({ platform, url })
@@ -150,6 +158,32 @@ const CategoriesModal = ({
       width={600}
     >
       <div className="p-3 space-y-4">
+        {integrations?.integrations && Object.keys(integrations.integrations).length > 0 && (
+          <div>
+            <span className="text-sm font-medium text-gray-700">
+              Select Your Publishing Platform
+              <p className="text-xs text-gray-500 mt-1">
+                Post your blog automatically to connected platforms only.
+              </p>
+            </span>
+
+            <Select
+              className="w-full mt-2"
+              placeholder="Select platform"
+              value={selectedIntegration?.platform || undefined}
+              onChange={(platform) => {
+                const details = integrations.integrations[platform]
+                handleIntegrationChange(platform, details.url)
+              }}
+            >
+              {Object.entries(integrations.integrations).map(([platform, details]) => (
+                <Option key={platform} value={platform}>
+                  {platform}
+                </Option>
+              ))}
+            </Select>
+          </div>
+        )}
         {/* Selected Category Display */}
         <AnimatePresence>
           {selectedCategory && (
@@ -262,32 +296,6 @@ const CategoriesModal = ({
             <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
           </label>
         </div>
-        {integrations?.integrations && Object.keys(integrations.integrations).length > 0 && (
-          <div>
-            <span className="text-sm font-medium text-gray-700">
-              Select Your Publishing Platform
-              <p className="text-xs text-gray-500 mt-1">
-                Post your blog automatically to connected platforms only.
-              </p>
-            </span>
-
-            <Select
-              className="w-full mt-2"
-              placeholder="Select platform"
-              value={selectedIntegration?.platform || undefined}
-              onChange={(platform) => {
-                const details = integrations.integrations[platform]
-                handleIntegrationChange(platform, details.url)
-              }}
-            >
-              {Object.entries(integrations.integrations).map(([platform, details]) => (
-                <Option key={platform} value={platform}>
-                  {platform}
-                </Option>
-              ))}
-            </Select>
-          </div>
-        )}
       </div>
     </Modal>
   )

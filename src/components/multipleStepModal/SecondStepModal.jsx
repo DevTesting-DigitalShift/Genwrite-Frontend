@@ -492,7 +492,7 @@ const SecondStepModal = ({
                 </div>
               </>
             )}
-            {/* 
+
             {formData.imageSource === "customImage" && (
               <div className="mt-4">
                 <label className="block text-sm font-semibold text-gray-700 mb-3">
@@ -549,7 +549,7 @@ const SecondStepModal = ({
                   </div>
                 )}
               </div>
-            )} */}
+            )}
           </div>
 
           {/* Quick Summary Toggle */}

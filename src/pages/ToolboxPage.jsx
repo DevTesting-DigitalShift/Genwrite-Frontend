@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Card, Tabs, Input, Button, Table, Tag, message } from "antd"
+import { Card, Tabs, Input, Button, Table, Tag, message, Tooltip } from "antd"
 import {
   SearchOutlined,
   GlobalOutlined,
@@ -15,7 +15,7 @@ import { useDispatch, useSelector } from "react-redux"
 import { analyzeKeywordsThunk, clearKeywordAnalysis } from "@store/slices/analysisSlice"
 import { Helmet } from "react-helmet"
 import { ImMagicWand } from "react-icons/im"
-import { Keyboard, Search, WholeWord, Workflow, Zap } from "lucide-react"
+import { Coins, Keyboard, Search, WholeWord, Workflow, Zap } from "lucide-react"
 import { selectUser } from "@store/slices/authSlice"
 import { Crown } from "lucide-react"
 import { Flex } from "antd"
@@ -249,6 +249,7 @@ export default function ToolboxPage() {
         "Transform AI-generated text into natural, human-sounding content while preserving intent and clarity.",
       action: () => navigate("/humanize-content"),
       actionText: "Let's Convert",
+      credits: "5",
       color: "from-blue-500 to-indigo-600",
     },
     {
@@ -259,6 +260,7 @@ export default function ToolboxPage() {
         "Craft high-impact blog outlines with SEO keywords, structure, and brand voice in seconds using AI.",
       action: () => navigate("/outline"),
       actionText: "Let's Outline",
+      credits: "5",
       color: "from-green-500 to-emerald-600",
     },
     {
@@ -277,6 +279,7 @@ export default function ToolboxPage() {
       description: "Turn content into SEO-friendly metadata",
       action: () => navigate("/generate-metadata"),
       actionText: "Boost SEO",
+      credits: "2",
       color: "from-rose-500 to-pink-600",
     },
     {
@@ -286,6 +289,7 @@ export default function ToolboxPage() {
       description: "Transform your content into SEO-optimized metadata in seconds",
       action: () => navigate("/prompt-content"),
       actionText: "Boost SEO",
+      credits: "5", 
       color: "from-rose-500 to-pink-600",
     },
   ]
@@ -697,15 +701,33 @@ function AnimatedCard({ item }) {
             whileTap={{ scale: 0.98 }}
             className="flex justify-center"
           >
-            <Button
-              block
-              type={item.disabled ? "default" : "primary"}
-              onClick={isUserPlanFree ? () => navigate("/pricing") : item.action}
-              disabled={item.disabled}
-              className="transition-all w-full sm:w-5/6 text-xs sm:text-sm"
-            >
-              {item.actionText}
-            </Button>
+            {item.credits ? (
+              <Tooltip title={`${item.credits} credits will be used`}>
+                <Button
+                  block
+                  type={item.disabled ? "default" : "primary"}
+                  onClick={isUserPlanFree ? () => navigate("/pricing") : item.action}
+                  disabled={item.disabled}
+                  className="transition-all w-full sm:w-5/6 text-xs sm:text-sm flex items-center justify-center gap-1"
+                >
+                  {item.actionText}
+                  <span className="flex items-center gap-1 ml-3 font-bold">
+                    <Coins size={14} />
+                    {item.credits}
+                  </span>
+                </Button>
+              </Tooltip>
+            ) : (
+              <Button
+                block
+                type={item.disabled ? "default" : "primary"}
+                onClick={isUserPlanFree ? () => navigate("/pricing") : item.action}
+                disabled={item.disabled}
+                className="transition-all w-full sm:w-5/6 text-xs sm:text-sm flex items-center justify-center gap-1"
+              >
+                {item.actionText}
+              </Button>
+            )}
           </motion.div>
         )}
       </Card>

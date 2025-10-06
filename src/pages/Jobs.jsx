@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useEffect, useMemo, useCallback } from "react"
 import { motion } from "framer-motion"
 import { useDispatch, useSelector } from "react-redux"
@@ -52,36 +50,34 @@ const Jobs = () => {
   // Socket for real-time updates
   useEffect(() => {
     const socket = getSocket()
-    if (!socket || !user) return
+    if (!socket || !user) {
+      console.debug("Socket or user not available, skipping WebSocket setup")
+      return
+    }
+
+    console.debug("Setting up WebSocket listeners for user:", user.id)
 
     const handleJobChange = (data, eventType) => {
-      console.debug(`Job event: ${eventType}`, data)
+      console.debug(`Received ${eventType}:`, data)
       const queryKey = ["jobs", user.id]
 
       if (eventType === "job:deleted") {
-        // Remove from cache if deleted
         queryClient.setQueryData(queryKey, (old = []) =>
           old.filter((job) => job._id !== data.jobId)
         )
         queryClient.removeQueries({ queryKey: ["job", data.jobId] })
-      } else if (eventType === "job:created") {
-        // Invalidate for new jobs to ensure fresh data
-        queryClient.invalidateQueries({ queryKey: ["jobs", user.id], exact: false })
       } else {
-        // Update or add the job in the list cache
+        // Handle create, update, statusChanged uniformly: update if exists, add if not
         queryClient.setQueryData(queryKey, (old = []) => {
-          const index = old.findIndex((job) => job._id === data.jobId)
+          const index = old.findIndex((job) => job._id === data.jobId || job._id === data._id)
           if (index > -1) {
-            // Update existing job
             old[index] = { ...old[index], ...data }
             return [...old]
           } else {
-            // Add new job (if not handled by job:created)
-            return [data, ...old]
+            return [data, ...old] // Add new job instantly for "job:created"
           }
         })
-        // Update single job query if exists
-        queryClient.setQueryData(["job", data.jobId], (old) => ({ ...old, ...data }))
+        queryClient.setQueryData(["job", data.jobId || data._id], (old) => ({ ...old, ...data }))
       }
     }
 
@@ -90,11 +86,18 @@ const Jobs = () => {
     socket.on("job:created", (data) => handleJobChange(data, "job:created"))
     socket.on("job:deleted", (data) => handleJobChange(data, "job:deleted"))
 
+    // Test connection
+    socket.on("connect", () => console.debug("Socket connected"))
+    socket.on("disconnect", () => console.debug("Socket disconnected"))
+
     return () => {
+      console.debug("Cleaning up WebSocket listeners")
       socket.off("job:statusChanged")
       socket.off("job:updated")
       socket.off("job:created")
       socket.off("job:deleted")
+      socket.off("connect")
+      socket.off("disconnect")
     }
   }, [queryClient, user])
 
@@ -242,6 +245,8 @@ const Jobs = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {" "}
+              {/* No transition class to avoid animations */}
               {paginatedJobs.map((job) => (
                 <JobCard
                   key={job._id}

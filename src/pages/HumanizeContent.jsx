@@ -14,8 +14,6 @@ import { useDispatch, useSelector } from "react-redux"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { generateHumanizedContent, resetHumanizeState } from "@store/slices/humanizeSlice"
 import Loading from "@components/UI/Loading"
-import { Tooltip } from "antd"
-import { Coins } from "lucide-react"
 
 const HumanizeContent = () => {
   const [inputContent, setInputContent] = useState("")
@@ -186,7 +184,9 @@ const HumanizeContent = () => {
               className="w-full h-60 p-4 border-2 border-gray-200 rounded-xl resize-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all duration-300 text-gray-800 placeholder-gray-500"
             />
             <div className="flex justify-end items-center">
-              <p className={`text-sm mb-2 ${wordCount < 300 ? "text-yellow-500" : "text-green-600"}`}>
+              <p
+                className={`text-sm mb-2 ${wordCount < 300 ? "text-yellow-500" : "text-green-600"}`}
+              >
                 Word count: {wordCount} {wordCount < 300 ? "(Minimum 300 words required)" : ""}
               </p>
             </div>
@@ -200,14 +200,6 @@ const HumanizeContent = () => {
               }`}
             >
               Process Content
-              {!isLoading && (
-                <Tooltip title="This action will deduct 5 credits">
-                  <div className="flex items-center gap-1 ml-2">
-                    <span className="text-yellow-300 font-semibold">5</span>
-                    <Coins className="w-4 h-4 text-yellow-400" />
-                  </div>
-                </Tooltip>
-              )}
             </Button>
           </div>
         </div>

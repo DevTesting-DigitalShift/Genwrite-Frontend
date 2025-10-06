@@ -400,7 +400,7 @@ const OutlineEditor = () => {
                     key={index}
                     className={clsx(
                       "cursor-pointer transition-all duration-200",
-                      selectedTemplate === pkg.name && "border-blue-600 border-2 rounded-lg"
+                      selectedTemplate === pkg.name && "border-gray-200 border-2 rounded-lg"
                     )}
                     onClick={() => handlePackageSelect(index)}
                   >
@@ -429,7 +429,7 @@ const OutlineEditor = () => {
                       key={index}
                       className={clsx(
                         "cursor-pointer transition-all duration-200",
-                        selectedTemplate === pkg.name && "border-blue-600 border-2 rounded-lg"
+                        selectedTemplate === pkg.name && "border-gray-200 border-2 rounded-lg"
                       )}
                       onClick={() => handlePackageSelect(index)}
                     >

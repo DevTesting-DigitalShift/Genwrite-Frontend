@@ -134,6 +134,14 @@ const StepContent = ({
     },
   ]
 
+  const handleIntegrationChange = (platform) => {
+    setFormData((prev) => ({
+      ...prev,
+      postingType: platform,
+    }))
+    setErrors((prev) => ({ ...prev, postingType: false })) // Clear error on change
+  }
+
   useEffect(() => {
     if (newJob.blogs.useBrandVoice && (!brands || brands.length === 0)) {
       setNewJob((prev) => ({
@@ -318,7 +326,6 @@ const StepContent = ({
 
   const handleCheckboxChange = (e) => {
     const { name, checked } = e.target
-    console.log(name, checked)
     if (name === "wordpressPosting" && checked) {
       const hasAnyIntegration = Object.keys(integrations?.integrations || {}).length > 0
 
@@ -333,6 +340,7 @@ const StepContent = ({
     }))
     if (name === "performKeywordResearch") {
       setFormData((prev) => ({ ...prev, performKeywordResearch: checked }))
+      setErrors((prev) => ({ ...prev, keywords: false })) // Clear keyword error if enabling research
     }
   }
 
@@ -364,6 +372,7 @@ const StepContent = ({
         isUnsplashActive: source === "unsplash",
       },
     }))
+    setErrors((prev) => ({ ...prev, imageSource: false })) // Clear error
   }
 
   const validateImages = (files) => {
@@ -471,15 +480,17 @@ const StepContent = ({
             Select up to 3 templates for the types of blogs you want to generate.
           </p>
           {/* Mobile View: Vertical Scrolling Layout */}
-          <div className="sm:hidden grid grid-cols-2 gap-4">
+          <div
+            className={`sm:hidden grid grid-cols-2 gap-4 ${
+              errors.templates ? "border-red-500 border-2" : ""
+            }`}
+          >
             {packages.map((pkg) => (
               <div
                 key={pkg.name}
                 className={`cursor-pointer transition-all duration-200 w-full ${
                   newJob.blogs.templates.includes(pkg.name)
                     ? "border-gray-300 border-2 rounded-lg"
-                    : errors.template
-                    ? "border-red-500 border-2"
                     : ""
                 }`}
                 onClick={() => {
@@ -491,13 +502,13 @@ const StepContent = ({
                         templates: prev.blogs.templates.filter((template) => template !== pkg.name),
                       },
                     }))
-                    setErrors((prev) => ({ ...prev, template: false }))
+                    setErrors((prev) => ({ ...prev, templates: false }))
                   } else if (newJob.blogs.templates.length < 3) {
                     setNewJob((prev) => ({
                       ...prev,
                       blogs: { ...prev.blogs, templates: [...prev.blogs.templates, pkg.name] },
                     }))
-                    setErrors((prev) => ({ ...prev, template: false }))
+                    setErrors((prev) => ({ ...prev, templates: false }))
                   } else {
                     message.error("You can only select up to 3 templates.")
                   }
@@ -519,9 +530,10 @@ const StepContent = ({
               </div>
             ))}
           </div>
+          {errors.templates && <p className="text-red-500 text-xs">{errors.templates}</p>}
 
           {/* Desktop View: Carousel Layout */}
-          <div className="hidden sm:block">
+          <div className={`hidden sm:block ${errors.templates ? "border-red-500 border-2" : ""}`}>
             <Carousel className="flex flex-row gap-4">
               {packages.map((pkg) => (
                 <div
@@ -529,8 +541,6 @@ const StepContent = ({
                   className={`cursor-pointer transition-all duration-200 w-full${
                     newJob.blogs.templates.includes(pkg.name)
                       ? "border-gray-300 border-2 rounded-lg"
-                      : errors.template
-                      ? "border-red-500 border-2"
                       : ""
                   }`}
                   onClick={() => {
@@ -544,13 +554,13 @@ const StepContent = ({
                           ),
                         },
                       }))
-                      setErrors((prev) => ({ ...prev, template: false }))
+                      setErrors((prev) => ({ ...prev, templates: false }))
                     } else if (newJob.blogs.templates.length < 3) {
                       setNewJob((prev) => ({
                         ...prev,
                         blogs: { ...prev.blogs, templates: [...prev.blogs.templates, pkg.name] },
                       }))
-                      setErrors((prev) => ({ ...prev, template: false }))
+                      setErrors((prev) => ({ ...prev, templates: false }))
                     } else {
                       message.error("You can only select up to 3 templates.")
                     }
@@ -573,6 +583,7 @@ const StepContent = ({
               ))}
             </Carousel>
           </div>
+          {errors.templates && <p className="text-red-500 text-xs">{errors.templates}</p>}
         </motion.div>
       )
     case 2:
@@ -594,6 +605,7 @@ const StepContent = ({
                 }`}
                 aria-label="Job name"
               />
+              {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700 mb-2 flex gap-2 items-center">
@@ -636,6 +648,7 @@ const StepContent = ({
                   <span className="sr-only">Upload CSV for topics</span>
                 </label>
               </div>
+              {errors.topics && <p className="text-red-500 text-xs mt-1">{errors.topics}</p>}
               <div className="flex flex-wrap gap-2 mt-2">
                 {topicsToShow.map((topic, reversedIndex) => {
                   const actualIndex = newJob.blogs.topics.length - 1 - reversedIndex
@@ -741,6 +754,7 @@ const StepContent = ({
                     <span className="sr-only">Upload CSV</span>
                   </label>
                 </div>
+                {errors.keywords && <p className="text-red-500 text-xs mt-1">{errors.keywords}</p>}
                 <div className="flex flex-wrap gap-2 mt-2 min-h-[28px]">
                   {keywordsToShow.map((keyword, reversedIndex) => {
                     const actualIndex = formData.keywords.length - 1 - reversedIndex
@@ -796,9 +810,10 @@ const StepContent = ({
                 <Select
                   className="w-full"
                   value={newJob.blogs.tone}
-                  onChange={(value) =>
+                  onChange={(value) => {
                     setNewJob({ ...newJob, blogs: { ...newJob.blogs, tone: value } })
-                  }
+                    setErrors((prev) => ({ ...prev, tone: false }))
+                  }}
                   placeholder="Select tone"
                   status={errors.tone ? "error" : ""}
                 >
@@ -814,6 +829,7 @@ const StepContent = ({
                   <Option value="persuasive">Persuasive</Option>
                   <Option value="empathetic">Empathetic</Option>
                 </Select>
+                {errors.tone && <p className="text-red-500 text-xs mt-1">{errors.tone}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -959,7 +975,11 @@ const StepContent = ({
                 </label>
 
                 {/* Responsive grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full">
+                <div
+                  className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full ${
+                    errors.imageSource ? "border-2 border-red-500 rounded-lg p-2" : ""
+                  }`}
+                >
                   {imageSources.map((source) => {
                     const isAiRestricted =
                       source.value === "ai-generated" && source.isAiImagesLimitReached
@@ -1011,6 +1031,9 @@ const StepContent = ({
                     )
                   })}
                 </div>
+                {errors.imageSource && (
+                  <p className="text-red-500 text-xs mt-1">{errors.imageSource}</p>
+                )}
               </div>
               <div className="w-full">
                 <label className="block text-sm font-semibold text-gray-700 mb-1">
@@ -1117,7 +1140,11 @@ const StepContent = ({
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Select Days of Week
                 </label>
-                <div className="flex gap-2 flex-wrap">
+                <div
+                  className={`flex gap-2 flex-wrap ${
+                    errors.daysOfWeek ? "border-red-500 border-2 p-2 rounded" : ""
+                  }`}
+                >
                   {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d, i) => (
                     <button
                       key={i}
@@ -1126,7 +1153,7 @@ const StepContent = ({
                         newJob.schedule.daysOfWeek?.includes(i)
                           ? "bg-[#1B6FC9] text-white"
                           : "bg-gray-200 text-gray-700"
-                      } ${errors.daysOfWeek ? "border-2 border-red-500" : ""}`}
+                      }`}
                       onClick={() => {
                         setNewJob((prev) => {
                           const daysOfWeek = prev.schedule.daysOfWeek?.includes(i)
@@ -1141,6 +1168,9 @@ const StepContent = ({
                     </button>
                   ))}
                 </div>
+                {errors.daysOfWeek && (
+                  <p className="text-red-500 text-xs mt-1">{errors.daysOfWeek}</p>
+                )}
               </div>
             )}
             {newJob.schedule.type === "monthly" && (
@@ -1148,7 +1178,11 @@ const StepContent = ({
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Select Dates of Month
                 </label>
-                <div className="flex gap-2 flex-wrap">
+                <div
+                  className={`flex gap-2 flex-wrap ${
+                    errors.daysOfMonth ? "border-red-500 border-2 p-2 rounded" : ""
+                  }`}
+                >
                   {Array.from({ length: 31 }, (_, i) => i + 1).map((date) => (
                     <button
                       key={date}
@@ -1157,7 +1191,7 @@ const StepContent = ({
                         newJob.schedule.daysOfMonth?.includes(date)
                           ? "bg-[#1B6FC9] text-white"
                           : "bg-gray-200 text-gray-700"
-                      } ${errors.daysOfMonth ? "border-2 border-red-500" : ""}`}
+                      }`}
                       onClick={() => {
                         setNewJob((prev) => {
                           const daysOfMonth = prev.schedule.daysOfMonth?.includes(date)
@@ -1172,6 +1206,9 @@ const StepContent = ({
                     </button>
                   ))}
                 </div>
+                {errors.daysOfMonth && (
+                  <p className="text-red-500 text-xs mt-1">{errors.daysOfMonth}</p>
+                )}
               </div>
             )}
             {newJob.schedule.type === "custom" && (
@@ -1198,6 +1235,9 @@ const StepContent = ({
                     inputClass="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
+                {errors.customDates && (
+                  <p className="text-red-500 text-xs mt-1">{errors.customDates}</p>
+                )}
               </div>
             )}
             <div>
@@ -1216,6 +1256,9 @@ const StepContent = ({
                 min="1"
                 max={MAX_BLOGS}
               />
+              {errors.numberOfBlogs && (
+                <p className="text-red-500 text-xs mt-1">{errors.numberOfBlogs}</p>
+              )}
             </div>
           </div>
         </motion.div>
@@ -1285,7 +1328,7 @@ const StepContent = ({
             {/* Only show integration options if wordpressPosting is true AND integrations exist */}
             {newJob.options.wordpressPosting &&
               Object.keys(integrations?.integrations || {}).length > 0 && (
-                <div>
+                <div className="my-5">
                   <span className="text-sm font-medium text-gray-700">
                     Select Your Publishing Platform
                     <p className="text-xs text-gray-500">
@@ -1296,11 +1339,9 @@ const StepContent = ({
                   <Select
                     className="w-full mt-2"
                     placeholder="Select platform"
-                    value={formData.selectedIntegration?.platform || undefined}
-                    onChange={(platform) => {
-                      const details = integrations.integrations[platform]
-                      handleIntegrationChange(platform, details.url)
-                    }}
+                    value={formData.postingType}
+                    onChange={handleIntegrationChange}
+                    status={errors.postingType ? "error" : ""}
                   >
                     {Object.entries(integrations.integrations).map(([platform, details]) => (
                       <Option key={platform} value={platform}>
@@ -1308,34 +1349,13 @@ const StepContent = ({
                       </Option>
                     ))}
                   </Select>
+                  {errors.postingType && (
+                    <p className="text-red-500 text-xs mt-1">{errors.postingType}</p>
+                  )}
                 </div>
               )}
           </div>
 
-          {formData.wordpressPostStatus && Object.keys(integrations).length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {Object.entries(integrations?.integrations || {}).map(([platform, details]) => (
-                <label
-                  key={platform}
-                  className={`border rounded-lg px-4 py-3 flex items-center justify-center gap-2 cursor-pointer transition-all duration-150 ${
-                    formData.selectedIntegration?.platform === platform
-                      ? "border-blue-600 bg-blue-50"
-                      : "border-gray-300"
-                  } hover:shadow-sm`}
-                >
-                  <input
-                    type="radio"
-                    name="selectedIntegration"
-                    value={platform}
-                    checked={formData.selectedIntegration?.platform === platform}
-                    onChange={() => handleIntegrationChange(platform, details.url)}
-                    className="hidden"
-                  />
-                  <span className="text-sm font-medium text-gray-800">{platform}</span>
-                </label>
-              ))}
-            </div>
-          )}
           <div>
             <div className="flex items-center justify-between mt-3">
               <span className="text-sm font-medium text-gray-700">Write with Brand Voice</span>
@@ -1369,22 +1389,26 @@ const StepContent = ({
               </label>
             </div>
             {newJob.blogs.useBrandVoice && (
-              <div className="mt-3 p-4 rounded-md border border-gray-200 bg-gray-50">
+              <div
+                className={`mt-3 flex p-4 rounded-md border bg-gray-50 ${
+                  errors.brandId ? "border-red-500" : "border-gray-200"
+                }`}
+              >
                 {loadingBrands ? (
                   <div className="text-gray-500 text-sm">Loading brand voices...</div>
                 ) : brandError ? (
                   <div className="text-red-500 text-sm font-medium">{brandError}</div>
                 ) : brands?.length > 0 ? (
                   <div className="max-h-48 overflow-y-auto pr-1">
-                    <div className="grid gap-3">
+                    <div>
                       {brands.map((voice) => (
                         <label
                           key={voice._id}
-                          className={`flex items-start gap-2 p-3 rounded-md cursor-pointer ${
+                          className={`flex items-start gap-2 p-3 mb-3 rounded-md cursor-pointer ${
                             newJob.blogs.brandId === voice._id
                               ? "bg-blue-100 border-blue-300"
                               : "bg-white border border-gray-200"
-                          } ${errors.brandId ? "border-red-500" : ""}`}
+                          }`}
                         >
                           <input
                             type="radio"
@@ -1415,6 +1439,7 @@ const StepContent = ({
                 )}
               </div>
             )}
+            {errors.brandId && <p className="text-red-500 text-xs mt-1">{errors.brandId}</p>}
 
             {newJob.blogs.useBrandVoice && (
               <div className="flex items-center justify-between mt-3">

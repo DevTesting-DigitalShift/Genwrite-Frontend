@@ -18,15 +18,16 @@ export const createStripeSession = async (data) => {
     const res = await axiosInstance.post("/stripe/create-checkout-session", data)
     return res.data
   } catch (error) {
+    category
     throw new Error(error.response?.data?.message || "Stripe session creation failed")
   }
 }
 
 export const getCategoriesThunk = createAsyncThunk(
   "categories/getAll",
-  async (_, { rejectWithValue }) => {
+  async (type = "WORDPRESS", { rejectWithValue }) => {
     try {
-      const data = await fetchCategories()
+      const data = await fetchCategories(type)
       return data
     } catch (err) {
       console.error("Error in getCategoriesThunk", err)
