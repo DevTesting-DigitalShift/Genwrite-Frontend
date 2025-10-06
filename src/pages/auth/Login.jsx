@@ -100,9 +100,9 @@ const Auth = ({ path }) => {
     onSuccess: async (tokenResponse) => {
       dispatch(googleLogin({ access_token: tokenResponse.access_token }))
         .unwrap()
-        .then((user) => {
+        .then(({ authStatus, user }) => {
           message.success("Google login successful!")
-          navigate("/pricing", { replace: true })
+          navigate(authStatus === "sign_up" ? "/pricing" : "/dashboard", { replace: true })
         })
         .catch((err) => {
           console.error("Google login error:", err)
@@ -150,7 +150,7 @@ const Auth = ({ path }) => {
 
         message.success(isSignup ? "Signup successful!" : "Login successful!")
         setTimeout(() => {
-          navigate("/pricing", { replace: true })
+          navigate(isSignup ? "/pricing" : "/dashboard", { replace: true })
         }, 100)
       } catch (err) {
         console.error("Auth error:", err)
