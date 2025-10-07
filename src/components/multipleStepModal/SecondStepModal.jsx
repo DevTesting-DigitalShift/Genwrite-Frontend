@@ -6,6 +6,9 @@ import { message, Modal, Tooltip } from "antd"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
 import { Crown, Plus, TriangleAlert, X } from "lucide-react"
 
+// CSS class for error state
+const errorBorderStyle = "border-red-500 focus:ring-red-500"
+
 const SecondStepModal = ({
   handlePrevious,
   handleClose,
@@ -30,16 +33,26 @@ const SecondStepModal = ({
     imageSource: data?.imageSource || "unsplash",
     isCheckedGeneratedImages: data?.isCheckedGeneratedImages || false,
     isCheckedblogImages: data?.isCheckedblogImages || false,
-    blogImages: Array.isArray(data?.blogImages) ? data.blogImages : [], // Ensure array
+    blogImages: Array.isArray(data?.blogImages) ? data.blogImages : [],
     referenceLinks: Array.isArray(data?.referenceLinks) ? data.referenceLinks : [],
     includeInterlinks: data?.includeInterlinks || false,
     addOutBoundLinks: data?.addOutBoundLinks || false,
     addCTA: data?.addCTA || true,
     numberOfImages: data?.numberOfImages || 0,
-    isDragging: false, // For drag-and-drop UI
+    isDragging: false,
+    areImagesUploaded: false,
   })
+
   const [localFormData, setLocalFormData] = useState({
     newLink: "",
+  })
+
+  // State to track validation errors
+  const [errors, setErrors] = useState({
+    aiModel: "",
+    numberOfImages: "",
+    brandId: "",
+    blogImages: "",
   })
 
   const fileInputRef = useRef(null)
@@ -70,20 +83,37 @@ const SecondStepModal = ({
 
   const handleInputChange = (e) => {
     const { name, value, type } = e.target
-    const val = type === "number" ? parseInt(value, 10) || 0 : value
-    setFormData((prev) => ({
-      ...prev,
+
+    let val
+    if (type === "number") {
+      if (value === "") {
+        val = "" // allow clearing
+      } else {
+        const parsed = parseInt(value, 20)
+        if (isNaN(parsed)) {
+          val = "" // ignore invalid input like letters
+        } else {
+          val = parsed
+          if (val < 0) val = 0 // optional: min
+          if (val > 20) val = 20 // max clamp
+        }
+      }
+    } else {
+      val = value
+    }
+
+    setFormData({
+      ...formData,
       [name]: val,
-    }))
-    setData((prev) => ({
-      ...prev,
-      [name]: val,
-    }))
+    })
   }
 
   const handleAddLink = () => {
     const input = localFormData.newLink.trim()
-    if (!input) return
+    if (!input) {
+      setErrors((prev) => ({ ...prev, newLink: "Please enter a valid URL." }))
+      return
+    }
 
     const existing = formData.referenceLinks.map((link) => link.toLowerCase().trim())
 
@@ -106,7 +136,10 @@ const SecondStepModal = ({
       })
 
     if (newLinks.length === 0) {
-      message.error("Please enter valid, non-duplicate URLs separated by commas.")
+      setErrors((prev) => ({
+        ...prev,
+        newLink: "Please enter valid, non-duplicate URLs separated by commas.",
+      }))
       return
     }
 
@@ -115,17 +148,18 @@ const SecondStepModal = ({
       referenceLinks: [...prev.referenceLinks, ...newLinks],
     }))
     setLocalFormData((prev) => ({ ...prev, newLink: "" }))
-    message.success("Reference link added!")
+    setErrors((prev) => ({ ...prev, newLink: "" }))
   }
 
   const handleRemoveLink = (index) => {
     setFormData((prev) => ({
       ...prev,
-      referenceLinks: prev.referenceLinks.filter((_, i) => i !== index),
+      referenceLinks: (prev.referenceLinks || []).filter((_, i) => i !== index),
     }))
+
     setData((prev) => ({
       ...prev,
-      referenceLinks: prev.referenceLinks.filter((_, i) => i !== index),
+      referenceLinks: (prev.referenceLinks || []).filter((_, i) => i !== index),
     }))
   }
 
@@ -133,12 +167,16 @@ const SecondStepModal = ({
     setFormData((prev) => ({
       ...prev,
       imageSource: source,
+      areImagesUploaded: source === "customImage" ? true : false,
     }))
     setData((prev) => ({
       ...prev,
       imageSource: source,
+      areImagesUploaded: source === "customImage" ? true : false,
       isUnsplashActive: source === "unsplash",
     }))
+    // Clear image-related errors when source changes
+    setErrors((prev) => ({ ...prev, blogImages: "", numberOfImages: "" }))
   }
 
   const validateImages = (files) => {
@@ -150,13 +188,17 @@ const SecondStepModal = ({
 
     const validFiles = Array.from(files).filter((file) => {
       if (!allowedTypes.includes(file.type)) {
-        message.error(
-          `"${file.name}" is not a valid image type. Only PNG, JPEG, and WebP are allowed.`
-        )
+        setErrors((prev) => ({
+          ...prev,
+          blogImages: `"${file.name}" is not a valid image type. Only PNG, JPEG, and WebP are allowed.`,
+        }))
         return false
       }
       if (file.size > maxSize) {
-        message.error(`"${file.name}" exceeds the 5 MB size limit.`)
+        setErrors((prev) => ({
+          ...prev,
+          blogImages: `"${file.name}" exceeds the 5 MB size limit.`,
+        }))
         return false
       }
       return true
@@ -164,7 +206,10 @@ const SecondStepModal = ({
 
     const totalImages = formData.blogImages.length + validFiles.length
     if (totalImages > maxImages) {
-      message.error(`Cannot upload more than ${maxImages} images.`)
+      setErrors((prev) => ({
+        ...prev,
+        blogImages: `Cannot upload more than ${maxImages} images.`,
+      }))
       return validFiles.slice(0, maxImages - formData.blogImages.length)
     }
 
@@ -183,15 +228,14 @@ const SecondStepModal = ({
       }))
       setData((prev) => ({
         ...prev,
-        blogImages: (Array.isArray(prev.blogImages) ? prev.blogImages : []).filter(
-          (_, i) => i !== index
-        ),
+        blogImages: [...(Array.isArray(prev.blogImages) ? prev.blogImages : []), ...validFiles],
       }))
-      // message.success(`${validFiles.length} image(s) added successfully!`)
     }
     if (fileInputRef.current) {
-      fileInputRef.current.value = "" // Reset input
+      fileInputRef.current.value = ""
     }
+    // Clear blogImages error after successful upload
+    setErrors((prev) => ({ ...prev, blogImages: "" }))
   }
 
   const handleDrop = (e) => {
@@ -212,8 +256,9 @@ const SecondStepModal = ({
         ...prev,
         blogImages: [...prev.blogImages, ...validFiles],
       }))
-      message.success(`${validFiles.length} image(s) added successfully!`)
     }
+    // Clear blogImages error after successful upload
+    setErrors((prev) => ({ ...prev, blogImages: "" }))
   }
 
   const handleDragOver = (e) => {
@@ -240,9 +285,62 @@ const SecondStepModal = ({
       ...prev,
       blogImages: prev.blogImages.filter((_, i) => i !== index),
     }))
+    // Re-validate blogImages if customImage is selected
+    if (formData.imageSource === "customImage" && formData.blogImages.length === 1) {
+      setErrors((prev) => ({
+        ...prev,
+        blogImages: "At least one custom image is required.",
+      }))
+    }
+  }
+
+  // Validation function
+  const validateForm = () => {
+    const newErrors = {
+      aiModel: "",
+      numberOfImages: "",
+      brandId: "",
+      blogImages: "",
+    }
+    let isValid = true
+
+    // Validate AI Model
+    if (!formData.aiModel) {
+      newErrors.aiModel = "Please select an AI model."
+      isValid = false
+    }
+
+    // Validate Number of Images
+    if (formData.isCheckedGeneratedImages) {
+      if (formData.numberOfImages === "" || formData.numberOfImages < 0) {
+        newErrors.numberOfImages = "Please enter a valid number of images (0–20)."
+        isValid = false
+      }
+    }
+
+    // Validate Brand Voice
+    if (formData.isCheckedBrand && !formData.brandId) {
+      newErrors.brandId = "Please select a brand voice."
+      isValid = false
+    }
+
+    // Validate Custom Images
+    if (formData.isCheckedGeneratedImages && formData.imageSource === "customImage") {
+      if (formData.blogImages.length === 0) {
+        newErrors.blogImages = "At least one custom image is required."
+        isValid = false
+      }
+    }
+
+    setErrors(newErrors)
+    return isValid
   }
 
   const handleNextStep = () => {
+    if (!validateForm()) {
+      return // Stop if validation fails
+    }
+
     const updatedData = {
       ...data,
       ...formData,
@@ -283,7 +381,11 @@ const SecondStepModal = ({
             <label className="block text-sm font-semibold text-gray-700 mb-3">
               Select AI Model
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full">
+            <div
+              className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full ${
+                errors.aiModel ? "border border-red-500 rounded-lg p-2" : ""
+              }`}
+            >
               {[
                 {
                   id: "gemini",
@@ -306,8 +408,12 @@ const SecondStepModal = ({
                   key={model.id}
                   htmlFor={model.id}
                   className={`relative border rounded-lg px-4 py-3 flex items-center gap-3 cursor-pointer transition-all duration-150
-        ${formData.aiModel === model.id ? "border-blue-600 bg-blue-50" : "border-gray-300"}
-        hover:shadow-sm w-full`}
+                    ${
+                      formData.aiModel === model.id
+                        ? "border-blue-600 bg-blue-50"
+                        : "border-gray-300"
+                    }
+                    hover:shadow-sm w-full ${errors.aiModel ? errorBorderStyle : ""}`}
                   onClick={(e) => {
                     if (model.restricted) {
                       e.preventDefault()
@@ -325,6 +431,7 @@ const SecondStepModal = ({
                       if (!model.restricted) {
                         setFormData((prev) => ({ ...prev, aiModel: e.target.value }))
                         setData((prev) => ({ ...prev, aiModel: e.target.value }))
+                        setErrors((prev) => ({ ...prev, aiModel: "" }))
                       }
                     }}
                     className="hidden"
@@ -337,6 +444,7 @@ const SecondStepModal = ({
                 </label>
               ))}
             </div>
+            {errors.aiModel && <p className="text-red-500 text-xs mb-t">{errors.aiModel}</p>}
           </div>
 
           {/* Add Image Section */}
@@ -363,6 +471,7 @@ const SecondStepModal = ({
                         imageSource: checked ? prev.imageSource : "unsplash",
                         isUnsplashActive: !checked ? true : prev.isUnsplashActive,
                       }))
+                      setErrors((prev) => ({ ...prev, numberOfImages: "", blogImages: "" }))
                     }}
                   />
                   <div
@@ -386,14 +495,16 @@ const SecondStepModal = ({
                   <label className="block text-sm font-semibold text-gray-700 mb-3">
                     Image Source
                   </label>
-
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full">
-                    {/* Stock Images */}
                     <label
                       htmlFor="unsplash"
                       className={`border rounded-lg px-4 py-3 flex items-center justify-center gap-3 cursor-pointer transition-all duration-150
-        ${formData.imageSource === "unsplash" ? "border-blue-600 bg-blue-50" : "border-gray-300"}
-        hover:shadow-sm w-full`}
+                        ${
+                          formData.imageSource === "unsplash"
+                            ? "border-blue-600 bg-blue-50"
+                            : "border-gray-300"
+                        }
+                        hover:shadow-sm w-full ${errors.blogImages ? errorBorderStyle : ""}`}
                     >
                       <input
                         type="radio"
@@ -406,12 +517,15 @@ const SecondStepModal = ({
                       <span className="text-sm font-medium text-gray-800">Stock Images</span>
                     </label>
 
-                    {/* AI-Generated Images */}
                     <label
                       htmlFor="ai-generated"
                       className={`relative border rounded-lg px-4 py-3 flex items-center justify-center gap-3 cursor-pointer transition-all duration-150
-        ${formData.imageSource === "ai" ? "border-blue-600 bg-blue-50" : "border-gray-300"}
-        hover:shadow-sm w-full`}
+                        ${
+                          formData.imageSource === "ai"
+                            ? "border-blue-600 bg-blue-50"
+                            : "border-gray-300"
+                        }
+                        hover:shadow-sm w-full ${errors.blogImages ? errorBorderStyle : ""}`}
                       onClick={(e) => {
                         if (userPlan === "free") {
                           e.preventDefault()
@@ -429,7 +543,6 @@ const SecondStepModal = ({
                         disabled={userPlan === "free" || isAiImagesLimitReached}
                       />
                       <span className="text-sm font-medium text-gray-800">AI-Generated Images</span>
-
                       {userPlan === "free" ? (
                         <Crown className="w-4 h-4 text-yellow-500 absolute top-2 right-2" />
                       ) : (
@@ -450,12 +563,15 @@ const SecondStepModal = ({
                       )}
                     </label>
 
-                    {/* Custom Image */}
                     <label
                       htmlFor="customImage"
                       className={`border rounded-lg px-4 py-3 flex items-center justify-center gap-3 cursor-pointer transition-all duration-150
-        ${formData.imageSource === "customImage" ? "border-blue-600 bg-blue-50" : "border-gray-300"}
-        hover:shadow-sm w-full`}
+                        ${
+                          formData.imageSource === "customImage"
+                            ? "border-blue-600 bg-blue-50"
+                            : "border-gray-300"
+                        }
+                        hover:shadow-sm w-full ${errors.blogImages ? errorBorderStyle : ""}`}
                     >
                       <input
                         type="radio"
@@ -484,11 +600,16 @@ const SecondStepModal = ({
                     value={formData.numberOfImages}
                     onChange={handleInputChange}
                     onWheel={(e) => e.currentTarget.blur()}
-                    inputMode="numeric" // shows numeric keypad
-                    pattern="[0-9]*" // fallback for iOS
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm placeholder-gray-400 transition"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    className={`w-full px-4 py-2 border rounded-lg text-sm placeholder-gray-400 transition ${
+                      errors.numberOfImages ? errorBorderStyle : "border-gray-300"
+                    }`}
                     placeholder="e.g., 5"
                   />
+                  {errors.numberOfImages && (
+                    <p className="text-red-500 text-xs mt-2">{errors.numberOfImages}</p>
+                  )}
                 </div>
               </>
             )}
@@ -502,6 +623,8 @@ const SecondStepModal = ({
                   className={`border-2 border-dashed rounded-lg p-6 text-center ${
                     formData.isDragging
                       ? "border-blue-600 bg-blue-50"
+                      : errors.blogImages
+                      ? "border-red-500 bg-red-50"
                       : "border-gray-300 bg-gray-50"
                   }`}
                   onDragOver={handleDragOver}
@@ -526,6 +649,9 @@ const SecondStepModal = ({
                     className="hidden"
                   />
                 </div>
+                {errors.blogImages && (
+                  <p className="text-red-500 text-xs mt-2">{errors.blogImages}</p>
+                )}
                 {formData.blogImages.length > 0 && (
                   <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
                     {formData.blogImages.map((image, index) => (
@@ -580,26 +706,63 @@ const SecondStepModal = ({
           <div>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="text-sm font-medium text-gray-700">Write with Brand Voice</span>
-              <label className="relative inline-flex items-center cursor-pointer">
+              <label
+                className={`relative inline-flex items-center ${
+                  !brands || brands.length === 0
+                    ? "cursor-not-allowed opacity-60"
+                    : "cursor-pointer"
+                }`}
+              >
                 <input
                   type="checkbox"
                   checked={formData.isCheckedBrand}
                   onChange={() => {
+                    if (!brands || brands.length === 0) {
+                      message.warning(
+                        "No brand voices available. Create one to enable this option."
+                      )
+                      // forcefully turn it off
+                      setFormData((prev) => ({
+                        ...prev,
+                        isCheckedBrand: false,
+                        brandId: null,
+                      }))
+                      setData((prev) => ({
+                        ...prev,
+                        isCheckedBrand: false,
+                        brandId: null,
+                      }))
+                      return
+                    }
+
+                    // smooth toggle when brands exist
                     setFormData((prev) => ({
                       ...prev,
                       isCheckedBrand: !prev.isCheckedBrand,
-                      brandId: null,
+                      brandId: !prev.isCheckedBrand ? prev.brandId : null, // only reset on turn-off
                     }))
                     setData((prev) => ({
                       ...prev,
                       isCheckedBrand: !prev.isCheckedBrand,
-                      brandId: null,
+                      brandId: !prev.isCheckedBrand ? prev.brandId : null,
                     }))
+                    setErrors((prev) => ({ ...prev, brandId: "" }))
                   }}
                   className="sr-only peer"
                   aria-checked={formData.isCheckedBrand}
                 />
-                <div className="w-12 h-6 bg-gray-300 rounded-full peer peer-checked:after:translate-x-6 peer-checked:bg-[#1B6FC9] after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-transform duration-300" />
+
+                <div
+                  className={`w-12 h-6 rounded-full transition-colors duration-300 ease-in-out
+      ${formData.isCheckedBrand ? "bg-[#1B6FC9]" : "bg-gray-300"}
+    `}
+                >
+                  <div
+                    className={`absolute top-0.5 left-0.5 h-5 w-5 bg-white rounded-full transition-transform duration-300 ease-in-out
+        ${formData.isCheckedBrand ? "translate-x-6" : "translate-x-0"}
+      `}
+                  />
+                </div>
               </label>
             </div>
 
@@ -611,15 +774,15 @@ const SecondStepModal = ({
                   <div className="text-red-500 text-sm font-medium">{brandError}</div>
                 ) : brands?.length > 0 ? (
                   <div className="max-h-48 overflow-y-auto pr-1">
-                    <div className="grid gap-3 sm:grid-cols-1">
+                    <div>
                       {brands.map((voice) => (
                         <label
                           key={voice._id}
-                          className={`flex flex-col sm:flex-row sm:items-start gap-2 p-3 rounded-md cursor-pointer transition ${
+                          className={`flex flex-col sm:flex-row sm:items-start mb-3 gap-2 p-3 rounded-md cursor-pointer transition ${
                             formData.brandId === voice._id
                               ? "bg-blue-100 border-blue-300"
                               : "bg-white border border-gray-200"
-                          }`}
+                          } ${errors.brandId ? errorBorderStyle : ""}`}
                         >
                           <input
                             type="radio"
@@ -635,6 +798,7 @@ const SecondStepModal = ({
                                 ...prev,
                                 brandId: voice._id,
                               }))
+                              setErrors((prev) => ({ ...prev, brandId: "" }))
                             }}
                             className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-600"
                           />
@@ -651,6 +815,7 @@ const SecondStepModal = ({
                     No brand voices available. Create one to get started.
                   </div>
                 )}
+                {errors.brandId && <p className="text-red-500 text-xs mt-2">{errors.brandId}</p>}
               </div>
             )}
 
@@ -804,7 +969,9 @@ const SecondStepModal = ({
             <div className="flex gap-2">
               <input
                 type="text"
-                className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className={`flex-1 px-3 py-2 bg-gray-50 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600 ${
+                  errors.newLink ? errorBorderStyle : "border-gray-200"
+                }`}
                 placeholder="https://example.com"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
@@ -827,6 +994,7 @@ const SecondStepModal = ({
                 <Plus className="w-4 h-4" />
               </button>
             </div>
+            {errors.newLink && <p className="text-red-500 text-xs mt-2">{errors.newLink}</p>}
             {formData.referenceLinks.length > 0 && (
               <div className="mt-2 space-y-2">
                 {formData.referenceLinks.map((link, index) => (

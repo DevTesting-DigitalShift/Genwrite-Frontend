@@ -58,7 +58,7 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
   const [showAllTopics, setShowAllTopics] = useState(false)
   const [showAllKeywords, setShowAllKeywords] = useState(false)
 
-  const MAX_BLOGS = 100
+  const MAX_BLOGS = 10
 
   useEffect(() => {
     if (selectedJob) {
@@ -146,6 +146,9 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
     if (step === 3 || step === "all") {
       if (newJob.blogs.numberOfBlogs < 1 || newJob.blogs.numberOfBlogs > MAX_BLOGS) {
         newErrors.numberOfBlogs = `Number of blogs must be between 1 and ${MAX_BLOGS}.`
+      }
+      if (newJob.blogs.numberOfImages < 0 || newJob.blogs.numberOfImages > MAX_BLOGS) {
+        newErrors.numberOfImages = `Number of images must be between 0 and 20.`
       }
       if (newJob.blogs.useBrandVoice && !newJob.blogs.brandId) {
         newErrors.brandId = "Please select a brand voice."

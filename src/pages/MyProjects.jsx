@@ -1014,10 +1014,10 @@ const MyProjects = () => {
                         <Button
                           type="text"
                           className="p-2 hover:!border-blue-500 hover:text-blue-500"
-                          aria-label="Retry Blog Generation"
+                          aria-label="Regenerate Blog"
                           onClick={() =>
                             handlePopup({
-                              title: "Retry Blog Generation",
+                              title: "Regenerate Blog",
                               description: (
                                 <span className="my-2">
                                   Are you sure you want to retry generating <b>{title}</b> blog?

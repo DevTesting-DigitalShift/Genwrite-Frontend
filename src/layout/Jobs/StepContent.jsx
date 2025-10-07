@@ -61,7 +61,7 @@ const StepContent = ({
     "Empathetic",
   ]
   const wordLengths = [500, 1000, 1500, 2000, 3000]
-  const MAX_BLOGS = 100
+  const MAX_BLOGS = 10
   const isAiImagesLimitReached = user?.usage?.aiImages >= user?.usageLimits?.aiImages
   const navigate = useNavigate()
 
@@ -199,8 +199,22 @@ const StepContent = ({
 
   const handleInputChange = (e) => {
     const { name, value, type } = e.target
-    const val = type === "number" ? parseInt(value, 10) || 0 : value
 
+    // Determine the value for number inputs
+    let val
+    if (type === "tel") {
+      if (value === "") {
+        val = "" // allow clearing
+      } else {
+        val = parseInt(value, 10)
+        if (val < 0) val = 0 // min value
+        if (val > 20) val = 20 // max value
+      }
+    } else {
+      val = value
+    }
+
+    // Update state
     setNewJob((prev) => ({
       ...prev,
       blogs: {
@@ -345,14 +359,24 @@ const StepContent = ({
   }
 
   const handleNumberOfBlogsChange = (e) => {
-    const value = parseInt(e.target.value, 10)
-    if (!isNaN(value) && value >= 0 && value <= MAX_BLOGS) {
-      setNewJob((prev) => ({
-        ...prev,
-        blogs: { ...prev.blogs, numberOfBlogs: value },
-      }))
-      setErrors((prev) => ({ ...prev, numberOfBlogs: false }))
+    const { value } = e.target
+
+    let numberValue
+    if (value === "") {
+      numberValue = "" // allow clearing
+    } else {
+      numberValue = parseInt(value, 10)
+      if (isNaN(numberValue)) numberValue = "" // ignore invalid input
+      if (numberValue > MAX_BLOGS) numberValue = MAX_BLOGS // clamp to max
+      if (numberValue < 0) numberValue = 0 // optional: clamp to min
     }
+
+    setNewJob((prev) => ({
+      ...prev,
+      blogs: { ...prev.blogs, numberOfBlogs: numberValue },
+    }))
+
+    setErrors((prev) => ({ ...prev, numberOfBlogs: false }))
   }
 
   const keywordsToShow = showAllKeywords
@@ -716,7 +740,7 @@ const StepContent = ({
             </div>
             {!formData.performKeywordResearch && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex gap-2 items-center">
+                <label className="text-sm font-medium text-gray-700 mb-2 flex gap-2 items-center">
                   Keywords
                   <Tooltip title="Upload a .csv file in the format: `Keywords` as header">
                     <Info size={16} className="text-blue-500 cursor-pointer" />
@@ -1043,16 +1067,20 @@ const StepContent = ({
                   Enter the number of images (0 = AI will decide)
                 </p>
                 <input
-                  type="number"
+                  type="tel"
+                  inputMode="numeric"
                   name="numberOfImages"
                   min="0"
                   max="20"
-                  value={newJob.blogs.numberOfImages || 0}
+                  value={newJob.blogs.numberOfImages ?? ""}
                   onChange={handleInputChange}
                   onWheel={(e) => e.currentTarget.blur()}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm placeholder-gray-400 transition"
                   placeholder="e.g., 5"
                 />
+                {errors.numberOfImages && (
+                  <p className="text-red-500 text-xs mt-1">{errors.numberOfImages}</p>
+                )}
               </div>
             </>
           )}
@@ -1245,16 +1273,18 @@ const StepContent = ({
                 Number of Blogs
               </label>
               <input
-                type="number"
-                value={newJob.blogs.numberOfBlogs}
+                type="tel"
+                inputMode="numeric"
+                name="numberOfBlogs"
+                min="1"
+                max={MAX_BLOGS}
+                value={newJob.blogs.numberOfBlogs ?? ""}
                 onChange={handleNumberOfBlogsChange}
-                onWheel={(e) => e.currentTarget.blur()} // 👈 this prevents scroll changing value
+                onWheel={(e) => e.currentTarget.blur()}
                 className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
                   errors.numberOfBlogs ? "border-red-500" : "border-gray-200"
                 }`}
                 placeholder="Enter the number of blogs"
-                min="1"
-                max={MAX_BLOGS}
               />
               {errors.numberOfBlogs && (
                 <p className="text-red-500 text-xs mt-1">{errors.numberOfBlogs}</p>

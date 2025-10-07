@@ -300,7 +300,7 @@ const TextEditor = ({
       const credits = modelCostMap[blog?.aiModel?.toLowerCase()] || 10 // fallback to 10
 
       handlePopup({
-        title: "Regenerate Blog Generation",
+        title: "Regenerate Blog",
         description: (
           <>
             Are you sure you want to retry generating this blog?{" "}
