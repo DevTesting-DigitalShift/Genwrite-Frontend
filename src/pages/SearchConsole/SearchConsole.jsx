@@ -136,7 +136,7 @@ const SearchConsole = () => {
         query: JSON.stringify(dimensions),
       }
       const data = await dispatch(fetchGscAnalytics(params)).unwrap()
-      return data.map((item, index) => ({
+      return data.gscData.map((item, index) => ({
         id: `${item.page || item.query || item.country}-${index}`,
         url: item.page || "-",
         query: item.query ? item.query.replace(/["+\-!@#$%^&*()]/g, "") : "-",

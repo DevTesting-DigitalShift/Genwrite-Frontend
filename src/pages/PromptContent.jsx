@@ -6,7 +6,7 @@ import { RefreshCw, Sparkles, Copy, Check } from "lucide-react"
 import { generatePromptContentThunk, resetMetadata } from "@store/slices/otherSlice"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
-import Loading from "@components/UI/Loading" 
+import Loading from "@components/UI/Loading"
 const { TextArea } = Input
 
 const PromptContent = () => {
@@ -169,7 +169,7 @@ const PromptContent = () => {
                 <h2 className="text-xl font-semibold text-gray-900">Prompt</h2>
               </div>
               <span className={`text-sm ${promptLength >= 10 ? "text-green-600" : "text-red-500"}`}>
-                {promptLength}/10 min
+                {promptLength}/10 minimum
               </span>
             </div>
             <TextArea
@@ -208,7 +208,7 @@ const PromptContent = () => {
                 <h2 className="text-xl font-semibold text-gray-900">Content</h2>
               </div>
               <span className={`text-sm ${wordCount >= 300 ? "text-green-600" : "text-red-500"}`}>
-                {wordCount}/300 words min
+                {wordCount}/300 words minimum
               </span>
             </div>
             <TextArea
