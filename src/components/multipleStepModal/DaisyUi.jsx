@@ -29,7 +29,37 @@ const MultiStepModal = ({ closeFnc }) => {
   const [recentlyUploadedKeywordsCount, setRecentlyUploadedKeywordsCount] = useState(null)
   const { Option } = Select
 
-  const [errors, setErrors] = useState({
+  // Initial Form Data
+  const initialFormData = {
+    templates: [],
+    topics: [],
+    keywords: [],
+    topicInput: "",
+    keywordInput: "",
+    performKeywordResearch: true,
+    tone: "",
+    userDefinedLength: 1000,
+    imageSource: "unsplash",
+    useBrandVoice: false,
+    useCompetitors: false,
+    includeInterlinks: true,
+    includeFaqs: true,
+    numberOfBlogs: 1,
+    numberOfImages: 0,
+    wordpressPostStatus: false,
+    postFrequency: 10 * 60,
+    aiModel: "gemini",
+    includeTableOfContents: false,
+    isCheckedGeneratedImages: true,
+    addOutBoundLinks: false,
+    blogImages: [],
+    postingType: null,
+    brandId: null,
+    addCTA: false,
+    isDragging: false,
+  }
+
+  const initialErrorsState = {
     templates: "",
     topics: "",
     topicsCSV: "",
@@ -42,39 +72,11 @@ const MultiStepModal = ({ closeFnc }) => {
     numberOfImages: "",
     blogImages: "",
     brandId: "",
-  })
+  }
 
-  const [formData, setFormData] = useState({
-    templates: [],
-    topics: [],
-    keywords: [],
-    topicInput: "",
-    keywordInput: "",
-    performKeywordResearch: true,
-    tone: "",
-    numberOfCounts: 5,
-    userDefinedLength: 1000,
-    imageSource: "unsplash",
-    useBrandVoice: false,
-    useCompetitors: false,
-    includeInterlinks: true,
-    includeMetaHeadlines: true,
-    includeFaqs: true,
-    numberOfBlogs: 1,
-    numberOfImages: 0,
-    wordpressPostStatus: false,
-    postFrequency: 10 * 60,
-    selectedDates: null,
-    aiModel: "gemini",
-    includeTableOfContents: false,
-    isCheckedGeneratedImages: true,
-    addOutBoundLinks: false,
-    blogImages: [],
-    postingType: null,
-    brandId: null,
-    addCTA: false,
-    isDragging: false,
-  })
+  const [errors, setErrors] = useState(initialErrorsState)
+
+  const [formData, setFormData] = useState(initialFormData)
 
   const {
     data: brands = [],
@@ -138,67 +140,13 @@ const MultiStepModal = ({ closeFnc }) => {
     setCurrentStep((prev) => (prev > 0 ? prev - 1 : prev))
     setErrors((prev) => ({
       ...prev,
-      templates: "",
-      topics: "",
-      topicsCSV: "",
-      keywords: "",
-      keywordsCSV: "",
-      tone: "",
-      integration: "",
-      aiModel: "",
-      numberOfBlogs: "",
-      numberOfImages: "",
-      blogImages: "",
-      brandId: "",
+      ...initialErrorsState,
     }))
   }
 
   const handleClose = () => {
-    setFormData({
-      templates: [],
-      topics: [],
-      keywords: [],
-      topicInput: "",
-      keywordInput: "",
-      performKeywordResearch: true,
-      tone: "",
-      numberOfCounts: 5,
-      userDefinedLength: 1000,
-      imageSource: "unsplash",
-      useBrandVoice: false,
-      useCompetitors: false,
-      includeInterlinks: true,
-      includeMetaHeadlines: true,
-      includeFaqs: true,
-      numberOfBlogs: 1,
-      numberOfImages: 0,
-      wordpressPostStatus: false,
-      postFrequency: 10 * 60,
-      selectedDates: null,
-      aiModel: "gemini",
-      includeTableOfContents: false,
-      isCheckedGeneratedImages: true,
-      addOutBoundLinks: false,
-      blogImages: [],
-      postingType: null,
-      brandId: null,
-      addCTA: false,
-      isDragging: false,
-    })
-    setErrors({
-      templates: "",
-      topics: "",
-      topicsCSV: "",
-      keywords: "",
-      keywordsCSV: "",
-      tone: "",
-      integration: "",
-      aiModel: "",
-      numberOfBlogs: "",
-      numberOfImages: "",
-      blogImages: "",
-      brandId: "",
-    })
+    setFormData(initialFormData)
+    setErrors(initialErrorsState)
     closeFnc()
   }
 
@@ -741,52 +689,52 @@ const MultiStepModal = ({ closeFnc }) => {
     }
   }
 
-  const handleDrop = (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setFormData((prev) => ({ ...prev, isDragging: false }))
+  // const handleDrop = (e) => {
+  //   e.preventDefault()
+  //   e.stopPropagation()
+  //   setFormData((prev) => ({ ...prev, isDragging: false }))
 
-    const files = e.dataTransfer.files
-    if (!files || files.length === 0) return
+  //   const files = e.dataTransfer.files
+  //   if (!files || files.length === 0) return
 
-    const validFiles = validateImages(files)
-    if (validFiles.length > 0) {
-      setFormData((prev) => ({
-        ...prev,
-        blogImages: [...prev.blogImages, ...validFiles],
-      }))
-      setErrors((prev) => ({ ...prev, blogImages: "" }))
-    }
-  }
+  //   const validFiles = validateImages(files)
+  //   if (validFiles.length > 0) {
+  //     setFormData((prev) => ({
+  //       ...prev,
+  //       blogImages: [...prev.blogImages, ...validFiles],
+  //     }))
+  //     setErrors((prev) => ({ ...prev, blogImages: "" }))
+  //   }
+  // }
 
-  const handleDragOver = (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setFormData((prev) => ({ ...prev, isDragging: true }))
-  }
+  // const handleDragOver = (e) => {
+  //   e.preventDefault()
+  //   e.stopPropagation()
+  //   setFormData((prev) => ({ ...prev, isDragging: true }))
+  // }
 
-  const handleDragLeave = (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setFormData((prev) => ({ ...prev, isDragging: false }))
-  }
+  // const handleDragLeave = (e) => {
+  //   e.preventDefault()
+  //   e.stopPropagation()
+  //   setFormData((prev) => ({ ...prev, isDragging: false }))
+  // }
 
-  const handleRemoveImage = (index) => {
-    setFormData((prev) => ({
-      ...prev,
-      blogImages: prev.blogImages.filter((_, i) => i !== index),
-    }))
-    if (formData.isCheckedGeneratedImages && formData.imageSource === "customImage") {
-      if (formData.blogImages.length === 1) {
-        setErrors((prev) => ({
-          ...prev,
-          blogImages: "Please upload at least one custom image.",
-        }))
-      } else {
-        setErrors((prev) => ({ ...prev, blogImages: "" }))
-      }
-    }
-  }
+  // const handleRemoveImage = (index) => {
+  //   setFormData((prev) => ({
+  //     ...prev,
+  //     blogImages: prev.blogImages.filter((_, i) => i !== index),
+  //   }))
+  //   if (formData.isCheckedGeneratedImages && formData.imageSource === "customImage") {
+  //     if (formData.blogImages.length === 1) {
+  //       setErrors((prev) => ({
+  //         ...prev,
+  //         blogImages: "Please upload at least one custom image.",
+  //       }))
+  //     } else {
+  //       setErrors((prev) => ({ ...prev, blogImages: "" }))
+  //     }
+  //   }
+  // }
 
   const steps = ["Select Templates", "Add Details", "Blog Options"]
 
@@ -1296,12 +1244,12 @@ const MultiStepModal = ({ closeFnc }) => {
                       value: "ai",
                       restricted: userPlan === "free",
                     },
-                    {
-                      id: "customImage",
-                      label: "Custom Images",
-                      value: "customImage",
-                      restricted: false,
-                    },
+                    // {
+                    //   id: "customImage",
+                    //   label: "Custom Images",
+                    //   value: "customImage",
+                    //   restricted: false,
+                    // },
                   ].map((source) => (
                     <label
                       key={source.id}
@@ -1338,7 +1286,7 @@ const MultiStepModal = ({ closeFnc }) => {
                     </label>
                   ))}
                 </div>
-                {formData.imageSource === "customImage" && (
+                {/* {formData.imageSource === "customImage" && (
                   <div className="mt-4">
                     <label className="block text-sm font-semibold text-gray-700 mb-3">
                       Upload Custom Images (Max 15, each 5MB)
@@ -1399,7 +1347,7 @@ const MultiStepModal = ({ closeFnc }) => {
                       </div>
                     )}
                   </div>
-                )}
+                )} */}
                 <div className="pt-4 w-full">
                   <label className="block text-sm font-semibold text-gray-700 mb-1">
                     Number of Images
@@ -1412,7 +1360,7 @@ const MultiStepModal = ({ closeFnc }) => {
                     inputMode="numeric"
                     name="numberOfImages"
                     min="0"
-                    max="20"
+                    max="15"
                     value={formData.numberOfImages}
                     onChange={handleInputChange}
                     onWheel={(e) => e.currentTarget.blur()}

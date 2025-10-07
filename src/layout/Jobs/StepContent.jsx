@@ -48,6 +48,15 @@ const StepContent = ({
     },
   })
 
+  useEffect(() => {
+    if (integrations?.integrations?.size) {
+      setFormData((prev) => ({
+        ...prev,
+        postingType: integrations.integrations.key().next().value,
+      }))
+    }
+  }, [integrations])
+
   const tones = [
     "Professional",
     "Casual",
@@ -1000,7 +1009,7 @@ const StepContent = ({
 
                 {/* Responsive grid */}
                 <div
-                  className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full ${
+                  className={`grid grid-cols-2 gap-4 mx-auto w-full ${
                     errors.imageSource ? "border-2 border-red-500 rounded-lg p-2" : ""
                   }`}
                 >
@@ -1071,7 +1080,7 @@ const StepContent = ({
                   inputMode="numeric"
                   name="numberOfImages"
                   min="0"
-                  max="20"
+                  max="15"
                   value={newJob.blogs.numberOfImages ?? ""}
                   onChange={handleInputChange}
                   onWheel={(e) => e.currentTarget.blur()}

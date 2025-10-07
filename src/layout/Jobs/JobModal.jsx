@@ -25,7 +25,7 @@ const initialJob = {
     addCTA: true,
     numberOfImages: 0,
     blogImages: [],
-    postingType: "WORDPRESS",
+    postingType: null,
   },
   options: {
     wordpressPosting: false,
