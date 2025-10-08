@@ -9,15 +9,15 @@ import { createMultiBlog } from "@store/slices/blogSlice"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { message, Modal, Select, Tooltip } from "antd"
 import { fetchBrands } from "@store/slices/brandSlice"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { getIntegrationsThunk } from "@store/slices/otherSlice"
 
 const MultiStepModal = ({ closeFnc }) => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
-  const user = useSelector((state) => state.auth.user)
-  const { data: integrations } = useSelector((state) => state.wordpress)
+  const user = useSelector(state => state.auth.user)
+  const { data: integrations } = useSelector(state => state.wordpress)
   const userPlan = user?.subscription?.plan || user?.plan
   const [showAllTopics, setShowAllTopics] = useState(false)
   const [showAllKeywords, setShowAllKeywords] = useState(false)
@@ -78,6 +78,18 @@ const MultiStepModal = ({ closeFnc }) => {
 
   const [formData, setFormData] = useState(initialFormData)
 
+  const queryClient = useQueryClient()
+
+  useEffect(() => {
+    queryClient.prefetchQuery({
+      queryKey: ["brands"],
+      queryFn: async () => {
+        const response = await dispatch(fetchBrands()).unwrap()
+        return response
+      },
+    })
+  }, [dispatch, queryClient])
+
   const {
     data: brands = [],
     isLoading: loadingBrands,
@@ -89,6 +101,9 @@ const MultiStepModal = ({ closeFnc }) => {
       return response
     },
     enabled: formData.useBrandVoice,
+    staleTime: Infinity, // 👈 Prevent re-fetching after prefetch
+    gcTime: Infinity, // 👈 Keep cached data all session
+    refetchOnWindowFocus: false,
   })
 
   useEffect(() => {
@@ -97,22 +112,22 @@ const MultiStepModal = ({ closeFnc }) => {
 
   useEffect(() => {
     if (isAiImagesLimitReached && formData.isCheckedGeneratedImages) {
-      setFormData((prev) => ({
+      setFormData(prev => ({
         ...prev,
         isCheckedGeneratedImages: false,
         imageSource: "unsplash",
       }))
-      setErrors((prev) => ({ ...prev, numberOfImages: false, blogImages: false }))
+      setErrors(prev => ({ ...prev, numberOfImages: false, blogImages: false }))
     }
   }, [isAiImagesLimitReached])
 
   const handleNext = () => {
     if (currentStep === 0) {
       if (formData.templates.length === 0) {
-        setErrors((prev) => ({ ...prev, templates: "Please select at least one template." }))
+        setErrors(prev => ({ ...prev, templates: "Please select at least one template." }))
         return
       }
-      setErrors((prev) => ({ ...prev, templates: "" }))
+      setErrors(prev => ({ ...prev, templates: "" }))
     }
     if (currentStep === 1) {
       const newErrors = {
@@ -128,17 +143,17 @@ const MultiStepModal = ({ closeFnc }) => {
             : "",
         tone: !formData.tone ? "Please select a tone of voice." : "",
       }
-      setErrors((prev) => ({ ...prev, ...newErrors }))
-      if (Object.values(newErrors).some((error) => error)) {
+      setErrors(prev => ({ ...prev, ...newErrors }))
+      if (Object.values(newErrors).some(error => error)) {
         return
       }
     }
-    setCurrentStep((prev) => prev + 1)
+    setCurrentStep(prev => prev + 1)
   }
 
   const handlePrev = () => {
-    setCurrentStep((prev) => (prev > 0 ? prev - 1 : prev))
-    setErrors((prev) => ({
+    setCurrentStep(prev => (prev > 0 ? prev - 1 : prev))
+    setErrors(prev => ({
       ...prev,
       ...initialErrorsState,
     }))
@@ -190,9 +205,9 @@ const MultiStepModal = ({ closeFnc }) => {
       brandId: formData.useBrandVoice && !formData.brandId ? "Please select a brand voice." : "",
     }
 
-    setErrors((prev) => ({ ...prev, ...newErrors }))
+    setErrors(prev => ({ ...prev, ...newErrors }))
 
-    if (Object.values(newErrors).some((error) => error)) {
+    if (Object.values(newErrors).some(error => error)) {
       // Find the step where the first error occurs
       const errorStep = newErrors.templates
         ? 0
@@ -226,28 +241,28 @@ const MultiStepModal = ({ closeFnc }) => {
     })
   }
 
-  const handlePackageSelect = (index) => {
+  const handlePackageSelect = index => {
     const selectedPackageName = packages[index].name
     const isSelected = formData.templates.includes(selectedPackageName)
 
     if (isSelected) {
-      setFormData((prev) => ({
+      setFormData(prev => ({
         ...prev,
-        templates: prev.templates.filter((name) => name !== selectedPackageName),
+        templates: prev.templates.filter(name => name !== selectedPackageName),
       }))
-      setErrors((prev) => ({ ...prev, templates: "" }))
+      setErrors(prev => ({ ...prev, templates: "" }))
     } else if (formData.templates.length < 3) {
-      setFormData((prev) => ({
+      setFormData(prev => ({
         ...prev,
         templates: [...prev.templates, selectedPackageName],
       }))
-      setErrors((prev) => ({ ...prev, templates: "" }))
+      setErrors(prev => ({ ...prev, templates: "" }))
     } else {
-      setErrors((prev) => ({ ...prev, templates: "You can select a maximum of 3 templates." }))
+      setErrors(prev => ({ ...prev, templates: "You can select a maximum of 3 templates." }))
     }
   }
 
-  const handleInputChange = (e) => {
+  const handleInputChange = e => {
     const { name, value, type } = e.target
 
     let val
@@ -269,127 +284,127 @@ const MultiStepModal = ({ closeFnc }) => {
       val = value
     }
 
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       [name]: val,
     }))
-    setErrors((prev) => ({ ...prev, [name]: "" }))
+    setErrors(prev => ({ ...prev, [name]: "" }))
   }
 
-  const handleCheckboxChange = (e) => {
+  const handleCheckboxChange = e => {
     const { name, checked } = e.target
     if (name === "wordpressPostStatus" && checked) {
       const hasAnyIntegration = Object.keys(integrations?.integrations || {}).length > 0
       if (!hasAnyIntegration) {
-        setErrors((prev) => ({
+        setErrors(prev => ({
           ...prev,
           integration: "Please connect your account in plugins.",
         }))
         return
       }
     }
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       [name]: checked,
       postingType: name === "wordpressPostStatus" && !checked ? null : prev.postingType,
     }))
     if (name === "performKeywordResearch") {
-      setErrors((prev) => ({ ...prev, keywords: "", keywordsCSV: "" }))
+      setErrors(prev => ({ ...prev, keywords: "", keywordsCSV: "" }))
     }
     if (name === "wordpressPostStatus") {
-      setErrors((prev) => ({ ...prev, integration: "" }))
+      setErrors(prev => ({ ...prev, integration: "" }))
     }
   }
 
-  const handleTopicInputChange = (e) => {
-    setFormData((prev) => ({ ...prev, topicInput: e.target.value }))
-    setErrors((prev) => ({ ...prev, topics: "", topicsCSV: "" }))
+  const handleTopicInputChange = e => {
+    setFormData(prev => ({ ...prev, topicInput: e.target.value }))
+    setErrors(prev => ({ ...prev, topics: "", topicsCSV: "" }))
   }
 
-  const handleKeywordInputChange = (e) => {
-    setFormData((prev) => ({ ...prev, keywordInput: e.target.value }))
-    setErrors((prev) => ({ ...prev, keywords: "", keywordsCSV: "" }))
+  const handleKeywordInputChange = e => {
+    setFormData(prev => ({ ...prev, keywordInput: e.target.value }))
+    setErrors(prev => ({ ...prev, keywords: "", keywordsCSV: "" }))
   }
 
   const handleAddTopic = () => {
     const inputValue = formData.topicInput.trim()
     if (inputValue === "") {
-      setErrors((prev) => ({ ...prev, topics: "Please enter a topic." }))
+      setErrors(prev => ({ ...prev, topics: "Please enter a topic." }))
       return false
     }
 
-    const existing = formData.topics.map((t) => t.toLowerCase().trim())
+    const existing = formData.topics.map(t => t.toLowerCase().trim())
     const newTopics = inputValue
       .split(",")
-      .map((t) => t.trim())
-      .filter((t) => t !== "" && !existing.includes(t.toLowerCase()))
+      .map(t => t.trim())
+      .filter(t => t !== "" && !existing.includes(t.toLowerCase()))
 
     if (newTopics.length === 0) {
-      setErrors((prev) => ({
+      setErrors(prev => ({
         ...prev,
         topics: "Please enter valid, non-duplicate topics separated by commas.",
       }))
-      setFormData((prev) => ({ ...prev, topicInput: "" }))
+      setFormData(prev => ({ ...prev, topicInput: "" }))
       return false
     }
 
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       topics: [...prev.topics, ...newTopics],
       topicInput: "",
     }))
-    setErrors((prev) => ({ ...prev, topics: "", topicsCSV: "" }))
+    setErrors(prev => ({ ...prev, topics: "", topicsCSV: "" }))
     return true
   }
 
-  const handleRemoveTopic = (index) => {
-    setFormData((prev) => ({
+  const handleRemoveTopic = index => {
+    setFormData(prev => ({
       ...prev,
       topics: prev.topics.filter((_, i) => i !== index),
     }))
-    setErrors((prev) => ({ ...prev, topics: "", topicsCSV: "" }))
+    setErrors(prev => ({ ...prev, topics: "", topicsCSV: "" }))
   }
 
   const handleAddKeyword = () => {
     const inputValue = formData.keywordInput.trim()
     if (inputValue === "") {
-      setErrors((prev) => ({ ...prev, keywords: "Please enter a keyword." }))
+      setErrors(prev => ({ ...prev, keywords: "Please enter a keyword." }))
       return false
     }
 
-    const existing = formData.keywords.map((k) => k.toLowerCase().trim())
+    const existing = formData.keywords.map(k => k.toLowerCase().trim())
     const newKeywords = inputValue
       .split(",")
-      .map((k) => k.trim())
-      .filter((k) => k !== "" && !existing.includes(k.toLowerCase()))
+      .map(k => k.trim())
+      .filter(k => k !== "" && !existing.includes(k.toLowerCase()))
 
     if (newKeywords.length === 0) {
-      setErrors((prev) => ({
+      setErrors(prev => ({
         ...prev,
         keywords: "Please enter valid, non-duplicate keywords separated by commas.",
       }))
-      setFormData((prev) => ({ ...prev, keywordInput: "" }))
+      setFormData(prev => ({ ...prev, keywordInput: "" }))
       return false
     }
 
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       keywords: [...prev.keywords, ...newKeywords],
       keywordInput: "",
     }))
-    setErrors((prev) => ({ ...prev, keywords: "", keywordsCSV: "" }))
+    setErrors(prev => ({ ...prev, keywords: "", keywordsCSV: "" }))
     return true
   }
 
-  const handleRemoveKeyword = (index) => {
-    setFormData((prev) => ({
+  const handleRemoveKeyword = index => {
+    setFormData(prev => ({
       ...prev,
       keywords: prev.keywords.filter((_, i) => i !== index),
     }))
-    setErrors((prev) => ({ ...prev, keywords: "", keywordsCSV: "" }))
+    setErrors(prev => ({ ...prev, keywords: "", keywordsCSV: "" }))
   }
 
-  const handleTopicKeyPress = (e) => {
+  const handleTopicKeyPress = e => {
     if (e.key === "Enter") {
       e.preventDefault()
       const topicAdded = handleAddTopic()
@@ -399,23 +414,23 @@ const MultiStepModal = ({ closeFnc }) => {
     }
   }
 
-  const handleImageSourceChange = (source) => {
-    setFormData((prev) => ({ ...prev, imageSource: source }))
-    setErrors((prev) => ({ ...prev, blogImages: "", numberOfImages: "" }))
+  const handleImageSourceChange = source => {
+    setFormData(prev => ({ ...prev, imageSource: source }))
+    setErrors(prev => ({ ...prev, blogImages: "", numberOfImages: "" }))
   }
 
-  const handleIntegrationChange = (platform) => {
-    setFormData((prev) => ({
+  const handleIntegrationChange = platform => {
+    setFormData(prev => ({
       ...prev,
       postingType: platform,
     }))
-    setErrors((prev) => ({ ...prev, integration: "" }))
+    setErrors(prev => ({ ...prev, integration: "" }))
   }
 
-  const handleCSVUpload = (e) => {
+  const handleCSVUpload = e => {
     const file = e.target.files?.[0]
     if (!file) {
-      setErrors((prev) => ({
+      setErrors(prev => ({
         ...prev,
         topicsCSV: "No file selected. Please choose a valid CSV file.",
       }))
@@ -424,7 +439,7 @@ const MultiStepModal = ({ closeFnc }) => {
     }
 
     if (!file.name.toLowerCase().endsWith(".csv")) {
-      setErrors((prev) => ({
+      setErrors(prev => ({
         ...prev,
         topicsCSV: "Invalid file type. Please upload a .csv file.",
       }))
@@ -434,7 +449,7 @@ const MultiStepModal = ({ closeFnc }) => {
 
     const maxSizeInBytes = 20 * 1024
     if (file.size > maxSizeInBytes) {
-      setErrors((prev) => ({
+      setErrors(prev => ({
         ...prev,
         topicsCSV: "File size exceeds 20KB limit. Please upload a smaller file.",
       }))
@@ -443,10 +458,10 @@ const MultiStepModal = ({ closeFnc }) => {
     }
 
     const reader = new FileReader()
-    reader.onload = (event) => {
+    reader.onload = event => {
       const text = event.target?.result
       if (!text || typeof text !== "string") {
-        setErrors((prev) => ({
+        setErrors(prev => ({
           ...prev,
           topicsCSV: "Failed to read the CSV file. Please ensure it is valid.",
         }))
@@ -455,7 +470,7 @@ const MultiStepModal = ({ closeFnc }) => {
 
       let lines = text.trim().split(/\r?\n/)
       if (lines.length === 0) {
-        setErrors((prev) => ({
+        setErrors(prev => ({
           ...prev,
           topicsCSV: "The CSV file is empty. Please provide a valid CSV with topics.",
         }))
@@ -467,23 +482,23 @@ const MultiStepModal = ({ closeFnc }) => {
       }
 
       const items = lines
-        .map((line) => {
+        .map(line => {
           const parts = line.split(",")
-          return parts.map((part) => part.trim()).find((part) => part) || null
+          return parts.map(part => part.trim()).find(part => part) || null
         })
-        .filter((item) => item && item.trim().length > 0)
+        .filter(item => item && item.trim().length > 0)
 
       if (items.length === 0) {
-        setErrors((prev) => ({
+        setErrors(prev => ({
           ...prev,
           topicsCSV: "No valid topics found in the CSV file.",
         }))
         return
       }
 
-      const existing = formData.topics.map((t) => t.toLowerCase().trim())
+      const existing = formData.topics.map(t => t.toLowerCase().trim())
       const seen = new Set()
-      const uniqueNewItems = items.filter((item) => {
+      const uniqueNewItems = items.filter(item => {
         const lower = item.toLowerCase().trim()
         if (!item || seen.has(lower) || existing.includes(lower)) return false
         seen.add(lower)
@@ -491,7 +506,7 @@ const MultiStepModal = ({ closeFnc }) => {
       })
 
       if (uniqueNewItems.length === 0) {
-        setErrors((prev) => ({
+        setErrors(prev => ({
           ...prev,
           topicsCSV:
             "No new topics found in the CSV. All provided items are either duplicates or already exist.",
@@ -499,17 +514,17 @@ const MultiStepModal = ({ closeFnc }) => {
         return
       }
 
-      setFormData((prev) => ({
+      setFormData(prev => ({
         ...prev,
         topics: [...prev.topics, ...uniqueNewItems],
       }))
-      setErrors((prev) => ({ ...prev, topics: "", topicsCSV: "" }))
+      setErrors(prev => ({ ...prev, topics: "", topicsCSV: "" }))
       setRecentlyUploadedTopicsCount(uniqueNewItems.length)
       setTimeout(() => setRecentlyUploadedTopicsCount(null), 5000)
     }
 
     reader.onerror = () => {
-      setErrors((prev) => ({
+      setErrors(prev => ({
         ...prev,
         topicsCSV: "An error occurred while reading the CSV file.",
       }))
@@ -519,10 +534,10 @@ const MultiStepModal = ({ closeFnc }) => {
     e.target.value = null
   }
 
-  const handleCSVKeywordUpload = (e) => {
+  const handleCSVKeywordUpload = e => {
     const file = e.target.files?.[0]
     if (!file) {
-      setErrors((prev) => ({
+      setErrors(prev => ({
         ...prev,
         keywordsCSV: "No file selected. Please choose a valid CSV file.",
       }))
@@ -531,7 +546,7 @@ const MultiStepModal = ({ closeFnc }) => {
     }
 
     if (!file.name.toLowerCase().endsWith(".csv")) {
-      setErrors((prev) => ({
+      setErrors(prev => ({
         ...prev,
         keywordsCSV: "Invalid file type. Please upload a .csv file.",
       }))
@@ -541,7 +556,7 @@ const MultiStepModal = ({ closeFnc }) => {
 
     const maxSizeInBytes = 20 * 1024
     if (file.size > maxSizeInBytes) {
-      setErrors((prev) => ({
+      setErrors(prev => ({
         ...prev,
         keywordsCSV: "File size exceeds 20KB limit. Please upload a smaller file.",
       }))
@@ -550,10 +565,10 @@ const MultiStepModal = ({ closeFnc }) => {
     }
 
     const reader = new FileReader()
-    reader.onload = (event) => {
+    reader.onload = event => {
       const text = event.target?.result
       if (!text || typeof text !== "string") {
-        setErrors((prev) => ({
+        setErrors(prev => ({
           ...prev,
           keywordsCSV: "Failed to read the CSV file. Please ensure it is valid.",
         }))
@@ -562,7 +577,7 @@ const MultiStepModal = ({ closeFnc }) => {
 
       let lines = text.trim().split(/\r?\n/)
       if (lines.length === 0) {
-        setErrors((prev) => ({
+        setErrors(prev => ({
           ...prev,
           keywordsCSV: "The CSV file is empty. Please provide a valid CSV with keywords.",
         }))
@@ -577,23 +592,23 @@ const MultiStepModal = ({ closeFnc }) => {
       }
 
       const items = lines
-        .map((line) => {
+        .map(line => {
           const parts = line.split(",")
-          return parts.map((part) => part.trim()).find((part) => part) || null
+          return parts.map(part => part.trim()).find(part => part) || null
         })
-        .filter((item) => item && item.trim().length > 0)
+        .filter(item => item && item.trim().length > 0)
 
       if (items.length === 0) {
-        setErrors((prev) => ({
+        setErrors(prev => ({
           ...prev,
           keywordsCSV: "No valid keywords found in the CSV file.",
         }))
         return
       }
 
-      const existing = formData.keywords.map((k) => k.toLowerCase().trim())
+      const existing = formData.keywords.map(k => k.toLowerCase().trim())
       const seen = new Set()
-      const uniqueNewItems = items.filter((item) => {
+      const uniqueNewItems = items.filter(item => {
         const lower = item.toLowerCase().trim()
         if (!item || seen.has(lower) || existing.includes(lower)) return false
         seen.add(lower)
@@ -601,7 +616,7 @@ const MultiStepModal = ({ closeFnc }) => {
       })
 
       if (uniqueNewItems.length === 0) {
-        setErrors((prev) => ({
+        setErrors(prev => ({
           ...prev,
           keywordsCSV:
             "No new keywords found in the CSV. All provided items are either duplicates or already exist.",
@@ -609,17 +624,17 @@ const MultiStepModal = ({ closeFnc }) => {
         return
       }
 
-      setFormData((prev) => ({
+      setFormData(prev => ({
         ...prev,
         keywords: [...prev.keywords, ...uniqueNewItems],
       }))
-      setErrors((prev) => ({ ...prev, keywords: "", keywordsCSV: "" }))
+      setErrors(prev => ({ ...prev, keywords: "", keywordsCSV: "" }))
       setRecentlyUploadedKeywordsCount(uniqueNewItems.length)
       setTimeout(() => setRecentlyUploadedKeywordsCount(null), 5000)
     }
 
     reader.onerror = () => {
-      setErrors((prev) => ({
+      setErrors(prev => ({
         ...prev,
         keywordsCSV: "An error occurred while reading the CSV file.",
       }))
@@ -629,29 +644,29 @@ const MultiStepModal = ({ closeFnc }) => {
     e.target.value = null
   }
 
-  const validateImages = (files) => {
+  const validateImages = files => {
     const maxImages = 15
     const maxSize = 5 * 1024 * 1024 // 5 MB
     const allowedTypes = ["image/jpeg", "image/png", "image/webp"]
 
     if (!files || files.length === 0) {
-      setErrors((prev) => ({
+      setErrors(prev => ({
         ...prev,
         blogImages: "No images selected. Please choose valid images.",
       }))
       return []
     }
 
-    const validFiles = Array.from(files).filter((file) => {
+    const validFiles = Array.from(files).filter(file => {
       if (!allowedTypes.includes(file.type)) {
-        setErrors((prev) => ({
+        setErrors(prev => ({
           ...prev,
           blogImages: `"${file.name}" is not a valid image type. Only PNG, JPEG, and WebP are allowed.`,
         }))
         return false
       }
       if (file.size > maxSize) {
-        setErrors((prev) => ({
+        setErrors(prev => ({
           ...prev,
           blogImages: `"${file.name}" exceeds the 5 MB size limit.`,
         }))
@@ -662,7 +677,7 @@ const MultiStepModal = ({ closeFnc }) => {
 
     const totalImages = formData.blogImages.length + validFiles.length
     if (totalImages > maxImages) {
-      setErrors((prev) => ({
+      setErrors(prev => ({
         ...prev,
         blogImages: `Cannot upload more than ${maxImages} images.`,
       }))
@@ -672,17 +687,17 @@ const MultiStepModal = ({ closeFnc }) => {
     return validFiles
   }
 
-  const handleFileChange = (e) => {
+  const handleFileChange = e => {
     const files = e.target.files
     if (!files || files.length === 0) return
 
     const validFiles = validateImages(files)
     if (validFiles.length > 0) {
-      setFormData((prev) => ({
+      setFormData(prev => ({
         ...prev,
         blogImages: [...prev.blogImages, ...validFiles],
       }))
-      setErrors((prev) => ({ ...prev, blogImages: "" }))
+      setErrors(prev => ({ ...prev, blogImages: "" }))
     }
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
@@ -786,7 +801,7 @@ const MultiStepModal = ({ closeFnc }) => {
                   onClick={() => handlePackageSelect(index)}
                   role="button"
                   tabIndex={0}
-                  onKeyDown={(e) => e.key === "Enter" && handlePackageSelect(index)}
+                  onKeyDown={e => e.key === "Enter" && handlePackageSelect(index)}
                   aria-label={`Select ${pkg.name} template`}
                 >
                   <div className="bg-white rounded-lg overflow-hidden shadow-sm">
@@ -818,7 +833,7 @@ const MultiStepModal = ({ closeFnc }) => {
                     onClick={() => handlePackageSelect(index)}
                     role="button"
                     tabIndex={0}
-                    onKeyDown={(e) => e.key === "Enter" && handlePackageSelect(index)}
+                    onKeyDown={e => e.key === "Enter" && handlePackageSelect(index)}
                     aria-label={`Select ${pkg.name} template`}
                   >
                     <div className="bg-white rounded-lg overflow-hidden shadow-sm">
@@ -905,7 +920,7 @@ const MultiStepModal = ({ closeFnc }) => {
                 })}
                 {(formData.topics.length > 18 || recentlyUploadedTopicsCount) && (
                   <span
-                    onClick={() => setShowAllTopics((prev) => !prev)}
+                    onClick={() => setShowAllTopics(prev => !prev)}
                     className="cursor-pointer text-xs font-medium text-blue-600 self-center flex items-center gap-1"
                   >
                     {showAllTopics ? (
@@ -1006,7 +1021,7 @@ const MultiStepModal = ({ closeFnc }) => {
                     })}
                     {(formData.keywords.length > 18 || recentlyUploadedKeywordsCount) && (
                       <span
-                        onClick={() => setShowAllKeywords((prev) => !prev)}
+                        onClick={() => setShowAllKeywords(prev => !prev)}
                         className="cursor-pointer text-xs font-medium text-blue-600 self-center flex items-center gap-1"
                       >
                         {showAllKeywords ? (
@@ -1033,9 +1048,9 @@ const MultiStepModal = ({ closeFnc }) => {
                 <Select
                   className="w-full"
                   value={formData.tone}
-                  onChange={(value) => {
-                    setFormData((prev) => ({ ...prev, tone: value }))
-                    setErrors((prev) => ({ ...prev, tone: "" }))
+                  onChange={value => {
+                    setFormData(prev => ({ ...prev, tone: value }))
+                    setErrors(prev => ({ ...prev, tone: "" }))
                   }}
                   placeholder="Select tone"
                   status={errors.tone ? "error" : ""}
@@ -1070,8 +1085,8 @@ const MultiStepModal = ({ closeFnc }) => {
                         ((formData.userDefinedLength - 500) / 4500) * 100
                       }%, #E5E7EB ${((formData.userDefinedLength - 500) / 4500) * 100}%)`,
                     }}
-                    onChange={(e) => {
-                      setFormData((prev) => ({
+                    onChange={e => {
+                      setFormData(prev => ({
                         ...prev,
                         userDefinedLength: parseInt(e.target.value, 10),
                       }))
@@ -1115,7 +1130,7 @@ const MultiStepModal = ({ closeFnc }) => {
                     logo: "/Images/claude.png",
                     restricted: userPlan === "free" || userPlan === "basic",
                   },
-                ].map((model) => (
+                ].map(model => (
                   <label
                     key={model.id}
                     htmlFor={model.id}
@@ -1124,7 +1139,7 @@ const MultiStepModal = ({ closeFnc }) => {
                         ? "border-blue-600 bg-blue-50"
                         : "border-gray-300"
                     } hover:shadow-sm ${model.restricted ? "opacity-50 cursor-not-allowed" : ""}`}
-                    onClick={(e) => {
+                    onClick={e => {
                       if (model.restricted) {
                         e.preventDefault()
                         // Assuming openUpgradePopup is defined elsewhere
@@ -1138,13 +1153,13 @@ const MultiStepModal = ({ closeFnc }) => {
                       name="aiModel"
                       value={model.id}
                       checked={formData.aiModel === model.id}
-                      onChange={(e) => {
+                      onChange={e => {
                         if (!model.restricted) {
-                          setFormData((prev) => ({
+                          setFormData(prev => ({
                             ...prev,
                             aiModel: e.target.value,
                           }))
-                          setErrors((prev) => ({ ...prev, aiModel: "" }))
+                          setErrors(prev => ({ ...prev, aiModel: "" }))
                         }
                       }}
                       className="hidden"
@@ -1172,18 +1187,18 @@ const MultiStepModal = ({ closeFnc }) => {
                     className="sr-only peer"
                     checked={formData.isCheckedGeneratedImages}
                     disabled={isAiImagesLimitReached}
-                    onChange={(e) => {
+                    onChange={e => {
                       if (isAiImagesLimitReached) {
                         openUpgradePopup({ featureName: "AI-Generated Images", navigate })
                         return
                       }
                       const checked = e.target.checked
-                      setFormData((prev) => ({
+                      setFormData(prev => ({
                         ...prev,
                         isCheckedGeneratedImages: checked,
                         imageSource: checked ? prev.imageSource : "unsplash",
                       }))
-                      setErrors((prev) => ({
+                      setErrors(prev => ({
                         ...prev,
                         numberOfImages: "",
                         blogImages: "",
@@ -1250,7 +1265,7 @@ const MultiStepModal = ({ closeFnc }) => {
                     //   value: "customImage",
                     //   restricted: false,
                     // },
-                  ].map((source) => (
+                  ].map(source => (
                     <label
                       key={source.id}
                       htmlFor={source.id}
@@ -1261,7 +1276,7 @@ const MultiStepModal = ({ closeFnc }) => {
                       } hover:shadow-sm ${
                         source.restricted ? "opacity-50 cursor-not-allowed" : ""
                       }`}
-                      onClick={(e) => {
+                      onClick={e => {
                         if (source.restricted) {
                           e.preventDefault()
                           openUpgradePopup({ featureName: source.label, navigate })
@@ -1363,7 +1378,7 @@ const MultiStepModal = ({ closeFnc }) => {
                     max="15"
                     value={formData.numberOfImages}
                     onChange={handleInputChange}
-                    onWheel={(e) => e.currentTarget.blur()}
+                    onWheel={e => e.currentTarget.blur()}
                     className={`w-full px-4 py-2 border rounded-lg text-sm placeholder-gray-400 transition ${
                       errors.numberOfImages ? "border-red-500" : "border-gray-300"
                     } focus:ring-2 focus:ring-blue-500`}
@@ -1393,7 +1408,7 @@ const MultiStepModal = ({ closeFnc }) => {
                           return
                         }
 
-                        setFormData((prev) => ({
+                        setFormData(prev => ({
                           ...prev,
                           useBrandVoice: !prev.useBrandVoice,
                           // if turning off, reset brandId
@@ -1401,7 +1416,7 @@ const MultiStepModal = ({ closeFnc }) => {
                         }))
 
                         // Clear any previous brandId errors if you had them
-                        setErrors((prev) => ({ ...prev, brandId: "" }))
+                        setErrors(prev => ({ ...prev, brandId: "" }))
                       }}
                       className="sr-only peer"
                       aria-checked={formData.useBrandVoice && brands?.length > 0}
@@ -1422,7 +1437,7 @@ const MultiStepModal = ({ closeFnc }) => {
                     ) : brands?.length > 0 ? (
                       <div className="max-h-48 overflow-y-auto pr-1">
                         <div>
-                          {brands.map((voice) => (
+                          {brands.map(voice => (
                             <label
                               key={voice._id}
                               className={`flex items-start gap-2 p-3 mb-3 rounded-md cursor-pointer ${
@@ -1437,11 +1452,11 @@ const MultiStepModal = ({ closeFnc }) => {
                                 value={voice._id}
                                 checked={formData.brandId === voice._id}
                                 onChange={() => {
-                                  setFormData((prev) => ({
+                                  setFormData(prev => ({
                                     ...prev,
                                     brandId: voice._id,
                                   }))
-                                  setErrors((prev) => ({ ...prev, brandId: "" }))
+                                  setErrors(prev => ({ ...prev, brandId: "" }))
                                 }}
                                 className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500"
                               />
@@ -1469,7 +1484,7 @@ const MultiStepModal = ({ closeFnc }) => {
                         type="checkbox"
                         checked={formData.addCTA}
                         onChange={() => {
-                          setFormData((prev) => ({
+                          setFormData(prev => ({
                             ...prev,
                             addCTA: !prev.addCTA,
                           }))
@@ -1644,7 +1659,7 @@ const MultiStepModal = ({ closeFnc }) => {
                   max="10"
                   value={formData.numberOfBlogs === 0 ? "" : formData.numberOfBlogs}
                   onChange={handleInputChange}
-                  onWheel={(e) => e.currentTarget.blur()}
+                  onWheel={e => e.currentTarget.blur()}
                   className={`w-full px-3 py-2 border rounded-md text-sm ${
                     errors.numberOfBlogs ? "border-red-500" : "border-gray-300"
                   } focus:ring-2 focus:ring-blue-500`}

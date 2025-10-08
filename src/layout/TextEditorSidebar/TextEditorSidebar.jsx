@@ -735,7 +735,7 @@ const TextEditorSidebar = ({
                       onChange={e => setNewKeyword(e.target.value)}
                       onKeyDown={handleKeyDown}
                       placeholder="Add keywords..."
-                      className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                     <Button
                       size="small"

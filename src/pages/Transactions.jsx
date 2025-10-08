@@ -35,9 +35,7 @@ const Transactions = () => {
   const totalCreditsCheck = user?.credits?.base + user?.credits?.extra
 
   const showTrialMessage =
-    totalCreditsCheck === 0 &&
-    user?.subscription?.plan === "free" &&
-    user?.subscription?.status === "unpaid"
+    user?.subscription?.plan === "free" && user?.subscription?.status === "unpaid"
 
   useEffect(() => {
     dispatch(loadAuthenticatedUser())
@@ -274,7 +272,7 @@ const Transactions = () => {
         </div>
       </motion.div>
 
-      {Object.keys(user?.subscription?.scheduledPlanChange || {}).length > 0 && (
+      {Object.keys(user?.subscription?.scheduledPlanChange || {}).length === 3 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -311,7 +309,7 @@ const Transactions = () => {
                   color={user?.subscription?.status === "active" ? "green" : "default"}
                   className="mt-1"
                 >
-                  {user?.subscription?.scheduledPlanChange?.billingPeriod}
+                  {user?.subscription?.scheduledPlanChange?.newBillingPeriod}
                 </Tag>
               </div>
             </div>
