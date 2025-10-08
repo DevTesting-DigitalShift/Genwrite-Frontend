@@ -25,12 +25,19 @@ const { Meta } = Card
 
 const Transactions = () => {
   const dispatch = useDispatch()
-  const { user, integration } = useSelector((state) => ({
+  const { user, integration } = useSelector(state => ({
     user: state.auth.user,
     integration: state.auth.integration || null,
   }))
-  const { transactions, loading } = useSelector((state) => state.user)
+  const { transactions, loading } = useSelector(state => state.user)
   const navigate = useNavigate()
+
+  const totalCreditsCheck = user?.credits?.base + user?.credits?.extra
+
+  const showTrialMessage =
+    totalCreditsCheck === 0 &&
+    user?.subscription?.plan === "free" &&
+    user?.subscription?.status === "unpaid"
 
   useEffect(() => {
     dispatch(loadAuthenticatedUser())
@@ -45,7 +52,7 @@ const Transactions = () => {
       title: "Date",
       dataIndex: "createdAt",
       key: "createdAt",
-      render: (date) =>
+      render: date =>
         new Date(date).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }),
       sorter: (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
       defaultSortOrder: "descend",
@@ -55,7 +62,7 @@ const Transactions = () => {
       title: "Type",
       dataIndex: "type",
       key: "type",
-      render: (type) => (
+      render: type => (
         <Tag color={type === "subscription" ? "blue" : "gold"} className="text-xs">
           {type.replace(/_/g, " ").toUpperCase()}
         </Tag>
@@ -66,7 +73,7 @@ const Transactions = () => {
       title: "Plan",
       dataIndex: "plan",
       key: "plan",
-      render: (plan) =>
+      render: plan =>
         plan ? (
           <Tag color="purple" className="text-xs">
             {plan.toUpperCase()}
@@ -80,7 +87,7 @@ const Transactions = () => {
       title: "Credits",
       dataIndex: "creditsAdded",
       key: "creditsAdded",
-      render: (credits) => <span className="text-sm font-medium">{credits || 0}</span>,
+      render: credits => <span className="text-sm font-medium">{credits || 0}</span>,
       width: 80,
     },
     {
@@ -99,14 +106,14 @@ const Transactions = () => {
       dataIndex: "paymentMethod",
       key: "paymentMethod",
       responsive: ["md"],
-      render: (pm) => <span className="text-sm">{pm?.toUpperCase() || "-"}</span>,
+      render: pm => <span className="text-sm">{pm?.toUpperCase() || "-"}</span>,
       width: 120,
     },
     {
       title: "Status",
       dataIndex: "status",
       key: "status",
-      render: (status) => {
+      render: status => {
         const colorMap = { success: "green", failed: "red", pending: "orange", default: "default" }
         const color = colorMap[status] || "default"
         return (
@@ -128,7 +135,7 @@ const Transactions = () => {
       dataIndex: "invoiceUrl",
       key: "invoiceUrl",
       responsive: ["md"],
-      render: (url) =>
+      render: url =>
         url ? (
           <a
             href={url}
@@ -229,7 +236,7 @@ const Transactions = () => {
                       month: "long",
                       year: "numeric",
                     })
-                  : "—"}
+                  : "Free Plan"}
               </span>
             </div>
           </div>
@@ -253,8 +260,14 @@ const Transactions = () => {
           </button>
 
           <button
-            className="flex-1 px-4 py-2 bg-white text-gray-600 border border-gray-300 font-semibold rounded-lg shadow-sm hover:bg-gray-50 transition duration-150"
+            disabled={showTrialMessage}
             onClick={() => navigate("/cancel-subscription")}
+            className={`flex-1 px-4 py-2 font-semibold rounded-lg shadow-sm transition duration-150 
+    ${
+      showTrialMessage
+        ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+        : "bg-white text-gray-600 border border-gray-300 hover:bg-gray-50"
+    }`}
           >
             Cancel Subscription
           </button>

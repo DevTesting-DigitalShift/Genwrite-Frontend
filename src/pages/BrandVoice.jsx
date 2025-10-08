@@ -16,9 +16,10 @@ import {
 } from "@store/slices/brandSlice"
 import BrandVoicesComponent from "@components/BrandVoiceComponent"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import UpgradeModal from "@components/UpgradeModal"
 
 const BrandVoice = () => {
-  const user = useSelector((state) => state.auth.user)
+  const user = useSelector(state => state.auth.user)
   const dispatch = useDispatch()
   const queryClient = useQueryClient()
   const [inputValue, setInputValue] = useState("")
@@ -34,7 +35,7 @@ const BrandVoice = () => {
     _id: undefined,
   })
   const [errors, setErrors] = useState({})
-  const { siteInfo } = useSelector((state) => state.brand)
+  const { siteInfo } = useSelector(state => state.brand)
   const [lastScrapedUrl, setLastScrapedUrl] = useState("")
   const [isFormReset, setIsFormReset] = useState(false)
   const [showAllKeywords, setShowAllKeywords] = useState(false)
@@ -45,6 +46,10 @@ const BrandVoice = () => {
     totalCredits === 0 &&
     user?.subscription?.plan === "free" &&
     user?.subscription?.status === "unpaid"
+
+  if (showTrialMessage) {
+    return <UpgradeModal featureName="Brand Voice" />
+  }
 
   const {
     data: brands = [],
@@ -74,7 +79,7 @@ const BrandVoice = () => {
 
   useEffect(() => {
     if (siteInfo.data && !isFormReset) {
-      setFormData((prev) => ({
+      setFormData(prev => ({
         ...prev,
         nameOfVoice: siteInfo.data.nameOfVoice || prev.nameOfVoice,
         describeBrand: siteInfo.data.describeBrand || prev.describeBrand,
@@ -82,7 +87,7 @@ const BrandVoice = () => {
         postLink: siteInfo.data.postLink || prev.postLink,
         sitemapUrl: siteInfo.data.sitemap || prev.sitemapUrl,
       }))
-      setErrors((prev) => ({
+      setErrors(prev => ({
         ...prev,
         nameOfVoice: undefined,
         describeBrand: undefined,
@@ -145,10 +150,10 @@ const BrandVoice = () => {
   }, [formData])
 
   const handleInputChange = useCallback(
-    (e) => {
+    e => {
       const { name, value } = e.target
-      setFormData((prev) => ({ ...prev, [name]: value }))
-      setErrors((prev) => ({ ...prev, [name]: undefined }))
+      setFormData(prev => ({ ...prev, [name]: value }))
+      setErrors(prev => ({ ...prev, [name]: undefined }))
       if (name === "postLink" && value !== lastScrapedUrl) {
         setLastScrapedUrl("")
       }
@@ -158,42 +163,42 @@ const BrandVoice = () => {
   )
 
   const handleKeyDown = useCallback(
-    (event) => {
+    event => {
       if (event.key === "Enter" && inputValue.trim()) {
         event.preventDefault()
-        const existing = formData.keywords.map((k) => k.toLowerCase())
+        const existing = formData.keywords.map(k => k.toLowerCase())
         const seen = new Set()
         const newKeywords = inputValue
           .split(",")
-          .map((k) => k.trim())
-          .filter((k) => {
+          .map(k => k.trim())
+          .filter(k => {
             const lower = k.toLowerCase()
             if (!k || existing.includes(lower) || seen.has(lower)) return false
             seen.add(lower)
             return true
           })
         if (newKeywords.length === 0) return
-        setFormData((prev) => ({
+        setFormData(prev => ({
           ...prev,
           keywords: [...prev.keywords, ...newKeywords],
         }))
         setInputValue("")
-        setErrors((prev) => ({ ...prev, keywords: undefined }))
+        setErrors(prev => ({ ...prev, keywords: undefined }))
         setIsFormReset(false)
       }
     },
     [inputValue, formData.keywords]
   )
 
-  const removeKeyword = useCallback((keyword) => {
-    setFormData((prev) => ({
+  const removeKeyword = useCallback(keyword => {
+    setFormData(prev => ({
       ...prev,
-      keywords: prev.keywords.filter((k) => k !== keyword),
+      keywords: prev.keywords.filter(k => k !== keyword),
     }))
     setIsFormReset(false)
   }, [])
 
-  const handleFileChange = useCallback((event) => {
+  const handleFileChange = useCallback(event => {
     const file = event.target.files[0]
     if (!file) return
     if (!file.name.toLowerCase().endsWith(".csv")) {
@@ -213,17 +218,17 @@ const BrandVoice = () => {
       return
     }
     const reader = new FileReader()
-    reader.onload = (e) => {
+    reader.onload = e => {
       const text = e.target.result
       const keywords = text
         .split(/,|\n|;/)
-        .map((kw) => kw.trim())
-        .filter((kw) => kw.length > 0)
-      setFormData((prev) => ({
+        .map(kw => kw.trim())
+        .filter(kw => kw.length > 0)
+      setFormData(prev => ({
         ...prev,
         keywords: [...new Set([...prev.keywords, ...keywords])],
       }))
-      setErrors((prev) => ({ ...prev, keywords: undefined }))
+      setErrors(prev => ({ ...prev, keywords: undefined }))
       setIsFormReset(false)
     }
     reader.onerror = () => message.error("Error reading CSV file.")
@@ -237,14 +242,14 @@ const BrandVoice = () => {
     const payload = {
       nameOfVoice: formData.nameOfVoice.trim(),
       postLink: formData.postLink.trim(),
-      keywords: formData.keywords.map((k) => k.trim()).filter(Boolean),
+      keywords: formData.keywords.map(k => k.trim()).filter(Boolean),
       describeBrand: formData.describeBrand.trim(),
       sitemap: formData.sitemapUrl.trim(),
       userId: user?._id,
     }
 
     const isDuplicate = brands.some(
-      (brand) =>
+      brand =>
         brand.postLink === payload.postLink && (formData._id ? brand._id !== formData._id : true)
     )
 
@@ -270,7 +275,7 @@ const BrandVoice = () => {
     }
   }, [formData, user, dispatch, validateForm, resetForm, brands, queryClient])
 
-  const handleEdit = useCallback((brand) => {
+  const handleEdit = useCallback(brand => {
     setFormData({
       nameOfVoice: brand.nameOfVoice || "",
       postLink: brand.postLink || "",
@@ -287,7 +292,7 @@ const BrandVoice = () => {
   }, [])
 
   const handleDelete = useCallback(
-    (brand) => {
+    brand => {
       handlePopup({
         title: "Delete Brand Voice?",
         description: (
@@ -299,7 +304,7 @@ const BrandVoice = () => {
         onConfirm: async () => {
           try {
             queryClient.setQueryData(["brands"], (oldBrands = []) =>
-              oldBrands.filter((b) => b._id !== brand._id)
+              oldBrands.filter(b => b._id !== brand._id)
             )
             await dispatch(deleteBrandVoiceThunk({ id: brand._id })).unwrap()
             queryClient.invalidateQueries(["brands"])
@@ -325,15 +330,15 @@ const BrandVoice = () => {
     [dispatch, formData.selectedVoice, resetForm, queryClient]
   )
 
-  const handleSelect = useCallback((voice) => {
-    setFormData((prev) => ({ ...prev, selectedVoice: voice }))
+  const handleSelect = useCallback(voice => {
+    setFormData(prev => ({ ...prev, selectedVoice: voice }))
     setIsFormReset(false)
   }, [])
 
   const handleFetchSiteInfo = useCallback(() => {
     const url = formData.postLink.trim()
     if (!url) {
-      setErrors((prev) => ({
+      setErrors(prev => ({
         ...prev,
         postLink: "Post link is required to fetch site info.",
       }))
@@ -352,7 +357,7 @@ const BrandVoice = () => {
         })
         .catch(() => message.error("Failed to fetch site info. Please try a different URL."))
     } catch {
-      setErrors((prev) => ({
+      setErrors(prev => ({
         ...prev,
         postLink: "Please enter a valid URL (e.g., https://example.com).",
       }))
@@ -371,7 +376,7 @@ const BrandVoice = () => {
     const remainingCount = formData.keywords.length - maxInitialKeywords
     return (
       <div className={`flex flex-wrap gap-2 ${formData.keywords.length > 0 ? "mb-1" : "hidden"}`}>
-        {displayedKeywords.map((keyword) => (
+        {displayedKeywords.map(keyword => (
           <motion.div
             key={keyword}
             className="flex items-center bg-indigo-100 text-indigo-700 rounded-md px-2 sm:px-3 py-1"
@@ -385,7 +390,7 @@ const BrandVoice = () => {
             </span>
             <FaTimes
               className="ml-1 cursor-pointer text-indigo-500 hover:text-indigo-700 transition-colors w-3 sm:w-4 h-3 sm:h-4"
-              onClick={(e) => {
+              onClick={e => {
                 e.stopPropagation()
                 removeKeyword(keyword)
               }}
@@ -471,7 +476,9 @@ const BrandVoice = () => {
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.98 }}
                 disabled={
-                  siteInfo.loading || (formData.postLink && formData.postLink === lastScrapedUrl) || showTrialMessage
+                  siteInfo.loading ||
+                  (formData.postLink && formData.postLink === lastScrapedUrl) ||
+                  showTrialMessage
                 }
                 aria-label="Fetch Site Info"
               >
@@ -551,7 +558,7 @@ const BrandVoice = () => {
                   id="keywords"
                   type="text"
                   value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
+                  onChange={e => setInputValue(e.target.value)}
                   onKeyDown={handleKeyDown}
                   className="flex-grow bg-transparent border-none outline-none text-sm sm:text-base"
                   placeholder="Type a keyword and press Enter"
@@ -714,7 +721,7 @@ const BrandVoice = () => {
               <Loader2 className="animate-spin w-8 h-8 text-indigo-600" />
             </div>
           ) : brands.length > 0 ? (
-            brands.map((item) => (
+            brands.map(item => (
               <BrandVoicesComponent
                 key={item._id}
                 id={item._id}
@@ -722,11 +729,11 @@ const BrandVoice = () => {
                 brandVoice={item.describeBrand}
                 onSelect={() => handleSelect(item)}
                 isSelected={formData.selectedVoice?._id === item._id}
-                onEdit={(e) => {
+                onEdit={e => {
                   e.stopPropagation()
                   handleEdit(item)
                 }}
-                onDelete={(e) => {
+                onDelete={e => {
                   e.stopPropagation()
                   handleDelete(item)
                 }}

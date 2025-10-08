@@ -1,7 +1,7 @@
 import { memo, useEffect, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { Plus, RefreshCw, Sparkles } from "lucide-react"
-import { message, Modal, Select, Spin, Tooltip } from "antd"
+import { Modal, Select, Spin } from "antd"
 import { fetchGeneratedTitles } from "@store/slices/blogSlice"
 import { CloseOutlined } from "@ant-design/icons"
 
@@ -12,7 +12,7 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
   const [hasGeneratedTitles, setHasGeneratedTitles] = useState(false)
   const MAX_VISIBLE_KEYWORDS = 18 // Adjust as needed
   const [showAllKeywords, setShowAllKeywords] = useState(false)
-  const { selectedKeywords } = useSelector((state) => state.analysis)
+  const { selectedKeywords } = useSelector(state => state.analysis)
   const dispatch = useDispatch()
 
   const [formData, setFormData] = useState({
@@ -30,6 +30,7 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
     focusKeywordInput: "",
     keyword: false,
     keywordInput: "",
+    generateTitles: "", // New error field for title generation
   })
 
   const [generatedTitles, setGeneratedTitles] = useState([])
@@ -38,7 +39,7 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
   // Sync formData with selectedKeywords when they change
   useEffect(() => {
     if (selectedKeywords) {
-      setFormData((prev) => ({
+      setFormData(prev => ({
         ...prev,
         focusKeywords: selectedKeywords.focusKeywords || prev.focusKeywords,
         keywords: selectedKeywords.keywords || prev.keywords,
@@ -60,10 +61,11 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
     setGeneratedTitles([])
   }, [])
 
-  const handleKeywordInputChange = (e) => {
+  const handleKeywordInputChange = e => {
     const value = e.target.value
-    setFormData((prev) => ({ ...prev, keywordInput: value }))
-    setData((prev) => ({ ...prev, keywordInput: value })) // Persist in data
+    setFormData(prev => ({ ...prev, keywordInput: value }))
+    setData(prev => ({ ...prev, keywordInput: value }))
+    setErrors(prev => ({ ...prev, keyword: false, keywordInput: "" }))
   }
 
   const handleAddKeyword = () => {
@@ -71,23 +73,35 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
     if (inputValue.trim() !== "") {
       const newKeywords = inputValue
         .split(",")
-        .map((keyword) => keyword.trim())
-        .filter((keyword) => keyword !== "" && !formData.keywords.includes(keyword))
+        .map(keyword => keyword.trim())
+        .filter(keyword => keyword !== "" && !formData.keywords.includes(keyword))
 
       if (newKeywords.length > 0) {
-        setFormData((prev) => ({
+        setFormData(prev => ({
           ...prev,
           keywords: [...prev.keywords, ...newKeywords],
           keywordInput: "",
         }))
+        setErrors(prev => ({ ...prev, keyword: false, keywordInput: "" }))
+      } else {
+        setErrors(prev => ({
+          ...prev,
+          keywordInput: "Please enter unique keywords.",
+        }))
       }
+    } else {
+      setErrors(prev => ({
+        ...prev,
+        keywordInput: "Please enter at least one keyword.",
+      }))
     }
   }
 
-  const handleFocusKeywordInputChange = (e) => {
+  const handleFocusKeywordInputChange = e => {
     const value = e.target.value
-    setFormData((prev) => ({ ...prev, focusKeywordInput: value }))
-    setData((prev) => ({ ...prev, focusKeywordInput: value })) // Persist in data
+    setFormData(prev => ({ ...prev, focusKeywordInput: value }))
+    setData(prev => ({ ...prev, focusKeywordInput: value }))
+    setErrors(prev => ({ ...prev, focusKeyword: false, focusKeywordInput: "" }))
   }
 
   const handleFocusAddKeyword = () => {
@@ -95,38 +109,50 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
     if (inputValue.trim() !== "") {
       const newKeywords = inputValue
         .split(",")
-        .map((focusKeyword) => focusKeyword.trim())
+        .map(focusKeyword => focusKeyword.trim())
         .filter(
-          (focusKeyword) => focusKeyword !== "" && !formData.focusKeywords.includes(focusKeyword)
+          focusKeyword => focusKeyword !== "" && !formData.focusKeywords.includes(focusKeyword)
         )
 
       if (newKeywords.length > 0) {
-        const updatedFocusKeywords = [...formData.focusKeywords, ...newKeywords].slice(0, 3) // Limit to 3
-        setFormData((prev) => ({
+        const updatedFocusKeywords = [...formData.focusKeywords, ...newKeywords].slice(0, 3)
+        setFormData(prev => ({
           ...prev,
           focusKeywords: updatedFocusKeywords,
           focusKeywordInput: "",
         }))
-        setData((prev) => ({
+        setData(prev => ({
           ...prev,
           focusKeywords: updatedFocusKeywords,
-          focusKeywordInput: "", // Clear in data as well
+          focusKeywordInput: "",
+        }))
+        setErrors(prev => ({ ...prev, focusKeyword: false, focusKeywordInput: "" }))
+      } else {
+        setErrors(prev => ({
+          ...prev,
+          focusKeywordInput: "Please enter unique focus keywords.",
         }))
       }
+    } else {
+      setErrors(prev => ({
+        ...prev,
+        focusKeywordInput: "Please enter at least one focus keyword.",
+      }))
     }
   }
 
   const handleRemoveKeyword = (index, type) => {
     const updatedKeywords = [...formData[type]]
     updatedKeywords.splice(index, 1)
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       [type]: updatedKeywords,
     }))
-    setData((prev) => ({
+    setData(prev => ({
       ...prev,
       [type]: updatedKeywords,
     }))
+    setErrors(prev => ({ ...prev, [type]: updatedKeywords.length === 0 }))
   }
 
   const handleKeyPress = (e, type) => {
@@ -140,14 +166,21 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
     }
   }
 
-  const handleToneChange = (value) => {
-    setData((prev) => ({ ...prev, tone: value }))
-    setErrors((prev) => ({ ...prev, tone: false }))
+  const handleToneChange = value => {
+    setData(prev => ({ ...prev, tone: value }))
+    setErrors(prev => ({ ...prev, tone: false }))
   }
 
   const handleGenerateTitles = async () => {
     if (!topic.trim() || formData.focusKeywords.length === 0 || formData.keywords.length === 0) {
-      message.error("Please enter a topic and at least one keyword before generating titles.")
+      setErrors(prev => ({
+        ...prev,
+        generateTitles:
+          "Please enter a topic and at least one focus keyword and keyword before generating titles.",
+        topic: !topic.trim(),
+        focusKeyword: formData.focusKeywords.length === 0,
+        keyword: formData.keywords.length === 0,
+      }))
       return
     }
     setLoadingTitles(true)
@@ -163,9 +196,13 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
       const result = await dispatch(fetchGeneratedTitles(payload)).unwrap()
       setGeneratedTitles(result)
       setHasGeneratedTitles(true)
+      setErrors(prev => ({ ...prev, generateTitles: "" }))
     } catch (error) {
       console.error("Error generating titles:", error)
-      message.error("Failed to generate titles. Please try again later.")
+      setErrors(prev => ({
+        ...prev,
+        generateTitles: "Failed to generate titles. Please try again later.",
+      }))
     } finally {
       setLoadingTitles(false)
     }
@@ -178,13 +215,13 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
       tone: !data?.tone,
       focusKeyword: formData.focusKeywords.length === 0,
       keyword: formData.keywords.length === 0,
+      generateTitles: "",
     }
 
     setErrors(newErrors)
 
-    if (Object.values(newErrors).some((error) => error)) {
-      message.error("Please fill in all required fields.")
-      return
+    if (Object.values(newErrors).some(error => error)) {
+      return // Stop if any validation fails
     }
 
     const updatedData = {
@@ -192,8 +229,8 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
       topic,
       focusKeywords: formData.focusKeywords,
       keywords: formData.keywords,
-      keywordInput: formData.keywordInput, // Persist input
-      focusKeywordInput: formData.focusKeywordInput, // Persist input
+      keywordInput: formData.keywordInput,
+      focusKeywordInput: formData.focusKeywordInput,
       userDefinedLength: data?.userDefinedLength || 1000,
     }
     setData(updatedData)
@@ -202,7 +239,7 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
 
   useEffect(() => {
     if (data && !data.isCheckedGeneratedImages) {
-      setData((prev) => ({
+      setData(prev => ({
         ...prev,
         isCheckedGeneratedImages: true,
         isUnsplashActive: true,
@@ -250,11 +287,12 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
               } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B6FC9]`}
               placeholder="e.g., Tech Blog"
               value={topic}
-              onChange={(e) => {
+              onChange={e => {
                 setTopic(e.target.value)
-                setErrors((prev) => ({ ...prev, topic: false }))
+                setErrors(prev => ({ ...prev, topic: false }))
               }}
             />
+            {errors.topic && <p className="text-red-500 text-xs mt-2">Please enter a topic.</p>}
           </div>
 
           {/* Focus Keywords */}
@@ -267,9 +305,11 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
                 type="text"
                 value={formData.focusKeywordInput}
                 onChange={handleFocusKeywordInputChange}
-                onKeyDown={(e) => handleKeyPress(e, "focusKeywords")}
+                onKeyDown={e => handleKeyPress(e, "focusKeywords")}
                 className={`flex-1 px-3 py-2 bg-gray-50 border ${
-                  errors.focusKeyword ? "border-red-500" : "border-gray-200"
+                  errors.focusKeyword || errors.focusKeywordInput
+                    ? "border-red-500"
+                    : "border-gray-200"
                 } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm`}
                 placeholder="Enter focus keywords, separated by commas"
               />
@@ -280,6 +320,11 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
                 <Plus size={16} />
               </button>
             </div>
+            {(errors.focusKeyword || errors.focusKeywordInput) && (
+              <p className="text-red-500 text-xs mt-2">
+                {errors.focusKeywordInput || "Please enter at least one focus keyword."}
+              </p>
+            )}
             {formData.focusKeywords.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-2">
                 {formData.focusKeywords.map((keyword, index) => (
@@ -310,9 +355,9 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
                 type="text"
                 value={formData.keywordInput}
                 onChange={handleKeywordInputChange}
-                onKeyDown={(e) => handleKeyPress(e, "keywords")}
+                onKeyDown={e => handleKeyPress(e, "keywords")}
                 className={`flex-1 px-3 py-2 bg-gray-50 border ${
-                  errors.keyword ? "border-red-500" : "border-gray-200"
+                  errors.keyword || errors.keywordInput ? "border-red-500" : "border-gray-200"
                 } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm`}
                 placeholder="Enter keywords, separated by commas"
               />
@@ -323,6 +368,11 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
                 <Plus size={16} />
               </button>
             </div>
+            {(errors.keyword || errors.keywordInput) && (
+              <p className="text-red-500 text-xs mt-2">
+                {errors.keywordInput || "Please enter at least one keyword."}
+              </p>
+            )}
             {formData.keywords.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-2">
                 {(showAllKeywords
@@ -370,9 +420,9 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
                 } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1B6FC9]`}
                 placeholder="e.g., How to Create a Tech Blog"
                 value={data?.title || ""}
-                onChange={(e) => {
-                  setData((prev) => ({ ...prev, title: e.target.value }))
-                  setErrors((prev) => ({ ...prev, title: false }))
+                onChange={e => {
+                  setData(prev => ({ ...prev, title: e.target.value }))
+                  setErrors(prev => ({ ...prev, title: false }))
                 }}
               />
               <button
@@ -399,7 +449,11 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
                 )}
               </button>
             </div>
-
+            {(errors.title || errors.generateTitles) && (
+              <p className="text-red-500 text-xs mt-2">
+                {errors.generateTitles || (errors.title && "Please enter a title.")}
+              </p>
+            )}
             {generatedTitles.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-2 items-center overflow-x-auto">
                 {generatedTitles.map((title, index) => {
@@ -409,8 +463,8 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
                       <button
                         type="button"
                         onClick={() => {
-                          setData((prev) => ({ ...prev, title }))
-                          setErrors((prev) => ({ ...prev, title: false }))
+                          setData(prev => ({ ...prev, title }))
+                          setErrors(prev => ({ ...prev, title: false }))
                         }}
                         className={`px-3 py-1 rounded-full text-sm sm:text-base border transition w-full max-w-[270px] truncate
                 ${
@@ -452,6 +506,9 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
                 <Option value="persuasive">Persuasive</Option>
                 <Option value="empathetic">Empathetic</Option>
               </Select>
+              {errors.tone && (
+                <p className="text-red-500 text-xs mt-2">Please select a tone of voice.</p>
+              )}
             </div>
 
             <div>
@@ -468,8 +525,8 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
                     [&::-webkit-slider-thumb]:w-4 
                     [&::-webkit-slider-thumb]:rounded-full 
                     [&::-webkit-slider-thumb]:bg-[#1B6FC9]"
-                  onChange={(e) => {
-                    setData((prev) => ({
+                  onChange={e => {
+                    setData(prev => ({
                       ...prev,
                       userDefinedLength: parseInt(e.target.value, 10),
                     }))
@@ -495,7 +552,7 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
               rows={3}
               placeholder="Enter brief section"
               value={data?.brief || ""}
-              onChange={(e) => setData((prev) => ({ ...prev, brief: e.target.value }))}
+              onChange={e => setData(prev => ({ ...prev, brief: e.target.value }))}
             />
             <div className="flex justify-end mt-1">
               <span className="text-xs text-gray-500">

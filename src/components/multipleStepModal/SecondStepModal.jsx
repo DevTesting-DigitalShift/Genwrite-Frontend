@@ -18,7 +18,7 @@ const SecondStepModal = ({
   navigate,
 }) => {
   const dispatch = useDispatch()
-  const { user } = useSelector((state) => state.auth)
+  const { user } = useSelector(state => state.auth)
   const userPlan = user?.subscription?.plan || user?.plan || "free"
 
   // Check if AI image usage limit is reached
@@ -60,7 +60,7 @@ const SecondStepModal = ({
   // Clean up object URLs to prevent memory leaks
   useEffect(() => {
     return () => {
-      formData.blogImages.forEach((image) => {
+      formData.blogImages.forEach(image => {
         if (image instanceof File) {
           URL.revokeObjectURL(URL.createObjectURL(image))
         }
@@ -81,7 +81,7 @@ const SecondStepModal = ({
     enabled: formData.isCheckedBrand,
   })
 
-  const handleInputChange = (e) => {
+  const handleInputChange = e => {
     const { name, value, type } = e.target
 
     let val
@@ -111,13 +111,13 @@ const SecondStepModal = ({
   const handleAddLink = () => {
     const input = localFormData.newLink.trim()
     if (!input) {
-      setErrors((prev) => ({ ...prev, newLink: "Please enter a valid URL." }))
+      setErrors(prev => ({ ...prev, newLink: "Please enter a valid URL." }))
       return
     }
 
-    const existing = formData.referenceLinks.map((link) => link.toLowerCase().trim())
+    const existing = formData.referenceLinks.map(link => link.toLowerCase().trim())
 
-    const isValidURL = (url) => {
+    const isValidURL = url => {
       try {
         new URL(url)
         return true
@@ -129,75 +129,75 @@ const SecondStepModal = ({
     const seen = new Set()
     const newLinks = input
       .split(",")
-      .map((link) => link.trim())
-      .filter((link) => {
+      .map(link => link.trim())
+      .filter(link => {
         const lower = link.toLowerCase()
         return !seen.has(lower) && isValidURL(link) && !existing.includes(lower) && seen.add(lower)
       })
 
     if (newLinks.length === 0) {
-      setErrors((prev) => ({
+      setErrors(prev => ({
         ...prev,
         newLink: "Please enter valid, non-duplicate URLs separated by commas.",
       }))
       return
     }
 
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       referenceLinks: [...prev.referenceLinks, ...newLinks],
     }))
-    setLocalFormData((prev) => ({ ...prev, newLink: "" }))
-    setErrors((prev) => ({ ...prev, newLink: "" }))
+    setLocalFormData(prev => ({ ...prev, newLink: "" }))
+    setErrors(prev => ({ ...prev, newLink: "" }))
   }
 
-  const handleRemoveLink = (index) => {
-    setFormData((prev) => ({
+  const handleRemoveLink = index => {
+    setFormData(prev => ({
       ...prev,
       referenceLinks: (prev.referenceLinks || []).filter((_, i) => i !== index),
     }))
 
-    setData((prev) => ({
+    setData(prev => ({
       ...prev,
       referenceLinks: (prev.referenceLinks || []).filter((_, i) => i !== index),
     }))
   }
 
-  const handleImageSourceChange = (source) => {
-    setFormData((prev) => ({
+  const handleImageSourceChange = source => {
+    setFormData(prev => ({
       ...prev,
       imageSource: source,
       areImagesUploaded: source === "customImage" ? true : false,
     }))
-    setData((prev) => ({
+    setData(prev => ({
       ...prev,
       imageSource: source,
       areImagesUploaded: source === "customImage" ? true : false,
       isUnsplashActive: source === "unsplash",
     }))
     // Clear image-related errors when source changes
-    setErrors((prev) => ({ ...prev, blogImages: "", numberOfImages: "" }))
+    setErrors(prev => ({ ...prev, blogImages: "", numberOfImages: "" }))
   }
 
-  const validateImages = (files) => {
+  const validateImages = files => {
     const maxImages = 15
-    const maxSize = 5 * 1024 * 1024 // 5 MB in bytes
+    const maxSize = 1 * 1024 * 1024 // 1 MB in bytes
     const allowedTypes = ["image/jpeg", "image/png", "image/webp"]
 
     if (!files || files.length === 0) return []
 
-    const validFiles = Array.from(files).filter((file) => {
+    const validFiles = Array.from(files).filter(file => {
       if (!allowedTypes.includes(file.type)) {
-        setErrors((prev) => ({
+        setErrors(prev => ({
           ...prev,
           blogImages: `"${file.name}" is not a valid image type. Only PNG, JPEG, and WebP are allowed.`,
         }))
         return false
       }
       if (file.size > maxSize) {
-        setErrors((prev) => ({
+        setErrors(prev => ({
           ...prev,
-          blogImages: `"${file.name}" exceeds the 5 MB size limit.`,
+          blogImages: `"${file.name}" exceeds the 1 MB size limit.`,
         }))
         return false
       }
@@ -206,7 +206,7 @@ const SecondStepModal = ({
 
     const totalImages = formData.blogImages.length + validFiles.length
     if (totalImages > maxImages) {
-      setErrors((prev) => ({
+      setErrors(prev => ({
         ...prev,
         blogImages: `Cannot upload more than ${maxImages} images.`,
       }))
@@ -216,17 +216,17 @@ const SecondStepModal = ({
     return validFiles
   }
 
-  const handleFileChange = (e) => {
+  const handleFileChange = e => {
     const files = e.target.files
     if (!files || files.length === 0) return
 
     const validFiles = validateImages(files)
     if (validFiles.length > 0) {
-      setFormData((prev) => ({
+      setFormData(prev => ({
         ...prev,
         blogImages: [...prev.blogImages, ...validFiles],
       }))
-      setData((prev) => ({
+      setData(prev => ({
         ...prev,
         blogImages: [...(Array.isArray(prev.blogImages) ? prev.blogImages : []), ...validFiles],
       }))
@@ -235,59 +235,59 @@ const SecondStepModal = ({
       fileInputRef.current.value = ""
     }
     // Clear blogImages error after successful upload
-    setErrors((prev) => ({ ...prev, blogImages: "" }))
+    setErrors(prev => ({ ...prev, blogImages: "" }))
   }
 
-  const handleDrop = (e) => {
+  const handleDrop = e => {
     e.preventDefault()
     e.stopPropagation()
-    setFormData((prev) => ({ ...prev, isDragging: false }))
+    setFormData(prev => ({ ...prev, isDragging: false }))
 
     const files = e.dataTransfer.files
     if (!files || files.length === 0) return
 
     const validFiles = validateImages(files)
     if (validFiles.length > 0) {
-      setFormData((prev) => ({
+      setFormData(prev => ({
         ...prev,
         blogImages: [...prev.blogImages, ...validFiles],
       }))
-      setData((prev) => ({
+      setData(prev => ({
         ...prev,
         blogImages: [...prev.blogImages, ...validFiles],
       }))
     }
     // Clear blogImages error after successful upload
-    setErrors((prev) => ({ ...prev, blogImages: "" }))
+    setErrors(prev => ({ ...prev, blogImages: "" }))
   }
 
-  const handleDragOver = (e) => {
+  const handleDragOver = e => {
     e.preventDefault()
     e.stopPropagation()
-    setFormData((prev) => ({ ...prev, isDragging: true }))
+    setFormData(prev => ({ ...prev, isDragging: true }))
   }
 
-  const handleDragLeave = (e) => {
+  const handleDragLeave = e => {
     e.preventDefault()
     e.stopPropagation()
-    setFormData((prev) => ({ ...prev, isDragging: false }))
+    setFormData(prev => ({ ...prev, isDragging: false }))
   }
 
-  const handleRemoveImage = (index) => {
-    setFormData((prev) => {
+  const handleRemoveImage = index => {
+    setFormData(prev => {
       const newImages = prev.blogImages.filter((_, i) => i !== index)
       return {
         ...prev,
         blogImages: newImages,
       }
     })
-    setData((prev) => ({
+    setData(prev => ({
       ...prev,
       blogImages: prev.blogImages.filter((_, i) => i !== index),
     }))
     // Re-validate blogImages if customImage is selected
     if (formData.imageSource === "customImage" && formData.blogImages.length === 1) {
-      setErrors((prev) => ({
+      setErrors(prev => ({
         ...prev,
         blogImages: "At least one custom image is required.",
       }))
@@ -403,7 +403,7 @@ const SecondStepModal = ({
                   label: "Claude",
                   logo: "/Images/claude.png",
                 },
-              ].map((model) => (
+              ].map(model => (
                 <label
                   key={model.id}
                   htmlFor={model.id}
@@ -414,7 +414,7 @@ const SecondStepModal = ({
                         : "border-gray-300"
                     }
                     hover:shadow-sm w-full ${errors.aiModel ? errorBorderStyle : ""}`}
-                  onClick={(e) => {
+                  onClick={e => {
                     if (model.restricted) {
                       e.preventDefault()
                       openUpgradePopup({ featureName: model.label, navigate })
@@ -427,11 +427,11 @@ const SecondStepModal = ({
                     name="aiModel"
                     value={model.id}
                     checked={formData.aiModel === model.id}
-                    onChange={(e) => {
+                    onChange={e => {
                       if (!model.restricted) {
-                        setFormData((prev) => ({ ...prev, aiModel: e.target.value }))
-                        setData((prev) => ({ ...prev, aiModel: e.target.value }))
-                        setErrors((prev) => ({ ...prev, aiModel: "" }))
+                        setFormData(prev => ({ ...prev, aiModel: e.target.value }))
+                        setData(prev => ({ ...prev, aiModel: e.target.value }))
+                        setErrors(prev => ({ ...prev, aiModel: "" }))
                       }
                     }}
                     className="hidden"
@@ -458,20 +458,20 @@ const SecondStepModal = ({
                     id="add-image-toggle"
                     className="sr-only peer"
                     checked={formData.isCheckedGeneratedImages}
-                    onChange={(e) => {
+                    onChange={e => {
                       const checked = e.target.checked
-                      setFormData((prev) => ({
+                      setFormData(prev => ({
                         ...prev,
                         isCheckedGeneratedImages: checked,
                         imageSource: checked ? prev.imageSource : "unsplash",
                       }))
-                      setData((prev) => ({
+                      setData(prev => ({
                         ...prev,
                         isCheckedGeneratedImages: checked,
                         imageSource: checked ? prev.imageSource : "unsplash",
                         isUnsplashActive: !checked ? true : prev.isUnsplashActive,
                       }))
-                      setErrors((prev) => ({ ...prev, numberOfImages: "", blogImages: "" }))
+                      setErrors(prev => ({ ...prev, numberOfImages: "", blogImages: "" }))
                     }}
                   />
                   <div
@@ -526,7 +526,7 @@ const SecondStepModal = ({
                             : "border-gray-300"
                         }
                         hover:shadow-sm w-full ${errors.blogImages ? errorBorderStyle : ""}`}
-                      onClick={(e) => {
+                      onClick={e => {
                         if (userPlan === "free") {
                           e.preventDefault()
                           openUpgradePopup({ featureName: "AI-Generated Images", navigate })
@@ -661,7 +661,7 @@ const SecondStepModal = ({
                       max="15"
                       value={formData.numberOfImages}
                       onChange={handleInputChange}
-                      onWheel={(e) => e.currentTarget.blur()}
+                      onWheel={e => e.currentTarget.blur()}
                       inputMode="numeric"
                       pattern="[0-9]*"
                       className={`w-full px-4 py-2 border rounded-lg text-sm placeholder-gray-400 transition ${
@@ -686,11 +686,11 @@ const SecondStepModal = ({
                 type="checkbox"
                 checked={formData.isCheckedQuick}
                 onChange={() => {
-                  setFormData((prev) => ({
+                  setFormData(prev => ({
                     ...prev,
                     isCheckedQuick: !prev.isCheckedQuick,
                   }))
-                  setData((prev) => ({
+                  setData(prev => ({
                     ...prev,
                     isCheckedQuick: !prev.isCheckedQuick,
                   }))
@@ -722,12 +722,12 @@ const SecondStepModal = ({
                         "No brand voices available. Create one to enable this option."
                       )
                       // forcefully turn it off
-                      setFormData((prev) => ({
+                      setFormData(prev => ({
                         ...prev,
                         isCheckedBrand: false,
                         brandId: null,
                       }))
-                      setData((prev) => ({
+                      setData(prev => ({
                         ...prev,
                         isCheckedBrand: false,
                         brandId: null,
@@ -736,17 +736,17 @@ const SecondStepModal = ({
                     }
 
                     // smooth toggle when brands exist
-                    setFormData((prev) => ({
+                    setFormData(prev => ({
                       ...prev,
                       isCheckedBrand: !prev.isCheckedBrand,
                       brandId: !prev.isCheckedBrand ? prev.brandId : null, // only reset on turn-off
                     }))
-                    setData((prev) => ({
+                    setData(prev => ({
                       ...prev,
                       isCheckedBrand: !prev.isCheckedBrand,
                       brandId: !prev.isCheckedBrand ? prev.brandId : null,
                     }))
-                    setErrors((prev) => ({ ...prev, brandId: "" }))
+                    setErrors(prev => ({ ...prev, brandId: "" }))
                   }}
                   className="sr-only peer"
                   aria-checked={formData.isCheckedBrand}
@@ -775,7 +775,7 @@ const SecondStepModal = ({
                 ) : brands?.length > 0 ? (
                   <div className="max-h-48 overflow-y-auto pr-1">
                     <div>
-                      {brands.map((voice) => (
+                      {brands.map(voice => (
                         <label
                           key={voice._id}
                           className={`flex flex-col sm:flex-row sm:items-start mb-3 gap-2 p-3 rounded-md cursor-pointer transition ${
@@ -790,15 +790,15 @@ const SecondStepModal = ({
                             value={voice._id}
                             checked={formData.brandId === voice._id}
                             onChange={() => {
-                              setFormData((prev) => ({
+                              setFormData(prev => ({
                                 ...prev,
                                 brandId: voice._id,
                               }))
-                              setData((prev) => ({
+                              setData(prev => ({
                                 ...prev,
                                 brandId: voice._id,
                               }))
-                              setErrors((prev) => ({ ...prev, brandId: "" }))
+                              setErrors(prev => ({ ...prev, brandId: "" }))
                             }}
                             className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-600"
                           />
@@ -827,11 +827,11 @@ const SecondStepModal = ({
                     type="checkbox"
                     checked={formData.addCTA}
                     onChange={() => {
-                      setFormData((prev) => ({
+                      setFormData(prev => ({
                         ...prev,
                         addCTA: !prev.addCTA,
                       }))
-                      setData((prev) => ({
+                      setData(prev => ({
                         ...prev,
                         addCTA: !prev.addCTA,
                       }))
@@ -859,11 +859,11 @@ const SecondStepModal = ({
                   type="checkbox"
                   checked={formData.isFAQEnabled}
                   onChange={() => {
-                    setFormData((prev) => ({
+                    setFormData(prev => ({
                       ...prev,
                       isFAQEnabled: !prev.isFAQEnabled,
                     }))
-                    setData((prev) => ({
+                    setData(prev => ({
                       ...prev,
                       isFAQEnabled: !prev.isFAQEnabled,
                     }))
@@ -886,12 +886,12 @@ const SecondStepModal = ({
                 <input
                   type="checkbox"
                   checked={formData.includeInterlinks}
-                  onChange={(e) => {
-                    setFormData((prev) => ({
+                  onChange={e => {
+                    setFormData(prev => ({
                       ...prev,
                       includeInterlinks: e.target.checked,
                     }))
-                    setData((prev) => ({
+                    setData(prev => ({
                       ...prev,
                       includeInterlinks: e.target.checked,
                     }))
@@ -915,11 +915,11 @@ const SecondStepModal = ({
                   type="checkbox"
                   checked={formData.isCompetitiveResearchEnabled}
                   onChange={() => {
-                    setFormData((prev) => ({
+                    setFormData(prev => ({
                       ...prev,
                       isCompetitiveResearchEnabled: !prev.isCompetitiveResearchEnabled,
                     }))
-                    setData((prev) => ({
+                    setData(prev => ({
                       ...prev,
                       isCompetitiveResearchEnabled: !prev.isCompetitiveResearchEnabled,
                     }))
@@ -944,11 +944,11 @@ const SecondStepModal = ({
                     type="checkbox"
                     checked={formData.addOutBoundLinks}
                     onChange={() => {
-                      setFormData((prev) => ({
+                      setFormData(prev => ({
                         ...prev,
                         addOutBoundLinks: !prev.addOutBoundLinks,
                       }))
-                      setData((prev) => ({
+                      setData(prev => ({
                         ...prev,
                         addOutBoundLinks: !prev.addOutBoundLinks,
                       }))
@@ -973,15 +973,15 @@ const SecondStepModal = ({
                   errors.newLink ? errorBorderStyle : "border-gray-200"
                 }`}
                 placeholder="https://example.com"
-                onKeyDown={(e) => {
+                onKeyDown={e => {
                   if (e.key === "Enter") {
                     e.preventDefault()
                     handleAddLink()
                   }
                 }}
                 value={localFormData.newLink}
-                onChange={(e) =>
-                  setLocalFormData((prev) => ({
+                onChange={e =>
+                  setLocalFormData(prev => ({
                     ...prev,
                     newLink: e.target.value,
                   }))

@@ -13,6 +13,7 @@ import {
   FaEyeSlash,
   FaShieldAlt,
   FaRocket,
+  FaGoogle,
 } from "react-icons/fa"
 import { FcGoogle } from "react-icons/fc"
 import { Sparkles, Zap, PenTool, CheckCircle } from "lucide-react"
@@ -76,35 +77,35 @@ const Auth = ({ path }) => {
   }, [formData, isSignup, termsAccepted, recaptchaValue])
 
   // Handle input changes with debounced validation
-  const handleInputChange = useCallback((e) => {
+  const handleInputChange = useCallback(e => {
     const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
+    setFormData(prev => ({ ...prev, [name]: value }))
     // Clear specific error when user starts typing
-    setErrors((prev) => ({ ...prev, [name]: undefined }))
+    setErrors(prev => ({ ...prev, [name]: undefined }))
   }, [])
 
   // Handle terms checkbox
   const handleTermsChange = useCallback(() => {
-    setTermsAccepted((prev) => !prev)
-    setErrors((prev) => ({ ...prev, terms: undefined }))
+    setTermsAccepted(prev => !prev)
+    setErrors(prev => ({ ...prev, terms: undefined }))
   }, [])
 
-  const onRecaptchaChange = (value) => {
+  const onRecaptchaChange = value => {
     setRecaptchaValue(value)
-    setErrors((prev) => ({ ...prev, recaptcha: undefined }))
+    setErrors(prev => ({ ...prev, recaptcha: undefined }))
   }
 
   const handleGoogleLogin = useGoogleLogin({
     flow: "implicit",
     redirect_uri: "https://app.genwrite.co/login",
-    onSuccess: async (tokenResponse) => {
+    onSuccess: async tokenResponse => {
       dispatch(googleLogin({ access_token: tokenResponse.access_token }))
         .unwrap()
         .then(({ authStatus, user }) => {
           message.success("Google login successful!")
           navigate(authStatus === "sign_up" ? "/pricing" : "/dashboard", { replace: true })
         })
-        .catch((err) => {
+        .catch(err => {
           console.error("Google login error:", err)
         })
     },
@@ -114,17 +115,8 @@ const Auth = ({ path }) => {
     },
   })
 
-  // const handleGoogleLogin = () => {
-  //   if (!recaptchaValue) {
-  //     setErrors((prev) => ({ ...prev, recaptcha: "Please complete the reCAPTCHA." }))
-  //     return
-  //   }
-  //   googleLoginHandler()
-  // }
-
-  // Handle form submission
   const handleSubmit = useCallback(
-    async (e) => {
+    async e => {
       e.preventDefault()
       if (!validateForm()) {
         return
@@ -173,9 +165,12 @@ const Auth = ({ path }) => {
   }, [path])
 
   const features = [
-    { icon: <PenTool className="w-5 h-5" />, text: "AI-Powered Writing" },
-    { icon: <Zap className="w-5 h-5" />, text: "Lightning Fast" },
-    { icon: <FaShieldAlt className="w-5 h-5" />, text: "Secure & Private" },
+    { icon: <PenTool className="w-5 h-5" />, text: "AI-Powered Blog Generator" },
+    { icon: <Zap className="w-5 h-5" />, text: "SEO-Optimized Content" },
+    { icon: <FaShieldAlt className="w-5 h-5" />, text: "Human-Like Text Enhancement" },
+    { icon: <CheckCircle className="w-5 h-5" />, text: "Automated Content Scheduling" },
+    { icon: <FaGoogle className="w-5 h-5" />, text: "Competitor Analysis Insights" },
+    { icon: <Sparkles className="w-5 h-5" />, text: "Performance & Keyword Analytics" },
   ]
 
   return (
@@ -222,17 +217,18 @@ const Auth = ({ path }) => {
                 AI-Powered Writing Platform
               </div>
               <h1 className="text-5xl font-bold text-gray-900 leading-tight">
-                Transform Your
+                Elevate Your
                 <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                   {" "}
                   Writing
                 </span>
                 <br />
-                with AI
+                with AI Precision
               </h1>
               <p className="text-xl text-gray-600 leading-relaxed">
-                Join thousands of writers who use GenWrite to create compelling content, boost
-                productivity, and unlock their creative potential.
+                Harness AI to generate compelling, professional-grade content effortlessly.
+                Streamline your workflow, maximize productivity, and produce high-quality writing
+                that engages your audience.
               </p>
             </div>
             <div className="space-y-4">
@@ -257,12 +253,13 @@ const Auth = ({ path }) => {
                   <CheckCircle className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">Free to Start</h3>
+                  <h3 className="font-semibold text-gray-900">Start for Free</h3>
                   <p className="text-sm text-gray-600">No credit card required</p>
                 </div>
               </div>
               <p className="text-sm text-gray-600">
-                Get started with 200 free AI credits and explore all features risk-free.
+                Begin with 200 complimentary AI credits and explore all features risk-free. Perfect
+                for evaluating the platform and experiencing AI-assisted content creation firsthand.
               </p>
             </div>
           </motion.div>

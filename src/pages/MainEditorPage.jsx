@@ -21,8 +21,8 @@ import "../layout/TextEditor/editor.css"
 const MainEditorPage = () => {
   const { id } = useParams()
   const dispatch = useDispatch()
-  const blog = useSelector((state) => state.blog.selectedBlog)
-  const { metadata } = useSelector((state) => state.wordpress)
+  const blog = useSelector(state => state.blog.selectedBlog)
+  const { metadata } = useSelector(state => state.wordpress)
   const [activeTab, setActiveTab] = useState("Normal")
   const [isLoading, setIsLoading] = useState(true)
   const [keywords, setKeywords] = useState([])
@@ -41,8 +41,8 @@ const MainEditorPage = () => {
   const [isHumanizing, setIsHumanizing] = useState(false)
   const [humanizePrompt, setHumanizePrompt] = useState("")
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const toggleSidebar = () => setIsSidebarOpen((prev) => !prev)
-  const user = useSelector((state) => state.auth.user)
+  const toggleSidebar = () => setIsSidebarOpen(prev => !prev)
+  const user = useSelector(state => state.auth.user)
   const userPlan = user?.plan ?? user?.subscription?.plan
   const navigate = useNavigate()
   const location = useLocation()
@@ -72,7 +72,7 @@ const MainEditorPage = () => {
   })
 
   useEffect(() => {
-    const handleBeforeUnload = (event) => {
+    const handleBeforeUnload = event => {
       if (unsavedChanges) {
         event.preventDefault()
         event.returnValue = "You have unsaved changes. Are you sure you want to leave?"
@@ -98,7 +98,7 @@ const MainEditorPage = () => {
       setKeywords(blog.keywords || [])
       setEditorTitle(blog.title || "")
       setEditorContent(blog.content ?? "")
-      setIsPosted(blog.wordpress || null)
+      setIsPosted(blog.posting?.items || {})
       setFormData({
         category: blog.category || "",
         includeTableOfContents: blog.includeTableOfContents || false,
@@ -118,11 +118,11 @@ const MainEditorPage = () => {
       return
     }
     const regex = new RegExp(original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g")
-    setEditorContent((prev) => prev.replace(regex, change))
-    setProofreadingResults((prev) => prev.filter((s) => s.original !== original))
+    setEditorContent(prev => prev.replace(regex, change))
+    setProofreadingResults(prev => prev.filter(s => s.original !== original))
   }
 
-  const handlePostToWordPress = async (postData) => {
+  const handlePostToWordPress = async postData => {
     setIsPosting(true)
 
     if (!editorTitle) {
@@ -155,9 +155,12 @@ const MainEditorPage = () => {
         ? await axiosInstance.put("/integrations/post", requestData)
         : await axiosInstance.post("/integrations/post", requestData)
 
-      setIsPosted(response?.data)
-      console.log("Posted Blog :", { type: postData.type.platform, data: response.data })
-      message.success(`Blog ${isPosted ? "updated" : "posted"} successfully!`)
+      const postedData = response?.data?.posting?.items?.[postData.type.platform] || null
+      setIsPosted(prev => ({ ...prev, [postData.type.platform]: postedData }))
+      console.log("Posted Blog:", { platform: postData.type.platform, data: postedData })
+      message.success(
+        `Blog ${isPosted?.[postData.type.platform] ? "updated" : "posted"} successfully!`
+      )
     } catch (error) {
       message.error(
         error.response?.data?.message || `Failed to ${isPosted ? "update" : "post to"} WordPress.`
@@ -167,11 +170,11 @@ const MainEditorPage = () => {
     }
   }
 
-  const getWordCount = (text) => {
+  const getWordCount = text => {
     return text
       .trim()
       .split(/\s+/)
-      .filter((word) => word.length > 0).length
+      .filter(word => word.length > 0).length
   }
 
   const handleSave = async ({ metadata }) => {
@@ -316,7 +319,7 @@ const MainEditorPage = () => {
     if (!blogData.keywords || blogData.keywords.length === 0) newErrors.keywords = true
 
     if (Object.keys(newErrors).length > 0) {
-      setErrors((prev) => ({ ...prev, ...newErrors }))
+      setErrors(prev => ({ ...prev, ...newErrors }))
       message.error("Please fill all required fields correctly.")
       return
     }
@@ -331,11 +334,11 @@ const MainEditorPage = () => {
     }
   }
 
-  const handleTitleChange = (e) => {
+  const handleTitleChange = e => {
     const newTitle = e.target.value
     if (getWordCount(newTitle) <= 60) {
       setEditorTitle(newTitle)
-      setFormData((prev) => ({ ...prev, title: newTitle }))
+      setFormData(prev => ({ ...prev, title: newTitle }))
     } else {
       message.error("Title exceeds 60 words.")
     }
