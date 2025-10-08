@@ -19,6 +19,7 @@ import { fetchTransactions } from "@store/slices/userSlice"
 import { loadAuthenticatedUser } from "@store/slices/authSlice"
 import { useNavigate } from "react-router-dom"
 import { ReloadOutlined } from "@ant-design/icons"
+import { clsx } from "clsx"
 
 const { Meta } = Card
 
@@ -259,6 +260,67 @@ const Transactions = () => {
           </button>
         </div>
       </motion.div>
+
+      {Object.keys(user?.subscription?.scheduledPlanChange || {}).length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+          className="p-3 md:p-6 bg-white mb-10 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100"
+        >
+          {/* Header */}
+          <div className="flex items-center space-x-3 mb-6">
+            <h2 className="text-xl font-semibold text-gray-800">Your Current Plan</h2>
+          </div>
+
+          {/* Plan Info */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 border-b pb-4">
+            <div className="flex items-center space-x-3 mb-4 md:mb-0">
+              <div
+                className={`w-12 h-12 rounded-lg flex items-center justify-center bg-${
+                  isProPlan ? "blue" : "green"
+                }-100`}
+              >
+                <Zap
+                  className={`w-6 h-6 text-${
+                    user.subscription.scheduledPlanChange.newPlan == "pro" ? "blue" : "green"
+                  }-600`}
+                />
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold text-gray-900">
+                  <span className="capitalize">
+                    {user.subscription.scheduledPlanChange.newPlan}
+                  </span>{" "}
+                  Tier
+                </h3>
+                <Tag
+                  color={user?.subscription?.status === "active" ? "green" : "default"}
+                  className="mt-1"
+                >
+                  {user?.subscription?.scheduledPlanChange?.billingPeriod}
+                </Tag>
+              </div>
+            </div>
+
+            <div className="text-left md:text-right">
+              <p className="text-sm text-gray-600 mb-1">Effective on:</p>
+              <p className="font-semibold text-gray-900">
+                {user?.subscription?.startDate
+                  ? new Date(
+                      user.subscription.scheduledPlanChange?.effectiveDate ||
+                        user.subscription.renewalDate
+                    ).toLocaleDateString("en-GB", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })
+                  : "—"}
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* Transactions Table */}
       <motion.div

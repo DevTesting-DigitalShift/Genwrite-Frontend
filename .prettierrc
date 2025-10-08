@@ -1,5 +1,9 @@
 {
   "singleQuote": false,
   "printWidth": 100,
-  "semi": false
+  "semi": false,
+  "objectWrap": "collapse",
+  "embeddedLanguageFormatting": "auto",
+  "arrowParens": "avoid",
+  "proseWrap": "always"
 }

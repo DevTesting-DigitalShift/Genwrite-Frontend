@@ -4,7 +4,7 @@ import { Server, Download, Tag, Clock, CheckCircle, Edit, Globe, XCircle } from 
 import { pluginsData } from "@/data/pluginsData"
 import { Helmet } from "react-helmet"
 import { useDispatch, useSelector } from "react-redux"
-import {  
+import {
   createIntegrationThunk,
   getIntegrationsThunk,
   pingIntegrationThunk,
@@ -22,13 +22,13 @@ const PluginsMain = () => {
     () => pluginsData(dispatch, setWordpressStatus),
     [dispatch, setWordpressStatus]
   )
-  const { data: integrations, loading, error } = useSelector((state) => state.wordpress)
+  const { data: integrations, loading, error } = useSelector(state => state.wordpress)
   const {
     integration,
     categories,
     ping,
     loading: postsLoading,
-  } = useSelector((state) => state.integration)
+  } = useSelector(state => state.integration)
 
   useEffect(() => {
     dispatch(getIntegrationsThunk())
@@ -38,12 +38,12 @@ const PluginsMain = () => {
     }
   }, [plugins, dispatch, activeTab])
 
-  const checkPlugin = async (plugin) => {
+  const checkPlugin = async plugin => {
     if (wordpressStatus[plugin.id]?.success) return
 
     try {
       const result = await plugin.onCheck()
-      setWordpressStatus((prev) => ({
+      setWordpressStatus(prev => ({
         ...prev,
         [plugin.id]: {
           status: result.status,
@@ -53,7 +53,7 @@ const PluginsMain = () => {
       }))
     } catch (err) {
       console.error(`Error checking plugin ${plugin.pluginName}:`, err)
-      setWordpressStatus((prev) => ({
+      setWordpressStatus(prev => ({
         ...prev,
         [plugin.id]: {
           status: err.response?.status || "error",
@@ -69,9 +69,9 @@ const PluginsMain = () => {
     }
   }
 
-  const handleTabChange = (key) => {
+  const handleTabChange = key => {
     setActiveTab(key)
-    const plugin = plugins.find((p) => p.id.toString() === key)
+    const plugin = plugins.find(p => p.id.toString() === key)
     if (plugin) {
       checkPlugin(plugin)
       if (plugin.pluginName.toLowerCase().includes("wordpress")) {
@@ -87,7 +87,7 @@ const PluginsMain = () => {
       plugin.id === 112 ? serverInt?.url || "" : wordpressInt?.url || ""
     )
     const [frontend, setFrontend] = useState(serverInt?.frontend || "")
-    const [authToken, setAuthToken] = useState(serverInt?.credentials?.authToken || "")
+    const [authToken, setAuthToken] = useState(serverInt?.data ? "*".repeat(10) : "")
     const [isValidUrl, setIsValidUrl] = useState(!!(plugin.id === 112 ? serverInt : wordpressInt))
     const [isValidFrontend, setIsValidFrontend] = useState(!!serverInt)
     const [isEditing, setIsEditing] = useState(plugin.id === 112 ? !serverInt : !wordpressInt)
@@ -97,7 +97,7 @@ const PluginsMain = () => {
       if (plugin.id === 112 && serverInt) {
         setUrl(serverInt.url)
         setFrontend(serverInt.frontend)
-        setAuthToken(serverInt.credentials?.authToken || "")
+        setAuthToken(serverInt?.data ? "*".repeat(10) : "")
         setIsValidUrl(true)
         setIsValidFrontend(true)
         setIsEditing(false)
@@ -123,7 +123,7 @@ const PluginsMain = () => {
       }
     }, [integrations, hasPinged])
 
-    const handleUrlChange = (e) => {
+    const handleUrlChange = e => {
       const value = e.target.value
       setUrl(value)
       try {
@@ -134,7 +134,7 @@ const PluginsMain = () => {
       }
     }
 
-    const handleFrontendChange = (e) => {
+    const handleFrontendChange = e => {
       const value = e.target.value
       setFrontend(value)
       try {
@@ -145,13 +145,13 @@ const PluginsMain = () => {
       }
     }
 
-    const handleAuthTokenChange = (e) => {
+    const handleAuthTokenChange = e => {
       const value = e.target.value
       setAuthToken(value)
     }
 
     const handleEdit = () => {
-      setIsEditing(true)
+      setIsEditing(prev => !prev)
     }
 
     const handleConnect = async () => {
@@ -197,7 +197,7 @@ const PluginsMain = () => {
       try {
         const type = plugin.id === 112 ? "SERVERENDPOINT" : "WORDPRESS"
         const result = await dispatch(pingIntegrationThunk(type)).unwrap()
-        setWordpressStatus((prev) => ({
+        setWordpressStatus(prev => ({
           ...prev,
           [plugin.id]: {
             status: result.status || "success",
@@ -212,7 +212,7 @@ const PluginsMain = () => {
         }
       } catch (err) {
         const errorMsg = err.message || `Failed to check ${plugin.pluginName} connection status`
-        setWordpressStatus((prev) => ({
+        setWordpressStatus(prev => ({
           ...prev,
           [plugin.id]: {
             status: "error",
@@ -357,6 +357,7 @@ const PluginsMain = () => {
                         <input
                           placeholder="Enter your auth token"
                           value={authToken}
+                          onFocus={() => setAuthToken("")}
                           onChange={handleAuthTokenChange}
                           disabled={!isEditing || loading || localLoading}
                           className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 disabled:bg-gray-100"
@@ -481,7 +482,7 @@ const PluginsMain = () => {
                     onClick={handleEdit}
                     className="p-0 text-blue-500 hover:text-blue-600"
                   >
-                    Edit
+                    {isEditing ? "Cancel" : "Edit"}
                   </Button>
                 </label>
 
@@ -541,7 +542,12 @@ const PluginsMain = () => {
             </Flex>
           </Card>
 
-          <a href={"https://drive.google.com/file/d/1z4xWT2W4hYq9zqJL3dv4gXFsJzxJRoA4/view?usp=drive_link"} download>
+          <a
+            href={
+              "https://drive.google.com/file/d/1z4xWT2W4hYq9zqJL3dv4gXFsJzxJRoA4/view?usp=drive_link"
+            }
+            download
+          >
             <Button
               type="default"
               size="large"
@@ -566,7 +572,7 @@ const PluginsMain = () => {
     <DefaultTabBar {...props} className="custom-tab-bar rounded-t-lg" />
   )
 
-  const tabItems = plugins.map((plugin) => ({
+  const tabItems = plugins.map(plugin => ({
     key: plugin.id.toString(),
     label: (
       <Flex align="center" gap="small" className="font-sans font-medium text-base">

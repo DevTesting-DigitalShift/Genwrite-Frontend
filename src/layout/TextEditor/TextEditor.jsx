@@ -70,8 +70,6 @@ const HtmlEditor = React.lazy(() =>
 marked.setOptions({
   gfm: true,
   breaks: true,
-  headerIds: false,
-  mangle: false,
 })
 
 const FONT_OPTIONS = [
@@ -164,6 +162,7 @@ const TextEditor = ({
       headingStyle: "atx",
       bulletListMarker: "-",
     })
+    turndownService.keep(["p"])
     return turndownService.turndown(html)
   }, [])
 

@@ -122,49 +122,50 @@ const MainEditorPage = () => {
     setProofreadingResults((prev) => prev.filter((s) => s.original !== original))
   }
 
-const handlePostToWordPress = async (postData) => {
-  setIsPosting(true)
+  const handlePostToWordPress = async (postData) => {
+    setIsPosting(true)
 
-  if (!editorTitle) {
-    message.error("Blog title is missing.")
-    setIsPosting(false)
-    return
-  }
-  if (!editorContent.trim()) {
-    message.error("Blog content is empty.")
-    setIsPosting(false)
-    return
-  }
-  if (!postData.category) {   // 🔄 changed from categories → category
-    message.error("Please select a category.")
-    setIsPosting(false)
-    return
-  }
-
-  try {
-    const requestData = {
-      type: postData.type.platform, 
-      blogId: blog._id,
-      includeTableOfContents: postData.includeTableOfContents ?? false,
-      category: postData.category,   // 🔄 match backend param
-      removeWaterMark: postData.removeWaterMark ?? true,
+    if (!editorTitle) {
+      message.error("Blog title is missing.")
+      setIsPosting(false)
+      return
+    }
+    if (!editorContent.trim()) {
+      message.error("Blog content is empty.")
+      setIsPosting(false)
+      return
+    }
+    if (!postData.category) {
+      // 🔄 changed from categories → category
+      message.error("Please select a category.")
+      setIsPosting(false)
+      return
     }
 
-    const response = isPosted
-      ? await axiosInstance.put("/integrations/post", requestData)
-      : await axiosInstance.post("/integrations/post", requestData)
+    try {
+      const requestData = {
+        type: postData.type.platform,
+        blogId: blog._id,
+        includeTableOfContents: postData.includeTableOfContents ?? false,
+        category: postData.category, // 🔄 match backend param
+        removeWaterMark: postData.removeWaterMark ?? true,
+      }
 
-    setIsPosted(response?.data)
-    message.success(`Blog ${isPosted ? "updated" : "posted"} successfully!`)
-  } catch (error) {
-    message.error(
-      error.response?.data?.message || `Failed to ${isPosted ? "update" : "post to"} WordPress.`
-    )
-  } finally {
-    setIsPosting(false)
+      const response = isPosted
+        ? await axiosInstance.put("/integrations/post", requestData)
+        : await axiosInstance.post("/integrations/post", requestData)
+
+      setIsPosted(response?.data)
+      console.log("Posted Blog :", { type: postData.type.platform, data: response.data })
+      message.success(`Blog ${isPosted ? "updated" : "posted"} successfully!`)
+    } catch (error) {
+      message.error(
+        error.response?.data?.message || `Failed to ${isPosted ? "update" : "post to"} WordPress.`
+      )
+    } finally {
+      setIsPosting(false)
+    }
   }
-}
-
 
   const getWordCount = (text) => {
     return text
