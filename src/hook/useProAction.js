@@ -4,16 +4,14 @@ import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 
 export const useProAction = () => {
   const navigate = useNavigate()
-  const user = useSelector((state) => state.auth.user)
+  const user = useSelector(state => state.auth.user)
   const { handlePopup } = useConfirmPopup()
 
   const userPlan = user?.plan ?? user?.subscription?.plan
   const totalCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
 
   const showTrialMessage =
-    totalCredits === 0 &&
-    user?.subscription?.plan === "free" &&
-    user?.subscription?.status === "unpaid"
+    user?.subscription?.plan === "free" && user?.subscription?.status === "unpaid"
 
   const handleProAction = (callback, options = {}) => {
     if (showTrialMessage) {

@@ -9,6 +9,7 @@ import { Button, message, Modal } from "antd"
 import { sendStripeGTMEvent } from "@utils/stripeGTMEvents"
 import { useSelector } from "react-redux"
 import ComparisonTable from "@components/ComparisonTable"
+import { useNavigate } from "react-router-dom"
 
 const PricingCard = ({
   plan,
@@ -34,7 +35,7 @@ const PricingCard = ({
     enterprise: 3,
   }
 
-  const handleCustomCreditsChange = (e) => {
+  const handleCustomCreditsChange = e => {
     const value = parseInt(e.target.value, 10)
     setCustomCredits(value)
   }
@@ -203,7 +204,7 @@ const PricingCard = ({
     setShowConfirmModal(true)
   }
 
-  const proceedToBuy = (planToBuy) => {
+  const proceedToBuy = planToBuy => {
     if (planToBuy.type === "credit_purchase") {
       onBuy(planToBuy, pendingCredits, billingPeriod)
     } else if (planToBuy.name.toLowerCase().includes("enterprise")) {
@@ -380,7 +381,8 @@ const Upgrade = () => {
   const [loading, setLoading] = useState(true)
   const [billingPeriod, setBillingPeriod] = useState("annual")
   const [showComparisonTable, setShowComparisonTable] = useState(true)
-  const user = useSelector((state) => state.auth.user)
+  const user = useSelector(state => state.auth.user)
+  const navigate = useNavigate()
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1200)
@@ -501,7 +503,7 @@ const Upgrade = () => {
   const plans = getPlans(billingPeriod, user?.subscription?.plan)
 
   function getGaClientId() {
-    const gaCookie = document.cookie.split("; ").find((row) => row.startsWith("_ga="))
+    const gaCookie = document.cookie.split("; ").find(row => row.startsWith("_ga="))
     if (gaCookie) {
       const parts = gaCookie.split(".")
       if (parts.length > 2) {
@@ -519,7 +521,7 @@ const Upgrade = () => {
       return
     }
     try {
-      const { data } = await axiosInstance.post("/stripe/checkout", {
+      const response = await axiosInstance.post("/stripe/checkout", {
         planName: plan.name.toLowerCase().includes("pro")
           ? "pro"
           : plan.name.toLowerCase().includes("basic")
@@ -531,22 +533,29 @@ const Upgrade = () => {
         success_url: `${window.location.origin}/payment/success`,
         cancel_url: `${window.location.origin}/payment/cancel`,
       })
-
-      sendStripeGTMEvent(plan, credits, billingPeriod, user._id)
-      const result = await stripe.redirectToCheckout({ sessionId: data.sessionId })
-      if (result?.error) throw result.error
+      if ([200, 201].includes(response.status)) {
+        if (response.data?.sessionId) {
+          sendStripeGTMEvent(plan, credits, billingPeriod, user._id)
+          const result = await stripe.redirectToCheckout({ sessionId: response.data.sessionId })
+          if (result?.error) throw result.error
+        } else {
+          message.success(response.data?.message || "Your Upcoming Plan has been set successfully.")
+          navigate("/transactions", { replace: true })
+        }
+      }
     } catch (error) {
       console.error("Checkout error:", error)
-      message.error("Failed to initiate checkout. Please try again.")
+      if (error?.status === 409) {
+        message.error(error?.response?.data?.message || "User Subscription Conflict Error")
+      } else {
+        message.error("Failed to initiate checkout. Please try again.")
+      }
     }
   }
 
   const totalCredits = user?.credits?.base + user?.credits?.extra
 
-  const showTrialMessage =
-    totalCredits === 0 &&
-    user?.subscription?.plan === "free" &&
-    user?.subscription?.status === "unpaid"
+  const showTrialMessage = !user?.subscription?.trialOpted
 
   return (
     <div className="bg-gray-50 py-10 px-4">
@@ -606,7 +615,7 @@ const Upgrade = () => {
 
           <div className="flex justify-center mt-8">
             <div className="inline-flex items-center bg-white rounded-full p-1 border border-gray-200 shadow-sm">
-              {["monthly", "annual"].map((period) => (
+              {["monthly", "annual"].map(period => (
                 <button
                   key={period}
                   onClick={() => setBillingPeriod(period)}

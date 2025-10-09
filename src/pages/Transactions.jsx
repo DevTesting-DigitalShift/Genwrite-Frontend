@@ -281,7 +281,7 @@ const Transactions = () => {
         >
           {/* Header */}
           <div className="flex items-center space-x-3 mb-6">
-            <h2 className="text-xl font-semibold text-gray-800">Your Current Plan</h2>
+            <h2 className="text-xl font-semibold text-gray-800">Your Upcoming Plan</h2>
           </div>
 
           {/* Plan Info */}

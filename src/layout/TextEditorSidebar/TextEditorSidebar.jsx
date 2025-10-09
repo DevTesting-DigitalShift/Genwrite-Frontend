@@ -697,7 +697,7 @@ const TextEditorSidebar = ({
                     bg-green-50 text-green-600 border-green-300 border hover:bg-green-100"
                       >
                         {["free"].includes(userPlan?.toLowerCase?.()) ? (
-                          <Crown className="w-3 h-3" />
+                          <CrownTwoTone className="w-3 h-3" />
                         ) : (
                           <Sparkles className="w-3 h-3" />
                         )}
@@ -814,18 +814,22 @@ const TextEditorSidebar = ({
                       isPro={["free", "basic"].includes(userPlan?.toLowerCase?.())}
                       isLoading={false}
                       onClick={() => {
-                        handlePopup({
-                          title: "Generate Metadata",
-                          description: (
-                            <>
-                              Generate SEO metadata?
-                              <span className="font-bold"> This will cost 2 credits.</span>
-                            </>
-                          ),
-                          confirmText: "Generate",
-                          cancelText: "Cancel",
-                          onConfirm: handleMetadataGeneration,
-                        })
+                        if (["free", "basic"].includes(userPlan?.toLowerCase?.())) {
+                          navigate("/pricing")
+                        } else {
+                          handlePopup({
+                            title: "Generate Metadata",
+                            description: (
+                              <>
+                                Generate SEO metadata?
+                                <span className="font-bold"> This will cost 2 credits.</span>
+                              </>
+                            ),
+                            confirmText: "Generate",
+                            cancelText: "Cancel",
+                            onConfirm: handleMetadataGeneration,
+                          })
+                        }
                       }}
                       buttonText="Generate Metadata"
                       icon={TagIcon}

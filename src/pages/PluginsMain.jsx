@@ -544,7 +544,7 @@ const PluginsMain = () => {
 
           <a
             href={
-              "https://drive.google.com/file/d/1z4xWT2W4hYq9zqJL3dv4gXFsJzxJRoA4/view?usp=drive_link"
+              "https://drive.google.com/drive/folders/1uB2O4GfJpPE0DuvnILpWUEnv4hKhLoIO?usp=sharing"
             }
             download
           >
