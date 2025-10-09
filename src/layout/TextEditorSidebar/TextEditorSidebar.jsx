@@ -1133,7 +1133,6 @@ const TextEditorSidebar = ({
                 >
                   <a
                     href={link}
-                    F
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 text-blue-600 text-sm hover:text-blue-700 font-medium"

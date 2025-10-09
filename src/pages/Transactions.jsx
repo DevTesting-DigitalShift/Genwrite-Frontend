@@ -224,10 +224,16 @@ const Transactions = () => {
           <div className="flex items-center space-x-3 text-gray-600">
             <Calendar className="w-5 h-5 text-purple-500" />
             <div>
-              <span className="font-medium block">Renews on:</span>
+              <span className="font-medium block">
+                {user?.subscription?.cancelAt ? "Cancel At:" : "Renews on:"}
+              </span>
               <span className="text-gray-800 font-semibold text-sm">
                 {user?.subscription?.renewalDate
-                  ? new Date(user.subscription.renewalDate).toLocaleDateString("en-GB", {
+                  ? new Date(
+                      user?.subscription?.cancelAt
+                        ? user.subscription.cancelAt
+                        : user.subscription.renewalDate
+                    ).toLocaleDateString("en-GB", {
                       day: "numeric",
                       month: "long",
                       year: "numeric",

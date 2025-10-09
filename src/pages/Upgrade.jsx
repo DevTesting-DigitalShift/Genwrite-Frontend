@@ -207,7 +207,10 @@ const PricingCard = ({
     if (planToBuy.type === "credit_purchase") {
       onBuy(planToBuy, pendingCredits, billingPeriod)
     } else if (planToBuy.name.toLowerCase().includes("enterprise")) {
-      window.open(`https:in the Enterprise plan.`, "_blank")
+      window.open(
+        `https://mail.google.com/mail/?view=cm&fs=1&to=support@genwrite.com&su=GenWrite Enterprise Subscription&body=I'm interested in the Enterprise plan.`,
+        "_blank"
+      )
     } else {
       onBuy(planToBuy, pendingCredits || planToBuy.credits, billingPeriod)
     }

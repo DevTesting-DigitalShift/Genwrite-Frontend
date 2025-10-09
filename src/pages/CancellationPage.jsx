@@ -21,19 +21,11 @@ const CancellationPage = () => {
   const user = useSelector(selectUser)
   const { handlePopup } = useConfirmPopup()
 
-  const showTrialMessage =
-    user?.subscription?.plan === "free" && user?.subscription?.status === "unpaid"
-
-  useEffect(() => {
-    if (showTrialMessage) {
-      navigate("/dashboard")
-    }
-  }, [showTrialMessage, navigate])
-
   useEffect(() => {
     if (
       user?.subscription?.plan === "free" ||
-      ["unpaid", "cancelled"].includes(user?.subscription?.status)
+      ["unpaid", "cancelled"].includes(user?.subscription?.status) ||
+      user?.subscription?.cancelAt
     ) {
       navigate("/dashboard", { replace: true })
     }
