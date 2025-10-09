@@ -11,7 +11,9 @@ export const useProAction = () => {
   const totalCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
 
   const showTrialMessage =
-    user?.subscription?.plan === "free" && user?.subscription?.status === "unpaid"
+    user?.subscription?.plan === "free" &&
+    user?.subscription?.status === "unpaid" &&
+    totalCredits == 0
 
   const handleProAction = (callback, options = {}) => {
     if (showTrialMessage) {

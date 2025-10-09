@@ -12,7 +12,7 @@ import { useProAction } from "@/hook/useProAction"
 dayjs.extend(relativeTime)
 
 export const DashboardBox = ({ title, content, id, functions, icon, gradient }) => {
-  const user = useSelector((state) => state.auth.user)
+  const user = useSelector(state => state.auth.user)
   const userPlan = user?.plan ?? user?.subscription?.plan
   const navigate = useNavigate()
   const { handleProAction } = useProAction()
@@ -32,8 +32,11 @@ export const DashboardBox = ({ title, content, id, functions, icon, gradient }) 
     handleProAction(() => {
       if (id === "A") functions.showQuickBlogModal?.()
       else if (id === 1) functions.showModal?.()
-      else if (id === "B") functions.showMultiStepModal?.()
-      else if (id === 4) functions.showCompetitiveAnalysis?.()
+      else if (id === "B") {
+        if (["free", "basic"].includes(userPlan)) {
+          showPopup()
+        } else functions.showMultiStepModal?.()
+      } else if (id === 4) functions.showCompetitiveAnalysis?.()
       else if (id === 3) functions.showPerformanceMonitoring?.()
     })
   }
@@ -92,7 +95,7 @@ export const QuickBox = ({
   navigate: navigateTo, // NEW PROP
 }) => {
   const navigate = useNavigate()
-  const user = useSelector((state) => state.auth.user)
+  const user = useSelector(state => state.auth.user)
   const userPlan = user?.plan ?? user?.subscription?.plan
   const { handlePopup } = useConfirmPopup()
   const { handleProAction } = useProAction()
@@ -114,7 +117,13 @@ export const QuickBox = ({
     }
 
     if (id === 4 && functions?.showCompetitiveAnalysis) {
-      handleProAction(() => functions.showCompetitiveAnalysis())
+      handleProAction(() => {
+        if (["free", "basic"].includes(userPlan)) {
+          showPopup()
+        } else {
+          functions.showCompetitiveAnalysis()
+        }
+      })
     } else if (id === 3 && functions?.showPerformanceMonitoring) {
       handleProAction(() => functions.showPerformanceMonitoring())
     } else if (id === 2 && functions?.showSeoAnalysis) {
