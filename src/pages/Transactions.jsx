@@ -32,8 +32,6 @@ const Transactions = () => {
   const { transactions, loading } = useSelector(state => state.user)
   const navigate = useNavigate()
 
-  const totalCreditsCheck = user?.credits?.base + user?.credits?.extra
-
   const showTrialMessage =
     user?.subscription?.plan === "free" && user?.subscription?.status === "unpaid"
 

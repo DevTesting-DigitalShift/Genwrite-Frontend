@@ -26,7 +26,7 @@ const PricingCard = ({
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [pendingPlan, setPendingPlan] = useState(null)
   const [pendingCredits, setPendingCredits] = useState(0)
-  const [modalType, setModalType] = useState(null) // "upgrade", "downgrade", or "same-tier"
+  const [modalType, setModalType] = useState(null)
   const [modalMessage, setModalMessage] = useState({ title: "", body: "" })
 
   const tierLevels = {
@@ -44,12 +44,11 @@ const PricingCard = ({
     return (customCredits * 0.01).toFixed(2)
   }
 
-  // Always display the monthly equivalent price
   const displayPrice =
     plan.type === "credit_purchase"
       ? null
       : billingPeriod === "annual"
-      ? plan.priceAnnual // Use the monthly equivalent for annual billing
+      ? plan.priceAnnual
       : plan.priceMonthly
 
   const isWithinBillingCycle = userStatus === "active"
@@ -208,10 +207,7 @@ const PricingCard = ({
     if (planToBuy.type === "credit_purchase") {
       onBuy(planToBuy, pendingCredits, billingPeriod)
     } else if (planToBuy.name.toLowerCase().includes("enterprise")) {
-      window.open(
-        `https://mail.google.com/mail/?view=cm&fs=1&to=support@genwrite.com&su=GenWrite Enterprise Subscription&body=I'm interested in the Enterprise plan.`,
-        "_blank"
-      )
+      window.open(`https:in the Enterprise plan.`, "_blank")
     } else {
       onBuy(planToBuy, pendingCredits || planToBuy.credits, billingPeriod)
     }
@@ -544,7 +540,6 @@ const Upgrade = () => {
         }
       }
     } catch (error) {
-      console.error("Checkout error:", error)
       if (error?.status === 409) {
         message.error(error?.response?.data?.message || "User Subscription Conflict Error")
       } else {

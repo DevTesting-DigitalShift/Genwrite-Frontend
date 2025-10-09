@@ -21,6 +21,15 @@ const CancellationPage = () => {
   const user = useSelector(selectUser)
   const { handlePopup } = useConfirmPopup()
 
+  const showTrialMessage =
+    user?.subscription?.plan === "free" && user?.subscription?.status === "unpaid"
+
+  useEffect(() => {
+    if (showTrialMessage) {
+      navigate("/dashboard")
+    }
+  }, [showTrialMessage, navigate])
+
   useEffect(() => {
     if (
       user?.subscription?.plan === "free" ||
