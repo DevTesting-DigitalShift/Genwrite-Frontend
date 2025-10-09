@@ -308,35 +308,7 @@ const TextEditor = ({
       })
     }
 
-    if (unsavedChanges) {
-      handlePopup({
-        title: "Unsaved Changes",
-        description: (
-          <>
-            You have unsaved changes. Regenerating the blog will discard these changes. Would you
-            like to save them first?
-          </>
-        ),
-        confirmText: "Save and Regenerate",
-        cancelText: "Regenerate without Saving",
-        onConfirm: async () => {
-          try {
-            await handleSubmit({ wordpressMetadata })
-            await proceedWithRegenerate()
-          } catch (error) {
-            console.error(error)
-            message.error("Failed to save changes. Please try again.")
-          }
-        },
-        onCancel: e => {
-          if (e?.source == "button") {
-            proceedWithRegenerate()
-          }
-        },
-      })
-    } else {
-      await proceedWithRegenerate()
-    }
+    await proceedWithRegenerate()
   }
 
   const handleConfirmLink = useCallback(() => {
