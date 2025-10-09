@@ -1113,7 +1113,11 @@ const TextEditorSidebar = ({
               disabled={isDisabled}
               className="w-full h-12 text-base font-semibold bg-gradient-to-r from-green-600 to-emerald-600 border-0 hover:shadow-lg"
             >
-              {isPosting ? "Posting..." : posted ? "Re-Post" : "Post Blog"}
+              {isPosting
+                ? "Posting..."
+                : posted && Object.keys(posted).length > 0
+                ? "Re-Post"
+                : "Post Blog"}
             </Button>
           </motion.div>
 
@@ -1128,7 +1132,8 @@ const TextEditorSidebar = ({
                   className="text-center"
                 >
                   <a
-                    href={link}F
+                    href={link}
+                    F
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 text-blue-600 text-sm hover:text-blue-700 font-medium"
