@@ -1,38 +1,32 @@
-import axiosInstance from "@api/index"
-import { message } from "antd"
+import { pingIntegrationThunk } from "@store/slices/otherSlice"
 import { FaServer, FaWordpressSimple } from "react-icons/fa"
 
-export const pluginsData = (setWordpressStatus) => [
+export const pluginsData = (dispatch) => [
   {
     id: 111,
     name: "WordPress",
     icon: FaWordpressSimple,
     pluginTitle: "A WordPress plugin to upload blogs using AI",
-    pluginName: "AI Blogger Uploader",
+    pluginName: "AI Blogger Sync",
     pluginImage: "./Images/wordpres.png",
     updatedDate: "18th Sep, 2025",
     version: "3.3.3",
     description: "A WordPress plugin to upload blogs using AI",
     message:
-      "AI Blogger Uploader is a powerful WordPress plugin that let's your wordpress website to connect our genwrite.co domain and let's you upload blogs generated using AI. It is a great tool for bloggers and content creators who want to save time and effort in writing articles. With AI Blogger Uploader, you can easily generate high-quality content with just a few clicks at genwrite.co and post to your wordpress website with ease.",
+      "AI Blogger Sync is a powerful WordPress plugin that connects your WordPress website to our genwrite.co domain, enabling you to upload AI-generated blogs effortlessly. It is an excellent tool for bloggers and content creators aiming to save time and effort in content creation. With AI Blogger Sync, you can generate high-quality content with minimal effort and post it to your WordPress website seamlessly.",
     downloadLink: "/ai-blogger-uploader.zip",
     onCheck: async () => {
       try {
-        const res = await axiosInstance.get("/wordpress/check")
+        const result = await dispatch(pingIntegrationThunk("WORDPRESS")).unwrap()
         return {
-          status: res.data.status,
-          message: res.data.message,
-          success: res.data.success,
+          status: result.status || "success",
+          message: result.message || "WordPress connection verified",
+          success: result.success !== false,
         }
-      } catch (err) { 
+      } catch (err) {
         return {
-          status: err.response?.status || "error",
-          message:
-            err.response?.status === 400
-              ? "No wordpress link found. Add wordpress link into your profile."
-              : err.response?.status === 502
-              ? "Wordpress connection failed, check plugin is installed & active"
-              : "Wordpress Connection Error",
+          status: "error",
+          message: err.message || "WordPress Connection Error",
           success: false,
         }
       }
@@ -45,14 +39,27 @@ export const pluginsData = (setWordpressStatus) => [
     pluginTitle: "Direct server-to-server integration for seamless data transfer and automation.",
     pluginName: "Server-to-Server",
     pluginImage: "./Images/genwriteIcon.png",
-    updatedDate: "Coming Soon",
-    version: "Coming Soon",
+    updatedDate: "4th Oct, 2025",
+    version: "1.0.0",
     description: "Direct server-to-server integration for seamless data transfer and automation.",
     message:
-      "Server-to-server integration coming soon. This feature will allow direct communication between your server and our platform for automated content publishing.",
+      "Server-to-Server integration enables direct communication between your server and our platform for automated content publishing, including fetching posts, categories, and creating new posts programmatically.",
     downloadLink: "#",
-    onCheck: async (e) => {
-      // No ping check for coming soon
+    onCheck: async () => {
+      try {
+        const result = await dispatch(pingIntegrationThunk("SERVERENDPOINT")).unwrap()
+        return {
+          status: result.status || "success",
+          message: result.message || "Server-to-Server connection verified",
+          success: result.success !== false,
+        }
+      } catch (err) {
+        return {
+          status: "error",
+          message: err.message || "Server-to-Server Connection Error",
+          success: false,
+        }
+      }
     },
   },
 ]

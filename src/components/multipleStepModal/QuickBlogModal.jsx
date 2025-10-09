@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { createNewQuickBlog } from "../../store/slices/blogSlice"
 import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
@@ -13,16 +13,16 @@ import { selectUser } from "@store/slices/authSlice"
 const QuickBlogModal = ({ closeFnc }) => {
   const [currentStep, setCurrentStep] = useState(0)
   const [selectedPackage, setSelectedPackage] = useState(null)
-  const [videoLinks, setVideoLinks] = useState([]) // Store video links
-  const [otherLinks, setOtherLinks] = useState([]) // Store other links
-  const [isOtherLinksEnabled, setIsOtherLinksEnabled] = useState(false) // Toggle for other links
+  const [videoLinks, setVideoLinks] = useState([])
+  const [otherLinks, setOtherLinks] = useState([])
+  const [isOtherLinksEnabled, setIsOtherLinksEnabled] = useState(false)
   const user = useSelector(selectUser)
   const [errors, setErrors] = useState({
-    template: false,
-    focusKeywords: false,
-    keywords: false,
-    videoLinks: false,
-    otherLinks: false,
+    template: "",
+    focusKeywords: "",
+    keywords: "",
+    videoLinks: "",
+    otherLinks: "",
   })
   const [formData, setFormData] = useState({
     template: null,
@@ -38,59 +38,96 @@ const QuickBlogModal = ({ closeFnc }) => {
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
 
+  // Sync selected template when modal opens
+  useEffect(() => {
+    if (formData.template) {
+      const index = packages.findIndex((pkg) => pkg.name === formData.template)
+      if (index !== -1) {
+        setSelectedPackage(index)
+      }
+    } else {
+      setSelectedPackage(null)
+    }
+  }, [formData.template])
+
   // Handle navigation to the next step
   const handleNext = () => {
-    if (currentStep === 0 && !formData.template) {
-      setErrors((prev) => ({ ...prev, template: true }))
-      message.error("Please select a template before proceeding.")
-      return
+    if (currentStep === 0) {
+      if (!formData.template) {
+        setErrors((prev) => ({ ...prev, template: "Please select a template." }))
+        return
+      }
+      setErrors((prev) => ({ ...prev, template: "" }))
+      setCurrentStep(1)
     }
-    setErrors((prev) => ({ ...prev, template: false }))
-    setCurrentStep(currentStep + 1)
   }
 
   // Handle navigation to the previous step
   const handlePrev = () => {
-    setCurrentStep(currentStep - 1)
+    setCurrentStep(0)
   }
 
   // Handle modal close
   const handleClose = () => {
+    setSelectedPackage(null)
+    setFormData({
+      template: null,
+      keywords: [],
+      focusKeywords: [],
+      videoLinkInput: "",
+      otherLinkInput: "",
+      focusKeywordInput: "",
+      keywordInput: "",
+    })
+    setVideoLinks([])
+    setOtherLinks([])
+    setIsOtherLinksEnabled(false)
+    setErrors({
+      template: "",
+      focusKeywords: "",
+      keywords: "",
+      videoLinks: "",
+      otherLinks: "",
+    })
     closeFnc()
   }
 
   // Handle form submission
   const handleSubmit = () => {
     const newErrors = {
-      template: !formData.template,
-      focusKeywords: formData.focusKeywords.length === 0,
-      keywords: formData.keywords.length === 0,
-      videoLinks: videoLinks.length === 0,
-      otherLinks: isOtherLinksEnabled && otherLinks.length === 0,
+      focusKeywords:
+        formData.focusKeywords.length === 0 ? "Please add at least one focus keyword." : "",
+      keywords: formData.keywords.length === 0 ? "Please add at least one secondary keyword." : "",
+      videoLinks:
+        videoLinks.length === 0 ? "Please add at least one valid YouTube video link." : "",
+      otherLinks:
+        isOtherLinksEnabled && otherLinks.length === 0
+          ? "Please add at least one valid other link."
+          : "",
     }
 
     setErrors(newErrors)
 
     if (Object.values(newErrors).some((error) => error)) {
-      message.error("Please fill all required fields.")
+      message.error("Please fill all required fields correctly.")
       return
     }
 
     // Additional validation for link limits
     if (videoLinks.length > 3) {
-      setErrors((prev) => ({ ...prev, videoLinks: true }))
+      setErrors((prev) => ({ ...prev, videoLinks: "You can only add up to 3 video links." }))
       message.error("You can only add up to 3 video links.")
       return
     }
     if (otherLinks.length > 3) {
-      setErrors((prev) => ({ ...prev, otherLinks: true }))
+      setErrors((prev) => ({ ...prev, otherLinks: "You can only add up to 3 other links." }))
       message.error("You can only add up to 3 other links.")
       return
     }
 
     const finalData = {
       ...formData,
-      videoLinks: [...videoLinks, ...otherLinks], // Merge video and other links
+      videoLinks: [...videoLinks, ...otherLinks],
     }
 
     handlePopup({
@@ -118,7 +155,7 @@ const QuickBlogModal = ({ closeFnc }) => {
       ...prev,
       template: packages[index].name,
     }))
-    setErrors((prev) => ({ ...prev, template: false }))
+    setErrors((prev) => ({ ...prev, template: "" }))
   }
 
   // Handle keyword input changes
@@ -128,7 +165,7 @@ const QuickBlogModal = ({ closeFnc }) => {
       ...prev,
       [key]: e.target.value,
     }))
-    setErrors((prev) => ({ ...prev, [type]: false }))
+    setErrors((prev) => ({ ...prev, [type]: "" }))
   }
 
   // Add keywords to the form data
@@ -137,7 +174,7 @@ const QuickBlogModal = ({ closeFnc }) => {
     const inputValue = formData[inputKey].trim()
 
     if (!inputValue) {
-      setErrors((prev) => ({ ...prev, [type]: true }))
+      setErrors((prev) => ({ ...prev, [type]: "Please enter a keyword." }))
       message.error("Please enter a keyword.")
       return
     }
@@ -149,13 +186,16 @@ const QuickBlogModal = ({ closeFnc }) => {
       .filter((k) => k !== "" && !existingSet.has(k.toLowerCase()))
 
     if (newKeywords.length === 0) {
-      setErrors((prev) => ({ ...prev, [type]: true }))
+      setErrors((prev) => ({
+        ...prev,
+        [type]: "Please enter valid, non-duplicate keywords separated by commas.",
+      }))
       message.error("Please enter valid, non-duplicate keywords separated by commas.")
       return
     }
 
     if (type === "focusKeywords" && formData[type].length + newKeywords.length > 3) {
-      setErrors((prev) => ({ ...prev, [type]: true }))
+      setErrors((prev) => ({ ...prev, [type]: "You can only add up to 3 focus keywords." }))
       message.error("You can only add up to 3 focus keywords.")
       return
     }
@@ -165,7 +205,7 @@ const QuickBlogModal = ({ closeFnc }) => {
       [type]: [...prev[type], ...newKeywords],
       [inputKey]: "",
     }))
-    setErrors((prev) => ({ ...prev, [type]: false }))
+    setErrors((prev) => ({ ...prev, [type]: "" }))
   }
 
   // Remove a keyword
@@ -173,6 +213,7 @@ const QuickBlogModal = ({ closeFnc }) => {
     const updatedKeywords = [...formData[type]]
     updatedKeywords.splice(index, 1)
     setFormData({ ...formData, [type]: updatedKeywords })
+    setErrors((prev) => ({ ...prev, [type]: "" }))
   }
 
   // Handle Enter key for keywords
@@ -180,6 +221,44 @@ const QuickBlogModal = ({ closeFnc }) => {
     if (e.key === "Enter") {
       e.preventDefault()
       handleAddKeyword(type)
+    }
+  }
+
+  // Validate YouTube URL and extract video ID
+  const validateYouTubeUrl = (url) => {
+    try {
+      const urlObj = new URL(url)
+      const hostname = urlObj.hostname.toLowerCase()
+      if (!hostname.includes("youtube.com") && !hostname.includes("youtu.be")) {
+        return { valid: false, error: "Please enter a valid YouTube URL." }
+      }
+
+      let videoId = ""
+      if (hostname.includes("youtube.com")) {
+        videoId = urlObj.searchParams.get("v") || ""
+      } else if (hostname.includes("youtu.be")) {
+        videoId = urlObj.pathname.split("/")[1] || ""
+      }
+
+      // YouTube video IDs are 11 characters long, alphanumeric with some special characters
+      const videoIdRegex = /^[a-zA-Z0-9_-]{11}$/
+      if (!videoId || !videoIdRegex.test(videoId)) {
+        return { valid: false, error: "Please enter a YouTube URL." }
+      }
+
+      return { valid: true, videoId }
+    } catch {
+      return { valid: false, error: "Invalid YouTube URL format." }
+    }
+  }
+
+  // Validate general URL for other links
+  const validateUrl = (url) => {
+    try {
+      new URL(url)
+      return { valid: true }
+    } catch {
+      return { valid: false, error: "Please enter a valid URL (e.g., https://example.com)." }
     }
   }
 
@@ -191,11 +270,14 @@ const QuickBlogModal = ({ closeFnc }) => {
     const input = formData[inputKey]?.trim()
     const existingLinks = isVideo ? videoLinks : otherLinks
     const setLinks = isVideo ? setVideoLinks : setOtherLinks
-    const maxLinks = 3 // Maximum links per type
+    const maxLinks = 3
 
     if (!input) {
-      setErrors((prev) => ({ ...prev, [errorKey]: true }))
-      message.error(`Please enter at least one ${isVideo ? "video" : "other"} link.`)
+      setErrors((prev) => ({
+        ...prev,
+        [errorKey]: `Please enter at least one ${isVideo ? "YouTube video" : "valid"} link.`,
+      }))
+      message.error(`Please enter at least one ${isVideo ? "YouTube video" : "valid"} link.`)
       return
     }
 
@@ -206,43 +288,35 @@ const QuickBlogModal = ({ closeFnc }) => {
 
     const validNewLinks = []
 
-    for (let rawLink of newLinks) {
-      let validatedUrl = rawLink
-      if (!/^https?:\/\//i.test(validatedUrl)) {
-        validatedUrl = `https://${validatedUrl}`
+    for (let link of newLinks) {
+      if (existingLinks.includes(link) || validNewLinks.includes(link)) {
+        continue // Skip duplicates
       }
 
-      try {
-        const urlObj = new URL(validatedUrl)
-        if (isVideo) {
-          const videoDomains = ["youtube.com", "youtu.be"]
-          if (!videoDomains.some((domain) => urlObj.hostname.includes(domain))) {
-            setErrors((prev) => ({ ...prev, videoLinks: true }))
-            message.error("Please enter a valid video URL (e.g., YouTube).")
-            continue
-          }
-        }
-        if (
-          !videoLinks.includes(validatedUrl) &&
-          !otherLinks.includes(validatedUrl) &&
-          !validNewLinks.includes(validatedUrl)
-        ) {
-          validNewLinks.push(validatedUrl)
-        }
-      } catch {
-        setErrors((prev) => ({ ...prev, [errorKey]: true }))
-        message.error(`Invalid ${isVideo ? "video" : "other"} URL: ${rawLink}`)
+      const validation = isVideo ? validateYouTubeUrl(link) : validateUrl(link)
+      if (!validation.valid) {
+        setErrors((prev) => ({ ...prev, [errorKey]: validation.error }))
+        message.error(validation.error)
+        return
       }
+
+      validNewLinks.push(link)
     }
 
-    // if (validNewLinks.length === 0) {
-    //   setErrors((prev) => ({ ...prev, [errorKey]: true }))
-    //   message.error(`No valid, unique ${isVideo ? "video" : "other"} URLs found.`)
-    //   return
-    // }
+    if (validNewLinks.length === 0) {
+      setErrors((prev) => ({
+        ...prev,
+        [errorKey]: `No valid, unique ${isVideo ? "YouTube video" : "other"} links found.`,
+      }))
+      message.error(`No valid, unique ${isVideo ? "YouTube video" : "other"} links found.`)
+      return
+    }
 
     if (existingLinks.length + validNewLinks.length > maxLinks) {
-      setErrors((prev) => ({ ...prev, [errorKey]: true }))
+      setErrors((prev) => ({
+        ...prev,
+        [errorKey]: `You can only add up to ${maxLinks} ${isVideo ? "video" : "other"} links.`,
+      }))
       message.error(`You can only add up to ${maxLinks} ${isVideo ? "video" : "other"} links.`)
       return
     }
@@ -252,7 +326,7 @@ const QuickBlogModal = ({ closeFnc }) => {
       ...prev,
       [inputKey]: "",
     }))
-    setErrors((prev) => ({ ...prev, [errorKey]: false }))
+    setErrors((prev) => ({ ...prev, [errorKey]: "" }))
   }
 
   // Handle Enter key for links
@@ -271,7 +345,7 @@ const QuickBlogModal = ({ closeFnc }) => {
     const updatedLinks = [...existingLinks]
     updatedLinks.splice(index, 1)
     setLinks(updatedLinks)
-    setErrors((prev) => ({ ...prev, [isVideo ? "videoLinks" : "otherLinks"]: false }))
+    setErrors((prev) => ({ ...prev, [isVideo ? "videoLinks" : "otherLinks"]: "" }))
   }
 
   return (
@@ -319,12 +393,16 @@ const QuickBlogModal = ({ closeFnc }) => {
         {currentStep === 0 && (
           <div>
             {/* Mobile View: Vertical Scrolling Layout */}
-              <div className="sm:hidden grid grid-cols-2 gap-4">
+            <div
+              className={`sm:hidden grid grid-cols-2 gap-4 ${
+                errors.template ? "border-2 border-red-500 rounded-lg p-2" : ""
+              }`}
+            >
               {packages.map((pkg, index) => (
                 <div
                   key={index}
                   className={`cursor-pointer transition-all duration-200 w-full ${
-                    formData.template === pkg.name ? "border-gray-300 border-2 rounded-md" : ""
+                    formData.template === pkg.name ? "border-gray-200 border-2 rounded-md" : ""
                   }`}
                   onClick={() => handlePackageSelect(index)}
                   role="button"
@@ -350,13 +428,17 @@ const QuickBlogModal = ({ closeFnc }) => {
             </div>
 
             {/* Desktop View: Carousel Layout */}
-            <div className="hidden sm:block">
+            <div
+              className={`hidden sm:block ${
+                errors.template ? "border-2 border-red-500 rounded-lg p-2" : ""
+              }`}
+            >
               <Carousel className="flex flex-row gap-4">
                 {packages.map((pkg, index) => (
                   <div
                     key={index}
                     className={`cursor-pointer transition-all duration-200 w-full ${
-                      formData.template === pkg.name ? "border-gray-300 border-2 rounded-md" : ""
+                      formData.template === pkg.name ? "border-gray-200 border-2 rounded-md" : ""
                     }`}
                     onClick={() => handlePackageSelect(index)}
                     role="button"
@@ -380,14 +462,12 @@ const QuickBlogModal = ({ closeFnc }) => {
                   </div>
                 ))}
               </Carousel>
-              {/* {errors.template && (
-                <p className="text-red-500 text-sm mt-2">Please select a template.</p>
-              )} */}
+              {errors.template && <p className="text-red-500 text-sm mt-2">{errors.template}</p>}
             </div>
           </div>
         )}
         {currentStep === 1 && (
-          <div className="space-y-8">
+          <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Focus Keywords <span className="text-red-500">*</span>
@@ -400,7 +480,7 @@ const QuickBlogModal = ({ closeFnc }) => {
                   onKeyDown={(e) => handleKeyPress(e, "focusKeywords")}
                   className={`flex-1 px-3 py-2 border ${
                     errors.focusKeywords ? "border-red-500" : "border-gray-200"
-                  } rounded-md text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-600`}
+                  } rounded-md text-sm bg-gray-50`}
                   placeholder="Enter focus keywords, separated by commas"
                   aria-label="Focus keywords"
                 />
@@ -413,7 +493,7 @@ const QuickBlogModal = ({ closeFnc }) => {
                 </button>
               </div>
               {errors.focusKeywords && (
-                <p className="text-red-500 text-sm mt-1">Please add at least one focus keyword.</p>
+                <p className="text-red-500 text-sm mt-1">{errors.focusKeywords}</p>
               )}
               <div className="flex flex-wrap gap-2 mt-2">
                 {formData.focusKeywords.map((keyword, index) => (
@@ -446,7 +526,7 @@ const QuickBlogModal = ({ closeFnc }) => {
                   onKeyDown={(e) => handleKeyPress(e, "keywords")}
                   className={`flex-1 px-3 py-2 border ${
                     errors.keywords ? "border-red-500" : "border-gray-200"
-                  } rounded-md text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-600`}
+                  } rounded-md text-sm bg-gray-50`}
                   placeholder="Enter secondary keywords, separated by commas"
                   aria-label="Secondary keywords"
                 />
@@ -458,6 +538,7 @@ const QuickBlogModal = ({ closeFnc }) => {
                   <Plus size={16} />
                 </button>
               </div>
+              {errors.keywords && <p className="text-red-500 text-sm mt-1">{errors.keywords}</p>}
               <div className="flex flex-wrap gap-2 mt-2">
                 {formData.keywords.map((keyword, index) => (
                   <span
@@ -491,8 +572,8 @@ const QuickBlogModal = ({ closeFnc }) => {
                   onKeyDown={(e) => handleKeyDown(e, "video")}
                   className={`flex-1 px-3 py-2 border ${
                     errors.videoLinks ? "border-red-500" : "border-gray-200"
-                  } rounded-md text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-600`}
-                  placeholder="Enter video links (e.g., YouTube), separated by commas"
+                  } rounded-md text-sm bg-gray-50`}
+                  placeholder="Enter YouTube video links, separated by commas"
                   aria-label="Video links"
                 />
                 <button
@@ -503,6 +584,9 @@ const QuickBlogModal = ({ closeFnc }) => {
                   <Plus size={16} />
                 </button>
               </div>
+              {errors.videoLinks && (
+                <p className="text-red-500 text-sm mt-1">{errors.videoLinks}</p>
+              )}
               <div className="flex flex-wrap gap-2 mt-2">
                 {videoLinks.map((link, index) => (
                   <span
@@ -529,15 +613,14 @@ const QuickBlogModal = ({ closeFnc }) => {
                   {isOtherLinksEnabled && <span className="text-red-500">*</span>}
                 </label>
                 <div className="flex items-center gap-2">
-                  {/* <span className="text-sm text-gray-600">Enable Other Links</span> */}
                   <Switch
                     checked={isOtherLinksEnabled}
                     onChange={(checked) => {
                       setIsOtherLinksEnabled(checked)
                       if (!checked) {
-                        setOtherLinks([]) // Clear other links when toggle is turned off
+                        setOtherLinks([])
                         setFormData((prev) => ({ ...prev, otherLinkInput: "" }))
-                        setErrors((prev) => ({ ...prev, otherLinks: false }))
+                        setErrors((prev) => ({ ...prev, otherLinks: "" }))
                       }
                     }}
                     aria-label="Toggle other links input"
@@ -556,8 +639,8 @@ const QuickBlogModal = ({ closeFnc }) => {
                       onKeyDown={(e) => handleKeyDown(e, "other")}
                       className={`flex-1 px-3 py-2 border ${
                         errors.otherLinks ? "border-red-500" : "border-gray-200"
-                      } rounded-md text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-600`}
-                      placeholder="Enter other links (e.g., articles, websites), separated by commas"
+                      } rounded-md text-sm bg-gray-50`}
+                      placeholder="Enter full URLs (e.g., https://example.com), separated by commas"
                       aria-label="Other links"
                     />
                     <button
@@ -568,6 +651,9 @@ const QuickBlogModal = ({ closeFnc }) => {
                       <Plus size={16} />
                     </button>
                   </div>
+                  {errors.otherLinks && (
+                    <p className="text-red-500 text-sm mt-1">{errors.otherLinks}</p>
+                  )}
                   <div className="flex flex-wrap gap-2">
                     {otherLinks.map((link, index) => (
                       <span

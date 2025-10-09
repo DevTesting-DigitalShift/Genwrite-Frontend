@@ -21,7 +21,7 @@ import {
 import { Button, Tooltip, message, Tabs, Badge, Collapse, Dropdown, Menu, Tag, Input } from "antd"
 import { fetchProofreadingSuggestions, fetchBlogPrompt } from "@store/slices/blogSlice"
 import { fetchCompetitiveAnalysisThunk } from "@store/slices/analysisSlice"
-import { getCategoriesThunk, generateMetadataThunk } from "@store/slices/otherSlice"
+import { generateMetadataThunk, getIntegrationsThunk } from "@store/slices/otherSlice"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useNavigate } from "react-router-dom"
 import { useDispatch, useSelector } from "react-redux"
@@ -73,23 +73,36 @@ const TextEditorSidebar = ({
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
   const [activeSection, setActiveSection] = useState("overview")
+  const { data: integrations } = useSelector(state => state.wordpress)
   const [metadata, setMetadata] = useState({
     title: blog?.seoMetadata?.title || "",
     description: blog?.seoMetadata?.description || "",
   })
   const [metadataHistory, setMetadataHistory] = useState([])
   const [customPrompt, setCustomPrompt] = useState("")
-  const user = useSelector((state) => state.auth.user)
+  const user = useSelector(state => state.auth.user)
   const userPlan = user?.subscription?.plan
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const { handlePopup } = useConfirmPopup()
-  const { loading: isAnalyzingCompetitive } = useSelector((state) => state.analysis)
-  const { metadata: reduxMetadata } = useSelector((state) => state.wordpress)
+  const { loading: isAnalyzingCompetitive } = useSelector(state => state.analysis)
+  const { metadata: reduxMetadata } = useSelector(state => state.wordpress)
   const [open, setOpen] = useState(false)
-  const { analysisResult } = useSelector((state) => state.analysis)
+  const { analysisResult } = useSelector(state => state.analysis)
   const blogId = blog?._id
   const result = analysisResult?.[blogId]
+  const hasAnyIntegration =
+    integrations && integrations.integrations && Object.keys(integrations.integrations).length > 0
+  const isDisabled =
+    isPosting ||
+    !hasAnyIntegration || // Disable if no integration at all
+    (formData.wordpressPostStatus && !integrations.integrations.WORDPRESS)
+
+  const postedLinks = posted
+    ? Object.entries(posted)
+        .filter(([_, data]) => data?.link)
+        .map(([platform, data]) => ({ platform, link: data.link }))
+    : []
 
   // Reset metadata and history when blog changes
   useEffect(() => {
@@ -108,18 +121,14 @@ const TextEditorSidebar = ({
     mangle: false,
   })
 
-  const getWordCount = (text) => {
+  const getWordCount = text => {
     return text
       ? text
           .trim()
           .split(/\s+/)
-          .filter((word) => word.length > 0).length
+          .filter(word => word.length > 0).length
       : 0
   }
-
-  useEffect(() => {
-    dispatch(getCategoriesThunk()).unwrap()
-  }, [dispatch])
 
   useEffect(() => {
     setCompetitiveAnalysisResults(null)
@@ -133,9 +142,9 @@ const TextEditorSidebar = ({
         title: reduxMetadata.title || "",
         description: reduxMetadata.description || "",
       }
-      setMetadataHistory((prev) => {
+      setMetadataHistory(prev => {
         const exists = prev.some(
-          (item) => item.title === newMeta.title && item.description === newMeta.description
+          item => item.title === newMeta.title && item.description === newMeta.description
         )
         if (!exists && (newMeta.title || newMeta.description)) {
           return [...prev, newMeta]
@@ -150,6 +159,10 @@ const TextEditorSidebar = ({
       }
     }
   }, [reduxMetadata])
+
+  useEffect(() => {
+    dispatch(getIntegrationsThunk())
+  }, [dispatch])
 
   const fetchCompetitiveAnalysis = useCallback(async () => {
     if (!blog || !blog.title || !blog.content) {
@@ -199,8 +212,8 @@ const TextEditorSidebar = ({
   }, [blog])
 
   const removeKeyword = useCallback(
-    (keyword) => {
-      setKeywords((prev) => prev.filter((k) => k !== keyword))
+    keyword => {
+      setKeywords(prev => prev.filter(k => k !== keyword))
     },
     [setKeywords]
   )
@@ -209,18 +222,18 @@ const TextEditorSidebar = ({
     if (newKeyword.trim()) {
       const newKeywordsArray = newKeyword
         .split(",")
-        .map((k) => k.trim().toLowerCase())
-        .filter((k) => k && !keywords.map((kw) => kw.toLowerCase()).includes(k))
+        .map(k => k.trim().toLowerCase())
+        .filter(k => k && !keywords.map(kw => kw.toLowerCase()).includes(k))
 
       if (newKeywordsArray.length > 0) {
-        setKeywords((prev) => [...prev, ...newKeywordsArray])
+        setKeywords(prev => [...prev, ...newKeywordsArray])
       }
       setNewKeyword("")
     }
   }, [newKeyword, keywords, setKeywords])
 
   const handleKeyDown = useCallback(
-    (e) => {
+    e => {
       if (e.key === "Enter") {
         e.preventDefault()
         addKeywords()
@@ -270,7 +283,7 @@ const TextEditorSidebar = ({
       return
     }
 
-    proofreadingResults.forEach((suggestion) => {
+    proofreadingResults.forEach(suggestion => {
       handleReplace(suggestion.original, suggestion.change)
     })
     setProofreadingResults([])
@@ -317,9 +330,9 @@ const TextEditorSidebar = ({
         title: metadata.title || "",
         description: metadata.description || "",
       }
-      setMetadataHistory((prev) => {
+      setMetadataHistory(prev => {
         const exists = prev.some(
-          (item) => item.title === newMeta.title && item.description === newMeta.description
+          item => item.title === newMeta.title && item.description === newMeta.description
         )
         if (!exists && (newMeta.title || newMeta.description)) {
           return [...prev, newMeta]
@@ -453,7 +466,7 @@ const TextEditorSidebar = ({
   }, [handlePopup, handleSave])
 
   const handleExport = useCallback(
-    async (type) => {
+    async type => {
       if (!editorContent) {
         message.error("No content to export.")
         return
@@ -495,9 +508,9 @@ const TextEditorSidebar = ({
   )
 
   const handleCategorySubmit = useCallback(
-    ({ category, includeTableOfContents }) => {
+    ({ category, includeTableOfContents, type }) => {
       try {
-        onPost({ ...formData, categories: category, includeTableOfContents })
+        onPost({ ...formData, categories: category, includeTableOfContents, type })
       } catch (error) {
         console.error("Failed to post blog:", {
           error: error.message,
@@ -531,7 +544,7 @@ const TextEditorSidebar = ({
             message.error("Failed to save changes. Please try again.")
           }
         },
-        onCancel: (e) => {
+        onCancel: e => {
           if (e?.source == "button") {
             setIsCategoryModalOpen(true)
           }
@@ -684,7 +697,7 @@ const TextEditorSidebar = ({
                     bg-green-50 text-green-600 border-green-300 border hover:bg-green-100"
                       >
                         {["free"].includes(userPlan?.toLowerCase?.()) ? (
-                          <Crown className="w-3 h-3" />
+                          <CrownTwoTone className="w-3 h-3" />
                         ) : (
                           <Sparkles className="w-3 h-3" />
                         )}
@@ -719,10 +732,10 @@ const TextEditorSidebar = ({
                     <input
                       type="text"
                       value={newKeyword}
-                      onChange={(e) => setNewKeyword(e.target.value)}
+                      onChange={e => setNewKeyword(e.target.value)}
                       onKeyDown={handleKeyDown}
                       placeholder="Add keywords..."
-                      className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                     <Button
                       size="small"
@@ -801,18 +814,22 @@ const TextEditorSidebar = ({
                       isPro={["free", "basic"].includes(userPlan?.toLowerCase?.())}
                       isLoading={false}
                       onClick={() => {
-                        handlePopup({
-                          title: "Generate Metadata",
-                          description: (
-                            <>
-                              Generate SEO metadata?
-                              <span className="font-bold"> This will cost 2 credits.</span>
-                            </>
-                          ),
-                          confirmText: "Generate",
-                          cancelText: "Cancel",
-                          onConfirm: handleMetadataGeneration,
-                        })
+                        if (["free", "basic"].includes(userPlan?.toLowerCase?.())) {
+                          navigate("/pricing")
+                        } else {
+                          handlePopup({
+                            title: "Generate Metadata",
+                            description: (
+                              <>
+                                Generate SEO metadata?
+                                <span className="font-bold"> This will cost 2 credits.</span>
+                              </>
+                            ),
+                            confirmText: "Generate",
+                            cancelText: "Cancel",
+                            onConfirm: handleMetadataGeneration,
+                          })
+                        }
                       }}
                       buttonText="Generate Metadata"
                       icon={TagIcon}
@@ -820,24 +837,24 @@ const TextEditorSidebar = ({
                     <div className="space-y-4 p-4 bg-white rounded-lg shadow-sm border border-gray-200">
                       {metadataHistory.length > 0 && (
                         <Dropdown
-                          overlay={
+                          menu={
                             <Menu
                               onClick={({ key }) => {
                                 if (key.startsWith("delete-")) {
                                   const idToDelete = key.replace("delete-", "")
-                                  setMetadataHistory((prev) =>
-                                    prev.filter((item) => item.id !== idToDelete)
+                                  setMetadataHistory(prev =>
+                                    prev.filter(item => item.id !== idToDelete)
                                   )
                                   if (
-                                    metadataHistory.find((item) => item.id === idToDelete)
-                                      ?.title === metadata.title &&
-                                    metadataHistory.find((item) => item.id === idToDelete)
+                                    metadataHistory.find(item => item.id === idToDelete)?.title ===
+                                      metadata.title &&
+                                    metadataHistory.find(item => item.id === idToDelete)
                                       ?.description === metadata.description
                                   ) {
                                     setMetadata({ title: "", description: "" })
                                   }
                                 } else {
-                                  const selected = metadataHistory.find((item) => item.id === key)
+                                  const selected = metadataHistory.find(item => item.id === key)
                                   if (selected) {
                                     setMetadata({
                                       title: selected.title,
@@ -855,11 +872,11 @@ const TextEditorSidebar = ({
                                       type="link"
                                       danger
                                       size="small"
-                                      onClick={(e) => {
+                                      onClick={e => {
                                         e.stopPropagation()
                                         const idToDelete = item.id
-                                        setMetadataHistory((prev) =>
-                                          prev.filter((m) => m.id !== idToDelete)
+                                        setMetadataHistory(prev =>
+                                          prev.filter(m => m.id !== idToDelete)
                                         )
                                         if (
                                           item.title === metadata.title &&
@@ -889,9 +906,7 @@ const TextEditorSidebar = ({
                         </label>
                         <Input
                           value={metadata.title || blog?.seoMetadata?.title || ""}
-                          onChange={(e) =>
-                            setMetadata((prev) => ({ ...prev, title: e.target.value }))
-                          }
+                          onChange={e => setMetadata(prev => ({ ...prev, title: e.target.value }))}
                           placeholder="Enter meta title"
                           className="mt-1"
                         />
@@ -902,8 +917,8 @@ const TextEditorSidebar = ({
                         </label>
                         <TextArea
                           value={metadata.description || blog?.seoMetadata?.description || ""}
-                          onChange={(e) =>
-                            setMetadata((prev) => ({ ...prev, description: e.target.value }))
+                          onChange={e =>
+                            setMetadata(prev => ({ ...prev, description: e.target.value }))
                           }
                           placeholder="Enter meta description"
                           rows={4}
@@ -941,7 +956,7 @@ const TextEditorSidebar = ({
                       </label>
                       <textarea
                         value={customPrompt}
-                        onChange={(e) => {
+                        onChange={e => {
                           setCustomPrompt(e.target.value)
                         }}
                         placeholder="e.g., 'Make the tone more professional' or 'Shorten the content'"
@@ -1066,7 +1081,7 @@ const TextEditorSidebar = ({
                           key={index}
                           suggestion={suggestion}
                           index={index}
-                          onApply={(suggestionIndex) => {
+                          onApply={suggestionIndex => {
                             const newResults = proofreadingResults.filter(
                               (_, i) => i !== suggestionIndex
                             )
@@ -1095,30 +1110,35 @@ const TextEditorSidebar = ({
               size="large"
               onClick={handlePostClick}
               loading={isPosting}
-              disabled={isPosting}
+              disabled={isDisabled}
               className="w-full h-12 text-base font-semibold bg-gradient-to-r from-green-600 to-emerald-600 border-0 hover:shadow-lg"
             >
               {isPosting ? "Posting..." : posted?.link ? "Re-Post" : "Post Blog"}
             </Button>
           </motion.div>
 
-          {posted?.link && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              className="mt-3 text-center"
-            >
-              <a
-                href={posted.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-blue-600 text-sm hover:text-blue-700 font-medium"
-              >
-                View Published Post
-                <ExternalLink className="w-4 h-4" />
-              </a>
-            </motion.div>
+          {postedLinks.length > 0 && (
+            <div className="mt-3 flex flex-col gap-2">
+              {postedLinks.map(({ platform, link }) => (
+                <motion.div
+                  key={platform}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="text-center"
+                >
+                  <a
+                    href={link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-blue-600 text-sm hover:text-blue-700 font-medium"
+                  >
+                    {platform === "WORDPRESS" ? "View WordPress Post" : "View Server Post"}
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
+                </motion.div>
+              ))}
+            </div>
           )}
         </div>
       </motion.div>
@@ -1133,13 +1153,13 @@ const TextEditorSidebar = ({
       >
         <FeatureSettingsModal features={blog?.options || {}} />
       </Modal>
-
       <CategoriesModal
         isCategoryModalOpen={isCategoryModalOpen}
         setIsCategoryModalOpen={setIsCategoryModalOpen}
         onSubmit={handleCategorySubmit}
         initialCategory={formData.category}
         initialIncludeTableOfContents={formData.includeTableOfContents}
+        integrations={integrations}
       />
     </>
   )

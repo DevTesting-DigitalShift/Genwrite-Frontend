@@ -19,7 +19,7 @@ const PrivateRoutesLayout = () => {
         <div className="flex-1 ml-0 md:ml-16 pt-16 sm:pt-20">
           <Tooltip
             title="Chatbot"
-            overlayStyle={{
+            styles={{
               fontSize: "12px",
               padding: "6px 10px",
               borderRadius: "6px",

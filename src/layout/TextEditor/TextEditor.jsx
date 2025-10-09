@@ -61,17 +61,13 @@ import ContentDiffViewer from "../Editor/ContentDiffViewer"
 import "./editor.css"
 
 const MarkdownEditor = React.lazy(() =>
-  import("./OtherEditors").then((m) => ({ default: m.MarkdownEditor }))
+  import("./OtherEditors").then(m => ({ default: m.MarkdownEditor }))
 )
-const HtmlEditor = React.lazy(() =>
-  import("./OtherEditors").then((m) => ({ default: m.HtmlEditor }))
-)
+const HtmlEditor = React.lazy(() => import("./OtherEditors").then(m => ({ default: m.HtmlEditor })))
 
 marked.setOptions({
   gfm: true,
   breaks: true,
-  headerIds: false,
-  mangle: false,
 })
 
 const FONT_OPTIONS = [
@@ -126,7 +122,7 @@ const TextEditor = ({
   const [bubblePos, setBubblePos] = useState({ top: 0, left: 0 })
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
-  const user = useSelector((state) => state.auth.user)
+  const user = useSelector(state => state.auth.user)
   const userPlan = user?.subscription?.plan
   const hasShownToast = useRef(false)
   const location = useLocation()
@@ -143,27 +139,28 @@ const TextEditor = ({
   const queryClient = useQueryClient()
   const [lastSavedContent, setLastSavedContent] = useState("")
 
-  const normalizeContent = useCallback((str) => str.replace(/\s+/g, " ").trim(), [])
+  const normalizeContent = useCallback(str => str.replace(/\s+/g, " ").trim(), [])
 
   const safeContent = content ?? blog?.content ?? ""
 
-  const markdownToHtml = useCallback((markdown) => {
+  const markdownToHtml = useCallback(markdown => {
     if (!markdown) return "<p></p>"
     const html = marked.parse(
       markdown
-        .replace(/!\[(["'""])(.*?)\1\]\((.*?)\)/g, (_, __, alt, url) => `![${alt}](${url})`) // remove quotes from alt
+        .replace(/!\[\s*["']?(.*?)["']?\s*\]\((.*?)\)/g, (_, alt, url) => `![${alt}](${url})`) // remove quotes from alt
         .replace(/'/g, "'"),
       { breaks: true, gfm: true }
     )
     return DOMPurify.sanitize(html)
   }, [])
 
-  const htmlToMarkdown = useCallback((html) => {
+  const htmlToMarkdown = useCallback(html => {
     if (!html) return ""
     const turndownService = new TurndownService({
       headingStyle: "atx",
       bulletListMarker: "-",
     })
+    turndownService.keep(["p"])
     return turndownService.turndown(html)
   }, [])
 
@@ -230,7 +227,7 @@ const TextEditor = ({
   }
 
   const safeEditorAction = useCallback(
-    (action) => {
+    action => {
       if (userPlan === "free" || userPlan === "basic") {
         navigate("/pricing")
         return
@@ -291,12 +288,20 @@ const TextEditor = ({
     }
 
     const proceedWithRegenerate = async () => {
+      const modelCostMap = {
+        gemini: 10,
+        chatgpt: 30,
+        claude: 50,
+      }
+
+      const credits = modelCostMap[blog?.aiModel?.toLowerCase()] || 10 // fallback to 10
+
       handlePopup({
-        title: "Retry Blog Generation",
+        title: "Regenerate Blog",
         description: (
           <>
             Are you sure you want to retry generating this blog?{" "}
-            <span className="font-bold">This will cost 10 credits</span>
+            <span className="font-bold">This will cost {credits} credits</span>
           </>
         ),
         onConfirm: handleReGenerate,
@@ -323,7 +328,7 @@ const TextEditor = ({
             message.error("Failed to save changes. Please try again.")
           }
         },
-        onCancel: (e) => {
+        onCancel: e => {
           if (e?.source == "button") {
             proceedWithRegenerate()
           }
@@ -383,7 +388,7 @@ const TextEditor = ({
     }
   }, [imageUrl, imageAlt, normalEditor, activeTab])
 
-  const handleImageClick = useCallback((event) => {
+  const handleImageClick = useCallback(event => {
     if (event.target.tagName === "IMG") {
       const { src, alt } = event.target
       setSelectedImage({ src, alt: alt || "" })
@@ -424,7 +429,7 @@ const TextEditor = ({
         "g"
       )
       const newMarkdownImage = `![${imageAlt}](${selectedImage.src})`
-      setContent((prev) => {
+      setContent(prev => {
         const newContent = prev.replace(markdownImageRegex, newMarkdownImage)
         return newContent
       })
@@ -440,7 +445,7 @@ const TextEditor = ({
         "g"
       )
       const newHtmlImage = `<img src="${selectedImage.src}" alt="${imageAlt}" />`
-      setContent((prev) => {
+      setContent(prev => {
         const html = markdownToHtml(prev)
         const updatedHtml = html.replace(htmlImageRegex, newHtmlImage)
         const newContent = htmlToMarkdown(updatedHtml)
@@ -453,11 +458,11 @@ const TextEditor = ({
     }
   }, [selectedImage, imageAlt, normalEditor, activeTab, setContent, markdownToHtml, htmlToMarkdown])
 
-  const escapeRegExp = (string) => {
+  const escapeRegExp = string => {
     return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
   }
 
-  const hasScriptTag = (content) => {
+  const hasScriptTag = content => {
     const parser = new DOMParser()
     const doc = parser.parseFromString(content, "text/html")
     return !!doc.querySelector("script")
@@ -477,7 +482,7 @@ const TextEditor = ({
   }
 
   const handleFileImport = useCallback(
-    (event) => {
+    event => {
       const file = event.target.files[0]
       if (!file) return
 
@@ -490,7 +495,7 @@ const TextEditor = ({
       }
 
       const reader = new FileReader()
-      reader.onload = (e) => {
+      reader.onload = e => {
         let fileContent = e.target.result
         if (isHtml && hasScriptTag(fileContent)) {
           message.error(
@@ -511,7 +516,7 @@ const TextEditor = ({
     [activeTab, setContent]
   )
 
-  const isFullHtmlDocument = useCallback((text) => {
+  const isFullHtmlDocument = useCallback(text => {
     return text.trim().startsWith("<!DOCTYPE html>") || text.trim().startsWith("<html")
   }, [])
 
@@ -599,57 +604,32 @@ const TextEditor = ({
     message.info("Retry content discarded.")
   }
 
-  const handleRewrite = async () => {
+  const handleRewrite = () => {
+    // Check plan
     if (userPlan === "free" || userPlan === "basic") {
       navigate("/pricing")
       return
     }
 
-    const proceedRewrite = async () => {
-      // Show confirmation popup about rewrite limits
-      handlePopup({
-        title: "Rewrite Selected Lines",
-        description: (
-          <>
-            Do you want to rewrite the selected lines?{" "}
-            <span className="font-bold">You can rewrite only 3 times.</span>
-          </>
-        ),
-        onConfirm: handleRetry,
-      })
-    }
-
-    if (unsavedChanges) {
-      handlePopup({
-        title: "Unsaved Changes",
-        description: (
-          <>
-            You have unsaved changes. Rewriting the selected text may affect your current changes.
-            Would you like to save them first?
-          </>
-        ),
-        confirmText: "Save First and Retry",
-        cancelText: "Retry without Saving",
-        onConfirm: async () => {
-          try {
-            await proceedRewrite()
-          } catch (error) {
-            console.error(error)
-            message.error("Failed to save changes. Please try again.")
-          }
-        },
-        onCancel: (e) => {
-          if (e?.source == "button") {
-            proceedRewrite()
-          }
-        },
-      })
-    } else {
-      await proceedRewrite()
-    }
+    // Show the rewrite confirmation popup directly
+    handlePopup({
+      title: "Rewrite Selected Lines",
+      description: (
+        <>
+          Do you want to rewrite the selected lines?{" "}
+          <span className="font-bold">You can rewrite only 3 times.</span>
+        </>
+      ),
+      confirmText: "Yes, Rewrite",
+      cancelText: "Cancel",
+      onConfirm: handleRetry, // ✅ directly call your rewrite handler
+      onCancel: () => {
+        console.log("User cancelled rewrite") // optional
+      },
+    })
   }
 
-  const handleTabClick = (tab) => {
+  const handleTabClick = tab => {
     setActiveTab(tab)
   }
 
@@ -698,7 +678,7 @@ const TextEditor = ({
         `!\\[${escapeRegExp(selectedImage.alt || "")}\\]\\(${escapeRegExp(selectedImage.src)}\\)`,
         "g"
       )
-      setContent((prev) => {
+      setContent(prev => {
         const newContent = prev.replace(markdownImageRegex, "")
         return newContent
       })
@@ -712,7 +692,7 @@ const TextEditor = ({
         )}"\\s*/>`,
         "g"
       )
-      setContent((prev) => {
+      setContent(prev => {
         const html = markdownToHtml(prev)
         const updatedHtml = html.replace(htmlImageRegex, "")
         const newContent = htmlToMarkdown(updatedHtml)
@@ -789,7 +769,7 @@ const TextEditor = ({
   useEffect(() => {
     if (normalEditor) {
       const ext = normalEditor.extensionManager.extensions.find(
-        (e) => e.name === "proofreadingDecoration"
+        e => e.name === "proofreadingDecoration"
       )
       if (ext) {
         ext.options.suggestions = proofreadingResults
@@ -816,7 +796,7 @@ const TextEditor = ({
   }, [safeContent, activeTab, markdownPreview])
 
   useEffect(() => {
-    const handleClickOutside = (event) => {
+    const handleClickOutside = event => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setShowModelDropdown(false)
       }
@@ -874,7 +854,7 @@ const TextEditor = ({
   useEffect(() => {
     const editorDom = normalEditor.view.dom
 
-    const handleMouseOver = async (e) => {
+    const handleMouseOver = async e => {
       const link = e.target.closest("a")
       if (!link) return
 
@@ -902,7 +882,7 @@ const TextEditor = ({
       }
     }
 
-    const handleMouseOut = (e) => {
+    const handleMouseOut = e => {
       if (e.target.closest("a")) {
         if (hideTimeout.current) clearTimeout(hideTimeout.current)
         hideTimeout.current = setTimeout(() => {
@@ -935,16 +915,6 @@ const TextEditor = ({
     }
   }, [blocker])
 
-  // useEffect(() => {
-  //   if (!blog?.content) return
-
-  //   const currentMarkdown = htmlToMarkdown(normalEditor ? normalEditor.getHTML() : content ?? "")
-  //   const normCurrent = normalizeContent(currentMarkdown)
-  //   const normOriginal = normalizeContent(blog.content ?? "")
-
-  //   setUnsavedChanges(normCurrent !== normOriginal)
-  // }, [content, blog?.content, normalEditor, htmlToMarkdown, normalizeContent])
-  console.log(unsavedChanges)
   useEffect(() => {
     const normCurrent = normalizeContent(content ?? "")
     const normSaved = normalizeContent(lastSavedContent ?? "")
@@ -968,7 +938,7 @@ const TextEditor = ({
     <div className="bg-white border-x border-gray-200 shadow-sm px-2 sm:px-4 py-2 flex flex-wrap items-center justify-start gap-y-2 overflow-x-auto">
       {/* Headings */}
       <div className="flex gap-1 flex-shrink-0">
-        {[1, 2, 3].map((level) => (
+        {[1, 2, 3].map(level => (
           <Tooltip key={level} title={`Heading ${level}`}>
             <button
               onClick={() =>
@@ -1057,7 +1027,7 @@ const TextEditor = ({
 
       {/* Alignment */}
       <div className="flex gap-1 flex-shrink-0">
-        {["left", "center", "right"].map((align) => (
+        {["left", "center", "right"].map(align => (
           <Tooltip key={align} title={`Align ${align}`}>
             <button
               onClick={() =>
@@ -1237,11 +1207,11 @@ const TextEditor = ({
       {/* Font Select */}
       <Select
         value={selectedFont}
-        onChange={(value) => safeEditorAction(() => setSelectedFont(value))}
+        onChange={value => safeEditorAction(() => setSelectedFont(value))}
         className="w-32 flex-shrink-0"
         aria-label="Font"
       >
-        {FONT_OPTIONS.map((font) => (
+        {FONT_OPTIONS.map(font => (
           <Select.Option key={font.value} value={font.value}>
             {font.label}
           </Select.Option>
@@ -1619,7 +1589,7 @@ const TextEditor = ({
         {activeTab === "Markdown" && (
           <MarkdownEditor
             content={safeContent}
-            onChange={(newContent) => {
+            onChange={newContent => {
               setContent(newContent)
               setHtmlContent(markdownToHtml(newContent).replace(/>\s*</g, ">\n<"))
             }}
@@ -1629,7 +1599,7 @@ const TextEditor = ({
         {activeTab === "HTML" && (
           <HtmlEditor
             content={htmlContent}
-            onChange={(newHtml) => {
+            onChange={newHtml => {
               setHtmlContent(newHtml)
               setContent(htmlToMarkdown(newHtml))
             }}
@@ -1739,7 +1709,7 @@ const TextEditor = ({
         <div className="sticky top-0 z-50 bg-white shadow-sm">
           {!blog.isManuallyEdited && (
             <div className="flex border-b bg-white shadow-sm border-x">
-              {["Normal", "Markdown", "HTML"].map((tab) => (
+              {["Normal", "Markdown", "HTML"].map(tab => (
                 <button
                   key={tab}
                   onClick={() => handleTabClick(tab)}
@@ -1862,7 +1832,7 @@ const TextEditor = ({
         <Input
           bordered={false} // removes AntD’s default border completely
           value={linkUrl}
-          onChange={(e) => setLinkUrl(e.target.value)}
+          onChange={e => setLinkUrl(e.target.value)}
           placeholder="https://example.com"
           className="w-full mt-4 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
         />
@@ -1912,7 +1882,7 @@ const TextEditor = ({
       >
         <Input
           value={imageAlt}
-          onChange={(e) => setImageAlt(e.target.value)}
+          onChange={e => setImageAlt(e.target.value)}
           placeholder="Image description"
           className="w-full mt-4"
           // prefix={<ImageIcon className="w-4 h-4 text-gray-400" />}
@@ -1947,7 +1917,7 @@ const TextEditor = ({
       >
         <Input
           value={imageUrl}
-          onChange={(e) => setImageUrl(e.target.value)}
+          onChange={e => setImageUrl(e.target.value)}
           placeholder="https://example.com/image.jpg"
           className="w-full mt-4"
           // prefix={<ImageIcon className="w-4 h-4 text-gray-400" />}
@@ -1955,7 +1925,7 @@ const TextEditor = ({
         <p className="mt-2 text-xs text-gray-500">Include http:// or https://</p>
         <Input
           value={imageAlt}
-          onChange={(e) => setImageAlt(e.target.value)}
+          onChange={e => setImageAlt(e.target.value)}
           placeholder="Image description"
           className="w-full mt-4"
           // prefix={<ImageIcon className="w-4 h-4 text-gray-400" />}

@@ -5,9 +5,10 @@ import { useDispatch, useSelector } from "react-redux"
 import { Helmet } from "react-helmet"
 import dayjs from "dayjs"
 import { getCreditLogs } from "@store/slices/creditLogSlice"
-import { debounce } from "lodash"
 import { getSocket } from "@utils/socket"
 import { SearchOutlined } from "@ant-design/icons"
+import { Search } from "lucide-react"
+import Fuse from "fuse.js" // Import Fuse.js
 
 const { Option } = Select
 
@@ -31,21 +32,32 @@ const CreditLogsTable = () => {
     "OTHER",
   ]
 
-  // Debounced search
-  const debouncedSearch = useMemo(
-    () =>
-      debounce((value) => {
-        setPagination((prev) => ({ ...prev, current: 1 }))
-        dispatch(
-          getCreditLogs({
-            page: 1,
-            limit: -1,
-            ...getDateRangeParams(dateRange),
-          })
-        )
-      }, 500),
-    [dispatch, dateRange]
-  )
+  // Initialize Fuse.js with logs data
+  const fuse = useMemo(() => {
+    return new Fuse(logs, {
+      keys: ["metadata.title"], // Search in blog title
+      threshold: 0.4, // Adjust for fuzzy search sensitivity (0 = exact match, 1 = very loose)
+      ignoreLocation: true, // Allow matches anywhere in the string
+      minMatchCharLength: 2, // Minimum characters to start matching
+    })
+  }, [logs])
+
+  // Filter logs based on search text and purpose filter
+  const filteredLogs = useMemo(() => {
+    let result = logs
+
+    // Apply search filter using Fuse.js
+    if (searchText) {
+      result = fuse.search(searchText).map(({ item }) => item)
+    }
+
+    // Apply purpose filter
+    if (purposeFilter.length > 0) {
+      result = result.filter((log) => purposeFilter.includes(log.purpose))
+    }
+
+    return result
+  }, [logs, searchText, purposeFilter, fuse])
 
   // Calculate date range for backend fetch
   const getDateRangeParams = (range) => {
@@ -99,9 +111,7 @@ const CreditLogsTable = () => {
         key: "blogTitle",
         render: (title) => (
           <div>
-            <span className="text-xs sm:text-sm text-gray-700 capitalize">
-              {title || "-"}
-            </span>
+            <span className="text-xs sm:text-sm text-gray-700 capitalize">{title || "-"}</span>
           </div>
         ),
       },
@@ -162,7 +172,11 @@ const CreditLogsTable = () => {
         key: "amount",
         sorter: (a, b) => a.amount - b.amount,
         render: (amount) => (
-          <span className={`font-semibold text-xs sm:text-sm ${amount < 0 ? "text-red-500" : "text-green-600"}`}>
+          <span
+            className={`font-semibold text-xs sm:text-sm ${
+              amount < 0 ? "text-red-500" : "text-green-600"
+            }`}
+          >
             {amount > 0 ? `+${amount}` : amount}
           </span>
         ),
@@ -171,8 +185,10 @@ const CreditLogsTable = () => {
         title: "Remaining Credits",
         dataIndex: "remainingCredits",
         key: "remainingCredits",
-        responsive: ["md"], // Hide on small screens
-        render: (credits) => <span className="text-xs sm:text-sm font-medium text-gray-800">{credits}</span>,
+        responsive: ["md"],
+        render: (credits) => (
+          <span className="text-xs sm:text-sm font-medium text-gray-800">{credits}</span>
+        ),
       },
     ],
     [purposeColorMap]
@@ -183,13 +199,11 @@ const CreditLogsTable = () => {
     const socket = getSocket()
     if (!socket) return
 
-    const handleCreditLogUpdate = (newLog) => {
+    const handleCreditLogUpdate = () => {
       dispatch(
         getCreditLogs({
           page: 1,
           limit: -1,
-          search: searchText,
-          purpose: purposeFilter,
           ...getDateRangeParams(dateRange),
         })
       )
@@ -200,14 +214,14 @@ const CreditLogsTable = () => {
     return () => {
       socket.off("credit-log", handleCreditLogUpdate)
     }
-  }, [dispatch, dateRange, searchText, purposeFilter])
+  }, [dispatch, dateRange])
 
-  // Paginate data client-side
+  // Paginate filtered data client-side
   const paginatedData = useMemo(() => {
     const startIndex = (pagination.current - 1) * pagination.pageSize
     const endIndex = startIndex + pagination.pageSize
-    return logs.slice(startIndex, endIndex)
-  }, [logs, pagination.current, pagination.pageSize])
+    return filteredLogs.slice(startIndex, endIndex)
+  }, [filteredLogs, pagination.current, pagination.pageSize])
 
   return (
     <AnimatePresence>
@@ -220,18 +234,30 @@ const CreditLogsTable = () => {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.3 }}
-        className="p-8 bg-white rounded-2xl shadow-md border border-gray-200 w-full max-w-full"
+        className="p-8 bg-white rounded-2xl w-full max-w-full"
       >
         <div className="flex flex-col gap-4 mb-6">
-          <h2 className="text-xl sm:text-2xl font-semibold text-gray-900">Credit Logs</h2>
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Credit Logs
+          </h2>
+          <p className="text-gray-500 text-sm max-w-lg" style={{ opacity: 1 }}>
+            All your credits, all in one spot. Check your activity, track your transactions, and
+            never miss a beat.
+          </p>
           <div className="flex flex-col sm:flex-row gap-3 w-full">
-            <Input
-              prefix={<SearchOutlined className="text-gray-400" />}
-              placeholder="Search by blog title"
-              onChange={(e) => debouncedSearch(e.target.value)}
-              className="w-full rounded-lg border-gray-300 hover:border-blue-400 transition-all text-xs sm:text-sm"
-              aria-label="Search credit logs by blog title"
-            />
+            <div className="relative w-full">
+              <input
+                placeholder="Search by blog title"
+                value={searchText}
+                onChange={(e) => {
+                  setSearchText(e.target.value)
+                  setPagination((prev) => ({ ...prev, current: 1 }))
+                }}
+                className="w-full rounded-lg border border-gray-300 px-10 py-[5px] text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                aria-label="Search credit logs by blog title"
+              />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+            </div>
             <Select
               value={dateRange}
               onChange={(value) => {
@@ -316,7 +342,7 @@ const CreditLogsTable = () => {
           pagination={{
             current: pagination.current,
             pageSize: pagination.pageSize,
-            total: logs.length,
+            total: filteredLogs.length, // Use filteredLogs length for pagination
             showSizeChanger: false,
             showTotal: (total) => `Total ${total} logs`,
             onChange: (page) => {
@@ -350,7 +376,7 @@ const CreditLogsTable = () => {
               pageSize: paginationInfo.pageSize,
             })
           }}
-          scroll={{ x: "max-content" }} // Enable horizontal scrolling for small screens
+          scroll={{ x: "max-content" }}
         />
       </motion.div>
     </AnimatePresence>

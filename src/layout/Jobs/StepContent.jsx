@@ -5,11 +5,12 @@ import MultiDatePicker from "react-multi-date-picker"
 import Carousel from "@components/multipleStepModal/Carousel"
 import { packages } from "@/data/templates"
 import { Crown, Info, Plus, TriangleAlert, Upload, X } from "lucide-react"
-import { useDispatch } from "react-redux"
+import { useDispatch, useSelector } from "react-redux"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
 import { useNavigate } from "react-router-dom"
 import { fetchBrands } from "@store/slices/brandSlice"
 import { useQuery } from "@tanstack/react-query"
+import { getIntegrationsThunk } from "@store/slices/otherSlice"
 
 const { Option } = Select
 
@@ -34,6 +35,7 @@ const StepContent = ({
 }) => {
   const dispatch = useDispatch()
   const fileInputRef = useRef(null)
+  const { data: integrations } = useSelector((state) => state.wordpress)
   const {
     data: brands = [],
     isLoading: loadingBrands,
@@ -45,6 +47,15 @@ const StepContent = ({
       return response
     },
   })
+
+  useEffect(() => {
+    if (integrations?.integrations?.size) {
+      setFormData((prev) => ({
+        ...prev,
+        postingType: integrations.integrations.key().next().value,
+      }))
+    }
+  }, [integrations])
 
   const tones = [
     "Professional",
@@ -59,9 +70,13 @@ const StepContent = ({
     "Empathetic",
   ]
   const wordLengths = [500, 1000, 1500, 2000, 3000]
-  const MAX_BLOGS = 100
+  const MAX_BLOGS = 10
   const isAiImagesLimitReached = user?.usage?.aiImages >= user?.usageLimits?.aiImages
   const navigate = useNavigate()
+
+  useEffect(() => {
+    dispatch(getIntegrationsThunk())
+  }, [dispatch])
 
   // Clean up object URLs to prevent memory leaks
   useEffect(() => {
@@ -128,6 +143,24 @@ const StepContent = ({
     },
   ]
 
+  const handleIntegrationChange = (platform) => {
+    setFormData((prev) => ({
+      ...prev,
+      postingType: platform,
+    }))
+    setErrors((prev) => ({ ...prev, postingType: false })) // Clear error on change
+  }
+
+  useEffect(() => {
+    if (newJob.blogs.useBrandVoice && (!brands || brands.length === 0)) {
+      setNewJob((prev) => ({
+        ...prev,
+        blogs: { ...prev.blogs, useBrandVoice: false, brandId: null },
+      }))
+      message.warning("No brand voices available. Create one to enable this option.", 3)
+    }
+  }, [brands, newJob.blogs.useBrandVoice])
+
   const handleAddItems = (input, type) => {
     const trimmedInput = input.trim()
     if (!trimmedInput) return
@@ -175,8 +208,22 @@ const StepContent = ({
 
   const handleInputChange = (e) => {
     const { name, value, type } = e.target
-    const val = type === "number" ? parseInt(value, 10) || 0 : value
 
+    // Determine the value for number inputs
+    let val
+    if (type === "tel") {
+      if (value === "") {
+        val = "" // allow clearing
+      } else {
+        val = parseInt(value, 10)
+        if (val < 0) val = 0 // min value
+        if (val > 20) val = 20 // max value
+      }
+    } else {
+      val = value
+    }
+
+    // Update state
     setNewJob((prev) => ({
       ...prev,
       blogs: {
@@ -302,12 +349,13 @@ const StepContent = ({
 
   const handleCheckboxChange = (e) => {
     const { name, checked } = e.target
-    if (name === "wordpressPosting" && checked && !user?.wordpressLink) {
-      message.error(
-        "Please connect your WordPress account in your profile before enabling automatic posting."
-      )
-      // navigate("/profile")
-      return
+    if (name === "wordpressPosting" && checked) {
+      const hasAnyIntegration = Object.keys(integrations?.integrations || {}).length > 0
+
+      if (!hasAnyIntegration) {
+        message.error("Please connect your account in plugins.")
+        return
+      }
     }
     setNewJob((prev) => ({
       ...prev,
@@ -315,18 +363,29 @@ const StepContent = ({
     }))
     if (name === "performKeywordResearch") {
       setFormData((prev) => ({ ...prev, performKeywordResearch: checked }))
+      setErrors((prev) => ({ ...prev, keywords: false })) // Clear keyword error if enabling research
     }
   }
 
   const handleNumberOfBlogsChange = (e) => {
-    const value = parseInt(e.target.value, 10)
-    if (!isNaN(value) && value >= 0 && value <= MAX_BLOGS) {
-      setNewJob((prev) => ({
-        ...prev,
-        blogs: { ...prev.blogs, numberOfBlogs: value },
-      }))
-      setErrors((prev) => ({ ...prev, numberOfBlogs: false }))
+    const { value } = e.target
+
+    let numberValue
+    if (value === "") {
+      numberValue = "" // allow clearing
+    } else {
+      numberValue = parseInt(value, 10)
+      if (isNaN(numberValue)) numberValue = "" // ignore invalid input
+      if (numberValue > MAX_BLOGS) numberValue = MAX_BLOGS // clamp to max
+      if (numberValue < 0) numberValue = 0 // optional: clamp to min
     }
+
+    setNewJob((prev) => ({
+      ...prev,
+      blogs: { ...prev.blogs, numberOfBlogs: numberValue },
+    }))
+
+    setErrors((prev) => ({ ...prev, numberOfBlogs: false }))
   }
 
   const keywordsToShow = showAllKeywords
@@ -346,6 +405,7 @@ const StepContent = ({
         isUnsplashActive: source === "unsplash",
       },
     }))
+    setErrors((prev) => ({ ...prev, imageSource: false })) // Clear error
   }
 
   const validateImages = (files) => {
@@ -453,15 +513,17 @@ const StepContent = ({
             Select up to 3 templates for the types of blogs you want to generate.
           </p>
           {/* Mobile View: Vertical Scrolling Layout */}
-          <div className="sm:hidden grid grid-cols-2 gap-4">
+          <div
+            className={`sm:hidden grid grid-cols-2 gap-4 ${
+              errors.templates ? "border-red-500 border-2" : ""
+            }`}
+          >
             {packages.map((pkg) => (
               <div
                 key={pkg.name}
                 className={`cursor-pointer transition-all duration-200 w-full ${
                   newJob.blogs.templates.includes(pkg.name)
                     ? "border-gray-300 border-2 rounded-lg"
-                    : errors.template
-                    ? "border-red-500 border-2"
                     : ""
                 }`}
                 onClick={() => {
@@ -473,13 +535,13 @@ const StepContent = ({
                         templates: prev.blogs.templates.filter((template) => template !== pkg.name),
                       },
                     }))
-                    setErrors((prev) => ({ ...prev, template: false }))
+                    setErrors((prev) => ({ ...prev, templates: false }))
                   } else if (newJob.blogs.templates.length < 3) {
                     setNewJob((prev) => ({
                       ...prev,
                       blogs: { ...prev.blogs, templates: [...prev.blogs.templates, pkg.name] },
                     }))
-                    setErrors((prev) => ({ ...prev, template: false }))
+                    setErrors((prev) => ({ ...prev, templates: false }))
                   } else {
                     message.error("You can only select up to 3 templates.")
                   }
@@ -501,9 +563,10 @@ const StepContent = ({
               </div>
             ))}
           </div>
+          {errors.templates && <p className="text-red-500 text-xs">{errors.templates}</p>}
 
           {/* Desktop View: Carousel Layout */}
-          <div className="hidden sm:block">
+          <div className={`hidden sm:block ${errors.templates ? "border-red-500 border-2" : ""}`}>
             <Carousel className="flex flex-row gap-4">
               {packages.map((pkg) => (
                 <div
@@ -511,8 +574,6 @@ const StepContent = ({
                   className={`cursor-pointer transition-all duration-200 w-full${
                     newJob.blogs.templates.includes(pkg.name)
                       ? "border-gray-300 border-2 rounded-lg"
-                      : errors.template
-                      ? "border-red-500 border-2"
                       : ""
                   }`}
                   onClick={() => {
@@ -526,13 +587,13 @@ const StepContent = ({
                           ),
                         },
                       }))
-                      setErrors((prev) => ({ ...prev, template: false }))
+                      setErrors((prev) => ({ ...prev, templates: false }))
                     } else if (newJob.blogs.templates.length < 3) {
                       setNewJob((prev) => ({
                         ...prev,
                         blogs: { ...prev.blogs, templates: [...prev.blogs.templates, pkg.name] },
                       }))
-                      setErrors((prev) => ({ ...prev, template: false }))
+                      setErrors((prev) => ({ ...prev, templates: false }))
                     } else {
                       message.error("You can only select up to 3 templates.")
                     }
@@ -555,6 +616,7 @@ const StepContent = ({
               ))}
             </Carousel>
           </div>
+          {errors.templates && <p className="text-red-500 text-xs">{errors.templates}</p>}
         </motion.div>
       )
     case 2:
@@ -576,6 +638,7 @@ const StepContent = ({
                 }`}
                 aria-label="Job name"
               />
+              {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700 mb-2 flex gap-2 items-center">
@@ -618,6 +681,7 @@ const StepContent = ({
                   <span className="sr-only">Upload CSV for topics</span>
                 </label>
               </div>
+              {errors.topics && <p className="text-red-500 text-xs mt-1">{errors.topics}</p>}
               <div className="flex flex-wrap gap-2 mt-2">
                 {topicsToShow.map((topic, reversedIndex) => {
                   const actualIndex = newJob.blogs.topics.length - 1 - reversedIndex
@@ -685,7 +749,7 @@ const StepContent = ({
             </div>
             {!formData.performKeywordResearch && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex gap-2 items-center">
+                <label className="text-sm font-medium text-gray-700 mb-2 flex gap-2 items-center">
                   Keywords
                   <Tooltip title="Upload a .csv file in the format: `Keywords` as header">
                     <Info size={16} className="text-blue-500 cursor-pointer" />
@@ -723,6 +787,7 @@ const StepContent = ({
                     <span className="sr-only">Upload CSV</span>
                   </label>
                 </div>
+                {errors.keywords && <p className="text-red-500 text-xs mt-1">{errors.keywords}</p>}
                 <div className="flex flex-wrap gap-2 mt-2 min-h-[28px]">
                   {keywordsToShow.map((keyword, reversedIndex) => {
                     const actualIndex = formData.keywords.length - 1 - reversedIndex
@@ -778,9 +843,10 @@ const StepContent = ({
                 <Select
                   className="w-full"
                   value={newJob.blogs.tone}
-                  onChange={(value) =>
+                  onChange={(value) => {
                     setNewJob({ ...newJob, blogs: { ...newJob.blogs, tone: value } })
-                  }
+                    setErrors((prev) => ({ ...prev, tone: false }))
+                  }}
                   placeholder="Select tone"
                   status={errors.tone ? "error" : ""}
                 >
@@ -796,6 +862,7 @@ const StepContent = ({
                   <Option value="persuasive">Persuasive</Option>
                   <Option value="empathetic">Empathetic</Option>
                 </Select>
+                {errors.tone && <p className="text-red-500 text-xs mt-1">{errors.tone}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -941,7 +1008,11 @@ const StepContent = ({
                 </label>
 
                 {/* Responsive grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full">
+                <div
+                  className={`grid grid-cols-2 gap-4 mx-auto w-full ${
+                    errors.imageSource ? "border-2 border-red-500 rounded-lg p-2" : ""
+                  }`}
+                >
                   {imageSources.map((source) => {
                     const isAiRestricted =
                       source.value === "ai-generated" && source.isAiImagesLimitReached
@@ -993,6 +1064,9 @@ const StepContent = ({
                     )
                   })}
                 </div>
+                {errors.imageSource && (
+                  <p className="text-red-500 text-xs mt-1">{errors.imageSource}</p>
+                )}
               </div>
               <div className="w-full">
                 <label className="block text-sm font-semibold text-gray-700 mb-1">
@@ -1002,16 +1076,20 @@ const StepContent = ({
                   Enter the number of images (0 = AI will decide)
                 </p>
                 <input
-                  type="number"
+                  type="tel"
+                  inputMode="numeric"
                   name="numberOfImages"
                   min="0"
-                  max="20"
-                  value={newJob.blogs.numberOfImages}
+                  max="15"
+                  value={newJob.blogs.numberOfImages ?? ""}
                   onChange={handleInputChange}
                   onWheel={(e) => e.currentTarget.blur()}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm placeholder-gray-400 transition"
                   placeholder="e.g., 5"
                 />
+                {errors.numberOfImages && (
+                  <p className="text-red-500 text-xs mt-1">{errors.numberOfImages}</p>
+                )}
               </div>
             </>
           )}
@@ -1099,7 +1177,11 @@ const StepContent = ({
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Select Days of Week
                 </label>
-                <div className="flex gap-2 flex-wrap">
+                <div
+                  className={`flex gap-2 flex-wrap ${
+                    errors.daysOfWeek ? "border-red-500 border-2 p-2 rounded" : ""
+                  }`}
+                >
                   {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d, i) => (
                     <button
                       key={i}
@@ -1108,7 +1190,7 @@ const StepContent = ({
                         newJob.schedule.daysOfWeek?.includes(i)
                           ? "bg-[#1B6FC9] text-white"
                           : "bg-gray-200 text-gray-700"
-                      } ${errors.daysOfWeek ? "border-2 border-red-500" : ""}`}
+                      }`}
                       onClick={() => {
                         setNewJob((prev) => {
                           const daysOfWeek = prev.schedule.daysOfWeek?.includes(i)
@@ -1123,6 +1205,9 @@ const StepContent = ({
                     </button>
                   ))}
                 </div>
+                {errors.daysOfWeek && (
+                  <p className="text-red-500 text-xs mt-1">{errors.daysOfWeek}</p>
+                )}
               </div>
             )}
             {newJob.schedule.type === "monthly" && (
@@ -1130,7 +1215,11 @@ const StepContent = ({
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Select Dates of Month
                 </label>
-                <div className="flex gap-2 flex-wrap">
+                <div
+                  className={`flex gap-2 flex-wrap ${
+                    errors.daysOfMonth ? "border-red-500 border-2 p-2 rounded" : ""
+                  }`}
+                >
                   {Array.from({ length: 31 }, (_, i) => i + 1).map((date) => (
                     <button
                       key={date}
@@ -1139,7 +1228,7 @@ const StepContent = ({
                         newJob.schedule.daysOfMonth?.includes(date)
                           ? "bg-[#1B6FC9] text-white"
                           : "bg-gray-200 text-gray-700"
-                      } ${errors.daysOfMonth ? "border-2 border-red-500" : ""}`}
+                      }`}
                       onClick={() => {
                         setNewJob((prev) => {
                           const daysOfMonth = prev.schedule.daysOfMonth?.includes(date)
@@ -1154,6 +1243,9 @@ const StepContent = ({
                     </button>
                   ))}
                 </div>
+                {errors.daysOfMonth && (
+                  <p className="text-red-500 text-xs mt-1">{errors.daysOfMonth}</p>
+                )}
               </div>
             )}
             {newJob.schedule.type === "custom" && (
@@ -1180,6 +1272,9 @@ const StepContent = ({
                     inputClass="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
+                {errors.customDates && (
+                  <p className="text-red-500 text-xs mt-1">{errors.customDates}</p>
+                )}
               </div>
             )}
             <div>
@@ -1187,17 +1282,22 @@ const StepContent = ({
                 Number of Blogs
               </label>
               <input
-                type="number"
-                value={newJob.blogs.numberOfBlogs}
+                type="tel"
+                inputMode="numeric"
+                name="numberOfBlogs"
+                min="1"
+                max={MAX_BLOGS}
+                value={newJob.blogs.numberOfBlogs ?? ""}
                 onChange={handleNumberOfBlogsChange}
-                onWheel={(e) => e.currentTarget.blur()} // 👈 this prevents scroll changing value
+                onWheel={(e) => e.currentTarget.blur()}
                 className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
                   errors.numberOfBlogs ? "border-red-500" : "border-gray-200"
                 }`}
                 placeholder="Enter the number of blogs"
-                min="1"
-                max={MAX_BLOGS}
               />
+              {errors.numberOfBlogs && (
+                <p className="text-red-500 text-xs mt-1">{errors.numberOfBlogs}</p>
+              )}
             </div>
           </div>
         </motion.div>
@@ -1232,9 +1332,9 @@ const StepContent = ({
                 desc: "Add internal links between your blogs for better SEO.",
               },
               {
-                label: "WordPress Automatic Posting",
+                label: "Enable Automatic Posting",
                 name: "wordpressPosting",
-                desc: "Automatically post the blog to your connected WordPress site.",
+                desc: "Automatically post the blog to your connected plugins.",
               },
               ...(newJob.options.wordpressPosting
                 ? [
@@ -1263,15 +1363,53 @@ const StepContent = ({
                 </label>
               </div>
             ))}
+
+            {/* Only show integration options if wordpressPosting is true AND integrations exist */}
+            {newJob.options.wordpressPosting &&
+              Object.keys(integrations?.integrations || {}).length > 0 && (
+                <div className="my-5">
+                  <span className="text-sm font-medium text-gray-700">
+                    Select Your Publishing Platform
+                    <p className="text-xs text-gray-500">
+                      Post your blog automatically to connected platforms only.
+                    </p>
+                  </span>
+
+                  <Select
+                    className="w-full mt-2"
+                    placeholder="Select platform"
+                    value={formData.postingType}
+                    onChange={handleIntegrationChange}
+                    status={errors.postingType ? "error" : ""}
+                  >
+                    {Object.entries(integrations.integrations).map(([platform, details]) => (
+                      <Option key={platform} value={platform}>
+                        {platform}
+                      </Option>
+                    ))}
+                  </Select>
+                  {errors.postingType && (
+                    <p className="text-red-500 text-xs mt-1">{errors.postingType}</p>
+                  )}
+                </div>
+              )}
           </div>
+
           <div>
             <div className="flex items-center justify-between mt-3">
               <span className="text-sm font-medium text-gray-700">Write with Brand Voice</span>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={newJob.blogs.useBrandVoice}
+                  checked={newJob.blogs.useBrandVoice && brands?.length > 0}
                   onChange={() => {
+                    if (!brands || brands.length === 0) {
+                      message.warning(
+                        "No brand voices available. Create one to enable this option.",
+                        3
+                      )
+                      return
+                    }
                     setNewJob((prev) => ({
                       ...prev,
                       blogs: {
@@ -1283,28 +1421,33 @@ const StepContent = ({
                     setErrors((prev) => ({ ...prev, brandId: false }))
                   }}
                   className="sr-only peer"
-                  aria-checked={newJob.blogs.useBrandVoice}
+                  aria-checked={newJob.blogs.useBrandVoice && brands?.length > 0}
                 />
+
                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]" />
               </label>
             </div>
             {newJob.blogs.useBrandVoice && (
-              <div className="mt-3 p-4 rounded-md border border-gray-200 bg-gray-50">
+              <div
+                className={`mt-3 flex p-4 rounded-md border bg-gray-50 ${
+                  errors.brandId ? "border-red-500" : "border-gray-200"
+                }`}
+              >
                 {loadingBrands ? (
                   <div className="text-gray-500 text-sm">Loading brand voices...</div>
                 ) : brandError ? (
                   <div className="text-red-500 text-sm font-medium">{brandError}</div>
                 ) : brands?.length > 0 ? (
                   <div className="max-h-48 overflow-y-auto pr-1">
-                    <div className="grid gap-3">
+                    <div>
                       {brands.map((voice) => (
                         <label
                           key={voice._id}
-                          className={`flex items-start gap-2 p-3 rounded-md cursor-pointer ${
+                          className={`flex items-start gap-2 p-3 mb-3 rounded-md cursor-pointer ${
                             newJob.blogs.brandId === voice._id
                               ? "bg-blue-100 border-blue-300"
                               : "bg-white border border-gray-200"
-                          } ${errors.brandId ? "border-red-500" : ""}`}
+                          }`}
                         >
                           <input
                             type="radio"
@@ -1335,6 +1478,7 @@ const StepContent = ({
                 )}
               </div>
             )}
+            {errors.brandId && <p className="text-red-500 text-xs mt-1">{errors.brandId}</p>}
 
             {newJob.blogs.useBrandVoice && (
               <div className="flex items-center justify-between mt-3">

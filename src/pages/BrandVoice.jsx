@@ -2,9 +2,9 @@ import React, { useState, useEffect, useCallback, useMemo } from "react"
 import { motion } from "framer-motion"
 import { FaEdit, FaTimes } from "react-icons/fa"
 import { useDispatch, useSelector } from "react-redux"
-import { Info, Loader2, Trash, Upload } from "lucide-react"
+import { Info, Loader2, Trash, Upload, RefreshCcw } from "lucide-react"
 import { Helmet } from "react-helmet"
-import { Modal, Tooltip, message } from "antd"
+import { Modal, Tooltip, message, Button } from "antd"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   createBrandVoiceThunk,
@@ -15,13 +15,16 @@ import {
   resetSiteInfo,
 } from "@store/slices/brandSlice"
 import BrandVoicesComponent from "@components/BrandVoiceComponent"
+import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import UpgradeModal from "@components/UpgradeModal"
 
 const BrandVoice = () => {
-  const user = useSelector((state) => state.auth.user)
+  const user = useSelector(state => state.auth.user)
   const dispatch = useDispatch()
   const queryClient = useQueryClient()
   const [inputValue, setInputValue] = useState("")
   const [isUploading, setIsUploading] = useState(false)
+  const { handlePopup } = useConfirmPopup()
   const [formData, setFormData] = useState({
     nameOfVoice: "",
     postLink: "",
@@ -32,10 +35,21 @@ const BrandVoice = () => {
     _id: undefined,
   })
   const [errors, setErrors] = useState({})
-  const { siteInfo } = useSelector((state) => state.brand)
+  const { siteInfo } = useSelector(state => state.brand)
   const [lastScrapedUrl, setLastScrapedUrl] = useState("")
   const [isFormReset, setIsFormReset] = useState(false)
   const [showAllKeywords, setShowAllKeywords] = useState(false)
+
+  const totalCredits = user?.credits?.base + user?.credits?.extra
+
+  const showTrialMessage =
+    totalCredits === 0 &&
+    user?.subscription?.plan === "free" &&
+    user?.subscription?.status === "unpaid"
+
+  if (showTrialMessage) {
+    return <UpgradeModal featureName="Brand Voice" />
+  }
 
   const {
     data: brands = [],
@@ -47,6 +61,10 @@ const BrandVoice = () => {
       const response = await dispatch(fetchBrands()).unwrap()
       return response
     },
+    staleTime: Infinity, // Data never becomes stale
+    gcTime: Infinity, // Cache persists for the session
+    refetchOnMount: false, // Prevent refetch on component mount
+    refetchOnWindowFocus: false, // Prevent refetch on window focus
   })
 
   useEffect(() => {
@@ -61,7 +79,7 @@ const BrandVoice = () => {
 
   useEffect(() => {
     if (siteInfo.data && !isFormReset) {
-      setFormData((prev) => ({
+      setFormData(prev => ({
         ...prev,
         nameOfVoice: siteInfo.data.nameOfVoice || prev.nameOfVoice,
         describeBrand: siteInfo.data.describeBrand || prev.describeBrand,
@@ -69,7 +87,7 @@ const BrandVoice = () => {
         postLink: siteInfo.data.postLink || prev.postLink,
         sitemapUrl: siteInfo.data.sitemap || prev.sitemapUrl,
       }))
-      setErrors((prev) => ({
+      setErrors(prev => ({
         ...prev,
         nameOfVoice: undefined,
         describeBrand: undefined,
@@ -132,10 +150,10 @@ const BrandVoice = () => {
   }, [formData])
 
   const handleInputChange = useCallback(
-    (e) => {
+    e => {
       const { name, value } = e.target
-      setFormData((prev) => ({ ...prev, [name]: value }))
-      setErrors((prev) => ({ ...prev, [name]: undefined }))
+      setFormData(prev => ({ ...prev, [name]: value }))
+      setErrors(prev => ({ ...prev, [name]: undefined }))
       if (name === "postLink" && value !== lastScrapedUrl) {
         setLastScrapedUrl("")
       }
@@ -145,42 +163,42 @@ const BrandVoice = () => {
   )
 
   const handleKeyDown = useCallback(
-    (event) => {
+    event => {
       if (event.key === "Enter" && inputValue.trim()) {
         event.preventDefault()
-        const existing = formData.keywords.map((k) => k.toLowerCase())
+        const existing = formData.keywords.map(k => k.toLowerCase())
         const seen = new Set()
         const newKeywords = inputValue
           .split(",")
-          .map((k) => k.trim())
-          .filter((k) => {
+          .map(k => k.trim())
+          .filter(k => {
             const lower = k.toLowerCase()
             if (!k || existing.includes(lower) || seen.has(lower)) return false
             seen.add(lower)
             return true
           })
         if (newKeywords.length === 0) return
-        setFormData((prev) => ({
+        setFormData(prev => ({
           ...prev,
           keywords: [...prev.keywords, ...newKeywords],
         }))
         setInputValue("")
-        setErrors((prev) => ({ ...prev, keywords: undefined }))
+        setErrors(prev => ({ ...prev, keywords: undefined }))
         setIsFormReset(false)
       }
     },
     [inputValue, formData.keywords]
   )
 
-  const removeKeyword = useCallback((keyword) => {
-    setFormData((prev) => ({
+  const removeKeyword = useCallback(keyword => {
+    setFormData(prev => ({
       ...prev,
-      keywords: prev.keywords.filter((k) => k !== keyword),
+      keywords: prev.keywords.filter(k => k !== keyword),
     }))
     setIsFormReset(false)
   }, [])
 
-  const handleFileChange = useCallback((event) => {
+  const handleFileChange = useCallback(event => {
     const file = event.target.files[0]
     if (!file) return
     if (!file.name.toLowerCase().endsWith(".csv")) {
@@ -200,17 +218,17 @@ const BrandVoice = () => {
       return
     }
     const reader = new FileReader()
-    reader.onload = (e) => {
+    reader.onload = e => {
       const text = e.target.result
       const keywords = text
         .split(/,|\n|;/)
-        .map((kw) => kw.trim())
-        .filter((kw) => kw.length > 0)
-      setFormData((prev) => ({
+        .map(kw => kw.trim())
+        .filter(kw => kw.length > 0)
+      setFormData(prev => ({
         ...prev,
         keywords: [...new Set([...prev.keywords, ...keywords])],
       }))
-      setErrors((prev) => ({ ...prev, keywords: undefined }))
+      setErrors(prev => ({ ...prev, keywords: undefined }))
       setIsFormReset(false)
     }
     reader.onerror = () => message.error("Error reading CSV file.")
@@ -224,14 +242,14 @@ const BrandVoice = () => {
     const payload = {
       nameOfVoice: formData.nameOfVoice.trim(),
       postLink: formData.postLink.trim(),
-      keywords: formData.keywords.map((k) => k.trim()).filter(Boolean),
+      keywords: formData.keywords.map(k => k.trim()).filter(Boolean),
       describeBrand: formData.describeBrand.trim(),
       sitemap: formData.sitemapUrl.trim(),
       userId: user?._id,
     }
 
     const isDuplicate = brands.some(
-      (brand) =>
+      brand =>
         brand.postLink === payload.postLink && (formData._id ? brand._id !== formData._id : true)
     )
 
@@ -252,15 +270,12 @@ const BrandVoice = () => {
       dispatch(resetSiteInfo())
     } catch (error) {
       console.error("Error saving brand voice:", error)
-      message.error(
-        formData._id ? "Failed to update brand voice." : "Failed to create brand voice."
-      )
     } finally {
       setIsUploading(false)
     }
   }, [formData, user, dispatch, validateForm, resetForm, brands, queryClient])
 
-  const handleEdit = useCallback((brand) => {
+  const handleEdit = useCallback(brand => {
     setFormData({
       nameOfVoice: brand.nameOfVoice || "",
       postLink: brand.postLink || "",
@@ -277,21 +292,23 @@ const BrandVoice = () => {
   }, [])
 
   const handleDelete = useCallback(
-    (brand) => {
-      Modal.confirm({
+    brand => {
+      handlePopup({
         title: "Delete Brand Voice?",
-        content: "Are you sure you want to delete this brand voice? This action cannot be undone.",
-        okText: "Delete",
-        cancelText: "Cancel",
-        okButtonProps: { danger: true, className: "px-3 sm:px-4 py-2" },
-        cancelButtonProps: { className: "px-3 sm:px-4 py-2" },
-        onOk: async () => {
+        description: (
+          <span className="my-2">
+            Are you sure you want to delete <b>{brand.name}</b>? This action cannot be undone.
+          </span>
+        ),
+        confirmText: "Delete",
+        onConfirm: async () => {
           try {
             queryClient.setQueryData(["brands"], (oldBrands = []) =>
-              oldBrands.filter((b) => b._id !== brand._id)
+              oldBrands.filter(b => b._id !== brand._id)
             )
             await dispatch(deleteBrandVoiceThunk({ id: brand._id })).unwrap()
             queryClient.invalidateQueries(["brands"])
+
             if (formData.selectedVoice?._id === brand._id) {
               resetForm()
               dispatch(resetSiteInfo())
@@ -301,20 +318,27 @@ const BrandVoice = () => {
             queryClient.invalidateQueries(["brands"])
           }
         },
+        confirmProps: {
+          type: "text",
+          className: "border-red-500 hover:bg-red-500 bg-red-100 text-red-600",
+        },
+        cancelProps: {
+          danger: false,
+        },
       })
     },
     [dispatch, formData.selectedVoice, resetForm, queryClient]
   )
 
-  const handleSelect = useCallback((voice) => {
-    setFormData((prev) => ({ ...prev, selectedVoice: voice }))
+  const handleSelect = useCallback(voice => {
+    setFormData(prev => ({ ...prev, selectedVoice: voice }))
     setIsFormReset(false)
   }, [])
 
   const handleFetchSiteInfo = useCallback(() => {
     const url = formData.postLink.trim()
     if (!url) {
-      setErrors((prev) => ({
+      setErrors(prev => ({
         ...prev,
         postLink: "Post link is required to fetch site info.",
       }))
@@ -333,12 +357,16 @@ const BrandVoice = () => {
         })
         .catch(() => message.error("Failed to fetch site info. Please try a different URL."))
     } catch {
-      setErrors((prev) => ({
+      setErrors(prev => ({
         ...prev,
         postLink: "Please enter a valid URL (e.g., https://example.com).",
       }))
     }
   }, [formData.postLink, lastScrapedUrl, dispatch])
+
+  const handleRefresh = () => {
+    queryClient.invalidateQueries(["brands"])
+  }
 
   const renderKeywords = useMemo(() => {
     const maxInitialKeywords = 12
@@ -348,7 +376,7 @@ const BrandVoice = () => {
     const remainingCount = formData.keywords.length - maxInitialKeywords
     return (
       <div className={`flex flex-wrap gap-2 ${formData.keywords.length > 0 ? "mb-1" : "hidden"}`}>
-        {displayedKeywords.map((keyword) => (
+        {displayedKeywords.map(keyword => (
           <motion.div
             key={keyword}
             className="flex items-center bg-indigo-100 text-indigo-700 rounded-md px-2 sm:px-3 py-1"
@@ -362,7 +390,7 @@ const BrandVoice = () => {
             </span>
             <FaTimes
               className="ml-1 cursor-pointer text-indigo-500 hover:text-indigo-700 transition-colors w-3 sm:w-4 h-3 sm:h-4"
-              onClick={(e) => {
+              onClick={e => {
                 e.stopPropagation()
                 removeKeyword(keyword)
               }}
@@ -398,9 +426,11 @@ const BrandVoice = () => {
         initial={{ x: -20 }}
         animate={{ x: 0 }}
       >
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
-          Create Your Brand Voice
-        </h1>
+        <div className="flex justify-between items-center mb-4 sm:mb-6">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Create Your Brand Voice
+          </h1>
+        </div>
         <p className="text-gray-600 text-sm mb-4 sm:mb-6">
           Define your brand's unique tone and style to ensure consistent content creation.
         </p>
@@ -411,7 +441,7 @@ const BrandVoice = () => {
               Post or Blog Link <span className="text-red-500">*</span>
               <Tooltip
                 title="Add a link of your home page to fetch site info"
-                overlayStyle={{
+                styles={{
                   backgroundColor: "#4169e1",
                   color: "#fff",
                   borderRadius: "8px",
@@ -446,7 +476,9 @@ const BrandVoice = () => {
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.98 }}
                 disabled={
-                  siteInfo.loading || (formData.postLink && formData.postLink === lastScrapedUrl)
+                  siteInfo.loading ||
+                  (formData.postLink && formData.postLink === lastScrapedUrl) ||
+                  showTrialMessage
                 }
                 aria-label="Fetch Site Info"
               >
@@ -500,7 +532,7 @@ const BrandVoice = () => {
               Keywords <span className="text-red-500">*</span>
               <Tooltip
                 title="Upload a .csv file in the format: `Keyword` as header"
-                overlayStyle={{
+                styles={{
                   backgroundColor: "#4169e1",
                   color: "#fff",
                   borderRadius: "8px",
@@ -526,7 +558,7 @@ const BrandVoice = () => {
                   id="keywords"
                   type="text"
                   value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
+                  onChange={e => setInputValue(e.target.value)}
                   onKeyDown={handleKeyDown}
                   className="flex-grow bg-transparent border-none outline-none text-sm sm:text-base"
                   placeholder="Type a keyword and press Enter"
@@ -566,7 +598,7 @@ const BrandVoice = () => {
               Sitemap URL <span className="text-red-500">*</span>
               <Tooltip
                 title="Paste the URL of your XML sitemap (e.g., https://example.com/sitemap.xml)"
-                overlayStyle={{
+                styles={{
                   backgroundColor: "#4169e1",
                   color: "#fff",
                   borderRadius: "8px",
@@ -635,7 +667,7 @@ const BrandVoice = () => {
               onClick={handleSave}
               whileHover={{ scale: 1.03, y: -2 }}
               whileTap={{ scale: 0.98 }}
-              disabled={isUploading}
+              disabled={isUploading || showTrialMessage}
               aria-label={formData._id ? "Update Brand Voice" : "Save Brand Voice"}
             >
               {isUploading ? (
@@ -669,16 +701,27 @@ const BrandVoice = () => {
         initial={{ x: 20 }}
         animate={{ x: 0 }}
       >
-        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 mb-4">
-          Your Brand Voices
-        </h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800">
+            Your Brand Voices
+          </h2>
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Button
+              type="default"
+              icon={<RefreshCcw className="w-4 h-4" />}
+              onClick={handleRefresh}
+              disabled={isLoading}
+              className="text-xs sm:text-sm px-4 py-2"
+            />
+          </motion.div>
+        </div>
         <div className="space-y-3 overflow-y-auto max-h-[calc(100vh-300px)] sm:max-h-[calc(100vh-250px)]">
           {isLoading ? (
             <div className="flex justify-center items-center h-32">
               <Loader2 className="animate-spin w-8 h-8 text-indigo-600" />
             </div>
           ) : brands.length > 0 ? (
-            brands.map((item) => (
+            brands.map(item => (
               <BrandVoicesComponent
                 key={item._id}
                 id={item._id}
@@ -686,11 +729,11 @@ const BrandVoice = () => {
                 brandVoice={item.describeBrand}
                 onSelect={() => handleSelect(item)}
                 isSelected={formData.selectedVoice?._id === item._id}
-                onEdit={(e) => {
+                onEdit={e => {
                   e.stopPropagation()
                   handleEdit(item)
                 }}
-                onDelete={(e) => {
+                onDelete={e => {
                   e.stopPropagation()
                   handleDelete(item)
                 }}

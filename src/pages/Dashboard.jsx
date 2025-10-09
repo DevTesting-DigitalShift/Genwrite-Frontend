@@ -322,7 +322,7 @@ const Dashboard = () => {
         <PerformanceMonitoringModal
           allBlogs={allBlogs}
           closeFnc={() => setPerformanceModal(false)}
-          visible={() => setPerformanceModal(true)}
+          visible={performanceModal} 
         />
       )}
       {keywordResearchModal && (

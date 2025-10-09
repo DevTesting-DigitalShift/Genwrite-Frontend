@@ -17,7 +17,7 @@ export const humanizeContentGenerator = async (payload) => {
   return response.data
 }
 
-export const fetchCategories = async (type = "WORDPRESS") => {
+export const fetchCategories = async (type) => {
   const response = await axiosInstance.get(`/integrations/category?type=${type}`)
   return response.data
 }
@@ -68,4 +68,9 @@ export const unsubscribeUser = async (email) => {
   } catch (error) {
     throw new Error(error || "Failed to unsubscribe")
   }
+}
+
+export const updateIntegration = async (payload) => {
+  const response = await axiosInstance.put("/integrations/post", payload)
+  return response.data
 }

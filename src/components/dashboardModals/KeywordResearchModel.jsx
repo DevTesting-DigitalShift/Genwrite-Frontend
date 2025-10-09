@@ -9,51 +9,50 @@ import {
   setSelectedKeywords,
 } from "@store/slices/analysisSlice"
 
-
 const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, visible }) => {
   const [newKeyword, setNewKeyword] = useState("")
   const [keywords, setKeywords] = useState([])
   const [currentPage, setCurrentPage] = useState(1)
   const [showSelectedOnly, setShowSelectedOnly] = useState(false)
-  
+
   const dispatch = useDispatch()
   const {
     keywordAnalysis: keywordAnalysisResult,
     loading: analyzing,
     selectedKeywords,
   } = useSelector((state) => state.analysis)
-  
+
   useEffect(() => {
     if (keywords.length === 0) {
       setCurrentPage(1)
       dispatch(clearKeywordAnalysis())
     }
   }, [keywords, dispatch])
-  
+
   const addKeyword = () => {
     const input = newKeyword.trim()
     if (!input) return
-    
+
     const existing = keywords.map((k) => k.toLowerCase())
     const seen = new Set()
-    
+
     const newKeywords = input
-    .split(",")
-    .map((k) => k.trim())
-    .filter(
-      (k) =>
-        k &&
-      !existing.includes(k.toLowerCase()) &&
-      !seen.has(k.toLowerCase()) &&
-      seen.add(k.toLowerCase())
-    )
-    
+      .split(",")
+      .map((k) => k.trim())
+      .filter(
+        (k) =>
+          k &&
+          !existing.includes(k.toLowerCase()) &&
+          !seen.has(k.toLowerCase()) &&
+          seen.add(k.toLowerCase())
+      )
+
     if (newKeywords.length > 0) {
       setKeywords([...keywords, ...newKeywords])
       setNewKeyword("")
     }
   }
-  
+
   const removeKeyword = (index) => {
     const keywordToRemove = keywords[index]
     const updatedKeywords = keywords.filter((_, i) => i !== index)
@@ -304,7 +303,10 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
       onCancel={closeFnc}
       closable={true}
       footer={[
-        <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-2 border-t border-gray-100">
+        <div
+          key="footer-buttons"
+          className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-2 border-t border-gray-100"
+        >
           <motion.button
             onClick={showAutoKeywords}
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 w-full sm:w-auto"
@@ -357,7 +359,6 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
       width="90vw"
       centered
       title="Keyword Research"
-      maskClosable
       styles={{
         content: { maxWidth: "1000px", margin: "0 auto" },
         body: { padding: "16px" },

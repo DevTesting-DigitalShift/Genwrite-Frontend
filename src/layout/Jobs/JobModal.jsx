@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { Modal, message } from "antd"
-import { closeJobModal, createJobThunk, fetchJobs, updateJobThunk } from "@store/slices/jobSlice"
-import { clearSelectedKeywords, setSelectedKeywords } from "@store/slices/analysisSlice"
+import { closeJobModal, createJobThunk, updateJobThunk } from "@store/slices/jobSlice"
+import { clearSelectedKeywords } from "@store/slices/analysisSlice"
 import StepContent from "./StepContent"
+import { useQueryClient } from "@tanstack/react-query"
 
 const initialJob = {
   name: "",
@@ -20,10 +21,11 @@ const initialJob = {
     brandId: null,
     useBrandVoice: false,
     isCheckedGeneratedImages: true,
-    isCheckedCustomImages: false, // Added
+    isCheckedCustomImages: false,
     addCTA: true,
     numberOfImages: 0,
     blogImages: [],
+    postingType: null,
   },
   options: {
     wordpressPosting: false,
@@ -39,21 +41,24 @@ const initialJob = {
 
 const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded }) => {
   const dispatch = useDispatch()
-  const { selectedJob } = useSelector((state) => state.jobs) // Get selected job from Redux
+  const queryClient = useQueryClient()
+  const { selectedJob } = useSelector((state) => state.jobs)
   const [currentStep, setCurrentStep] = useState(1)
   const [newJob, setNewJob] = useState(initialJob)
   const [formData, setFormData] = useState({
     keywords: initialJob.blogs.keywords || [],
     keywordInput: "",
-    performKeywordResearch: initialJob.options.performKeywordResearch, // 👈 now false by default
+    performKeywordResearch: initialJob.options.performKeywordResearch,
     aiModel: initialJob.blogs.aiModel,
+    postingType: initialJob.blogs.postingType,
   })
   const [errors, setErrors] = useState({})
-  const [recentlyUploadedCount, setRecentlyUploadedCount] = useState(null)
+  const [recentlyUploadedTopicsCount, setRecentlyUploadedTopicsCount] = useState(null)
+  const [recentlyUploadedKeywordsCount, setRecentlyUploadedKeywordsCount] = useState(null)
   const [showAllTopics, setShowAllTopics] = useState(false)
   const [showAllKeywords, setShowAllKeywords] = useState(false)
 
-  const MAX_BLOGS = 100
+  const MAX_BLOGS = 10
 
   useEffect(() => {
     if (selectedJob) {
@@ -63,31 +68,32 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
         performKeywordResearch:
           selectedJob.options?.performKeywordResearch ?? initialJob.options.performKeywordResearch,
         keywords: selectedJob.blogs?.keywords ?? initialJob.blogs.keywords,
+        postingType: selectedJob.blogs?.postingType || initialJob.blogs.postingType,
       }))
+      setNewJob(selectedJob)
+    } else {
+      setNewJob(initialJob)
     }
   }, [selectedJob])
 
   useEffect(() => {
-    setNewJob((prev) => {
-      let baseJob = selectedJob ? { ...selectedJob } : prev // start from selectedJob if editing
-      let mergedTopics = [...(baseJob.blogs.topics || []), ...(selectedKeywords?.allKeywords || [])]
-      let mergedKeywords = [
-        ...(baseJob.blogs.keywords || []),
-        ...(selectedKeywords?.focusKeywords || []),
-        ...(selectedKeywords?.allKeywords || []),
-      ]
+    let baseJob = selectedJob ? { ...selectedJob } : initialJob
+    let mergedTopics = [...(baseJob.blogs.topics || []), ...(selectedKeywords?.allKeywords || [])]
+    let mergedKeywords = [
+      ...(baseJob.blogs.keywords || []),
+      ...(selectedKeywords?.focusKeywords || []),
+      ...(selectedKeywords?.allKeywords || []),
+    ]
 
-      return {
-        ...baseJob,
-        blogs: {
-          ...baseJob.blogs,
-          topics: [...new Set(mergedTopics)],
-          keywords: [...new Set(mergedKeywords)],
-        },
-      }
+    setNewJob({
+      ...baseJob,
+      blogs: {
+        ...baseJob.blogs,
+        topics: [...new Set(mergedTopics)],
+        keywords: [...new Set(mergedKeywords)],
+      },
     })
 
-    // Sync formData keywords as well
     setFormData((prev) => ({
       ...prev,
       keywords: [
@@ -100,7 +106,6 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
     }))
   }, [selectedKeywords, selectedJob])
 
-  // Merge selectedKeywords into formData and newJob
   useEffect(() => {
     const uniqueKeywords = [
       ...new Set([
@@ -123,122 +128,129 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
     }
   }, [selectedKeywords])
 
-
   const validateSteps = (step) => {
-    const errors = {}
-    if (step === 1) {
+    const newErrors = {}
+    if (step === 1 || step === "all") {
       if (newJob.blogs.templates.length === 0) {
-        errors.template = true
-        message.error("Please select at least one template before proceeding.")
+        newErrors.templates = "Please select at least one template."
       }
     }
-    if (step === 2) {
-      if (!newJob.name || newJob.blogs.topics.length === 0) {
-        if (!newJob.name) errors.name = true
-        if (newJob.blogs.topics.length === 0) errors.topics = true
-        const messages = []
-        if (errors.name) messages.push("job name")
-        if (errors.topics) messages.push("at least one topic")
-        message.error(`Please enter ${messages.join(" and ")}.`)
-      }
-    }
-    if (step === 3) {
-      if (newJob.blogs.numberOfBlogs < 1 || newJob.blogs.numberOfBlogs > MAX_BLOGS) {
-        errors.numberOfBlogs = true
-        message.error(`Number of blogs must be between 1 and ${MAX_BLOGS}.`)
-      }
+    if (step === 2 || step === "all") {
+      if (!newJob.name) newErrors.name = "Please enter a job name."
+      if (newJob.blogs.topics.length === 0) newErrors.topics = "Please add at least one topic."
+      if (!newJob.blogs.tone) newErrors.tone = "Please select a tone."
       if (!formData.performKeywordResearch && formData.keywords.length === 0) {
-        errors.keywords = true
-        message.error("Please add at least one keyword or enable keyword research.")
+        newErrors.keywords = "Please add at least one keyword or enable keyword research."
+      }
+    }
+    if (step === 3 || step === "all") {
+      if (newJob.blogs.numberOfBlogs < 1 || newJob.blogs.numberOfBlogs > MAX_BLOGS) {
+        newErrors.numberOfBlogs = `Number of blogs must be between 1 and ${MAX_BLOGS}.`
+      }
+      if (newJob.blogs.numberOfImages < 0 || newJob.blogs.numberOfImages > MAX_BLOGS) {
+        newErrors.numberOfImages = `Number of images must be between 0 and 20.`
       }
       if (newJob.blogs.useBrandVoice && !newJob.blogs.brandId) {
-        errors.brandId = true
-        message.error("Please select a brand voice.")
+        newErrors.brandId = "Please select a brand voice."
       }
-      if (
-        newJob.schedule.type === "weekly" &&
-        (!newJob.schedule.daysOfWeek || newJob.schedule.daysOfWeek.length === 0)
-      ) {
-        errors.daysOfWeek = true
-        message.error("Please select at least one day of the week.")
+      if (newJob.schedule.type === "weekly" && newJob.schedule.daysOfWeek.length === 0) {
+        newErrors.daysOfWeek = "Please select at least one day of the week."
       }
-      if (
-        newJob.schedule.type === "monthly" &&
-        (!newJob.schedule.daysOfMonth || newJob.schedule.daysOfMonth.length === 0)
-      ) {
-        errors.daysOfMonth = true
-        message.error("Please select at least one date of the month.")
+      if (newJob.schedule.type === "monthly" && newJob.schedule.daysOfMonth.length === 0) {
+        newErrors.daysOfMonth = "Please select at least one day of the month."
       }
-      if (
-        newJob.schedule.type === "custom" &&
-        (!newJob.schedule.customDates || newJob.schedule.customDates.length === 0)
-      ) {
-        errors.customDates = true
-        message.error("Please select at least one custom date.")
+      if (newJob.schedule.type === "custom" && newJob.schedule.customDates.length === 0) {
+        newErrors.customDates = "Please select at least one custom date."
+      }
+      if (newJob.blogs.isCheckedGeneratedImages && !newJob.blogs.imageSource) {
+        newErrors.imageSource = "Please select an image source."
       }
     }
-    setErrors(errors)
-    return Object.keys(errors).length === 0
+    if (step === 4 || step === "all") {
+      if (newJob.options.wordpressPosting && !formData.postingType) {
+        newErrors.postingType = "Please select a posting platform."
+      }
+    }
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
   }
 
-  const handleCreateJob = () => {
-    if (!isUserLoaded) {
-      message.error("User data is still loading. Please try again.")
-      return
-    }
-    if (!validateSteps(2) || !validateSteps(3)) return
+  const handleCreateJob = async () => {
+    if (!validateSteps("all")) return
     const jobPayload = {
       ...newJob,
-      blogs: { ...newJob.blogs, keywords: formData.keywords, aiModel: formData.aiModel },
+      blogs: {
+        ...newJob.blogs,
+        keywords: formData.keywords,
+        aiModel: formData.aiModel,
+        postingType: formData.postingType,
+      },
       options: {
         ...newJob.options,
         performKeywordResearch: formData.performKeywordResearch,
         brandId: newJob.blogs.useBrandVoice ? newJob.blogs.brandId : null,
       },
     }
-    dispatch(
-      createJobThunk({
-        jobPayload,
-        user,
-        onSuccess: () => {
-          dispatch(closeJobModal())
-          dispatch(fetchJobs())
-          setNewJob(initialJob)
-          setFormData({ keywords: [], keywordInput: "", performKeywordResearch: false })
-          setCurrentStep(1)
-        },
+    try {
+      const newJobData = await dispatch(createJobThunk({ jobPayload, user })).unwrap()
+      queryClient.setQueryData(["jobs", user.id], (old = []) => [newJobData, ...old])
+      dispatch(closeJobModal())
+      setNewJob(initialJob)
+      setFormData({
+        keywords: [],
+        keywordInput: "",
+        performKeywordResearch: false,
+        postingType: "WORDPRESS",
+        aiModel: "gemini",
       })
-    )
+      setCurrentStep(1)
+      setErrors({})
+      dispatch(clearSelectedKeywords())
+    } catch (error) {
+      console.error("Failed to create job. Please try again.", error)
+    }
   }
 
-  const handleUpdateJob = (jobId) => {
+  const handleUpdateJob = async (jobId) => {
     if (!isUserLoaded) {
       message.error("User data is still loading. Please try again.")
       return
     }
-    if (!validateSteps(2) || !validateSteps(3)) return
+    if (!validateSteps("all")) return
     const jobPayload = {
       ...newJob,
-      blogs: { ...newJob.blogs, keywords: formData.keywords, aiModel: formData.aiModel },
+      blogs: {
+        ...newJob.blogs,
+        keywords: formData.keywords,
+        aiModel: formData.aiModel,
+        postingType: formData.postingType,
+      },
       options: {
         ...newJob.options,
         performKeywordResearch: formData.performKeywordResearch,
         brandId: newJob.blogs.useBrandVoice ? newJob.blogs.brandId : null,
       },
     }
-    dispatch(
-      updateJobThunk({
-        jobId,
-        jobPayload,
-        onSuccess: () => {
-          dispatch(closeJobModal())
-          dispatch(fetchJobs())
-          setNewJob(initialJob)
-          setFormData({ keywords: [], keywordInput: "", performKeywordResearch: false })
-          setCurrentStep(1)
-        },
+    try {
+      const updatedJobData = await dispatch(updateJobThunk({ jobId, jobPayload })).unwrap()
+      queryClient.setQueryData(["jobs", user.id], (old = []) =>
+        old.map((job) => (job._id === jobId ? { ...job, ...updatedJobData } : job))
+      )
+      dispatch(closeJobModal())
+      setNewJob(initialJob)
+      setFormData({
+        keywords: [],
+        keywordInput: "",
+        performKeywordResearch: false,
+        postingType: "WORDPRESS",
+        aiModel: "gemini",
       })
-    )
+      setCurrentStep(1)
+      setErrors({})
+      dispatch(clearSelectedKeywords())
+    } catch (error) {
+      console.log(error)
+    }
   }
 
   const footerButtons = [
@@ -252,7 +264,6 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
         Previous
       </button>
     ),
-
     currentStep < 3 && (
       <button
         key="next"
@@ -265,7 +276,6 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
         Next
       </button>
     ),
-
     currentStep === 3 && (
       <button
         key="next-step-4"
@@ -278,7 +288,6 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
         Next
       </button>
     ),
-
     currentStep === 4 && (
       <button
         key="submit"
@@ -306,7 +315,13 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
       onCancel={() => {
         dispatch(closeJobModal())
         setNewJob(initialJob)
-        setFormData({ keywords: [], keywordInput: "", performKeywordResearch: false })
+        setFormData({
+          keywords: [],
+          keywordInput: "",
+          performKeywordResearch: false,
+          postingType: "WORDPRESS",
+          aiModel: "gemini",
+        })
         setCurrentStep(1)
         setErrors({})
         dispatch(clearSelectedKeywords())
@@ -325,8 +340,10 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
           setFormData={setFormData}
           errors={errors}
           setErrors={setErrors}
-          recentlyUploadedCount={recentlyUploadedCount}
-          setRecentlyUploadedCount={setRecentlyUploadedCount}
+          recentlyUploadedTopicsCount={recentlyUploadedTopicsCount}
+          setRecentlyUploadedTopicsCount={setRecentlyUploadedTopicsCount}
+          recentlyUploadedKeywordsCount={recentlyUploadedKeywordsCount}
+          setRecentlyUploadedKeywordsCount={setRecentlyUploadedKeywordsCount}
           showAllTopics={showAllTopics}
           setShowAllTopics={setShowAllTopics}
           showAllKeywords={showAllKeywords}

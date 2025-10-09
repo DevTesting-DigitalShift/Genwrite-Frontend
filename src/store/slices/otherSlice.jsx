@@ -18,15 +18,16 @@ export const createStripeSession = async (data) => {
     const res = await axiosInstance.post("/stripe/create-checkout-session", data)
     return res.data
   } catch (error) {
+    category
     throw new Error(error.response?.data?.message || "Stripe session creation failed")
   }
 }
 
 export const getCategoriesThunk = createAsyncThunk(
   "categories/getAll",
-  async (_, { rejectWithValue }) => {
+  async (type = "WORDPRESS", { rejectWithValue }) => {
     try {
-      const data = await fetchCategories()
+      const data = await fetchCategories(type)
       return data
     } catch (err) {
       console.error("Error in getCategoriesThunk", err)
@@ -116,6 +117,18 @@ export const createIntegrationThunk = createAsyncThunk(
   async (payload, { rejectWithValue }) => {
     try {
       return await createIntegration(payload)
+    } catch (err) {
+      return rejectWithValue(err.response?.data || err.message)
+    }
+  }
+)
+
+export const updateExistingIntegration = createAsyncThunk(
+  "integrations/update",
+  async (payload, { rejectWithValue }) => {
+    try {
+      const res = await updateIntegration(payload)
+      return res
     } catch (err) {
       return rejectWithValue(err.response?.data || err.message)
     }
@@ -219,6 +232,23 @@ const wordpressSlice = createSlice({
         state.data = action.payload
       })
       .addCase(getIntegrationsThunk.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload
+      })
+
+      .addCase(updateExistingIntegration.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(updateExistingIntegration.fulfilled, (state, action) => {
+        state.loading = false
+        const updatedIntegration = action.payload
+        const index = state.integrations.findIndex((p) => p.id === updatedIntegration.id)
+        if (index !== -1) {
+          state.integrations[index] = updatedIntegration
+        }
+      })
+      .addCase(updateExistingIntegration.rejected, (state, action) => {
         state.loading = false
         state.error = action.payload
       })

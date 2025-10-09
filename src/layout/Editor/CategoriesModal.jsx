@@ -1,8 +1,9 @@
-import React, { useState, useCallback } from "react"
+import React, { useState, useCallback, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button, Modal, Select, message } from "antd"
-import { useSelector } from "react-redux"
+import { useDispatch, useSelector } from "react-redux"
 import { Plus, X } from "lucide-react"
+import { getCategoriesThunk } from "@store/slices/otherSlice"
 
 // Popular WordPress categories (limited to 15 for relevance)
 const POPULAR_CATEGORIES = [
@@ -29,6 +30,7 @@ const CategoriesModal = ({
   onSubmit,
   initialCategory = "",
   initialIncludeTableOfContents = false,
+  integrations,
 }) => {
   const [customCategory, setCustomCategory] = useState("")
   const [selectedCategory, setSelectedCategory] = useState(initialCategory)
@@ -37,6 +39,18 @@ const CategoriesModal = ({
   )
   const [categoryError, setCategoryError] = useState(false)
   const { categories, error: wordpressError } = useSelector((state) => state.wordpress)
+  const [selectedIntegration, setSelectedIntegration] = useState(null)
+  const dispatch = useDispatch()
+
+  useEffect(() => {
+    if (selectedIntegration?.platform) {
+      dispatch(getCategoriesThunk(selectedIntegration.platform)).unwrap()
+    }
+  }, [dispatch, selectedIntegration?.platform])
+
+  const handleIntegrationChange = (platform, url) => {
+    setSelectedIntegration({ platform, url })
+  }
 
   // Handle adding a category (custom or predefined)
   const handleCategoryAdd = useCallback(
@@ -80,15 +94,22 @@ const CategoriesModal = ({
     if (!selectedCategory) {
       setCategoryError(true)
       message.error("Please select a category.")
+
       return
     }
-    onSubmit({ category: selectedCategory, includeTableOfContents })
+    onSubmit({ category: selectedCategory, includeTableOfContents, type: selectedIntegration })
     setIsCategoryModalOpen(false)
     setSelectedCategory("")
     setIncludeTableOfContents(false)
     setCustomCategory("")
     setCategoryError(false)
-  }, [selectedCategory, includeTableOfContents, onSubmit, setIsCategoryModalOpen])
+  }, [
+    selectedCategory,
+    includeTableOfContents,
+    selectedIntegration,
+    onSubmit,
+    setIsCategoryModalOpen,
+  ])
 
   // Handle modal cancellation
   const handleCancel = useCallback(() => {
@@ -137,6 +158,32 @@ const CategoriesModal = ({
       width={600}
     >
       <div className="p-3 space-y-4">
+        {integrations?.integrations && Object.keys(integrations.integrations).length > 0 && (
+          <div>
+            <span className="text-sm font-medium text-gray-700">
+              Select Your Publishing Platform
+              <p className="text-xs text-gray-500 mt-1">
+                Post your blog automatically to connected platforms only.
+              </p>
+            </span>
+
+            <Select
+              className="w-full mt-2"
+              placeholder="Select platform"
+              value={selectedIntegration?.platform || undefined}
+              onChange={(platform) => {
+                const details = integrations.integrations[platform]
+                handleIntegrationChange(platform, details.url)
+              }}
+            >
+              {Object.entries(integrations.integrations).map(([platform, details]) => (
+                <Option key={platform} value={platform}>
+                  {platform}
+                </Option>
+              ))}
+            </Select>
+          </div>
+        )}
         {/* Selected Category Display */}
         <AnimatePresence>
           {selectedCategory && (

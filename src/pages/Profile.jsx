@@ -245,7 +245,7 @@ const Profile = () => {
           <div className="relative p-4 sm:p-6 md:p-8 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600">
             <div className="relative flex flex-col sm:flex-row items-center gap-4 sm:gap-6 md:gap-8">
               <motion.div
-                className="relative group"
+                className="relative group flex-shrink-0"
                 whileHover="hover"
                 variants={{
                   hover: { scale: 1.03 },
@@ -307,7 +307,7 @@ const Profile = () => {
                     </Tooltip>
                   )}
                 </div>
-                <p className="text-sm sm:text-base md:text-xl font-light opacity-90">
+                <p className="text-sm sm:text-base md:text-xl font-light opacity-90 line-clamp-3">
                   {profileData.personalDetails.bio || <span className="text-gray-300">Bio</span>}
                 </p>
                 <div className="flex flex-wrap justify-center sm:justify-start gap-2 sm:gap-3">
@@ -390,285 +390,154 @@ const Profile = () => {
               </AnimatePresence>
             </div>
 
-            {/* Profile Sections */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
-              {/* Personal Details */}
-              <motion.div
-                variants={cardVariants}
-                whileHover="hover"
-                className="bg-white/80 backdrop-blur-sm p-4 sm:p-6 md:p-8 rounded-2xl border-2 border-slate-200 shadow-lg min-w-fit"
-              >
-                <h2 className="text-xl sm:text-2xl font-bold text-slate-800 mb-4 sm:mb-6 flex items-center gap-2">
-                  <UserGroupIcon className="w-5 sm:w-6 h-5 sm:h-6 text-blue-500" />
-                  Personal Details
-                </h2>
-                <div className="space-y-3 sm:space-y-4">
-                  <ProfileField
-                    label="Full Name"
-                    name="personalDetails.name"
-                    value={profileData.personalDetails.name}
-                    isEditing={isEditing}
-                    onChange={handleInputChange}
-                    placeholder={DEMO_PROFILE.personalDetails.name}
-                  />
-                  <ProfileField
-                    label="Email"
-                    name="personalDetails.email"
-                    value={profileData.personalDetails.email}
-                    isEditing={isEditing}
-                    onChange={handleInputChange}
-                    placeholder={DEMO_PROFILE.personalDetails.email}
-                    disabled={true}
-                  />
-                  <ProfileField
-                    label="Bio"
-                    name="personalDetails.bio"
-                    value={profileData.personalDetails.bio}
-                    isEditing={isEditing}
-                    onChange={handleInputChange}
-                    placeholder="e.g : I'm a travel enthusiast who loves exploring new cultures."
-                    type="textarea"
-                  />
-                  <ProfileField
-                    label="WordPress Link"
-                    name="personalDetails.wordpress"
-                    value={profileData.personalDetails.wordpress}
-                    isEditing={isEditing}
-                    onChange={handleInputChange}
-                    placeholder="eg : https://yourblog.wordpress.com"
-                  />
-                  <ProfileField
-                    label="Phone"
-                    name="personalDetails.phone"
-                    value={profileData.personalDetails.phone}
-                    isEditing={isEditing}
-                    onChange={handleInputChange}
-                    placeholder={DEMO_PROFILE.personalDetails.phone}
-                    maxLength={15}
-                  />
-                  <ProfileField
-                    label="Job Title"
-                    name="personalDetails.jobTitle"
-                    value={profileData.personalDetails.jobTitle}
-                    isEditing={isEditing}
-                    onChange={handleInputChange}
-                    placeholder={DEMO_PROFILE.personalDetails.jobTitle}
-                  />
-                  <ProfileField
-                    label="Company"
-                    name="personalDetails.company"
-                    value={profileData.personalDetails.company}
-                    isEditing={isEditing}
-                    onChange={handleInputChange}
-                    placeholder={DEMO_PROFILE.personalDetails.company}
-                  />
+            {/* Personal Details */}
+            <motion.div
+              variants={cardVariants}
+              whileHover="hover"
+              className="bg-white/80 backdrop-blur-sm p-4 sm:p-6 md:p-8 rounded-2xl border-2 border-slate-200 shadow-lg min-w-fit"
+            >
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-800 mb-4 sm:mb-6 flex items-center gap-2">
+                <UserGroupIcon className="w-5 sm:w-6 h-5 sm:h-6 text-blue-500" />
+                Personal Details
+              </h2>
+              <div className="space-y-3 sm:space-y-4">
+                <ProfileField
+                  label="Full Name"
+                  name="personalDetails.name"
+                  value={profileData.personalDetails.name}
+                  isEditing={isEditing}
+                  onChange={handleInputChange}
+                  placeholder={DEMO_PROFILE.personalDetails.name}
+                />
+                <ProfileField
+                  label="Email"
+                  name="personalDetails.email"
+                  value={profileData.personalDetails.email}
+                  isEditing={isEditing}
+                  onChange={handleInputChange}
+                  placeholder={DEMO_PROFILE.personalDetails.email}
+                  disabled={true}
+                />
+                <ProfileField
+                  label="Bio"
+                  name="personalDetails.bio"
+                  value={profileData.personalDetails.bio}
+                  isEditing={isEditing}
+                  onChange={handleInputChange}
+                  placeholder="e.g : I'm a travel enthusiast who loves exploring new cultures."
+                  type="textarea"
+                />
+                <ProfileField
+                  label="Phone"
+                  name="personalDetails.phone"
+                  value={profileData.personalDetails.phone}
+                  isEditing={isEditing}
+                  onChange={handleInputChange}
+                  placeholder={DEMO_PROFILE.personalDetails.phone}
+                  maxLength={15}
+                />
+                <ProfileField
+                  label="Job Title"
+                  name="personalDetails.jobTitle"
+                  value={profileData.personalDetails.jobTitle}
+                  isEditing={isEditing}
+                  onChange={handleInputChange}
+                  placeholder={DEMO_PROFILE.personalDetails.jobTitle}
+                />
+                <ProfileField
+                  label="Company"
+                  name="personalDetails.company"
+                  value={profileData.personalDetails.company}
+                  isEditing={isEditing}
+                  onChange={handleInputChange}
+                  placeholder={DEMO_PROFILE.personalDetails.company}
+                />
 
-                  {/* Interests Section */}
-                  <motion.div className="space-y-2" whileHover={{ scale: 1.02 }}>
-                    <label className="text-xs sm:text-sm font-medium text-slate-600">
-                      Interests
-                    </label>
-                    {isEditing ? (
-                      <Select
-                        mode="multiple"
-                        value={profileData.personalDetails.interests}
-                        onChange={handleInterestsChange}
-                        className="w-full"
-                        placeholder="Select your interests"
-                        options={INTEREST_OPTIONS}
-                        maxTagCount="responsive"
-                      />
-                    ) : (
-                      <motion.div
-                        className="px-3 sm:px-4 py-2 bg-white/80 rounded-lg border-2 border-slate-200"
-                        whileHover={{ x: 5 }}
-                      >
-                        <div className="flex flex-wrap gap-2">
-                          {profileData.personalDetails.interests?.length > 0 ? (
-                            profileData.personalDetails.interests.map((interest) => {
-                              const option = INTEREST_OPTIONS.find((opt) => opt.value === interest)
-                              return (
-                                <Tag
-                                  key={interest}
-                                  color={option?.color || "#fa8c16"}
-                                  className="text-xs sm:text-sm"
-                                >
-                                  {option?.label || interest}
-                                </Tag>
-                              )
-                            })
-                          ) : (
-                            <span className="text-gray-400 text-xs sm:text-sm">
-                              No interests selected
-                            </span>
-                          )}
-                        </div>
-                      </motion.div>
-                    )}
-                  </motion.div>
-
-                  {/* Date of Birth */}
-                  <motion.div className="space-y-2" whileHover={{ scale: 1.02 }}>
-                    <label className="text-xs sm:text-sm font-medium text-slate-600">
-                      Date of Birth
-                    </label>
-                    {isEditing ? (
-                      <DatePicker
-                        format="YYYY-MM-DD"
-                        value={
-                          profileData.personalDetails.dob
-                            ? dayjs(profileData.personalDetails.dob)
-                            : null
-                        }
-                        onChange={(date, dateString) =>
-                          handleInputChange({
-                            target: {
-                              name: "personalDetails.dob",
-                              value: dateString,
-                            },
-                          })
-                        }
-                        className="w-full text-xs sm:text-sm"
-                        disabledDate={(current) => current && current > dayjs().endOf("day")}
-                      />
-                    ) : (
-                      <motion.div
-                        className="px-3 sm:px-4 py-2 bg-white/80 rounded-lg border-2 border-slate-200 text-xs sm:text-sm"
-                        whileHover={{ x: 5 }}
-                      >
-                        {profileData.personalDetails.dob ? (
-                          new Date(profileData.personalDetails.dob).toLocaleDateString("en-IN", {
-                            day: "numeric",
-                            month: "long",
-                            year: "numeric",
+                {/* Interests Section */}
+                <motion.div className="space-y-2" whileHover={{ scale: 1.02 }}>
+                  <label className="text-xs sm:text-sm font-medium text-slate-600">Interests</label>
+                  {isEditing ? (
+                    <Select
+                      mode="multiple"
+                      value={profileData.personalDetails.interests}
+                      onChange={handleInterestsChange}
+                      className="w-full"
+                      placeholder="Select your interests"
+                      options={INTEREST_OPTIONS}
+                      maxTagCount="responsive"
+                    />
+                  ) : (
+                    <motion.div
+                      className="px-3 sm:px-4 py-2 bg-white/80 rounded-lg border-2 border-slate-200"
+                      whileHover={{ x: 5 }}
+                    >
+                      <div className="flex flex-wrap gap-2">
+                        {profileData.personalDetails.interests?.length > 0 ? (
+                          profileData.personalDetails.interests.map((interest) => {
+                            const option = INTEREST_OPTIONS.find((opt) => opt.value === interest)
+                            return (
+                              <Tag
+                                key={interest}
+                                color={option?.color || "#fa8c16"}
+                                className="text-xs sm:text-sm"
+                              >
+                                {option?.label || interest}
+                              </Tag>
+                            )
                           })
                         ) : (
-                          <span className="text-gray-400">{DEMO_PROFILE.personalDetails.dob}</span>
+                          <span className="text-gray-400 text-xs sm:text-sm">
+                            No interests selected
+                          </span>
                         )}
-                      </motion.div>
-                    )}
-                  </motion.div>
-                </div>
-              </motion.div>
-
-              {/* Subscription & Credits and Notifications */}
-              <div className="space-y-4 sm:space-y-6">
-                {/* Subscription & Credits */}
-                <motion.div
-                  variants={cardVariants}
-                  whileHover="hover"
-                  className="bg-gradient-to-br from-blue-50 to-purple-50 p-4 sm:p-6 md:p-8 rounded-2xl border-2 border-indigo-100 shadow-lg relative overflow-hidden min-w-fit"
-                >
-                  <div className="absolute -top-20 -right-20 w-40 h-40 bg-purple-200/20 rounded-full blur-3xl" />
-                  <h2 className="text-xl sm:text-2xl font-bold text-slate-800 mb-4 sm:mb-6 flex items-center gap-2">
-                    <CreditCardIcon className="w-5 sm:w-6 h-5 sm:h-6 text-indigo-500" />
-                    Subscription & Credits
-                  </h2>
-                  <div className="space-y-3 sm:space-y-4">
-                    <div className="flex justify-between items-center p-3 sm:p-4 rounded-lg bg-white/80 text-xs sm:text-sm">
-                      <span className="font-medium">Plan Type</span>
-                      <Badge
-                        count={profileData.subscription.plan.toUpperCase()}
-                        style={{
-                          backgroundColor:
-                            profileData.subscription.plan === "free"
-                              ? "#d9d9d9"
-                              : profileData.subscription.plan === "basic"
-                              ? "#1890ff"
-                              : profileData.subscription.plan === "pro"
-                              ? "#722ed1"
-                              : "#faad14",
-                          color: profileData.subscription.plan === "free" ? "#000" : "#fff",
-                        }}
-                        className="text-xs sm:text-sm"
-                      />
-                    </div>
-                    <div className="flex justify-between items-center p-3 sm:p-4 rounded-lg bg-white/80 text-xs sm:text-sm">
-                      <span className="font-medium">Total Credits</span>
-                      <span className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3 sm:px-4 py-1 rounded-full font-bold text-sm sm:text-lg">
-                        {totalCredits}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 sm:p-4 rounded-lg bg-white/80 text-xs sm:text-sm">
-                      <span className="font-medium">Start Date</span>
-                      <span className="text-gray-700">
-                        {profileData?.subscription?.startDate
-                          ? new Date(profileData.subscription.startDate).toLocaleDateString(
-                              "en-IN",
-                              {
-                                day: "numeric",
-                                month: "long",
-                                year: "numeric",
-                              }
-                            )
-                          : DEMO_PROFILE.subscription.startDate}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 sm:p-4 rounded-lg bg-white/80 text-xs sm:text-sm">
-                      <span className="font-medium">Renewal Date</span>
-                      <span className="text-gray-700">
-                        {profileData?.subscription?.renewalDate
-                          ? new Date(profileData.subscription.renewalDate).toLocaleDateString(
-                              "en-IN",
-                              {
-                                day: "numeric",
-                                month: "long",
-                                year: "numeric",
-                              }
-                            )
-                          : "Not set"}
-                      </span>
-                    </div>
-                  </div>
+                      </div>
+                    </motion.div>
+                  )}
                 </motion.div>
 
-                {/* Notifications */}
-                <motion.div
-                  variants={cardVariants}
-                  whileHover="hover"
-                  className="bg-gradient-to-br from-orange-50 to-red-50 p-4 sm:p-6 md:p-8 rounded-2xl border-2 border-orange-100 shadow-lg relative overflow-hidden min-w-fit"
-                >
-                  <div className="absolute -top-20 -right-20 w-40 h-40 bg-orange-200/20 rounded-full blur-3xl" />
-                  <h2 className="text-xl sm:text-2xl font-bold text-slate-800 mb-4 sm:mb-6 flex items-center gap-2">
-                    <BellIcon className="w-5 sm:w-6 h-5 sm:h-6 text-orange-500" />
-                    Recent Notifications
-                    {profileData.notifications?.length > 0 && (
-                      <Badge count={profileData.notifications.length} />
-                    )}
-                  </h2>
-                  <div className="space-y-3 max-h-48 sm:max-h-60 md:max-h-72 overflow-y-auto">
-                    {profileData.notifications?.length > 0 ? (
-                      profileData.notifications.slice(0, 5).map((notification, index) => (
-                        <motion.div
-                          key={index}
-                          className="p-2 sm:p-3 rounded-lg bg-white/80 border-l-4 border-orange-400 text-xs sm:text-sm"
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.1 }}
-                        >
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <p className="font-medium text-xs sm:text-sm">{notification.title}</p>
-                              <p className="text-xs text-gray-600 mt-1">{notification.message}</p>
-                            </div>
-                            <span className="text-xs text-gray-500">
-                              {notification.createdAt
-                                ? new Date(notification.createdAt).toLocaleDateString()
-                                : "Recent"}
-                            </span>
-                          </div>
-                        </motion.div>
-                      ))
-                    ) : (
-                      <div className="text-center py-6 sm:py-8 text-gray-500">
-                        <BellIcon className="w-10 sm:w-12 h-10 sm:h-12 mx-auto mb-3 opacity-50" />
-                        <p className="text-xs sm:text-sm">No notifications yet</p>
-                      </div>
-                    )}
-                  </div>
+                {/* Date of Birth */}
+                <motion.div className="space-y-2" whileHover={{ scale: 1.02 }}>
+                  <label className="text-xs sm:text-sm font-medium text-slate-600">
+                    Date of Birth
+                  </label>
+                  {isEditing ? (
+                    <DatePicker
+                      format="YYYY-MM-DD"
+                      value={
+                        profileData.personalDetails.dob
+                          ? dayjs(profileData.personalDetails.dob)
+                          : null
+                      }
+                      onChange={(date, dateString) =>
+                        handleInputChange({
+                          target: {
+                            name: "personalDetails.dob",
+                            value: dateString,
+                          },
+                        })
+                      }
+                      className="w-full text-xs sm:text-sm"
+                      disabledDate={(current) => current && current > dayjs().endOf("day")}
+                    />
+                  ) : (
+                    <motion.div
+                      className="px-3 sm:px-4 py-2 bg-white/80 rounded-lg border-2 border-slate-200 text-xs sm:text-sm"
+                      whileHover={{ x: 5 }}
+                    >
+                      {profileData.personalDetails.dob ? (
+                        new Date(profileData.personalDetails.dob).toLocaleDateString("en-IN", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })
+                      ) : (
+                        <span className="text-gray-400">{DEMO_PROFILE.personalDetails.dob}</span>
+                      )}
+                    </motion.div>
+                  )}
                 </motion.div>
               </div>
-            </div>
+            </motion.div>
           </motion.div>
         </motion.div>
 

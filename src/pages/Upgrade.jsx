@@ -5,10 +5,11 @@ import { loadStripe } from "@stripe/stripe-js"
 import { Check, Coins, Crown, Mail, Shield, Star, Zap } from "lucide-react"
 import { Helmet } from "react-helmet"
 import { SkeletonCard } from "@components/UI/SkeletonLoader"
-import { message, Modal } from "antd"
+import { Button, message, Modal } from "antd"
 import { sendStripeGTMEvent } from "@utils/stripeGTMEvents"
 import { useSelector } from "react-redux"
 import ComparisonTable from "@components/ComparisonTable"
+import { useNavigate } from "react-router-dom"
 
 const PricingCard = ({
   plan,
@@ -25,8 +26,16 @@ const PricingCard = ({
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [pendingPlan, setPendingPlan] = useState(null)
   const [pendingCredits, setPendingCredits] = useState(0)
+  const [modalType, setModalType] = useState(null)
+  const [modalMessage, setModalMessage] = useState({ title: "", body: "" })
 
-  const handleCustomCreditsChange = (e) => {
+  const tierLevels = {
+    basic: 1,
+    pro: 2,
+    enterprise: 3,
+  }
+
+  const handleCustomCreditsChange = e => {
     const value = parseInt(e.target.value, 10)
     setCustomCredits(value)
   }
@@ -42,19 +51,16 @@ const PricingCard = ({
       ? plan.priceAnnual
       : plan.priceMonthly
 
-  // Determine if the plan should be disabled based on active status
   const isWithinBillingCycle = userStatus === "active"
 
   const isDisabled = (() => {
     const sub = userSubscription
     if (!sub || plan.type === "credit_purchase") return false
 
-    // No renewal date
     if (!sub.renewalDate) {
       return plan.tier === userPlan.toLowerCase()
     }
 
-    // With renewal date
     if (userStatus === "active") {
       const start = new Date(sub.startDate)
       const renewal = new Date(sub.renewalDate)
@@ -125,38 +131,83 @@ const PricingCard = ({
 
   const styles = getCardStyles()
 
+  let userBillingPeriod = null
+  if (userSubscription && userSubscription.renewalDate && userSubscription.startDate) {
+    const start = new Date(userSubscription.startDate)
+    const renewal = new Date(userSubscription.renewalDate)
+    const diffDays = (renewal - start) / (1000 * 60 * 60 * 24)
+    userBillingPeriod = diffDays > 60 ? "annual" : "monthly"
+  }
+
   const handleButtonClick = () => {
     if (isDisabled) return
 
     if (plan.type === "credit_purchase" && customCredits < 500) return
 
-    // Skip modal for credit purchase
     if (plan.type === "credit_purchase") {
       onBuy(plan, customCredits, billingPeriod)
       return
     }
 
-    // Show modal only if user has an active subscription and trying to upgrade
-    if (
-      userSubscription?.status === "active" &&
-      plan.tier !== userSubscription.plan.toLowerCase()
-    ) {
-      setPendingPlan(plan)
-      setPendingCredits(plan.type === "credit_purchase" ? customCredits : plan.credits)
-      setShowConfirmModal(true)
-    } else {
+    if (plan.name.toLowerCase().includes("enterprise")) {
       proceedToBuy(plan)
+      return
     }
+
+    if (!userSubscription || userSubscription.status !== "active") {
+      onBuy(plan, plan.credits, billingPeriod)
+      return
+    }
+
+    setPendingPlan(plan)
+    setPendingCredits(plan.credits)
+
+    const currentTier = tierLevels[userPlan.toLowerCase()]
+    const newTier = tierLevels[plan.tier]
+    const startDateStr = userSubscription.renewalDate
+      ? new Date(userSubscription.renewalDate).toLocaleDateString()
+      : "immediately"
+
+    let thisModalType = ""
+    let thisModalMessage = { title: "", body: "" }
+
+    const isSameTier = plan.tier === userPlan.toLowerCase()
+
+    if (
+      isSameTier &&
+      userPlan.toLowerCase() === "pro" &&
+      userBillingPeriod === "monthly" &&
+      billingPeriod === "annual"
+    ) {
+      thisModalType = "same-tier"
+      thisModalMessage = {
+        title: "Confirm Plan Change",
+        body: `Your new ${plan.name} plan will start on ${startDateStr} at the beginning of your next billing cycle.`,
+      }
+    } else if (!isSameTier && currentTier < newTier) {
+      thisModalType = "upgrade"
+      thisModalMessage = {
+        title: "Confirm Upgrade",
+        body: `Your current subscription will be replaced, and your new ${plan.name} plan will start immediately.`,
+      }
+    } else {
+      thisModalType = "downgrade"
+      thisModalMessage = {
+        title: "Confirm Downgrade",
+        body: `Your new ${plan.name} plan will start on ${startDateStr} at the beginning of your next billing cycle.`,
+      }
+    }
+
+    setModalType(thisModalType)
+    setModalMessage(thisModalMessage)
+    setShowConfirmModal(true)
   }
 
-  const proceedToBuy = (planToBuy) => {
+  const proceedToBuy = planToBuy => {
     if (planToBuy.type === "credit_purchase") {
       onBuy(planToBuy, pendingCredits, billingPeriod)
     } else if (planToBuy.name.toLowerCase().includes("enterprise")) {
-      window.open(
-        `https://mail.google.com/mail/?view=cm&fs=1&to=support@genwrite.com&su=GenWrite Enterprise Subscription&body=I'm interested in the Enterprise plan.`,
-        "_blank"
-      )
+      window.open(`https:in the Enterprise plan.`, "_blank")
     } else {
       onBuy(planToBuy, pendingCredits || planToBuy.credits, billingPeriod)
     }
@@ -231,7 +282,7 @@ const PricingCard = ({
                   {typeof displayPrice === "string" ? displayPrice : `$${displayPrice}`}
                 </span>
                 {typeof displayPrice !== "string" && (
-                  <span className="text-gray-500 text-lg pb-1">/{billingPeriod}</span>
+                  <span className="text-gray-500 text-lg pb-1">/monthly</span>
                 )}
               </div>
               {billingPeriod === "annual" && typeof displayPrice === "number" && (
@@ -284,35 +335,39 @@ const PricingCard = ({
         </button>
       </div>
       <Modal
-        title={<span className="text-lg">Confirm Purchase</span>}
+        title={<span className="text-lg">{modalMessage.title}</span>}
         open={showConfirmModal}
         onCancel={() => setShowConfirmModal(false)}
-        onOk={() => {
-          setShowConfirmModal(false)
-          proceedToBuy(pendingPlan)
-        }}
-        okText="Confirm"
-        cancelText="Cancel"
         centered
-        bodyStyle={{ padding: "10px", fontSize: "16px" }}
-        okButtonProps={{ className: "bg-blue-600 hover:bg-blue-700 text-white font-semibold" }}
-        cancelButtonProps={{ className: "border border-gray-300 font-medium" }}
+        styles={{ padding: "10px", fontSize: "16px" }}
+        footer={
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => setShowConfirmModal(false)}
+              className="border border-gray-300 px-4 py-2 rounded-md font-medium"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                setShowConfirmModal(false)
+                proceedToBuy(pendingPlan)
+              }}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-semibold"
+            >
+              Confirm
+            </button>
+          </div>
+        }
       >
         <p className="text-gray-700">
           You already have an active subscription:{" "}
           <span className="font-bold text-gray-900">{userSubscription?.plan}</span>.
         </p>
-        <p className="text-gray-700">
-          The new plan: <span className="font-bold text-gray-900">{pendingPlan?.name}</span> will
-          start on{" "}
-          <span className="font-bold text-gray-900">
-            {userSubscription?.renewalDate
-              ? new Date(userSubscription.renewalDate).toLocaleDateString()
-              : "immediately"}
-          </span>
-          .
+        <p className="text-gray-700">{modalMessage.body}</p>
+        <p className="text-gray-600 mt-2 text-sm italic">
+          Please confirm to proceed with your purchase.
         </p>
-        <p className="text-gray-600 mt-2 text-sm italic">Please confirm to proceed with your purchase.</p>
       </Modal>
     </div>
   )
@@ -322,7 +377,8 @@ const Upgrade = () => {
   const [loading, setLoading] = useState(true)
   const [billingPeriod, setBillingPeriod] = useState("annual")
   const [showComparisonTable, setShowComparisonTable] = useState(true)
-  const user = useSelector((state) => state.auth.user)
+  const user = useSelector(state => state.auth.user)
+  const navigate = useNavigate()
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1200)
@@ -348,7 +404,7 @@ const Upgrade = () => {
           "Humanize pasted content",
           "Email support",
           "Standard templates",
-          "Automatic WordPress Posting",
+          "Automatic Blog Posting",
           "Basic content analytics",
         ],
         cta: "Get Started",
@@ -379,7 +435,7 @@ const Upgrade = () => {
           "Custom templates",
           "SEO optimization",
           "AI content suggestions",
-          "Automatic WordPress Posting",
+          "Automatic Blog Posting",
           "Custom AI models & workflows",
           "Advanced content insights",
         ],
@@ -402,7 +458,7 @@ const Upgrade = () => {
           "Dedicated support manager",
           "Custom integrations",
           "Early access to beta tools",
-          "Automatic WordPress Posting",
+          "Automatic Blog Posting",
           "Approval workflows",
         ],
         cta: "Contact Sales",
@@ -423,7 +479,7 @@ const Upgrade = () => {
           "No subscription required",
           "Credits never expire",
           "All features unlocked based on usage",
-          "Automatic WordPress Posting",
+          "Automatic Blog Posting",
           "Blog generation: single, quick, multiple",
           "Keyword research",
           "Performance monitoring",
@@ -443,7 +499,7 @@ const Upgrade = () => {
   const plans = getPlans(billingPeriod, user?.subscription?.plan)
 
   function getGaClientId() {
-    const gaCookie = document.cookie.split("; ").find((row) => row.startsWith("_ga="))
+    const gaCookie = document.cookie.split("; ").find(row => row.startsWith("_ga="))
     if (gaCookie) {
       const parts = gaCookie.split(".")
       if (parts.length > 2) {
@@ -461,7 +517,7 @@ const Upgrade = () => {
       return
     }
     try {
-      const { data } = await axiosInstance.post("/stripe/checkout", {
+      const response = await axiosInstance.post("/stripe/checkout", {
         planName: plan.name.toLowerCase().includes("pro")
           ? "pro"
           : plan.name.toLowerCase().includes("basic")
@@ -473,15 +529,28 @@ const Upgrade = () => {
         success_url: `${window.location.origin}/payment/success`,
         cancel_url: `${window.location.origin}/payment/cancel`,
       })
-
-      sendStripeGTMEvent(plan, credits, billingPeriod, user._id)
-      const result = await stripe.redirectToCheckout({ sessionId: data.sessionId })
-      if (result?.error) throw result.error
+      if ([200, 201].includes(response.status)) {
+        if (response.data?.sessionId) {
+          sendStripeGTMEvent(plan, credits, billingPeriod, user._id)
+          const result = await stripe.redirectToCheckout({ sessionId: response.data.sessionId })
+          if (result?.error) throw result.error
+        } else {
+          message.success(response.data?.message || "Your Upcoming Plan has been set successfully.")
+          navigate("/transactions", { replace: true })
+        }
+      }
     } catch (error) {
-      console.error("Checkout error:", error)
-      message.error("Failed to initiate checkout. Please try again.")
+      if (error?.status === 409) {
+        message.error(error?.response?.data?.message || "User Subscription Conflict Error")
+      } else {
+        message.error("Failed to initiate checkout. Please try again.")
+      }
     }
   }
+
+  const totalCredits = user?.credits?.base + user?.credits?.extra
+
+  const showTrialMessage = !user?.subscription?.trialOpted
 
   return (
     <div className="bg-gray-50 py-10 px-4">
@@ -489,6 +558,24 @@ const Upgrade = () => {
         <title>Subscription | GenWrite</title>
       </Helmet>
       <div className="mx-auto">
+        {showTrialMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="mb-8 bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-xl shadow-lg border border-blue-200 max-w-3xl mx-auto"
+          >
+            <div className="flex flex-col items-center text-center">
+              <Star className="w-8 h-8 text-blue-600 mb-4" />
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Start Your 7-Day Free Trial</h2>
+              <p className="text-gray-600 text-lg max-w-xl mb-6">
+                Unlock the full potential of GenWrite with a 7-day free trial. Experience our
+                powerful AI content creation tools at no cost. Select a plan below to begin your
+                trial and elevate your content creation journey.
+              </p>
+            </div>
+          </motion.div>
+        )}
         {user?.subscription?.plan === "enterprise" && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -523,7 +610,7 @@ const Upgrade = () => {
 
           <div className="flex justify-center mt-8">
             <div className="inline-flex items-center bg-white rounded-full p-1 border border-gray-200 shadow-sm">
-              {["monthly", "annual"].map((period) => (
+              {["monthly", "annual"].map(period => (
                 <button
                   key={period}
                   onClick={() => setBillingPeriod(period)}
@@ -555,7 +642,7 @@ const Upgrade = () => {
               ? Array.from({ length: 4 }).map((_, idx) => <SkeletonCard key={idx} />)
               : plans.map((plan, index) => (
                   <PricingCard
-                    user
+                    user={user}
                     key={plan.name}
                     plan={plan}
                     index={index}
@@ -577,6 +664,7 @@ const Upgrade = () => {
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.3 }}
+              className="mt-20"
             >
               <ComparisonTable plans={plans} billingPeriod={billingPeriod} />
             </motion.div>
@@ -587,7 +675,10 @@ const Upgrade = () => {
         <div className="flex justify-end mt-4 mr-20">
           <a
             href="/cancel-subscription"
-            className="text-sm font-medium text-gray-700 hover:text-purple-600 transition-colors bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 px-4 py-2 shadow-sm"
+            className="text-sm font-medium text-white transition-colors 
+               bg-gradient-to-r from-blue-600 to-purple-600 
+               rounded-lg px-4 py-2 shadow-sm 
+               hover:from-blue-700 hover:to-purple-700"
           >
             Thinking of leaving GenWrite?
           </a>

@@ -384,12 +384,11 @@ const OutlineEditor = () => {
         width="90vw"
         style={{ maxWidth: "800px" }}
         centered
-        bodyStyle={{
+        styles={{
           background: "rgba(255, 255, 255, 0.95)",
           backdropFilter: "blur(8px)",
           padding: "1rem",
         }}
-        maskStyle={{ background: "rgba(0, 0, 0, 0.5)", backdropFilter: "blur(4px)" }}
       >
         <div className="px-2 sm:px-4">
           {currentStep === 0 && (
@@ -401,7 +400,7 @@ const OutlineEditor = () => {
                     key={index}
                     className={clsx(
                       "cursor-pointer transition-all duration-200",
-                      selectedTemplate === pkg.name && "border-blue-600 border-2 rounded-lg"
+                      selectedTemplate === pkg.name && "border-gray-200 border-2 rounded-lg"
                     )}
                     onClick={() => handlePackageSelect(index)}
                   >
@@ -430,7 +429,7 @@ const OutlineEditor = () => {
                       key={index}
                       className={clsx(
                         "cursor-pointer transition-all duration-200",
-                        selectedTemplate === pkg.name && "border-blue-600 border-2 rounded-lg"
+                        selectedTemplate === pkg.name && "border-gray-200 border-2 rounded-lg"
                       )}
                       onClick={() => handlePackageSelect(index)}
                     >
@@ -787,33 +786,33 @@ const OutlineEditor = () => {
         </div>
       </Modal>
       <div className="py-6 min-h-[100vh] flex flex-col">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6 px-4 sm:px-0">
-  <h1 className="text-xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent text-center sm:text-left">
-    Blog Outline Editor
-  </h1>
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6 px-4 sm:px-0">
+          <h1 className="text-xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent text-center sm:text-left">
+            Blog Outline Editor
+          </h1>
 
-  <button
-    onClick={handleExportMarkdown}
-    className="w-full sm:w-auto px-3 py-2 sm:px-4 sm:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm sm:text-base font-medium flex justify-center items-center gap-2"
-    aria-label="Export as Markdown"
-  >
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      className="h-4 sm:h-5 w-4 sm:w-5"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-      />
-    </svg>
-    Export as Markdown
-  </button>
-</div>
+          <button
+            onClick={handleExportMarkdown}
+            className="w-full sm:w-auto px-3 py-2 sm:px-4 sm:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm sm:text-base font-medium flex justify-center items-center gap-2"
+            aria-label="Export as Markdown"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 sm:h-5 w-4 sm:w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+              />
+            </svg>
+            Export as Markdown
+          </button>
+        </div>
 
         {markdownContent ? (
           <div className="flex-1 flex flex-col sm:flex-row sm:space-x-4">

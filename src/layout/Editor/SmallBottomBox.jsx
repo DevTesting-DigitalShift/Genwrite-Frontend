@@ -49,7 +49,7 @@ const SmallBottomBox = ({ id }) => {
       navigate("/pricing")
     } else {
       handlePopup({
-        title: "Retry Blog Generation",
+        title: "Regenerate Blog",
         description: `Are you sure you want to retry generating this blog?\nIt will be of 10 credits`,
         onConfirm: handleRetry,
       })
