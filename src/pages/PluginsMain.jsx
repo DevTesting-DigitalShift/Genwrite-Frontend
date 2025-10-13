@@ -395,15 +395,21 @@ const PluginsMain = () => {
                         : "Connect Integration"}
                     </Button>
 
-                    <Button
-                      type="default"
-                      href="https://drive.google.com/drive/folders/1uB2O4GfJpPE0DuvnILpWUEnv4hKhLoIO?usp=sharing"
-                      size="large"
-                      icon={<Download size={16} />}
-                      className="w-full mt-4 border-teal-500 text-teal-600 hover:bg-teal-50 rounded-lg shadow-sm"
+                    <a
+                      href={plugin.downloadLink}
+                      download
+                      target="_blank"
+                      rel="noopener noreferrer"
                     >
-                      Download Plugin
-                    </Button>
+                      <Button
+                        type="default"
+                        size="large"
+                        icon={<Download size={16} />}
+                        className="w-full mt-4 border-teal-500 text-teal-600 hover:bg-teal-50 rounded-lg shadow-sm"
+                      >
+                        Download Plugin Doc
+                      </Button>
+                    </a>
                   </div>
                 </Flex>
               </Flex>
@@ -552,15 +558,16 @@ const PluginsMain = () => {
             </Flex>
           </Card>
 
-          <Button
-            type="default"
-            href="https://drive.google.com/drive/folders/1uB2O4GfJpPE0DuvnILpWUEnv4hKhLoIO?usp=sharing"
-            size="large"
-            icon={<Download size={16} />}
-            className="w-full mt-4 border-teal-500 text-teal-600 hover:bg-teal-50 rounded-lg shadow-sm"
-          >
-            Download Plugin
-          </Button>
+          <a href={plugin.downloadLink} download target="_blank" rel="noopener noreferrer">
+            <Button
+              type="default"
+              size="large"
+              icon={<Download size={16} />}
+              className="w-full mt-4 border-teal-500 text-teal-600 hover:bg-teal-50 rounded-lg shadow-sm"
+            >
+              Download Plugin
+            </Button>
+          </a>
 
           <Card className="bg-gray-50 border-0 rounded-lg shadow-sm">
             <Paragraph className="text-sm md:text-base text-gray-700 leading-relaxed mb-0">

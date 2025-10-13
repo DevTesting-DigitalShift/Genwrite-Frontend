@@ -1,7 +1,7 @@
 import { pingIntegrationThunk } from "@store/slices/otherSlice"
 import { FaServer, FaWordpressSimple } from "react-icons/fa"
 
-export const pluginsData = (dispatch) => [
+export const pluginsData = dispatch => [
   {
     id: 111,
     name: "WordPress",
@@ -14,7 +14,7 @@ export const pluginsData = (dispatch) => [
     description: "A WordPress plugin to upload blogs using AI",
     message:
       "AI Blogger Sync is a powerful WordPress plugin that connects your WordPress website to our genwrite.co domain, enabling you to upload AI-generated blogs effortlessly. It is an excellent tool for bloggers and content creators aiming to save time and effort in content creation. With AI Blogger Sync, you can generate high-quality content with minimal effort and post it to your WordPress website seamlessly.",
-    downloadLink: "/ai-blogger-uploader.zip",
+    downloadLink: "/plugins/ai-blogger-sync.zip",
     onCheck: async () => {
       try {
         const result = await dispatch(pingIntegrationThunk("WORDPRESS")).unwrap()
@@ -44,7 +44,7 @@ export const pluginsData = (dispatch) => [
     description: "Direct server-to-server integration for seamless data transfer and automation.",
     message:
       "Server-to-Server integration enables direct communication between your server and our platform for automated content publishing, including fetching posts, categories, and creating new posts programmatically.",
-    downloadLink: "#",
+    downloadLink: "/plugins/ServerEndpointDoc.pdf",
     onCheck: async () => {
       try {
         const result = await dispatch(pingIntegrationThunk("SERVERENDPOINT")).unwrap()
