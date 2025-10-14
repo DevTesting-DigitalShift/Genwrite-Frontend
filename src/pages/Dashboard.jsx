@@ -38,6 +38,7 @@ import KeywordResearchModel from "../components/dashboardModals/KeywordResearchM
 import QuickBlogModal from "../components/multipleStepModal/QuickBlogModal"
 import InlineAnnouncementBanner from "@/layout/InlineAnnouncementBanner"
 import dayjs from "dayjs"
+import YoutubeBlogModal from "@components/multipleStepModal/YoutubeBlogModal"
 
 ChartJS.register(
   ArcElement,
@@ -56,6 +57,7 @@ const Dashboard = () => {
   const [daisyUIModal, setDaisyUIModal] = useState(false)
   const [multiStepModal, setMultiStepModal] = useState(false)
   const [quickBlogModal, setQuickBlogModal] = useState(false)
+  const [youtubeBlogModal, setYoutubeBlogModal] = useState(false)
   const [competitiveAnalysisModal, setCompetitiveAnalysisModal] = useState(false)
   const [performanceModal, setPerformanceModal] = useState(false)
   const [keywordResearchModal, setKeywordResearchModal] = useState(false)
@@ -63,7 +65,7 @@ const Dashboard = () => {
   const [modelData, setModelData] = useState({})
   const [recentBlogData, setRecentBlogData] = useState([])
   const [loading, setLoading] = useState(true)
-  const { blogs, error, allBlogs } = useSelector((state) => state.blog)
+  const { blogs, error, allBlogs } = useSelector(state => state.blog)
   const [showWhatsNew, setShowWhatsNew] = useState(false)
   const [showAnnouncementBanner, setShowAnnouncementBanner] = useState(true)
   const dispatch = useDispatch()
@@ -78,6 +80,8 @@ const Dashboard = () => {
   const hideMultiStepModal = () => setMultiStepModal(false)
   const showQuickBlogModal = () => setQuickBlogModal(true)
   const hideQuickBlogModal = () => setQuickBlogModal(false)
+  const showYoutubeBlogModal = () => setYoutubeBlogModal(true)
+  const hideYoutubeBlogModal = () => setYoutubeBlogModal(false)
   const showCompetitiveAnalysis = () => setCompetitiveAnalysisModal(true)
   const hideCompetitiveAnalysis = () => setCompetitiveAnalysisModal(false)
 
@@ -105,7 +109,7 @@ const Dashboard = () => {
     try {
       const response = await dispatch(fetchAllBlogs(queryParams)).unwrap()
 
-      const activeBlogs = (response.data || []).filter((b) => !b.isArchived)
+      const activeBlogs = (response.data || []).filter(b => !b.isArchived)
 
       // Sort only if `sort` is provided
       let sortedBlogs = activeBlogs
@@ -141,7 +145,7 @@ const Dashboard = () => {
       return
     }
 
-    const activeBlogs = blogs.data.filter((b) => !b.isArchived)
+    const activeBlogs = blogs.data.filter(b => !b.isArchived)
 
     // Sort DESC → newest first
     const sortedBlogs = activeBlogs.sort(
@@ -223,7 +227,7 @@ const Dashboard = () => {
     initUser()
   }, [dispatch, navigate])
 
-  const handleSubmit = async (updatedData) => {
+  const handleSubmit = async updatedData => {
     try {
       const totalCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
       const estimatedBlogCost = getEstimatedCost("blog.single", modelData.aiModel || "default")
@@ -311,6 +315,7 @@ const Dashboard = () => {
       {daisyUIModal && <DaisyUIModal closeFnc={hideDaisy} />}
       {multiStepModal && <MultiStepModal closeFnc={hideMultiStepModal} />}
       {quickBlogModal && <QuickBlogModal closeFnc={hideQuickBlogModal} />}
+      {youtubeBlogModal && <YoutubeBlogModal closeFnc={hideYoutubeBlogModal} />}
       {competitiveAnalysisModal && (
         <CompetitiveAnalysisModal
           closeFnc={hideCompetitiveAnalysis}
@@ -322,7 +327,7 @@ const Dashboard = () => {
         <PerformanceMonitoringModal
           allBlogs={allBlogs}
           closeFnc={() => setPerformanceModal(false)}
-          visible={performanceModal} 
+          visible={performanceModal}
         />
       )}
       {keywordResearchModal && (
@@ -378,10 +383,10 @@ const Dashboard = () => {
           </div>
         ) : (
           <div className="space-y-8">
-            <div className="grid lg:grid-cols-3 gap-4">
+            <div className="grid lg:grid-cols-2 gap-4">
               <AnimatePresence>
                 {loading
-                  ? Array.from({ length: 3 }).map((_, idx) => <SkeletonDashboardCard key={idx} />)
+                  ? Array.from({ length: 4 }).map((_, idx) => <SkeletonDashboardCard key={idx} />)
                   : letsBegin.map((item, index) => (
                       <DashboardBox
                         key={index}
@@ -396,6 +401,7 @@ const Dashboard = () => {
                           showDaisy,
                           showMultiStepModal,
                           showQuickBlogModal,
+                          showYoutubeBlogModal,
                           showCompetitiveAnalysis,
                         }}
                       />

@@ -11,6 +11,7 @@ import {
   Users,
   Zap,
 } from "lucide-react"
+import { FaYoutube } from "react-icons/fa"
 
 export const stats = [
   { label: "Total Projects", value: "24", change: "+12%", icon: <Target className="w-5 h-5" /> },
@@ -26,27 +27,31 @@ export const stats = [
 
 export const letsBegin = [
   {
-    id: 1,
-    imageUrl: "./Images/createnew.png",
-    title: "Create New Blog",
-    icon: <PenTool className="w-6 h-6" />,
-    content: "Generate blogs, email, product, description, etc.",
-    hoverGradient: "from-blue-600 to-blue-700",
-  },
-  {
     id: "A",
-    imageUrl: "./Images/quickblog.png",
     title: "Generate Quick Blog",
     icon: <Zap className="w-6 h-6" />,
-    content: "With few inputs you are good to go to create Awesome blogs!",
+    content: "Create engaging blogs in seconds with just a few inputs — super fast and easy!",
     hoverGradient: "from-purple-600 to-purple-700",
   },
   {
     id: "B",
-    imageUrl: "./Images/createmultipleblog.png",
-    title: "Create Multiple Blogs",
+    title: "Generate YouTube Blog",
+    icon: <FaYoutube className="w-6 h-6" />,
+    content: "Transform YouTube videos into SEO-friendly blogs automatically.",
+    hoverGradient: "from-red-600 to-red-700",
+  },
+  {
+    id: "C",
+    title: "Generate Advanced Blog",
+    icon: <PenTool className="w-6 h-6" />,
+    content: "Fine-tune every detail — from tone to structure — for premium, pro-level blogs.",
+    hoverGradient: "from-blue-600 to-blue-700",
+  },
+  {
+    id: "D",
+    title: "Generate Bulk Blogs",
     icon: <Grid3X3 className="w-6 h-6" />,
-    content: "Generate multiple blogs using a variety of customizable templates.",
+    content: "Generate dozens of blogs at once with flexible templates and automation.",
     hoverGradient: "from-emerald-600 to-emerald-700",
   },
 ]
@@ -90,4 +95,3 @@ export const quickTools = [
     navigate: "/analytics",
   },
 ]
-

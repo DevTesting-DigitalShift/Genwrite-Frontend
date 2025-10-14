@@ -10,10 +10,10 @@ import { Plus, X } from "lucide-react"
 import Carousel from "./Carousel"
 import { packages } from "@/data/templates"
 
-const QuickBlogModal = ({ closeFnc }) => {
+const YoutubeBlogModal = ({ closeFnc }) => {
   const [currentStep, setCurrentStep] = useState(0)
   const [selectedPackage, setSelectedPackage] = useState(null)
-  const [otherLinks, setOtherLinks] = useState([])
+  const [ytLinks, setYtLinks] = useState([])
   const [formData, setFormData] = useState({
     topic: "",
     performKeywordResearch: true,
@@ -21,7 +21,7 @@ const QuickBlogModal = ({ closeFnc }) => {
     template: null,
     keywords: [],
     focusKeywords: [],
-    otherLinkInput: "",
+    ytLinkInput: "",
     focusKeywordInput: "",
     keywordInput: "",
   })
@@ -30,7 +30,7 @@ const QuickBlogModal = ({ closeFnc }) => {
     template: "",
     focusKeywords: "",
     keywords: "",
-    otherLinks: "",
+    ytLinks: "",
     imageSource: "",
   })
 
@@ -73,17 +73,17 @@ const QuickBlogModal = ({ closeFnc }) => {
       template: null,
       keywords: [],
       focusKeywords: [],
-      otherLinkInput: "",
+      ytLinkInput: "",
       focusKeywordInput: "",
       keywordInput: "",
     })
-    setOtherLinks([])
+    setYtLinks([])
     setErrors({
       topic: "",
       template: "",
       focusKeywords: "",
       keywords: "",
-      otherLinks: "",
+      ytLinks: "",
       imageSource: "",
     })
     closeFnc()
@@ -101,7 +101,7 @@ const QuickBlogModal = ({ closeFnc }) => {
         formData.performKeywordResearch && formData.keywords.length === 0
           ? "Please add at least one secondary keyword."
           : "",
-      otherLinks: otherLinks.length === 0 ? "Please add at least one valid reference link." : "",
+      ytLinks: ytLinks.length === 0 ? "Please add at least one valid YouTube link." : "",
       imageSource: !formData.imageSource ? "Please select an image source." : "",
     }
 
@@ -112,30 +112,29 @@ const QuickBlogModal = ({ closeFnc }) => {
       return
     }
 
-    if (otherLinks.length > 3) {
-      setErrors(prev => ({ ...prev, otherLinks: "You can only add up to 3 reference links." }))
-      message.error("You can only add up to 3 reference links.")
+    if (ytLinks.length > 3) {
+      setErrors(prev => ({ ...prev, ytLinks: "You can only add up to 3 YouTube links." }))
       return
     }
 
     const finalData = {
       ...formData,
-      otherLinks,
+      ytLinks,
     }
 
     handlePopup({
-      title: "Quick Blog Generation",
+      title: "YouTube Blog Generation",
       description: (
         <>
           <span>
-            Quick blog generation costs <b>{getEstimatedCost("blog.quick")} credits</b>.
+            YouTube blog generation costs <b>{getEstimatedCost("blog.quick")} credits</b>.
           </span>
           <br />
           <span>Are you sure you want to proceed?</span>
         </>
       ),
       onConfirm: () => {
-        dispatch(createNewQuickBlog({ blogData: finalData, user, navigate, type: "quick" }))
+        dispatch(createNewQuickBlog({ blogData: finalData, user, navigate, type: "yt" }))
         handleClose()
       },
     })
@@ -196,6 +195,7 @@ const QuickBlogModal = ({ closeFnc }) => {
 
     if (type === "focusKeywords" && formData[type].length + newKeywords.length > 3) {
       setErrors(prev => ({ ...prev, [type]: "You can only add up to 3 focus keywords." }))
+      message.error("You can only add up to 3 focus keywords.")
       return
     }
 
@@ -223,25 +223,63 @@ const QuickBlogModal = ({ closeFnc }) => {
     }
   }
 
-  // Validate URL for reference links
-  const validateUrl = url => {
+  // Extract YouTube video ID from URL
+  const getVideoId = url => {
     try {
-      new URL(url)
-      return { valid: true }
+      const parsed = new URL(url)
+      const hostname = parsed.hostname.toLowerCase().replace("www.", "")
+
+      if (!hostname.includes("youtube.com") && !hostname.includes("youtu.be")) {
+        return null
+      }
+
+      let videoId = null
+
+      if (hostname === "youtube.com" || hostname === "m.youtube.com") {
+        const pathname = parsed.pathname
+        if (pathname.startsWith("/watch")) {
+          videoId = parsed.searchParams.get("v")
+        } else if (pathname.startsWith("/embed/")) {
+          videoId = pathname.split("/embed/")[1].split("/")[0].split("?")[0]
+        } else if (pathname.startsWith("/v/")) {
+          videoId = pathname.split("/v/")[1].split("/")[0].split("?")[0]
+        } else if (pathname.startsWith("/shorts/")) {
+          videoId = pathname.split("/shorts/")[1].split("/")[0].split("?")[0]
+        }
+      } else if (hostname === "youtu.be") {
+        videoId = parsed.pathname.slice(1).split("/")[0].split("?")[0]
+      }
+
+      return videoId
     } catch {
-      return { valid: false, error: "Please enter a valid URL (e.g., https://example.com)." }
+      return null
     }
   }
 
-  // Add reference links
+  // Validate URL for YouTube links
+  const validateUrl = url => {
+    const videoId = getVideoId(url)
+    const videoIdRegex = /^[a-zA-Z0-9_-]{11}$/
+
+    if (!videoId || !videoIdRegex.test(videoId)) {
+      return {
+        valid: false,
+        error: "Please enter a valid YouTube video link with a proper video ID.",
+      }
+    }
+
+    return { valid: true }
+  }
+
+  // Add YouTube links
   const handleAddLink = () => {
-    const input = formData.otherLinkInput?.trim()
+    const input = formData.ytLinkInput?.trim()
     const maxLinks = 3
 
     if (!input) {
       setErrors(prev => ({
         ...prev,
-        otherLinks: "Please enter at least one valid reference link.",
+        ytLinks: "Please enter at least one valid YouTube link.",
       }))
       return
     }
@@ -254,13 +292,13 @@ const QuickBlogModal = ({ closeFnc }) => {
     const validNewLinks = []
 
     for (let link of newLinks) {
-      if (otherLinks.includes(link) || validNewLinks.includes(link)) {
+      if (ytLinks.includes(link) || validNewLinks.includes(link)) {
         continue
       }
 
       const validation = validateUrl(link)
       if (!validation.valid) {
-        setErrors(prev => ({ ...prev, otherLinks: validation.error }))
+        setErrors(prev => ({ ...prev, ytLinks: validation.error }))
         message.error(validation.error)
         return
       }
@@ -271,25 +309,25 @@ const QuickBlogModal = ({ closeFnc }) => {
     if (validNewLinks.length === 0) {
       setErrors(prev => ({
         ...prev,
-        otherLinks: "No valid, unique reference links found.",
+        ytLinks: "No valid, unique YouTube links found.",
       }))
       return
     }
 
-    if (otherLinks.length + validNewLinks.length > maxLinks) {
+    if (ytLinks.length + validNewLinks.length > maxLinks) {
       setErrors(prev => ({
         ...prev,
-        otherLinks: `You can only add up to ${maxLinks} reference links.`,
+        ytLinks: `You can only add up to ${maxLinks} YouTube links.`,
       }))
       return
     }
 
-    setOtherLinks([...otherLinks, ...validNewLinks])
+    setYtLinks([...ytLinks, ...validNewLinks])
     setFormData(prev => ({
       ...prev,
-      otherLinkInput: "",
+      ytLinkInput: "",
     }))
-    setErrors(prev => ({ ...prev, otherLinks: "" }))
+    setErrors(prev => ({ ...prev, ytLinks: "" }))
   }
 
   // Handle Enter key for links
@@ -300,12 +338,12 @@ const QuickBlogModal = ({ closeFnc }) => {
     }
   }
 
-  // Remove a reference link
+  // Remove a YouTube link
   const handleRemoveLink = index => {
-    const updatedLinks = [...otherLinks]
+    const updatedLinks = [...ytLinks]
     updatedLinks.splice(index, 1)
-    setOtherLinks(updatedLinks)
-    setErrors(prev => ({ ...prev, otherLinks: "" }))
+    setYtLinks(updatedLinks)
+    setErrors(prev => ({ ...prev, ytLinks: "" }))
   }
 
   // Handle image source selection
@@ -324,7 +362,7 @@ const QuickBlogModal = ({ closeFnc }) => {
 
   return (
     <Modal
-      title="Generate Quick Blog"
+      title="Generate YouTube Blog"
       open={true}
       onCancel={handleClose}
       footer={
@@ -615,36 +653,32 @@ const QuickBlogModal = ({ closeFnc }) => {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Reference Links (e.g., articles, websites) <span className="text-red-500">*</span>
+                Add YouTube Link <span className="text-red-500">*</span>
               </label>
               <div className="space-y-2">
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    value={formData.otherLinkInput}
-                    onChange={e =>
-                      setFormData(prev => ({ ...prev, otherLinkInput: e.target.value }))
-                    }
+                    value={formData.ytLinkInput}
+                    onChange={e => setFormData(prev => ({ ...prev, ytLinkInput: e.target.value }))}
                     onKeyDown={e => handleKeyDown(e)}
                     className={`flex-1 px-3 py-2 border ${
-                      errors.otherLinks ? "border-red-500" : "border-gray-200"
+                      errors.ytLinks ? "border-red-500" : "border-gray-200"
                     } rounded-md text-sm bg-gray-50`}
-                    placeholder="Enter full URLs (e.g., https://example.com), separated by commas"
-                    aria-label="Reference links"
+                    placeholder="Enter full YouTube URLs, separated by commas"
+                    aria-label="YouTube links"
                   />
                   <button
                     onClick={() => handleAddLink()}
                     className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm flex items-center hover:bg-[#1B6FC9]/90 transition-colors"
-                    aria-label="Add reference links"
+                    aria-label="Add YouTube links"
                   >
                     <Plus size={16} />
                   </button>
                 </div>
-                {errors.otherLinks && (
-                  <p className="text-red-500 text-sm mt-1">{errors.otherLinks}</p>
-                )}
+                {errors.ytLinks && <p className="text-red-500 text-sm mt-1">{errors.ytLinks}</p>}
                 <div className="flex flex-wrap gap-2">
-                  {otherLinks.map((link, index) => (
+                  {ytLinks.map((link, index) => (
                     <span
                       key={index}
                       className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
@@ -669,4 +703,4 @@ const QuickBlogModal = ({ closeFnc }) => {
   )
 }
 
-export default QuickBlogModal
+export default YoutubeBlogModal

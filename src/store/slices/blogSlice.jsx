@@ -122,13 +122,14 @@ export const createNewBlog = createAsyncThunk(
 
 export const createNewQuickBlog = createAsyncThunk(
   "blogs/createNewQuickBlog",
-  async ({ blogData, user, navigate }, { rejectWithValue }) => {
+  async ({ blogData, user, navigate, type = "quick" }, { rejectWithValue }) => {
     try {
-      const blog = await createQuickBlog(blogData)
-      message.success("QuickBlog created successfully")
+      const blog = await createQuickBlog(blogData, type)
+      message.success(`${type === "yt" ? "YouTube" : "Quick"} Blog created successfully`)
+
       pushToDataLayer({
         event: "Blog Creation",
-        event_type: "Quick blog",
+        event_type: type === "yt" ? "YouTube blog" : "Quick blog",
         event_status: "success",
         user_id: user._id,
 
@@ -141,12 +142,13 @@ export const createNewQuickBlog = createAsyncThunk(
         blog_isBriefedByUser: blogData?.brief ? "yes" : "no",
         blog_quickSummary: blogData?.isCheckedQuick || false,
       })
+
       navigate(`/toolbox/${blog._id}`)
       return blog
     } catch (error) {
       pushToDataLayer({
         event: "Blog Creation",
-        event_type: "Quick blog",
+        event_type: type === "yt" ? "YouTube blog" : "Quick blog",
         event_status: "fail",
         user_id: user._id,
 
@@ -158,7 +160,7 @@ export const createNewQuickBlog = createAsyncThunk(
         blog_isBriefedByUser: blogData?.brief ? "yes" : "no",
         blog_quickSummary: blogData?.isCheckedQuick || false,
 
-        error_msg: err?.message || err?.response?.data?.message || "Blog Creation Failed",
+        error_msg: error?.message || error?.response?.data?.message || "Blog Creation Failed",
       })
       message.error(error.message)
       return rejectWithValue(error.message)
@@ -452,7 +454,7 @@ const blogSlice = createSlice({
   name: "blog",
   initialState,
   reducers: {
-    clearSelectedBlog: (state) => {
+    clearSelectedBlog: state => {
       state.selectedBlog = null
     },
     setProofreadingSuggestions(state, action) {
@@ -465,7 +467,7 @@ const blogSlice = createSlice({
       state.proofreadingSuggestions = []
     },
   },
-  extraReducers: (builder) => {
+  extraReducers: builder => {
     builder
 
       .addCase(fetchAllBlogs.fulfilled, (state, action) => {
@@ -510,16 +512,16 @@ const blogSlice = createSlice({
       })
       .addCase(archiveBlog.fulfilled, (state, action) => {
         const id = action.meta.arg
-        state.userBlogs = state.userBlogs.filter((b) => b._id !== id)
+        state.userBlogs = state.userBlogs.filter(b => b._id !== id)
       })
 
       // Delete All
-      .addCase(deleteAllUserBlogs.fulfilled, (state) => {
+      .addCase(deleteAllUserBlogs.fulfilled, state => {
         state.userBlogs = []
       })
 
       // Fetch Blog by ID
-      .addCase(fetchBlogById.pending, (state) => {
+      .addCase(fetchBlogById.pending, state => {
         state.loading = true
         state.error = null
       })
@@ -533,7 +535,7 @@ const blogSlice = createSlice({
       })
 
       //Update Blog by ID
-      .addCase(updateBlogById.pending, (state) => {
+      .addCase(updateBlogById.pending, state => {
         state.loading = true
         state.error = null
       })
@@ -548,7 +550,7 @@ const blogSlice = createSlice({
       })
 
       // Fetch Proofreading Suggestions
-      .addCase(fetchProofreadingSuggestions.pending, (state) => {
+      .addCase(fetchProofreadingSuggestions.pending, state => {
         state.loading = true
       })
       .addCase(fetchProofreadingSuggestions.fulfilled, (state, action) => {
@@ -561,7 +563,7 @@ const blogSlice = createSlice({
       })
 
       // Fetch Blog Stats
-      .addCase(fetchBlogStats.pending, (state) => {
+      .addCase(fetchBlogStats.pending, state => {
         state.loading = true
         state.error = null
       })
@@ -574,7 +576,7 @@ const blogSlice = createSlice({
         state.error = action.payload
       })
 
-      .addCase(fetchGeneratedTitles.pending, (state) => {
+      .addCase(fetchGeneratedTitles.pending, state => {
         state.loading = true
         state.error = null
       })
@@ -587,7 +589,7 @@ const blogSlice = createSlice({
         state.error = action.payload
       })
 
-      .addCase(createManualBlog.pending, (state) => {
+      .addCase(createManualBlog.pending, state => {
         state.loading = true
         state.error = null
       })
@@ -600,7 +602,7 @@ const blogSlice = createSlice({
         state.error = action.payload
       })
 
-      .addCase(fetchBlogStatus.pending, (state) => {
+      .addCase(fetchBlogStatus.pending, state => {
         state.loading = true
       })
       .addCase(fetchBlogStatus.fulfilled, (state, action) => {
@@ -612,7 +614,7 @@ const blogSlice = createSlice({
         state.error = action.payload
       })
 
-      .addCase(fetchBlogs.pending, (state) => {
+      .addCase(fetchBlogs.pending, state => {
         state.loading = true
       })
       .addCase(fetchBlogs.fulfilled, (state, action) => {
@@ -632,20 +634,20 @@ const blogSlice = createSlice({
 
       // Generic Error/Loading Handling
       .addMatcher(
-        (action) => action.type.startsWith("blogs/") && action.type.endsWith("/pending"),
-        (state) => {
+        action => action.type.startsWith("blogs/") && action.type.endsWith("/pending"),
+        state => {
           state.loading = true
           state.error = null
         }
       )
       .addMatcher(
-        (action) => action.type.startsWith("blogs/") && action.type.endsWith("/fulfilled"),
-        (state) => {
+        action => action.type.startsWith("blogs/") && action.type.endsWith("/fulfilled"),
+        state => {
           state.loading = false
         }
       )
       .addMatcher(
-        (action) => action.type.startsWith("blogs/") && action.type.endsWith("/rejected"),
+        action => action.type.startsWith("blogs/") && action.type.endsWith("/rejected"),
         (state, action) => {
           state.loading = false
           state.error = action.payload

@@ -35,7 +35,7 @@ const StepContent = ({
 }) => {
   const dispatch = useDispatch()
   const fileInputRef = useRef(null)
-  const { data: integrations } = useSelector((state) => state.wordpress)
+  const { data: integrations } = useSelector(state => state.wordpress)
   const {
     data: brands = [],
     isLoading: loadingBrands,
@@ -50,7 +50,7 @@ const StepContent = ({
 
   useEffect(() => {
     if (integrations?.integrations?.size) {
-      setFormData((prev) => ({
+      setFormData(prev => ({
         ...prev,
         postingType: integrations.integrations.key().next().value,
       }))
@@ -81,7 +81,7 @@ const StepContent = ({
   // Clean up object URLs to prevent memory leaks
   useEffect(() => {
     return () => {
-      newJob?.blogs?.blogImages?.forEach((image) => {
+      newJob?.blogs?.blogImages?.forEach(image => {
         if (image instanceof File) {
           URL.revokeObjectURL(URL.createObjectURL(image))
         }
@@ -91,7 +91,7 @@ const StepContent = ({
 
   useEffect(() => {
     if (isAiImagesLimitReached && newJob.blogs.isCheckedGeneratedImages) {
-      setNewJob((prev) => ({
+      setNewJob(prev => ({
         ...prev,
         blogs: {
           ...prev.blogs,
@@ -143,17 +143,17 @@ const StepContent = ({
     },
   ]
 
-  const handleIntegrationChange = (platform) => {
-    setFormData((prev) => ({
+  const handleIntegrationChange = platform => {
+    setFormData(prev => ({
       ...prev,
       postingType: platform,
     }))
-    setErrors((prev) => ({ ...prev, postingType: false })) // Clear error on change
+    setErrors(prev => ({ ...prev, postingType: false })) // Clear error on change
   }
 
   useEffect(() => {
     if (newJob.blogs.useBrandVoice && (!brands || brands.length === 0)) {
-      setNewJob((prev) => ({
+      setNewJob(prev => ({
         ...prev,
         blogs: { ...prev.blogs, useBrandVoice: false, brandId: null },
       }))
@@ -167,13 +167,13 @@ const StepContent = ({
 
     const existing =
       type === "topics"
-        ? newJob.blogs.topics.map((t) => t.toLowerCase().trim())
-        : formData.keywords.map((k) => k.toLowerCase().trim())
+        ? newJob.blogs.topics.map(t => t.toLowerCase().trim())
+        : formData.keywords.map(k => k.toLowerCase().trim())
     const seen = new Set()
     const newItems = trimmedInput
       .split(",")
-      .map((item) => item.trim())
-      .filter((item) => {
+      .map(item => item.trim())
+      .filter(item => {
         const lower = item.toLowerCase()
         if (!item || seen.has(lower) || existing.includes(lower)) return false
         seen.add(lower)
@@ -183,30 +183,30 @@ const StepContent = ({
     if (newItems.length === 0) return
 
     if (type === "topics") {
-      setFormData((prev) => ({
+      setFormData(prev => ({
         ...prev,
         topicInput: "",
       }))
-      setNewJob((prev) => ({
+      setNewJob(prev => ({
         ...prev,
         blogs: { ...prev.blogs, topics: [...prev.blogs.topics, ...newItems] },
       }))
-      setErrors((prev) => ({ ...prev, topics: false }))
+      setErrors(prev => ({ ...prev, topics: false }))
     } else {
-      setFormData((prev) => ({
+      setFormData(prev => ({
         ...prev,
         keywords: [...prev.keywords, ...newItems],
         keywordInput: "",
       }))
-      setNewJob((prev) => ({
+      setNewJob(prev => ({
         ...prev,
         blogs: { ...prev.blogs, keywords: [...prev.blogs.keywords, ...newItems] },
       }))
-      setErrors((prev) => ({ ...prev, keywords: false }))
+      setErrors(prev => ({ ...prev, keywords: false }))
     }
   }
 
-  const handleInputChange = (e) => {
+  const handleInputChange = e => {
     const { name, value, type } = e.target
 
     // Determine the value for number inputs
@@ -224,7 +224,7 @@ const StepContent = ({
     }
 
     // Update state
-    setNewJob((prev) => ({
+    setNewJob(prev => ({
       ...prev,
       blogs: {
         ...prev.blogs,
@@ -254,7 +254,7 @@ const StepContent = ({
     }
 
     const reader = new FileReader()
-    reader.onload = (event) => {
+    reader.onload = event => {
       const text = event.target?.result
       if (!text || typeof text !== "string") {
         message.error("Failed to read the CSV file. Please ensure it is valid.")
@@ -276,11 +276,11 @@ const StepContent = ({
 
       // Extract items from the CSV (taking the first non-empty column)
       const items = lines
-        .map((line) => {
+        .map(line => {
           const parts = line.split(",")
-          return parts.map((part) => part.trim()).find((part) => part) || null
+          return parts.map(part => part.trim()).find(part => part) || null
         })
-        .filter((item) => item && item.trim().length > 0)
+        .filter(item => item && item.trim().length > 0)
 
       if (items.length === 0) {
         message.warning(`No valid ${type} found in the CSV file.`)
@@ -290,10 +290,10 @@ const StepContent = ({
       // Compare with existing items (case-insensitive)
       const existing =
         type === "topics"
-          ? newJob.blogs.topics.map((t) => t.toLowerCase().trim())
-          : formData.keywords.map((k) => k.toLowerCase().trim())
+          ? newJob.blogs.topics.map(t => t.toLowerCase().trim())
+          : formData.keywords.map(k => k.toLowerCase().trim())
       const seen = new Set()
-      const uniqueNewItems = items.filter((item) => {
+      const uniqueNewItems = items.filter(item => {
         const lower = item.toLowerCase().trim()
         if (!item || seen.has(lower) || existing.includes(lower)) return false
         seen.add(lower)
@@ -309,21 +309,21 @@ const StepContent = ({
 
       // Update state with new items
       if (type === "topics") {
-        setNewJob((prev) => ({
+        setNewJob(prev => ({
           ...prev,
           blogs: { ...prev.blogs, topics: [...prev.blogs.topics, ...uniqueNewItems] },
         }))
-        setErrors((prev) => ({ ...prev, topics: false }))
+        setErrors(prev => ({ ...prev, topics: false }))
       } else {
-        setFormData((prev) => ({
+        setFormData(prev => ({
           ...prev,
           keywords: [...prev.keywords, ...uniqueNewItems],
         }))
-        setNewJob((prev) => ({
+        setNewJob(prev => ({
           ...prev,
           blogs: { ...prev.blogs, keywords: [...prev.blogs.keywords, ...uniqueNewItems] },
         }))
-        setErrors((prev) => ({ ...prev, keywords: false }))
+        setErrors(prev => ({ ...prev, keywords: false }))
       }
 
       // Notify user of successful upload
@@ -347,7 +347,7 @@ const StepContent = ({
     e.target.value = null
   }
 
-  const handleCheckboxChange = (e) => {
+  const handleCheckboxChange = e => {
     const { name, checked } = e.target
     if (name === "wordpressPosting" && checked) {
       const hasAnyIntegration = Object.keys(integrations?.integrations || {}).length > 0
@@ -357,17 +357,17 @@ const StepContent = ({
         return
       }
     }
-    setNewJob((prev) => ({
+    setNewJob(prev => ({
       ...prev,
       options: { ...prev.options, [name]: checked },
     }))
     if (name === "performKeywordResearch") {
-      setFormData((prev) => ({ ...prev, performKeywordResearch: checked }))
-      setErrors((prev) => ({ ...prev, keywords: false })) // Clear keyword error if enabling research
+      setFormData(prev => ({ ...prev, performKeywordResearch: checked }))
+      setErrors(prev => ({ ...prev, keywords: false })) // Clear keyword error if enabling research
     }
   }
 
-  const handleNumberOfBlogsChange = (e) => {
+  const handleNumberOfBlogsChange = e => {
     const { value } = e.target
 
     let numberValue
@@ -380,12 +380,12 @@ const StepContent = ({
       if (numberValue < 0) numberValue = 0 // optional: clamp to min
     }
 
-    setNewJob((prev) => ({
+    setNewJob(prev => ({
       ...prev,
       blogs: { ...prev.blogs, numberOfBlogs: numberValue },
     }))
 
-    setErrors((prev) => ({ ...prev, numberOfBlogs: false }))
+    setErrors(prev => ({ ...prev, numberOfBlogs: false }))
   }
 
   const keywordsToShow = showAllKeywords
@@ -396,8 +396,8 @@ const StepContent = ({
     ? newJob.blogs.topics.slice().reverse()
     : newJob.blogs.topics.slice().reverse().slice(0, 18)
 
-  const handleImageSourceChange = (source) => {
-    setNewJob((prev) => ({
+  const handleImageSourceChange = source => {
+    setNewJob(prev => ({
       ...prev,
       blogs: {
         ...prev.blogs,
@@ -405,17 +405,17 @@ const StepContent = ({
         isUnsplashActive: source === "unsplash",
       },
     }))
-    setErrors((prev) => ({ ...prev, imageSource: false })) // Clear error
+    setErrors(prev => ({ ...prev, imageSource: false })) // Clear error
   }
 
-  const validateImages = (files) => {
+  const validateImages = files => {
     const maxImages = 15
     const maxSize = 5 * 1024 * 1024 // 5 MB in bytes
     const allowedTypes = ["image/jpeg", "image/png", "image/webp"]
 
     if (!files || files.length === 0) return []
 
-    const validFiles = Array.from(files).filter((file) => {
+    const validFiles = Array.from(files).filter(file => {
       if (!allowedTypes.includes(file.type)) {
         message.error(
           `"${file.name}" is not a valid image type. Only PNG, JPEG, and WebP are allowed.`
@@ -438,13 +438,13 @@ const StepContent = ({
     return validFiles
   }
 
-  const handleFileChange = (e) => {
+  const handleFileChange = e => {
     const files = e.target.files
     if (!files || files.length === 0) return
 
     const validFiles = validateImages(files)
     if (validFiles.length > 0) {
-      setNewJob((prev) => ({
+      setNewJob(prev => ({
         ...prev,
         blogs: {
           ...prev.blogs,
@@ -458,17 +458,17 @@ const StepContent = ({
     }
   }
 
-  const handleDrop = (e) => {
+  const handleDrop = e => {
     e.preventDefault()
     e.stopPropagation()
-    setFormData((prev) => ({ ...prev, isDragging: false }))
+    setFormData(prev => ({ ...prev, isDragging: false }))
 
     const files = e.dataTransfer.files
     if (!files || files.length === 0) return
 
     const validFiles = validateImages(files)
     if (validFiles.length > 0) {
-      setNewJob((prev) => ({
+      setNewJob(prev => ({
         ...prev,
         blogs: {
           ...prev.blogs,
@@ -479,20 +479,20 @@ const StepContent = ({
     }
   }
 
-  const handleDragOver = (e) => {
+  const handleDragOver = e => {
     e.preventDefault()
     e.stopPropagation()
-    setFormData((prev) => ({ ...prev, isDragging: true }))
+    setFormData(prev => ({ ...prev, isDragging: true }))
   }
 
-  const handleDragLeave = (e) => {
+  const handleDragLeave = e => {
     e.preventDefault()
     e.stopPropagation()
-    setFormData((prev) => ({ ...prev, isDragging: false }))
+    setFormData(prev => ({ ...prev, isDragging: false }))
   }
 
-  const handleRemoveImage = (index) => {
-    setNewJob((prev) => ({
+  const handleRemoveImage = index => {
+    setNewJob(prev => ({
       ...prev,
       blogs: {
         ...prev.blogs,
@@ -518,7 +518,7 @@ const StepContent = ({
               errors.templates ? "border-red-500 border-2" : ""
             }`}
           >
-            {packages.map((pkg) => (
+            {packages.map(pkg => (
               <div
                 key={pkg.name}
                 className={`cursor-pointer transition-all duration-200 w-full ${
@@ -528,20 +528,20 @@ const StepContent = ({
                 }`}
                 onClick={() => {
                   if (newJob.blogs.templates.includes(pkg.name)) {
-                    setNewJob((prev) => ({
+                    setNewJob(prev => ({
                       ...prev,
                       blogs: {
                         ...prev.blogs,
-                        templates: prev.blogs.templates.filter((template) => template !== pkg.name),
+                        templates: prev.blogs.templates.filter(template => template !== pkg.name),
                       },
                     }))
-                    setErrors((prev) => ({ ...prev, templates: false }))
+                    setErrors(prev => ({ ...prev, templates: false }))
                   } else if (newJob.blogs.templates.length < 3) {
-                    setNewJob((prev) => ({
+                    setNewJob(prev => ({
                       ...prev,
                       blogs: { ...prev.blogs, templates: [...prev.blogs.templates, pkg.name] },
                     }))
-                    setErrors((prev) => ({ ...prev, templates: false }))
+                    setErrors(prev => ({ ...prev, templates: false }))
                   } else {
                     message.error("You can only select up to 3 templates.")
                   }
@@ -568,7 +568,7 @@ const StepContent = ({
           {/* Desktop View: Carousel Layout */}
           <div className={`hidden sm:block ${errors.templates ? "border-red-500 border-2" : ""}`}>
             <Carousel className="flex flex-row gap-4">
-              {packages.map((pkg) => (
+              {packages.map(pkg => (
                 <div
                   key={pkg.name}
                   className={`cursor-pointer transition-all duration-200 w-full${
@@ -578,22 +578,20 @@ const StepContent = ({
                   }`}
                   onClick={() => {
                     if (newJob.blogs.templates.includes(pkg.name)) {
-                      setNewJob((prev) => ({
+                      setNewJob(prev => ({
                         ...prev,
                         blogs: {
                           ...prev.blogs,
-                          templates: prev.blogs.templates.filter(
-                            (template) => template !== pkg.name
-                          ),
+                          templates: prev.blogs.templates.filter(template => template !== pkg.name),
                         },
                       }))
-                      setErrors((prev) => ({ ...prev, templates: false }))
+                      setErrors(prev => ({ ...prev, templates: false }))
                     } else if (newJob.blogs.templates.length < 3) {
-                      setNewJob((prev) => ({
+                      setNewJob(prev => ({
                         ...prev,
                         blogs: { ...prev.blogs, templates: [...prev.blogs.templates, pkg.name] },
                       }))
-                      setErrors((prev) => ({ ...prev, templates: false }))
+                      setErrors(prev => ({ ...prev, templates: false }))
                     } else {
                       message.error("You can only select up to 3 templates.")
                     }
@@ -629,9 +627,9 @@ const StepContent = ({
                 type="text"
                 value={newJob.name}
                 placeholder="Enter job name"
-                onChange={(e) => {
+                onChange={e => {
                   setNewJob({ ...newJob, name: e.target.value })
-                  setErrors((prev) => ({ ...prev, name: false }))
+                  setErrors(prev => ({ ...prev, name: false }))
                 }}
                 className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                   errors.name ? "border-red-500" : "border-gray-200"
@@ -651,10 +649,10 @@ const StepContent = ({
                 <input
                   type="text"
                   value={formData.topicInput || ""}
-                  onKeyDown={(e) =>
+                  onKeyDown={e =>
                     e.key === "Enter" && handleAddItems(formData.topicInput, "topics")
                   }
-                  onChange={(e) => setFormData((prev) => ({ ...prev, topicInput: e.target.value }))}
+                  onChange={e => setFormData(prev => ({ ...prev, topicInput: e.target.value }))}
                   className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
                     errors.topics ? "border-red-500" : "border-gray-200"
                   }`}
@@ -675,7 +673,7 @@ const StepContent = ({
                   <input
                     type="file"
                     accept=".csv"
-                    onChange={(e) => handleCSVUpload(e, "topics")}
+                    onChange={e => handleCSVUpload(e, "topics")}
                     hidden
                   />
                   <span className="sr-only">Upload CSV for topics</span>
@@ -694,7 +692,7 @@ const StepContent = ({
                       <button
                         type="button"
                         onClick={() =>
-                          setNewJob((prev) => ({
+                          setNewJob(prev => ({
                             ...prev,
                             blogs: {
                               ...prev.blogs,
@@ -712,7 +710,7 @@ const StepContent = ({
                 })}
                 {(newJob.blogs.topics.length > 18 || recentlyUploadedTopicsCount) && (
                   <span
-                    onClick={() => setShowAllTopics((prev) => !prev)}
+                    onClick={() => setShowAllTopics(prev => !prev)}
                     className="text-xs font-medium text-blue-600 self-center cursor-pointer flex items-center gap-1"
                   >
                     {showAllTopics ? (
@@ -759,10 +757,8 @@ const StepContent = ({
                   <input
                     type="text"
                     value={formData.keywordInput}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, keywordInput: e.target.value }))
-                    }
-                    onKeyDown={(e) =>
+                    onChange={e => setFormData(prev => ({ ...prev, keywordInput: e.target.value }))}
+                    onKeyDown={e =>
                       e.key === "Enter" && handleAddItems(formData.keywordInput, "keywords")
                     }
                     className={`flex-1 px-3 py-2 border rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 ${
@@ -781,7 +777,7 @@ const StepContent = ({
                     <input
                       type="file"
                       accept=".csv"
-                      onChange={(e) => handleCSVUpload(e, "keywords")}
+                      onChange={e => handleCSVUpload(e, "keywords")}
                       hidden
                     />
                     <span className="sr-only">Upload CSV</span>
@@ -802,8 +798,8 @@ const StepContent = ({
                           onClick={() => {
                             const updatedKeywords = [...formData.keywords]
                             updatedKeywords.splice(actualIndex, 1)
-                            setFormData((prev) => ({ ...prev, keywords: updatedKeywords }))
-                            setNewJob((prev) => ({
+                            setFormData(prev => ({ ...prev, keywords: updatedKeywords }))
+                            setNewJob(prev => ({
                               ...prev,
                               blogs: { ...prev.blogs, keywords: updatedKeywords },
                             }))
@@ -817,7 +813,7 @@ const StepContent = ({
                   })}
                   {(formData.keywords.length > 18 || recentlyUploadedKeywordsCount) && (
                     <span
-                      onClick={() => setShowAllKeywords((prev) => !prev)}
+                      onClick={() => setShowAllKeywords(prev => !prev)}
                       className="text-xs font-medium text-blue-600 self-center cursor-pointer flex items-center gap-1"
                     >
                       {showAllKeywords ? (
@@ -843,9 +839,9 @@ const StepContent = ({
                 <Select
                   className="w-full"
                   value={newJob.blogs.tone}
-                  onChange={(value) => {
+                  onChange={value => {
                     setNewJob({ ...newJob, blogs: { ...newJob.blogs, tone: value } })
-                    setErrors((prev) => ({ ...prev, tone: false }))
+                    setErrors(prev => ({ ...prev, tone: false }))
                   }}
                   placeholder="Select tone"
                   status={errors.tone ? "error" : ""}
@@ -880,7 +876,7 @@ const StepContent = ({
                         ((newJob.blogs.userDefinedLength - 500) / 4500) * 100
                       }%, #E5E7EB ${((newJob.blogs.userDefinedLength - 500) / 4500) * 100}%)`,
                     }}
-                    onChange={(e) =>
+                    onChange={e =>
                       setNewJob({
                         ...newJob,
                         blogs: { ...newJob.blogs, userDefinedLength: parseInt(e.target.value) },
@@ -908,9 +904,9 @@ const StepContent = ({
                   id="add-image-toggle"
                   className="sr-only peer"
                   checked={newJob.blogs.isCheckedGeneratedImages}
-                  onChange={(e) => {
+                  onChange={e => {
                     const checked = e.target.checked
-                    setNewJob((prev) => ({
+                    setNewJob(prev => ({
                       ...prev,
                       blogs: {
                         ...prev.blogs,
@@ -1013,7 +1009,7 @@ const StepContent = ({
                     errors.imageSource ? "border-2 border-red-500 rounded-lg p-2" : ""
                   }`}
                 >
-                  {imageSources.map((source) => {
+                  {imageSources.map(source => {
                     const isAiRestricted =
                       source.value === "ai-generated" && source.isAiImagesLimitReached
 
@@ -1032,7 +1028,7 @@ const StepContent = ({
               hover:shadow-sm w-full
               ${isBlocked ? "opacity-50 cursor-not-allowed" : ""}
             `}
-                        onClick={(e) => {
+                        onClick={e => {
                           if (isBlocked) {
                             e.preventDefault()
                             openUpgradePopup({
@@ -1083,7 +1079,7 @@ const StepContent = ({
                   max="15"
                   value={newJob.blogs.numberOfImages ?? ""}
                   onChange={handleInputChange}
-                  onWheel={(e) => e.currentTarget.blur()}
+                  onWheel={e => e.currentTarget.blur()}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm placeholder-gray-400 transition"
                   placeholder="e.g., 5"
                 />
@@ -1104,14 +1100,14 @@ const StepContent = ({
                 { id: "gemini", label: "Gemini", logo: "/Images/gemini.png", restricted: false },
                 { id: "chatgpt", label: "ChatGPT", logo: "/Images/chatgpt.png" },
                 { id: "claude", label: "Claude", logo: "/Images/claude.png" },
-              ].map((model) => (
+              ].map(model => (
                 <label
                   key={model.id}
                   htmlFor={model.id}
                   className={`relative border rounded-lg px-4 py-3 flex items-center gap-3 cursor-pointer transition-all duration-150
       ${formData.aiModel === model.id ? "border-blue-600 bg-blue-50" : "border-gray-300"}
       hover:shadow-sm w-full`}
-                  onClick={(e) => {
+                  onClick={e => {
                     if (model.restricted) {
                       e.preventDefault()
                       openUpgradePopup({ featureName: model.label, navigate })
@@ -1124,9 +1120,9 @@ const StepContent = ({
                     name="aiModel"
                     value={model.id}
                     checked={formData.aiModel === model.id}
-                    onChange={(e) => {
+                    onChange={e => {
                       if (!model.restricted) {
-                        setFormData((prev) => ({ ...prev, aiModel: e.target.value }))
+                        setFormData(prev => ({ ...prev, aiModel: e.target.value }))
                       }
                     }}
                     className="hidden"
@@ -1146,7 +1142,7 @@ const StepContent = ({
               <label className="block text-sm font-medium text-gray-700 mb-2">Schedule Type</label>
               <Select
                 value={newJob.schedule.type}
-                onChange={(value) => {
+                onChange={value => {
                   setNewJob({
                     ...newJob,
                     schedule: {
@@ -1157,7 +1153,7 @@ const StepContent = ({
                       customDates: value === "custom" ? [] : newJob.schedule.customDates,
                     },
                   })
-                  setErrors((prev) => ({
+                  setErrors(prev => ({
                     ...prev,
                     daysOfWeek: false,
                     daysOfMonth: false,
@@ -1192,13 +1188,13 @@ const StepContent = ({
                           : "bg-gray-200 text-gray-700"
                       }`}
                       onClick={() => {
-                        setNewJob((prev) => {
+                        setNewJob(prev => {
                           const daysOfWeek = prev.schedule.daysOfWeek?.includes(i)
-                            ? prev.schedule.daysOfWeek.filter((day) => day !== i)
+                            ? prev.schedule.daysOfWeek.filter(day => day !== i)
                             : [...(prev.schedule.daysOfWeek || []), i]
                           return { ...prev, schedule: { ...prev.schedule, daysOfWeek } }
                         })
-                        setErrors((prev) => ({ ...prev, daysOfWeek: false }))
+                        setErrors(prev => ({ ...prev, daysOfWeek: false }))
                       }}
                     >
                       {d}
@@ -1220,7 +1216,7 @@ const StepContent = ({
                     errors.daysOfMonth ? "border-red-500 border-2 p-2 rounded" : ""
                   }`}
                 >
-                  {Array.from({ length: 31 }, (_, i) => i + 1).map((date) => (
+                  {Array.from({ length: 31 }, (_, i) => i + 1).map(date => (
                     <button
                       key={date}
                       type="button"
@@ -1230,13 +1226,13 @@ const StepContent = ({
                           : "bg-gray-200 text-gray-700"
                       }`}
                       onClick={() => {
-                        setNewJob((prev) => {
+                        setNewJob(prev => {
                           const daysOfMonth = prev.schedule.daysOfMonth?.includes(date)
-                            ? prev.schedule.daysOfMonth.filter((d) => d !== date)
+                            ? prev.schedule.daysOfMonth.filter(d => d !== date)
                             : [...(prev.schedule.daysOfMonth || []), date]
                           return { ...prev, schedule: { ...prev.schedule, daysOfMonth } }
                         })
-                        setErrors((prev) => ({ ...prev, daysOfMonth: false }))
+                        setErrors(prev => ({ ...prev, daysOfMonth: false }))
                       }}
                     >
                       {date}
@@ -1254,7 +1250,7 @@ const StepContent = ({
                 <div className={errors.customDates ? "border-2 border-red-500 rounded-lg" : ""}>
                   <MultiDatePicker
                     value={newJob.schedule.customDates}
-                    onChange={(dates) => {
+                    onChange={dates => {
                       setNewJob({
                         ...newJob,
                         schedule: {
@@ -1264,7 +1260,7 @@ const StepContent = ({
                           daysOfMonth: [],
                         },
                       })
-                      setErrors((prev) => ({ ...prev, customDates: false }))
+                      setErrors(prev => ({ ...prev, customDates: false }))
                     }}
                     multiple
                     format="YYYY-MM-DD"
@@ -1289,7 +1285,7 @@ const StepContent = ({
                 max={MAX_BLOGS}
                 value={newJob.blogs.numberOfBlogs ?? ""}
                 onChange={handleNumberOfBlogsChange}
-                onWheel={(e) => e.currentTarget.blur()}
+                onWheel={e => e.currentTarget.blur()}
                 className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
                   errors.numberOfBlogs ? "border-red-500" : "border-gray-200"
                 }`}
@@ -1322,7 +1318,7 @@ const StepContent = ({
                     {
                       label: "Show Outbound Links",
                       name: "addOutBoundLinks",
-                      desc: "Add outbound links to relevant competitor content.",
+                      desc: "Add outbound links, references of other websites",
                     },
                   ]
                 : []),
@@ -1410,7 +1406,7 @@ const StepContent = ({
                       )
                       return
                     }
-                    setNewJob((prev) => ({
+                    setNewJob(prev => ({
                       ...prev,
                       blogs: {
                         ...prev.blogs,
@@ -1418,7 +1414,7 @@ const StepContent = ({
                         brandId: !prev.blogs.useBrandVoice ? prev.blogs.brandId : null,
                       },
                     }))
-                    setErrors((prev) => ({ ...prev, brandId: false }))
+                    setErrors(prev => ({ ...prev, brandId: false }))
                   }}
                   className="sr-only peer"
                   aria-checked={newJob.blogs.useBrandVoice && brands?.length > 0}
@@ -1440,7 +1436,7 @@ const StepContent = ({
                 ) : brands?.length > 0 ? (
                   <div className="max-h-48 overflow-y-auto pr-1">
                     <div>
-                      {brands.map((voice) => (
+                      {brands.map(voice => (
                         <label
                           key={voice._id}
                           className={`flex items-start gap-2 p-3 mb-3 rounded-md cursor-pointer ${
@@ -1455,11 +1451,11 @@ const StepContent = ({
                             value={voice._id}
                             checked={newJob.blogs.brandId === voice._id}
                             onChange={() => {
-                              setNewJob((prev) => ({
+                              setNewJob(prev => ({
                                 ...prev,
                                 blogs: { ...prev.blogs, brandId: voice._id },
                               }))
-                              setErrors((prev) => ({ ...prev, brandId: false }))
+                              setErrors(prev => ({ ...prev, brandId: false }))
                             }}
                             className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-600"
                           />
@@ -1488,7 +1484,7 @@ const StepContent = ({
                     type="checkbox"
                     checked={newJob.blogs.addCTA}
                     onChange={() => {
-                      setNewJob((prev) => ({
+                      setNewJob(prev => ({
                         ...prev,
                         blogs: {
                           ...prev.blogs,

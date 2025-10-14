@@ -31,8 +31,9 @@ export const DashboardBox = ({ title, content, id, functions, icon, gradient }) 
   const handleClick = () => {
     handleProAction(() => {
       if (id === "A") functions.showQuickBlogModal?.()
-      else if (id === 1) functions.showModal?.()
-      else if (id === "B") {
+      else if (id === "B") functions.showYoutubeBlogModal?.()
+      else if (id === "C") functions.showModal?.()
+      else if (id === "D") {
         if (["free", "basic"].includes(userPlan)) {
           showPopup()
         } else functions.showMultiStepModal?.()
