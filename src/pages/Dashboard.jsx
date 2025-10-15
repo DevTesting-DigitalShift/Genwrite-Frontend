@@ -38,7 +38,7 @@ import KeywordResearchModel from "../components/dashboardModals/KeywordResearchM
 import QuickBlogModal from "../components/multipleStepModal/QuickBlogModal"
 import InlineAnnouncementBanner from "@/layout/InlineAnnouncementBanner"
 import dayjs from "dayjs"
-import YoutubeBlogModal from "@components/multipleStepModal/YoutubeBlogModal"
+// import YoutubeBlogModal from "@components/multipleStepModal/YoutubeBlogModal"
 
 ChartJS.register(
   ArcElement,
@@ -314,8 +314,8 @@ const Dashboard = () => {
 
       {daisyUIModal && <DaisyUIModal closeFnc={hideDaisy} />}
       {multiStepModal && <MultiStepModal closeFnc={hideMultiStepModal} />}
-      {quickBlogModal && <QuickBlogModal closeFnc={hideQuickBlogModal} />}
-      {youtubeBlogModal && <YoutubeBlogModal closeFnc={hideYoutubeBlogModal} />}
+      {quickBlogModal && <QuickBlogModal type="quick" closeFnc={hideQuickBlogModal} />}
+      {youtubeBlogModal && <QuickBlogModal type="yt" closeFnc={hideYoutubeBlogModal} />}
       {competitiveAnalysisModal && (
         <CompetitiveAnalysisModal
           closeFnc={hideCompetitiveAnalysis}

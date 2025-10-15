@@ -10,13 +10,15 @@ import { Plus, X } from "lucide-react"
 import Carousel from "./Carousel"
 import { packages } from "@/data/templates"
 
-const QuickBlogModal = ({ closeFnc }) => {
+const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   const [currentStep, setCurrentStep] = useState(0)
   const [selectedPackage, setSelectedPackage] = useState(null)
   const [otherLinks, setOtherLinks] = useState([])
-  const [formData, setFormData] = useState({
+
+  const initialFormData = {
     topic: "",
-    performKeywordResearch: true,
+    performKeywordResearch: false,
+    addImages: false,
     imageSource: "unsplash",
     template: null,
     keywords: [],
@@ -24,15 +26,18 @@ const QuickBlogModal = ({ closeFnc }) => {
     otherLinkInput: "",
     focusKeywordInput: "",
     keywordInput: "",
-  })
-  const [errors, setErrors] = useState({
+  }
+
+  const initialErrors = {
     topic: "",
     template: "",
     focusKeywords: "",
     keywords: "",
     otherLinks: "",
-    imageSource: "",
-  })
+  }
+
+  const [formData, setFormData] = useState(initialFormData)
+  const [errors, setErrors] = useState(initialErrors)
 
   const dispatch = useDispatch()
   const navigate = useNavigate()
@@ -66,27 +71,22 @@ const QuickBlogModal = ({ closeFnc }) => {
   // Handle modal close
   const handleClose = () => {
     setSelectedPackage(null)
-    setFormData({
-      topic: "",
-      performKeywordResearch: true,
-      imageSource: "unsplash",
-      template: null,
-      keywords: [],
-      focusKeywords: [],
-      otherLinkInput: "",
-      focusKeywordInput: "",
-      keywordInput: "",
-    })
+    setFormData(initialFormData)
     setOtherLinks([])
-    setErrors({
-      topic: "",
-      template: "",
-      focusKeywords: "",
-      keywords: "",
-      otherLinks: "",
-      imageSource: "",
-    })
+    setErrors(initialErrors)
     closeFnc()
+  }
+
+  const handleChange = e => {
+    const { name, value } = e.target
+    console.log("handleChange called with:", name, value)
+
+    setFormData(prev => ({
+      ...prev,
+      [name]: value,
+    }))
+
+    setErrors(prev => ({ ...prev, [name]: "" }))
   }
 
   // Handle form submission
@@ -94,15 +94,15 @@ const QuickBlogModal = ({ closeFnc }) => {
     const newErrors = {
       topic: !formData.topic.trim() ? "Please enter a topic." : "",
       focusKeywords:
-        formData.performKeywordResearch && formData.focusKeywords.length === 0
+        !formData.performKeywordResearch && formData.focusKeywords.length === 0
           ? "Please add at least one focus keyword."
           : "",
       keywords:
-        formData.performKeywordResearch && formData.keywords.length === 0
+        !formData.performKeywordResearch && formData.keywords.length === 0
           ? "Please add at least one secondary keyword."
           : "",
-      otherLinks: otherLinks.length === 0 ? "Please add at least one valid reference link." : "",
-      imageSource: !formData.imageSource ? "Please select an image source." : "",
+      otherLinks:
+        otherLinks.length === 0 && type == "yt" ? "Please add at least one valid link." : "",
     }
 
     setErrors(newErrors)
@@ -113,29 +113,31 @@ const QuickBlogModal = ({ closeFnc }) => {
     }
 
     if (otherLinks.length > 3) {
-      setErrors(prev => ({ ...prev, otherLinks: "You can only add up to 3 reference links." }))
-      message.error("You can only add up to 3 reference links.")
+      setErrors(prev => ({ ...prev, otherLinks: "You can only add up to 3 links." }))
+      message.error("You can only add up to 3 links.")
       return
     }
 
     const finalData = {
       ...formData,
+      type,
       otherLinks,
     }
 
     handlePopup({
-      title: "Quick Blog Generation",
+      title: `${type === "quick" ? "Quick" : "Youtube"} Blog Generation`,
       description: (
         <>
           <span>
-            Quick blog generation costs <b>{getEstimatedCost("blog.quick")} credits</b>.
+            {type === "quick" ? "Quick" : "Youtube"} blog generation will cost you{" "}
+            <b>{getEstimatedCost(`blog.quick`)} credits</b>.
           </span>
           <br />
           <span>Are you sure you want to proceed?</span>
         </>
       ),
       onConfirm: () => {
-        dispatch(createNewQuickBlog({ blogData: finalData, user, navigate, type: "quick" }))
+        dispatch(createNewQuickBlog({ blogData: finalData, user, navigate, type: type }))
         handleClose()
       },
     })
@@ -149,15 +151,6 @@ const QuickBlogModal = ({ closeFnc }) => {
       template: packages[index].name,
     }))
     setErrors(prev => ({ ...prev, template: "" }))
-  }
-
-  // Handle input changes
-  const handleInputChange = (e, field) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: e.target.value,
-    }))
-    setErrors(prev => ({ ...prev, [field]: "" }))
   }
 
   // Handle keyword input changes
@@ -223,14 +216,60 @@ const QuickBlogModal = ({ closeFnc }) => {
     }
   }
 
+  // Extract YouTube video ID from URL
+  const getVideoId = url => {
+    try {
+      const parsed = new URL(url)
+      const hostname = parsed.hostname.toLowerCase().replace("www.", "")
+
+      if (!hostname.includes("youtube.com") && !hostname.includes("youtu.be")) {
+        return null
+      }
+
+      let videoId = null
+
+      if (hostname === "youtube.com" || hostname === "m.youtube.com") {
+        const pathname = parsed.pathname
+        if (pathname.startsWith("/watch")) {
+          videoId = parsed.searchParams.get("v")
+        } else if (pathname.startsWith("/embed/")) {
+          videoId = pathname.split("/embed/")[1].split("/")[0].split("?")[0]
+        } else if (pathname.startsWith("/v/")) {
+          videoId = pathname.split("/v/")[1].split("/")[0].split("?")[0]
+        } else if (pathname.startsWith("/shorts/")) {
+          videoId = pathname.split("/shorts/")[1].split("/")[0].split("?")[0]
+        }
+      } else if (hostname === "youtu.be") {
+        videoId = parsed.pathname.slice(1).split("/")[0].split("?")[0]
+      }
+
+      return videoId
+    } catch {
+      return null
+    }
+  }
+
   // Validate URL for reference links
   const validateUrl = url => {
-    try {
-      new URL(url)
-      return { valid: true }
-    } catch {
-      return { valid: false, error: "Please enter a valid URL (e.g., https://example.com)." }
+    switch (type) {
+      case "yt":
+        const videoId = getVideoId(url)
+        const videoIdRegex = /^[a-zA-Z0-9_-]{11}$/
+        if (!videoId || !videoIdRegex.test(videoId)) {
+          return {
+            valid: false,
+            error: "Please enter a valid YouTube video link with a proper video ID.",
+          }
+        }
+        break
+      default:
+        try {
+          new URL(url)
+        } catch (e) {
+          return { valid: false, error: "Please enter a valid URL (e.g., https://example.com)." }
+        }
     }
+    return { valid: true }
   }
 
   // Add reference links
@@ -241,7 +280,7 @@ const QuickBlogModal = ({ closeFnc }) => {
     if (!input) {
       setErrors(prev => ({
         ...prev,
-        otherLinks: "Please enter at least one valid reference link.",
+        otherLinks: `Please enter valid ${type === "yt" ? "youtube" : "reference"} links.`,
       }))
       return
     }
@@ -271,7 +310,7 @@ const QuickBlogModal = ({ closeFnc }) => {
     if (validNewLinks.length === 0) {
       setErrors(prev => ({
         ...prev,
-        otherLinks: "No valid, unique reference links found.",
+        otherLinks: "No valid, unique links found.",
       }))
       return
     }
@@ -279,7 +318,7 @@ const QuickBlogModal = ({ closeFnc }) => {
     if (otherLinks.length + validNewLinks.length > maxLinks) {
       setErrors(prev => ({
         ...prev,
-        otherLinks: `You can only add up to ${maxLinks} reference links.`,
+        otherLinks: `You can only add up to ${maxLinks} links.`,
       }))
       return
     }
@@ -308,15 +347,6 @@ const QuickBlogModal = ({ closeFnc }) => {
     setErrors(prev => ({ ...prev, otherLinks: "" }))
   }
 
-  // Handle image source selection
-  const handleImageSourceChange = source => {
-    setFormData(prev => ({
-      ...prev,
-      imageSource: source,
-    }))
-    setErrors(prev => ({ ...prev, imageSource: "" }))
-  }
-
   const imageSources = [
     { id: "unsplash", label: "Stock Images", value: "unsplash" },
     { id: "ai-generated", label: "AI-Generated Images", value: "ai-generated" },
@@ -324,7 +354,7 @@ const QuickBlogModal = ({ closeFnc }) => {
 
   return (
     <Modal
-      title="Generate Quick Blog"
+      title={`Generate ${type === "quick" ? "Quick" : "Youtube"} Blog`}
       open={true}
       onCancel={handleClose}
       footer={
@@ -448,8 +478,10 @@ const QuickBlogModal = ({ closeFnc }) => {
               </label>
               <input
                 type="text"
+                name="topic"
                 value={formData.topic}
-                onChange={e => handleInputChange(e, "topic")}
+                // onChange={e => handleInputChange(e, "topic")}
+                onChange={handleChange}
                 className={`w-full px-3 py-2 border ${
                   errors.topic ? "border-red-500" : "border-gray-200"
                 } rounded-md text-sm bg-gray-50`}
@@ -470,8 +502,8 @@ const QuickBlogModal = ({ closeFnc }) => {
                     setFormData(prev => ({
                       ...prev,
                       performKeywordResearch: e.target.checked,
-                      focusKeywords: e.target.checked ? prev.focusKeywords : [],
-                      keywords: e.target.checked ? prev.keywords : [],
+                      focusKeywords: e.target.checked ? [] : prev.focusKeywords,
+                      keywords: e.target.checked ? [] : prev.keywords,
                       focusKeywordInput: "",
                       keywordInput: "",
                     }))
@@ -482,11 +514,11 @@ const QuickBlogModal = ({ closeFnc }) => {
                 <div className="absolute top-[2px] left-[2px] h-5 w-5 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-5"></div>
               </label>
             </div>
-            {formData.performKeywordResearch && (
+            {!formData.performKeywordResearch && (
               <>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Focus Keywords <span className="text-red-500">*</span>
+                    Focus Keywords (Max 3) <span className="text-red-500">*</span>
                   </label>
                   <div className="flex gap-2">
                     <input
@@ -576,66 +608,83 @@ const QuickBlogModal = ({ closeFnc }) => {
                 </div>
               </>
             )}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Image Source <span className="text-red-500">*</span>
+
+            {/* Add Images & Source Selection */}
+
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-700">Add Images</label>
+              <label className="relative inline-block w-11 h-6 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.addImages}
+                  onChange={e =>
+                    setFormData(prev => ({
+                      ...prev,
+                      addImages: e.target.checked,
+                    }))
+                  }
+                  className="sr-only peer"
+                />
+                <div className="absolute inset-0 bg-gray-200 rounded-full transition-colors duration-200 peer-checked:bg-[#1B6FC9]"></div>
+                <div className="absolute top-[2px] left-[2px] h-5 w-5 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-5"></div>
               </label>
-              <div
-                className={`grid grid-cols-2 gap-4 mx-auto w-full ${
-                  errors.imageSource ? "border-2 border-red-500 rounded-lg p-2" : ""
-                }`}
-              >
-                {imageSources.map(source => (
-                  <label
-                    key={source.id}
-                    htmlFor={source.id}
-                    className={`relative border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150
+            </div>
+            {formData.addImages && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">Image Source</label>
+                <div className={`grid grid-cols-2 gap-4 mx-auto w-full mb-2`}>
+                  {imageSources.map(source => (
+                    <label
+                      key={source.id}
+                      htmlFor={source.id}
+                      className={`relative border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150
                       ${
                         formData.imageSource === source.value
                           ? "border-blue-600 bg-blue-50"
                           : "border-gray-300"
                       } hover:shadow-sm w-full`}
-                  >
-                    <input
-                      type="radio"
-                      id={source.id}
-                      name="imageSource"
-                      value={source.value}
-                      checked={formData.imageSource === source.value}
-                      onChange={() => handleImageSourceChange(source.value)}
-                      className="hidden"
-                    />
-                    <span className="text-sm font-medium text-gray-800">{source.label}</span>
-                  </label>
-                ))}
+                    >
+                      <input
+                        type="radio"
+                        id={source.id}
+                        name="imageSource"
+                        value={source.value}
+                        checked={formData.imageSource === source.value}
+                        onChange={handleChange}
+                        className="hidden"
+                      />
+                      <span className="text-sm font-medium text-gray-800">{source.label}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
-              {errors.imageSource && (
-                <p className="text-red-500 text-sm mt-1">{errors.imageSource}</p>
-              )}
-            </div>
+            )}
+
+            {/* Reference Links Section */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Reference Links (e.g., articles, websites) <span className="text-red-500">*</span>
+                {type === "yt"
+                  ? "YouTube Video Links "
+                  : "Reference Links (e.g., articles, websites)"}{" "}
+                (Max 3 links) {type === "yt" && <span className="text-red-500">*</span>}
               </label>
               <div className="space-y-2">
                 <div className="flex gap-2">
                   <input
-                    type="text"
+                    type="url"
                     value={formData.otherLinkInput}
                     onChange={e =>
                       setFormData(prev => ({ ...prev, otherLinkInput: e.target.value }))
                     }
                     onKeyDown={e => handleKeyDown(e)}
-                    className={`flex-1 px-3 py-2 border ${
-                      errors.otherLinks ? "border-red-500" : "border-gray-200"
-                    } rounded-md text-sm bg-gray-50`}
+                    className={`flex-1 px-3 py-2 border rounded-md text-sm bg-gray-50`}
                     placeholder="Enter full URLs (e.g., https://example.com), separated by commas"
-                    aria-label="Reference links"
+                    aria-label="Reference/Video links"
                   />
                   <button
                     onClick={() => handleAddLink()}
                     className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm flex items-center hover:bg-[#1B6FC9]/90 transition-colors"
-                    aria-label="Add reference links"
+                    aria-label="Add reference/video links"
                   >
                     <Plus size={16} />
                   </button>

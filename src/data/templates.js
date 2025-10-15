@@ -10,14 +10,19 @@ export const packages = [
     description: "Tips for actionable success in list format.",
   },
   {
-    imgSrc: "./Images/ProductReview.png",
-    name: "Product Review",
-    description: "Product insights: pros, cons, and more.",
+    imgSrc: "./Images/q&a.png",
+    name: "QnA",
+    description: "Interactive expert Q&A sessions.",
   },
   {
     imgSrc: "./Images/HowTo.png",
     name: "How to....",
     description: "Step-by-step guides for practical how-to solutions.",
+  },
+  {
+    imgSrc: "./Images/ProductReview.png",
+    name: "Product Review",
+    description: "Product insights: pros, cons, and more.",
   },
   {
     imgSrc: "./Images/NewsArticle.png",
@@ -39,9 +44,4 @@ export const packages = [
   //   name: "Interview",
   //   description: "Engaging conversations with industry experts.",
   // },
-  {
-    imgSrc: "./Images/q&a.png",
-    name: "QnA",
-    description: "Interactive expert Q&A sessions.",
-  },
 ]

@@ -143,7 +143,7 @@ export const createNewQuickBlog = createAsyncThunk(
         blog_quickSummary: blogData?.isCheckedQuick || false,
       })
 
-      navigate(`/toolbox/${blog._id}`)
+      navigate(`/blogs`)
       return blog
     } catch (error) {
       pushToDataLayer({

@@ -59,7 +59,7 @@ export const DashboardBox = ({ title, content, id, functions, icon, gradient }) 
         </div>
 
         {/* Pro badge for restricted action */}
-        {["free", "basic"].includes(userPlan?.toLowerCase?.()) && id === "B" && (
+        {["free", "basic"].includes(userPlan?.toLowerCase?.()) && id === "D" && (
           <span className="flex items-center gap-2 rounded-md text-white font-semibold border p-2 px-3 bg-gradient-to-tr from-blue-500 to-purple-500 shadow-md hover:shadow-xl hover:scale-105 transition-all duration-300 ease-in-out animate-pulse backdrop-blur-sm text-lg mb-5">
             <Gem className="w-4 h-4 animate-bounce" />
             Pro
