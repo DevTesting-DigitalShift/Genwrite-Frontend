@@ -9,8 +9,8 @@ export const connectSocket = (token) => {
   }
   const url = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000"
   socket = io(url, {
-    path: "/events", // must match backend
-    auth: { token }, // send JWT here
+    path: "/events",
+    auth: { token }, 
     transports: ["websocket"],
   })
 

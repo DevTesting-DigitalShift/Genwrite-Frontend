@@ -35,6 +35,7 @@ const StepContent = ({
 }) => {
   const dispatch = useDispatch()
   const fileInputRef = useRef(null)
+  const isProUser = user?.subscription?.plan === "pro"
   const { data: integrations } = useSelector(state => state.wordpress)
   const {
     data: brands = [],
@@ -521,12 +522,16 @@ const StepContent = ({
             {packages.map(pkg => (
               <div
                 key={pkg.name}
-                className={`cursor-pointer transition-all duration-200 w-full ${
+                className={`relative cursor-pointer transition-all duration-200 w-full ${
                   newJob.blogs.templates.includes(pkg.name)
                     ? "border-gray-300 border-2 rounded-lg"
                     : ""
-                }`}
+                } ${pkg.paid && !isProUser ? "opacity-50 cursor-not-allowed" : ""}`}
                 onClick={() => {
+                  if (pkg.paid && !isProUser) {
+                    message.error("Please upgrade to a Pro subscription to access this template.")
+                    return
+                  }
                   if (newJob.blogs.templates.includes(pkg.name)) {
                     setNewJob(prev => ({
                       ...prev,
@@ -546,6 +551,35 @@ const StepContent = ({
                     message.error("You can only select up to 3 templates.")
                   }
                 }}
+                onKeyDown={e => {
+                  if (e.key === "Enter") {
+                    if (pkg.paid && !isProUser) {
+                      message.error("Please upgrade to a Pro subscription to access this template.")
+                      return
+                    }
+                    if (newJob.blogs.templates.includes(pkg.name)) {
+                      setNewJob(prev => ({
+                        ...prev,
+                        blogs: {
+                          ...prev.blogs,
+                          templates: prev.blogs.templates.filter(template => template !== pkg.name),
+                        },
+                      }))
+                      setErrors(prev => ({ ...prev, templates: false }))
+                    } else if (newJob.blogs.templates.length < 3) {
+                      setNewJob(prev => ({
+                        ...prev,
+                        blogs: { ...prev.blogs, templates: [...prev.blogs.templates, pkg.name] },
+                      }))
+                      setErrors(prev => ({ ...prev, templates: false }))
+                    } else {
+                      message.error("You can only select up to 3 templates.")
+                    }
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+                aria-label={`Select ${pkg.name} template`}
               >
                 <div className="bg-white rounded-lg overflow-hidden shadow-sm">
                   <div className="relative">
@@ -554,6 +588,11 @@ const StepContent = ({
                       alt={pkg.name}
                       className="w-full h-full object-cover"
                     />
+                    {pkg.paid && !isProUser && (
+                      <div className="absolute top-2 right-2">
+                        <Crown size={20} className="text-yellow-500" aria-label="Pro feature" />
+                      </div>
+                    )}
                   </div>
                   <div className="p-3">
                     <h3 className="font-medium text-gray-900 text-base mb-1">{pkg.name}</h3>
@@ -565,18 +604,22 @@ const StepContent = ({
           </div>
           {errors.templates && <p className="text-red-500 text-xs">{errors.templates}</p>}
 
-          {/* Desktop View: Carousel Layout */}
+          {/* Desktop View: 1x2 Grid Layout */}
           <div className={`hidden sm:block ${errors.templates ? "border-red-500 border-2" : ""}`}>
-            <Carousel className="flex flex-row gap-4">
+            <div className="grid grid-cols-2 gap-4">
               {packages.map(pkg => (
                 <div
                   key={pkg.name}
-                  className={`cursor-pointer transition-all duration-200 w-full${
+                  className={`relative cursor-pointer transition-all duration-200 w-full ${
                     newJob.blogs.templates.includes(pkg.name)
                       ? "border-gray-300 border-2 rounded-lg"
                       : ""
-                  }`}
+                  } ${pkg.paid && !isProUser ? "opacity-50 cursor-not-allowed" : ""}`}
                   onClick={() => {
+                    if (pkg.paid && !isProUser) {
+                      message.error("Please upgrade to a Pro subscription to access this template.")
+                      return
+                    }
                     if (newJob.blogs.templates.includes(pkg.name)) {
                       setNewJob(prev => ({
                         ...prev,
@@ -596,6 +639,39 @@ const StepContent = ({
                       message.error("You can only select up to 3 templates.")
                     }
                   }}
+                  onKeyDown={e => {
+                    if (e.key === "Enter") {
+                      if (pkg.paid && !isProUser) {
+                        message.error(
+                          "Please upgrade to a Pro subscription to access this template."
+                        )
+                        return
+                      }
+                      if (newJob.blogs.templates.includes(pkg.name)) {
+                        setNewJob(prev => ({
+                          ...prev,
+                          blogs: {
+                            ...prev.blogs,
+                            templates: prev.blogs.templates.filter(
+                              template => template !== pkg.name
+                            ),
+                          },
+                        }))
+                        setErrors(prev => ({ ...prev, templates: false }))
+                      } else if (newJob.blogs.templates.length < 3) {
+                        setNewJob(prev => ({
+                          ...prev,
+                          blogs: { ...prev.blogs, templates: [...prev.blogs.templates, pkg.name] },
+                        }))
+                        setErrors(prev => ({ ...prev, templates: false }))
+                      } else {
+                        message.error("You can only select up to 3 templates.")
+                      }
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Select ${pkg.name} template`}
                 >
                   <div className="bg-white rounded-lg overflow-hidden shadow-sm">
                     <div className="relative">
@@ -604,6 +680,11 @@ const StepContent = ({
                         alt={pkg.name}
                         className="w-full h-full object-cover"
                       />
+                      {pkg.paid && !isProUser && (
+                        <div className="absolute top-2 right-2">
+                          <Crown size={20} className="text-yellow-500" aria-label="Pro feature" />
+                        </div>
+                      )}
                     </div>
                     <div className="p-3">
                       <h3 className="font-medium text-gray-900 text-base mb-1">{pkg.name}</h3>
@@ -612,10 +693,10 @@ const StepContent = ({
                   </div>
                 </div>
               ))}
-            </Carousel>
+            </div>
           </div>
           {errors.templates && <p className="text-red-500 text-xs">{errors.templates}</p>}
-        </motion.div>
+        </motion.div> 
       )
     case 2:
       return (

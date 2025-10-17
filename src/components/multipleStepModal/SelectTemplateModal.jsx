@@ -1,6 +1,8 @@
 import React, { memo, useEffect, useState } from "react"
+import { useSelector } from "react-redux"
+import { selectUser } from "@store/slices/authSlice" // Import selectUser to access user data
 import { Modal, Button, message } from "antd"
-import Carousel from "./Carousel"
+import { Crown } from "lucide-react" // Import Crown icon
 import { packages } from "@/data/templates"
 
 const SelectTemplateModal = ({ handleNext, handleClose, data, setData, isModalVisible }) => {
@@ -23,13 +25,17 @@ const SelectTemplateModal = ({ handleNext, handleClose, data, setData, isModalVi
   })
   const [error, setError] = useState("")
 
+  // Access user data from Redux store
+  const user = useSelector(selectUser)
+  const isProUser = user?.subscription?.plan === "pro"
+
   // Sync selectedPackage and formData.template with data.template when modal opens
   useEffect(() => {
     if (isModalVisible && data.template) {
-      const index = packages.findIndex((pkg) => pkg.name === data.template.name)
+      const index = packages.findIndex(pkg => pkg.name === data.template.name)
       if (index !== -1) {
         setSelectedPackage(index)
-        setFormData((prev) => ({
+        setFormData(prev => ({
           ...prev,
           template: [data.template.name],
         }))
@@ -40,7 +46,7 @@ const SelectTemplateModal = ({ handleNext, handleClose, data, setData, isModalVi
   // Reset selection when modal closes
   const handleModalClose = () => {
     setSelectedPackage(null)
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       template: [],
     }))
@@ -48,7 +54,13 @@ const SelectTemplateModal = ({ handleNext, handleClose, data, setData, isModalVi
     handleClose()
   }
 
-  const handlePackageSelect = (index) => {
+  // Handle template selection
+  const handlePackageSelect = index => {
+    const pkg = packages[index]
+    if (pkg.paid && !isProUser) {
+      message.error("Please upgrade to a Pro subscription to access this template.")
+      return
+    }
     setSelectedPackage(index)
     setData({ ...data, template: packages[index] })
     setFormData({
@@ -105,10 +117,14 @@ const SelectTemplateModal = ({ handleNext, handleClose, data, setData, isModalVi
           {packages.map((pkg, index) => (
             <div
               key={index}
-              className={`cursor-pointer transition-all duration-200 ${
+              className={`relative cursor-pointer transition-all duration-200 ${
                 selectedPackage === index ? "border-gray-200 border-2 rounded-lg" : ""
-              }`}
+              } ${pkg.paid && !isProUser ? "opacity-50 cursor-not-allowed" : ""}`}
               onClick={() => handlePackageSelect(index)}
+              onKeyDown={e => e.key === "Enter" && handlePackageSelect(index)}
+              role="button"
+              tabIndex={0}
+              aria-label={`Select ${pkg.name} template`}
             >
               <div className="bg-white rounded-lg overflow-hidden shadow-sm">
                 <div className="relative">
@@ -117,6 +133,11 @@ const SelectTemplateModal = ({ handleNext, handleClose, data, setData, isModalVi
                     alt={pkg.name}
                     className="w-full h-full object-cover"
                   />
+                  {pkg.paid && !isProUser && (
+                    <div className="absolute top-2 right-2">
+                      <Crown size={20} className="text-yellow-500" aria-label="Pro feature" />
+                    </div>
+                  )}
                 </div>
                 <div className="p-3">
                   <h3 className="font-medium text-gray-900 text-base mb-1">{pkg.name}</h3>
@@ -128,16 +149,20 @@ const SelectTemplateModal = ({ handleNext, handleClose, data, setData, isModalVi
         </div>
         {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
 
-        {/* Desktop View: Carousel Layout */}
+        {/* Desktop View: 1x2 Grid Layout */}
         <div className={`hidden sm:block ${error ? "border-2 border-red-500 rounded-lg p-2" : ""}`}>
-          <Carousel className="flex flex-row gap-4">
+          <div className="grid grid-cols-2 gap-4">
             {packages.map((pkg, index) => (
               <div
                 key={index}
-                className={`cursor-pointer transition-all duration-200 w-full h-full ${
+                className={`relative cursor-pointer transition-all duration-200 w-full ${
                   selectedPackage === index ? "border-gray-200 border-2 rounded-lg" : ""
-                }`}
+                } ${pkg.paid && !isProUser ? "opacity-50 cursor-not-allowed" : ""}`}
                 onClick={() => handlePackageSelect(index)}
+                onKeyDown={e => e.key === "Enter" && handlePackageSelect(index)}
+                role="button"
+                tabIndex={0}
+                aria-label={`Select ${pkg.name} template`}
               >
                 <div className="bg-white rounded-lg overflow-hidden shadow-sm">
                   <div className="relative">
@@ -146,6 +171,11 @@ const SelectTemplateModal = ({ handleNext, handleClose, data, setData, isModalVi
                       alt={pkg.name}
                       className="w-full h-full object-cover"
                     />
+                    {pkg.paid && !isProUser && (
+                      <div className="absolute top-2 right-2">
+                        <Crown size={20} className="text-yellow-500" aria-label="Pro feature" />
+                      </div>
+                    )}
                   </div>
                   <div className="p-3">
                     <h3 className="font-medium text-gray-900 text-base mb-1">{pkg.name}</h3>
@@ -154,9 +184,9 @@ const SelectTemplateModal = ({ handleNext, handleClose, data, setData, isModalVi
                 </div>
               </div>
             ))}
-          </Carousel>
+          </div>
+          {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
         </div>
-        {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
       </div>
     </Modal>
   )

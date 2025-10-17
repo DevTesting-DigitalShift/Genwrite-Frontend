@@ -703,54 +703,7 @@ const MultiStepModal = ({ closeFnc }) => {
       fileInputRef.current.value = ""
     }
   }
-
-  // const handleDrop = (e) => {
-  //   e.preventDefault()
-  //   e.stopPropagation()
-  //   setFormData((prev) => ({ ...prev, isDragging: false }))
-
-  //   const files = e.dataTransfer.files
-  //   if (!files || files.length === 0) return
-
-  //   const validFiles = validateImages(files)
-  //   if (validFiles.length > 0) {
-  //     setFormData((prev) => ({
-  //       ...prev,
-  //       blogImages: [...prev.blogImages, ...validFiles],
-  //     }))
-  //     setErrors((prev) => ({ ...prev, blogImages: "" }))
-  //   }
-  // }
-
-  // const handleDragOver = (e) => {
-  //   e.preventDefault()
-  //   e.stopPropagation()
-  //   setFormData((prev) => ({ ...prev, isDragging: true }))
-  // }
-
-  // const handleDragLeave = (e) => {
-  //   e.preventDefault()
-  //   e.stopPropagation()
-  //   setFormData((prev) => ({ ...prev, isDragging: false }))
-  // }
-
-  // const handleRemoveImage = (index) => {
-  //   setFormData((prev) => ({
-  //     ...prev,
-  //     blogImages: prev.blogImages.filter((_, i) => i !== index),
-  //   }))
-  //   if (formData.isCheckedGeneratedImages && formData.imageSource === "customImage") {
-  //     if (formData.blogImages.length === 1) {
-  //       setErrors((prev) => ({
-  //         ...prev,
-  //         blogImages: "Please upload at least one custom image.",
-  //       }))
-  //     } else {
-  //       setErrors((prev) => ({ ...prev, blogImages: "" }))
-  //     }
-  //   }
-  // }
-
+  
   const steps = ["Select Templates", "Add Details", "Blog Options"]
 
   return (

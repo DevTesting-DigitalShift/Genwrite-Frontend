@@ -6,7 +6,7 @@ import { selectUser } from "@store/slices/authSlice"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { message, Modal } from "antd"
-import { Plus, X } from "lucide-react"
+import { Plus, X, Crown } from "lucide-react" // Added Crown icon
 import Carousel from "./Carousel"
 import { packages } from "@/data/templates"
 
@@ -44,6 +44,9 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   const { handlePopup } = useConfirmPopup()
   const user = useSelector(selectUser)
 
+  // Check if user has a pro subscription
+  const isProUser = user?.subscription?.plan === "pro"
+
   // Sync selected template when modal opens
   useEffect(() => {
     if (formData.template) {
@@ -79,13 +82,10 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
 
   const handleChange = e => {
     const { name, value } = e.target
-    console.log("handleChange called with:", name, value)
-
     setFormData(prev => ({
       ...prev,
       [name]: value,
     }))
-
     setErrors(prev => ({ ...prev, [name]: "" }))
   }
 
@@ -102,7 +102,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
           ? "Please add at least one secondary keyword."
           : "",
       otherLinks:
-        otherLinks.length === 0 && type == "yt" ? "Please add at least one valid link." : "",
+        otherLinks.length === 0 && type === "yt" ? "Please add at least one valid link." : "",
     }
 
     setErrors(newErrors)
@@ -113,7 +113,10 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     }
 
     if (otherLinks.length > 3) {
-      setErrors(prev => ({ ...prev, otherLinks: "You can only add up to 3 links." }))
+      setErrors(prev => ({
+        ...prev,
+        otherLinks: "You can only add up to 3 links.",
+      }))
       message.error("You can only add up to 3 links.")
       return
     }
@@ -137,7 +140,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
         </>
       ),
       onConfirm: () => {
-        dispatch(createNewQuickBlog({ blogData: finalData, user, navigate, type: type }))
+        dispatch(createNewQuickBlog({ blogData: finalData, user, navigate, type }))
         handleClose()
       },
     })
@@ -145,10 +148,15 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
 
   // Handle template selection
   const handlePackageSelect = index => {
+    const pkg = packages[index]
+    if (pkg.paid && !isProUser) {
+      message.error("Please upgrade to a Pro subscription to access this template.")
+      return
+    }
     setSelectedPackage(index)
     setFormData(prev => ({
       ...prev,
-      template: packages[index].name,
+      template: pkg.name,
     }))
     setErrors(prev => ({ ...prev, template: "" }))
   }
@@ -188,7 +196,10 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     }
 
     if (type === "focusKeywords" && formData[type].length + newKeywords.length > 3) {
-      setErrors(prev => ({ ...prev, [type]: "You can only add up to 3 focus keywords." }))
+      setErrors(prev => ({
+        ...prev,
+        [type]: "You can only add up to 3 focus keywords.",
+      }))
       return
     }
 
@@ -405,13 +416,13 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
               {packages.map((pkg, index) => (
                 <div
                   key={index}
-                  className={`cursor-pointer transition-all duration-200 w-full ${
+                  className={`relative cursor-pointer transition-all duration-200 w-full ${
                     formData.template === pkg.name ? "border-gray-200 border-2 rounded-md" : ""
-                  }`}
+                  } ${pkg.paid && !isProUser ? "opacity-50 cursor-not-allowed" : ""}`}
                   onClick={() => handlePackageSelect(index)}
+                  onKeyDown={e => e.key === "Enter" && handlePackageSelect(index)}
                   role="button"
                   tabIndex={0}
-                  onKeyDown={e => e.key === "Enter" && handlePackageSelect(index)}
                   aria-label={`Select ${pkg.name} template`}
                 >
                   <div className="bg-white rounded-md overflow-hidden shadow-sm">
@@ -421,6 +432,11 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                         alt={pkg.name}
                         className="w-full h-full object-cover"
                       />
+                      {pkg.paid && !isProUser && (
+                        <div className="absolute top-2 right-2">
+                          <Crown size={20} className="text-yellow-500" aria-label="Pro feature" />
+                        </div>
+                      )}
                     </div>
                     <div className="p-3">
                       <h3 className="font-medium text-gray-900 text-base mb-1">{pkg.name}</h3>
@@ -431,23 +447,23 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
               ))}
             </div>
 
-            {/* Desktop View: Carousel Layout */}
+            {/* Desktop View: 1x2 Grid Layout */}
             <div
               className={`hidden sm:block ${
                 errors.template ? "border-2 border-red-500 rounded-lg p-2" : ""
               }`}
             >
-              <Carousel className="flex flex-row gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 {packages.map((pkg, index) => (
                   <div
                     key={index}
-                    className={`cursor-pointer transition-all duration-200 w-full ${
+                    className={`relative cursor-pointer transition-all duration-200 w-full ${
                       formData.template === pkg.name ? "border-gray-200 border-2 rounded-md" : ""
-                    }`}
+                    } ${pkg.paid && !isProUser ? "opacity-50 cursor-not-allowed" : ""}`}
                     onClick={() => handlePackageSelect(index)}
+                    onKeyDown={e => e.key === "Enter" && handlePackageSelect(index)}
                     role="button"
                     tabIndex={0}
-                    onKeyDown={e => e.key === "Enter" && handlePackageSelect(index)}
                     aria-label={`Select ${pkg.name} template`}
                   >
                     <div className="bg-white rounded-md overflow-hidden shadow-sm">
@@ -457,6 +473,11 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                           alt={pkg.name}
                           className="w-full h-full object-cover"
                         />
+                        {pkg.paid && !isProUser && (
+                          <div className="absolute top-2 right-2">
+                            <Crown size={20} className="text-yellow-500" aria-label="Pro feature" />
+                          </div>
+                        )}
                       </div>
                       <div className="p-3">
                         <h3 className="font-medium text-gray-900 text-base mb-1">{pkg.name}</h3>
@@ -465,7 +486,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                     </div>
                   </div>
                 ))}
-              </Carousel>
+              </div>
               {errors.template && <p className="text-red-500 text-sm mt-2">{errors.template}</p>}
             </div>
           </div>
@@ -480,7 +501,6 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                 type="text"
                 name="topic"
                 value={formData.topic}
-                // onChange={e => handleInputChange(e, "topic")}
                 onChange={handleChange}
                 className={`w-full px-3 py-2 border ${
                   errors.topic ? "border-red-500" : "border-gray-200"
@@ -610,7 +630,6 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
             )}
 
             {/* Add Images & Source Selection */}
-
             <div className="flex items-center justify-between mb-2">
               <label className="block text-sm font-medium text-gray-700">Add Images</label>
               <label className="relative inline-block w-11 h-6 cursor-pointer">
