@@ -9,6 +9,7 @@ import { message, Modal, Tooltip } from "antd"
 import { Plus, X, Crown } from "lucide-react" // Added Crown icon
 import Carousel from "./Carousel"
 import { packages } from "@/data/templates"
+import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 
 const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   const [currentStep, setCurrentStep] = useState(0)
@@ -47,17 +48,17 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   // Check if user has a pro subscription
   const isProUser = user?.subscription?.plan === "pro"
 
-  // Sync selected template when modal opens
-  useEffect(() => {
-    if (formData.template) {
-      const index = packages.findIndex(pkg => pkg.name === formData.template)
-      if (index !== -1) {
-        setSelectedPackage(index)
-      }
-    } else {
-      setSelectedPackage(null)
-    }
-  }, [formData.template])
+  // // Sync selected template when modal opens
+  // useEffect(() => {
+  //   if (formData.template) {
+  //     const index = packages.findIndex(pkg => pkg.name === formData.template)
+  //     if (index !== -1) {
+  //       setSelectedPackage(index)
+  //     }
+  //   } else {
+  //     setSelectedPackage(null)
+  //   }
+  // }, [formData.template])
 
   // Handle navigation to the next step
   const handleNext = () => {
@@ -147,16 +148,23 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   }
 
   // Handle template selection
-  const handlePackageSelect = index => {
-    const pkg = packages[index]
-    if (pkg.paid && !isProUser) {
-      message.error("Please upgrade to a Pro subscription to access this template.")
-      return
+  const handlePackageSelect = ids => {
+    let pkgId, pkg
+    if (ids?.length) {
+      pkgId = ids[0]
+      pkg = packages[pkgId - 1]
+      if (pkg.paid && !isProUser) {
+        message.error("Please upgrade to a Pro subscription to access this template.")
+        return
+      }
+    } else {
+      pkg = null
+      pkgId = null
     }
-    setSelectedPackage(index)
+    setSelectedPackage(pkgId)
     setFormData(prev => ({
       ...prev,
-      template: pkg.name,
+      template: pkg?.name || pkg,
     }))
     setErrors(prev => ({ ...prev, template: "" }))
   }
@@ -404,96 +412,22 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
       transitionName=""
       maskTransitionName=""
     >
-      <div className="p-2 md:p-4 lg:p-6 space-y-6 max-h-[80vh] overflow-y-auto">
+      <div className="p-2 space-y-2">
         {currentStep === 0 && (
-          <div>
-            {/* Mobile View: Vertical Scrolling Layout */}
+          <>
             <div
-              className={`sm:hidden grid grid-cols-2 gap-4 ${
+              className={`!max-h-[75vh] overflow-clip p-4 pt-0 ${
                 errors.template ? "border-2 border-red-500 rounded-lg p-2" : ""
               }`}
             >
-              {packages.map((pkg, index) => (
-                <div
-                  key={index}
-                  className={`relative cursor-pointer transition-all duration-200 w-full ${
-                    formData.template === pkg.name ? "border-gray-200 border-2 rounded-md" : ""
-                  } ${pkg.paid && !isProUser ? "opacity-50 cursor-not-allowed" : ""}`}
-                  onClick={() => handlePackageSelect(index)}
-                  onKeyDown={e => e.key === "Enter" && handlePackageSelect(index)}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`Select ${pkg.name} template`}
-                >
-                  <div className="bg-white rounded-md overflow-hidden shadow-sm">
-                    <div className="relative">
-                      <img
-                        src={pkg.imgSrc || "/placeholder.svg"}
-                        alt={pkg.name}
-                        className="w-full h-full object-cover"
-                      />
-                      {pkg.paid && !isProUser && (
-                        <div className="absolute top-2 right-2">
-                          <Crown size={20} className="text-yellow-500" aria-label="Pro feature" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-3">
-                      <h3 className="font-medium text-gray-900 text-base mb-1">{pkg.name}</h3>
-                      <p className="text-sm text-gray-500 line-clamp-2">{pkg.description}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
+              <TemplateSelection
+                userSubscriptionPlan={"free"}
+                onClick={handlePackageSelect}
+                preSelectedIds={selectedPackage ? [selectedPackage] : []}
+              />
             </div>
-
-            <div
-              className={`hidden sm:block ${
-                errors.template ? "border-2 border-red-500 rounded-lg p-2" : ""
-              }`}
-            >
-              <div className="flex flex-wrap gap-4 justify-between">
-                {packages.map((pkg, index) => (
-                  <Tooltip title={pkg.name} key={index}>
-                    <div
-                      className={`relative cursor-pointer transition-all duration-200 w-[30%] ${
-                        formData.template === pkg.name ? "border-blue-500 border-2 rounded-md" : ""
-                      } ${pkg.paid && !isProUser ? "opacity-50 cursor-not-allowed" : ""}`}
-                      onClick={() => handlePackageSelect(index)}
-                      onKeyDown={e => e.key === "Enter" && handlePackageSelect(index)}
-                      role="button"
-                      tabIndex={0}
-                      aria-label={`Select ${pkg.name} template`}
-                    >
-                      <div className="bg-white rounded-md overflow-hidden shadow-sm">
-                        <div className="relative">
-                          <img
-                            src={pkg.imgSrc || "/placeholder.svg"}
-                            alt={pkg.name}
-                            className="w-full h-full object-cover"
-                          />
-                          {pkg.paid && !isProUser && (
-                            <div className="absolute top-2 right-2">
-                              <Crown
-                                size={20}
-                                className="text-yellow-500"
-                                aria-label="Pro feature"
-                              />
-                            </div>
-                          )}
-                        </div>
-                        <div className="p-3">
-                          <h3 className="font-medium text-gray-900 text-base mb-1">{pkg.name}</h3>
-                          <p className="text-sm text-gray-500 line-clamp-2">{pkg.description}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </Tooltip>
-                ))}
-              </div>
-              {errors.template && <p className="text-red-500 text-sm mt-2">{errors.template}</p>}
-            </div>
-          </div>
+            {errors.template && <p className="text-red-500 text-sm mt-2">{errors.template}</p>}
+          </>
         )}
         {currentStep === 1 && (
           <div className="space-y-4">

@@ -521,7 +521,7 @@ const StepContent = ({
           >
             {packages.map(pkg => (
               <div
-                key={pkg.name}
+                key={pkg.id}
                 className={`relative cursor-pointer transition-all duration-200 w-full ${
                   newJob.blogs.templates.includes(pkg.name)
                     ? "border-gray-300 border-2 rounded-lg"
@@ -606,13 +606,13 @@ const StepContent = ({
 
           {/* Desktop View: 1x2 Grid Layout */}
           <div className={`hidden sm:block ${errors.templates ? "border-red-500 border-2" : ""}`}>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-wrap gap-4">
               {packages.map(pkg => (
                 <div
-                  key={pkg.name}
-                  className={`relative cursor-pointer transition-all duration-200 w-full ${
+                  key={pkg.id}
+                  className={`relative cursor-pointer transition-all duration-200 w-[30%] ${
                     newJob.blogs.templates.includes(pkg.name)
-                      ? "border-gray-300 border-2 rounded-lg"
+                      ? "border-blue-400 border-2 rounded-lg"
                       : ""
                   } ${pkg.paid && !isProUser ? "opacity-50 cursor-not-allowed" : ""}`}
                   onClick={() => {
@@ -696,7 +696,7 @@ const StepContent = ({
             </div>
           </div>
           {errors.templates && <p className="text-red-500 text-xs">{errors.templates}</p>}
-        </motion.div> 
+        </motion.div>
       )
     case 2:
       return (

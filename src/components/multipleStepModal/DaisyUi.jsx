@@ -703,7 +703,7 @@ const MultiStepModal = ({ closeFnc }) => {
       fileInputRef.current.value = ""
     }
   }
-  
+
   const steps = ["Select Templates", "Add Details", "Blog Options"]
 
   return (
@@ -745,10 +745,10 @@ const MultiStepModal = ({ closeFnc }) => {
             <div className="sm:hidden grid grid-cols-2 gap-4">
               {packages.map((pkg, index) => (
                 <div
-                  key={pkg.name}
+                  key={pkg.id}
                   className={`cursor-pointer transition-all duration-200 w-full ${
                     formData.templates.includes(pkg.name)
-                      ? "border-gray-200 border-2 rounded-lg"
+                      ? "border-blue-300 border-2 rounded-lg"
                       : ""
                   }`}
                   onClick={() => handlePackageSelect(index)}
@@ -780,7 +780,7 @@ const MultiStepModal = ({ closeFnc }) => {
                     key={pkg.name}
                     className={`cursor-pointer transition-all duration-200 w-full ${
                       formData.templates.includes(pkg.name)
-                        ? "border-gray-200 border-2 rounded-lg"
+                        ? "border-blue-300 border-2 rounded-lg"
                         : ""
                     }`}
                     onClick={() => handlePackageSelect(index)}

@@ -151,12 +151,12 @@ const SelectTemplateModal = ({ handleNext, handleClose, data, setData, isModalVi
 
         {/* Desktop View: 1x2 Grid Layout */}
         <div className={`hidden sm:block ${error ? "border-2 border-red-500 rounded-lg p-2" : ""}`}>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="flex flex-wrap gap-4">
             {packages.map((pkg, index) => (
               <div
                 key={index}
-                className={`relative cursor-pointer transition-all duration-200 w-full ${
-                  selectedPackage === index ? "border-gray-200 border-2 rounded-lg" : ""
+                className={`relative cursor-pointer transition-all duration-200 w-[30%] ${
+                  selectedPackage === index ? "border-blue-500 border-2 rounded-lg" : ""
                 } ${pkg.paid && !isProUser ? "opacity-50 cursor-not-allowed" : ""}`}
                 onClick={() => handlePackageSelect(index)}
                 onKeyDown={e => e.key === "Enter" && handlePackageSelect(index)}
