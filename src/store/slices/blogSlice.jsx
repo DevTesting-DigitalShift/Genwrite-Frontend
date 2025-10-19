@@ -495,7 +495,7 @@ const blogSlice = createSlice({
       })
       .addCase(createNewQuickBlog.fulfilled, (state, action) => {
         // state.userBlogs.push(action.payload)
-        state.selectedBlog = action.payload
+        // state.selectedBlog = action.payload
       })
 
       // Update Blog

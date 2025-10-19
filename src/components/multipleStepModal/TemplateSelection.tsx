@@ -34,8 +34,7 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
     // const pkg = packages.find(p => p.id === id)
     const pkg = packages[id - 1]
     if (!isProUser && pkg.paid) {
-      console.log(id)
-      message.error("Only pro and enterprise users")
+      message.error("Please upgrade to a Pro subscription or more to access this template.")
     } else {
       let indices = [...selectedIds]
       const findIndex = indices.indexOf(id)
@@ -52,7 +51,7 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
   }
 
   useEffect(() => {
-    onClick(selectedIds)
+    onClick(selectedIds.map(id => packages[id - 1]))
   }, [selectedIds])
 
   return (

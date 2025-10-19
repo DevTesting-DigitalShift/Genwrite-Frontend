@@ -41,6 +41,7 @@ import TurndownService from "turndown"
 import { useBlocker, useLocation, useNavigate } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { ProofreadingDecoration } from "@/extensions/ProofreadingDecoration"
+import { Iframe } from "@/extensions/Iframe"
 import Loading from "@components/UI/Loading"
 import { ReloadOutlined } from "@ant-design/icons"
 import { sendRetryLines } from "@api/blogApi"
@@ -59,6 +60,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { useProofreadingUI } from "@/layout/Editor/useProofreadingUI"
 import ContentDiffViewer from "../Editor/ContentDiffViewer"
 import "./editor.css"
+import { VideoEmbed } from "@/extensions/VideoEmbed"
 
 const MarkdownEditor = React.lazy(() =>
   import("./OtherEditors").then(m => ({ default: m.MarkdownEditor }))
@@ -68,6 +70,8 @@ const HtmlEditor = React.lazy(() => import("./OtherEditors").then(m => ({ defaul
 marked.setOptions({
   gfm: true,
   breaks: true,
+  headerIds: false,
+  mangle: false,
 })
 
 const FONT_OPTIONS = [
@@ -145,13 +149,21 @@ const TextEditor = ({
 
   const markdownToHtml = useCallback(markdown => {
     if (!markdown) return "<p></p>"
-    const html = marked.parse(
+    const rawHtml = marked.parse(
       markdown
+        .replace(/^[ \t]+(<(div|iframe)[\s>])/gm, "$1") // remove leading spaces else it will be treated as code block
         .replace(/!\[\s*["']?(.*?)["']?\s*\]\((.*?)\)/g, (_, alt, url) => `![${alt}](${url})`) // remove quotes from alt
         .replace(/'/g, "'"),
-      { breaks: true, gfm: true }
+      {
+        gfm: true,
+        breaks: true,
+      }
     )
-    return DOMPurify.sanitize(html)
+    const cleanHtml = DOMPurify.sanitize(rawHtml, {
+      ADD_TAGS: ["iframe", "div"],
+      ADD_ATTR: ["allow", "allowfullscreen", "frameborder", "scrolling", "src", "style", "title"],
+    })
+    return cleanHtml
   }, [])
 
   const htmlToMarkdown = useCallback(html => {
@@ -160,12 +172,13 @@ const TextEditor = ({
       headingStyle: "atx",
       bulletListMarker: "-",
     })
-    turndownService.keep(["p"])
+    turndownService.keep(["p", "div", "iframe"])
     return turndownService.turndown(html)
   }, [])
 
   const initialContent = useMemo(() => {
-    return safeContent ? marked.parse(safeContent, { gfm: true }) : "<p></p>"
+    if (!safeContent) return "<p></p>"
+    return markdownToHtml(safeContent)
   }, [safeContent])
 
   const lastNormalizedSavedContent = useRef(normalizeContent(lastSavedContent ?? ""))
@@ -185,6 +198,7 @@ const TextEditor = ({
         }),
         TextAlign.configure({ types: ["heading", "paragraph", "right"] }),
         ProofreadingDecoration.configure({ suggestions: proofreadingResults }),
+        VideoEmbed,
       ],
       content: "<p></p>",
       editorProps: {

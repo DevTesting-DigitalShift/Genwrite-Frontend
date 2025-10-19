@@ -148,15 +148,11 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   }
 
   // Handle template selection
-  const handlePackageSelect = ids => {
+  const handlePackageSelect = templates => {
     let pkgId, pkg
-    if (ids?.length) {
-      pkgId = ids[0]
-      pkg = packages[pkgId - 1]
-      if (pkg.paid && !isProUser) {
-        message.error("Please upgrade to a Pro subscription to access this template.")
-        return
-      }
+    if (templates?.length) {
+      pkg = templates[0]
+      pkgId = pkg.id
     } else {
       pkg = null
       pkgId = null
@@ -421,7 +417,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
               }`}
             >
               <TemplateSelection
-                userSubscriptionPlan={"free"}
+                userSubscriptionPlan={user?.subscription?.plan ?? "free"}
                 onClick={handlePackageSelect}
                 preSelectedIds={selectedPackage ? [selectedPackage] : []}
               />
