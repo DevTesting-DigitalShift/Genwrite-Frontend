@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react"
 import { X, Megaphone, Puzzle, Wand2, AlertTriangle } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 import { message } from "antd"
+import dayjs from "dayjs"
 
 // Configuration for different announcement types
 const announcementConfig = {
@@ -62,8 +63,8 @@ const InlineAnnouncementBanner = ({ onClose }) => {
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
     gcTime: 24 * 60 * 60 * 1000, // Garbage collect after 24 hours
     retry: 2,
-    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 30000),
-    onError: (error) => {
+    retryDelay: attempt => Math.min(1000 * 2 ** attempt, 30000),
+    onError: error => {
       console.error("Failed to fetch announcements:", error)
       message.error("Failed to load announcements. Please try again later.")
     },
@@ -72,7 +73,8 @@ const InlineAnnouncementBanner = ({ onClose }) => {
   // Get the display configuration for the current announcement type, or use default
   const announcement = data?.announcements?.[0]
   const config = useMemo(
-    () => announcement ? (announcementConfig[announcement.type] || announcementConfig.DEFAULT) : null,
+    () =>
+      announcement ? announcementConfig[announcement.type] || announcementConfig.DEFAULT : null,
     [announcement]
   )
 
@@ -93,34 +95,41 @@ const InlineAnnouncementBanner = ({ onClose }) => {
     return null // Silently fail to avoid disrupting user experience
   }
 
+  const daysDifference = dayjs().diff(formattedDate, "d")
+
   return (
-    <div className={`${config.bannerBg} border ${config.borderColor} rounded-lg p-4 mb-6 relative`}>
-      <div className="flex items-start justify-between">
-        <div className="flex items-start space-x-3 flex-1">
-          <div
-            className={`flex items-center justify-center h-10 w-10 rounded-full ${config.bgColor} flex-shrink-0`}
-          >
-            {IconComponent && <IconComponent className={`h-5 w-5 ${config.iconColor}`} aria-hidden="true" />}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center space-x-2 mb-1">
-              <h3 className="text-sm font-semibold text-gray-900">{config.title}</h3>
-              {formattedDate && (
-                <span className="text-xs text-gray-500">{formattedDate}</span>
+    formattedDate &&
+    daysDifference <= 7 && (
+      <div
+        className={`${config.bannerBg} border ${config.borderColor} rounded-lg p-4 mb-6 relative`}
+      >
+        <div className="flex items-start justify-between">
+          <div className="flex items-start space-x-3 flex-1">
+            <div
+              className={`flex items-center justify-center h-10 w-10 rounded-full ${config.bgColor} flex-shrink-0`}
+            >
+              {IconComponent && (
+                <IconComponent className={`h-5 w-5 ${config.iconColor}`} aria-hidden="true" />
               )}
             </div>
-            <p className="text-sm text-gray-700 leading-relaxed">{announcement.message}</p>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center space-x-2 mb-1">
+                <h3 className="text-sm font-semibold text-gray-900">{config.title}</h3>
+                {formattedDate && <span className="text-xs text-gray-500">{formattedDate}</span>}
+              </div>
+              <p className="text-sm text-gray-700 leading-relaxed">{announcement.message}</p>
+            </div>
           </div>
+          <button
+            onClick={onClose}
+            className="flex-shrink-0 ml-3 p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors duration-200"
+            aria-label="Close announcement"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
-        <button
-          onClick={onClose}
-          className="flex-shrink-0 ml-3 p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors duration-200"
-          aria-label="Close announcement"
-        >
-          <X className="h-4 w-4" />
-        </button>
       </div>
-    </div>
+    )
   )
 }
 
