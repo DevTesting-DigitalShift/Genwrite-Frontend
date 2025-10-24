@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react"
-import { useDispatch } from "react-redux"
+import { useCallback, useEffect, useState } from "react"
+import { useDispatch, useSelector } from "react-redux"
 import { Modal, Input, Select, message, Spin } from "antd"
 import { Plus, RefreshCcw, Sparkles, X } from "lucide-react"
 import Carousel from "@components/multipleStepModal/Carousel"
 import { packages } from "@/data/templates"
 import { fetchGeneratedTitles } from "@store/slices/blogSlice"
+import { selectUser } from "@store/slices/authSlice"
+import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 
 const TemplateModal = ({
   closeFnc,
@@ -15,8 +17,9 @@ const TemplateModal = ({
   formData,
   setFormData,
 }) => {
+  const user = useSelector(selectUser)
   const [currentStep, setCurrentStep] = useState(0)
-  const [selectedTemplate, setSelectedTemplate] = useState(null)
+  const [selectedTemplate, setSelectedTemplate] = useState([])
   const [isGeneratingTitles, setIsGeneratingTitles] = useState(false)
   const [generatedTitles, setGeneratedTitles] = useState([])
   const [hasGeneratedTitles, setHasGeneratedTitles] = useState(false)
@@ -45,11 +48,11 @@ const TemplateModal = ({
 
   const handleNext = () => {
     if (currentStep === 0 && !selectedTemplate) {
-      setErrors((prev) => ({ ...prev, template: true }))
+      setErrors(prev => ({ ...prev, template: true }))
       message.error("Please select a template before proceeding.")
       return
     }
-    setErrors((prev) => ({ ...prev, template: false }))
+    setErrors(prev => ({ ...prev, template: false }))
     setCurrentStep(1)
   }
 
@@ -57,62 +60,62 @@ const TemplateModal = ({
 
   const handleClose = () => closeFnc()
 
-  const handlePackageSelect = (index) => {
-    setSelectedTemplate(packages[index].name)
-    setFormData((prev) => ({ ...prev, template: packages[index].name }))
-    setErrors((prev) => ({ ...prev, template: false }))
-  }
+  const handlePackageSelect = useCallback(temp => {
+    setSelectedTemplate(temp)
+    setFormData(prev => ({ ...prev, template: temp?.[0]?.name || "" }))
+    setErrors(prev => ({ ...prev, template: false }))
+  }, [])
 
   const handleInputChange = (e, key) => {
-    setFormData((prev) => ({ ...prev, [key]: e.target.value }))
-    setErrors((prev) => ({ ...prev, [key]: false }))
+    setFormData(prev => ({ ...prev, [key]: e.target.value }))
+    setErrors(prev => ({ ...prev, [key]: false }))
   }
 
-  const handleSelectChange = (value) => {
-    setFormData((prev) => ({ ...prev, tone: value }))
-    setErrors((prev) => ({ ...prev, tone: false }))
+  const handleSelectChange = value => {
+    setFormData(prev => ({ ...prev, tone: value }))
+    setErrors(prev => ({ ...prev, tone: false }))
   }
 
   const handleKeywordInputChange = (e, type) => {
     const key = type === "keywords" ? "keywordInput" : "focusKeywordInput"
-    setFormData((prev) => ({ ...prev, [key]: e.target.value }))
-    setErrors((prev) => ({ ...prev, [type]: false }))
+    setFormData(prev => ({ ...prev, [key]: e.target.value }))
+    setErrors(prev => ({ ...prev, [type]: false }))
   }
 
-  const handleAddKeyword = (type) => {
+  const handleAddKeyword = type => {
     const inputKey = type === "keywords" ? "keywordInput" : "focusKeywordInput"
     const inputValue = formData[inputKey].trim()
 
     if (!inputValue) {
-      setErrors((prev) => ({ ...prev, [type]: true }))
+      setErrors(prev => ({ ...prev, [type]: true }))
       message.error("Please enter a keyword.")
       return
     }
 
-    const existingSet = new Set(formData[type].map((k) => k.trim().toLowerCase()))
+    const existingSet = new Set(formData[type].map(k => k.trim().toLowerCase()))
     const newKeywords = inputValue
       .split(",")
-      .map((k) => k.trim())
-      .filter((k) => k && !existingSet.has(k.toLowerCase()))
+      .map(k => k.trim())
+      .filter(k => k && !existingSet.has(k.toLowerCase()))
 
     if (newKeywords.length === 0) {
-      setErrors((prev) => ({ ...prev, [type]: true }))
+      setErrors(prev => ({ ...prev, [type]: true }))
       message.error("Please enter valid, non-duplicate keywords separated by commas.")
       return
     }
 
     if (type === "focusKeywords" && formData[type].length + newKeywords.length > 3) {
-      setErrors((prev) => ({ ...prev, [type]: true }))
+      setErrors(prev => ({ ...prev, [type]: true }))
       message.error("You can only add up to 3 focus keywords.")
       return
     }
 
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       [type]: [...prev[type], ...newKeywords],
       [inputKey]: "",
     }))
-    setErrors((prev) => ({ ...prev, [type]: false }))
+    setErrors(prev => ({ ...prev, [type]: false }))
   }
 
   const handleRemoveKeyword = (index, type) => {
@@ -130,12 +133,12 @@ const TemplateModal = ({
 
   const handleGenerateTitles = async () => {
     if (!formData.topic.trim()) {
-      setErrors((prev) => ({ ...prev, topic: true }))
+      setErrors(prev => ({ ...prev, topic: true }))
       message.error("Please enter a topic before generating titles.")
       return
     }
     if (formData.focusKeywords.length < 1 && formData.keywords.length < 1) {
-      setErrors((prev) => ({ ...prev, focusKeywords: true, keywords: true }))
+      setErrors(prev => ({ ...prev, focusKeywords: true, keywords: true }))
       message.error("Please add at least one focus keyword or secondary keyword.")
       return
     }
@@ -209,64 +212,11 @@ const TemplateModal = ({
       <div className="p-2">
         {currentStep === 0 && (
           <div className="p-3">
-            {/* Mobile view → Grid with 2 cols */}
-            <div className="grid grid-cols-2 gap-3 sm:hidden">
-              {packages.map((pkg, index) => (
-                <div
-                  key={index}
-                  className={`cursor-pointer transition-all duration-200 ${
-                    selectedTemplate === pkg.name ? "border-gray-300 border-2 rounded-lg" : ""
-                  }`}
-                  onClick={() => handlePackageSelect(index)}
-                >
-                  <div className="bg-white rounded-lg overflow-hidden shadow-sm">
-                    <div className="relative">
-                      <img
-                        src={pkg.imgSrc || "/placeholder.svg"}
-                        alt={pkg.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="p-2 mt-2">
-                      <h3 className="font-medium text-gray-900 mb-1 text-xs sm:text-sm">
-                        {pkg.name}
-                      </h3>
-                      <p className="text-xs text-gray-500 line-clamp-2">{pkg.description}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Desktop / tablet view → Carousel */}
-            <div className="hidden sm:block">
-              <Carousel>
-                {packages.map((pkg, index) => (
-                  <div
-                    key={index}
-                    className={`cursor-pointer transition-all duration-200 ${
-                      selectedTemplate === pkg.name ? "border-gray-300 border-2 rounded-lg" : ""
-                    }`}
-                    onClick={() => handlePackageSelect(index)}
-                  >
-                    <div className="bg-white rounded-lg overflow-hidden shadow-sm">
-                      <div className="relative">
-                        <img
-                          src={pkg.imgSrc || "/placeholder.svg"}
-                          alt={pkg.name}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div className="p-2 mt-2">
-                        <h3 className="font-medium text-gray-900 mb-1">{pkg.name}</h3>
-                        <p className="text-sm text-gray-500 line-clamp-2">{pkg.description}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </Carousel>
-            </div>
-
+            <TemplateSelection
+              userSubscriptionPlan={user?.subscription?.plan || "free"}
+              preSelectedIds={selectedTemplate?.map(t => t?.id || "")}
+              onClick={handlePackageSelect}
+            />
             {errors.template && (
               <p className="text-red-500 text-sm mt-2">Please select a template.</p>
             )}
@@ -281,7 +231,7 @@ const TemplateModal = ({
               </label>
               <Input
                 value={formData.topic}
-                onChange={(e) => handleInputChange(e, "topic")}
+                onChange={e => handleInputChange(e, "topic")}
                 placeholder="Enter blog topic..."
                 className={`w-full px-3 py-2 border ${
                   errors.topic ? "border-red-500" : "border-gray-200"
@@ -315,8 +265,8 @@ const TemplateModal = ({
               <div className="flex gap-2">
                 <Input
                   value={formData.focusKeywordInput}
-                  onChange={(e) => handleKeywordInputChange(e, "focusKeywords")}
-                  onKeyDown={(e) => handleKeyPress(e, "focusKeywords")}
+                  onChange={e => handleKeywordInputChange(e, "focusKeywords")}
+                  onKeyDown={e => handleKeyPress(e, "focusKeywords")}
                   placeholder="Enter focus keywords, separated by commas"
                   className={`flex-1 px-3 py-2 border ${
                     errors.focusKeywords ? "border-red-500" : "border-gray-200"
@@ -356,8 +306,8 @@ const TemplateModal = ({
               <div className="flex gap-2">
                 <Input
                   value={formData.keywordInput}
-                  onChange={(e) => handleKeywordInputChange(e, "keywords")}
-                  onKeyDown={(e) => handleKeyPress(e, "keywords")}
+                  onChange={e => handleKeywordInputChange(e, "keywords")}
+                  onKeyDown={e => handleKeyPress(e, "keywords")}
                   placeholder="Enter secondary keywords, separated by commas"
                   className={`flex-1 px-3 py-2 border ${
                     errors.keywords ? "border-red-500" : "border-gray-200"
@@ -390,7 +340,7 @@ const TemplateModal = ({
                 ))}
                 {formData.keywords.length > 18 && (
                   <span
-                    onClick={() => setShowAllKeywords((prev) => !prev)}
+                    onClick={() => setShowAllKeywords(prev => !prev)}
                     className="text-xs font-medium text-blue-600 self-center cursor-pointer flex items-center gap-1"
                   >
                     {showAllKeywords ? <>Show less</> : <>+{formData.keywords.length - 18} more</>}
@@ -405,7 +355,7 @@ const TemplateModal = ({
               <div className="flex gap-4">
                 <Input
                   value={formData.title}
-                  onChange={(e) => handleInputChange(e, "title")}
+                  onChange={e => handleInputChange(e, "title")}
                   placeholder="Enter blog title..."
                   className={`w-full px-3 flex-1 py-2 border ${
                     errors.title ? "border-red-500" : "border-gray-200"
@@ -446,8 +396,8 @@ const TemplateModal = ({
                         <button
                           type="button"
                           onClick={() => {
-                            setFormData((prev) => ({ ...prev, title: generatedTitle }))
-                            setErrors((prev) => ({ ...prev, title: false }))
+                            setFormData(prev => ({ ...prev, title: generatedTitle }))
+                            setErrors(prev => ({ ...prev, title: false }))
                           }}
                           className={`px-3 py-1 rounded-full text-sm border transition truncate max-w-[200px] sm:max-w-[300px] ${
                             isSelected
@@ -473,7 +423,7 @@ const TemplateModal = ({
                 min="500"
                 max="5000"
                 value={formData.userDefinedLength ?? 1000}
-                onChange={(e) => handleInputChange(e, "userDefinedLength")}
+                onChange={e => handleInputChange(e, "userDefinedLength")}
                 placeholder="Enter desired word count..."
                 className="w-full h-1 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#1B6FC9]"
                 style={{

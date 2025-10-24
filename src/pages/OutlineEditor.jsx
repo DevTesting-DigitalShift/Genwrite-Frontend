@@ -3,20 +3,23 @@ import { packages } from "@/data/templates"
 import { createOutlineThunk } from "@store/slices/otherSlice"
 import { Empty, Input, Select, Modal } from "antd"
 import { Bold, Italic, List, Plus, Sparkles, X } from "lucide-react"
-import React, { useState } from "react"
-import { useDispatch } from "react-redux"
+import React, { useCallback, useState } from "react"
+import { useDispatch, useSelector } from "react-redux"
 import { useQuery } from "@tanstack/react-query"
 import { fetchBrands } from "@store/slices/brandSlice"
 import { useNavigate } from "react-router-dom"
 import clsx from "clsx"
+import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
+import { selectUser } from "@store/slices/authSlice"
 
 const { Option } = Select
 
 const OutlineEditor = () => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
+  const user = useSelector(selectUser)
   const [currentStep, setCurrentStep] = useState(0)
-  const [selectedTemplate, setSelectedTemplate] = useState(null)
+  const [selectedTemplate, setSelectedTemplate] = useState([])
   const [showAllKeywords, setShowAllKeywords] = useState(false)
   const [isOpen, setIsOpen] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -64,7 +67,7 @@ const OutlineEditor = () => {
   }
 
   const handlePrev = () => {
-    setCurrentStep((prev) => prev - 1)
+    setCurrentStep(prev => prev - 1)
   }
 
   const handleNext = () => {
@@ -73,7 +76,7 @@ const OutlineEditor = () => {
     if (currentStep === 0) {
       if (!selectedTemplate) {
         newErrors.template = true
-        setErrors((prev) => ({ ...prev, ...newErrors }))
+        setErrors(prev => ({ ...prev, ...newErrors }))
         return
       }
     }
@@ -86,30 +89,30 @@ const OutlineEditor = () => {
         focusKeywords: formData.focusKeywords.length === 0,
         keywords: formData.keywords.length === 0,
       }
-      if (Object.values(newErrors).some((error) => error)) {
-        setErrors((prev) => ({ ...prev, ...newErrors }))
+      if (Object.values(newErrors).some(error => error)) {
+        setErrors(prev => ({ ...prev, ...newErrors }))
         return
       }
     }
 
-    setErrors((prev) => ({ ...prev, ...newErrors, template: false }))
-    setCurrentStep((prev) => prev + 1)
+    setErrors(prev => ({ ...prev, ...newErrors, template: false }))
+    setCurrentStep(prev => prev + 1)
   }
 
-  const handlePackageSelect = (index) => {
-    setSelectedTemplate(packages[index].name)
-    setFormData((prev) => ({ ...prev, template: packages[index].name }))
-    setErrors((prev) => ({ ...prev, template: false }))
-  }
+  const handlePackageSelect = useCallback(temps => {
+    setSelectedTemplate(temps)
+    setFormData(prev => ({ ...prev, template: temps?.[0]?.name || "" }))
+    setErrors(prev => ({ ...prev, template: false }))
+  }, [])
 
   const handleInputChange = (e, key) => {
-    setFormData((prev) => ({ ...prev, [key]: e.target.value }))
-    setErrors((prev) => ({ ...prev, [key]: false }))
+    setFormData(prev => ({ ...prev, [key]: e.target.value }))
+    setErrors(prev => ({ ...prev, [key]: false }))
   }
 
-  const handleSelectChange = (value) => {
-    setFormData((prev) => ({ ...prev, tone: value }))
-    setErrors((prev) => ({ ...prev, tone: false }))
+  const handleSelectChange = value => {
+    setFormData(prev => ({ ...prev, tone: value }))
+    setErrors(prev => ({ ...prev, tone: false }))
   }
 
   const handleKeywordInputChange = (e, type) => {
@@ -119,11 +122,11 @@ const OutlineEditor = () => {
         : type === "focusKeywords"
         ? "focusKeywordInput"
         : "resourceInput"
-    setFormData((prev) => ({ ...prev, [key]: e.target.value }))
-    setErrors((prev) => ({ ...prev, [type]: false }))
+    setFormData(prev => ({ ...prev, [key]: e.target.value }))
+    setErrors(prev => ({ ...prev, [type]: false }))
   }
 
-  const handleAddKeyword = (type) => {
+  const handleAddKeyword = type => {
     const inputKey =
       type === "keywords"
         ? "keywordInput"
@@ -133,33 +136,33 @@ const OutlineEditor = () => {
     const inputValue = formData[inputKey].trim()
 
     if (!inputValue) {
-      setErrors((prev) => ({ ...prev, [type]: true }))
+      setErrors(prev => ({ ...prev, [type]: true }))
       return
     }
 
-    const existingSet = new Set(formData[type].map((k) => k.trim().toLowerCase()))
+    const existingSet = new Set(formData[type].map(k => k.trim().toLowerCase()))
     const newItems = inputValue
       .split(",")
-      .map((k) => k.trim())
-      .filter((k) => k && !existingSet.has(k.toLowerCase()))
+      .map(k => k.trim())
+      .filter(k => k && !existingSet.has(k.toLowerCase()))
 
     if (newItems.length === 0) {
-      setErrors((prev) => ({ ...prev, [type]: true }))
+      setErrors(prev => ({ ...prev, [type]: true }))
       return
     }
 
     if (type === "focusKeywords" && formData[type].length + newItems.length > 3) {
-      setErrors((prev) => ({ ...prev, [type]: true }))
+      setErrors(prev => ({ ...prev, [type]: true }))
       return
     }
 
     if (type === "resources" && formData[type].length + newItems.length > 4) {
-      setErrors((prev) => ({ ...prev, [type]: true }))
+      setErrors(prev => ({ ...prev, [type]: true }))
       return
     }
 
     if (type === "resources") {
-      const invalidUrls = newItems.filter((url) => {
+      const invalidUrls = newItems.filter(url => {
         try {
           new URL(url)
           return false
@@ -168,17 +171,17 @@ const OutlineEditor = () => {
         }
       })
       if (invalidUrls.length > 0) {
-        setErrors((prev) => ({ ...prev, [type]: true }))
+        setErrors(prev => ({ ...prev, [type]: true }))
         return
       }
     }
 
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       [type]: [...prev[type], ...newItems],
       [inputKey]: "",
     }))
-    setErrors((prev) => ({ ...prev, [type]: false }))
+    setErrors(prev => ({ ...prev, [type]: false }))
   }
 
   const handleRemoveKeyword = (index, type) => {
@@ -194,13 +197,13 @@ const OutlineEditor = () => {
     }
   }
 
-  const handleBrandSelect = (brandId) => {
-    setFormData((prev) => ({ ...prev, brandId }))
+  const handleBrandSelect = brandId => {
+    setFormData(prev => ({ ...prev, brandId }))
   }
 
   const handleSubmit = async () => {
     setIsSubmitting(true)
-    const selectedBrand = brands.find((brand) => brand._id === formData.brandId)
+    const selectedBrand = brands.find(brand => brand._id === formData.brandId)
     const blogData = {
       title: formData.title?.trim(),
       topic: formData.topic?.trim(),
@@ -228,8 +231,8 @@ const OutlineEditor = () => {
       keywords: !blogData.keywords || blogData.keywords.length === 0,
     }
 
-    if (Object.values(newErrors).some((error) => error)) {
-      setErrors((prev) => ({ ...prev, ...newErrors }))
+    if (Object.values(newErrors).some(error => error)) {
+      setErrors(prev => ({ ...prev, ...newErrors }))
       setCurrentStep(1)
       setIsSubmitting(false)
       return
@@ -258,11 +261,11 @@ const OutlineEditor = () => {
     URL.revokeObjectURL(url)
   }
 
-  const handleContentChange = (e) => {
+  const handleContentChange = e => {
     setMarkdownContent(e.target.value)
   }
 
-  const handleFormat = (format) => {
+  const handleFormat = format => {
     const textarea = document.getElementById("outline-editor")
     const start = textarea.selectionStart
     const end = textarea.selectionEnd
@@ -276,8 +279,8 @@ const OutlineEditor = () => {
       newText =
         markdownContent.substring(0, start) + `*${selectedText}*` + markdownContent.substring(end)
     } else if (format === "list") {
-      const lines = selectedText.split("\n").filter((line) => line.trim())
-      const formattedLines = lines.map((line) => `- ${line.trim()}`).join("\n")
+      const lines = selectedText.split("\n").filter(line => line.trim())
+      const formattedLines = lines.map(line => `- ${line.trim()}`).join("\n")
       newText =
         markdownContent.substring(0, start) + formattedLines + markdownContent.substring(end)
     }
@@ -285,11 +288,11 @@ const OutlineEditor = () => {
     setMarkdownContent(newText)
   }
 
-  const isImageUrl = (url) => {
+  const isImageUrl = url => {
     const imageExtensions = [".png", ".jpg", ".jpeg", ".gif", ".webp"]
     try {
       const urlObj = new URL(url)
-      return imageExtensions.some((ext) => urlObj.pathname.toLowerCase().endsWith(ext))
+      return imageExtensions.some(ext => urlObj.pathname.toLowerCase().endsWith(ext))
     } catch {
       return false
     }
@@ -393,65 +396,11 @@ const OutlineEditor = () => {
         <div className="px-2 sm:px-4">
           {currentStep === 0 && (
             <div className="py-2 sm:py-3">
-              {/* Mobile view: grid with 2 templates per row */}
-              <div className="grid grid-cols-2 gap-2 sm:gap-3 sm:hidden">
-                {packages.map((pkg, index) => (
-                  <div
-                    key={index}
-                    className={clsx(
-                      "cursor-pointer transition-all duration-200",
-                      selectedTemplate === pkg.name && "border-gray-200 border-2 rounded-lg"
-                    )}
-                    onClick={() => handlePackageSelect(index)}
-                  >
-                    <div className="bg-white rounded-lg overflow-hidden shadow-sm">
-                      <div className="relative aspect-w-16 aspect-h-9">
-                        <img
-                          src={pkg.imgSrc || "/placeholder.svg"}
-                          alt={pkg.name}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div className="p-2">
-                        <h3 className="font-medium text-gray-900 mb-1 text-xs">{pkg.name}</h3>
-                        <p className="text-xs text-gray-500 line-clamp-2">{pkg.description}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Tablet & Desktop view: Carousel */}
-              <div className="hidden sm:block">
-                <Carousel>
-                  {packages.map((pkg, index) => (
-                    <div
-                      key={index}
-                      className={clsx(
-                        "cursor-pointer transition-all duration-200",
-                        selectedTemplate === pkg.name && "border-gray-200 border-2 rounded-lg"
-                      )}
-                      onClick={() => handlePackageSelect(index)}
-                    >
-                      <div className="bg-white rounded-lg overflow-hidden shadow-sm">
-                        <div className="relative aspect-w-16 aspect-h-9">
-                          <img
-                            src={pkg.imgSrc || "/placeholder.svg"}
-                            alt={pkg.name}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div className="p-3">
-                          <h3 className="font-medium text-gray-900 mb-1 text-sm sm:text-base">
-                            {pkg.name}
-                          </h3>
-                          <p className="text-sm text-gray-500 line-clamp-2">{pkg.description}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </Carousel>
-              </div>
+              <TemplateSelection
+                userSubscriptionPlan={user?.subscription?.plan || "free"}
+                preSelectedIds={selectedTemplate?.map(t => t?.id || "")}
+                onClick={handlePackageSelect}
+              />
 
               {errors.template && (
                 <p className="text-red-500 text-xs sm:text-sm mt-2">Please select a template.</p>
@@ -466,7 +415,7 @@ const OutlineEditor = () => {
                 </label>
                 <Input
                   value={formData.topic}
-                  onChange={(e) => handleInputChange(e, "topic")}
+                  onChange={e => handleInputChange(e, "topic")}
                   placeholder="Enter blog topic..."
                   className={clsx(
                     "w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-600",
@@ -506,8 +455,8 @@ const OutlineEditor = () => {
                 <div className="flex gap-2">
                   <Input
                     value={formData.focusKeywordInput}
-                    onChange={(e) => handleKeywordInputChange(e, "focusKeywords")}
-                    onKeyDown={(e) => handleKeyPress(e, "focusKeywords")}
+                    onChange={e => handleKeywordInputChange(e, "focusKeywords")}
+                    onKeyDown={e => handleKeyPress(e, "focusKeywords")}
                     placeholder="Enter focus keywords, separated by commas"
                     className={clsx(
                       "flex-1 px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-600",
@@ -553,8 +502,8 @@ const OutlineEditor = () => {
                 <div className="flex gap-2">
                   <Input
                     value={formData.keywordInput}
-                    onChange={(e) => handleKeywordInputChange(e, "keywords")}
-                    onKeyDown={(e) => handleKeyPress(e, "keywords")}
+                    onChange={e => handleKeywordInputChange(e, "keywords")}
+                    onKeyDown={e => handleKeyPress(e, "keywords")}
                     placeholder="Enter secondary keywords, separated by commas"
                     className={clsx(
                       "flex-1 px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-600",
@@ -588,7 +537,7 @@ const OutlineEditor = () => {
                   ))}
                   {formData.keywords.length > 18 && (
                     <span
-                      onClick={() => setShowAllKeywords((prev) => !prev)}
+                      onClick={() => setShowAllKeywords(prev => !prev)}
                       className="text-xs sm:text-sm font-medium text-blue-600 self-center cursor-pointer flex items-center gap-1"
                     >
                       {showAllKeywords ? (
@@ -612,7 +561,7 @@ const OutlineEditor = () => {
                 <div className="flex gap-4">
                   <Input
                     value={formData.title}
-                    onChange={(e) => handleInputChange(e, "title")}
+                    onChange={e => handleInputChange(e, "title")}
                     placeholder="Enter blog title..."
                     className={clsx(
                       "w-full px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-600",
@@ -634,7 +583,7 @@ const OutlineEditor = () => {
                   min="500"
                   max="5000"
                   value={formData.userDefinedLength ?? 1000}
-                  onChange={(e) => handleInputChange(e, "userDefinedLength")}
+                  onChange={e => handleInputChange(e, "userDefinedLength")}
                   className="w-full h-1 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#1B6FC9]"
                   style={{
                     background: `linear-gradient(to right, #1B6FC9 ${
@@ -659,7 +608,7 @@ const OutlineEditor = () => {
                   {brands?.length > 0 ? (
                     <div className="max-h-48 overflow-y-auto pr-1">
                       <div className="grid gap-2 sm:gap-3">
-                        {brands.map((voice) => (
+                        {brands.map(voice => (
                           <label
                             key={voice._id}
                             className={clsx(
@@ -703,8 +652,8 @@ const OutlineEditor = () => {
                 <div className="flex gap-2">
                   <Input
                     value={formData.resourceInput}
-                    onChange={(e) => handleKeywordInputChange(e, "resources")}
-                    onKeyDown={(e) => handleKeyPress(e, "resources")}
+                    onChange={e => handleKeywordInputChange(e, "resources")}
+                    onKeyDown={e => handleKeyPress(e, "resources")}
                     placeholder="Enter resource links (YouTube or others), separated by commas"
                     className={clsx(
                       "flex-1 px-3 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-600",
@@ -770,7 +719,7 @@ const OutlineEditor = () => {
                   className="prose prose-sm max-w-none text-gray-700 text-sm sm:text-base"
                   dangerouslySetInnerHTML={{
                     __html: markdownContent
-                      .replace(/^#+\s+/gm, (match) => `<h${match.length}>`)
+                      .replace(/^#+\s+/gm, match => `<h${match.length}>`)
                       .replace(/\n/gm, "<br>")
                       .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
                       .replace(/\*(.*?)\*/g, "<em>$1</em>")
@@ -824,7 +773,7 @@ const OutlineEditor = () => {
                 <div
                   dangerouslySetInnerHTML={{
                     __html: markdownContent
-                      .replace(/^#+\s+/gm, (match) => `<h${match.length}>`)
+                      .replace(/^#+\s+/gm, match => `<h${match.length}>`)
                       .replace(/\n/gm, "<br>")
                       .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
                       .replace(/\*(.*?)\*/g, "<em>$1</em>")
