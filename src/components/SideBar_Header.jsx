@@ -52,7 +52,7 @@ const SideBar_Header = () => {
 
   // Handle outside click to close sidebar
   useEffect(() => {
-    const handleClickOutside = (event) => {
+    const handleClickOutside = event => {
       if (
         sidebarOpen &&
         sidebarRef.current &&
@@ -135,7 +135,11 @@ const SideBar_Header = () => {
       },
       { type: "divider" },
       { key: "profile", label: "Profile", className: "!py-1.5 hover:bg-gray-100" },
-      { key: "transactions", label: "Subscription & Transactions", className: "!py-1.5 hover:bg-gray-100" },
+      {
+        key: "transactions",
+        label: "Subscription & Transactions",
+        className: "!py-1.5 hover:bg-gray-100",
+      },
       { key: "credit-logs", label: "Credit Logs", className: "!py-1.5 hover:bg-gray-100" },
       { key: "pricing", label: "Upgrade", className: "!py-1.5 hover:bg-gray-100" },
       { type: "divider" },

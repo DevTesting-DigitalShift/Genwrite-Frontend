@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef, useCallback } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import Carousel from "./Carousel"
@@ -11,6 +11,7 @@ import { message, Modal, Select, Tooltip } from "antd"
 import { fetchBrands } from "@store/slices/brandSlice"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { getIntegrationsThunk } from "@store/slices/otherSlice"
+import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 
 const MultiStepModal = ({ closeFnc }) => {
   const dispatch = useDispatch()
@@ -32,6 +33,7 @@ const MultiStepModal = ({ closeFnc }) => {
   // Initial Form Data
   const initialFormData = {
     templates: [],
+    templateIds: [],
     topics: [],
     keywords: [],
     topicInput: "",
@@ -241,26 +243,14 @@ const MultiStepModal = ({ closeFnc }) => {
     })
   }
 
-  const handlePackageSelect = index => {
-    const selectedPackageName = packages[index].name
-    const isSelected = formData.templates.includes(selectedPackageName)
-
-    if (isSelected) {
-      setFormData(prev => ({
-        ...prev,
-        templates: prev.templates.filter(name => name !== selectedPackageName),
-      }))
-      setErrors(prev => ({ ...prev, templates: "" }))
-    } else if (formData.templates.length < 3) {
-      setFormData(prev => ({
-        ...prev,
-        templates: [...prev.templates, selectedPackageName],
-      }))
-      setErrors(prev => ({ ...prev, templates: "" }))
-    } else {
-      setErrors(prev => ({ ...prev, templates: "You can select a maximum of 3 templates." }))
-    }
-  }
+  const handlePackageSelect = useCallback(templates => {
+    setFormData(prev => ({
+      ...prev,
+      templates: templates.map(t => t.name),
+      templateIds: templates.map(t => t.id),
+    }))
+    setErrors(prev => ({ ...prev, templates: "" }))
+  }, [])
 
   const handleInputChange = e => {
     const { name, value, type } = e.target
@@ -734,79 +724,26 @@ const MultiStepModal = ({ closeFnc }) => {
       transitionName=""
       maskTransitionName=""
     >
-      <div className="p-2 md:p-4 max-h-[80vh] overflow-y-auto">
+      <div className="p-2 md:p-4 max-h-[80vh]">
         {currentStep === 0 && (
           <div
             className={`p-3 md:p-0 ${errors.templates ? "border-2 border-red-500 rounded-lg" : ""}`}
           >
-            <p className="text-sm text-gray-600 mb-3 sm:mb-4">
-              Select up to 3 templates for the types of blogs you want to generate.
+            <TemplateSelection
+              numberOfSelection={3}
+              userSubscriptionPlan={user?.subscription?.plan ?? "free"}
+              preSelectedIds={formData.templateIds}
+              onClick={handlePackageSelect}
+            />
+            <p
+              className={`text-sm ${
+                errors?.templates ? "text-red-500" : "text-gray-600"
+              }  my-3 sm:mb-4 px-4`}
+            >
+              {errors?.templates
+                ? errors.templates
+                : "Select up to 3 templates for the types of blogs you want to generate."}
             </p>
-            <div className="sm:hidden grid grid-cols-2 gap-4">
-              {packages.map((pkg, index) => (
-                <div
-                  key={pkg.id}
-                  className={`cursor-pointer transition-all duration-200 w-full ${
-                    formData.templates.includes(pkg.name)
-                      ? "border-blue-300 border-2 rounded-lg"
-                      : ""
-                  }`}
-                  onClick={() => handlePackageSelect(index)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={e => e.key === "Enter" && handlePackageSelect(index)}
-                  aria-label={`Select ${pkg.name} template`}
-                >
-                  <div className="bg-white rounded-lg overflow-hidden shadow-sm">
-                    <div className="relative">
-                      <img
-                        src={pkg.imgSrc || "/placeholder.svg"}
-                        alt={pkg.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="p-3">
-                      <h3 className="font-medium text-gray-900 text-base mb-1">{pkg.name}</h3>
-                      <p className="text-sm text-gray-500 line-clamp-2">{pkg.description}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="hidden sm:block">
-              <Carousel className="flex flex-row gap-4">
-                {packages.map((pkg, index) => (
-                  <div
-                    key={pkg.name}
-                    className={`cursor-pointer transition-all duration-200 w-full ${
-                      formData.templates.includes(pkg.name)
-                        ? "border-blue-300 border-2 rounded-lg"
-                        : ""
-                    }`}
-                    onClick={() => handlePackageSelect(index)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={e => e.key === "Enter" && handlePackageSelect(index)}
-                    aria-label={`Select ${pkg.name} template`}
-                  >
-                    <div className="bg-white rounded-lg overflow-hidden shadow-sm">
-                      <div className="relative">
-                        <img
-                          src={pkg.imgSrc || "/placeholder.svg"}
-                          alt={pkg.name}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div className="p-3">
-                        <h3 className="font-medium text-gray-900 text-base mb-1">{pkg.name}</h3>
-                        <p className="text-sm text-gray-500 line-clamp-2">{pkg.description}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </Carousel>
-            </div>
-            {errors.templates && <p className="text-red-500 text-xs mt-1">{errors.templates}</p>}
           </div>
         )}
         {currentStep === 1 && (
@@ -1212,12 +1149,6 @@ const MultiStepModal = ({ closeFnc }) => {
                       value: "ai",
                       restricted: userPlan === "free",
                     },
-                    // {
-                    //   id: "customImage",
-                    //   label: "Custom Images",
-                    //   value: "customImage",
-                    //   restricted: false,
-                    // },
                   ].map(source => (
                     <label
                       key={source.id}
@@ -1254,68 +1185,7 @@ const MultiStepModal = ({ closeFnc }) => {
                     </label>
                   ))}
                 </div>
-                {/* {formData.imageSource === "customImage" && (
-                  <div className="mt-4">
-                    <label className="block text-sm font-semibold text-gray-700 mb-3">
-                      Upload Custom Images (Max 15, each 5MB)
-                    </label>
-                    <div
-                      className={`border-2 border-dashed rounded-lg p-6 text-center ${
-                        formData.isDragging
-                          ? "border-blue-600 bg-blue-50"
-                          : errors.blogImages
-                          ? "border-red-500 bg-red-50"
-                          : "border-gray-300 bg-gray-50"
-                      }`}
-                      onDragOver={handleDragOver}
-                      onDragLeave={handleDragLeave}
-                      onDrop={handleDrop}
-                    >
-                      <p className="text-sm text-gray-600 mb-2">
-                        Drag and drop images here or click to select
-                      </p>
-                      <button
-                        className="px-4 py-2 bg-[#1B6FC9] hover:bg-[#1B6FC9]/90 text-white rounded-md text-sm"
-                        onClick={() => fileInputRef.current?.click()}
-                      >
-                        Select Images
-                      </button>
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileChange}
-                        accept="image/jpeg,image/png,image/webp"
-                        multiple
-                        className="hidden"
-                      />
-                    </div>
-                    {errors.blogImages && (
-                      <p className="text-red-500 text-xs mt-1">{errors.blogImages}</p>
-                    )}
-                    {formData.blogImages.length > 0 && (
-                      <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
-                        {formData.blogImages.map((image, index) => (
-                          <div key={index} className="relative group">
-                            <img
-                              src={image instanceof File ? URL.createObjectURL(image) : image}
-                              alt={image instanceof File ? image.name : `Image ${index + 1}`}
-                              className="w-full h-24 object-cover rounded-md"
-                            />
-                            <button
-                              onClick={() => handleRemoveImage(index)}
-                              className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                            <p className="text-xs text-gray-600 truncate mt-1">
-                              {image instanceof File ? image.name : `Image ${index + 1}`}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )} */}
+
                 <div className="pt-4 w-full">
                   <label className="block text-sm font-semibold text-gray-700 mb-1">
                     Number of Images

@@ -1,6 +1,6 @@
 import { Loader2 } from "lucide-react"
 import { motion } from "framer-motion"
-import { useEffect } from "react"
+import { memo, useEffect } from "react"
 
 const Loading = ({ message = "Loading...", size = "default" }) => {
   const containerVariants = {
@@ -73,4 +73,4 @@ const Loading = ({ message = "Loading...", size = "default" }) => {
   )
 }
 
-export default Loading
+export default memo(Loading)

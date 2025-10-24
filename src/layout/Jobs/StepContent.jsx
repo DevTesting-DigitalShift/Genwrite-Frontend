@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react"
+import React, { useCallback, useEffect, useRef, useState } from "react"
 import { motion } from "framer-motion"
 import { Select, message, Tooltip } from "antd"
 import MultiDatePicker from "react-multi-date-picker"
@@ -11,6 +11,8 @@ import { useNavigate } from "react-router-dom"
 import { fetchBrands } from "@store/slices/brandSlice"
 import { useQuery } from "@tanstack/react-query"
 import { getIntegrationsThunk } from "@store/slices/otherSlice"
+import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
+import clsx from "clsx"
 
 const { Option } = Select
 
@@ -502,19 +504,40 @@ const StepContent = ({
     }))
   }
 
+  const handleTemplateSelection = useCallback(temps => {
+    console.log(temps)
+    setNewJob(prev => ({
+      ...prev,
+      blogs: {
+        ...prev.blogs,
+        templates: temps.map(t => t.name),
+      },
+      templateIds: temps.map(t => t.id),
+    }))
+    setErrors(prev => ({ ...prev, templates: false }))
+  }, [])
+
   switch (currentStep) {
     case 1:
       return (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="space-y-4 sm:space-y-6"
+          className={`space-y-4 sm:space-y-6 ${clsx(
+            errors.templates && "border-2 border-red-500 rounded-lg"
+          )}`}
         >
-          <p className="text-sm text-gray-600 mb-3 sm:mb-4">
+          <TemplateSelection
+            numberOfSelection={3}
+            userSubscriptionPlan={userPlan ?? "free"}
+            preSelectedIds={newJob?.templateIds ?? []}
+            onClick={handleTemplateSelection}
+          />
+          {/* <p className="text-sm text-gray-600 mb-3 sm:mb-4">
             Select up to 3 templates for the types of blogs you want to generate.
           </p>
-          {/* Mobile View: Vertical Scrolling Layout */}
-          <div
+          Mobile View: Vertical Scrolling Layout 
+           <div
             className={`sm:hidden grid grid-cols-2 gap-4 ${
               errors.templates ? "border-red-500 border-2" : ""
             }`}
@@ -601,11 +624,11 @@ const StepContent = ({
                 </div>
               </div>
             ))}
-          </div>
-          {errors.templates && <p className="text-red-500 text-xs">{errors.templates}</p>}
+          </div> 
+           {errors.templates && <p className="text-red-500 text-xs">{errors.templates}</p>}
 
-          {/* Desktop View: 1x2 Grid Layout */}
-          <div className={`hidden sm:block ${errors.templates ? "border-red-500 border-2" : ""}`}>
+          Desktop View: 1x2 Grid Layout 
+           <div className={`hidden sm:block ${errors.templates ? "border-red-500 border-2" : ""}`}>
             <div className="flex flex-wrap gap-4">
               {packages.map(pkg => (
                 <div
@@ -695,7 +718,16 @@ const StepContent = ({
               ))}
             </div>
           </div>
-          {errors.templates && <p className="text-red-500 text-xs">{errors.templates}</p>}
+          {errors.templates && <p className="text-red-500 text-xs">{errors.templates}</p>} */}
+          <p
+            className={`text-sm ${
+              errors?.templates ? "text-red-500" : "text-gray-600"
+            }  my-3 sm:mb-4 px-4`}
+          >
+            {errors?.templates
+              ? errors.templates
+              : "Select up to 3 templates for the types of blogs you want to generate."}
+          </p>
         </motion.div>
       )
     case 2:

@@ -1,13 +1,14 @@
-import { memo, useEffect, useState } from "react"
+import { memo, Suspense, useEffect, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { Plus, RefreshCw, Sparkles } from "lucide-react"
 import { Modal, Select, Spin } from "antd"
 import { fetchGeneratedTitles } from "@store/slices/blogSlice"
 import { CloseOutlined } from "@ant-design/icons"
+import Loading from "@components/UI/Loading"
 
 const { Option } = Select
 
-const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData }) => {
+const FirstStepModal = ({ handleNext, data, setData }) => {
   const [topic, setTopic] = useState(data?.topic || "")
   const [hasGeneratedTitles, setHasGeneratedTitles] = useState(false)
   const MAX_VISIBLE_KEYWORDS = 18 // Adjust as needed
@@ -248,31 +249,7 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
   }, [data, setData])
 
   return (
-    <Modal
-      title="Step 2: Crucial Details"
-      open={true}
-      onCancel={handleClose}
-      footer={[
-        <button
-          key="back"
-          onClick={handlePrevious}
-          className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
-        >
-          Back
-        </button>,
-        <button
-          key="next"
-          onClick={handleNextClick}
-          className="px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 ml-3"
-        >
-          Next
-        </button>,
-      ]}
-      width={800}
-      centered
-      transitionName=""
-      maskTransitionName=""
-    >
+    <Suspense fallback={<Loading />}>
       <div className="p-2 md:p-4">
         <div className="space-y-6">
           {/* Topic */}
@@ -562,7 +539,7 @@ const FirstStepModal = ({ handleNext, handleClose, handlePrevious, data, setData
           </div>
         </div>
       </div>
-    </Modal>
+    </Suspense>
   )
 }
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import { createNewQuickBlog } from "../../store/slices/blogSlice"
@@ -13,7 +13,6 @@ import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 
 const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   const [currentStep, setCurrentStep] = useState(0)
-  const [selectedPackage, setSelectedPackage] = useState(null)
   const [otherLinks, setOtherLinks] = useState([])
 
   const initialFormData = {
@@ -22,6 +21,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     addImages: false,
     imageSource: "unsplash",
     template: null,
+    templateIds: [],
     keywords: [],
     focusKeywords: [],
     otherLinkInput: "",
@@ -74,7 +74,6 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
 
   // Handle modal close
   const handleClose = () => {
-    setSelectedPackage(null)
     setFormData(initialFormData)
     setOtherLinks([])
     setErrors(initialErrors)
@@ -148,22 +147,14 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   }
 
   // Handle template selection
-  const handlePackageSelect = templates => {
-    let pkgId, pkg
-    if (templates?.length) {
-      pkg = templates[0]
-      pkgId = pkg.id
-    } else {
-      pkg = null
-      pkgId = null
-    }
-    setSelectedPackage(pkgId)
+  const handlePackageSelect = useCallback(templates => {
     setFormData(prev => ({
       ...prev,
-      template: pkg?.name || pkg,
+      template: templates?.[0]?.name ?? null,
+      templateIds: templates?.map(t => t.id),
     }))
     setErrors(prev => ({ ...prev, template: "" }))
-  }
+  }, [])
 
   // Handle keyword input changes
   const handleKeywordInputChange = (e, type) => {
@@ -419,7 +410,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
               <TemplateSelection
                 userSubscriptionPlan={user?.subscription?.plan ?? "free"}
                 onClick={handlePackageSelect}
-                preSelectedIds={selectedPackage ? [selectedPackage] : []}
+                preSelectedIds={formData.templateIds}
               />
             </div>
             {errors.template && <p className="text-red-500 text-sm mt-2">{errors.template}</p>}

@@ -386,7 +386,10 @@ export const fetchBlogStats = createAsyncThunk(
     }
   }
 )
-
+/**
+ * Async thunk to fetch generated titles
+ *  @type { AsyncThunk<string[], GenerateTitlesPayload | any, AsyncThunkConfig>}
+ */
 export const fetchGeneratedTitles = createAsyncThunk(
   "blogs/fetchGeneratedTitles",
   async (payload, { rejectWithValue }) => {

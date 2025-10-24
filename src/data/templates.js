@@ -1,6 +1,3 @@
-/**
- * @type {Array <{id:number; imgSrc:string; name:string; description:string; paid:boolean;}>}
- */
 export const packages = Object.freeze([
   {
     id: 1,

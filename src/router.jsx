@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react"
 import { createBrowserRouter, Navigate } from "react-router-dom"
 import Loading from "@components/UI/Loading"
+import LoadingScreen from "@components/UI/LoadingScreen"
 const CreditLogsTable = lazy(() => import("@pages/CreditLogs"))
 const Transactions = lazy(() => import("@pages/Transactions"))
 const ErrorBoundary = lazy(() => import("./layout/error/ErrorBoundary"))
@@ -44,7 +45,7 @@ const UnsubscribeEmail = lazy(() => import("@pages/UnsubscribeEmail"))
  */
 function withSuspense(Component, props = {}, fallback = null) {
   return (
-    <Suspense fallback={<Loading />}>
+    <Suspense fallback={<LoadingScreen />}>
       <Component {...props} />
     </Suspense>
   )

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, lazy } from "react"
 import SelectTemplateModal from "../components/multipleStepModal/SelectTemplateModal"
 import SecondStepModal from "../components/multipleStepModal/SecondStepModal"
 import { DashboardBox, QuickBox, Blogs } from "../utils/DashboardBox"
@@ -33,11 +33,17 @@ import { letsBegin, quickTools } from "../data/dashData/dash"
 import SeoAnalysisModal from "../components/dashboardModals/SeoAnalysisModal"
 import CompetitiveAnalysisModal from "../components/dashboardModals/CompetitiveAnalysisModal"
 import PerformanceMonitoringModal from "../components/dashboardModals/PerformanceMonitoringModal"
-import FirstStepModal from "../components/multipleStepModal/FirstStepModal"
 import KeywordResearchModel from "../components/dashboardModals/KeywordResearchModel"
-import QuickBlogModal from "../components/multipleStepModal/QuickBlogModal"
+import QuickBlogModal from "@components/multipleStepModal/QuickBlogModal"
 import InlineAnnouncementBanner from "@/layout/InlineAnnouncementBanner"
 import dayjs from "dayjs"
+import Loading from "@components/UI/Loading"
+import LoadingScreen from "@components/UI/LoadingScreen"
+import AdvancedBlogModal from "@components/multipleStepModal/AdvancedBlogModal"
+
+// lazy imports
+const TemplateSelection = lazy(() => import("@components/multipleStepModal/TemplateSelection"))
+const FirstStepModal = lazy(() => import("@components/multipleStepModal/FirstStepModal"))
 // import YoutubeBlogModal from "@components/multipleStepModal/YoutubeBlogModal"
 
 ChartJS.register(
@@ -284,13 +290,14 @@ const Dashboard = () => {
       )}
 
       {currentStep === 0 && (
-        <SelectTemplateModal
-          handleNext={handleNext}
-          handleClose={handleCancel}
-          data={modelData}
-          setData={setModelData}
-          isModalVisible={isModalVisible}
-        />
+        // <SelectTemplateModal
+        //   handleNext={handleNext}
+        //   handleClose={handleCancel}
+        //   data={modelData}
+        //   setData={setModelData}
+        //   isModalVisible={isModalVisible}
+        // />
+        <AdvancedBlogModal openModal={isModalVisible} closeFnc={handleCancel} />
       )}
       {currentStep === 1 && (
         <FirstStepModal
@@ -314,8 +321,12 @@ const Dashboard = () => {
 
       {daisyUIModal && <DaisyUIModal closeFnc={hideDaisy} />}
       {multiStepModal && <MultiStepModal closeFnc={hideMultiStepModal} />}
-      {quickBlogModal && <QuickBlogModal type="quick" closeFnc={hideQuickBlogModal} />}
-      {youtubeBlogModal && <QuickBlogModal type="yt" closeFnc={hideYoutubeBlogModal} />}
+      {quickBlogModal && (
+        <QuickBlogModal type="quick" openModal={quickBlogModal} closeFnc={hideQuickBlogModal} />
+      )}
+      {youtubeBlogModal && (
+        <QuickBlogModal type="yt" openModal={youtubeBlogModal} closeFnc={hideYoutubeBlogModal} />
+      )}
       {competitiveAnalysisModal && (
         <CompetitiveAnalysisModal
           closeFnc={hideCompetitiveAnalysis}

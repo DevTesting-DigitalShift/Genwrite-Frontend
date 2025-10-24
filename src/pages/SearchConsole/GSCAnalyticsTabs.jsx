@@ -1,5 +1,7 @@
 import { EditOutlined, LinkOutlined } from "@ant-design/icons"
+import LoadingScreen from "@components/UI/LoadingScreen"
 import { Tabs, Table, Tooltip, Empty, Dropdown, Menu, Button } from "antd"
+import { Suspense } from "react"
 
 /**
  *
@@ -17,7 +19,7 @@ export default function GSCAnalyticsTabs({
   isLoading,
 }) {
   // Table columns
-  const getColumns = (tab) => {
+  const getColumns = tab => {
     const baseColumns = [
       ...(tab !== "page"
         ? [
@@ -46,7 +48,7 @@ export default function GSCAnalyticsTabs({
               key: "blogTitle",
               sorter: (a, b) => a.blogTitle.localeCompare(b.blogTitle),
               width: "40%",
-              render: (text) => (
+              render: text => (
                 <Tooltip title={text} className="font-medium text-gray-700">
                   {text}
                 </Tooltip>
@@ -59,7 +61,7 @@ export default function GSCAnalyticsTabs({
         dataIndex: "clicks",
         key: "clicks",
         sorter: (a, b) => a.clicks - b.clicks,
-        render: (clicks) => (
+        render: clicks => (
           <span className="text-blue-600 font-semibold">
             {new Intl.NumberFormat().format(clicks)}
           </span>
@@ -70,7 +72,7 @@ export default function GSCAnalyticsTabs({
         dataIndex: "impressions",
         key: "impressions",
         sorter: (a, b) => a.impressions - b.impressions,
-        render: (impressions) => (
+        render: impressions => (
           <span className="text-blue-600 font-semibold">
             {new Intl.NumberFormat().format(impressions)}
           </span>
@@ -81,14 +83,14 @@ export default function GSCAnalyticsTabs({
         dataIndex: "ctr",
         key: "ctr",
         sorter: (a, b) => a.ctr - b.ctr,
-        render: (ctr) => <span className="text-gray-700">{`${Number(ctr).toFixed(2)}%`}</span>,
+        render: ctr => <span className="text-gray-700">{`${Number(ctr).toFixed(2)}%`}</span>,
       },
       {
         title: "Position",
         dataIndex: "position",
         key: "position",
         sorter: (a, b) => a.position - b.position,
-        render: (position) => <span className="text-gray-700">{Number(position).toFixed(2)}</span>,
+        render: position => <span className="text-gray-700">{Number(position).toFixed(2)}</span>,
       },
       ...(tab !== "country"
         ? [
@@ -144,47 +146,48 @@ export default function GSCAnalyticsTabs({
   }
 
   return (
-<div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-  <Tabs
-    items={items.map((item) => ({
-      key: item.key,
-      label: <span className="text-base font-medium">{item.label}</span>,
-      children: (
-        <div className="overflow-x-auto">
-          <Table
-            columns={getColumns(item.key)}
-            dataSource={filteredData}
-            rowKey="id"
-            loading={isLoading}
-            pagination={{
-              showSizeChanger: true,
-              showTotal: (total) => `Total ${total} items`,
-              position: ["topRight"],
-              rootClassName: `absolute z-10 right-4 ${
-                activeTab === "country" ? "-top-[14.5%]" : "-top-[12.5%]"
-              } bg-white rounded-xl`,
-            }}
-            locale={{
-              emptyText: <Empty />,
-            }}
-            className="custom-table min-w-[600px] sm:min-w-full relative"
-            scroll={{ x: 'max-content' }} // optional, ensures smooth horizontal scroll on mobile
-          />
-        </div>
-      ),
-    }))}
-    defaultActiveKey={items[0].key}
-    activeKey={activeTab}
-    onChange={handleTabChange}
-    className="custom-tabs"
-    tabBarStyle={{
-      background: "#f8fafc",
-      padding: "12px 16px",
-      borderBottom: "1px solid #e5e7eb",
-      margin: 0,
-    }}
-  />
-</div>
-
+    <Suspense fallback={<LoadingScreen />}>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <Tabs
+          items={items.map(item => ({
+            key: item.key,
+            label: <span className="text-base font-medium">{item.label}</span>,
+            children: (
+              <div className="overflow-x-auto">
+                <Table
+                  columns={getColumns(item.key)}
+                  dataSource={filteredData}
+                  rowKey="id"
+                  loading={isLoading}
+                  pagination={{
+                    showSizeChanger: true,
+                    showTotal: total => `Total ${total} items`,
+                    position: ["topRight"],
+                    rootClassName: `absolute z-10 right-4 ${
+                      activeTab === "country" ? "-top-[14.5%]" : "-top-[12.5%]"
+                    } bg-white rounded-xl`,
+                  }}
+                  locale={{
+                    emptyText: <Empty />,
+                  }}
+                  className="custom-table min-w-[600px] sm:min-w-full relative"
+                  scroll={{ x: "max-content" }} // optional, ensures smooth horizontal scroll on mobile
+                />
+              </div>
+            ),
+          }))}
+          defaultActiveKey={items[0].key}
+          activeKey={activeTab}
+          onChange={handleTabChange}
+          className="custom-tabs"
+          tabBarStyle={{
+            background: "#f8fafc",
+            padding: "12px 16px",
+            borderBottom: "1px solid #e5e7eb",
+            margin: 0,
+          }}
+        />
+      </div>
+    </Suspense>
   )
 }

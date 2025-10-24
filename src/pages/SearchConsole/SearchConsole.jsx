@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo, lazy } from "react"
 import { Helmet } from "react-helmet"
 import { useDispatch, useSelector } from "react-redux"
 import { fetchGscAnalytics, clearAnalytics } from "@store/slices/gscSlice"
@@ -10,9 +10,10 @@ import Fuse from "fuse.js"
 import dayjs from "dayjs"
 import * as ExcelJS from "exceljs"
 import "@pages/SearchConsole/searchConsole.css"
-import GSCLogin from "@pages/SearchConsole/GSCLogin"
-import GSCAnalyticsTabs from "@pages/SearchConsole/GSCAnalyticsTabs"
 import clsx from "clsx"
+
+const GSCLogin = lazy(_ => import("@pages/SearchConsole/GSCLogin"))
+const GSCAnalyticsTabs = lazy(_ => import("@pages/SearchConsole/GSCAnalyticsTabs"))
 
 const { Option } = Select
 const { RangePicker } = DatePicker
@@ -152,7 +153,7 @@ const SearchConsole = () => {
     },
     enabled: !!user?.gsc,
     retry: 1,
-    onError: (err) => {
+    onError: err => {
       setError(err.message || "Failed to fetch analytics data")
       if (err?.message?.includes("invalid_grant")) {
         message.error("Your Google Search Console session has expired. Please reconnect.")
@@ -163,18 +164,18 @@ const SearchConsole = () => {
   })
 
   const blogTitles = useMemo(() => {
-    return [...new Set(blogData.map((item) => item.blogTitle).filter((t) => t !== "Untitled"))]
+    return [...new Set(blogData.map(item => item.blogTitle).filter(t => t !== "Untitled"))]
   }, [blogData])
 
   // Handle tab change
-  const handleTabChange = (key) => {
+  const handleTabChange = key => {
     setActiveTab(key)
     setSearchQuery("")
     setCurrentPage(1) // Reset to first page on tab change
   }
 
   // Handle date range change
-  const handleDateRangeChange = (value) => {
+  const handleDateRangeChange = value => {
     setDateRange(value)
     setCustomDateRange([null, null])
     setError(null)
@@ -184,7 +185,7 @@ const SearchConsole = () => {
   }
 
   // Handle custom date range change
-  const handleCustomDateRangeChange = (dates) => {
+  const handleCustomDateRangeChange = dates => {
     if (dates && dates[0] && dates[1]) {
       setCustomDateRange(dates)
       setDateRange("custom")
@@ -196,13 +197,13 @@ const SearchConsole = () => {
   }
 
   // Handle blog title filter change
-  const handleBlogTitleChange = (value) => {
+  const handleBlogTitleChange = value => {
     setBlogTitleFilter(value)
     setCurrentPage(1) // Reset to first page on filter change
   }
 
   // Handle search query change
-  const handleSearch = (value) => {
+  const handleSearch = value => {
     setSearchQuery(value)
     setCurrentPage(1) // Reset to first page on search
   }
@@ -221,10 +222,10 @@ const SearchConsole = () => {
     refetch()
   }
 
-  const aggregateData = (data) => {
+  const aggregateData = data => {
     const grouped = {}
 
-    data.forEach((row) => {
+    data.forEach(row => {
       const key = row.country
 
       if (!grouped[key]) {
@@ -256,10 +257,10 @@ const SearchConsole = () => {
   const filteredData = useMemo(() => {
     let result = blogData
     if (filterType === "blog" && blogUrlFilter) {
-      result = result.filter((item) => item.url === blogUrlFilter)
+      result = result.filter(item => item.url === blogUrlFilter)
     }
     if (blogTitleFilter) {
-      result = result.filter((item) => item.blogTitle === blogTitleFilter)
+      result = result.filter(item => item.blogTitle === blogTitleFilter)
     }
     if (activeTab === "country") {
       result = aggregateData(result)
@@ -480,7 +481,7 @@ const SearchConsole = () => {
                 <RangePicker
                   value={customDateRange}
                   onChange={handleCustomDateRangeChange}
-                  disabledDate={(current) => current && current > dayjs().endOf("day")}
+                  disabledDate={current => current && current > dayjs().endOf("day")}
                   className={clsx(
                     "flex-1 min-w-56",
                     customDateRange[0] && customDateRange[1] && "border-blue-500"
@@ -495,7 +496,7 @@ const SearchConsole = () => {
                 <input
                   type="text"
                   value={searchQuery}
-                  onChange={(e) => handleSearch(e.target.value)}
+                  onChange={e => handleSearch(e.target.value)}
                   placeholder="Search title, query, or country"
                   className={`pl-9 pr-4 py-1 w-full bg-white border ${
                     searchQuery ? "border-blue-500" : "border-gray-300"
@@ -511,7 +512,7 @@ const SearchConsole = () => {
                 allowClear
                 style={{ borderRadius: "8px" }}
               >
-                {blogTitles.map((title) => (
+                {blogTitles.map(title => (
                   <Option key={title} value={title}>
                     {title}
                   </Option>
