@@ -1,25 +1,37 @@
-import FirstStepModal from "@components/multipleStepModal/FirstStepModal"
 import type { BlogTemplate } from "@components/multipleStepModal/TemplateSelection"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 import { selectUser } from "@store/slices/authSlice"
 import { fetchGeneratedTitles } from "@store/slices/blogSlice"
 import {
+  Badge,
   Button,
   Empty,
   Flex,
   Input,
+  InputNumber,
   message,
   Modal,
+  Radio,
+  RadioChangeEvent,
   Select,
+  Slider,
   Space,
   Switch,
   Tag,
+  Tooltip,
   Typography,
+  Upload,
+  UploadFile,
 } from "antd"
 import clsx from "clsx"
-import { RefreshCw, Sparkles } from "lucide-react"
+import { Crown, Sparkles, TriangleAlert } from "lucide-react"
 import { FC, useCallback, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
+import "./antd.css"
+import { getValueByPath, setValueByPath } from "@utils/ObjectPath"
+import { AI_MODELS, TONES, IMAGE_OPTIONS } from "@/data/blogData"
+import { UploadOutlined } from "@ant-design/icons"
+import BlogImageUpload from "@components/multipleStepModal/BlogImageUpload"
 
 const { Text } = Typography
 
@@ -29,6 +41,8 @@ interface AdvancedBlogModalProps {
 }
 
 const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ openModal, closeFnc }) => {
+  const STEP_TITLES = ["Template Selection", "Basic Information", "Customization", "Blog Settings"]
+
   const initialData = {
     template: "" as string,
     templateIds: [] as number[],
@@ -39,22 +53,63 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ openModal, closeFnc }) 
     tone: "" as string,
     userDefinedLength: 1000 as number,
     brief: "" as string,
+    aiModel: AI_MODELS[0].id as string,
+    isCheckedGeneratedImages: false as boolean,
+    imageSource: IMAGE_OPTIONS[0].id as string,
     options: {
       autoGenerateTitle: false as boolean,
+      includeFaqs: false as boolean,
+      includeInterlinks: false as boolean,
+      includeCompetitorResearch: false as boolean,
+      addOutBoundLinks: false as boolean,
+      addCTA: false as boolean,
     },
+    isCheckedQuick: false as boolean,
+    isCheckedBrand: false as boolean,
+    blogImages: [] as UploadFile[],
+    numberOfImages: 0 as number,
+    referenceLinks: [] as string[],
   }
+
+  const BLOG_OPTIONS = [
+    {
+      key: "isCheckedQuick",
+      label: "Add a Quick Summary",
+    },
+    {
+      key: "options.includeFaqs",
+      label: "Add FAQs (Frequently Asked Questions)",
+    },
+    {
+      key: "options.includeInterlinks",
+      label: "Include Interlinks",
+    },
+    {
+      key: "options.includeCompetitorResearch",
+      label: "Perform Competitive Research",
+    },
+    {
+      key: "options.addOutBoundLinks",
+      label: "Show Outbound Links",
+    },
+    {
+      key: "isCheckedBrand",
+      label: "Write with Brand Voice",
+    },
+  ]
 
   type FormError = Partial<Record<keyof typeof initialData, string>>
 
+  const dispatch = useDispatch()
   const user = useSelector(selectUser)
 
-  const [currentStep, setCurrentStep] = useState<number>(0)
+  const [currentStep, setCurrentStep] = useState<number>(2)
   const [formData, setFormData] = useState<typeof initialData>(initialData)
   const [errors, setErrors] = useState<FormError>({})
 
+  // For Generating Titles
   const [generatedTitles, setGeneratedTitles] = useState<string[]>([])
   const [isGenerating, setIsGenerating] = useState(false)
-  const dispatch = useDispatch()
 
   const handleGenerateTitles = async () => {
     try {
@@ -91,6 +146,8 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ openModal, closeFnc }) 
     }
   }
 
+  // For File Upload
+
   const updateFormData = useCallback((newData: Partial<typeof initialData>) => {
     setFormData(prev => ({ ...prev, ...newData }))
   }, [])
@@ -116,6 +173,10 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ openModal, closeFnc }) 
 
         if (!formData.options.autoGenerateTitle && !formData.title.length)
           errors.title = "Please enter a title"
+
+        if (!formData.tone.trim()) errors.tone = "Please select a tone of voice"
+        break
+      case 2:
         break
     }
     if (Object.keys(errors).length) {
@@ -153,21 +214,22 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ openModal, closeFnc }) 
   }, [])
 
   const handleInputChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement> | { target: { name: string; value: any } }) => {
+    (
+      event:
+        | React.ChangeEvent<HTMLInputElement>
+        | RadioChangeEvent
+        | { target: { name: string; value: any } }
+    ) => {
       const { name, value } = event.target
 
       console.log(name, value)
+      if (!name) throw new Error("Advanced blog form component error")
+
       const keys = name.split(".")
       // @ts-ignore
       if (keys.length > 1) {
         // @ts-ignore
-        const ref = formData[keys[0]]
-        updateFormData({
-          [keys[0]]: {
-            ...ref,
-            [keys[1]]: value,
-          },
-        })
+        setFormData(prev => setValueByPath(prev, keys, value))
       } else {
         updateFormData({ [name]: value })
         // @ts-ignore
@@ -186,9 +248,9 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ openModal, closeFnc }) 
             gap={8}
             className={clsx("rounded-md !p-2", errors?.template && "border-2 border-red-500")}
           >
-            <Text className={clsx("text-lg mb-2", errors?.template && "text-red-500")}>
+            <label className={clsx("text-base mb-2", errors?.template && "text-red-500")}>
               {errors?.template ? errors.template : "Select Template:"}
-            </Text>
+            </label>
             <TemplateSelection
               userSubscriptionPlan={user?.subscription?.plan || "free"}
               preSelectedIds={formData.templateIds}
@@ -198,153 +260,405 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ openModal, closeFnc }) 
         )
       case 1:
         return (
-          <>
-            <div className="p-2 md:p-4">
-              <Flex vertical gap={16} justify="space-between">
-                {/* Topic */}
-                <Space direction="vertical" className="w-full">
-                  <label htmlFor="blog-topic">
-                    Topic <span className="text-red-500">*</span>
-                  </label>
+          <Flex vertical gap={4} justify="space-evenly" className="p-2">
+            {/* Topic */}
+            <Space direction="vertical" className="form-item-wrapper">
+              <label htmlFor="blog-topic">
+                Topic <span className="text-red-500">*</span>
+              </label>
+              <Input
+                id="blog-topic"
+                name="topic"
+                placeholder="e.g., Tech Blog"
+                value={formData.topic}
+                onChange={handleInputChange}
+                className={clsx(
+                  "!bg-gray-50 antd-placeholder",
+                  errors.topic && "ring-1 !ring-[#ef4444]",
+                  "rounded-lg focus:!outline-none focus:!ring-0 focus:!ring-[#1B6FC9]"
+                )}
+              />
+              {errors.topic && <Text className="error-text">{errors.topic}</Text>}
+            </Space>
+            {/* Focus Keywords */}
+            <Space direction="vertical" className="form-item-wrapper">
+              <label htmlFor="blog-focus-keywords">
+                Focus Keywords (max 3) <span className="text-red-500">*</span>
+              </label>
+              <Select
+                id="blog-focus-keywords"
+                mode="tags"
+                placeholder="Add Focus keywords"
+                value={formData.focusKeywords}
+                open={false}
+                onChange={val =>
+                  handleInputChange({ target: { name: "focusKeywords", value: val } })
+                }
+                maxCount={3}
+                tokenSeparators={[","]}
+                className={clsx(
+                  " !bg-gray-50 custom-placeholder [&>.ant-select-arrow]:hidden border",
+                  errors.focusKeywords && "!border-red-500",
+                  "rounded-lg focus:border-[#1B6FC9] hover:!border-[#1B6FC9]"
+                )}
+                style={{ width: "100%" }}
+              />
+              {errors.focusKeywords && <Text className="error-text">{errors.focusKeywords}</Text>}
+            </Space>
+            {/* Keywords */}
+            <Space direction="vertical" className="form-item-wrapper">
+              <label htmlFor="blog-keywords">
+                Keywords <span className="text-red-500">*</span>
+              </label>
+              <Select
+                id="blog-keywords"
+                mode="tags"
+                placeholder="Add Keywords"
+                value={formData.keywords}
+                open={false}
+                onChange={val => handleInputChange({ target: { name: "keywords", value: val } })}
+                tokenSeparators={[","]}
+                className={clsx(
+                  " !bg-gray-50 custom-placeholder [&>.ant-select-arrow]:hidden border",
+                  errors.keywords && "!border-red-500",
+                  "rounded-lg focus:border-[#1B6FC9] hover:!border-[#1B6FC9]"
+                )}
+                style={{ width: "100%" }}
+              />
+              {errors.keywords && <Text className="error-text">{errors.keywords}</Text>}
+            </Space>
+            {/* Title & Generate Title */}
+            <Flex vertical gap={12} justify="space-between" className="form-item-wrapper">
+              <Flex justify="space-between" className="mt-3">
+                <label htmlFor="blog-auto-generate-title">Auto Generate Title</label>
+                <Switch
+                  id="blog-auto-generate-title"
+                  value={formData.options.autoGenerateTitle}
+                  onChange={checked =>
+                    handleInputChange({
+                      target: { name: "options.autoGenerateTitle", value: checked },
+                    })
+                  }
+                />
+              </Flex>
+
+              <Flex vertical gap={8} hidden={formData.options.autoGenerateTitle} className="mb-3">
+                <label htmlFor="blog-title">
+                  Blog Title <span className="text-red-500">*</span>
+                </label>
+                <Space.Compact block>
                   <Input
-                    id="blog-topic"
-                    name="topic"
-                    placeholder="e.g., Tech Blog"
-                    value={formData.topic}
+                    id="blog-title"
+                    name="title"
+                    placeholder="e.g., How to create a blog"
+                    value={formData.title}
                     onChange={handleInputChange}
                     className={clsx(
-                      " !bg-gray-50",
-                      errors.topic && "ring-1 !ring-[#ef4444]",
-                      "rounded-lg focus:!outline-none focus:!ring-0 focus:!ring-[#1B6FC9]"
+                      " !bg-gray-50 antd-placeholder",
+                      errors.title && "ring-1 !ring-[#ef4444]",
+                      "focus:!outline-none focus:!ring-0 focus:!ring-[#1B6FC9]"
                     )}
                   />
-                  {errors.topic && <Text className="error-text">{errors.topic}</Text>}
-                </Space>
+                  <Button
+                    type="primary"
+                    title="AI Generated Titles"
+                    icon={<Sparkles className="size-5" />}
+                    block
+                    loading={isGenerating}
+                    onClick={handleGenerateTitles}
+                    className="!w-1/4 h-full text-[length:1rem] py-1 px-3 tracking-wide"
+                  >
+                    Generate {generatedTitles?.length ? "More" : "Titles"}
+                  </Button>
+                </Space.Compact>
+                {errors.title && <Text className="error-text">{errors.title}</Text>}
 
-                {/* Focus Keywords */}
-                <Space direction="vertical" className="w-full">
-                  <label htmlFor="blog-focus-keywords">
-                    Focus Keywords (max 3) <span className="text-red-500">*</span>
-                  </label>
-                  <Select
-                    id="blog-focus-keywords"
-                    mode="tags"
-                    placeholder="Add Focus keywords"
-                    value={formData.focusKeywords}
-                    open={false}
-                    onChange={val =>
-                      handleInputChange({ target: { name: "focusKeywords", value: val } })
-                    }
-                    maxCount={3}
-                    tokenSeparators={[","]}
-                    className={clsx(
-                      " !bg-gray-50 border",
-                      errors.focusKeywords && "!border-red-500",
-                      "rounded-lg focus:border-[#1B6FC9] hover:!border-[#1B6FC9]"
-                    )}
-                    style={{ width: "100%" }}
-                  />
-                  {errors.focusKeywords && (
-                    <Text className="error-text">{errors.focusKeywords}</Text>
-                  )}
-                </Space>
-
-                {/* Keywords */}
-                <Space direction="vertical" className="w-full">
-                  <label htmlFor="blog-keywords">
-                    Keywords <span className="text-red-500">*</span>
-                  </label>
-                  <Select
-                    id="blog-keywords"
-                    mode="tags"
-                    placeholder="Add Keywords"
-                    value={formData.keywords}
-                    open={false}
-                    onChange={val =>
-                      handleInputChange({ target: { name: "keywords", value: val } })
-                    }
-                    tokenSeparators={[","]}
-                    className={clsx(
-                      " !bg-gray-50 border",
-                      errors.keywords && "!border-red-500",
-                      "rounded-lg focus:border-[#1B6FC9] hover:!border-[#1B6FC9]"
-                    )}
-                    style={{ width: "100%" }}
-                  />
-                  {errors.keywords && <Text className="error-text">{errors.keywords}</Text>}
-                </Space>
-
-                {/* Title */}
-                <Space direction="vertical" className="w-full">
-                  <Flex justify="space-between">
-                    <label htmlFor="blog-auto-generate-title">Auto Generate Title</label>
-                    <Switch
-                      id="blog-auto-generate-title"
-                      value={formData.options.autoGenerateTitle}
-                      onChange={checked =>
-                        handleInputChange({
-                          target: { name: "options.autoGenerateTitle", value: checked },
-                        })
-                      }
-                    />
-                  </Flex>
-                  {/* Title */}
-                  <Flex vertical gap={8} hidden={formData.options.autoGenerateTitle}>
-                    <label htmlFor="blog-title">
-                      Blog Title <span className="text-red-500">*</span>
-                    </label>
-                    <Space.Compact block>
-                      <Input
-                        id="blog-title"
-                        name="title"
-                        placeholder="e.g., Tech Blog"
-                        value={formData.title}
-                        onChange={handleInputChange}
+                {generatedTitles.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {generatedTitles.map((t, i) => (
+                      <Tag
+                        key={i}
+                        color="geekblue"
                         className={clsx(
-                          " !bg-gray-50",
-                          errors.title && "ring-1 !ring-[#ef4444]",
-                          "focus:!outline-none focus:!ring-0 focus:!ring-[#1B6FC9]"
+                          "cursor-pointer text-[length:1rem] bg-black",
+                          formData.title === t && "!bg-blue-500 !text-white",
+                          "hover:!bg-blue-400 hover:!text-black p-1"
                         )}
-                      />
-                      <Button
-                        type="primary"
-                        title="AI Generated Titles"
-                        icon={<Sparkles />}
-                        block
-                        loading={isGenerating}
-                        onClick={handleGenerateTitles}
-                        className="!w-1/4 h-full text-[length:1rem] py-1 px-3 tracking-wide"
+                        onClick={() => {
+                          handleInputChange({ target: { name: "title", value: t } })
+                        }}
                       >
-                        Generate {generatedTitles?.length ? "More" : "Titles"}
-                      </Button>
-                    </Space.Compact>
-                    {errors.title && <Text className="error-text">{errors.title}</Text>}
-
-                    {generatedTitles.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {generatedTitles.map((t, i) => (
-                          <Tag
-                            key={i}
-                            color="geekblue"
-                            className={clsx(
-                              "cursor-pointer text-[length:1rem] bg-black",
-                              formData.title === t && "!bg-blue-500 !text-white",
-                              "hover:!bg-blue-400 hover:!text-black p-1"
-                            )}
-                            onClick={() => {
-                              handleInputChange({ target: { name: "title", value: t } })
-                            }}
-                          >
-                            {t}
-                          </Tag>
-                        ))}
-                      </div>
-                    )}
-                  </Flex>
-                </Space>
+                        {t}
+                      </Tag>
+                    ))}
+                  </div>
+                )}
               </Flex>
-            </div>
-          </>
+            </Flex>
+            {/* Tones & Word Length */}
+            <Space direction="vertical" className="form-item-wrapper">
+              <Flex justify="space-around" gap={20}>
+                <Flex vertical className="w-full" gap={8}>
+                  <label htmlFor="blog-tone">
+                    Tone of Voice <span className="text-red-500">*</span>
+                  </label>
+                  <Select
+                    id="blog-tone"
+                    placeholder="Select a tone"
+                    value={formData.tone || undefined}
+                    onChange={val => handleInputChange({ target: { name: "tone", value: val } })}
+                    options={TONES.map(t => ({ label: t, value: t }))}
+                    className="custom-placeholder"
+                  />
+                  {errors.tone && <Text className="error-text">{errors.tone}</Text>}
+                </Flex>
+                <Flex vertical className="w-full" gap={8}>
+                  <label>
+                    Blog Words Length :{" "}
+                    <Text strong underline className="text-[length:16px] px-2">
+                      {formData.userDefinedLength} words
+                    </Text>
+                  </label>
+
+                  <Slider
+                    id="blog-word-length"
+                    value={formData.userDefinedLength}
+                    onChange={val =>
+                      handleInputChange({ target: { name: "userDefinedLength", value: val } })
+                    }
+                    min={500}
+                    max={5000}
+                    tooltip={{ formatter: val => `${val} words`, placement: "bottom" }}
+                    classNames={{
+                      rail: "!bg-gray-400",
+                      track: "!bg-gradient-to-tr !from-blue-600 !via-violet-500 !to-purple-500",
+                      handle: "hover:!ring-1 hover:!ring-purple-400",
+                    }}
+                  />
+                </Flex>
+              </Flex>
+            </Space>
+            {/* Brief Section */}
+            <Space direction="vertical" className="form-item-wrapper">
+              <label htmlFor="blog-brief">Add Brief Section</label>
+              <Input.TextArea
+                id="blog-brief"
+                name="brief"
+                autoSize={{ minRows: 1, maxRows: 3 }}
+                value={formData.brief}
+                onChange={handleInputChange}
+                placeholder="Enter the brief info or instructions"
+                className="antd-placeholder"
+              />
+            </Space>
+          </Flex>
+        )
+
+      case 2: {
+        const isValidURL = (str: string) => {
+          try {
+            const url = new URL(str)
+            return url.protocol === "http:" || url.protocol === "https:"
+          } catch {
+            return false
+          }
+        }
+
+        return (
+          <Flex vertical gap={20} className="p-2">
+            {/* AI Models */}
+            <Space direction="vertical" className="form-item-wrapper">
+              <label>Select AI Model</label>
+              <Radio.Group
+                name="aiModel"
+                value={formData.aiModel}
+                onChange={handleInputChange}
+                defaultValue={AI_MODELS[0]?.id}
+                block
+                className="p-2 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full"
+              >
+                {AI_MODELS.map(model => (
+                  <Radio.Button
+                    key={model.id}
+                    value={model.id}
+                    className="rounded-lg !px-4 !py-3 !border-[3px] hover:border-blue-400 hover:bg-purple-50 min-h-fit"
+                  >
+                    <img src={model.logo} alt={model.label} className="size-6 object-contain" />
+                    <span className="text-[length:15px] font-medium text-gray-800">
+                      {model.label}
+                    </span>
+                  </Radio.Button>
+                ))}
+              </Radio.Group>
+            </Space>
+            {/* Image Settings */}
+            <Space direction="vertical" className="form-item-wrapper">
+              <Flex justify="space-between">
+                <label htmlFor="add-image-toggle">Add Images</label>
+                <Switch
+                  id="add-image-toggle"
+                  value={formData.isCheckedGeneratedImages}
+                  onChange={val =>
+                    handleInputChange({
+                      target: { name: "isCheckedGeneratedImages", value: val },
+                    })
+                  }
+                />
+              </Flex>
+            </Space>
+            <Space
+              direction="vertical"
+              hidden={!formData.isCheckedGeneratedImages}
+              className="form-item-wrapper"
+            >
+              <label>Select Image Mode</label>
+              <Radio.Group
+                name="imageSource"
+                value={formData.imageSource}
+                onChange={handleInputChange}
+                defaultValue={IMAGE_OPTIONS[0]?.id}
+                block
+                className="p-2 !grid grid-cols-1 sm:!grid-cols-2 md:!grid-cols-3 !gap-4 w-full"
+              >
+                {IMAGE_OPTIONS.map((option, index) => {
+                  const isButtonDisabled = option.restrict && user?.subscription?.plan == "free"
+                  const isAILimitReached =
+                    index == 1 && user?.usage?.aiImages >= user?.usageLimits?.aiImages
+                  return (
+                    <Badge.Ribbon
+                      key={option.id + index}
+                      text={
+                        isButtonDisabled ? (
+                          <Crown className="p-1" />
+                        ) : isAILimitReached ? (
+                          <TriangleAlert className="p-0.5" />
+                        ) : (
+                          ""
+                        )
+                      }
+                      className={clsx(
+                        "absolute -top-2 z-10",
+                        (index == 0 || !(isButtonDisabled || isAILimitReached)) && "hidden"
+                      )}
+                      color={
+                        isButtonDisabled ? "#8b5cf6" : isAILimitReached ? "#dc2626" : "#3b82f6"
+                      }
+                    >
+                      <Tooltip
+                        title={
+                          <Text
+                            strong
+                            className="text-[length:15px] text-gray-200 font-montserrat tracking-wide"
+                          >
+                            {isButtonDisabled
+                              ? "Only For Subscribed Users"
+                              : isAILimitReached
+                              ? "AI Image Limit Reached"
+                              : option.label}
+                          </Text>
+                        }
+                        className="w-full"
+                        autoAdjustOverflow
+                        color={
+                          isButtonDisabled ? "#8b5cf6" : isAILimitReached ? "#dc2626" : "#3b82f6"
+                        }
+                        placement={index == 0 ? "left" : "top"}
+                        showArrow
+                      >
+                        <Radio.Button
+                          value={option.id}
+                          disabled={isButtonDisabled || isAILimitReached}
+                          className="rounded-lg !px-4 !py-3 !border-[3px] text-red-600 hover:border-blue-400 hover:bg-violet-50 min-h-fit min-w-fit"
+                        >
+                          <span className="text-[length:15px] font-medium text-gray-800">
+                            {option.label}
+                          </span>
+                        </Radio.Button>
+                      </Tooltip>
+                    </Badge.Ribbon>
+                  )
+                })}
+              </Radio.Group>
+            </Space>
+            <Space
+              direction="vertical"
+              hidden={!formData.isCheckedGeneratedImages}
+              className="form-item-wrapper"
+            >
+              {formData.imageSource != IMAGE_OPTIONS.at(-1)?.id ? (
+                <Flex align="center" justify="space-between">
+                  <label htmlFor="blog-img-count">Number of Images (0 = Decided by AI) : </label>
+                  <InputNumber
+                    id="blog-img-count"
+                    name="numberOfImages"
+                    min={0}
+                    max={15}
+                    value={formData.numberOfImages}
+                    defaultValue={0}
+                    onChange={val =>
+                      handleInputChange({ target: { name: "numberOfImages", value: val || 0 } })
+                    }
+                    className="w-1/3 !text-base"
+                  />
+                </Flex>
+              ) : (
+                <BlogImageUpload
+                  id="blog-upload-images"
+                  label="Upload Custom Images"
+                  maxCount={15}
+                  initialFiles={formData.blogImages}
+                  onChange={file =>
+                    handleInputChange({ target: { name: "blogImages", value: file } })
+                  }
+                />
+              )}
+            </Space>
+            {/* Reference Links */}
+            <Space direction="vertical" className="form-item-wrapper">
+              <label htmlFor="blog-references">Reference Links (max 3)</label>
+              <Select
+                id="blog-references"
+                mode="tags"
+                placeholder="Add Reference Links"
+                value={formData.referenceLinks}
+                open={false}
+                onChange={val => {
+                  const invalidLinks = val.filter(link => !isValidURL(link.trim()))
+                  if (invalidLinks.length > 0) {
+                    message.warning(
+                      "Only valid URLs starting from http:// or https:// are allowed."
+                    )
+                  }
+                  const validLinks = val.filter(isValidURL)
+
+                  handleInputChange({ target: { name: "referenceLinks", value: validLinks } })
+                }}
+                maxCount={3}
+                tokenSeparators={[",", " "]}
+                className="!w-full !bg-gray-50 [&>.ant-select-arrow]:hidden custom-placeholder border rounded-lg focus:border-[#1B6FC9] hover:!border-[#1B6FC9]"
+              />
+            </Space>
+          </Flex>
+        )
+      }
+      case 3:
+        return (
+          <Flex vertical gap="middle" className="p-2">
+            {BLOG_OPTIONS.map((option, index) => (
+              <Flex key={option.key + index} justify="space-between" className="mt-3">
+                <label htmlFor={`blog-${option.key}`}>{option.label}</label>
+                <Switch
+                  id={`blog-${option.key}`}
+                  value={getValueByPath(formData, option.key)}
+                  onChange={checked =>
+                    handleInputChange({
+                      target: { name: option.key, value: checked },
+                    })
+                  }
+                />
+              </Flex>
+            ))}
+          </Flex>
         )
       default:
         return <Empty />
@@ -354,7 +668,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ openModal, closeFnc }) 
   return (
     <>
       <Modal
-        title={`Generate Advanced Blog | Step ${currentStep + 1}`}
+        title={`Generate Advanced Blog | Step ${currentStep + 1} : ${STEP_TITLES[currentStep]}`}
         open={openModal}
         onCancel={handleClose}
         footer={
@@ -369,11 +683,11 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ openModal, closeFnc }) 
               </Button>
             )}
             <Button
-              onClick={currentStep === 2 ? handleSubmit : handleNext}
+              onClick={currentStep === 3 ? handleSubmit : handleNext}
               type="default"
               className="h-10 px-6 text-[length:1rem] font-medium !text-white bg-[#1B6FC9] rounded-md hover:!bg-[#1B6FC9]/90"
             >
-              {currentStep === 2 ? "Generate Blog" : "Next"}
+              {currentStep === 3 ? "Generate Blog" : "Next"}
             </Button>
           </Flex>
         }
@@ -384,42 +698,15 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ openModal, closeFnc }) 
         destroyOnHidden
         className="m-2"
       >
-        {renderSteps()}
+        <div
+          className="h-full !max-h-[80vh] overflow-auto"
+          style={{
+            scrollbarWidth: "none",
+          }}
+        >
+          {renderSteps()}
+        </div>
       </Modal>
-      <style>{`
-label{
-display: block;
-font-weight:500;
-font-size: 0.95rem;
-letter-spacing:0.5px;
-}
-
-.error-text{
-color:red !important;
-padding: .2rem;
-font-size: .9rem;
-}
-
-.ant-select-selection-item {
-  background-color: #e6f4ff !important; /* light blue background */
-  border: 1px solid #91caff !important;
-  color: #0958d9 !important;
-  border-radius: 6px !important;
-  padding: 2px 8px !important;
-  font-weight: 500;
-  font-size: .9rem;
-}
-
-/* For the remove icon (the “x”) */
-.ant-select-selection-item-remove {
-  color: black !important;
-}
-
-.ant-select-selection-item-remove:hover {
-  color: black !important;
-  font-weight:bold !important;
-}
-      `}</style>
     </>
   )
 }

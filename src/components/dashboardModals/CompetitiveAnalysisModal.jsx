@@ -20,9 +20,9 @@ import { motion } from "framer-motion"
 import { useDispatch, useSelector } from "react-redux"
 import { fetchCompetitiveAnalysisThunk } from "@store/slices/analysisSlice"
 import { LoadingOutlined } from "@ant-design/icons"
-import Loading from "@components/UI/Loading"
 import { Link as LinkIcon } from "lucide-react"
 import { fetchBlogById, fetchBlogs } from "@store/slices/blogSlice"
+import LoadingScreen from "@components/UI/LoadingScreen"
 
 const { Panel } = Collapse
 
@@ -43,8 +43,8 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
   const [collapseKey, setCollapseKey] = useState(0) // Used to reset Collapse
   const { handlePopup } = useConfirmPopup()
   const dispatch = useDispatch()
-  const { analysis, loading: analysisLoading } = useSelector((state) => state.analysis)
-  const { allBlogs: blogs, loading: blogLoading } = useSelector((state) => state.blog)
+  const { analysis, loading: analysisLoading } = useSelector(state => state.analysis)
+  const { allBlogs: blogs, loading: blogLoading } = useSelector(state => state.blog)
 
   // Handle analysis results
   useEffect(() => {
@@ -93,9 +93,9 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
       setIsLoading(true)
       dispatch(fetchBlogById(id))
         .unwrap()
-        .then((response) => {
+        .then(response => {
           if (response?._id) {
-            setFormData((prev) => ({
+            setFormData(prev => ({
               ...prev,
               title: response.title,
               content: response.content || "",
@@ -107,7 +107,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
             }))
           }
         })
-        .catch((error) => {
+        .catch(error => {
           console.error("Failed to fetch blog by ID:", error)
         })
         .finally(() => setIsLoading(false))
@@ -141,12 +141,12 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
     formData?.generatedMetadata?.competitorsAnalysis,
   ])
 
-  const handleProjectSelect = (value) => {
-    const foundProject = blogs?.find((p) => p._id === value)
+  const handleProjectSelect = value => {
+    const foundProject = blogs?.find(p => p._id === value)
     if (foundProject) {
       setId(foundProject._id)
       setAnalysisResults(null)
-      setCollapseKey((prev) => prev + 1) // Reset Collapse
+      setCollapseKey(prev => prev + 1) // Reset Collapse
     }
   }
 
@@ -191,7 +191,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
     })
   }
 
-  const cleanMarkdown = (text) => {
+  const cleanMarkdown = text => {
     if (!text) return ""
     return text
       .replace(/#{1,3}\s/g, "") // Remove markdown headers
@@ -200,11 +200,11 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
       .trim()
   }
 
-  const parseSummary = (text) => {
+  const parseSummary = text => {
     if (!text) return []
     return cleanMarkdown(text)
       .split("\n")
-      .filter((line) => line.trim() !== "")
+      .filter(line => line.trim() !== "")
       .map((line, index) => (
         <p key={index} className="mb-2 text-sm md:text-base">
           <span
@@ -216,7 +216,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
       ))
   }
 
-  const renderCompetitorsList = (competitors) => {
+  const renderCompetitorsList = competitors => {
     if (!competitors || competitors.length === 0) return null
     return (
       <Collapse key={collapseKey} accordion className="bg-white border border-gray-200 rounded-lg">
@@ -239,7 +239,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-600 text-sm hover:underline flex items-center gap-1"
-                    onClick={(e) => e.stopPropagation()}
+                    onClick={e => e.stopPropagation()}
                   >
                     Visit <ExternalLink className="w-4 h-4" />
                   </a>
@@ -296,7 +296,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600 text-sm hover:underline flex items-center gap-1"
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={e => e.stopPropagation()}
                     >
                       Visit <ExternalLink className="w-4 h-4" />
                     </a>
@@ -314,7 +314,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
     )
   }
 
-  const renderCompetitorsAnalysis = (competitorsAnalysis) => {
+  const renderCompetitorsAnalysis = competitorsAnalysis => {
     if (!competitorsAnalysis) return null
     const { analysis, suggestions } = competitorsAnalysis
     return (
@@ -399,7 +399,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
     const uniqueCompetitors = []
     const seenUrls = new Set()
 
-    ;[...blogCompetitors, ...analysisCompetitors].forEach((competitor) => {
+    ;[...blogCompetitors, ...analysisCompetitors].forEach(competitor => {
       const url = competitor.url || competitor.link
       if (!seenUrls.has(url)) {
         seenUrls.add(url)
@@ -423,7 +423,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
   if (isLoading || blogLoading || analysisLoading) {
     return (
       <div className="fixed inset-0 z-[9999] flex items-center justify-center">
-        <Loading />
+        <LoadingScreen />
       </div>
     )
   }
@@ -514,7 +514,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
             placeholder="Select a blog"
           >
             <Select.Option value="">Select a blog</Select.Option>
-            {blogs?.map((project) => (
+            {blogs?.map(project => (
               <Select.Option key={project._id} value={project._id}>
                 {project.title.charAt(0).toUpperCase() + project.title.slice(1)}
               </Select.Option>
@@ -627,9 +627,9 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
           >
             <Tabs
               activeKey={activeTab}
-              onChange={(key) => {
+              onChange={key => {
                 setActiveTab(key)
-                setCollapseKey((prev) => prev + 1) // Reset Collapse when tab changes
+                setCollapseKey(prev => prev + 1) // Reset Collapse when tab changes
               }}
               type="card"
               className="w-full"
@@ -671,8 +671,8 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
                       <Progress
                         type="dashboard"
                         percent={Number(analysisResults.insights?.blogScore ?? 0)}
-                        width={120} 
-                        format={(percent) => `${percent} / 100`}
+                        width={120}
+                        format={percent => `${percent} / 100`}
                         strokeColor={{ "0%": "#1B6FC9", "100%": "#4C9FE8" }}
                         trailColor="#e5e7eb"
                       />

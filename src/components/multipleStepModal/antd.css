@@ -1,0 +1,57 @@
+.ant-select-selection-overflow .ant-select-selection-item {
+  background-color: #e6f4ff !important;
+  /* light blue background */
+  border: 1px solid #91caff !important;
+  color: #0958d9 !important;
+  border-radius: 6px !important;
+  padding: 0px 8px !important;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+/* For the remove icon (the “x”) */
+.ant-select-selection-item-remove {
+  color: black !important;
+  margin-left: .3em;
+}
+
+.ant-select-selection-item-remove:hover {
+  color: black !important;
+  font-weight: bold !important;
+}
+
+.form-item-wrapper {
+  @apply w-full mb-2;
+}
+
+label {
+  display: block;
+  font-weight: 500;
+  font-size: 0.95rem;
+  letter-spacing: 0.5px;
+}
+
+.error-text {
+  color: red !important;
+  padding: 0.2rem;
+  font-size: 0.9rem;
+}
+
+.form-item-wrapper:has(.error-text) {
+  @apply mb-0;
+}
+
+.ant-radio-button-label{
+  @apply w-full flex items-center justify-center gap-3 !text-lg ;
+}
+
+
+.antd-placeholder{
+  @apply placeholder:!text-gray-500 placeholder:!font-medium placeholder:!italic; 
+}
+
+/* Custom placeholder color */
+.custom-placeholder .ant-select-selection-placeholder {
+ @apply !text-gray-500 !font-medium !italic;
+}
+
