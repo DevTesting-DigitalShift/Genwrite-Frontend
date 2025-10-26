@@ -37,8 +37,7 @@ export const DashboardBox = ({ title, content, id, functions, icon, gradient }) 
         if (["free", "basic"].includes(userPlan)) {
           showPopup()
         } else functions.showMultiStepModal?.()
-      } else if (id === 4) functions.showCompetitiveAnalysis?.()
-      else if (id === 3) functions.showPerformanceMonitoring?.()
+      }
     })
   }
 
@@ -117,20 +116,28 @@ export const QuickBox = ({
       return
     }
 
-    if (id === 4 && functions?.showCompetitiveAnalysis) {
-      handleProAction(() => {
-        if (["free", "basic"].includes(userPlan)) {
-          showPopup()
-        } else {
-          functions.showCompetitiveAnalysis()
-        }
-      })
-    } else if (id === 3 && functions?.showPerformanceMonitoring) {
-      handleProAction(() => functions.showPerformanceMonitoring())
-    } else if (id === 2 && functions?.showSeoAnalysis) {
-      handleProAction(() => functions.showSeoAnalysis())
-    } else if (id === 1 && functions?.showKeywordResearch) {
-      handleProAction(() => functions.showKeywordResearch())
+    const isValidFunction = o => o && typeof o === "function"
+
+    const ACTION_MAP = {
+      1: "showKeywordResearch",
+      3: "showPerformanceMonitoring",
+      4: "showCompetitiveAnalysis",
+      // Note: ID 2 is missing, but it would be added here if needed
+    }
+
+    // ... inside handleClick
+    const actionFunctionName = ACTION_MAP[id]
+
+    if (actionFunctionName) {
+      const actionFunction = functions[actionFunctionName]
+
+      if (id === 4 && ["free", "basic"].includes(userPlan)) {
+        showPopup()
+      } else if (isValidFunction(actionFunction)) {
+        // You no longer need optional chaining on functions[actionFunctionName]
+        // because isValidFunction already checked for null/undefined
+        handleProAction(() => actionFunction())
+      }
     }
   }
 

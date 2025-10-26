@@ -20,18 +20,17 @@ import {
   Tag,
   Tooltip,
   Typography,
-  Upload,
   UploadFile,
 } from "antd"
 import clsx from "clsx"
 import { Crown, Sparkles, TriangleAlert } from "lucide-react"
-import { FC, useCallback, useState } from "react"
+import { FC, useCallback, useEffect, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import "./antd.css"
 import { getValueByPath, setValueByPath } from "@utils/ObjectPath"
 import { AI_MODELS, TONES, IMAGE_OPTIONS } from "@/data/blogData"
-import { UploadOutlined } from "@ant-design/icons"
 import BlogImageUpload from "@components/multipleStepModal/BlogImageUpload"
+import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
 
 const { Text } = Typography
 
@@ -66,6 +65,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ openModal, closeFnc }) 
     },
     isCheckedQuick: false as boolean,
     isCheckedBrand: false as boolean,
+    brandId: "" as string,
     blogImages: [] as UploadFile[],
     numberOfImages: 0 as number,
     referenceLinks: [] as string[],
@@ -92,10 +92,6 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ openModal, closeFnc }) 
       key: "options.addOutBoundLinks",
       label: "Show Outbound Links",
     },
-    {
-      key: "isCheckedBrand",
-      label: "Write with Brand Voice",
-    },
   ]
 
   type FormError = Partial<Record<keyof typeof initialData, string>>
@@ -103,7 +99,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ openModal, closeFnc }) 
   const dispatch = useDispatch()
   const user = useSelector(selectUser)
 
-  const [currentStep, setCurrentStep] = useState<number>(2)
+  const [currentStep, setCurrentStep] = useState<number>(3)
   const [formData, setFormData] = useState<typeof initialData>(initialData)
   const [errors, setErrors] = useState<FormError>({})
 
@@ -146,8 +142,6 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ openModal, closeFnc }) 
     }
   }
 
-  // For File Upload
-
   const updateFormData = useCallback((newData: Partial<typeof initialData>) => {
     setFormData(prev => ({ ...prev, ...newData }))
   }, [])
@@ -178,6 +172,9 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ openModal, closeFnc }) 
         break
       case 2:
         break
+      case 3:
+        if (formData.isCheckedBrand && !formData.brandId.trim())
+          errors.brandId = "Please select a Brand Voice"
     }
     if (Object.keys(errors).length) {
       updateErrors(errors)
@@ -197,12 +194,14 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ openModal, closeFnc }) 
   const handleClose = () => {
     setFormData(initialData)
     setErrors({})
-    setCurrentStep(0)
+    setCurrentStep(3)
     closeFnc?.()
   }
 
   const handleSubmit = () => {
-    console.log(formData)
+    if (validateFields()) {
+      console.log(formData)
+    }
   }
 
   const handleTemplateSelection = useCallback((templates: BlogTemplate[]) => {
@@ -645,7 +644,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ openModal, closeFnc }) 
         return (
           <Flex vertical gap="middle" className="p-2">
             {BLOG_OPTIONS.map((option, index) => (
-              <Flex key={option.key + index} justify="space-between" className="mt-3">
+              <Flex key={option.key + index} justify="space-between" className="form-item-wrapper">
                 <label htmlFor={`blog-${option.key}`}>{option.label}</label>
                 <Switch
                   id={`blog-${option.key}`}
@@ -658,6 +657,26 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ openModal, closeFnc }) 
                 />
               </Flex>
             ))}
+            <Space direction="vertical" className="form-item-wrapper">
+              <BrandVoiceSelector
+                label="Write with Brand Voice"
+                value={{
+                  isCheckedBrand: formData.isCheckedBrand,
+                  brandId: formData.brandId,
+                  addCTA: formData.options.addCTA,
+                }}
+                onChange={val => {
+                  const opts = formData.options
+                  updateFormData({
+                    isCheckedBrand: val.isCheckedBrand,
+                    brandId: val.brandId,
+                    options: { ...opts, addCTA: val.addCTA },
+                  })
+                  updateErrors({ brandId: "" })
+                }}
+                errorText={errors.brandId}
+              />
+            </Space>
           </Flex>
         )
       default:
@@ -666,48 +685,46 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ openModal, closeFnc }) 
   }
 
   return (
-    <>
-      <Modal
-        title={`Generate Advanced Blog | Step ${currentStep + 1} : ${STEP_TITLES[currentStep]}`}
-        open={openModal}
-        onCancel={handleClose}
-        footer={
-          <Flex justify="end" gap={12} className="mt-2">
-            {currentStep > 0 && (
-              <Button
-                onClick={handlePrev}
-                type="default"
-                className="h-10 px-6 text-[length:1rem] font-medium !text-gray-700 bg-white border border-gray-300 rounded-md hover:!bg-gray-50"
-              >
-                Previous
-              </Button>
-            )}
+    <Modal
+      title={`Generate Advanced Blog | Step ${currentStep + 1} : ${STEP_TITLES[currentStep]}`}
+      open={openModal}
+      onCancel={handleClose}
+      footer={
+        <Flex justify="end" gap={12} className="mt-2">
+          {currentStep > 0 && (
             <Button
-              onClick={currentStep === 3 ? handleSubmit : handleNext}
+              onClick={handlePrev}
               type="default"
-              className="h-10 px-6 text-[length:1rem] font-medium !text-white bg-[#1B6FC9] rounded-md hover:!bg-[#1B6FC9]/90"
+              className="h-10 px-6 text-[length:1rem] font-medium !text-gray-700 bg-white border border-gray-300 rounded-md hover:!bg-gray-50"
             >
-              {currentStep === 3 ? "Generate Blog" : "Next"}
+              Previous
             </Button>
-          </Flex>
-        }
-        width={700}
-        centered
-        transitionName=""
-        maskTransitionName=""
-        destroyOnHidden
-        className="m-2"
+          )}
+          <Button
+            onClick={currentStep === 3 ? handleSubmit : handleNext}
+            type="default"
+            className="h-10 px-6 text-[length:1rem] font-medium !text-white bg-[#1B6FC9] rounded-md hover:!bg-[#1B6FC9]/90"
+          >
+            {currentStep === 3 ? "Generate Blog" : "Next"}
+          </Button>
+        </Flex>
+      }
+      width={700}
+      centered
+      transitionName=""
+      maskTransitionName=""
+      destroyOnHidden
+      className="m-2"
+    >
+      <div
+        className="h-full !max-h-[80vh] overflow-auto"
+        style={{
+          scrollbarWidth: "none",
+        }}
       >
-        <div
-          className="h-full !max-h-[80vh] overflow-auto"
-          style={{
-            scrollbarWidth: "none",
-          }}
-        >
-          {renderSteps()}
-        </div>
-      </Modal>
-    </>
+        {renderSteps()}
+      </div>
+    </Modal>
   )
 }
 

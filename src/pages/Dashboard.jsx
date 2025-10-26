@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, lazy } from "react"
+import { useState, useEffect, useCallback, lazy, Suspense } from "react"
 import SelectTemplateModal from "../components/multipleStepModal/SelectTemplateModal"
 import SecondStepModal from "../components/multipleStepModal/SecondStepModal"
 import { DashboardBox, QuickBox, Blogs } from "../utils/DashboardBox"
@@ -37,14 +37,10 @@ import KeywordResearchModel from "../components/dashboardModals/KeywordResearchM
 import QuickBlogModal from "@components/multipleStepModal/QuickBlogModal"
 import InlineAnnouncementBanner from "@/layout/InlineAnnouncementBanner"
 import dayjs from "dayjs"
-import Loading from "@components/UI/Loading"
 import LoadingScreen from "@components/UI/LoadingScreen"
-import AdvancedBlogModal from "@components/multipleStepModal/AdvancedBlogModal"
 
 // lazy imports
-const TemplateSelection = lazy(() => import("@components/multipleStepModal/TemplateSelection"))
-const FirstStepModal = lazy(() => import("@components/multipleStepModal/FirstStepModal"))
-// import YoutubeBlogModal from "@components/multipleStepModal/YoutubeBlogModal"
+const AdvancedBlogModal = lazy(() => import("@components/multipleStepModal/AdvancedBlogModal"))
 
 ChartJS.register(
   ArcElement,
@@ -59,7 +55,6 @@ ChartJS.register(
 
 const Dashboard = () => {
   const [isModalVisible, setIsModalVisible] = useState(false)
-  const [currentStep, setCurrentStep] = useState(0)
   const [daisyUIModal, setDaisyUIModal] = useState(false)
   const [multiStepModal, setMultiStepModal] = useState(false)
   const [quickBlogModal, setQuickBlogModal] = useState(false)
@@ -68,7 +63,6 @@ const Dashboard = () => {
   const [performanceModal, setPerformanceModal] = useState(false)
   const [keywordResearchModal, setKeywordResearchModal] = useState(false)
   const [seoAnalysisModal, setSeoAnalysisModal] = useState(false)
-  const [modelData, setModelData] = useState({})
   const [recentBlogData, setRecentBlogData] = useState([])
   const [loading, setLoading] = useState(true)
   const { blogs, error, allBlogs } = useSelector(state => state.blog)
@@ -91,6 +85,10 @@ const Dashboard = () => {
   const showCompetitiveAnalysis = () => setCompetitiveAnalysisModal(true)
   const hideCompetitiveAnalysis = () => setCompetitiveAnalysisModal(false)
 
+  const toggleAdvancedModal = () => setIsModalVisible(prev => !prev)
+  const toggleQuickModal = () => setQuickBlogModal(prev => !prev)
+  const toggleYoutubeModal = () => setYoutubeBlogModal(prev => !prev)
+  const toggleMultipleModal = () => setMultiStepModal(prev => !prev)
   // Default state
   const [dateRange, setDateRange] = useState([undefined, undefined])
 
@@ -199,7 +197,6 @@ const Dashboard = () => {
   const openSecondStepModal = () => {
     setKeywordResearchModal(false)
     setIsModalVisible(true)
-    setCurrentStep(0)
   }
 
   const openSecondStepJobModal = () => {
@@ -256,7 +253,6 @@ const Dashboard = () => {
           }
           dispatch(createNewBlog({ blogData: updatedData, user, navigate }))
           setIsModalVisible(false)
-          setCurrentStep(0)
         },
       })
       dispatch(clearSelectedKeywords())
@@ -272,15 +268,12 @@ const Dashboard = () => {
 
     // reset steps after modal closes (optional, safe)
     setTimeout(() => {
-      setCurrentStep(0)
       setModelData({})
     }, 200) // 200ms matches the modal close animation
   }
-  const handleNext = () => setCurrentStep(currentStep + 1)
-  const handlePrev = () => setCurrentStep(currentStep - 1)
 
   return (
-    <>
+    <Suspense fallback={<LoadingScreen />}>
       <Helmet>
         <title>Home | GenWrite</title>
       </Helmet>
@@ -289,35 +282,7 @@ const Dashboard = () => {
         <InlineAnnouncementBanner onClose={handleCloseAnnouncementBanner} />
       )}
 
-      {currentStep === 0 && (
-        // <SelectTemplateModal
-        //   handleNext={handleNext}
-        //   handleClose={handleCancel}
-        //   data={modelData}
-        //   setData={setModelData}
-        //   isModalVisible={isModalVisible}
-        // />
-        <AdvancedBlogModal openModal={isModalVisible} closeFnc={handleCancel} />
-      )}
-      {currentStep === 1 && (
-        <FirstStepModal
-          handleNext={handleNext}
-          handleClose={handleCancel}
-          handlePrevious={handlePrev}
-          data={modelData}
-          setData={setModelData}
-        />
-      )}
-      {currentStep === 2 && (
-        <SecondStepModal
-          handleNext={handleNext}
-          handlePrevious={handlePrev}
-          handleClose={handleCancel}
-          data={modelData}
-          setData={setModelData}
-          handleSubmit={handleSubmit}
-        />
-      )}
+      <AdvancedBlogModal openModal={isModalVisible} closeFnc={handleCancel} />
 
       {daisyUIModal && <DaisyUIModal closeFnc={hideDaisy} />}
       {multiStepModal && <MultiStepModal closeFnc={hideMultiStepModal} />}
@@ -408,12 +373,9 @@ const Dashboard = () => {
                         gradient={item.hoverGradient}
                         functions={{
                           showModal,
-                          setModelData,
-                          showDaisy,
-                          showMultiStepModal,
                           showQuickBlogModal,
                           showYoutubeBlogModal,
-                          showCompetitiveAnalysis,
+                          showMultiStepModal,
                         }}
                       />
                     ))}
@@ -521,7 +483,7 @@ const Dashboard = () => {
           </button>
         </a>
       </div>
-    </>
+    </Suspense>
   )
 }
 
