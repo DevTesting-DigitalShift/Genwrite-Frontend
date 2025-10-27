@@ -36,10 +36,11 @@ export abstract class QueryBase<TEntity, TError = Error> {
 
   // Default options variable
   protected defaultQueryOptions: AnyUseQueryOptions<TEntity, TError> = {
-    staleTime: 60 * 1000, // fresh for 1 min
-    gcTime: 5 * 60 * 1000, // cache for 5 min
+    staleTime: Infinity, // fresh for 1 min
+    gcTime: Infinity, // cache for 5 min
     refetchOnWindowFocus: false,
     refetchOnReconnect: true,
+    refetchOnMount: false, // Prevent refetch on component mount
     retry: 1,
   }
 

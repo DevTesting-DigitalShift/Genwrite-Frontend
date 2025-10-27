@@ -26,7 +26,7 @@ const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
   const [state, setState] = useState(value)
   const formError = useMemo(() => errorText, [errorText])
   /** ✅ Fetch brand voices from API */
-  const { data: brands, isLoading, error } = brandsQuery.useList()
+  const { data: brands = [], isLoading, error } = brandsQuery.useList()
 
   const handleUpdate = (updates: Partial<typeof state>) => {
     const newState = { ...state, ...updates }
@@ -84,7 +84,7 @@ const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
                 scrollBehavior: "smooth",
               }}
             >
-              {brands?.map((brand: Brand) => (
+              {brands.map((brand: Brand) => (
                 <Card
                   key={brand._id}
                   size="small"

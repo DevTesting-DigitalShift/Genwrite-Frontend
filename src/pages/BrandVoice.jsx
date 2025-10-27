@@ -5,7 +5,7 @@ import { useDispatch, useSelector } from "react-redux"
 import { Info, Loader2, Trash, Upload, RefreshCcw } from "lucide-react"
 import { Helmet } from "react-helmet"
 import { Modal, Tooltip, message, Button } from "antd"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+// import { useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   createBrandVoiceThunk,
   deleteBrandVoiceThunk,
@@ -17,11 +17,13 @@ import {
 import BrandVoicesComponent from "@components/BrandVoiceComponent"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import UpgradeModal from "@components/UpgradeModal"
+import { brandsQuery } from "@api/Brand/Brand.query"
+import { useEntityMutations } from "@/hooks/useEntityMutation"
 
 const BrandVoice = () => {
   const user = useSelector(state => state.auth.user)
   const dispatch = useDispatch()
-  const queryClient = useQueryClient()
+  // const queryClient = useQueryClient()
   const [inputValue, setInputValue] = useState("")
   const [isUploading, setIsUploading] = useState(false)
   const { handlePopup } = useConfirmPopup()
@@ -51,21 +53,9 @@ const BrandVoice = () => {
     return <UpgradeModal featureName="Brand Voice" />
   }
 
-  const {
-    data: brands = [],
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: ["brands"],
-    queryFn: async () => {
-      const response = await dispatch(fetchBrands()).unwrap()
-      return response
-    },
-    staleTime: Infinity, // Data never becomes stale
-    gcTime: Infinity, // Cache persists for the session
-    refetchOnMount: false, // Prevent refetch on component mount
-    refetchOnWindowFocus: false, // Prevent refetch on window focus
-  })
+  const { brand: BrandVoice } = useEntityMutations()
+
+  const { data: brands = [], isLoading, error } = brandsQuery.useList()
 
   useEffect(() => {
     if (!formData._id) {
@@ -245,7 +235,6 @@ const BrandVoice = () => {
       keywords: formData.keywords.map(k => k.trim()).filter(Boolean),
       describeBrand: formData.describeBrand.trim(),
       sitemap: formData.sitemapUrl.trim(),
-      userId: user?._id,
     }
 
     const isDuplicate = brands.some(
@@ -261,19 +250,20 @@ const BrandVoice = () => {
 
     try {
       if (formData._id) {
-        await dispatch(updateBrandVoiceThunk({ id: formData._id, payload })).unwrap()
+        // await dispatch(updateBrandVoiceThunk({ id: formData._id, payload })).unwrap()
+        await BrandVoice.update.mutateAsync({ id: formData._id, data: payload })
       } else {
-        await dispatch(createBrandVoiceThunk({ payload })).unwrap()
+        await BrandVoice.create.mutateAsync(payload)
       }
       resetForm()
-      queryClient.invalidateQueries(["brands"])
+      // queryClient.invalidateQueries(["brands"])
       dispatch(resetSiteInfo())
     } catch (error) {
       console.error("Error saving brand voice:", error)
     } finally {
       setIsUploading(false)
     }
-  }, [formData, user, dispatch, validateForm, resetForm, brands, queryClient])
+  }, [formData, user, dispatch, validateForm, resetForm, brands])
 
   const handleEdit = useCallback(brand => {
     setFormData({
@@ -303,19 +293,20 @@ const BrandVoice = () => {
         confirmText: "Delete",
         onConfirm: async () => {
           try {
-            queryClient.setQueryData(["brands"], (oldBrands = []) =>
-              oldBrands.filter(b => b._id !== brand._id)
-            )
-            await dispatch(deleteBrandVoiceThunk({ id: brand._id })).unwrap()
-            queryClient.invalidateQueries(["brands"])
-
-            if (formData.selectedVoice?._id === brand._id) {
+            // queryClient.setQueryData(["brands"], (oldBrands = []) =>
+            //   oldBrands.filter(b => b._id !== brand._id)
+            // )
+            // await dispatch(deleteBrandVoiceThunk({ id: brand._id })).unwrap()
+            // queryClient.invalidateQueries(["brands"])
+            await BrandVoice.delete.mutateAsync(brand._id)
+            if (formData?.selectedVoice?._id === brand._id) {
               resetForm()
               dispatch(resetSiteInfo())
             }
           } catch (error) {
             console.error("Failed to delete brand voice:", error)
-            queryClient.invalidateQueries(["brands"])
+            message.error("Failed to delete Brand Voice")
+            // queryClient.invalidateQueries(["brands"])
           }
         },
         confirmProps: {
@@ -327,7 +318,7 @@ const BrandVoice = () => {
         },
       })
     },
-    [dispatch, formData.selectedVoice, resetForm, queryClient]
+    [dispatch, formData.selectedVoice, resetForm]
   )
 
   const handleSelect = useCallback(voice => {
@@ -364,8 +355,9 @@ const BrandVoice = () => {
     }
   }, [formData.postLink, lastScrapedUrl, dispatch])
 
-  const handleRefresh = () => {
-    queryClient.invalidateQueries(["brands"])
+  const handleRefresh = async () => {
+    // queryClient.invalidateQueries(["brands"])
+    await brandsQuery.invalidateList()
   }
 
   const renderKeywords = useMemo(() => {

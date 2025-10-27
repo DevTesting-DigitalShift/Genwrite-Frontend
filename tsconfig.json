@@ -22,7 +22,6 @@
       "@utils/*": ["utils/*"],
       "@pages/*": ["pages/*"],
       "@store/*": ["store/*"],
-      "@types/*": ["types/*"],
       "@/*": ["*"]
     }
   },
