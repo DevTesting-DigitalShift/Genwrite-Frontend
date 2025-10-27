@@ -1,12 +1,8 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react"
-import SelectTemplateModal from "../components/multipleStepModal/SelectTemplateModal"
-import SecondStepModal from "../components/multipleStepModal/SecondStepModal"
 import { DashboardBox, QuickBox, Blogs } from "../utils/DashboardBox"
 import { useDispatch, useSelector } from "react-redux"
 import { createNewBlog, fetchAllBlogs, fetchBlogs } from "@store/slices/blogSlice"
 import { useNavigate } from "react-router-dom"
-import MultiStepModal from "../components/multipleStepModal/DaisyUi"
-import DaisyUIModal from "../components/DaisyUIModal"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { AnimatePresence, motion } from "framer-motion"
@@ -30,17 +26,24 @@ import {
 } from "chart.js"
 import GoThrough from "../components/dashboardModals/GoThrough"
 import { letsBegin, quickTools } from "../data/dashData/dash"
-import SeoAnalysisModal from "../components/dashboardModals/SeoAnalysisModal"
-import CompetitiveAnalysisModal from "../components/dashboardModals/CompetitiveAnalysisModal"
-import PerformanceMonitoringModal from "../components/dashboardModals/PerformanceMonitoringModal"
-import KeywordResearchModel from "../components/dashboardModals/KeywordResearchModel"
-import QuickBlogModal from "@components/multipleStepModal/QuickBlogModal"
 import InlineAnnouncementBanner from "@/layout/InlineAnnouncementBanner"
 import dayjs from "dayjs"
 import LoadingScreen from "@components/UI/LoadingScreen"
+import { ACTIVE_MODELS } from "@/data/dashModels"
 
 // lazy imports
+const QuickBlogModal = lazy(() => import("@components/multipleStepModal/QuickBlogModal"))
 const AdvancedBlogModal = lazy(() => import("@components/multipleStepModal/AdvancedBlogModal"))
+const BulkBlogModal = lazy(() => import("@components/multipleStepModal/BulkBlogModal"))
+const KeywordResearchModel = lazy(() =>
+  import("../components/dashboardModals/KeywordResearchModel")
+)
+const PerformanceMonitoringModal = lazy(() =>
+  import("../components/dashboardModals/PerformanceMonitoringModal")
+)
+const CompetitiveAnalysisModal = lazy(() =>
+  import("../components/dashboardModals/CompetitiveAnalysisModal")
+)
 
 ChartJS.register(
   ArcElement,
@@ -54,41 +57,16 @@ ChartJS.register(
 )
 
 const Dashboard = () => {
-  const [isModalVisible, setIsModalVisible] = useState(false)
-  const [daisyUIModal, setDaisyUIModal] = useState(false)
-  const [multiStepModal, setMultiStepModal] = useState(false)
-  const [quickBlogModal, setQuickBlogModal] = useState(false)
-  const [youtubeBlogModal, setYoutubeBlogModal] = useState(false)
-  const [competitiveAnalysisModal, setCompetitiveAnalysisModal] = useState(false)
-  const [performanceModal, setPerformanceModal] = useState(false)
-  const [keywordResearchModal, setKeywordResearchModal] = useState(false)
-  const [seoAnalysisModal, setSeoAnalysisModal] = useState(false)
+  const [activeModel, setActiveModel] = useState("")
   const [recentBlogData, setRecentBlogData] = useState([])
   const [loading, setLoading] = useState(true)
   const { blogs, error, allBlogs } = useSelector(state => state.blog)
   const [showWhatsNew, setShowWhatsNew] = useState(false)
-  const [showAnnouncementBanner, setShowAnnouncementBanner] = useState(true)
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const user = useSelector(selectUser)
   const { handlePopup } = useConfirmPopup()
 
-  const showModal = () => setIsModalVisible(true)
-  const showDaisy = () => setDaisyUIModal(true)
-  const hideDaisy = () => setDaisyUIModal(false)
-  const showMultiStepModal = () => setMultiStepModal(true)
-  const hideMultiStepModal = () => setMultiStepModal(false)
-  const showQuickBlogModal = () => setQuickBlogModal(true)
-  const hideQuickBlogModal = () => setQuickBlogModal(false)
-  const showYoutubeBlogModal = () => setYoutubeBlogModal(true)
-  const hideYoutubeBlogModal = () => setYoutubeBlogModal(false)
-  const showCompetitiveAnalysis = () => setCompetitiveAnalysisModal(true)
-  const hideCompetitiveAnalysis = () => setCompetitiveAnalysisModal(false)
-
-  const toggleAdvancedModal = () => setIsModalVisible(prev => !prev)
-  const toggleQuickModal = () => setQuickBlogModal(prev => !prev)
-  const toggleYoutubeModal = () => setYoutubeBlogModal(prev => !prev)
-  const toggleMultipleModal = () => setMultiStepModal(prev => !prev)
   // Default state
   const [dateRange, setDateRange] = useState([undefined, undefined])
 
@@ -176,27 +154,9 @@ const Dashboard = () => {
     }
   }, [user])
 
-  // useEffect for announcement banner visibility
-  useEffect(() => {
-    const hasSeenAnnouncementBanner = sessionStorage.getItem("hasSeenAnnouncementBanner") === "true"
-    if (hasSeenAnnouncementBanner) {
-      setShowAnnouncementBanner(false)
-    }
-  }, [])
-
   const handleCloseModal = () => {
     setShowWhatsNew(false)
     sessionStorage.setItem("hasSeenGoThrough", "true")
-  }
-
-  const handleCloseAnnouncementBanner = () => {
-    setShowAnnouncementBanner(false)
-    sessionStorage.setItem("hasSeenAnnouncementBanner", "true")
-  }
-
-  const openSecondStepModal = () => {
-    setKeywordResearchModal(false)
-    setIsModalVisible(true)
   }
 
   const openSecondStepJobModal = () => {
@@ -262,14 +222,50 @@ const Dashboard = () => {
     }
   }
 
-  const handleCancel = () => {
-    setIsModalVisible(false) // first, close modal
-    dispatch(clearSelectedKeywords())
+  const handleCloseActiveModal = () => {
+    if ([ACTIVE_MODELS.Advanced_Blog, ACTIVE_MODELS.Keyword_Research].includes(activeModel)) {
+      dispatch(clearSelectedKeywords())
+    }
+    setActiveModel("")
+  }
 
-    // reset steps after modal closes (optional, safe)
-    setTimeout(() => {
-      setModelData({})
-    }, 200) // 200ms matches the modal close animation
+  const renderModel = () => {
+    switch (activeModel) {
+      case ACTIVE_MODELS.Quick_Blog:
+        return <QuickBlogModal type="quick" closeFnc={handleCloseActiveModal} />
+      case ACTIVE_MODELS.YouTube_Blog:
+        return <QuickBlogModal type="yt" closeFnc={handleCloseActiveModal} />
+      case ACTIVE_MODELS.Advanced_Blog:
+        return <AdvancedBlogModal closeFnc={handleCloseActiveModal} />
+      case ACTIVE_MODELS.Bulk_Blog:
+        return <BulkBlogModal closeFnc={handleCloseActiveModal} />
+      case ACTIVE_MODELS.Keyword_Research:
+        return (
+          <KeywordResearchModel
+            closeFnc={handleCloseActiveModal}
+            openSecondStepModal={() => setActiveModel(ACTIVE_MODELS.Advanced_Blog)}
+            openJobModal={openSecondStepJobModal}
+            visible={activeModel == ACTIVE_MODELS.Keyword_Research}
+          />
+        )
+      case ACTIVE_MODELS.Performance_Monitoring:
+        return (
+          <PerformanceMonitoringModal
+            allBlogs={allBlogs}
+            closeFnc={handleCloseActiveModal}
+            visible={activeModel == ACTIVE_MODELS.Performance_Monitoring}
+          />
+        )
+      case ACTIVE_MODELS.Competitor_Analysis:
+        return (
+          <CompetitiveAnalysisModal
+            closeFnc={handleCloseActiveModal}
+            open={activeModel == ACTIVE_MODELS.Competitor_Analysis}
+          />
+        )
+      default:
+        return <></>
+    }
   }
 
   return (
@@ -278,46 +274,10 @@ const Dashboard = () => {
         <title>Home | GenWrite</title>
       </Helmet>
       {showWhatsNew && <GoThrough onClose={handleCloseModal} />}
-      {showAnnouncementBanner && (
-        <InlineAnnouncementBanner onClose={handleCloseAnnouncementBanner} />
-      )}
 
-      <AdvancedBlogModal openModal={isModalVisible} closeFnc={handleCancel} />
+      <InlineAnnouncementBanner />
 
-      {daisyUIModal && <DaisyUIModal closeFnc={hideDaisy} />}
-      {multiStepModal && <MultiStepModal closeFnc={hideMultiStepModal} />}
-      {quickBlogModal && (
-        <QuickBlogModal type="quick" openModal={quickBlogModal} closeFnc={hideQuickBlogModal} />
-      )}
-      {youtubeBlogModal && (
-        <QuickBlogModal type="yt" openModal={youtubeBlogModal} closeFnc={hideYoutubeBlogModal} />
-      )}
-      {competitiveAnalysisModal && (
-        <CompetitiveAnalysisModal
-          closeFnc={hideCompetitiveAnalysis}
-          open={competitiveAnalysisModal}
-          blogs={allBlogs}
-        />
-      )}
-      {performanceModal && (
-        <PerformanceMonitoringModal
-          allBlogs={allBlogs}
-          closeFnc={() => setPerformanceModal(false)}
-          visible={performanceModal}
-        />
-      )}
-      {keywordResearchModal && (
-        <KeywordResearchModel
-          closeFnc={() => {
-            setKeywordResearchModal(false)
-            dispatch(clearKeywordAnalysis())
-          }}
-          openSecondStepModal={openSecondStepModal}
-          openJobModal={openSecondStepJobModal}
-          visible={keywordResearchModal}
-        />
-      )}
-      {seoAnalysisModal && <SeoAnalysisModal closeFnc={() => setSeoAnalysisModal(false)} />}
+      {activeModel && renderModel()}
 
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -371,12 +331,7 @@ const Dashboard = () => {
                         content={item.content}
                         id={item.id}
                         gradient={item.hoverGradient}
-                        functions={{
-                          showModal,
-                          showQuickBlogModal,
-                          showYoutubeBlogModal,
-                          showMultiStepModal,
-                        }}
+                        showModal={() => setActiveModel(item.modelKey)}
                       />
                     ))}
               </AnimatePresence>
@@ -393,34 +348,20 @@ const Dashboard = () => {
                 <AnimatePresence>
                   {loading
                     ? Array.from({ length: 4 }).map((_, idx) => <SkeletonGridCard key={idx} />)
-                    : quickTools.map((item, index) => {
-                        const functions = {}
-
-                        if (item.id === 1) {
-                          functions.showKeywordResearch = () => setKeywordResearchModal(true)
-                        } else if (item.id === 2) {
-                          functions.showSeoAnalysis = () => setSeoAnalysisModal(true)
-                        } else if (item.id === 3) {
-                          functions.showPerformanceMonitoring = () => setPerformanceModal(true)
-                        } else if (item.id === 4) {
-                          functions.showCompetitiveAnalysis = () => showCompetitiveAnalysis()
-                        }
-
-                        return (
-                          <QuickBox
-                            key={index}
-                            id={item.id}
-                            icon={item.icon}
-                            title={item.title}
-                            content={item.content}
-                            bgColor={item.bgColor}
-                            hoverBg={item.hoverBg}
-                            color={item.color}
-                            navigate={item.navigate}
-                            functions={functions}
-                          />
-                        )
-                      })}
+                    : quickTools.map((item, index) => (
+                        <QuickBox
+                          key={index}
+                          id={item.id}
+                          icon={item.icon}
+                          title={item.title}
+                          content={item.content}
+                          bgColor={item.bgColor}
+                          hoverBg={item.hoverBg}
+                          color={item.color}
+                          navigate={item.navigate}
+                          showModal={() => setActiveModel(item?.modelKey || "")}
+                        />
+                      ))}
                 </AnimatePresence>
               </div>
             </div>

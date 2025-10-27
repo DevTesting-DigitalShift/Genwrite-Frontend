@@ -8,11 +8,11 @@ import { Crown, Info, Plus, TriangleAlert, Upload, X } from "lucide-react"
 import { useDispatch, useSelector } from "react-redux"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
 import { useNavigate } from "react-router-dom"
-import { fetchBrands } from "@store/slices/brandSlice"
 import { useQuery } from "@tanstack/react-query"
 import { getIntegrationsThunk } from "@store/slices/otherSlice"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 import clsx from "clsx"
+import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
 
 const { Option } = Select
 
@@ -39,17 +39,6 @@ const StepContent = ({
   const fileInputRef = useRef(null)
   const isProUser = user?.subscription?.plan === "pro"
   const { data: integrations } = useSelector(state => state.wordpress)
-  const {
-    data: brands = [],
-    isLoading: loadingBrands,
-    error: brandError,
-  } = useQuery({
-    queryKey: ["brands"],
-    queryFn: async () => {
-      const response = await dispatch(fetchBrands()).unwrap()
-      return response
-    },
-  })
 
   useEffect(() => {
     if (integrations?.integrations?.size) {
@@ -60,18 +49,6 @@ const StepContent = ({
     }
   }, [integrations])
 
-  const tones = [
-    "Professional",
-    "Casual",
-    "Friendly",
-    "Formal",
-    "Conversational",
-    "Witty",
-    "Informative",
-    "Inspirational",
-    "Persuasive",
-    "Empathetic",
-  ]
   const wordLengths = [500, 1000, 1500, 2000, 3000]
   const MAX_BLOGS = 10
   const isAiImagesLimitReached = user?.usage?.aiImages >= user?.usageLimits?.aiImages
@@ -153,16 +130,6 @@ const StepContent = ({
     }))
     setErrors(prev => ({ ...prev, postingType: false })) // Clear error on change
   }
-
-  useEffect(() => {
-    if (newJob.blogs.useBrandVoice && (!brands || brands.length === 0)) {
-      setNewJob(prev => ({
-        ...prev,
-        blogs: { ...prev.blogs, useBrandVoice: false, brandId: null },
-      }))
-      message.warning("No brand voices available. Create one to enable this option.", 3)
-    }
-  }, [brands, newJob.blogs.useBrandVoice])
 
   const handleAddItems = (input, type) => {
     const trimmedInput = input.trim()
@@ -1504,114 +1471,29 @@ const StepContent = ({
               )}
           </div>
 
-          <div>
-            <div className="flex items-center justify-between mt-3">
-              <span className="text-sm font-medium text-gray-700">Write with Brand Voice</span>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={newJob.blogs.useBrandVoice && brands?.length > 0}
-                  onChange={() => {
-                    if (!brands || brands.length === 0) {
-                      message.warning(
-                        "No brand voices available. Create one to enable this option.",
-                        3
-                      )
-                      return
-                    }
-                    setNewJob(prev => ({
-                      ...prev,
-                      blogs: {
-                        ...prev.blogs,
-                        useBrandVoice: !prev.blogs.useBrandVoice,
-                        brandId: !prev.blogs.useBrandVoice ? prev.blogs.brandId : null,
-                      },
-                    }))
-                    setErrors(prev => ({ ...prev, brandId: false }))
-                  }}
-                  className="sr-only peer"
-                  aria-checked={newJob.blogs.useBrandVoice && brands?.length > 0}
-                />
-
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]" />
-              </label>
-            </div>
-            {newJob.blogs.useBrandVoice && (
-              <div
-                className={`mt-3 flex p-4 rounded-md border bg-gray-50 ${
-                  errors.brandId ? "border-red-500" : "border-gray-200"
-                }`}
-              >
-                {loadingBrands ? (
-                  <div className="text-gray-500 text-sm">Loading brand voices...</div>
-                ) : brandError ? (
-                  <div className="text-red-500 text-sm font-medium">{brandError}</div>
-                ) : brands?.length > 0 ? (
-                  <div className="max-h-48 overflow-y-auto pr-1">
-                    <div>
-                      {brands.map(voice => (
-                        <label
-                          key={voice._id}
-                          className={`flex items-start gap-2 p-3 mb-3 rounded-md cursor-pointer ${
-                            newJob.blogs.brandId === voice._id
-                              ? "bg-blue-100 border-blue-300"
-                              : "bg-white border border-gray-200"
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name="selectedBrandVoice"
-                            value={voice._id}
-                            checked={newJob.blogs.brandId === voice._id}
-                            onChange={() => {
-                              setNewJob(prev => ({
-                                ...prev,
-                                blogs: { ...prev.blogs, brandId: voice._id },
-                              }))
-                              setErrors(prev => ({ ...prev, brandId: false }))
-                            }}
-                            className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-600"
-                          />
-                          <div className="flex-1">
-                            <div className="font-medium text-gray-700">{voice.nameOfVoice}</div>
-                            <p className="text-sm text-gray-600 mt-1">{voice.describeBrand}</p>
-                          </div>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-gray-500 text-sm italic">
-                    No brand voices available. Create one to get started.
-                  </div>
-                )}
-              </div>
-            )}
-            {errors.brandId && <p className="text-red-500 text-xs mt-1">{errors.brandId}</p>}
-
-            {newJob.blogs.useBrandVoice && (
-              <div className="flex items-center justify-between mt-3">
-                <span className="text-sm font-medium text-gray-700">Add CTA at the End</span>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={newJob.blogs.addCTA}
-                    onChange={() => {
-                      setNewJob(prev => ({
-                        ...prev,
-                        blogs: {
-                          ...prev.blogs,
-                          addCTA: !prev.blogs.addCTA,
-                        },
-                      }))
-                    }}
-                    className="sr-only peer"
-                    aria-checked={newJob.blogs.addCTA}
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]" />
-                </label>
-              </div>
-            )}
+          <div className="my-5">
+            <BrandVoiceSelector
+              label="Write with Brand Voice"
+              labelClass="text-sm font-medium text-gray-700"
+              errorText={errors.brandId}
+              value={{
+                isCheckedBrand: newJob.blogs.useBrandVoice,
+                brandId: newJob.blogs.brandId,
+                addCTA: newJob.blogs.addCTA,
+              }}
+              onChange={val => {
+                setNewJob(prev => ({
+                  ...prev,
+                  blogs: {
+                    ...prev.blogs,
+                    useBrandVoice: val.isCheckedBrand,
+                    brandId: val.brandId,
+                    addCTA: val.addCTA,
+                  },
+                }))
+                val.brandId && setErrors(prev => ({ ...prev, brandId: false }))
+              }}
+            />
           </div>
         </div>
       )

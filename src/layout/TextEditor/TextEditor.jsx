@@ -42,7 +42,6 @@ import { useBlocker, useLocation, useNavigate } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { ProofreadingDecoration } from "@/extensions/ProofreadingDecoration"
 import { Iframe } from "@/extensions/Iframe"
-import Loading from "@components/UI/Loading"
 import { ReloadOutlined } from "@ant-design/icons"
 import { sendRetryLines } from "@api/blogApi"
 import { retryBlog } from "@store/slices/blogSlice"
@@ -61,6 +60,7 @@ import { useProofreadingUI } from "@/layout/Editor/useProofreadingUI"
 import ContentDiffViewer from "../Editor/ContentDiffViewer"
 import "./editor.css"
 import { VideoEmbed } from "@/extensions/VideoEmbed"
+import LoadingScreen from "@components/UI/LoadingScreen"
 
 const MarkdownEditor = React.lazy(() =>
   import("./OtherEditors").then(m => ({ default: m.MarkdownEditor }))
@@ -1282,7 +1282,7 @@ const TextEditor = ({
     if (isEditorLoading || !editorReady || blog?.status === "pending") {
       return (
         <div className="flex items-center justify-center h-[calc(100vh-300px)] bg-white border rounded-lg">
-          <Loading />
+          <LoadingScreen />
         </div>
       )
     }
@@ -1298,7 +1298,7 @@ const TextEditor = ({
         }
 
         return (
-          <Suspense fallback={<Loading />}>
+          <Suspense fallback={<LoadingScreen />}>
             <ContentDiffViewer
               oldMarkdown={editorContent}
               newMarkdown={humanizedContent}
@@ -1605,7 +1605,7 @@ const TextEditor = ({
     >
       {(isRetrying || isSavingKeyword) && (
         <div className="bg-white flex items-center justify-center z-50">
-          <Loading />
+          <LoadingScreen />
         </div>
       )}
       {retryModalOpen && (

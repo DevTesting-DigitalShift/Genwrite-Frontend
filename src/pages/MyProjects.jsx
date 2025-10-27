@@ -39,7 +39,7 @@ import isBetween from "dayjs/plugin/isBetween"
 import clsx from "clsx"
 import { debounce } from "lodash"
 import DateRangePicker from "@components/UI/DateRangePicker"
-import { useProAction } from "@/hook/useProAction"
+import { useProAction } from "@/hooks/useProAction"
 
 dayjs.extend(isBetween)
 
@@ -244,7 +244,7 @@ const MyProjects = () => {
     refetchOnMount: false, // Prevent refetch on component mount
     refetchOnWindowFocus: false, // Prevent refetch on window focus
     enabled: !!user, // Only fetch if user is logged in
-    onError: (error) => {
+    onError: error => {
       console.error("Failed to fetch blogs:", {
         error: error.message,
         status: error.status,
@@ -273,7 +273,7 @@ const MyProjects = () => {
             presetDateRange[1]?.toISOString() ?? null,
             limit,
           ],
-          (old = []) => old.filter((blog) => blog._id !== data.blogId)
+          (old = []) => old.filter(blog => blog._id !== data.blogId)
         )
         queryClient.invalidateQueries({ queryKey: ["blog", data.blogId] })
       } else {
@@ -289,7 +289,7 @@ const MyProjects = () => {
             limit,
           ],
           (old = []) => {
-            const index = old.findIndex((blog) => blog._id === data.blogId)
+            const index = old.findIndex(blog => blog._id === data.blogId)
             if (index > -1) {
               old[index] = { ...old[index], ...data }
               return [...old]
@@ -306,14 +306,14 @@ const MyProjects = () => {
           }
         )
         // Update single blog query if exists
-        queryClient.setQueryData(["blog", data.blogId], (old) => ({ ...old, ...data }))
+        queryClient.setQueryData(["blog", data.blogId], old => ({ ...old, ...data }))
       }
     }
 
-    socket.on("blog:statusChanged", (data) => handleBlogChange(data, "blog:statusChanged"))
-    socket.on("blog:updated", (data) => handleBlogChange(data, "blog:updated"))
-    socket.on("blog:deleted", (data) => handleBlogChange(data, "blog:deleted"))
-    socket.on("blog:archived", (data) => handleBlogChange(data, "blog:archived"))
+    socket.on("blog:statusChanged", data => handleBlogChange(data, "blog:statusChanged"))
+    socket.on("blog:updated", data => handleBlogChange(data, "blog:updated"))
+    socket.on("blog:deleted", data => handleBlogChange(data, "blog:deleted"))
+    socket.on("blog:archived", data => handleBlogChange(data, "blog:archived"))
 
     return () => {
       socket.off("blog:statusChanged")
@@ -325,21 +325,21 @@ const MyProjects = () => {
 
   // Retry and archive mutations
   const retryMutation = useMutation({
-    mutationFn: (id) => dispatch(retryBlog({ id })).unwrap(),
+    mutationFn: id => dispatch(retryBlog({ id })).unwrap(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["blogs", userId], exact: false })
     },
-    onError: (error) => {
+    onError: error => {
       console.error("Failed to retry blog:", error)
     },
   })
 
   const archiveMutation = useMutation({
-    mutationFn: (id) => dispatch(archiveBlog(id)).unwrap(),
+    mutationFn: id => dispatch(archiveBlog(id)).unwrap(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["blogs", userId], exact: false })
     },
-    onError: (error) => {
+    onError: error => {
       console.error("Failed to archive blog:", error)
     },
   })
@@ -361,7 +361,7 @@ const MyProjects = () => {
   // Debounced search handler
   const debouncedSetSearchTerm = useMemo(
     () =>
-      debounce((value) => {
+      debounce(value => {
         setSearchTerm(value)
         setCurrentPage(1)
       }, 300),
@@ -377,7 +377,7 @@ const MyProjects = () => {
     }
 
     if (statusFilter !== "all") {
-      result = result.filter((blog) => blog.status === statusFilter)
+      result = result.filter(blog => blog.status === statusFilter)
     }
 
     const sortedResult = [...result]
@@ -433,28 +433,28 @@ const MyProjects = () => {
 
   // Navigation handlers
   const handleBlogClick = useCallback(
-    (blog) => {
+    blog => {
       navigate(`/toolbox/${blog._id}`)
     },
     [navigate]
   )
 
   const handleManualBlogClick = useCallback(
-    (blog) => {
+    blog => {
       navigate(`/blog-editor/${blog._id}`)
     },
     [navigate]
   )
 
   const handleRetry = useCallback(
-    (id) => {
+    id => {
       retryMutation.mutate(id)
     },
     [retryMutation]
   )
 
   const handleArchive = useCallback(
-    (id) => {
+    id => {
       archiveMutation.mutate(id)
     },
     [archiveMutation]
@@ -466,7 +466,7 @@ const MyProjects = () => {
     return content.length > length ? content.substring(0, length) + "..." : content
   }, [])
 
-  const stripMarkdown = useCallback((text) => {
+  const stripMarkdown = useCallback(text => {
     return text
       ?.replace(/<[^>]*>/g, "")
       ?.replace(/[\\*#=_~`>\-]+/g, "")
@@ -678,7 +678,7 @@ const MyProjects = () => {
             <input
               placeholder="Search blogs..."
               value={searchTerm}
-              onChange={(e) => debouncedSetSearchTerm(e.target.value)}
+              onChange={e => debouncedSetSearchTerm(e.target.value)}
               className="w-full rounded-lg border border-gray-300 px-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 py-2"
               aria-label="Search blogs"
             />
@@ -695,7 +695,7 @@ const MyProjects = () => {
           {/* Sort */}
           <Popover
             open={isMenuOpen}
-            onOpenChange={(visible) => setMenuOpen(visible)}
+            onOpenChange={visible => setMenuOpen(visible)}
             trigger="click"
             placement="bottomRight"
             content={
@@ -730,7 +730,7 @@ const MyProjects = () => {
           {/* Filter */}
           <Popover
             open={isFunnelMenuOpen}
-            onOpenChange={(visible) => setFunnelMenuOpen(visible)}
+            onOpenChange={visible => setFunnelMenuOpen(visible)}
             trigger="click"
             placement="bottomRight"
             content={
@@ -765,7 +765,7 @@ const MyProjects = () => {
           {/* Date Preset */}
           <Popover
             open={isCustomDatePickerOpen}
-            onOpenChange={(visible) => setIsCustomDatePickerOpen(visible)}
+            onOpenChange={visible => setIsCustomDatePickerOpen(visible)}
             trigger="click"
             placement="bottomRight"
             content={
@@ -819,7 +819,7 @@ const MyProjects = () => {
             value={dateRange}
             minDate={user?.createdAt ? dayjs(user?.createdAt) : undefined}
             maxDate={dayjs()}
-            onChange={(dates) => {
+            onChange={dates => {
               setDateRange(
                 dates
                   ? [dayjs(dates[0]).startOf("day"), dayjs(dates[1]).endOf("day")]
@@ -860,7 +860,7 @@ const MyProjects = () => {
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8 place-items-center p-2">
-            {filteredBlogs.map((blog) => {
+            {filteredBlogs.map(blog => {
               const isManualEditor = blog.isManuallyEdited === true
               const {
                 _id,
@@ -936,7 +936,7 @@ const MyProjects = () => {
                         onClick={() => handleManualBlogClick(blog)}
                         role="button"
                         tabIndex={0}
-                        onKeyDown={(e) => e.key === "Enter" && handleManualBlogClick(blog)}
+                        onKeyDown={e => e.key === "Enter" && handleManualBlogClick(blog)}
                         aria-label={`View blog ${title}`}
                       >
                         <div className="flex flex-col gap-4 items-center justify-between mb-2">
@@ -980,7 +980,7 @@ const MyProjects = () => {
                           }}
                           role="button"
                           tabIndex={0}
-                          onKeyDown={(e) =>
+                          onKeyDown={e =>
                             e.key === "Enter" &&
                             (status === "complete" || status === "failed") &&
                             handleBlogClick(blog)
@@ -1105,7 +1105,7 @@ const MyProjects = () => {
                     setCurrentPage(1)
                   }
                 }}
-                showTotal={(total) => `Total ${total} blogs`}
+                showTotal={total => `Total ${total} blogs`}
                 responsive={true}
                 showSizeChanger={false}
                 pageSizeOptions={["6", "12", "15"]}
@@ -1119,7 +1119,7 @@ const MyProjects = () => {
             currentPage === Math.ceil(totalBlogs / itemsPerPage) && (
               <div className="flex justify-center mt-4">
                 <Button
-                  onClick={() => setLimit((prev) => prev + INITIAL_LIMIT)}
+                  onClick={() => setLimit(prev => prev + INITIAL_LIMIT)}
                   disabled={isLoading || isFetching}
                 >
                   Load More

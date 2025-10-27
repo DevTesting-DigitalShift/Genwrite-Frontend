@@ -1,4 +1,3 @@
-import Loading from "@components/UI/Loading"
 import { Link, Outlet } from "react-router-dom"
 
 const PublicRoutesLayout = () => {

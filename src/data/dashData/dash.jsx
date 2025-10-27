@@ -12,6 +12,7 @@ import {
   Zap,
 } from "lucide-react"
 import { FaYoutube } from "react-icons/fa"
+import { ACTIVE_MODELS } from "@/data/dashModels"
 
 export const stats = [
   { label: "Total Projects", value: "24", change: "+12%", icon: <Target className="w-5 h-5" /> },
@@ -32,6 +33,7 @@ export const letsBegin = [
     icon: <Zap className="w-6 h-6" />,
     content: "Create engaging blogs in seconds with just a few inputs — super fast and easy!",
     hoverGradient: "from-purple-600 to-purple-700",
+    modelKey: ACTIVE_MODELS.Quick_Blog,
   },
   {
     id: "B",
@@ -39,6 +41,7 @@ export const letsBegin = [
     icon: <FaYoutube className="w-6 h-6" />,
     content: "Transform YouTube videos into SEO-friendly blogs automatically.",
     hoverGradient: "from-red-600 to-red-700",
+    modelKey: ACTIVE_MODELS.YouTube_Blog,
   },
   {
     id: "C",
@@ -46,6 +49,7 @@ export const letsBegin = [
     icon: <PenTool className="w-6 h-6" />,
     content: "Fine-tune every detail — from tone to structure — for premium, pro-level blogs.",
     hoverGradient: "from-blue-600 to-blue-700",
+    modelKey: ACTIVE_MODELS.Advanced_Blog,
   },
   {
     id: "D",
@@ -53,6 +57,7 @@ export const letsBegin = [
     icon: <Grid3X3 className="w-6 h-6" />,
     content: "Generate dozens of blogs at once with flexible templates and automation.",
     hoverGradient: "from-emerald-600 to-emerald-700",
+    modelKey: ACTIVE_MODELS.Bulk_Blog,
   },
 ]
 
@@ -65,6 +70,7 @@ export const quickTools = [
     color: "text-blue-600",
     bgColor: "bg-blue-50",
     hoverBg: "hover:bg-blue-100",
+    modelKey: ACTIVE_MODELS.Keyword_Research,
   },
   {
     id: 3,
@@ -74,6 +80,7 @@ export const quickTools = [
     color: "text-orange-600",
     bgColor: "bg-orange-50",
     hoverBg: "hover:bg-orange-100",
+    modelKey: ACTIVE_MODELS.Performance_Monitoring,
   },
   {
     id: 4,
@@ -83,6 +90,7 @@ export const quickTools = [
     color: "text-purple-600",
     bgColor: "bg-purple-50",
     hoverBg: "hover:bg-purple-100",
+    modelKey: ACTIVE_MODELS.Competitor_Analysis,
   },
   {
     id: 5,

@@ -1,8 +1,10 @@
-import React, { useState, useMemo } from "react"
+import React, { useState, useMemo, useEffect } from "react"
 import { X, Megaphone, Puzzle, Wand2, AlertTriangle } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 import { message } from "antd"
 import dayjs from "dayjs"
+import { useSelector } from "react-redux"
+import { selectUser } from "@store/slices/authSlice"
 
 // Configuration for different announcement types
 const announcementConfig = {
@@ -55,7 +57,18 @@ const fetchAnnouncements = async () => {
 }
 
 // Inline Announcement Banner Component
-const InlineAnnouncementBanner = ({ onClose }) => {
+const InlineAnnouncementBanner = () => {
+  const [showAnnouncementBanner, setShowAnnouncementBanner] = useState(false)
+  const user = useSelector(selectUser)
+
+  // useEffect for announcement banner visibility
+  useEffect(() => {
+    const hasSeenAnnouncementBanner = sessionStorage.getItem("hasSeenAnnouncementBanner")
+    if (!hasSeenAnnouncementBanner) {
+      setShowAnnouncementBanner(true)
+    }
+  }, [user])
+
   // Fetch announcements using TanStack Query
   const { data, error } = useQuery({
     queryKey: ["announcements"],
@@ -66,7 +79,6 @@ const InlineAnnouncementBanner = ({ onClose }) => {
     retryDelay: attempt => Math.min(1000 * 2 ** attempt, 30000),
     onError: error => {
       console.error("Failed to fetch announcements:", error)
-      message.error("Failed to load announcements. Please try again later.")
     },
   })
 
@@ -82,12 +94,15 @@ const InlineAnnouncementBanner = ({ onClose }) => {
 
   // Format the date for better readability
   const formattedDate = useMemo(() => {
-    if (!announcement?.date) return ""
-    return new Date(announcement.date).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    })
+    if (!announcement?.date) return {}
+    return {
+      date: new Date(announcement.date).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }),
+      dayDifference: dayjs().diff(announcement.date, "D"),
+    }
   }, [announcement?.date])
 
   // Handle error state
@@ -95,11 +110,10 @@ const InlineAnnouncementBanner = ({ onClose }) => {
     return null // Silently fail to avoid disrupting user experience
   }
 
-  const daysDifference = dayjs().diff(formattedDate, "d")
-
   return (
-    formattedDate &&
-    daysDifference <= 7 && (
+    showAnnouncementBanner &&
+    formattedDate?.date &&
+    formattedDate.dayDifference <= 7 && (
       <div
         className={`${config.bannerBg} border ${config.borderColor} rounded-lg p-4 mb-6 relative`}
       >
@@ -115,13 +129,18 @@ const InlineAnnouncementBanner = ({ onClose }) => {
             <div className="flex-1 min-w-0">
               <div className="flex items-center space-x-2 mb-1">
                 <h3 className="text-sm font-semibold text-gray-900">{config.title}</h3>
-                {formattedDate && <span className="text-xs text-gray-500">{formattedDate}</span>}
+                {formattedDate && (
+                  <span className="text-xs text-gray-500">{formattedDate.date}</span>
+                )}
               </div>
               <p className="text-sm text-gray-700 leading-relaxed">{announcement.message}</p>
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={() => {
+              setShowAnnouncementBanner(false)
+              sessionStorage.setItem("hasSeenAnnouncementBanner", "true")
+            }}
             className="flex-shrink-0 ml-3 p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors duration-200"
             aria-label="Close announcement"
           >

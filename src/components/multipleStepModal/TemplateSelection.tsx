@@ -1,9 +1,8 @@
 import { packages } from "@/data/templates"
-import Loading from "@components/UI/Loading"
-import { Empty, Input, message, Tooltip } from "antd"
+import { Empty, Flex, Input, message } from "antd"
 import clsx from "clsx"
 import { Crown, Search } from "lucide-react"
-import { FC, useEffect, useState, Suspense, useMemo } from "react"
+import { FC, useEffect, useState, useMemo } from "react"
 
 interface TemplateSelectionProps {
   numberOfSelection?: number
@@ -83,66 +82,68 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
   }
 
   return (
-    <Suspense fallback={<Loading />}>
-      <div className={`relative ${className}`}>
-        <div className="sticky top-0 w-full pb-4 flex justify-center bg-white z-30">
-          <Input.Search
-            size="large"
-            className="w-1/2 !h-full text-center "
-            placeholder="search template by name"
-            onSearch={(value, event, info) => {
-              setTemplates(packages.filter(p => p.name.toLowerCase().includes(value.toLowerCase())))
-            }}
-            enterButton={<Search />}
-            allowClear
-          />
-        </div>
+    <div className={`relative ${className}`}>
+      <Flex justify="center" className="sticky top-0 pb-4 bg-white z-30">
+        <Input.Search
+          size="large"
+          className="w-1/2 !h-full text-center "
+          placeholder="search template by name"
+          onSearch={(value, event, info) => {
+            setTemplates(packages.filter(p => p.name.toLowerCase().includes(value.toLowerCase())))
+          }}
+          enterButton={<Search />}
+          allowClear
+        />
+      </Flex>
 
-        <div className="flex flex-wrap gap-4 !mt-4  justify-around w-full max-h-[60vh] overflow-y-auto">
-          {templates.length ? (
-            templates.map(pkg => {
-              return (
-                <div
-                  key={pkg.id}
-                  className={`relative cursor-pointer transition-all duration-200 w-[30%] py-2 ${clsx(
-                    selectedIds.includes(pkg.id) && "border-blue-500 border-2 rounded-md"
-                  )}`}
-                  onClick={() => handlePackageSelect(pkg.id)}
-                  onKeyDown={e => e.key === "Enter" && handlePackageSelect(pkg.id)}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`Select ${pkg.name} template`}
-                >
-                  <div className="bg-white rounded-md overflow-hidden shadow-sm">
-                    <div className="relative">
-                      <img
-                        src={pkg.imgSrc || "/placeholder.svg"}
-                        alt={pkg.name}
-                        className="w-full h-full object-cover"
-                      />
-                      {pkg.paid && (
-                        <div className="absolute top-2 right-2">
-                          <Crown
-                            size={20}
-                            style={{ color: "blueviolet" }}
-                            aria-label="Pro feature"
-                          />
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-3">
-                      <h3 className="font-medium text-gray-900 text-base mb-1">{pkg.name}</h3>
-                      <p className="text-sm text-gray-500 line-clamp-2">{pkg.description}</p>
-                    </div>
+      <Flex
+        wrap
+        gap={"middle"}
+        justify="space-around"
+        className="py-2 max-h-[60vh] overflow-y-auto"
+      >
+        {templates.length ? (
+          templates.map(pkg => {
+            return (
+              <div
+                key={pkg.id}
+                className={`relative cursor-pointer transition-all rounded-lg duration-200 w-[30%] py-2 border-2 hover:border-blue-700 ${clsx(
+                  selectedIds.includes(pkg.id) && "border-blue-500"
+                )}`}
+                onClick={() => handlePackageSelect(pkg.id)}
+                onKeyDown={e => e.key === "Enter" && handlePackageSelect(pkg.id)}
+                role="button"
+                tabIndex={0}
+                aria-label={`Select ${pkg.name} template`}
+              >
+                <div className="bg-white rounded-md overflow-hidden shadow-sm">
+                  <div className="relative">
+                    <img
+                      src={pkg.imgSrc || "/placeholder.svg"}
+                      alt={pkg.name}
+                      loading="lazy"
+                      fetchPriority="auto"
+                      className="w-full h-full object-cover"
+                    />
+                    {pkg.paid && (
+                      <div className="absolute top-2 right-2">
+                        <Crown size={20} style={{ color: "blueviolet" }} aria-label="Pro feature" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-3">
+                    <h3 className="font-medium text-gray-900 text-base mb-1">{pkg.name}</h3>
+                    <p className="text-sm text-gray-500 line-clamp-2">{pkg.description}</p>
                   </div>
                 </div>
-              )
-            })
-          ) : (
-            <Empty />
-          )}
-        </div>
-        <style>{`
+              </div>
+            )
+          })
+        ) : (
+          <Empty />
+        )}
+      </Flex>
+      <style>{`
       .ant-input, .ant-input:focus, .ant-input-search .ant-input{
         border:none !important;
         height:100% !important;
@@ -153,8 +154,7 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
       }
        
       `}</style>
-      </div>
-    </Suspense>
+    </div>
   )
 }
 

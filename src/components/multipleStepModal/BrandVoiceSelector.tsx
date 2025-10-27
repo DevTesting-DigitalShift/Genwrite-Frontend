@@ -6,6 +6,7 @@ import clsx from "clsx"
 
 interface BrandVoiceSelectorProps {
   label: string
+  labelClass?: string
   value?: {
     isCheckedBrand: boolean
     brandId: string
@@ -19,6 +20,7 @@ const { Text, Paragraph } = Typography
 
 const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
   label,
+  labelClass,
   value = { isCheckedBrand: false, brandId: "", addCTA: false },
   onChange,
   errorText,
@@ -51,9 +53,11 @@ const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
 
   return (
     <>
-      <Flex vertical gap={12}>
+      <Flex vertical gap={8}>
         <Flex justify="space-between" className="form-item-wrapper">
-          <label htmlFor={`blog-isCheckedBrand`}>{label}</label>
+          <label htmlFor={`blog-isCheckedBrand`} className={clsx(labelClass)}>
+            {label}
+          </label>
           <Switch
             id={`blog-isCheckedBrand`}
             value={state.isCheckedBrand}
@@ -68,7 +72,7 @@ const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
           hidden={!state.isCheckedBrand}
           className={clsx(formError && "p-1 rounded-lg border !border-red-500")}
         >
-          <label className={clsx(formError && "text-red-500")}>
+          <label className={clsx(formError && "text-red-500", labelClass)}>
             {formError ? formError : "Select Brand Voice"}
           </label>
           <Radio.Group
@@ -114,8 +118,10 @@ const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
           </Radio.Group>
         </Flex>
 
-        <Flex justify="space-between" hidden={!state.isCheckedBrand}>
-          <label htmlFor="blog-brand-add-cta">Add CTA at the End</label>
+        <Flex justify="space-between" hidden={!state.isCheckedBrand} className="!mt-4">
+          <label htmlFor="blog-brand-add-cta" className={clsx(labelClass)}>
+            Add CTA at the End
+          </label>
           <Switch
             id="blog-brand-add-cta"
             checked={state.addCTA}

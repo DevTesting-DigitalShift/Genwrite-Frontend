@@ -13,17 +13,13 @@ import { Button, message } from "antd"
 import { useDispatch, useSelector } from "react-redux"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { generateHumanizedContent, resetHumanizeState } from "@store/slices/humanizeSlice"
-import Loading from "@components/UI/Loading"
+import LoadingScreen from "@components/UI/LoadingScreen"
 
 const HumanizeContent = () => {
   const [inputContent, setInputContent] = useState("")
   const dispatch = useDispatch()
-  const {
-    loading: isLoading,
-    result: outputContent,
-    error,
-  } = useSelector((state) => state.humanize)
-  const user = useSelector((state) => state.auth.user)
+  const { loading: isLoading, result: outputContent, error } = useSelector(state => state.humanize)
+  const user = useSelector(state => state.auth.user)
   const userPlan = user?.plan ?? user?.subscription?.plan
   const { handlePopup } = useConfirmPopup()
   const leftPanelRef = useRef()
@@ -34,7 +30,7 @@ const HumanizeContent = () => {
   const wordCount = inputContent.trim().split(/\s+/).filter(Boolean).length
 
   // Synchronized scrolling function
-  const handleScroll = useCallback((source) => {
+  const handleScroll = useCallback(source => {
     if (isScrollingSyncRef.current) return
 
     isScrollingSyncRef.current = true
@@ -132,7 +128,7 @@ const HumanizeContent = () => {
   if (isLoading) {
     return (
       <div className="h-[calc(100vh-200px)] p-4 flex items-center justify-center">
-        <Loading />
+        <LoadingScreen />
       </div>
     )
   }
@@ -179,7 +175,7 @@ const HumanizeContent = () => {
           <div className="space-y-4">
             <textarea
               value={inputContent}
-              onChange={(e) => setInputContent(e.target.value)}
+              onChange={e => setInputContent(e.target.value)}
               placeholder="Paste or type your content here (300–500 words)..."
               className="w-full h-60 p-4 border-2 border-gray-200 rounded-xl resize-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all duration-300 text-gray-800 placeholder-gray-500"
             />

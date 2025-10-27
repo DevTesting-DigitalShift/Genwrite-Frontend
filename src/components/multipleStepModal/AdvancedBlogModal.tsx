@@ -31,6 +31,7 @@ import { getValueByPath, setValueByPath } from "@utils/ObjectPath"
 import { AI_MODELS, TONES, IMAGE_OPTIONS } from "@/data/blogData"
 import BlogImageUpload from "@components/multipleStepModal/BlogImageUpload"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
+import { selectSelectedAnalysisKeywords } from "@store/slices/analysisSlice"
 
 const { Text } = Typography
 
@@ -40,11 +41,11 @@ interface AdvancedBlogModalProps {
 }
 
 const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ openModal, closeFnc }) => {
-  const STEP_TITLES = ["Template Selection", "Basic Information", "Customization", "Blog Settings"]
+  const STEP_TITLES = ["Template Selection", "Basic Information", "Customization", "Blog Options"]
 
   const initialData = {
-    template: "" as string,
     templateIds: [] as number[],
+    template: "" as string,
     topic: "" as string,
     focusKeywords: [] as string[],
     keywords: [] as string[],
@@ -55,6 +56,12 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ openModal, closeFnc }) 
     aiModel: AI_MODELS[0].id as string,
     isCheckedGeneratedImages: false as boolean,
     imageSource: IMAGE_OPTIONS[0].id as string,
+    numberOfImages: 0 as number,
+    blogImages: [] as UploadFile[],
+    referenceLinks: [] as string[],
+    isCheckedQuick: false as boolean,
+    isCheckedBrand: false as boolean,
+    brandId: "" as string,
     options: {
       autoGenerateTitle: false as boolean,
       includeFaqs: false as boolean,
@@ -63,12 +70,6 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ openModal, closeFnc }) 
       addOutBoundLinks: false as boolean,
       addCTA: false as boolean,
     },
-    isCheckedQuick: false as boolean,
-    isCheckedBrand: false as boolean,
-    brandId: "" as string,
-    blogImages: [] as UploadFile[],
-    numberOfImages: 0 as number,
-    referenceLinks: [] as string[],
   }
 
   const BLOG_OPTIONS = [
@@ -99,7 +100,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ openModal, closeFnc }) 
   const dispatch = useDispatch()
   const user = useSelector(selectUser)
 
-  const [currentStep, setCurrentStep] = useState<number>(3)
+  const [currentStep, setCurrentStep] = useState<number>(0)
   const [formData, setFormData] = useState<typeof initialData>(initialData)
   const [errors, setErrors] = useState<FormError>({})
 
@@ -141,6 +142,20 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ openModal, closeFnc }) 
       setIsGenerating(false)
     }
   }
+
+  // setting the selected analyzed keywords from keywords planner
+  const selectedKeywords = useSelector(selectSelectedAnalysisKeywords)
+  console.log("Selected Keywords: ", selectedKeywords)
+  useEffect(() => {
+    console.log("Selected Keywords: ", selectedKeywords)
+    if (selectedKeywords) {
+      setFormData(prev => ({
+        ...prev,
+        focusKeywords: selectedKeywords.focusKeywords || prev.focusKeywords,
+        keywords: selectedKeywords.keywords || prev.keywords,
+      }))
+    }
+  }, [selectedKeywords])
 
   const updateFormData = useCallback((newData: Partial<typeof initialData>) => {
     setFormData(prev => ({ ...prev, ...newData }))
@@ -194,7 +209,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ openModal, closeFnc }) 
   const handleClose = () => {
     setFormData(initialData)
     setErrors({})
-    setCurrentStep(3)
+    setCurrentStep(0)
     closeFnc?.()
   }
 
@@ -687,7 +702,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ openModal, closeFnc }) 
   return (
     <Modal
       title={`Generate Advanced Blog | Step ${currentStep + 1} : ${STEP_TITLES[currentStep]}`}
-      open={openModal}
+      open={true}
       onCancel={handleClose}
       footer={
         <Flex justify="end" gap={12} className="mt-2">

@@ -7,11 +7,12 @@ import { CrownFilled } from "@ant-design/icons"
 import { ArrowRight, Eye, Gem } from "lucide-react"
 import dayjs from "dayjs"
 import relativeTime from "dayjs/plugin/relativeTime"
-import { useProAction } from "@/hook/useProAction"
+import { useProAction } from "@/hooks/useProAction"
 
 dayjs.extend(relativeTime)
+const isValidFunction = o => o && typeof o === "function"
 
-export const DashboardBox = ({ title, content, id, functions, icon, gradient }) => {
+export const DashboardBox = ({ title, content, id, showModal, icon, gradient }) => {
   const user = useSelector(state => state.auth.user)
   const userPlan = user?.plan ?? user?.subscription?.plan
   const navigate = useNavigate()
@@ -30,13 +31,10 @@ export const DashboardBox = ({ title, content, id, functions, icon, gradient }) 
 
   const handleClick = () => {
     handleProAction(() => {
-      if (id === "A") functions.showQuickBlogModal?.()
-      else if (id === "B") functions.showYoutubeBlogModal?.()
-      else if (id === "C") functions.showModal?.()
-      else if (id === "D") {
-        if (["free", "basic"].includes(userPlan)) {
-          showPopup()
-        } else functions.showMultiStepModal?.()
+      if (id === "D" && ["free", "basic"].includes(userPlan)) {
+        showPopup()
+      } else {
+        isValidFunction(showModal) && showModal()
       }
     })
   }
@@ -88,7 +86,7 @@ export const QuickBox = ({
   title,
   content,
   id,
-  functions,
+  showModal,
   bgColor,
   hoverBg,
   color,
@@ -116,28 +114,10 @@ export const QuickBox = ({
       return
     }
 
-    const isValidFunction = o => o && typeof o === "function"
-
-    const ACTION_MAP = {
-      1: "showKeywordResearch",
-      3: "showPerformanceMonitoring",
-      4: "showCompetitiveAnalysis",
-      // Note: ID 2 is missing, but it would be added here if needed
-    }
-
-    // ... inside handleClick
-    const actionFunctionName = ACTION_MAP[id]
-
-    if (actionFunctionName) {
-      const actionFunction = functions[actionFunctionName]
-
-      if (id === 4 && ["free", "basic"].includes(userPlan)) {
-        showPopup()
-      } else if (isValidFunction(actionFunction)) {
-        // You no longer need optional chaining on functions[actionFunctionName]
-        // because isValidFunction already checked for null/undefined
-        handleProAction(() => actionFunction())
-      }
+    if (id === 4 && ["free", "basic"].includes(userPlan)) {
+      showPopup()
+    } else if (isValidFunction(showModal)) {
+      handleProAction(() => showModal())
     }
   }
 

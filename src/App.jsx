@@ -1,11 +1,11 @@
 import { Suspense, useEffect } from "react"
 import { RouterProvider } from "react-router-dom"
 import router from "./router"
-import Loading from "@components/UI/Loading"
 import { ConfirmPopupProvider } from "@/context/ConfirmPopupContext"
 import { Helmet } from "react-helmet"
 import { connectSocket } from "@utils/socket"
 import { message } from "antd"
+import LoadingScreen from "@components/UI/LoadingScreen"
 
 const App = () => {
   useEffect(() => {
@@ -25,7 +25,7 @@ const App = () => {
   }, [])
 
   return (
-    <Suspense fallback={<Loading />}>
+    <Suspense fallback={<LoadingScreen />}>
       <Helmet>
         <title>GenWrite</title>
       </Helmet>

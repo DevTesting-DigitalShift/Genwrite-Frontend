@@ -398,6 +398,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
       centered
       transitionName=""
       maskTransitionName=""
+      destroyOnHidden
     >
       <div className="p-2 space-y-2">
         {currentStep === 0 && (

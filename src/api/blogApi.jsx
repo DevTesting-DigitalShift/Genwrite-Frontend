@@ -20,26 +20,9 @@ export const createBlog = async blogData => {
     const formData = new FormData()
     const { blogImages, ...restData } = blogData
 
-    // Prepare non-file data
-    const rawData = {
-      ...restData,
-      title: restData.title?.trim(),
-      brandId: restData.brandId,
-      isCompetitiveResearchEnabled: restData.isCompetitiveResearchEnabled ?? false,
-      isCheckedBrand: restData.isCheckedBrand ?? false,
-      isCheckedGeneratedImages: restData.isCheckedGeneratedImages ?? false,
-      isUnsplashActive: restData.isUnsplashActive ?? false,
-      isCheckedQuick: restData.isCheckedQuick ?? false,
-      isFAQEnabled: restData.isFAQEnabled ?? false,
-      includeInterlinks: restData.includeInterlinks ?? false,
-      addOutBoundLinks: restData.addOutBoundLinks ?? false,
-      addCTA: restData.addCTA ?? false,
-      numberOfImages: restData.numberOfImages ?? 0,
-    }
-
     // Filter out null/undefined
     const finalData = Object.fromEntries(
-      Object.entries(rawData).filter(([_, v]) => v !== null && v !== undefined)
+      Object.entries(restData).filter(([_, v]) => v !== null && v !== undefined)
     )
 
     // Append normal data

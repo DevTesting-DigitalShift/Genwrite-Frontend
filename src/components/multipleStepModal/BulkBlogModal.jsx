@@ -8,12 +8,12 @@ import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { createMultiBlog } from "@store/slices/blogSlice"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { message, Modal, Select, Tooltip } from "antd"
-import { fetchBrands } from "@store/slices/brandSlice"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { getIntegrationsThunk } from "@store/slices/otherSlice"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
+import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
 
-const MultiStepModal = ({ closeFnc }) => {
+const BulkBlogModal = ({ closeFnc }) => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
@@ -79,34 +79,6 @@ const MultiStepModal = ({ closeFnc }) => {
   const [errors, setErrors] = useState(initialErrorsState)
 
   const [formData, setFormData] = useState(initialFormData)
-
-  const queryClient = useQueryClient()
-
-  useEffect(() => {
-    queryClient.prefetchQuery({
-      queryKey: ["brands"],
-      queryFn: async () => {
-        const response = await dispatch(fetchBrands()).unwrap()
-        return response
-      },
-    })
-  }, [dispatch, queryClient])
-
-  const {
-    data: brands = [],
-    isLoading: loadingBrands,
-    error: brandError,
-  } = useQuery({
-    queryKey: ["brands"],
-    queryFn: async () => {
-      const response = await dispatch(fetchBrands()).unwrap()
-      return response
-    },
-    enabled: formData.useBrandVoice,
-    staleTime: Infinity, // 👈 Prevent re-fetching after prefetch
-    gcTime: Infinity, // 👈 Keep cached data all session
-    refetchOnWindowFocus: false,
-  })
 
   useEffect(() => {
     dispatch(getIntegrationsThunk())
@@ -724,7 +696,7 @@ const MultiStepModal = ({ closeFnc }) => {
       transitionName=""
       maskTransitionName=""
     >
-      <div className="p-2 md:p-4 max-h-[80vh]">
+      <div className="p-2 md:p-4 max-h-[80vh] overflow-y-auto">
         {currentStep === 0 && (
           <div
             className={`p-3 md:p-0 ${errors.templates ? "border-2 border-red-500 rounded-lg" : ""}`}
@@ -1214,112 +1186,25 @@ const MultiStepModal = ({ closeFnc }) => {
               </div>
             )}
             <div className="space-y-4 pt-4 border-t border-gray-200">
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-700">Write with Brand Voice</span>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.useBrandVoice && brands?.length > 0}
-                      onChange={() => {
-                        if (!brands || brands.length === 0) {
-                          // Show the warning toast instead of setting errors
-                          message.warning(
-                            "No brand voices available. Create one to enable this option.",
-                            3 // duration in seconds
-                          )
-                          return
-                        }
-
-                        setFormData(prev => ({
-                          ...prev,
-                          useBrandVoice: !prev.useBrandVoice,
-                          // if turning off, reset brandId
-                          brandId: !prev.useBrandVoice ? prev.brandId : null,
-                        }))
-
-                        // Clear any previous brandId errors if you had them
-                        setErrors(prev => ({ ...prev, brandId: "" }))
-                      }}
-                      className="sr-only peer"
-                      aria-checked={formData.useBrandVoice && brands?.length > 0}
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]" />
-                  </label>
-                </div>
-                {formData.useBrandVoice && (
-                  <div
-                    className={`mt-3 p-4 rounded-md border bg-gray-50 ${
-                      errors.brandId ? "border-red-500" : "border-gray-200"
-                    }`}
-                  >
-                    {loadingBrands ? (
-                      <div className="text-gray-500 text-sm">Loading brand voices...</div>
-                    ) : brandError ? (
-                      <div className="text-red-500 text-sm font-medium">{brandError}</div>
-                    ) : brands?.length > 0 ? (
-                      <div className="max-h-48 overflow-y-auto pr-1">
-                        <div>
-                          {brands.map(voice => (
-                            <label
-                              key={voice._id}
-                              className={`flex items-start gap-2 p-3 mb-3 rounded-md cursor-pointer ${
-                                formData.brandId === voice._id
-                                  ? "bg-blue-100 border-blue-300"
-                                  : "bg-white border border-gray-200"
-                              }`}
-                            >
-                              <input
-                                type="radio"
-                                name="selectedBrandVoice"
-                                value={voice._id}
-                                checked={formData.brandId === voice._id}
-                                onChange={() => {
-                                  setFormData(prev => ({
-                                    ...prev,
-                                    brandId: voice._id,
-                                  }))
-                                  setErrors(prev => ({ ...prev, brandId: "" }))
-                                }}
-                                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500"
-                              />
-                              <div className="flex-1">
-                                <div className="font-medium text-gray-700">{voice.nameOfVoice}</div>
-                                <p className="text-sm text-gray-600 mt-1">{voice.describeBrand}</p>
-                              </div>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-gray-500 text-sm italic">
-                        No brand voices available. Create one to get started.
-                      </div>
-                    )}
-                  </div>
-                )}
-                {errors.brandId && <p className="text-red-500 text-xs mt-1">{errors.brandId}</p>}
-                {formData.useBrandVoice && (
-                  <div className="flex items-center justify-between mt-3">
-                    <span className="text-sm font-medium text-gray-700">Add CTA at the End</span>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={formData.addCTA}
-                        onChange={() => {
-                          setFormData(prev => ({
-                            ...prev,
-                            addCTA: !prev.addCTA,
-                          }))
-                        }}
-                        className="sr-only peer"
-                        aria-checked={formData.addCTA}
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1B6FC9]" />
-                    </label>
-                  </div>
-                )}
-              </div>
+              <BrandVoiceSelector
+                label="Write with Brand Voice"
+                labelClass="text-sm font-medium text-gray-700"
+                value={{
+                  isCheckedBrand: formData.useBrandVoice,
+                  brandId: formData.brandId,
+                  addCTA: formData.addCTA,
+                }}
+                onChange={val => {
+                  setFormData(prev => ({
+                    ...prev,
+                    useBrandVoice: val.isCheckedBrand,
+                    brandId: val.brandId,
+                    addCTA: val.addCTA,
+                  }))
+                  setErrors(prev => ({ ...prev, brandId: "" }))
+                }}
+                errorText={errors.brandId}
+              />
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-700">
                   Include Interlinks
@@ -1500,4 +1385,4 @@ const MultiStepModal = ({ closeFnc }) => {
   )
 }
 
-export default MultiStepModal
+export default BulkBlogModal

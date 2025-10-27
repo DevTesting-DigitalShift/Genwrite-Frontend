@@ -6,7 +6,7 @@ import { RefreshCw, Sparkles, Copy, Check } from "lucide-react"
 import { generatePromptContentThunk, resetMetadata } from "@store/slices/otherSlice"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
-import Loading from "@components/UI/Loading"
+import LoadingScreen from "@components/UI/LoadingScreen"
 const { TextArea } = Input
 
 const PromptContent = () => {
@@ -19,12 +19,12 @@ const PromptContent = () => {
   const { handlePopup } = useConfirmPopup()
 
   // Redux selectors
-  const userPlan = useSelector((state) => state.auth.user?.subscription?.plan)
+  const userPlan = useSelector(state => state.auth.user?.subscription?.plan)
   const {
     data: generatedContent,
     loading: isGenerating,
     error,
-  } = useSelector((state) => state.wordpress)
+  } = useSelector(state => state.wordpress)
 
   // Clear data on route change or component unmount
   useEffect(() => {
@@ -86,14 +86,14 @@ const PromptContent = () => {
   }
 
   // Helper function to strip HTML tags and get plain text
-  const stripHtml = (html) => {
+  const stripHtml = html => {
     const tmp = document.createElement("div")
     tmp.innerHTML = html
     return tmp.textContent || tmp.innerText || ""
   }
 
   // Helper function to render HTML content safely
-  const renderHtmlContent = (htmlContent) => {
+  const renderHtmlContent = htmlContent => {
     return (
       <div
         className="prose max-w-none p-4 bg-gray-50 rounded-lg border"
@@ -109,7 +109,7 @@ const PromptContent = () => {
   const wordCount = content
     .trim()
     .split(/\s+/)
-    .filter((word) => word.length > 0).length
+    .filter(word => word.length > 0).length
   const promptLength = prompt.trim().length
 
   return (
@@ -174,7 +174,7 @@ const PromptContent = () => {
             </div>
             <TextArea
               value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
+              onChange={e => setPrompt(e.target.value)}
               placeholder="Enter your prompt here (e.g., 'Humanize this content to make it more engaging')..."
               rows={4}
               className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 custom-scroll ${
@@ -213,7 +213,7 @@ const PromptContent = () => {
             </div>
             <TextArea
               value={content}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={e => setContent(e.target.value)}
               placeholder="Enter your content here (minimum 300 words)..."
               rows={12}
               className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 custom-scroll ${
@@ -239,7 +239,7 @@ const PromptContent = () => {
       {/* Loading State */}
       {isGenerating && (
         <div className="bg-white rounded-xl shadow-lg p-6">
-          <Loading />
+          <LoadingScreen />
         </div>
       )}
 

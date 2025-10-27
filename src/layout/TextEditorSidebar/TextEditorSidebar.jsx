@@ -30,7 +30,7 @@ import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { marked } from "marked"
 import { CrownTwoTone, DownOutlined } from "@ant-design/icons"
 import { Modal } from "antd"
-import Loading from "@components/UI/Loading"
+import LoadingScreen from "@components/UI/LoadingScreen"
 import {
   FeatureCard,
   ScoreCard,
@@ -558,7 +558,7 @@ const TextEditorSidebar = ({
   if (isAnalyzingCompetitive) {
     return (
       <div className="flex items-center">
-        <Loading message="Running Competitive Analysis" />
+        <LoadingScreen message="Running Competitive Analysis" />
       </div>
     )
   }

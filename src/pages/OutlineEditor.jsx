@@ -5,12 +5,11 @@ import { Empty, Input, Select, Modal } from "antd"
 import { Bold, Italic, List, Plus, Sparkles, X } from "lucide-react"
 import React, { useCallback, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
-import { useQuery } from "@tanstack/react-query"
-import { fetchBrands } from "@store/slices/brandSlice"
 import { useNavigate } from "react-router-dom"
 import clsx from "clsx"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 import { selectUser } from "@store/slices/authSlice"
+import { brandsQuery } from "@api/Brand/Brand.query"
 
 const { Option } = Select
 
@@ -48,18 +47,7 @@ const OutlineEditor = () => {
   })
   const [markdownContent, setMarkdownContent] = useState(null)
 
-  const {
-    data: brands = [],
-    isLoading: loadingBrands,
-    error: brandError,
-  } = useQuery({
-    queryKey: ["brands"],
-    queryFn: async () => {
-      const response = await dispatch(fetchBrands()).unwrap()
-      return response
-    },
-    enabled: formData.isCheckedBrand,
-  })
+  const { data: brands = [], isLoading: loadingBrands, error: brandError } = brandsQuery.useList()
 
   const handleClose = () => {
     setIsOpen(false)

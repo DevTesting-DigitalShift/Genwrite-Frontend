@@ -1,6 +1,5 @@
 import { lazy, Suspense } from "react"
 import { createBrowserRouter, Navigate } from "react-router-dom"
-import Loading from "@components/UI/Loading"
 import LoadingScreen from "@components/UI/LoadingScreen"
 const CreditLogsTable = lazy(() => import("@pages/CreditLogs"))
 const Transactions = lazy(() => import("@pages/Transactions"))
