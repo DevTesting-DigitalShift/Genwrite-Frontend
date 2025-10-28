@@ -8,6 +8,10 @@ import { QueryProvider } from "./utils/queryClient.jsx"
 
 const root = ReactDOM.createRoot(document.getElementById("root"))
 
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/sw.js")
+}
+
 root.render(
   <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
     <QueryProvider>

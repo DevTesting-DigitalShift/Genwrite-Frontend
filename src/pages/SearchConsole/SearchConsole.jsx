@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, lazy } from "react"
+import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react"
 import { Helmet } from "react-helmet"
 import { useDispatch, useSelector } from "react-redux"
 import { fetchGscAnalytics, clearAnalytics } from "@store/slices/gscSlice"
@@ -11,9 +11,10 @@ import dayjs from "dayjs"
 import * as ExcelJS from "exceljs"
 import "@pages/SearchConsole/searchConsole.css"
 import clsx from "clsx"
+import LoadingScreen from "@components/UI/LoadingScreen"
 
-const GSCLogin = lazy(_ => import("@pages/SearchConsole/GSCLogin"))
-const GSCAnalyticsTabs = lazy(_ => import("@pages/SearchConsole/GSCAnalyticsTabs"))
+const GSCLogin = lazy(() => import("@pages/SearchConsole/GSCLogin"))
+const GSCAnalyticsTabs = lazy(() => import("@pages/SearchConsole/GSCAnalyticsTabs"))
 
 const { Option } = Select
 const { RangePicker } = DatePicker
@@ -366,7 +367,7 @@ const SearchConsole = () => {
   }
 
   return (
-    <>
+    <Suspense fallback={<LoadingScreen />}>
       <Helmet>
         <title>Search Performance | GenWrite</title>
       </Helmet>
@@ -570,7 +571,7 @@ const SearchConsole = () => {
       ) : (
         <GSCLogin />
       )}
-    </>
+    </Suspense>
   )
 }
 

@@ -51,8 +51,7 @@ import { markdown } from "@codemirror/lang-markdown"
 import { html } from "@codemirror/lang-html"
 import { markdownLanguage } from "@codemirror/lang-markdown"
 import { languages } from "@codemirror/language-data"
-import { lazy } from "react"
-import { Suspense } from "react"
+import { lazy, Suspense } from "react"
 import { createPortal } from "react-dom"
 import { getLinkPreview } from "link-preview-js" // Assume this library is installed via npm i link-preview-js
 import { useQueryClient } from "@tanstack/react-query"
@@ -62,10 +61,10 @@ import "./editor.css"
 import { VideoEmbed } from "@/extensions/VideoEmbed"
 import LoadingScreen from "@components/UI/LoadingScreen"
 
-const MarkdownEditor = React.lazy(() =>
+const MarkdownEditor = lazy(() =>
   import("./OtherEditors").then(m => ({ default: m.MarkdownEditor }))
 )
-const HtmlEditor = React.lazy(() => import("./OtherEditors").then(m => ({ default: m.HtmlEditor })))
+const HtmlEditor = lazy(() => import("./OtherEditors").then(m => ({ default: m.HtmlEditor })))
 
 marked.setOptions({
   gfm: true,
@@ -1571,7 +1570,7 @@ const TextEditor = ({
     }
 
     return (
-      <>
+      <Suspense fallback={<LoadingScreen />}>
         {activeTab === "Markdown" && (
           <MarkdownEditor
             content={safeContent}
@@ -1592,7 +1591,7 @@ const TextEditor = ({
             setUnsavedChanges={setUnsavedChanges}
           />
         )}
-      </>
+      </Suspense>
     )
   }
 
