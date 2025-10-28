@@ -1,5 +1,5 @@
 import { packages } from "@/data/templates"
-import { Empty, Flex, Input, message } from "antd"
+import { Empty, Flex, Input, message, Switch } from "antd"
 import clsx from "clsx"
 import { Crown, Search } from "lucide-react"
 import { FC, useEffect, useState, useMemo } from "react"
@@ -27,15 +27,22 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
   onClick,
   className = "",
 }) => {
-  const isProUser = !["free", "basic"].includes(userSubscriptionPlan)
-  const [templates, setTemplates] = useState<BlogTemplate[]>(() => {
+  const { isProUser, initialTemplates } = useMemo(() => {
+    const isProUser = !["free", "basic"].includes(userSubscriptionPlan)
     if (isProUser) {
-      return [...packages]
+      return { isProUser, initialTemplates: [...packages] }
     }
-    return [...packages].sort((a, b) => {
-      return a.paid === b.paid ? 0 : a.paid ? 1 : -1
-    })
-  })
+    return {
+      isProUser,
+      initialTemplates: [...packages].sort((a, b) => {
+        return a.paid === b.paid ? 0 : a.paid ? 1 : -1
+      }),
+    }
+  }, [userSubscriptionPlan])
+
+  const [templates, setTemplates] = useState<BlogTemplate[]>(initialTemplates)
+  const [showSelected, setShowSelected] = useState<boolean>(false)
+  // const isProUser = !["free", "basic"].includes(userSubscriptionPlan)
 
   // Memoize preSelectedIds to stabilize the reference
   const stabilizedPreSelectedIds = useMemo(() => preSelectedIds ?? [], [preSelectedIds])
@@ -61,6 +68,13 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
     onClick(selectedIds.map(id => packages[id - 1]))
   }, [selectedIds, onClick])
 
+  useEffect(() => {
+    setTemplates(showSelected ? selectedIds?.map(id => packages[id - 1]) : initialTemplates)
+    if (selectedIds.length == 0 && showSelected) {
+      setShowSelected(false)
+    }
+  }, [showSelected, selectedIds])
+
   const handlePackageSelect = (id: number) => {
     // const pkg = packages.find(p => p.id === id)
     const pkg = packages[id - 1]
@@ -83,7 +97,7 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
 
   return (
     <div className={`relative ${className}`}>
-      <Flex justify="center" className="sticky top-0 pb-4 bg-white z-30">
+      <Flex justify="space-around" align="center" className="sticky top-0 pb-4 bg-white z-30">
         <Input.Search
           size="large"
           className="w-1/2 !h-full text-center "
@@ -94,6 +108,19 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
           enterButton={<Search />}
           allowClear
         />
+        <Flex justify="space-around" gap="middle">
+          <label htmlFor="show-template" className="text-base font-normal tracking-wide">
+            Show Selected :{" "}
+          </label>
+          <Switch
+            id="show-template"
+            disabled={selectedIds?.length == 0}
+            value={showSelected}
+            onChange={checked => setShowSelected(checked)}
+            checkedChildren="Yes"
+            unCheckedChildren="NO"
+          />
+        </Flex>
       </Flex>
 
       <Flex

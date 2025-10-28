@@ -221,7 +221,14 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
   const handleSubmit = () => {
     if (validateFields()) {
       console.debug("Advanced Modal Form Data : ", formData)
-      onSubmit?.(formData)
+      const data = { ...formData, options: { ...formData.options } } as Partial<typeof initialData>
+      if (!formData.isCheckedGeneratedImages || formData.imageSource !== "custom") {
+        delete data.blogImages
+      }
+      if (!formData.isCheckedBrand) {
+        delete data.brandId
+      }
+      onSubmit?.(data)
     }
   }
 
