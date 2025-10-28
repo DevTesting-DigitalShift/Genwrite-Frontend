@@ -36,11 +36,11 @@ import { selectSelectedAnalysisKeywords } from "@store/slices/analysisSlice"
 const { Text } = Typography
 
 interface AdvancedBlogModalProps {
-  openModal: boolean
+  onSubmit: Function
   closeFnc: Function
 }
 
-const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ openModal, closeFnc }) => {
+const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) => {
   const STEP_TITLES = ["Template Selection", "Basic Information", "Customization", "Blog Options"]
 
   const initialData = {
@@ -117,9 +117,10 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ openModal, closeFnc }) 
         formData.keywords.length === 0
       ) {
         updateErrors({
-          topic: "Please enter a topic name",
-          focusKeywords: "Please enter at least 1 focus keyword",
-          keywords: "Please enter at least 1 keyword",
+          topic: !formData.topic.trim() ? "Please enter a topic name" : "",
+          focusKeywords:
+            formData.focusKeywords.length === 0 ? "Please enter at least 1 focus keyword" : "",
+          keywords: formData.keywords.length === 0 ? "Please enter at least 1 keyword" : "",
         })
         message.error(
           "Please enter a topic and at least one focus keyword and keyword before generating titles."
@@ -145,9 +146,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ openModal, closeFnc }) 
 
   // setting the selected analyzed keywords from keywords planner
   const selectedKeywords = useSelector(selectSelectedAnalysisKeywords)
-  console.log("Selected Keywords: ", selectedKeywords)
   useEffect(() => {
-    console.log("Selected Keywords: ", selectedKeywords)
     if (selectedKeywords) {
       setFormData(prev => ({
         ...prev,
@@ -186,6 +185,12 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ openModal, closeFnc }) 
         if (!formData.tone.trim()) errors.tone = "Please select a tone of voice"
         break
       case 2:
+        if (
+          formData.isCheckedGeneratedImages &&
+          formData.imageSource === "custom" &&
+          formData.blogImages.length == 0
+        )
+          errors.blogImages = "Please upload at least 1 image."
         break
       case 3:
         if (formData.isCheckedBrand && !formData.brandId.trim())
@@ -215,7 +220,8 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ openModal, closeFnc }) 
 
   const handleSubmit = () => {
     if (validateFields()) {
-      console.log(formData)
+      console.debug("Advanced Modal Form Data : ", formData)
+      onSubmit?.(formData)
     }
   }
 
@@ -263,7 +269,16 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ openModal, closeFnc }) 
             className={clsx("rounded-md !p-2", errors?.template && "border-2 border-red-500")}
           >
             <label className={clsx("text-base mb-2", errors?.template && "text-red-500")}>
-              {errors?.template ? errors.template : "Select Template:"}
+              {errors?.template ? (
+                errors.template
+              ) : (
+                <>
+                  Select Template:{" "}
+                  <span className="font-semibold uppercase text-violet-800 underline">
+                    {formData.template}
+                  </span>
+                </>
+              )}
             </label>
             <TemplateSelection
               userSubscriptionPlan={user?.subscription?.plan || "free"}
@@ -343,18 +358,23 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ openModal, closeFnc }) 
             </Space>
             {/* Title & Generate Title */}
             <Flex vertical gap={12} justify="space-between" className="form-item-wrapper">
-              <Flex justify="space-between" className="mt-3">
+              {/* <Flex justify="space-between" className="mt-3">
                 <label htmlFor="blog-auto-generate-title">Auto Generate Title</label>
                 <Switch
                   id="blog-auto-generate-title"
                   value={formData.options.autoGenerateTitle}
-                  onChange={checked =>
-                    handleInputChange({
-                      target: { name: "options.autoGenerateTitle", value: checked },
-                    })
-                  }
+                  onChange={checked => {
+                    ;[
+                      { name: "options.autoGenerateTitle", value: checked },
+                      { name: "title", value: "" },
+                    ].map(t =>
+                      handleInputChange({
+                        target: t,
+                      })
+                    )
+                  }}
                 />
-              </Flex>
+              </Flex> */}
 
               <Flex vertical gap={8} hidden={formData.options.autoGenerateTitle} className="mb-3">
                 <label htmlFor="blog-title">
@@ -512,11 +532,16 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ openModal, closeFnc }) 
                 <Switch
                   id="add-image-toggle"
                   value={formData.isCheckedGeneratedImages}
-                  onChange={val =>
-                    handleInputChange({
-                      target: { name: "isCheckedGeneratedImages", value: val },
-                    })
-                  }
+                  onChange={val => {
+                    ;[
+                      { name: "isCheckedGeneratedImages", value: val },
+                      { name: "blogImages", value: [] },
+                    ].map(t =>
+                      handleInputChange({
+                        target: t,
+                      })
+                    )
+                  }}
                 />
               </Flex>
             </Space>
@@ -529,7 +554,12 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ openModal, closeFnc }) 
               <Radio.Group
                 name="imageSource"
                 value={formData.imageSource}
-                onChange={handleInputChange}
+                onChange={e => {
+                  handleInputChange(e)
+                  if (e.target.value != "custom") {
+                    handleInputChange({ target: { name: "blogImages", value: [] } })
+                  }
+                }}
                 defaultValue={IMAGE_OPTIONS[0]?.id}
                 block
                 className="p-2 !grid grid-cols-1 sm:!grid-cols-2 md:!grid-cols-3 !gap-4 w-full"
@@ -616,15 +646,18 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ openModal, closeFnc }) 
                   />
                 </Flex>
               ) : (
-                <BlogImageUpload
-                  id="blog-upload-images"
-                  label="Upload Custom Images"
-                  maxCount={15}
-                  initialFiles={formData.blogImages}
-                  onChange={file =>
-                    handleInputChange({ target: { name: "blogImages", value: file } })
-                  }
-                />
+                <>
+                  <BlogImageUpload
+                    id="blog-upload-images"
+                    label="Upload Custom Images"
+                    maxCount={15}
+                    initialFiles={formData.blogImages}
+                    onChange={file =>
+                      handleInputChange({ target: { name: "blogImages", value: file } })
+                    }
+                  />
+                  {errors.blogImages && <Text className="error-text">{errors.blogImages}</Text>}
+                </>
               )}
             </Space>
             {/* Reference Links */}

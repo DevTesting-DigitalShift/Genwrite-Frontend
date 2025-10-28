@@ -190,10 +190,10 @@ const Dashboard = () => {
     initUser()
   }, [dispatch, navigate])
 
-  const handleSubmit = async updatedData => {
+  const handleSubmit = updatedData => {
     try {
       const totalCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
-      const estimatedBlogCost = getEstimatedCost("blog.single", modelData.aiModel || "default")
+      const estimatedBlogCost = getEstimatedCost("blog.single", updatedData.aiModel || "default")
       handlePopup({
         title: "Confirm Blog Creation",
         description: (
@@ -212,7 +212,6 @@ const Dashboard = () => {
             return
           }
           dispatch(createNewBlog({ blogData: updatedData, user, navigate }))
-          setIsModalVisible(false)
         },
       })
       dispatch(clearSelectedKeywords())
@@ -236,7 +235,7 @@ const Dashboard = () => {
       case ACTIVE_MODELS.YouTube_Blog:
         return <QuickBlogModal type="yt" closeFnc={handleCloseActiveModal} />
       case ACTIVE_MODELS.Advanced_Blog:
-        return <AdvancedBlogModal closeFnc={handleCloseActiveModal} />
+        return <AdvancedBlogModal closeFnc={handleCloseActiveModal} onSubmit={handleSubmit} />
       case ACTIVE_MODELS.Bulk_Blog:
         return <BulkBlogModal closeFnc={handleCloseActiveModal} />
       case ACTIVE_MODELS.Keyword_Research:

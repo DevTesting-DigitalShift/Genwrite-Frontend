@@ -80,6 +80,10 @@ self.addEventListener("fetch", event => {
     return // IMPORTANT: Exit here so the code below doesn't run
   }
 
+  if (url.protocol === "chrome-extension:" || url.protocol === "moz-extension:") {
+    return // Don't intercept extension requests
+  }
+
   // -------- CACHE-FIRST STRATEGY FOR STATIC ASSETS --------
   // This is the main caching logic for JS, CSS, images, fonts
 

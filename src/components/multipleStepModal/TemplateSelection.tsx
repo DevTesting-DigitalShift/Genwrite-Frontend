@@ -122,7 +122,6 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
                       src={pkg.imgSrc || "/placeholder.svg"}
                       alt={pkg.name}
                       loading="lazy"
-                      fetchPriority="auto"
                       className="w-full h-full object-cover"
                     />
                     {pkg.paid && (
