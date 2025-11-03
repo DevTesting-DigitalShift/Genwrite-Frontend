@@ -63,7 +63,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
     isCheckedBrand: false as boolean,
     brandId: "" as string,
     options: {
-      autoGenerateTitle: false as boolean,
+      performKeywordResearch: false as boolean,
       includeFaqs: false as boolean,
       includeInterlinks: false as boolean,
       includeCompetitorResearch: false as boolean,
@@ -174,13 +174,14 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
       case 1:
         if (!formData.topic.length) errors.topic = "Please enter a topic name"
 
-        if (!formData.focusKeywords.length)
-          errors.focusKeywords = "Please enter at least 1 focus keyword"
+        if (!formData.options.performKeywordResearch) {
+          if (!formData.focusKeywords.length)
+            errors.focusKeywords = "Please enter at least 1 focus keyword"
 
-        if (!formData.keywords.length) errors.keywords = "Please enter at least 1 keyword"
+          if (!formData.keywords.length) errors.keywords = "Please enter at least 1 keyword"
 
-        if (!formData.options.autoGenerateTitle && !formData.title.length)
-          errors.title = "Please enter a title"
+          if (!formData.title.length) errors.title = "Please enter a title"
+        }
 
         if (!formData.tone.trim()) errors.tone = "Please select a tone of voice"
         break
@@ -227,6 +228,11 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
       }
       if (!formData.isCheckedBrand) {
         delete data.brandId
+      }
+      if (formData.options.performKeywordResearch) {
+        delete data.title
+        delete data.keywords
+        delete data.focusKeywords
       }
       onSubmit?.(data)
     }
@@ -316,8 +322,28 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
               />
               {errors.topic && <Text className="error-text">{errors.topic}</Text>}
             </Space>
+
+            <Flex justify="space-between" className="mt-3 form-item-wrapper">
+              <label htmlFor="blog-auto-generate-title-keywords">
+                Auto Generate Title & Keywords
+              </label>
+              <Switch
+                id="blog-auto-generate-title-keywords"
+                value={formData.options.performKeywordResearch}
+                onChange={checked =>
+                  handleInputChange({
+                    target: { name: "options.performKeywordResearch", value: checked },
+                  })
+                }
+              />
+            </Flex>
+
             {/* Focus Keywords */}
-            <Space direction="vertical" className="form-item-wrapper">
+            <Space
+              direction="vertical"
+              hidden={formData.options.performKeywordResearch}
+              className="form-item-wrapper"
+            >
               <label htmlFor="blog-focus-keywords">
                 Focus Keywords (max 3) <span className="text-red-500">*</span>
               </label>
@@ -342,7 +368,11 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
               {errors.focusKeywords && <Text className="error-text">{errors.focusKeywords}</Text>}
             </Space>
             {/* Keywords */}
-            <Space direction="vertical" className="form-item-wrapper">
+            <Space
+              direction="vertical"
+              hidden={formData.options.performKeywordResearch}
+              className="form-item-wrapper"
+            >
               <label htmlFor="blog-keywords">
                 Keywords <span className="text-red-500">*</span>
               </label>
@@ -363,78 +393,64 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
               />
               {errors.keywords && <Text className="error-text">{errors.keywords}</Text>}
             </Space>
-            {/* Title & Generate Title */}
-            <Flex vertical gap={12} justify="space-between" className="form-item-wrapper">
-              {/* <Flex justify="space-between" className="mt-3">
-                <label htmlFor="blog-auto-generate-title">Auto Generate Title</label>
-                <Switch
-                  id="blog-auto-generate-title"
-                  value={formData.options.autoGenerateTitle}
-                  onChange={checked => {
-                    ;[
-                      { name: "options.autoGenerateTitle", value: checked },
-                      { name: "title", value: "" },
-                    ].map(t =>
-                      handleInputChange({
-                        target: t,
-                      })
-                    )
-                  }}
+            {/* Title */}
+
+            <Flex
+              vertical
+              gap={8}
+              hidden={formData.options.performKeywordResearch}
+              className="form-item-wrapper !mb-4"
+            >
+              <label htmlFor="blog-title">
+                Blog Title <span className="text-red-500">*</span>
+              </label>
+              <Space.Compact block>
+                <Input
+                  id="blog-title"
+                  name="title"
+                  placeholder="e.g., How to create a blog"
+                  value={formData.title}
+                  onChange={handleInputChange}
+                  className={clsx(
+                    " !bg-gray-50 antd-placeholder",
+                    errors.title && "ring-1 !ring-[#ef4444]",
+                    "focus:!outline-none focus:!ring-0 focus:!ring-[#1B6FC9]"
+                  )}
                 />
-              </Flex> */}
+                <Button
+                  type="primary"
+                  title="AI Generated Titles"
+                  icon={<Sparkles className="size-5" />}
+                  block
+                  loading={isGenerating}
+                  onClick={handleGenerateTitles}
+                  className="!w-1/4 h-full text-[length:1rem] py-1 px-3 tracking-wide"
+                >
+                  Generate {generatedTitles?.length ? "More" : "Titles"}
+                </Button>
+              </Space.Compact>
+              {errors.title && <Text className="error-text">{errors.title}</Text>}
 
-              <Flex vertical gap={8} hidden={formData.options.autoGenerateTitle} className="mb-3">
-                <label htmlFor="blog-title">
-                  Blog Title <span className="text-red-500">*</span>
-                </label>
-                <Space.Compact block>
-                  <Input
-                    id="blog-title"
-                    name="title"
-                    placeholder="e.g., How to create a blog"
-                    value={formData.title}
-                    onChange={handleInputChange}
-                    className={clsx(
-                      " !bg-gray-50 antd-placeholder",
-                      errors.title && "ring-1 !ring-[#ef4444]",
-                      "focus:!outline-none focus:!ring-0 focus:!ring-[#1B6FC9]"
-                    )}
-                  />
-                  <Button
-                    type="primary"
-                    title="AI Generated Titles"
-                    icon={<Sparkles className="size-5" />}
-                    block
-                    loading={isGenerating}
-                    onClick={handleGenerateTitles}
-                    className="!w-1/4 h-full text-[length:1rem] py-1 px-3 tracking-wide"
-                  >
-                    Generate {generatedTitles?.length ? "More" : "Titles"}
-                  </Button>
-                </Space.Compact>
-                {errors.title && <Text className="error-text">{errors.title}</Text>}
-
-                {generatedTitles.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {generatedTitles.map((t, i) => (
-                      <Tag
-                        key={i}
-                        color="geekblue"
-                        className={clsx(
-                          "cursor-pointer text-[length:1rem] bg-black",
-                          formData.title === t && "!bg-blue-500 !text-white",
-                          "hover:!bg-blue-400 hover:!text-black p-1"
-                        )}
-                        onClick={() => {
-                          handleInputChange({ target: { name: "title", value: t } })
-                        }}
-                      >
-                        {t}
-                      </Tag>
-                    ))}
-                  </div>
-                )}
-              </Flex>
+              {generatedTitles.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {generatedTitles.map((t, i) => (
+                    <Tag
+                      key={i}
+                      color="geekblue"
+                      className={clsx(
+                        "cursor-pointer text-[length:1rem] bg-black",
+                        formData.title === t && "!bg-blue-500 !text-white",
+                        "hover:!bg-blue-400 hover:!text-black p-1"
+                      )}
+                      onClick={() => {
+                        handleInputChange({ target: { name: "title", value: t } })
+                      }}
+                    >
+                      {t}
+                    </Tag>
+                  ))}
+                </div>
+              )}
             </Flex>
             {/* Tones & Word Length */}
             <Space direction="vertical" className="form-item-wrapper">

@@ -383,7 +383,7 @@ const Dashboard = () => {
                           <Blogs
                             key={index}
                             title={item.title}
-                            content={item.content}
+                            content={item.shortContent}
                             tags={item.focusKeywords}
                             item={item}
                             time={item.updatedAt}

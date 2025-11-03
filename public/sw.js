@@ -5,6 +5,10 @@
 
 const CACHE_NAME = "app-v1.0.0"
 const STATIC_ASSETS = ["/", "/index.html", "/manifest.json"]
+const CACHE_EXPIRY_HOURS = 24 // Cache JS/HTML for 6 hours (can set 4–7)
+
+// Convert to ms for easier math
+const CACHE_EXPIRY_MS = CACHE_EXPIRY_HOURS * 60 * 60 * 1000
 
 // ============================================
 // 1. INSTALL EVENT - Runs when SW is first registered
@@ -84,9 +88,13 @@ self.addEventListener("fetch", event => {
     return // Don't intercept extension requests
   }
 
-  // -------- CACHE-FIRST STRATEGY FOR STATIC ASSETS --------
-  // This is the main caching logic for JS, CSS, images, fonts
+  // -------- TIME-LIMITED CACHE STRATEGY (JS/HTML) --------
+  if (request.destination === "script" || request.destination === "document") {
+    event.respondWith(handleTimedCache(request))
+    return
+  }
 
+  // -------- CACHE-FIRST for other static assets (CSS, images, fonts) --------
   event.respondWith(
     // caches.match(request) looks in all caches for a response that matches this request
     // Returns the cached response if found, or null if not found
@@ -132,12 +140,55 @@ self.addEventListener("fetch", event => {
   )
 })
 
-// // ============================================
-// // TIME-LIMITED CACHE STRATEGY (Optional Advanced Version)
-// // ============================================
-// // Use this version if you want to cache responses but invalidate them after X minutes
+// ============================================
+// Helper: Time-limited caching for JS/HTML
+// ============================================
 
-// const CACHE_EXPIRY_MINUTES = 60 // Cache responses for 60 minutes
+async function handleTimedCache(request) {
+  const cache = await caches.open(CACHE_NAME)
+  const cachedResponse = await cache.match(request)
+
+  if (cachedResponse) {
+    const cachedTime = cachedResponse.headers.get("sw-cache-time")
+    if (cachedTime) {
+      const age = Date.now() - parseInt(cachedTime)
+      if (age < CACHE_EXPIRY_MS) {
+        // ✅ Cache still fresh
+        return cachedResponse
+      }
+    }
+  }
+
+  // 🟡 Fetch fresh copy and update cache
+  try {
+    const networkResponse = await fetch(request)
+    if (networkResponse && networkResponse.status === 200) {
+      const clone = networkResponse.clone()
+
+      // Add timestamp
+      const headers = new Headers(clone.headers)
+      headers.set("sw-cache-time", Date.now().toString())
+
+      const timedResponse = new Response(await clone.blob(), {
+        status: clone.status,
+        statusText: clone.statusText,
+        headers,
+      })
+
+      cache.put(request, timedResponse)
+    }
+    return networkResponse
+  } catch {
+    // 🟥 Offline or network error: fallback to cache
+    if (cachedResponse) return cachedResponse
+    return new Response("Network unavailable", { status: 503 })
+  }
+}
+
+// ============================================
+// TIME-LIMITED CACHE STRATEGY (Optional Advanced Version)
+// ============================================
+// Use this version if you want to cache responses but invalidate them after X minutes
 
 // self.addEventListener("fetch", event => {
 //   const { request } = event

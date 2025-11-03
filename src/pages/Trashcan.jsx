@@ -1,5 +1,3 @@
-"use client"
-
 import React, { useState, useEffect, useCallback } from "react"
 import { Button, Tooltip, Badge, Pagination, Input, Select, message } from "antd"
 import { RefreshCcw, Trash2, Search, ArchiveRestore, X } from "lucide-react"
@@ -34,7 +32,7 @@ const Trashcan = () => {
   const user = useSelector(selectUser)
   const userId = user?.id || "guest"
 
-  const TRUNCATE_LENGTH = 85
+  const TRUNCATE_LENGTH = 200
   const PAGE_SIZE_OPTIONS = [10, 15, 20, 50]
 
   const clearSearch = useCallback(() => {
@@ -46,7 +44,7 @@ const Trashcan = () => {
 
   const debouncedSearch = useCallback(
     debounce(
-      (value) => {
+      value => {
         setSearchTerm(value)
         setCurrentPage(1)
       },
@@ -79,24 +77,18 @@ const Trashcan = () => {
         limit: pageSize,
       }
       const response = await getAllBlogs(queryParams)
+      console.log(response)
       return {
         trashedBlogs: response.data || [],
         totalBlogs: response.totalItems || 0,
       }
     },
-    keepPreviousData: true,
-    staleTime: Infinity, // Data never becomes stale
-    gcTime: Infinity, // Cache persists for the session
-    refetchOnMount: "always", // Fetch only if cache is empty
-    refetchOnWindowFocus: false, // Prevent refetch on window focus
-    enabled: !!user, // Only fetch if user is logged in
-    onError: (error) => {
-      console.error("Failed to fetch trashed blogs:", error)
-    },
   })
 
   const trashedBlogs = data?.trashedBlogs || []
   const totalBlogs = data?.totalBlogs || 0
+
+  console.log(trashedBlogs, data)
 
   // Socket for real-time updates
   useEffect(() => {
@@ -119,7 +111,7 @@ const Trashcan = () => {
       if (eventType === "blog:deleted" || eventType === "blog:restored") {
         // Remove from cache if deleted or restored
         queryClient.setQueryData(queryKey, (old = { trashedBlogs: [], totalBlogs: 0 }) => ({
-          trashedBlogs: old.trashedBlogs.filter((blog) => blog._id !== data.blogId),
+          trashedBlogs: old.trashedBlogs.filter(blog => blog._id !== data.blogId),
           totalBlogs: old.totalBlogs - 1,
         }))
         queryClient.removeQueries({ queryKey: ["blog", data.blogId] })
@@ -130,7 +122,7 @@ const Trashcan = () => {
       } else {
         // Update existing blog in the cache
         queryClient.setQueryData(queryKey, (old = { trashedBlogs: [], totalBlogs: 0 }) => {
-          const index = old.trashedBlogs.findIndex((blog) => blog._id === data.blogId)
+          const index = old.trashedBlogs.findIndex(blog => blog._id === data.blogId)
           if (index > -1) {
             // Check if blog still matches filters
             const blogDate = dayjs(data.archiveDate || data.updatedAt)
@@ -148,7 +140,7 @@ const Trashcan = () => {
             } else {
               // Remove if no longer matches filters
               return {
-                trashedBlogs: old.trashedBlogs.filter((blog) => blog._id !== data.blogId),
+                trashedBlogs: old.trashedBlogs.filter(blog => blog._id !== data.blogId),
                 totalBlogs: old.totalBlogs - 1,
               }
             }
@@ -156,15 +148,15 @@ const Trashcan = () => {
           return old
         })
         // Update single blog query if exists
-        queryClient.setQueryData(["blog", data.blogId], (old) => ({ ...old, ...data }))
+        queryClient.setQueryData(["blog", data.blogId], old => ({ ...old, ...data }))
       }
     }
 
-    socket.on("blog:statusChanged", (data) => handleBlogChange(data, "blog:statusChanged"))
-    socket.on("blog:updated", (data) => handleBlogChange(data, "blog:updated"))
-    socket.on("blog:archived", (data) => handleBlogChange(data, "blog:archived"))
-    socket.on("blog:deleted", (data) => handleBlogChange(data, "blog:deleted"))
-    socket.on("blog:restored", (data) => handleBlogChange(data, "blog:restored"))
+    socket.on("blog:statusChanged", data => handleBlogChange(data, "blog:statusChanged"))
+    socket.on("blog:updated", data => handleBlogChange(data, "blog:updated"))
+    socket.on("blog:archived", data => handleBlogChange(data, "blog:archived"))
+    socket.on("blog:deleted", data => handleBlogChange(data, "blog:deleted"))
+    socket.on("blog:restored", data => handleBlogChange(data, "blog:restored"))
 
     return () => {
       socket.off("blog:statusChanged")
@@ -189,12 +181,12 @@ const Trashcan = () => {
 
   // Restore mutation with optimistic update
   const restoreMutation = useMutation({
-    mutationFn: (id) => dispatch(restoreTrashedBlog(id)).unwrap(),
+    mutationFn: id => dispatch(restoreTrashedBlog(id)).unwrap(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["trashedBlogs"], exact: false })
       queryClient.invalidateQueries({ queryKey: ["blogs"], exact: false })
     },
-    onError: (error) => {
+    onError: error => {
       console.error("Failed to restore blog:", error)
     },
   })
@@ -206,7 +198,7 @@ const Trashcan = () => {
       queryClient.invalidateQueries({ queryKey: ["trashedBlogs"], exact: false })
       setCurrentPage(1)
     },
-    onError: (error) => {
+    onError: error => {
       console.error("Failed to delete all blogs:", error)
     },
   })
@@ -220,7 +212,7 @@ const Trashcan = () => {
     return content.length > length ? content.substring(0, length) + "..." : content
   }, [])
 
-  const stripMarkdown = useCallback((text) => {
+  const stripMarkdown = useCallback(text => {
     return text
       ?.replace(/<[^>]*>/g, "")
       ?.replace(/[\\*#=_~`>\-]+/g, "")
@@ -228,7 +220,7 @@ const Trashcan = () => {
       ?.trim()
   }, [])
 
-  const handleRestore = (id) => {
+  const handleRestore = id => {
     restoreMutation.mutate(id)
   }
 
@@ -241,14 +233,14 @@ const Trashcan = () => {
   }, [queryClient, userId])
 
   const handleBlogClick = useCallback(
-    (blog) => {
+    blog => {
       navigate(`/toolbox/${blog._id}`)
     },
     [navigate]
   )
 
   const handleManualBlogClick = useCallback(
-    (blog) => {
+    blog => {
       navigate(`/blog-editor/${blog._id}`)
     },
     [navigate]
@@ -339,7 +331,7 @@ const Trashcan = () => {
             <div className="relative w-full">
               <input
                 placeholder="Search by title or keywords..."
-                onChange={(e) => debouncedSearch(e.target.value)}
+                onChange={e => debouncedSearch(e.target.value)}
                 prefix={<Search className="w-4 sm:w-5 h-4 sm:h-5 text-gray-400 mr-2 sm:mr-3" />}
                 className="w-full rounded-lg border border-gray-300 px-10 py-[5px] text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
                 disabled={isLoading}
@@ -348,7 +340,7 @@ const Trashcan = () => {
             </div>
             <Select
               value={statusFilter}
-              onChange={(value) => {
+              onChange={value => {
                 setStatusFilter(value)
                 setCurrentPage(1)
               }}
@@ -392,19 +384,18 @@ const Trashcan = () => {
               transition={{ duration: 0.4 }}
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8 p-2"
             >
-              {trashedBlogs.map((blog) => {
+              {trashedBlogs.map(blog => {
                 const isManualEditor = blog.isManuallyEdited === true
                 const {
                   _id,
                   title,
                   status,
                   createdAt,
-                  content,
+                  shortContent,
                   aiModel,
                   focusKeywords,
-                  wordpress,
                   archiveDate,
-                  agendaJob,
+                  agendaNextRun,
                 } = blog
                 const isGemini = /gemini/gi.test(aiModel)
                 return (
@@ -471,7 +462,7 @@ const Trashcan = () => {
                           onClick={() => handleManualBlogClick(blog)}
                           role="button"
                           tabIndex={0}
-                          onKeyDown={(e) => e.key === "Enter" && handleManualBlogClick(blog)}
+                          onKeyDown={e => e.key === "Enter" && handleManualBlogClick(blog)}
                           aria-label={`View blog ${title}`}
                         >
                           <div className="flex flex-col gap-4 items-center justify-between mb-2">
@@ -519,7 +510,7 @@ const Trashcan = () => {
                             }}
                             role="button"
                             tabIndex={0}
-                            onKeyDown={(e) =>
+                            onKeyDown={e =>
                               e.key === "Enter" &&
                               (status === "complete" || status === "failed") &&
                               handleBlogClick(blog)
@@ -531,7 +522,7 @@ const Trashcan = () => {
                                 {title}
                               </h3>
                               <p className="text-xs sm:text-sm text-gray-600 mb-4 line-clamp-3 break-all">
-                                {truncateContent(stripMarkdown(content)) || ""}
+                                {truncateContent(stripMarkdown(shortContent)) || ""}
                               </p>
                             </div>
                           </div>
@@ -577,14 +568,6 @@ const Trashcan = () => {
                         </motion.div>
                       </div>
                       <div className="mt-3 mb-2 flex justify-end text-xs sm:text-sm text-right text-gray-500 font-medium">
-                        {wordpress?.postedOn && (
-                          <span>
-                            Posted on:  
-                            {new Date(wordpress.postedOn).toLocaleDateString("en-US", {
-                              dateStyle: "medium",
-                            })}
-                          </span>
-                        )}
                         <span className="block -mb-2">
                           Archive Date:{" "}
                           {new Date(archiveDate).toLocaleDateString("en-US", {
@@ -608,7 +591,7 @@ const Trashcan = () => {
                   current={currentPage}
                   pageSize={pageSize}
                   total={totalBlogs}
-                  pageSizeOptions={PAGE_SIZE_OPTIONS.filter((size) => size <= 100)}
+                  pageSizeOptions={PAGE_SIZE_OPTIONS.filter(size => size <= 100)}
                   onChange={(page, newPageSize) => {
                     setCurrentPage(page)
                     if (newPageSize !== pageSize) {
@@ -617,7 +600,7 @@ const Trashcan = () => {
                     }
                   }}
                   showSizeChanger
-                  showTotal={(total) => `Total ${total} blogs`}
+                  showTotal={total => `Total ${total} blogs`}
                   responsive={true}
                   disabled={isLoading}
                 />

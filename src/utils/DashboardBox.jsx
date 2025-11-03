@@ -167,11 +167,6 @@ export const Blogs = ({ title, content, tags, item, time }) => {
     ?.replace(/\s+/g, " ")
     ?.trim()
 
-  const truncatedContent =
-    cleanContent && cleanContent.length > 80
-      ? `${cleanContent.substring(0, 80)}...`
-      : cleanContent || ""
-
   const handleBlogClick = () => {
     if (item && item._id) {
       navigate(`/toolbox/${item._id}`, { state: { blog: item } })
@@ -210,7 +205,7 @@ export const Blogs = ({ title, content, tags, item, time }) => {
             </span>
           </div>
 
-          <p className="text-gray-600 text-sm mb-4 line-clamp-2">{truncatedContent}</p>
+          <p className="text-gray-600 text-sm mb-4 line-clamp-2">{cleanContent}</p>
 
           <div className="flex flex-wrap gap-2">
             {tags?.map((tag, index) => (
