@@ -34,11 +34,23 @@ export const SORT_OPTIONS = [
 ]
 
 export const DATE_PRESETS = [
-  { label: "Last 7 Days", range: [dayjs().subtract(7, "day"), dayjs()] },
-  { label: "Last 30 Days", range: [dayjs().subtract(30, "day"), dayjs()] },
-  { label: "Last 3 Months", range: [dayjs().subtract(3, "month"), dayjs()] },
-  { label: "Last 6 Months", range: [dayjs().subtract(6, "month"), dayjs()] },
-  { label: "All", range: [dayjs().startOf("year"), dayjs()] },
+  {
+    label: "Last 7 Days",
+    range: [dayjs().subtract(7, "day").startOf("day"), dayjs().endOf("day")],
+  },
+  {
+    label: "Last 30 Days",
+    range: [dayjs().subtract(30, "day").startOf("day"), dayjs().endOf("day")],
+  },
+  {
+    label: "Last 3 Months",
+    range: [dayjs().subtract(3, "month").startOf("day"), dayjs().endOf("day")],
+  },
+  {
+    label: "Last 6 Months",
+    range: [dayjs().subtract(6, "month").startOf("day"), dayjs().endOf("day")],
+  },
+  { label: "Last 1 Year", range: [dayjs().startOf("year"), dayjs()] },
 ]
 
 export const ITEMS_PER_PAGE = 15

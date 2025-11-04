@@ -10,7 +10,10 @@ const axiosInstance = axios.create({
 
 // Add request interceptor
 axiosInstance.interceptors.request.use(
-  (config) => {
+  config => {
+    if (config.data instanceof FormData) {
+      delete config.headers["Content-Type"]
+    }
     // Add JWT token if available
     const token = localStorage.getItem("token")
     if (token) {
@@ -18,17 +21,17 @@ axiosInstance.interceptors.request.use(
     }
     return config
   },
-  (error) => {
+  error => {
     return Promise.reject(error)
   }
 )
 
 // Add response interceptor
 axiosInstance.interceptors.response.use(
-  (response) => {
+  response => {
     return response
   },
-  (error) => {
+  error => {
     // Only delete token for errors except 404
     if (status && status !== 404 && status >= 400 && status < 600) {
       console.warn(`Token removed due to HTTP ${status}`)

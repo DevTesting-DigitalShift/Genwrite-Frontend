@@ -65,7 +65,7 @@ const MyProjects = () => {
 
   const initialBlogFilter = {
     start: DATE_PRESETS[0].range[0].toISOString(),
-    end: new Date().toISOString(),
+    end: DATE_PRESETS[0].range[1].toISOString(),
     q: "",
     status: BLOG_STATUS.ALL,
     sort: SORT_OPTIONS[0].value,
@@ -83,7 +83,7 @@ const MyProjects = () => {
     } else {
       setBlogFilters(prev => ({ ...prev, start: user?.createdAt }))
     }
-  }, [user])
+  }, [user?.createdAt])
 
   const { isLoading, isRefetching, data, hasNextPage, fetchNextPage, isFetchingNextPage, refetch } =
     useInfiniteQuery({
@@ -141,14 +141,26 @@ const MyProjects = () => {
     sessionStorage.removeItem(`user_${userId}_blog_filters`)
   }, [user])
 
-  const hasActiveFilters = useMemo(
-    () =>
-      blogFilters.start !== user?.createdAt ||
-      Object.keys(blogFilters)
-        .slice(1)
-        .some(k => blogFilters[k] !== initialBlogFilter[k]),
-    [blogFilters]
-  )
+  const hasActiveDates = useMemo(() => {
+    if (!blogFilters || !initialBlogFilter) return false
+
+    // normalize date fields before comparing
+    const sameStart = blogFilters.start === user?.createdAt
+    const sameEnd = blogFilters.end === initialBlogFilter.end
+
+    return !sameStart || !sameEnd
+  }, [blogFilters, user?.createdAt])
+
+  const hasActiveFilters = useMemo(() => {
+    if (!blogFilters || !initialBlogFilter) return false
+
+    const isOtherChanged = Object.keys(blogFilters).some(key => {
+      if (key === "start" || key === "end") return false
+      return JSON.stringify(blogFilters[key]) !== JSON.stringify(initialBlogFilter[key])
+    })
+
+    return hasActiveDates || isOtherChanged
+  }, [blogFilters, user?.createdAt])
 
   // Socket for real-time updates
   useEffect(() => {
@@ -156,7 +168,10 @@ const MyProjects = () => {
     if (!socket || !user) return
 
     const handleStatusChange = debounce(() => {
-      refetch()
+      queryClient.invalidateQueries({
+        queryKey: ["blogs", userId, blogFilters],
+        refetchType: "all", // ← Critical: refetch ALL pages
+      })
     }, 1000)
 
     socket.on("blog:statusChanged", handleStatusChange)
@@ -165,7 +180,7 @@ const MyProjects = () => {
       socket.off("blog:statusChanged", handleStatusChange)
       handleStatusChange.cancel?.()
     }
-  }, [user, refetch])
+  }, [user, userId, queryClient])
 
   // Navigation handlers
   const handleBlogClick = useCallback(
@@ -334,7 +349,12 @@ const MyProjects = () => {
               <Button
                 type="default"
                 icon={<RefreshCcw className="w-4 sm:w-5 h-4 sm:h-5" />}
-                onClick={() => refetch()}
+                onClick={() =>
+                  queryClient.invalidateQueries({
+                    queryKey: ["blogs", userId, blogFilters],
+                    refetchType: "all",
+                  })
+                }
                 className="p-2 sm:p-3 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100 w-full sm:w-auto text-xs sm:text-sm"
               >
                 Refresh
@@ -449,7 +469,7 @@ const MyProjects = () => {
             icon={<RotateCcw className="w-4 sm:w-5 h-4 sm:h-5" />}
             onClick={resetFilters}
             className={`p-2 sm:p-3 rounded-lg border-gray-300 shadow-sm hover:bg-gray-100 w-full sm:w-auto text-xs sm:text-sm ${
-              hasActiveFilters ? "border-red-400 bg-red-50 text-red-600" : ""
+              hasActiveFilters && "border-red-400 bg-red-50 text-red-600"
             }`}
           >
             Reset
@@ -465,11 +485,7 @@ const MyProjects = () => {
               ...(dates[0] ? { start: dates[0].toISOString(), end: dates[1].toISOString() } : {}),
             })
           }}
-          className={clsx(
-            "min-w-[400px] !w-1/3",
-            (blogFilters.start !== user.createdAt || blogFilters.end !== initialBlogFilter.end) &&
-              "border-purple-500"
-          )}
+          className={clsx("min-w-[400px] !w-1/3", hasActiveDates && "border-purple-500")}
         />
       </Flex>
       <AnimatePresence>

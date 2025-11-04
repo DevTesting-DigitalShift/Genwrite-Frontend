@@ -30,15 +30,14 @@ export const createBlog = async blogData => {
 
     // Append images (binary form)
     if (blogImages?.length > 0) {
-      blogImages.forEach(file => {
-        formData.append("blogImages", file) // directly append file object
+      blogImages.forEach(blogfile => {
+        const file = new File([blogfile.originFileObj], blogfile.name, { type: blogfile.type })
+        formData.append("blogImages", file, file.name) // directly append file object
       })
     }
 
     // Send request
-    const response = await axiosInstance.post("/blogs", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    })
+    const response = await axiosInstance.postForm("/blogs", formData)
 
     return response.data.blog || response.data
   } catch (error) {
