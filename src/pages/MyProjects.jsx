@@ -172,7 +172,7 @@ const MyProjects = () => {
         queryKey: ["blogs", userId, blogFilters],
         refetchType: "all", // ← Critical: refetch ALL pages
       })
-    }, 1000)
+    }, 100)
 
     socket.on("blog:statusChanged", handleStatusChange)
 

@@ -7,7 +7,6 @@ import TextAlign from "@tiptap/extension-text-align"
 import { motion } from "framer-motion"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
-import rehypeRaw from "rehype-raw"
 import DOMPurify from "dompurify"
 import Prism from "prismjs"
 import "prismjs/themes/prism-tomorrow.css"
@@ -60,18 +59,27 @@ import ContentDiffViewer from "../Editor/ContentDiffViewer"
 import "./editor.css"
 import { VideoEmbed } from "@/extensions/VideoEmbed"
 import LoadingScreen from "@components/UI/LoadingScreen"
+import rehypeRaw from "rehype-raw"
+import rehypeSanitize, { defaultSchema } from "rehype-sanitize"
+import remarkHtml from "remark-html"
+import { remark } from "remark"
+
+import { unified } from "unified"
+import remarkParse from "remark-parse"
+import remarkFrontmatter from "remark-frontmatter"
+import remarkParseFrontmatter from "remark-parse-frontmatter"
+import remarkRehype from "remark-rehype"
+import rehypeStringify from "rehype-stringify"
+
+import { Table } from "@tiptap/extension-table"
+import TableRow from "@tiptap/extension-table-row"
+import TableCell from "@tiptap/extension-table-cell"
+import TableHeader from "@tiptap/extension-table-header"
 
 const MarkdownEditor = lazy(() =>
   import("./OtherEditors").then(m => ({ default: m.MarkdownEditor }))
 )
 const HtmlEditor = lazy(() => import("./OtherEditors").then(m => ({ default: m.HtmlEditor })))
-
-marked.setOptions({
-  gfm: true,
-  breaks: true,
-  headerIds: false,
-  mangle: false,
-})
 
 const FONT_OPTIONS = [
   { label: "Arial", value: "font-arial" },
@@ -150,7 +158,6 @@ const TextEditor = ({
     if (!markdown) return "<p></p>"
     const rawHtml = marked.parse(
       markdown
-        .replace(/^[ \t]+(<(div|iframe)[\s>])/gm, "$1") // remove leading spaces else it will be treated as code block
         .replace(/!\[\s*["']?(.*?)["']?\s*\]\((.*?)\)/g, (_, alt, url) => `![${alt}](${url})`) // remove quotes from alt
         .replace(/'/g, "'"),
       {
@@ -159,10 +166,33 @@ const TextEditor = ({
       }
     )
     const cleanHtml = DOMPurify.sanitize(rawHtml, {
-      ADD_TAGS: ["iframe", "div"],
+      ADD_TAGS: ["iframe", "div", "table", "th", "td", "tr"],
       ADD_ATTR: ["allow", "allowfullscreen", "frameborder", "scrolling", "src", "style", "title"],
     })
     return cleanHtml
+
+    // const result = unified()
+    //   // Take Markdown as input and turn it into MD syntax tree
+    //   .use(remarkParse)
+    //   // Add support for frontmatter in Markdown
+    //   .use(remarkFrontmatter, ["yaml"])
+    //   // Prase and validate Markdown frontmatter (YAML)
+    //   .use(remarkParseFrontmatter)
+    //   // Switch from MD syntax tree to HTML syntax tree (remakr -> rehype)
+    //   .use(remarkRehype, {
+    //     // Necessary for support HTML embeds (see next plugin)
+    //     allowDangerousHtml: true,
+    //   })
+    //   // Support HTML embedded inside markdown
+    //   .use(rehypeRaw)
+    //   // Improve code highlighting
+    //   // .use(rehypeHighlight)
+    //   // Serialize syntax tree to HTML
+    //   .use(rehypeStringify)
+    //   // And finally, process the input
+    //   .processSync(markdown)
+    // console.log(result.toString())
+    // return result.toString()
   }, [])
 
   const htmlToMarkdown = useCallback(html => {
@@ -171,7 +201,7 @@ const TextEditor = ({
       headingStyle: "atx",
       bulletListMarker: "-",
     })
-    turndownService.keep(["p", "div", "iframe"])
+    turndownService.keep(["p", "div", "iframe", "table", "tr", "th", "td"])
     return turndownService.turndown(html)
   }, [])
 
@@ -196,6 +226,21 @@ const TextEditor = ({
           HTMLAttributes: { class: "rounded-lg mx-auto w-3/4 h-auto object-contain" },
         }),
         TextAlign.configure({ types: ["heading", "paragraph", "right"] }),
+        Table.configure({
+          resizable: false,
+          HTMLAttributes: {
+            class: "border-2 w-full border-collpase p-2 border-gray-800",
+          },
+        }),
+        TableHeader.configure({
+          HTMLAttributes: { class: "text-center font-bold border align-middle border-gray-400" },
+        }),
+        TableRow.configure({
+          HTMLAttributes: { class: "text-center font-medium border align-middle border-gray-400" },
+        }),
+        TableCell.configure({
+          HTMLAttributes: { class: "text-center font-medium border align-middle border-gray-400" },
+        }),
         ProofreadingDecoration.configure({ suggestions: proofreadingResults }),
         VideoEmbed,
       ],
