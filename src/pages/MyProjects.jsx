@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useCallback, useMemo } from "react"
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import SkeletonLoader from "../components/UI/SkeletonLoader"
 import BlogCard from "../components/Blog/BlogCard"
@@ -131,6 +131,8 @@ const MyProjects = () => {
   const allBlogs = useMemo(() => data?.pages.flatMap(p => p.data) ?? [], [data])
   // const hasMore = data?.pages[data?.pages.length - 1]?.hasMore ?? false
   const totalItems = data?.pages[0]?.totalItems ?? 0
+  /** @type {React.RefObject<null> | React.Ref<import("antd").InputRef>} */
+  const inputRef = useRef(null)
 
   const [isMenuOpen, setMenuOpen] = useState(false)
   const [isFunnelMenuOpen, setFunnelMenuOpen] = useState(false)
@@ -138,6 +140,7 @@ const MyProjects = () => {
   // // Reset filters to default
   const resetFilters = useCallback(() => {
     setBlogFilters(prev => ({ ...initialBlogFilter, start: user?.createdAt }))
+    if (inputRef?.current && inputRef.current?.input?.value) inputRef.current.input.value = ""
     sessionStorage.removeItem(`user_${userId}_blog_filters`)
   }, [user])
 
@@ -373,6 +376,7 @@ const MyProjects = () => {
         className="flex-col sm:flex-row p-4 sm:p-6 rounded-lg mb-4"
       >
         <Input.Search
+          ref={inputRef}
           size="middle"
           className="min-w-[300px] w-1/3 text-center "
           placeholder="search blogs..."
