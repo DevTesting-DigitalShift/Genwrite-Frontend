@@ -84,7 +84,11 @@ self.addEventListener("fetch", event => {
     return // IMPORTANT: Exit here so the code below doesn't run
   }
 
-  if (url.protocol === "chrome-extension:" || url.protocol === "moz-extension:") {
+  if (
+    url.protocol === "chrome-extension:" ||
+    url.protocol === "moz-extension:" ||
+    request.method !== "GET"
+  ) {
     return // Don't intercept extension requests
   }
 
@@ -111,7 +115,7 @@ self.addEventListener("fetch", event => {
         return fetch(request).then(response => {
           // Check if response is valid (status 200, not an error)
           // We check response.ok (true for status 200-299)
-          if (!response || response.status !== 200) {
+          if (!response || response.status !== 200 || response.type !== "basic") {
             // Don't cache error responses, just return them
             return response
           }
