@@ -80,19 +80,6 @@ const router = createBrowserRouter([
       { path: "analytics", element: withSuspense(AnalyticsPage) },
       { path: "generate-metadata", element: withSuspense(GenerateMetaData) },
       { path: "prompt-content", element: withSuspense(PromptContent) },
-      {
-        path: "payment",
-        children: [
-          {
-            path: "success",
-            element: withSuspense(SuccessPage),
-          },
-          {
-            path: "cancel",
-            element: withSuspense(CancelPage),
-          },
-        ],
-      },
     ],
   },
   {
@@ -107,6 +94,19 @@ const router = createBrowserRouter([
       { path: "reset-password", element: withSuspense(ResetPassword) },
       { path: "privacy-policy", element: withSuspense(PrivacyPolicy) },
       { path: "terms-and-conditions", element: withSuspense(TermsAndConditions) },
+      {
+        path: "payment",
+        children: [
+          {
+            path: "success",
+            element: withSuspense(SuccessPage),
+          },
+          {
+            path: "cancel",
+            element: withSuspense(CancelPage),
+          },
+        ],
+      },
       { path: "*", element: withSuspense(ErrorPage) },
     ],
   },
