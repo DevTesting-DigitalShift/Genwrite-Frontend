@@ -30,11 +30,51 @@ const PluginsMain = () => {
     loading: postsLoading,
   } = useSelector(state => state.integration)
 
+  const extendedPlugins = useMemo(() => {
+    return [
+      ...plugins,
+      {
+        id: 113,
+        pluginName: "Shopify Integration",
+        name: "Shopify",
+        pluginImage: "/Images/shopify.png", // put your temp image inside public/images
+        description: "Sync your GenWrite content directly to your Shopify store.",
+        version: "1.0.0",
+        updatedDate: "Nov 2025",
+        downloadLink: "#", // you can later attach doc or zip
+        icon: Server, // or use any lucide icon you want
+        message: "Easily publish product content and blog posts directly to Shopify.",
+        onCheck: async () => ({
+          status: 200,
+          message: "Temporary mock connection successful",
+          success: true,
+        }),
+      },
+      {
+        id: 114,
+        pluginName: "Wix Studio Integration",
+        name: "Wix Studio",
+        pluginImage: "/Images/wix.png",
+        description: "Connect your Wix Studio projects with GenWrite for seamless publishing.",
+        version: "1.0.0",
+        updatedDate: "Nov 2025",
+        downloadLink: "#",
+        icon: Server,
+        message: "Push AI-generated blogs and marketing copy directly to your Wix site.",
+        onCheck: async () => ({
+          status: 200,
+          message: "Temporary mock connection successful",
+          success: true,
+        }),
+      },
+    ]
+  }, [plugins])
+
   useEffect(() => {
     dispatch(getIntegrationsThunk())
-    if (plugins.length > 0 && !activeTab) {
-      setActiveTab(plugins[0].id.toString())
-      checkPlugin(plugins[0])
+    if (extendedPlugins.length > 0 && !activeTab) {
+      setActiveTab(extendedPlugins[0].id.toString())
+      checkPlugin(extendedPlugins[0])
     }
   }, [plugins, dispatch, activeTab])
 
@@ -425,6 +465,120 @@ const PluginsMain = () => {
       )
     }
 
+    if (plugin.id === 113 || plugin.id === 114) {
+      const isShopify = plugin.id === 113
+
+      const palette = isShopify
+        ? {
+            grad: "from-emerald-500 to-green-400",
+            hover: "hover:from-emerald-600 hover:to-green-500",
+            badge: "bg-emerald-600",
+            card: "bg-gradient-to-br from-emerald-50 to-green-100/60",
+            text: "text-emerald-700",
+            link: "text-emerald-600 hover:text-emerald-700",
+          }
+        : {
+            grad: "from-neutral-900 to-gray-800",
+            hover: "hover:from-black hover:to-gray-700",
+            badge: "bg-neutral-900 text-white",
+            card: "bg-gradient-to-br from-gray-50 to-gray-200/60",
+            text: "text-neutral-800",
+            link: "text-gray-900 hover:text-black hover:underline",
+          }
+
+      return (
+        <div className="flex min-h-full flex-col items-center justify-center p-6 md:p-10">
+          {/* ── Header ── */}
+          <div className="relative mb-8 flex flex-col items-center text-center">
+            <div className="relative">
+              <img
+                src={plugin.pluginImage}
+                alt={plugin.pluginName}
+                className="h-24 w-24 md:h-28 md:w-28 rounded-xl object-contain shadow-lg transition-transform duration-300 hover:scale-105"
+              />
+            </div>
+
+            <Title
+              level={2}
+              className={`mt-4 bg-gradient-to-r ${
+                isShopify ? "from-emerald-600 to-green-500" : "from-indigo-600 to-purple-500"
+              } bg-clip-text text-2xl font-extrabold text-transparent md:text-3xl`}
+            >
+              {plugin.pluginName}
+            </Title>
+
+            <Text className="mt-2 max-w-xl text-base text-gray-600 md:text-lg">
+              {plugin.description}
+            </Text>
+
+            {/* Version + Updated */}
+            <div className="mt-5 flex flex-wrap justify-center gap-6">
+              <Flex align="center" gap="small">
+                <Tag size={16} className="text-teal-500" />
+                <Text className="font-medium text-teal-600">v{plugin.version}</Text>
+              </Flex>
+              <Flex align="center" gap="small">
+                <Clock size={16} className="text-blue-500" />
+                <Text className="font-medium text-blue-600">{plugin.updatedDate}</Text>
+              </Flex>
+            </div>
+          </div>
+
+          {/* ── Action Card ── */}
+          <Card
+            className={`w-full max-w-2xl border-0 ${palette.card} p-8 shadow backdrop-blur-sm transition-all duration-300`}
+          >
+            <Paragraph className="mb-8 text-center text-base leading-relaxed text-gray-700 md:text-lg">
+              {plugin.message}
+            </Paragraph>
+
+            <Space direction="vertical" size="middle" className="w-full">
+              {/* Connect Button */}
+              <Button
+                size="large"
+                block
+                onClick={() => message.success(`${plugin.pluginName} connection simulated!`)}
+                className={`h-12 rounded-xl border-0 bg-gradient-to-r ${palette.grad} ${palette.hover} font-semibold text-white shadow-md transition-all duration-300`}
+              >
+                <Flex align="center" justify="center" gap="small">
+                  <Server size={18} />
+                  Connect {plugin.name}
+                </Flex>
+              </Button>
+
+              {/* Download Guide */}
+              <a
+                href={plugin.downloadLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block"
+              >
+                <Button
+                  type="text"
+                  block
+                  icon={<Download size={16} />}
+                  className={`h-10 rounded-lg border border-transparent ${
+                    palette.link
+                  } font-medium transition-all duration-200 hover:border-${
+                    isShopify ? "emerald" : "indigo"
+                  }-300 hover:bg-${isShopify ? "emerald" : "indigo"}-50`}
+                >
+                  Download Integration Guide
+                </Button>
+              </a>
+            </Space>
+          </Card>
+
+          {/* ── Footer Note ── */}
+          <Paragraph className="mt-8 max-w-xl text-center text-xs text-gray-500">
+            {isShopify
+              ? "Publish blogs or product descriptions directly from GenWrite to your Shopify store."
+              : "Instantly push AI-generated content to your Wix Studio site with a single click."}
+          </Paragraph>
+        </div>
+      )
+    }
+
     return (
       <div
         initial={{ opacity: 0, y: 20 }}
@@ -583,7 +737,7 @@ const PluginsMain = () => {
     <DefaultTabBar {...props} className="custom-tab-bar rounded-t-lg" />
   )
 
-  const tabItems = plugins.map(plugin => ({
+  const tabItems = extendedPlugins.map(plugin => ({
     key: plugin.id.toString(),
     label: (
       <Flex align="center" gap="small" className="font-sans font-medium text-base">
