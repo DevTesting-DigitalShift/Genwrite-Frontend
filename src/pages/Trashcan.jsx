@@ -1,27 +1,20 @@
 import React, { useState, useEffect, useCallback } from "react"
-import {
-  Button,
-  Tooltip,
-  Popconfirm,
-  Badge,
-  Pagination,
-  Input,
-  Select,
-  message,
-} from "antd"
-import { RefreshCcw, Trash2, Search } from "lucide-react"
+import { Button, Tooltip, Badge, Pagination, Input, Select, message } from "antd"
+import { RefreshCcw, Trash2, Search, ArchiveRestore, X } from "lucide-react"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { QuestionCircleOutlined } from "@ant-design/icons"
 import { motion } from "framer-motion"
 import { Helmet } from "react-helmet"
-import { useDispatch } from "react-redux"
-import SkeletonLoader from "@components/Projects/SkeletonLoader"
+import { useDispatch, useSelector } from "react-redux"
+import SkeletonLoader from "@components/UI/SkeletonLoader"
 import { getAllBlogs } from "@api/blogApi"
 import { deleteAllUserBlogs, restoreTrashedBlog } from "@store/slices/blogSlice"
+import { selectUser } from "@store/slices/authSlice"
 import { debounce } from "lodash"
-import moment from "moment"
+import dayjs from "dayjs"
 import { useNavigate } from "react-router-dom"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { getSocket } from "@utils/socket"
 
 const { Search: AntSearch } = Input
 const { Option } = Select
@@ -33,146 +26,261 @@ const Trashcan = () => {
   const [statusFilter, setStatusFilter] = useState("all")
   const [dateRange, setDateRange] = useState([null, null])
 
-  const { handlePopup } = useConfirmPopup()
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const user = useSelector(selectUser)
+  const userId = user?.id || "guest"
 
-  const TRUNCATE_LENGTH = 85
+  const TRUNCATE_LENGTH = 200
   const PAGE_SIZE_OPTIONS = [10, 15, 20, 50]
 
-  // Debounced search handler
+  const clearSearch = useCallback(() => {
+    setSearchTerm("")
+    setCurrentPage(1)
+  }, [])
+
+  const { handlePopup } = useConfirmPopup()
+
   const debouncedSearch = useCallback(
-    debounce((value) => {
-      setSearchTerm(value)
-      setCurrentPage(1) // Reset to first page on search
-    }, 500),
+    debounce(
+      value => {
+        setSearchTerm(value)
+        setCurrentPage(1)
+      },
+      500,
+      { leading: false, trailing: true, maxWait: 1000 }
+    ),
     []
   )
 
-  // Fetch trashed blogs using TanStack Query
+  // TanStack Query for fetching trashed blogs
   const { data, isLoading } = useQuery({
-    queryKey: ["trashedBlogs", statusFilter, searchTerm, dateRange, currentPage, pageSize],
+    queryKey: [
+      "trashedBlogs",
+      userId,
+      statusFilter,
+      searchTerm,
+      dateRange[0]?.toISOString() ?? null,
+      dateRange[1]?.toISOString() ?? null,
+      currentPage,
+      pageSize,
+    ],
     queryFn: async () => {
       const queryParams = {
         isArchived: true,
         status: statusFilter !== "all" ? statusFilter : undefined,
         q: searchTerm || undefined,
-        start: dateRange[0] ? moment(dateRange[0]).toISOString() : undefined,
-        end: dateRange[1] ? moment(dateRange[1]).toISOString() : undefined,
+        start: dateRange[0] ? dayjs(dateRange[0]).toISOString() : undefined,
+        end: dateRange[1] ? dayjs(dateRange[1]).toISOString() : undefined,
         page: currentPage,
         limit: pageSize,
       }
       const response = await getAllBlogs(queryParams)
+      console.log(response)
       return {
         trashedBlogs: response.data || [],
         totalBlogs: response.totalItems || 0,
       }
     },
-    keepPreviousData: true, // Keep previous data while fetching new data
-    staleTime: 5 * 60 * 1000, // Cache data for 5 minutes
-    cacheTime: 10 * 60 * 1000, // Keep cache for 10 minutes
   })
 
   const trashedBlogs = data?.trashedBlogs || []
   const totalBlogs = data?.totalBlogs || 0
 
-  // Mutation for restoring a blog
+  console.log(trashedBlogs, data)
+
+  // Socket for real-time updates
+  useEffect(() => {
+    const socket = getSocket()
+    if (!socket || !user) return
+
+    const handleBlogChange = (data, eventType) => {
+      console.debug(`Blog event: ${eventType}`, data)
+      const queryKey = [
+        "trashedBlogs",
+        userId,
+        statusFilter,
+        searchTerm,
+        dateRange[0]?.toISOString() ?? null,
+        dateRange[1]?.toISOString() ?? null,
+        currentPage,
+        pageSize,
+      ]
+
+      if (eventType === "blog:deleted" || eventType === "blog:restored") {
+        // Remove from cache if deleted or restored
+        queryClient.setQueryData(queryKey, (old = { trashedBlogs: [], totalBlogs: 0 }) => ({
+          trashedBlogs: old.trashedBlogs.filter(blog => blog._id !== data.blogId),
+          totalBlogs: old.totalBlogs - 1,
+        }))
+        queryClient.removeQueries({ queryKey: ["blog", data.blogId] })
+      } else if (eventType === "blog:archived") {
+        // Invalidate for newly archived blogs to ensure fresh data
+        queryClient.invalidateQueries({ queryKey: ["trashedBlogs", userId], exact: false })
+        queryClient.invalidateQueries({ queryKey: ["blogs", userId], exact: false })
+      } else {
+        // Update existing blog in the cache
+        queryClient.setQueryData(queryKey, (old = { trashedBlogs: [], totalBlogs: 0 }) => {
+          const index = old.trashedBlogs.findIndex(blog => blog._id === data.blogId)
+          if (index > -1) {
+            // Check if blog still matches filters
+            const blogDate = dayjs(data.archiveDate || data.updatedAt)
+            const matchesStatus = statusFilter === "all" || data.status === statusFilter
+            const matchesDate =
+              !dateRange[0] ||
+              !dateRange[1] ||
+              blogDate.isBetween(dayjs(dateRange[0]), dayjs(dateRange[1]), "day", "[]")
+            const matchesSearch =
+              !searchTerm || data.title?.toLowerCase().includes(searchTerm.toLowerCase())
+
+            if (matchesStatus && matchesDate && matchesSearch) {
+              old.trashedBlogs[index] = { ...old.trashedBlogs[index], ...data }
+              return { ...old, trashedBlogs: [...old.trashedBlogs] }
+            } else {
+              // Remove if no longer matches filters
+              return {
+                trashedBlogs: old.trashedBlogs.filter(blog => blog._id !== data.blogId),
+                totalBlogs: old.totalBlogs - 1,
+              }
+            }
+          }
+          return old
+        })
+        // Update single blog query if exists
+        queryClient.setQueryData(["blog", data.blogId], old => ({ ...old, ...data }))
+      }
+    }
+
+    socket.on("blog:statusChanged", data => handleBlogChange(data, "blog:statusChanged"))
+    socket.on("blog:updated", data => handleBlogChange(data, "blog:updated"))
+    socket.on("blog:archived", data => handleBlogChange(data, "blog:archived"))
+    socket.on("blog:deleted", data => handleBlogChange(data, "blog:deleted"))
+    socket.on("blog:restored", data => handleBlogChange(data, "blog:restored"))
+
+    return () => {
+      socket.off("blog:statusChanged")
+      socket.off("blog:updated")
+      socket.off("blog:archived")
+      socket.off("blog:deleted")
+      socket.off("blog:restored")
+    }
+  }, [queryClient, user, userId, statusFilter, searchTerm, dateRange, currentPage, pageSize])
+
+  // Clear cache on user logout
+  useEffect(() => {
+    if (!user) {
+      queryClient.removeQueries({ queryKey: ["trashedBlogs"] })
+      setCurrentPage(1)
+      setPageSize(15)
+      setSearchTerm("")
+      setStatusFilter("all")
+      setDateRange([null, null])
+    }
+  }, [user, queryClient])
+
+  // Restore mutation with optimistic update
   const restoreMutation = useMutation({
-    mutationFn: (id) => dispatch(restoreTrashedBlog(id)).unwrap(),
+    mutationFn: id => dispatch(restoreTrashedBlog(id)).unwrap(),
     onSuccess: () => {
-      queryClient.invalidateQueries(["trashedBlogs"])
-      message.success("Blog restored successfully")
+      queryClient.invalidateQueries({ queryKey: ["trashedBlogs"], exact: false })
+      queryClient.invalidateQueries({ queryKey: ["blogs"], exact: false })
     },
-    onError: (error) => {
+    onError: error => {
       console.error("Failed to restore blog:", error)
-      message.error("Failed to restore blog. Please try again.")
     },
   })
 
-  // Mutation for bulk delete
+  // Bulk delete mutation with optimistic update
   const bulkDeleteMutation = useMutation({
     mutationFn: () => dispatch(deleteAllUserBlogs()).unwrap(),
     onSuccess: () => {
-      queryClient.invalidateQueries(["trashedBlogs"])
+      queryClient.invalidateQueries({ queryKey: ["trashedBlogs"], exact: false })
       setCurrentPage(1)
-      message.success("All trashed blogs deleted successfully")
     },
-    onError: (error) => {
+    onError: error => {
       console.error("Failed to delete all blogs:", error)
-      message.error("Failed to delete all blogs. Please try again.")
     },
   })
 
-  // Scroll to top on page change
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" })
   }, [currentPage])
 
-  // Truncate content
-  const truncateContent = (content, length = TRUNCATE_LENGTH) => {
+  const truncateContent = useCallback((content, length = TRUNCATE_LENGTH) => {
     if (!content) return ""
     return content.length > length ? content.substring(0, length) + "..." : content
-  }
+  }, [])
 
-  // Strip markdown
-  const stripMarkdown = (text) => {
+  const stripMarkdown = useCallback(text => {
     return text
       ?.replace(/<[^>]*>/g, "")
       ?.replace(/[\\*#=_~`>\-]+/g, "")
       ?.replace(/\s{2,}/g, " ")
       ?.trim()
-  }
+  }, [])
 
-  // Handle restore
-  const handleRestore = (id) => {
+  const handleRestore = id => {
     restoreMutation.mutate(id)
   }
 
-  // Handle bulk delete
-  const handleBulkDelete = () => {
+  const handleBulkDelete = useCallback(() => {
     bulkDeleteMutation.mutate()
-  }
+  }, [bulkDeleteMutation])
 
-  // Handle refresh
-  const handleRefresh = () => {
-    queryClient.invalidateQueries(["trashedBlogs"])
-    message.info("Blog list refreshed")
-  }
+  const handleRefresh = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["trashedBlogs", userId] })
+  }, [queryClient, userId])
 
-  // Handle blog click
-  const handleBlogClick = (blog) => {
-    message.info(`Clicked on blog: ${blog.title}`)
-  }
+  const handleBlogClick = useCallback(
+    blog => {
+      navigate(`/toolbox/${blog._id}`)
+    },
+    [navigate]
+  )
 
-  // Handle manual blog click
-  const handleManualBlogClick = (blog) => {
-    navigate(`/blog-editor/${blog._id}`)
-  }
+  const handleManualBlogClick = useCallback(
+    blog => {
+      navigate(`/blog-editor/${blog._id}`)
+    },
+    [navigate]
+  )
 
   return (
-    <div className="p-5">
+    <div className="p-2 md:p-4 lg:p-8 max-w-full">
       <Helmet>
         <title>Trashcan | GenWrite</title>
       </Helmet>
       <div>
         {/* Header */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
-          <motion.h1
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
-          >
-            Trashcan
-          </motion.h1>
-          <div className="flex items-center gap-3">
+        <div className="mb-6 flex flex-col sm:flex-row sm:justify-between items-center mt-5 p-2 md:mt-0 md:p-0">
+          <div>
+            <motion.h1
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+              className="text-3xl font-extrabold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2"
+            >
+              Trashcan
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.1 }}
+              className="text-gray-600 text-sm max-w-xl mb-4"
+            >
+              Restore valuable work or permanently delete clutter. Trashed items are deleted after 7
+              days.
+            </motion.p>
+          </div>
+          <div className="flex gap-2">
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Button
                 type="default"
-                icon={<RefreshCcw className="w-4 h-4" />}
+                icon={<RefreshCcw className="w-4 sm:w-5 h-4 sm:h-5" />}
                 onClick={handleRefresh}
                 disabled={isLoading}
+                className="text-xs sm:text-sm px-4 py-2"
               >
                 Refresh
               </Button>
@@ -181,7 +289,7 @@ const Trashcan = () => {
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Button
                   type="default"
-                  icon={<Trash2 className="w-4 h-4" />}
+                  icon={<Trash2 className="w-4 sm:w-5 h-4 sm:h-5" />}
                   onClick={() =>
                     handlePopup({
                       title: "Delete All Trashed Blogs",
@@ -191,10 +299,11 @@ const Trashcan = () => {
                           be undone.
                         </span>
                       ),
-                      confirmText: "Delete All",
+
                       onConfirm: handleBulkDelete,
                       confirmProps: {
-                        className: "border-red-500 hover:bg-red-500 hover:text-white",
+                        type: "text",
+                        className: "border-red-500 hover:bg-red-500 bg-red-100 text-red-600",
                       },
                       cancelProps: {
                         danger: false,
@@ -202,6 +311,7 @@ const Trashcan = () => {
                     })
                   }
                   disabled={isLoading}
+                  className="text-xs sm:text-sm px-4 py-2"
                 >
                   Delete All
                 </Button>
@@ -209,43 +319,36 @@ const Trashcan = () => {
             )}
           </div>
         </div>
-        <motion.p
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.1 }}
-          className="text-gray-600 text-sm sm:text-base max-w-xl mb-6"
-        >
-          Restore valuable work or permanently delete clutter. Trashed items are deleted after 7
-          days.
-        </motion.p>
 
         {/* Filters */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.2 }}
-          className="bg-white/90 backdrop-blur-md rounded-xl shadow-sm border border-gray-100 p-4 mb-6"
+          className="bg-white/90 p-4 sm:p-6 mb-6"
         >
           <div className="flex flex-col sm:flex-row gap-4">
-            <AntSearch
-              placeholder="Search by title or keywords..."
-              onChange={(e) => debouncedSearch(e.target.value)}
-              prefix={<Search className="w-5 h-5 text-gray-400 mr-2" />}
-              allowClear
-              className="w-full rounded-lg"
-              disabled={isLoading}
-            />
+            <div className="relative w-full">
+              <input
+                placeholder="Search by title or keywords..."
+                onChange={e => debouncedSearch(e.target.value)}
+                prefix={<Search className="w-4 sm:w-5 h-4 sm:h-5 text-gray-400 mr-2 sm:mr-3" />}
+                className="w-full rounded-lg border border-gray-300 px-10 py-[5px] text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                disabled={isLoading}
+              />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+            </div>
             <Select
               value={statusFilter}
-              onChange={(value) => {
+              onChange={value => {
                 setStatusFilter(value)
                 setCurrentPage(1)
               }}
-              className="w-full sm:w-1/4 rounded-lg"
+              className="w-full sm:w-48 rounded-lg text-xs sm:text-sm"
               placeholder="Filter by status"
               disabled={isLoading}
             >
-              <Option value="all">All Statuses</Option>
+              <Option value="all">All Status</Option>
               <Option value="complete">Complete</Option>
               <Option value="failed">Failed</Option>
               <Option value="pending">Pending</Option>
@@ -255,9 +358,9 @@ const Trashcan = () => {
 
         {/* Blog Grid */}
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
             {[...Array(pageSize)].map((_, index) => (
-              <div key={index} className="bg-white shadow-md rounded-xl p-4">
+              <div key={index} className="bg-white shadow-md rounded-lg p-4 sm:p-6">
                 <SkeletonLoader />
               </div>
             ))}
@@ -270,8 +373,8 @@ const Trashcan = () => {
             className="flex flex-col justify-center items-center"
             style={{ minHeight: "calc(100vh - 250px)" }}
           >
-            <img src="Images/trash-can.png" alt="Trash" style={{ width: "8rem" }} />
-            <p className="text-xl mt-5 text-gray-600">No trashed blogs available.</p>
+            <img src="Images/trash-can.png" alt="Trash" className="w-20 sm:w-24" />
+            <p className="text-lg sm:text-xl mt-5 text-gray-600">No trashed blogs available.</p>
           </motion.div>
         ) : (
           <>
@@ -279,28 +382,27 @@ const Trashcan = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.4 }}
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 p-2"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8 p-2"
             >
-              {trashedBlogs.map((blog) => {
+              {trashedBlogs.map(blog => {
                 const isManualEditor = blog.isManuallyEdited === true
                 const {
                   _id,
                   title,
                   status,
                   createdAt,
-                  content,
+                  shortContent,
                   aiModel,
                   focusKeywords,
-                  wordpress,
                   archiveDate,
-                  agendaJob,
+                  agendaNextRun,
                 } = blog
                 const isGemini = /gemini/gi.test(aiModel)
                 return (
                   <Badge.Ribbon
                     key={_id}
                     text={
-                      <span className="flex items-center justify-center gap-1 py-1 font-medium tracking-wide">
+                      <span className="flex items-center justify-center gap-1 py-1 font-medium tracking-wide text-xs sm:text-sm">
                         {isManualEditor ? (
                           <>Manually Generated</>
                         ) : (
@@ -312,15 +414,15 @@ const Trashcan = () => {
                               alt={
                                 isGemini ? "Gemini" : aiModel === "claude" ? "Claude" : "ChatGPT"
                               }
-                              width={20}
-                              height={20}
+                              width={16}
+                              height={16}
                               loading="lazy"
                               className="bg-white"
                             />
                             {isGemini
                               ? "Gemini 2.0 flash"
                               : aiModel === "claude"
-                              ? "Claude 4 sonnet"
+                              ? "Claude 4 sonnet"
                               : "Gpt 4.1 nano"}
                           </>
                         )}
@@ -338,7 +440,7 @@ const Trashcan = () => {
                     }
                   >
                     <div
-                      className={`bg-white shadow-md hover:shadow-xl transition-all duration-300 rounded-xl p-4 min-h-[180px] min-w-[390px] relative ${
+                      className={`bg-white shadow-md hover:shadow-xl transition-all duration-300 rounded-lg p-4 sm:p-6 min-h-[180px] min-w-0 relative ${
                         isManualEditor
                           ? "border-gray-500"
                           : status === "failed"
@@ -354,21 +456,20 @@ const Trashcan = () => {
                           dateStyle: "medium",
                         })}
                       </div>
-
                       {isManualEditor ? (
                         <div
                           className="cursor-pointer"
                           onClick={() => handleManualBlogClick(blog)}
                           role="button"
                           tabIndex={0}
-                          onKeyDown={(e) => e.key === "Enter" && navigate(`/blog-editor`)}
+                          onKeyDown={e => e.key === "Enter" && handleManualBlogClick(blog)}
                           aria-label={`View blog ${title}`}
                         >
                           <div className="flex flex-col gap-4 items-center justify-between mb-2">
-                            <h3 className="text-lg capitalize font-semibold text-gray-900 !text-left max-w-76">
+                            <h3 className="text-base sm:text-lg capitalize font-semibold text-gray-900 !text-left max-w-full">
                               {title}
                             </h3>
-                            <p className="text-sm text-gray-600 mb-4 line-clamp-3 break-all">
+                            <p className="text-xs sm:text-sm text-gray-600 mb-4 line-clamp-3 break-all">
                               {truncateContent(stripMarkdown(content)) || ""}
                             </p>
                           </div>
@@ -409,7 +510,7 @@ const Trashcan = () => {
                             }}
                             role="button"
                             tabIndex={0}
-                            onKeyDown={(e) =>
+                            onKeyDown={e =>
                               e.key === "Enter" &&
                               (status === "complete" || status === "failed") &&
                               handleBlogClick(blog)
@@ -417,56 +518,57 @@ const Trashcan = () => {
                             aria-label={`View blog ${title}`}
                           >
                             <div className="flex flex-col gap-4 items-center justify-between mb-2">
-                              <h3 className="text-lg capitalize font-semibold text-gray-900 !text-left max-w-76">
+                              <h3 className="text-base sm:text-lg capitalize font-semibold text-gray-900 !text-left max-w-full">
                                 {title}
                               </h3>
-                              <p className="text-sm text-gray-600 mb-4 line-clamp-3 break-all">
-                                {truncateContent(stripMarkdown(content)) || ""}
+                              <p className="text-xs sm:text-sm text-gray-600 mb-4 line-clamp-3 break-all">
+                                {truncateContent(stripMarkdown(shortContent)) || ""}
                               </p>
                             </div>
                           </div>
                         </Tooltip>
                       )}
                       <div className="flex items-center justify-between gap-2">
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-1 sm:gap-2">
                           {focusKeywords?.map((keyword, index) => (
                             <span
                               key={index}
-                              className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full"
+                              className="bg-blue-100 text-blue-800 text-xs font-semibold px-2 sm:px-2.5 py-0.5 rounded-full"
                             >
                               {keyword}
                             </span>
                           ))}
                         </div>
-                        <Popconfirm
-                          title="Restore Blog"
-                          description="Are you sure to restore this blog?"
-                          icon={<QuestionCircleOutlined style={{ color: "red" }} />}
-                          okText="Yes"
-                          cancelText="No"
-                          onConfirm={() => handleRestore(_id)}
+                        <motion.div
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() =>
+                            handlePopup({
+                              title: "Restore Blog",
+                              description: (
+                                <span className="my-2">
+                                  Are you sure to restore <b>{title}</b> blog?
+                                </span>
+                              ),
+                              confirmText: "Yes",
+                              onConfirm: () => {
+                                handleRestore(_id)
+                              },
+                              confirmProps: {
+                                type: "text",
+                                className: "border-green-500 bg-green-50 text-green-600",
+                              },
+                              cancelProps: {
+                                danger: false,
+                              },
+                            })
+                          }
                         >
-                          <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                            <img
-                              src="Images/restore.svg"
-                              alt="Restore"
-                              width="20"
-                              height="20"
-                              className="cursor-pointer restore-icon"
-                            />
-                          </motion.div>
-                        </Popconfirm>
+                          <ArchiveRestore className="w-5 h-5 cursor-pointer" />
+                        </motion.div>
                       </div>
-                      <div className="mt-3 mb-2 flex justify-end text-xs text-right text-gray-500 font-medium">
-                        {wordpress?.postedOn && (
-                          <span>
-                            Posted on:  
-                            {new Date(wordpress.postedOn).toLocaleDateString("en-US", {
-                              dateStyle: "medium",
-                            })}
-                          </span>
-                        )}
-                        <span className="block -mb-2 text-sm text-right">
+                      <div className="mt-3 mb-2 flex justify-end text-xs sm:text-sm text-right text-gray-500 font-medium">
+                        <span className="block -mb-2">
                           Archive Date:{" "}
                           {new Date(archiveDate).toLocaleDateString("en-US", {
                             dateStyle: "medium",
@@ -478,7 +580,7 @@ const Trashcan = () => {
                 )
               })}
             </motion.div>
-            {totalBlogs > 15 && (
+            {totalBlogs > pageSize && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -489,7 +591,7 @@ const Trashcan = () => {
                   current={currentPage}
                   pageSize={pageSize}
                   total={totalBlogs}
-                  pageSizeOptions={PAGE_SIZE_OPTIONS.filter((size) => size <= 100)}
+                  pageSizeOptions={PAGE_SIZE_OPTIONS.filter(size => size <= 100)}
                   onChange={(page, newPageSize) => {
                     setCurrentPage(page)
                     if (newPageSize !== pageSize) {
@@ -497,8 +599,8 @@ const Trashcan = () => {
                       setCurrentPage(1)
                     }
                   }}
-                  showSizeChanger={false}
-                  showTotal={(total) => `Total ${total} blogs`}
+                  showSizeChanger
+                  showTotal={total => `Total ${total} blogs`}
                   responsive={true}
                   disabled={isLoading}
                 />

@@ -24,7 +24,6 @@ export function pushToDataLayer(eventData) {
   // Chain the `.then()` for when *all* hashes are done
   Promise.all(hashPromises).then(() => {
     window.dataLayer.push(transformedData)
-    console.debug("Pushed to dataLayer:", transformedData)
   })
 }
 

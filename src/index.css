@@ -6,7 +6,7 @@
 
 body {
   font-family: "Lato", sans-serif;
-  background-color: #fafafa;
+  background-color: #fff;
   @apply min-h-screen;
 }
 
@@ -112,17 +112,6 @@ code {
   border: none;
   border-top: 1px solid #ccc;
   margin: 2em 0;
-}
-
-.go-pro-button {
-  @apply bg-gradient-to-r from-blue-500 to-purple-600 rounded-full;
-  background-clip: padding-box;
-  position: relative;
-  overflow: hidden;
-}
-
-.go-pro-button:hover {
-  @apply !bg-gradient-to-r !from-blue-600 !to-purple-700 rounded-full;
 }
 
 /* Shimmer effect */
@@ -251,4 +240,180 @@ input[type="number"] {
 .custom-scroll {
   -ms-overflow-style: none; /* IE + Edge */
   scrollbar-width: none; /* Firefox */
+}
+
+.custom-tabs .ant-tabs-tab {
+  padding: 12px 24px;
+  background: transparent !important;
+  color: #4b5563 !important;
+  font-weight: 600;
+  font-size: 16px;
+  border: none !important;
+  transition: color 0.3s ease, transform 0.2s ease;
+  position: relative;
+}
+.custom-tabs .ant-tabs-tab:hover {
+  color: #1e40af !important;
+  transform: translateY(-2px);
+}
+.custom-tabs .ant-tabs-tab-active {
+  color: #1e40af !important;
+}
+.custom-tabs .ant-tabs-tab-active::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(to right, #3b82f6, #10b981);
+  border-radius: 2px;
+}
+.custom-tabs .ant-tabs-nav {
+  margin: 0 !important;
+}
+.custom-tabs .ant-tabs-content-holder {
+  background: white;
+  border-radius: 0 0 12px 12px;
+}
+.custom-tabs .ant-tabs-content {
+  height: 100%;
+}
+.custom-tabs .ant-tabs-tabpane {
+  height: 100%;
+}
+.custom-tabs .ant-tabs-ink-bar {
+  display: none !important;
+}
+
+.ant-input-search .ant-input {
+  border-radius: 8px !important;
+  border: 1px solid #d1d5db !important;
+  padding: 6px 12px !important;
+}
+.ant-input-search .ant-input:focus,
+.ant-input-search .ant-input:hover {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+}
+.ant-input-search .ant-input-prefix {
+  display: flex;
+  align-items: center;
+  margin-right: 8px;
+}
+.ant-select-selector {
+  border-radius: 8px !important;
+  border: 1px solid #d1d5db !important;
+}
+@media (max-width: 640px) {
+  .ant-input {
+    font-size: 12px !important;
+    padding: 4px 8px !important;
+  }
+  .ant-select-selector {
+    font-size: 12px !important;
+    padding: 4px 8px !important;
+  }
+  .ant-btn {
+    font-size: 12px !important;
+    padding: 4px 8px !important;
+  }
+  .ant-badge .ant-ribbon {
+    font-size: 10px !important;
+    padding: 2px 4px !important;
+  }
+}
+@media (min-width: 768px) and (max-width: 1024px) {
+  .grid {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+  }
+  .grid > div {
+    min-width: 0 !important;
+  }
+}
+
+.ant-modal-content {
+  border-radius: 8px !important;
+  padding: 16px !important;
+}
+.ant-modal-header {
+  border-radius: 8px 8px 0 0 !important;
+}
+.ant-input,
+.ant-input-textarea {
+  border-radius: 8px !important;
+  border: 1px solid #d1d5db !important;
+  padding: 6px 12px !important;
+}
+.ant-input:focus,
+.ant-input:hover,
+.ant-input-textarea:focus,
+.ant-input-textarea:hover {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+}
+.ant-btn {
+  display: flex;
+  align-items: center;
+}
+@media (max-width: 640px) {
+  .ant-modal-content {
+    padding: 12px !important;
+  }
+  .ant-input,
+  .ant-input-textarea {
+    font-size: 12px !important;
+    padding: 4px 8px !important;
+  }
+  .ant-btn {
+    font-size: 12px !important;
+    padding: 4px 8px !important;
+  }
+}
+@media (max-width: 768px) {
+  .ant-modal {
+    width: 100% !important;
+    margin: 8px !important;
+    max-width: 400px !important;
+  }
+}
+
+.ant-table-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.ant-table-thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #fafafa;
+}
+.ant-table-thead > tr > th {
+  background: #fafafa !important;
+  white-space: nowrap;
+}
+.ant-table-cell {
+  white-space: nowrap;
+}
+@media (max-width: 640px) {
+  .ant-table-tbody > tr > td {
+    padding: 8px !important;
+    font-size: 12px !important;
+  }
+  .ant-table-thead > tr > th {
+    padding: 8px !important;
+    font-size: 12px !important;
+  }
+  .ant-tag {
+    font-size: 12px !important;
+    padding: 2px 6px !important;
+  }
+}
+@media (max-width: 768px) {
+  .ant-table-tbody > tr > td {
+    padding: 10px !important;
+  }
+  .ant-table-thead > tr > th {
+    padding: 10px !important;
+  }
 }

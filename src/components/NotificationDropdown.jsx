@@ -74,59 +74,6 @@ const NotificationDropdown = ({ notifications }) => {
     }
   }
 
-  // Memoized notification list content
-  const content = useMemo(
-    () => (
-      <Card
-        title={
-          <div className="flex items-center justify-center gap-3">
-            <BellFilled className="text-blue-600" />
-            <span className="text-lg font-semibold text-gray-900">Notifications</span>
-          </div>
-        }
-        className="w-[400px] max-h-[500px] overflow-auto shadow-lg rounded-xl border border-gray-200 mt-4"
-        classNames={{
-          body: "!pt-2 !px-3",
-        }}
-      >
-        {localNotifications.length === 0 ? (
-          <Empty description="No notifications available" />
-        ) : (
-          <List
-            itemLayout="horizontal"
-            dataSource={localNotifications}
-            renderItem={(item) => (
-              <List.Item
-                className={`px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors duration-200 ${
-                  !item.read ? "bg-blue-50 border-l-4 border-blue-500" : ""
-                }`}
-              >
-                <List.Item.Meta
-                  avatar={
-                    <div className="text-xl text-blue-600 ml-2">
-                      {typeIconMap[item.type] || <BellOutlined />}
-                    </div>
-                  }
-                  title={
-                    <Text strong={!item.read} className="text-base font-medium text-gray-800">
-                      {item.message}
-                    </Text>
-                  }
-                  description={
-                    <Text type="secondary" className="text-sm">
-                      {formatDate(item.createdAt)}
-                    </Text>
-                  }
-                />
-              </List.Item>
-            )}
-          />
-        )}
-      </Card>
-    ),
-    [localNotifications]
-  )
-
   const menuItems = useMemo(() => {
     if (localNotifications.length === 0) {
       return [
@@ -171,10 +118,17 @@ const NotificationDropdown = ({ notifications }) => {
       onOpenChange={handleOpenChange}
       menu={{
         items: menuItems,
-        className: "w-[30vw] h-[60vh] top-1 !pb-2",
+        className: `
+      w-full sm:w-[90vw] md:w-[70vw] lg:w-[40vw] xl:w-[30vw] 
+      max-w-[500px] max-h-[65vh] 
+      overflow-y-auto 
+      !pb-2
+      left-1/2 transform -translate-x-1/2 sm:left-auto sm:transform-none
+    `,
         title: "Notifications",
       }}
-      placement="bottomRight"
+      placement="bottom"
+      rootClassName="shadow-xl rounded-xl"
     >
       <Badge
         count={unreadCount}
@@ -183,13 +137,11 @@ const NotificationDropdown = ({ notifications }) => {
           backgroundColor: "#1B6FC9",
           color: "#fff",
           fontWeight: "600",
-          fontSize: "0.75rem", // ~12px
+          fontSize: "0.75rem",
           lineHeight: "20px",
-          // minWidth: "10px",
-          // height: "20px",
           width: "10px",
           padding: "0 6px",
-          borderRadius: "100%", // 🔵 Make it a circle
+          borderRadius: "100%",
           boxShadow: "0 0 0 1px #1B6FC9",
           display: "flex",
           alignItems: "center",
@@ -200,8 +152,8 @@ const NotificationDropdown = ({ notifications }) => {
       >
         <BellOutlined
           className={`text-2xl cursor-pointer transition-colors duration-200 ease-in-out 
-      ${unreadCount > 0 ? "text-blue-600" : "text-gray-700 hover:text-blue-600"}
-    `}
+        ${unreadCount > 0 ? "text-blue-600" : "text-gray-700 hover:text-blue-600"}
+      `}
         />
       </Badge>
     </Dropdown>

@@ -21,7 +21,6 @@ export const createJobThunk = createAsyncThunk(
   async ({ jobPayload, user, onSuccess }, { rejectWithValue }) => {
     try {
       const data = await createJob(jobPayload)
-      console.log(data)
       pushToDataLayer({
         event: "job_agent_creation",
         event_status: "success",
@@ -70,7 +69,9 @@ export const toggleJobStatusThunk = createAsyncThunk(
   "jobs/toggleStatus",
   async ({ jobId, currentStatus }, { rejectWithValue }) => {
     try {
-      currentStatus === "active" ? await stopJob(jobId) : await startJob(jobId)
+      await (currentStatus === "active" ? stopJob(jobId) : startJob(jobId))
+      // Introduce a delay to allow animations to complete
+      await new Promise((resolve) => setTimeout(resolve, 300))
       message.success(
         currentStatus === "active" ? "Job paused successfully!" : "Job started successfully!"
       )
@@ -88,6 +89,8 @@ export const deleteJobThunk = createAsyncThunk(
   async (jobId, { rejectWithValue }) => {
     try {
       await deleteJob(jobId)
+      // Introduce a delay to allow animations to complete
+      await new Promise((resolve) => setTimeout(resolve, 300))
       message.success("Job deleted successfully!")
       return jobId
     } catch (error) {

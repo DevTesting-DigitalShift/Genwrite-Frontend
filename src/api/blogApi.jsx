@@ -1,37 +1,52 @@
+import { objectToFormData } from "@utils/usableFunctions"
 import axiosInstance from "."
+import { message } from "antd"
 
-// Create a new blog
-export const createQuickBlog = async (blogData) => {
+export const createQuickBlog = async (blogData, type) => {
   try {
-    const response = await axiosInstance.post("/blogs/quick", blogData)
-    const blog = response.data.blog
-    return blog
+    const endpoint = type === "yt" ? "/blogs/yt" : "/blogs/quick"
+
+    const response = await axiosInstance.post(endpoint, blogData)
+    return response.data.blog
   } catch (error) {
-    console.error("Quick Blog creation API error:", error)
-    throw new Error(error.response?.data?.message || "Failed to create quickBlog")
+    const msg = error.response?.data?.message || "Failed to create blog"
+    console.error("Blog creation API error:", error)
+    throw new Error(msg)
   }
 }
 
-export const createBlog = async (blogData) => {
-  if (!blogData) {
-    throw new Error("Missing blog data in createBlog")
-  }
-
+export const createBlog = async blogData => {
   try {
-    const sanitizedData = {
-      ...blogData,
-      isUnsplashActive: Boolean(blogData.isUnsplashActive),
+    const formData = new FormData()
+    const { blogImages, ...restData } = blogData
+
+    // Filter out null/undefined
+    const finalData = Object.fromEntries(
+      Object.entries(restData).filter(([_, v]) => v !== null && v !== undefined)
+    )
+
+    // Append normal data
+    formData.append("data", JSON.stringify(finalData))
+
+    // Append images (binary form)
+    if (blogImages?.length > 0) {
+      blogImages.forEach(blogfile => {
+        const file = new File([blogfile.originFileObj], blogfile.name, { type: blogfile.type })
+        formData.append("blogImages", file, file.name) // directly append file object
+      })
     }
 
-    const response = await axiosInstance.post("/blogs", sanitizedData)
-    return response.data.blog
+    // Send request
+    const response = await axiosInstance.postForm("/blogs", formData)
+
+    return response.data.blog || response.data
   } catch (error) {
-    console.error("Blog creation API error:", error)
+    console.error("createBlog error", error.response?.data || error)
     throw new Error(error.response?.data?.message || "Failed to create blog")
   }
 }
 
-export const createBlogMultiple = async (blogData) => {
+export const createBlogMultiple = async blogData => {
   try {
     const response = await axiosInstance.post("/blogs/xyz", blogData)
     return response.data.insertedBlogs
@@ -41,7 +56,6 @@ export const createBlogMultiple = async (blogData) => {
   }
 }
 
-// Get all blogs
 export const getAllBlogs = async (params = {}) => {
   try {
     const response = await axiosInstance.get("/blogs", { params })
@@ -51,8 +65,7 @@ export const getAllBlogs = async (params = {}) => {
   }
 }
 
-// Get a blog by ID
-export const getBlogById = async (id) => {
+export const getBlogById = async id => {
   try {
     const response = await axiosInstance.get(`/blogs/${id}`)
     return response.data
@@ -61,7 +74,6 @@ export const getBlogById = async (id) => {
   }
 }
 
-// Update a blog by ID
 export const updateBlog = async (id, updatedData) => {
   try {
     const response = await axiosInstance.put(`/blogs/update/${id}`, updatedData)
@@ -71,8 +83,7 @@ export const updateBlog = async (id, updatedData) => {
   }
 }
 
-// Delete a blog by ID
-export const deleteBlog = async (id) => {
+export const deleteBlog = async id => {
   try {
     const response = await axiosInstance.delete(`/blogs/${id}`)
     return response.data
@@ -81,17 +92,16 @@ export const deleteBlog = async (id) => {
   }
 }
 
-// Get all blogs by a specific author
 export const getBlogsByAuthor = async () => {
   try {
     const response = await axiosInstance.get(`/blogs`)
     return response.data
   } catch (error) {
-    throw new Error(error.response?.data?.message || "Failed to fetch blogs by author")
+    throw new Error(error.response?.data?.message || "Failed to fetch blogs")
   }
 }
 
-export const sendBrand = async (formData) => {
+export const sendBrand = async formData => {
   try {
     const response = await axiosInstance.post("/brand/addBrand", formData)
   } catch (error) {
@@ -118,7 +128,7 @@ export const deleteAllBlogs = async () => {
   }
 }
 
-export const restoreBlogById = async (id) => {
+export const restoreBlogById = async id => {
   try {
     const response = await axiosInstance.patch(`/blogs/restore/${id}`)
     return response.data
@@ -127,7 +137,7 @@ export const restoreBlogById = async (id) => {
   }
 }
 
-export const archiveBlogById = async (id) => {
+export const archiveBlogById = async id => {
   try {
     const response = await axiosInstance.patch(`/blogs/archive/${id}`)
     return response.data
@@ -154,22 +164,17 @@ export const proofreadBlogContent = async ({ id }) => {
   }
 }
 
-export const getBlogStatsById = async (id) => {
+export const getBlogStatsById = async id => {
   const response = await axiosInstance.get(`/blogs/${id}/stats`)
   return response.data
 }
 
-export const getGeneratedTitles = async ({ keywords, focusKeywords, topic, template }) => {
-  const response = await axiosInstance.post(`/generate/title`, {
-    keywords,
-    focusKeywords,
-    topic,
-    template,
-  })
+export const getGeneratedTitles = async data => {
+  const response = await axiosInstance.post(`/generate/title`, data)
   return response.data
 }
 
-export const createSimpleBlog = async (data) => {
+export const createSimpleBlog = async data => {
   try {
     const response = await axiosInstance.post("/blogs/new", data)
     return response.data
@@ -193,5 +198,14 @@ export const getBlogs = async () => {
     return response.data
   } catch (error) {
     throw new Error(error || "Failed to fetch blogs")
+  }
+}
+
+export const getBlogPrompt = async (id, prompt) => {
+  try {
+    const response = await axiosInstance.post(`/blogs/${id}/prompt`, { prompt })
+    return response
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to fetch blog prompt")
   }
 }

@@ -66,20 +66,20 @@ const analysisSlice = createSlice({
     setSelectedKeywords: (state, action) => {
       state.selectedKeywords = action.payload
     },
-    clearSelectedKeywords: (state) => {
+    clearSelectedKeywords: state => {
       state.selectedKeywords = []
     },
-    clearKeywordAnalysis: (state) => {
+    clearKeywordAnalysis: state => {
       state.keywordAnalysis = null
     },
-    clearSuggestions: (state) => {
+    clearSuggestions: state => {
       state.suggestions = []
       state.error = null
     },
   },
-  extraReducers: (builder) => {
+  extraReducers: builder => {
     builder
-      .addCase(fetchCompetitiveAnalysisThunk.pending, (state) => {
+      .addCase(fetchCompetitiveAnalysisThunk.pending, state => {
         state.loading = true
         state.error = null
       })
@@ -95,7 +95,7 @@ const analysisSlice = createSlice({
         state.error = action.payload
       })
 
-      .addCase(analyzeKeywordsThunk.pending, (state) => {
+      .addCase(analyzeKeywordsThunk.pending, state => {
         state.loading = true
         state.error = null
       })
@@ -108,7 +108,7 @@ const analysisSlice = createSlice({
         state.error = action.payload
       })
 
-      .addCase(fetchKeywordSuggestions.pending, (state) => {
+      .addCase(fetchKeywordSuggestions.pending, state => {
         state.loading = true
         state.error = null
       })
@@ -131,3 +131,6 @@ export const {
   clearSelectedKeywords,
 } = analysisSlice.actions
 export default analysisSlice.reducer
+
+// 📦 Selectors
+export const selectSelectedAnalysisKeywords = state => state.analysis.selectedKeywords

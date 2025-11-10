@@ -2,16 +2,40 @@ import React, { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import axiosInstance from "@api/index"
 import { loadStripe } from "@stripe/stripe-js"
-import { Check, Coins, Crown, Mail, Shield, Star, X, Zap } from "lucide-react"
+import { Check, Coins, Crown, Mail, Shield, Star, Zap } from "lucide-react"
 import { Helmet } from "react-helmet"
-import { SkeletonCard } from "@components/Projects/SkeletonLoader"
-import { message } from "antd"
-import ReactGA from "react-ga4"
+import { SkeletonCard } from "@components/UI/SkeletonLoader"
+import { Button, message, Modal } from "antd"
+import { sendStripeGTMEvent } from "@utils/stripeGTMEvents"
+import { useSelector } from "react-redux"
+import ComparisonTable from "@components/ComparisonTable"
+import { useNavigate } from "react-router-dom"
 
-const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
+const PricingCard = ({
+  plan,
+  index,
+  onBuy,
+  billingPeriod,
+  userPlan,
+  userStatus,
+  userStartDate,
+  userSubscription,
+  user,
+}) => {
   const [customCredits, setCustomCredits] = useState(500)
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [pendingPlan, setPendingPlan] = useState(null)
+  const [pendingCredits, setPendingCredits] = useState(0)
+  const [modalType, setModalType] = useState(null)
+  const [modalMessage, setModalMessage] = useState({ title: "", body: "" })
 
-  const handleCustomCreditsChange = (e) => {
+  const tierLevels = {
+    basic: 1,
+    pro: 2,
+    enterprise: 3,
+  }
+
+  const handleCustomCreditsChange = e => {
     const value = parseInt(e.target.value, 10)
     setCustomCredits(value)
   }
@@ -27,67 +51,195 @@ const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
       ? plan.priceAnnual
       : plan.priceMonthly
 
+  const isWithinBillingCycle = userStatus === "active"
+
+  const isDisabled = (() => {
+    const sub = userSubscription
+    if (!sub || plan.type === "credit_purchase") return false
+
+    if (!sub.renewalDate) {
+      return plan.tier === userPlan.toLowerCase()
+    }
+
+    if (userStatus === "active") {
+      const start = new Date(sub.startDate)
+      const renewal = new Date(sub.renewalDate)
+      const diffDays = (renewal - start) / (1000 * 60 * 60 * 24)
+      const userBillingPeriod = diffDays > 60 ? "annual" : "monthly"
+
+      return plan.tier === userPlan.toLowerCase() && billingPeriod === userBillingPeriod
+    }
+
+    return false
+  })()
+
   const getCardStyles = () => {
+    const baseStyles = {
+      container: isDisabled
+        ? `bg-white border border-gray-200 opacity-80 cursor-not-allowed`
+        : `bg-white border border-gray-200 hover:border-gray-300 hover:shadow-lg`,
+      icon: `bg-gray-50 text-gray-600`,
+      price: `text-gray-900`,
+      button: isDisabled
+        ? `bg-gray-300 text-white cursor-not-allowed`
+        : `bg-gray-900 hover:bg-gray-800 text-white`,
+      accent: `text-gray-600`,
+    }
+
     switch (plan.tier) {
       case "basic":
-        return {
-          container: "bg-white border border-gray-200 hover:border-gray-300 hover:shadow-lg",
-          icon: "bg-gray-50 text-gray-600",
-          price: "text-gray-900",
-          button: "bg-gray-900 hover:bg-gray-800 text-white",
-          accent: "text-gray-600",
-        }
+        return baseStyles
       case "pro":
         return {
-          container:
-            "bg-white border-2 border-blue-200 hover:border-blue-300 hover:shadow-xl shadow-lg",
-          icon: "bg-blue-50 text-blue-600",
-          price: "text-blue-600",
-          button: "bg-blue-600 hover:bg-blue-700 text-white",
-          accent: "text-blue-600",
+          ...baseStyles,
+          container: isDisabled
+            ? `bg-white border-2 border-blue-200 opacity-80 cursor-not-allowed`
+            : `bg-white border-2 border-blue-200 hover:border-blue-300 hover:shadow-xl shadow-lg`,
+          icon: `bg-blue-50 text-blue-600`,
+          price: `text-blue-600`,
+          button: isDisabled
+            ? `bg-blue-300 text-white cursor-not-allowed`
+            : `bg-blue-600 hover:bg-blue-700 text-white`,
+          accent: `text-blue-600`,
         }
       case "enterprise":
         return {
-          container: "bg-white border border-purple-200 hover:border-purple-300 hover:shadow-lg",
-          icon: "bg-purple-50 text-purple-600",
-          price: "text-purple-600",
-          button: "bg-purple-600 hover:bg-purple-700 text-white",
-          accent: "text-purple-600",
+          ...baseStyles,
+          container: isDisabled
+            ? `bg-white border border-purple-200 opacity-80 cursor-not-allowed`
+            : `bg-white border border-purple-200 hover:border-purple-300 hover:shadow-lg`,
+          icon: `bg-purple-50 text-purple-600`,
+          price: `text-purple-600`,
+          button: isDisabled
+            ? `bg-purple-300 text-white cursor-not-allowed`
+            : `bg-purple-600 hover:bg-purple-700 text-white`,
+          accent: `text-purple-600`,
         }
       case "credits":
         return {
-          container: "bg-white border border-emerald-200 hover:border-emerald-300 hover:shadow-lg",
-          icon: "bg-emerald-50 text-emerald-600",
-          price: "text-emerald-600",
-          button: "bg-emerald-600 hover:bg-emerald-700 text-white",
-          accent: "text-emerald-600",
+          ...baseStyles,
+          container: `bg-white border border-emerald-200 hover:border-emerald-300 hover:shadow-lg`,
+          icon: `bg-emerald-50 text-emerald-600`,
+          price: `text-emerald-600`,
+          button: `bg-emerald-600 hover:bg-emerald-700 text-white`,
+          accent: `text-emerald-600`,
         }
       default:
-        return {
-          container: "bg-white border border-gray-200",
-          icon: "bg-gray-50 text-gray-600",
-          price: "text-gray-900",
-          button: "bg-gray-900 hover:bg-gray-800 text-white",
-          accent: "text-gray-600",
-        }
+        return baseStyles
     }
   }
 
   const styles = getCardStyles()
 
+  let userBillingPeriod = null
+  if (userSubscription && userSubscription.renewalDate && userSubscription.startDate) {
+    const start = new Date(userSubscription.startDate)
+    const renewal = new Date(userSubscription.renewalDate)
+    const diffDays = (renewal - start) / (1000 * 60 * 60 * 24)
+    userBillingPeriod = diffDays > 60 ? "annual" : "monthly"
+  }
+
+  const handleButtonClick = () => {
+    if (isDisabled) return
+
+    if (plan.type === "credit_purchase" && customCredits < 500) return
+
+    if (plan.type === "credit_purchase") {
+      onBuy(plan, customCredits, billingPeriod)
+      return
+    }
+
+    if (plan.name.toLowerCase().includes("enterprise")) {
+      proceedToBuy(plan)
+      return
+    }
+
+    if (!userSubscription || userSubscription.status !== "active") {
+      onBuy(plan, plan.credits, billingPeriod)
+      return
+    }
+
+    setPendingPlan(plan)
+    setPendingCredits(plan.credits)
+
+    const currentTier = tierLevels[userPlan.toLowerCase()]
+    const newTier = tierLevels[plan.tier]
+    const startDateStr = userSubscription.renewalDate
+      ? new Date(userSubscription.renewalDate).toLocaleDateString()
+      : "immediately"
+
+    let thisModalType = ""
+    let thisModalMessage = { title: "", body: "" }
+
+    const isSameTier = plan.tier === userPlan.toLowerCase()
+
+    if (
+      isSameTier &&
+      userPlan.toLowerCase() === "pro" &&
+      userBillingPeriod === "monthly" &&
+      billingPeriod === "annual"
+    ) {
+      thisModalType = "same-tier"
+      thisModalMessage = {
+        title: "Confirm Plan Change",
+        body: `Your new ${plan.name} plan will start on ${startDateStr} at the beginning of your next billing cycle.`,
+      }
+    } else if (!isSameTier && currentTier < newTier) {
+      thisModalType = "upgrade"
+      thisModalMessage = {
+        title: "Confirm Upgrade",
+        body: `Your current subscription will be replaced, and your new ${plan.name} plan will start immediately.`,
+      }
+    } else {
+      thisModalType = "downgrade"
+      thisModalMessage = {
+        title: "Confirm Downgrade",
+        body: `Your new ${plan.name} plan will start on ${startDateStr} at the beginning of your next billing cycle.`,
+      }
+    }
+
+    setModalType(thisModalType)
+    setModalMessage(thisModalMessage)
+    setShowConfirmModal(true)
+  }
+
+  const proceedToBuy = planToBuy => {
+    if (planToBuy.type === "credit_purchase") {
+      onBuy(planToBuy, pendingCredits, billingPeriod)
+    } else if (planToBuy.name.toLowerCase().includes("enterprise")) {
+      window.open(
+        `https://mail.google.com/mail/?view=cm&fs=1&to=support@genwrite.com&su=GenWrite Enterprise Subscription&body=I'm interested in the Enterprise plan.`,
+        "_blank"
+      )
+    } else {
+      onBuy(planToBuy, pendingCredits || planToBuy.credits, billingPeriod)
+    }
+  }
+
   return (
-    <div className={`relative group ${plan.featured ? "lg:scale-105" : ""}`}>
-      {plan.featured && (
-        <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
-          <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-1">
-            <Star className="w-4 h-4" />
-            Most Popular
+    <div className={`relative group ${plan.featured && !isDisabled ? "lg:scale-105" : ""}`}>
+      {plan.featured &&
+        !isDisabled &&
+        (userSubscription?.plan?.toLowerCase() === "basic" && plan.tier === "pro" ? (
+          <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
+            <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-1">
+              <Star className="w-4 h-4" />
+              Most Popular
+            </div>
           </div>
-        </div>
-      )}
+        ) : userSubscription?.plan?.toLowerCase() === "pro" && plan.tier === "enterprise" ? (
+          <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
+            <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-1">
+              <Star className="w-4 h-4" />
+              Most Popular
+            </div>
+          </div>
+        ) : null)}
 
       <div
-        className={`relative rounded-2xl transition-all duration-300 hover:scale-[1.02] ${styles.container} overflow-hidden p-8 h-full flex flex-col`}
+        className={`relative rounded-2xl transition-all duration-300 ${
+          isDisabled ? "" : "hover:scale-[1.02]"
+        } ${styles.container} overflow-hidden p-8 h-full flex flex-col`}
       >
         <div className="text-center mb-8">
           <div
@@ -133,7 +285,7 @@ const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
                   {typeof displayPrice === "string" ? displayPrice : `$${displayPrice}`}
                 </span>
                 {typeof displayPrice !== "string" && (
-                  <span className="text-gray-500 text-lg pb-1">/{billingPeriod}</span>
+                  <span className="text-gray-500 text-lg pb-1">/monthly</span>
                 )}
               </div>
               {billingPeriod === "annual" && typeof displayPrice === "number" && (
@@ -171,256 +323,55 @@ const PricingCard = ({ plan, index, onBuy, billingPeriod }) => {
         </div>
 
         <button
-          onClick={() => {
-            if (plan.type === "credit_purchase") {
-              if (customCredits < 500) return
-              onBuy(plan, customCredits, billingPeriod)
-            } else if (plan.name.toLowerCase().includes("enterprise")) {
-              ReactGA.event("contact_sales", {
-                plan: plan.name,
-              })
-              window.open(
-                `https://mail.google.com/mail/?view=cm&fs=1&to=support@genwrite.com&su=GenWrite Enterprise Subscription&body=I'm interested in the Enterprise plan.`,
-                "_blank"
-              )
-            } else {
-              onBuy(plan, plan.credits, billingPeriod)
-            }
-          }}
-          className={`w-full py-4 px-6 rounded-lg font-semibold transition-all duration-300 hover:transform hover:scale-105 hover:shadow-lg ${
-            styles.button
-          } ${
+          onClick={handleButtonClick}
+          className={`w-full py-4 px-6 rounded-lg font-semibold transition-all duration-300 ${
+            isDisabled ? "" : "hover:transform hover:scale-105 hover:shadow-lg"
+          } ${styles.button} ${
             plan.type === "credit_purchase" && customCredits < 500
               ? "opacity-50 cursor-not-allowed"
               : ""
           } flex items-center justify-center gap-2`}
-          disabled={plan.type === "credit_purchase" && customCredits < 500}
+          disabled={isDisabled || (plan.type === "credit_purchase" && customCredits < 500)}
         >
           {plan.name.toLowerCase().includes("enterprise") && <Mail className="w-4 h-4" />}
-          {plan.cta}
+          {isDisabled ? "Current Plan" : plan.cta}
         </button>
       </div>
-    </div>
-  )
-}
-
-const ComparisonTable = ({ plans, billingPeriod }) => {
-  // Define feature categories and features inspired by Canva and tailored for GenWrite
-  const featureCategories = [
-    {
-      name: "General Features",
-      features: [
-        {
-          name: "Blog generation (single, quick, multiple)",
-          available: ["basic", "pro", "enterprise", "credits"],
-        },
-        { name: "Keyword research", available: ["basic", "pro", "enterprise", "credits"] },
-        { name: "Performance monitoring", available: ["basic", "pro", "enterprise", "credits"] },
-        {
-          name: "Automatic WordPress posting",
-          available: ["basic", "pro", "enterprise", "credits"],
-        },
-        { name: "Custom templates", available: ["pro", "enterprise"] },
-        { name: "Advanced export options (PDF, CSV, JSON)", available: ["pro", "enterprise"] },
-        { name: "Custom dimensions for designs", available: ["pro", "enterprise"] },
-        { name: "Bulk content creation", available: ["pro", "enterprise"] },
-      ],
-    },
-    {
-      name: "AI Features",
-      features: [
-        { name: "Humanize pasted content", available: ["basic", "pro", "enterprise", "credits"] },
-        { name: "Retry blog generation", available: ["pro", "enterprise", "credits"] },
-        { name: "Regenerate content", available: ["pro", "enterprise", "credits"] },
-        { name: "Rewrite blog", available: ["pro", "enterprise", "credits"] },
-        { name: "Proofreading", available: ["pro", "enterprise", "credits"] },
-        { name: "SEO optimization", available: ["pro", "enterprise"] },
-        { name: "AI content suggestions", available: ["pro", "enterprise"] },
-        // { name: "Text-to-image generation", available: ["pro", "enterprise"] },
-        { name: "Custom AI models", available: ["enterprise"] },
-        {
-          name: "AI usage credits",
-          available: ["basic", "pro", "enterprise", "credits"],
-          details: {
-            basic: billingPeriod === "annual" ? "12,000/year" : "1,000/month",
-            pro: billingPeriod === "annual" ? "54,000/year" : "4,500/month",
-            enterprise: "Unlimited",
-            credits: "Custom",
-          },
-        },
-      ],
-    },
-    // {
-    //   name: "Collaboration & Workflow",
-    //   features: [
-    //     { name: "Jobs scheduling", available: ["pro", "enterprise"] },
-    //     { name: "Real-time collaboration", available: ["pro", "enterprise"] },
-    //     { name: "Commenting and feedback", available: ["pro", "enterprise"] },
-    //     { name: "Approval workflows", available: ["enterprise"] },
-    //     { name: "Team asset library", available: ["enterprise"] },
-    //     { name: "Role-based access control", available: ["enterprise"] },
-    //   ],
-    // },
-    {
-      name: "Analytics & Insights",
-      features: [
-        { name: "Competitor analysis", available: ["pro", "enterprise"] },
-        { name: "Basic content analytics", available: ["basic", "pro", "enterprise", "credits"] },
-        { name: "Advanced content insights", available: ["pro", "enterprise"] },
-        // { name: "Performance reports", available: ["enterprise"] },
-      ],
-    },
-    // {
-    //   name: "Integrations & Security",
-    //   features: [
-    //     {
-    //       name: "Third-party integrations (e.g., Google Drive, Slack)",
-    //       available: ["pro", "enterprise"],
-    //     },
-    //     { name: "Custom integrations via API", available: ["enterprise"] },
-    //     { name: "Single sign-on (SSO)", available: ["enterprise"] },
-    //     { name: "Multi-factor authentication (MFA)", available: ["enterprise"] },
-    //     { name: "ISO 27001 certification", available: ["enterprise"] },
-    //     { name: "SOC 2 Type II compliance", available: ["enterprise"] },
-    //   ],
-    // },
-    {
-      name: "Support & Training",
-      features: [
-        { name: "Email support", available: ["basic", "pro", "enterprise", "credits"] },
-        { name: "Priority support", available: ["pro", "enterprise"] },
-        { name: "Dedicated support manager", available: ["enterprise"] },
-        { name: "Training & onboarding", available: ["enterprise"] },
-        // { name: "SLA guarantee", available: ["enterprise"] },
-        { name: "Early access to beta tools", available: ["enterprise"] },
-      ],
-    },
-    // {
-    //   name: "Storage",
-    //   features: [
-    //     {
-    //       name: "Cloud storage",
-    //       available: ["basic", "pro", "enterprise", "credits"],
-    //       details: {
-    //         basic: "5GB",
-    //         pro: "100GB",
-    //         enterprise: "1TB",
-    //         credits: "Based on usage",
-    //       },
-    //     },
-    //   ],
-    // },
-  ]
-
-  // Compute monthly cost for annual billing
-  const getMonthlyCost = (plan) => {
-    if (plan.tier === "enterprise") return "Custom"
-    if (plan.tier === "credits") return "Pay-as-you-go"
-    if (billingPeriod === "monthly") return `$${plan.priceMonthly}/month`
-    // For annual, calculate equivalent monthly cost
-    const monthlyEquivalent = (plan.annualPrice / 12).toFixed(2)
-    return `$${monthlyEquivalent}/month, charged annually`
-  }
-
-  return (
-    <div className="mt-20 bg-white rounded-2xl shadow-lg overflow-hidden">
-      <div className="px-6 py-8 sm:px-10">
-        {/* <h2 className="text-3xl font-bold text-gray-900 text-center mb-6">Compare Plans</h2> */}
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-gray-50 sticky top-0 z-10">
-                <th className="p-6 text-left text-gray-900 font-semibold w-1/3"></th>
-                {plans.map((plan) => (
-                  <th
-                    key={plan.name}
-                    className={`p-6 text-center font-semibold ${
-                      plan.tier === "basic"
-                        ? "text-gray-600"
-                        : plan.tier === "pro"
-                        ? "text-blue-600"
-                        : plan.tier === "enterprise"
-                        ? "text-purple-600"
-                        : "text-emerald-600"
-                    }`}
-                  >
-                    <div>{plan.name}</div>
-                    <div className="text-sm mt-1 text-gray-500">{getMonthlyCost(plan)}</div>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {featureCategories.map((category, catIndex) => (
-                <React.Fragment key={category.name}>
-                  <tr className="bg-gray-100">
-                    <td colSpan={plans.length + 1} className="p-4 font-bold text-gray-800 text-lg">
-                      {category.name}
-                    </td>
-                  </tr>
-                  {category.features.map((feature, featIndex) => (
-                    <tr
-                      key={feature.name}
-                      className={`${
-                        (catIndex + featIndex) % 2 === 0 ? "bg-white" : "bg-gray-50"
-                      } hover:bg-gray-100 transition-all duration-200`}
-                    >
-                      <td className="p-4 text-gray-700 font-medium border-b border-gray-200">
-                        {feature.name}
-                      </td>
-                      {plans.map((plan) => (
-                        <td key={plan.name} className="p-4 text-center border-b border-gray-200">
-                          {feature.available.includes(plan.tier) ? (
-                            feature.details && feature.details[plan.tier] ? (
-                              <span
-                                className={`text-sm ${
-                                  plan.tier === "basic"
-                                    ? "text-gray-600"
-                                    : plan.tier === "pro"
-                                    ? "text-blue-600"
-                                    : plan.tier === "enterprise"
-                                    ? "text-purple-600"
-                                    : "text-emerald-600"
-                                }`}
-                              >
-                                {feature.details[plan.tier]}
-                              </span>
-                            ) : (
-                              <Check
-                                className={`w-5 h-5 mx-auto ${
-                                  plan.tier === "basic"
-                                    ? "text-gray-600"
-                                    : plan.tier === "pro"
-                                    ? "text-blue-600"
-                                    : plan.tier === "enterprise"
-                                    ? "text-purple-600"
-                                    : "text-emerald-600"
-                                }`}
-                              />
-                            )
-                          ) : (
-                            <X
-                              className={`w-5 h-5 mx-auto ${
-                                plan.tier === "basic"
-                                  ? "text-gray-600"
-                                  : plan.tier === "pro"
-                                  ? "text-blue-600"
-                                  : plan.tier === "enterprise"
-                                  ? "text-purple-600"
-                                  : "text-emerald-600"
-                              }`}
-                            />
-                          )}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </React.Fragment>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <Modal
+        title={<span className="text-lg">{modalMessage.title}</span>}
+        open={showConfirmModal}
+        onCancel={() => setShowConfirmModal(false)}
+        centered
+        styles={{ padding: "10px", fontSize: "16px" }}
+        footer={
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => setShowConfirmModal(false)}
+              className="border border-gray-300 px-4 py-2 rounded-md font-medium"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                setShowConfirmModal(false)
+                proceedToBuy(pendingPlan)
+              }}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-semibold"
+            >
+              Confirm
+            </button>
+          </div>
+        }
+      >
+        <p className="text-gray-700">
+          You already have an active subscription:{" "}
+          <span className="font-bold text-gray-900">{userSubscription?.plan}</span>.
+        </p>
+        <p className="text-gray-700">{modalMessage.body}</p>
+        <p className="text-gray-600 mt-2 text-sm italic">
+          Please confirm to proceed with your purchase.
+        </p>
+      </Modal>
     </div>
   )
 }
@@ -429,17 +380,20 @@ const Upgrade = () => {
   const [loading, setLoading] = useState(true)
   const [billingPeriod, setBillingPeriod] = useState("annual")
   const [showComparisonTable, setShowComparisonTable] = useState(true)
+  const user = useSelector(state => state.auth.user)
+  const navigate = useNavigate()
 
   useEffect(() => {
-    ReactGA.send({ hitType: "pageview", page: "/upgrade", title: "Upgrade Page" })
     const timer = setTimeout(() => setLoading(false), 1200)
     return () => clearTimeout(timer)
   }, [])
 
-  const getPlans = (billingPeriod) => {
+  const getPlans = (billingPeriod, userPlan) => {
+    const isProUser = userPlan === "pro"
     return [
       {
-        name: "Basic Plan",
+        name: "GenWrite Basic",
+        eventName: "Basic_" + billingPeriod + "_clicks",
         priceMonthly: 20,
         priceAnnual: 16.58,
         annualPrice: 199,
@@ -453,9 +407,8 @@ const Upgrade = () => {
           "Humanize pasted content",
           "Email support",
           "Standard templates",
-          "Automatic WordPress Posting",
+          "Automatic Blog Posting",
           "Basic content analytics",
-          // "5GB cloud storage",
         ],
         cta: "Get Started",
         type: "subscription",
@@ -465,6 +418,7 @@ const Upgrade = () => {
       },
       {
         name: "GenWrite Pro",
+        eventName: "Pro_" + billingPeriod + "_clicks",
         priceMonthly: 50,
         priceAnnual: 41.58,
         annualPrice: 499,
@@ -484,23 +438,19 @@ const Upgrade = () => {
           "Custom templates",
           "SEO optimization",
           "AI content suggestions",
-          "Automatic WordPress Posting",
+          "Automatic Blog Posting",
           "Custom AI models & workflows",
-          // "Text-to-image generation",
-          // "Real-time collaboration",
-          // "Commenting and feedback",
-          // "Third-party integrations",
           "Advanced content insights",
-          // "100GB cloud storage",
         ],
         cta: "Upgrade to Pro",
         type: "subscription",
         icon: <Shield className="w-8 h-8" />,
         tier: "pro",
-        featured: true,
+        featured: !isProUser && userPlan !== "enterprise",
       },
       {
-        name: "Enterprise",
+        name: "GenWrite Enterprise",
+        eventName: "Enterprise_" + billingPeriod + "_clicks",
         priceMonthly: "Custom",
         priceAnnual: "Custom",
         credits: "Unlimited",
@@ -510,28 +460,19 @@ const Upgrade = () => {
           "Flexible usage based on your needs",
           "Dedicated support manager",
           "Custom integrations",
-          // "SSO & advanced security",
-          // "Training & onboarding",
-          // "SLA guarantee",
           "Early access to beta tools",
-          "Automatic WordPress Posting",
+          "Automatic Blog Posting",
           "Approval workflows",
-          // "Team asset library",
-          // "Role-based access control",
-          // "Team performance reports",
-          // "ISO 27001 certification",
-          // "SOC 2 Type II compliance",
-          // "Multi-factor authentication (MFA)",
-          // "1TB cloud storage",
         ],
         cta: "Contact Sales",
         type: "subscription",
         icon: <Crown className="w-8 h-8" />,
         tier: "enterprise",
-        featured: false,
+        featured: isProUser || userPlan === "basic",
       },
       {
         name: "Credit Pack",
+        eventName: "Credits_clicks",
         priceMonthly: null,
         priceAnnual: null,
         credits: null,
@@ -541,14 +482,13 @@ const Upgrade = () => {
           "No subscription required",
           "Credits never expire",
           "All features unlocked based on usage",
-          "Automatic WordPress Posting",
+          "Automatic Blog Posting",
           "Blog generation: single, quick, multiple",
           "Keyword research",
           "Performance monitoring",
           "Humanize pasted content",
           "Email support",
           "Basic content analytics",
-          // "Cloud storage based on usage",
         ],
         cta: "Buy Credits",
         type: "credit_purchase",
@@ -559,30 +499,28 @@ const Upgrade = () => {
     ]
   }
 
-  const plans = getPlans(billingPeriod)
+  const plans = getPlans(billingPeriod, user?.subscription?.plan)
 
   function getGaClientId() {
-    // Find the _ga cookie, it looks something like: "GAx.Y.123456789.9876543210"
-    // Where 123456789.9876543210 is the client ID (or similar depending on GA4 cookie format)
-    const gaCookie = document.cookie.split("; ").find((row) => row.startsWith("_ga="))
+    const gaCookie = document.cookie.split("; ").find(row => row.startsWith("_ga="))
     if (gaCookie) {
-      // For GA4, the client ID is usually the last two segments of the _ga cookie value.
-      // Example: _ga=GA1.2.123456789.9638527410
-      // We need '123456789.9638527410'
       const parts = gaCookie.split(".")
-      // Check if it's a valid GA4 _ga cookie format
       if (parts.length > 2) {
-        return parts[2] + "." + parts[3] // The last two parts are the client ID
+        return parts[2] + "." + parts[3]
       }
     }
-    return null // Client ID not found
+    return null
   }
 
   const handleBuy = async (plan, credits, billingPeriod) => {
     const stripe = await loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
-
+    if (!stripe) {
+      console.error("Stripe.js failed to load.")
+      message.error("Failed to load payment gateway. Please try again later.")
+      return
+    }
     try {
-      const { data } = await axiosInstance.post("/stripe/checkout", {
+      const response = await axiosInstance.post("/stripe/checkout", {
         planName: plan.name.toLowerCase().includes("pro")
           ? "pro"
           : plan.name.toLowerCase().includes("basic")
@@ -594,16 +532,28 @@ const Upgrade = () => {
         success_url: `${window.location.origin}/payment/success`,
         cancel_url: `${window.location.origin}/payment/cancel`,
       })
-
-      console.debug(data.sessionId)
-
-      const result = await stripe.redirectToCheckout({ sessionId: data.sessionId })
-      if (result?.error) throw result.error
+      if ([200, 201].includes(response.status)) {
+        if (response.data?.sessionId) {
+          sendStripeGTMEvent(plan, credits, billingPeriod, user._id)
+          const result = await stripe.redirectToCheckout({ sessionId: response.data.sessionId })
+          if (result?.error) throw result.error
+        } else {
+          message.success(response.data?.message || "Your Upcoming Plan has been set successfully.")
+          navigate("/transactions", { replace: true })
+        }
+      }
     } catch (error) {
-      console.error("Checkout error:", error)
-      message.error("Failed to initiate checkout. Please try again.")
+      if (error?.status === 409) {
+        message.error(error?.response?.data?.message || "User Subscription Conflict Error")
+      } else {
+        message.error("Failed to initiate checkout. Please try again.")
+      }
     }
   }
+
+  const totalCredits = user?.credits?.base + user?.credits?.extra
+
+  const showTrialMessage = !user?.subscription?.trialOpted
 
   return (
     <div className="bg-gray-50 py-10 px-4">
@@ -611,11 +561,41 @@ const Upgrade = () => {
         <title>Subscription | GenWrite</title>
       </Helmet>
       <div className="mx-auto">
+        {showTrialMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="mb-8 bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-xl shadow-lg border border-blue-200 max-w-3xl mx-auto"
+          >
+            <div className="flex flex-col items-center text-center">
+              <Star className="w-8 h-8 text-blue-600 mb-4" />
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Start Your 7-Day Free Trial</h2>
+              <p className="text-gray-600 text-lg max-w-xl mb-6">
+                Unlock the full potential of GenWrite with a 7-day free trial. Experience our
+                powerful AI content creation tools at no cost. Select a plan below to begin your
+                trial and elevate your content creation journey.
+              </p>
+            </div>
+          </motion.div>
+        )}
+        {user?.subscription?.plan === "enterprise" && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center mb-8"
+          >
+            <p className="text-lg font-semibold text-purple-600">
+              You are at the top tier with our Enterprise plan! Contact our dedicated support team
+              for any tailored solutions you require.
+            </p>
+          </motion.div>
+        )}
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center mb-16">
           <motion.div initial={{ y: -20 }} animate={{ y: 0 }} className="inline-block mb-4">
             <motion.h1
               whileHover={{ scale: 1.02 }}
-              className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
+              className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mt-10"
             >
               Flexible Pricing Plans
             </motion.h1>
@@ -633,7 +613,7 @@ const Upgrade = () => {
 
           <div className="flex justify-center mt-8">
             <div className="inline-flex items-center bg-white rounded-full p-1 border border-gray-200 shadow-sm">
-              {["monthly", "annual"].map((period) => (
+              {["monthly", "annual"].map(period => (
                 <button
                   key={period}
                   onClick={() => setBillingPeriod(period)}
@@ -665,11 +645,16 @@ const Upgrade = () => {
               ? Array.from({ length: 4 }).map((_, idx) => <SkeletonCard key={idx} />)
               : plans.map((plan, index) => (
                   <PricingCard
+                    user={user}
                     key={plan.name}
                     plan={plan}
                     index={index}
                     onBuy={handleBuy}
                     billingPeriod={billingPeriod}
+                    userPlan={user?.subscription?.plan}
+                    userStatus={user?.subscription?.status}
+                    userStartDate={user?.subscription?.startDate}
+                    userSubscription={user?.subscription}
                   />
                 ))}
           </AnimatePresence>
@@ -682,12 +667,26 @@ const Upgrade = () => {
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.3 }}
+              className="mt-20"
             >
               <ComparisonTable plans={plans} billingPeriod={billingPeriod} />
             </motion.div>
           )}
         </AnimatePresence>
       </div>
+      {user?.subscription?.plan !== "free" && (
+        <div className="flex justify-end mt-4 mr-20">
+          <a
+            href="/cancel-subscription"
+            className="text-sm font-medium text-white transition-colors 
+               bg-gradient-to-r from-blue-600 to-purple-600 
+               rounded-lg px-4 py-2 shadow-sm 
+               hover:from-blue-700 hover:to-purple-700"
+          >
+            Thinking of leaving GenWrite?
+          </a>
+        </div>
+      )}
     </div>
   )
 }

@@ -106,13 +106,18 @@ export const googleLogin = createAsyncThunk(
       localStorage.setItem("token", response.token)
 
       const { user, authStatus } = response
+
       pushToDataLayer({
-        event: "google_auth",
-        event_type: authStatus,
+        ...(authStatus == "sign_up"
+          ? { event: "sign_up_attempt" }
+          : {
+              event: "google_auth",
+              event_type: authStatus,
+            }),
         event_status: "success",
         auth_method: "google_oauth",
         user_id: user._id,
-        user_subscription: user.subscription,
+        user_subscription: user.subscription.plan,
       })
 
       return response // or return whole response if needed

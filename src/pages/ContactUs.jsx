@@ -14,6 +14,7 @@ import {
   Building2,
   ArrowRight,
   Sparkles,
+  Youtube,
 } from "lucide-react"
 import { message } from "antd"
 
@@ -93,39 +94,6 @@ const ContactUs = () => {
     }
   }
 
-  // using node mailer
-  //   const handleSubmit = async (e) => {
-  //   e.preventDefault()
-  //   const newErrors = validateForm()
-  //   if (Object.keys(newErrors).length > 0) {
-  //     setErrors(newErrors)
-  //     return
-  //   }
-
-  //   setIsSubmitting(true)
-
-  //   try {
-  //     const response = await fetch("http://localhost:5000/api/send-email", {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify(formData),
-  //     })
-
-  //     const data = await response.json()
-  //     if (data.success) {
-  //       setFormData({ name: "", email: "", subject: "", message: "" })
-  //       message.success("Message sent successfully!")
-  //     } else {
-  //       throw new Error(data.message)
-  //     }
-  //   } catch (error) {
-  //     console.error("FAILED...", error)
-  //     message.error("Failed to send message. Try again.")
-  //   } finally {
-  //     setIsSubmitting(false)
-  //   }
-  // }
-
   const companyInfo = {
     name: "GenWrite Technologies",
     address: {
@@ -137,7 +105,7 @@ const ContactUs = () => {
       country: "United States",
     },
     phone: "+1 (555) 123-4567",
-    email: "support@genwrite.co",
+    email: " support@genwrite.co",
     workingHours: {
       weekdays: "Monday - Friday: 9:00 AM - 6:00 PM PST",
       weekend: "Saturday - Sunday: Closed",
@@ -146,15 +114,15 @@ const ContactUs = () => {
 
   const socialLinks = [
     {
-      name: "Facebook",
-      icon: Facebook,
-      url: "https://facebook.com/genwrite",
+      name: "Youtube",
+      icon: Youtube,
+      url: "https://www.youtube.com/@genwrite",
       color: "hover:text-blue-600",
     },
     {
       name: "Instagram",
       icon: Instagram,
-      url: "https://instagram.com/genwrite",
+      url: "https://instagram.com/genwrite_ai",
       color: "hover:text-pink-600",
     },
     {
@@ -166,7 +134,7 @@ const ContactUs = () => {
     {
       name: "LinkedIn",
       icon: Linkedin,
-      url: "https://linkedin.com/company/genwrite",
+      url: "https://www.linkedin.com/in/genwrite/",
       color: "hover:text-blue-700",
     },
   ]
@@ -195,7 +163,7 @@ const ContactUs = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-16">
+      <div className="max-w-7xl mx-auto px-4 py-8 lg:py-16">
         <div className="grid lg:grid-cols-3 gap-12">
           {/* Contact Form */}
           <div className="lg:col-span-2">
@@ -370,42 +338,6 @@ const ContactUs = () => {
               </div>
 
               <div className="space-y-6">
-                {/* Address */}
-                {/* <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <MapPin className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-900 mb-1">Address</h4>
-                    <div className="text-gray-600 text-sm leading-relaxed">
-                      <p className="font-medium">{companyInfo.name}</p>
-                      <p>{companyInfo.address.street}</p>
-                      <p>{companyInfo.address.suite}</p>
-                      <p>
-                        {companyInfo.address.city}, {companyInfo.address.state}{" "}
-                        {companyInfo.address.zip}
-                      </p>
-                      <p>{companyInfo.address.country}</p>
-                    </div>
-                  </div>
-                </div> */}
-
-                {/* Phone */}
-                {/* <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Phone className="w-6 h-6 text-green-600" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-900 mb-1">Phone</h4>
-                    <a
-                      href={`tel:${companyInfo.phone}`}
-                      className="text-gray-600 hover:text-blue-600 transition-colors"
-                    >
-                      {companyInfo.phone}
-                    </a>
-                  </div>
-                </div> */}
-
                 {/* Email */}
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -492,28 +424,6 @@ const ContactUs = () => {
             </div>
           </div>
         </div>
-        {/* <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden mt-10">
-          <div className="p-6 border-b border-gray-100">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-pink-500 rounded-xl flex items-center justify-center">
-                <Globe className="w-5 h-5 text-white" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900">Find Us</h3>
-            </div>
-          </div>
-          <div className="h-96 bg-gray-100 relative">
-            <iframe
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3153.0197327113716!2d-122.39492668468141!3d37.78808797975647!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8085807cf8b8b5b5%3A0x8b8b8b8b8b8b8b8b!2sSan%20Francisco%2C%20CA!5e0!3m2!1sen!2sus!4v1635959999999!5m2!1sen!2sus"
-              width="100%"
-              height="100%"
-              style={{ border: 0 }}
-              allowFullScreen=""
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              className="rounded-b-2xl"
-            />
-          </div>
-        </div> */}
       </div>
     </div>
   )

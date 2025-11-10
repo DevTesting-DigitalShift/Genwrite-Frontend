@@ -1,171 +1,209 @@
-import { useState } from "react"
-import { createNewQuickBlog } from "../../store/slices/blogSlice"
+import { useState, useEffect, useCallback } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
-import Carousel from "./Carousel"
-import { packages } from "@constants/templates"
+import { createNewQuickBlog } from "../../store/slices/blogSlice"
+import { selectUser } from "@store/slices/authSlice"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
-import { message, Modal, Switch } from "antd"
-import { Plus, X } from "lucide-react"
-import { selectUser } from "@store/slices/authSlice"
+import { message, Modal, Tooltip } from "antd"
+import { Plus, X, Crown } from "lucide-react" // Added Crown icon
+import Carousel from "./Carousel"
+import { packages } from "@/data/templates"
+import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 
-const QuickBlogModal = ({ closeFnc }) => {
+const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   const [currentStep, setCurrentStep] = useState(0)
-  const [selectedPackage, setSelectedPackage] = useState(null)
-  const [videoLinks, setVideoLinks] = useState([]) // Store video links
-  const [otherLinks, setOtherLinks] = useState([]) // Store other links
-  const [isOtherLinksEnabled, setIsOtherLinksEnabled] = useState(false) // Toggle for other links
-  const user = useSelector(selectUser)
-  const [errors, setErrors] = useState({
-    template: false,
-    focusKeywords: false,
-    keywords: false,
-    videoLinks: false,
-    otherLinks: false,
-  })
-  const [formData, setFormData] = useState({
+  const [otherLinks, setOtherLinks] = useState([])
+
+  const initialFormData = {
+    topic: "",
+    performKeywordResearch: false,
+    addImages: false,
+    imageSource: "unsplash",
     template: null,
+    templateIds: [],
     keywords: [],
     focusKeywords: [],
-    videoLinkInput: "",
     otherLinkInput: "",
     focusKeywordInput: "",
     keywordInput: "",
-  })
+  }
+
+  const initialErrors = {
+    topic: "",
+    template: "",
+    focusKeywords: "",
+    keywords: "",
+    otherLinks: "",
+  }
+
+  const [formData, setFormData] = useState(initialFormData)
+  const [errors, setErrors] = useState(initialErrors)
 
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
+  const user = useSelector(selectUser)
+
+  // Check if user has a pro subscription
+  const isProUser = user?.subscription?.plan === "pro"
+
+  // // Sync selected template when modal opens
+  // useEffect(() => {
+  //   if (formData.template) {
+  //     const index = packages.findIndex(pkg => pkg.name === formData.template)
+  //     if (index !== -1) {
+  //       setSelectedPackage(index)
+  //     }
+  //   } else {
+  //     setSelectedPackage(null)
+  //   }
+  // }, [formData.template])
 
   // Handle navigation to the next step
   const handleNext = () => {
-    if (currentStep === 0 && !formData.template) {
-      setErrors((prev) => ({ ...prev, template: true }))
-      message.error("Please select a template before proceeding.")
-      return
+    if (currentStep === 0) {
+      if (!formData.template) {
+        setErrors(prev => ({ ...prev, template: "Please select a template." }))
+        return
+      }
+      setErrors(prev => ({ ...prev, template: "" }))
+      setCurrentStep(1)
     }
-    setErrors((prev) => ({ ...prev, template: false }))
-    setCurrentStep(currentStep + 1)
-  }
-
-  // Handle navigation to the previous step
-  const handlePrev = () => {
-    setCurrentStep(currentStep - 1)
   }
 
   // Handle modal close
   const handleClose = () => {
+    setFormData(initialFormData)
+    setOtherLinks([])
+    setErrors(initialErrors)
     closeFnc()
+  }
+
+  const handleChange = e => {
+    const { name, value } = e.target
+    setFormData(prev => ({
+      ...prev,
+      [name]: value,
+    }))
+    setErrors(prev => ({ ...prev, [name]: "" }))
   }
 
   // Handle form submission
   const handleSubmit = () => {
     const newErrors = {
-      template: !formData.template,
-      focusKeywords: formData.focusKeywords.length === 0,
-      keywords: formData.keywords.length === 0,
-      videoLinks: videoLinks.length === 0,
-      otherLinks: isOtherLinksEnabled && otherLinks.length === 0,
+      topic: !formData.topic.trim() ? "Please enter a topic." : "",
+      focusKeywords:
+        !formData.performKeywordResearch && formData.focusKeywords.length === 0
+          ? "Please add at least one focus keyword."
+          : "",
+      keywords:
+        !formData.performKeywordResearch && formData.keywords.length === 0
+          ? "Please add at least one secondary keyword."
+          : "",
+      otherLinks:
+        otherLinks.length === 0 && type === "yt" ? "Please add at least one valid link." : "",
     }
 
     setErrors(newErrors)
 
-    if (Object.values(newErrors).some((error) => error)) {
-      message.error("Please fill all required fields.")
+    if (Object.values(newErrors).some(error => error)) {
+      message.error("Please fill all required fields correctly.")
       return
     }
 
-    // Additional validation for link limits
-    if (videoLinks.length > 3) {
-      setErrors((prev) => ({ ...prev, videoLinks: true }))
-      message.error("You can only add up to 3 video links.")
-      return
-    }
     if (otherLinks.length > 3) {
-      setErrors((prev) => ({ ...prev, otherLinks: true }))
-      message.error("You can only add up to 3 other links.")
+      setErrors(prev => ({
+        ...prev,
+        otherLinks: "You can only add up to 3 links.",
+      }))
+      message.error("You can only add up to 3 links.")
       return
     }
 
     const finalData = {
       ...formData,
-      videoLinks: [...videoLinks, ...otherLinks], // Merge video and other links
+      type,
+      otherLinks,
     }
 
     handlePopup({
-      title: "Quick Blog Generation",
+      title: `${type === "quick" ? "Quick" : "Youtube"} Blog Generation`,
       description: (
         <>
           <span>
-            Quick blog generation costs <b>{getEstimatedCost("blog.quick")} credits</b>.
+            {type === "quick" ? "Quick" : "Youtube"} blog generation will cost you{" "}
+            <b>{getEstimatedCost(`blog.quick`)} credits</b>.
           </span>
           <br />
           <span>Are you sure you want to proceed?</span>
         </>
       ),
       onConfirm: () => {
-        dispatch(createNewQuickBlog({ blogData: finalData, user, navigate }))
+        dispatch(createNewQuickBlog({ blogData: finalData, user, navigate, type }))
         handleClose()
       },
     })
   }
 
   // Handle template selection
-  const handlePackageSelect = (index) => {
-    setSelectedPackage(index)
-    setFormData((prev) => ({
+  const handlePackageSelect = useCallback(templates => {
+    setFormData(prev => ({
       ...prev,
-      template: packages[index].name,
+      template: templates?.[0]?.name ?? null,
+      templateIds: templates?.map(t => t.id),
     }))
-    setErrors((prev) => ({ ...prev, template: false }))
-  }
+    setErrors(prev => ({ ...prev, template: "" }))
+  }, [])
 
   // Handle keyword input changes
   const handleKeywordInputChange = (e, type) => {
     const key = type === "keywords" ? "keywordInput" : "focusKeywordInput"
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       [key]: e.target.value,
     }))
-    setErrors((prev) => ({ ...prev, [type]: false }))
+    setErrors(prev => ({ ...prev, [type]: "" }))
   }
 
   // Add keywords to the form data
-  const handleAddKeyword = (type) => {
+  const handleAddKeyword = type => {
     const inputKey = type === "keywords" ? "keywordInput" : "focusKeywordInput"
     const inputValue = formData[inputKey].trim()
 
     if (!inputValue) {
-      setErrors((prev) => ({ ...prev, [type]: true }))
-      message.error("Please enter a keyword.")
+      setErrors(prev => ({ ...prev, [type]: "Please enter a keyword." }))
       return
     }
 
-    const existingSet = new Set(formData[type].map((k) => k.trim().toLowerCase()))
+    const existingSet = new Set(formData[type].map(k => k.trim().toLowerCase()))
     const newKeywords = inputValue
       .split(",")
-      .map((k) => k.trim())
-      .filter((k) => k !== "" && !existingSet.has(k.toLowerCase()))
+      .map(k => k.trim())
+      .filter(k => k !== "" && !existingSet.has(k.toLowerCase()))
 
     if (newKeywords.length === 0) {
-      setErrors((prev) => ({ ...prev, [type]: true }))
-      message.error("Please enter valid, non-duplicate keywords separated by commas.")
+      setErrors(prev => ({
+        ...prev,
+        [type]: "Please enter valid, non-duplicate keywords separated by commas.",
+      }))
       return
     }
 
     if (type === "focusKeywords" && formData[type].length + newKeywords.length > 3) {
-      setErrors((prev) => ({ ...prev, [type]: true }))
-      message.error("You can only add up to 3 focus keywords.")
+      setErrors(prev => ({
+        ...prev,
+        [type]: "You can only add up to 3 focus keywords.",
+      }))
       return
     }
 
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       [type]: [...prev[type], ...newKeywords],
       [inputKey]: "",
     }))
-    setErrors((prev) => ({ ...prev, [type]: false }))
+    setErrors(prev => ({ ...prev, [type]: "" }))
   }
 
   // Remove a keyword
@@ -173,6 +211,7 @@ const QuickBlogModal = ({ closeFnc }) => {
     const updatedKeywords = [...formData[type]]
     updatedKeywords.splice(index, 1)
     setFormData({ ...formData, [type]: updatedKeywords })
+    setErrors(prev => ({ ...prev, [type]: "" }))
   }
 
   // Handle Enter key for keywords
@@ -183,100 +222,145 @@ const QuickBlogModal = ({ closeFnc }) => {
     }
   }
 
-  // Add links (video or other)
-  const handleAddLink = (type) => {
-    const isVideo = type === "video"
-    const inputKey = isVideo ? "videoLinkInput" : "otherLinkInput"
-    const errorKey = isVideo ? "videoLinks" : "otherLinks"
-    const input = formData[inputKey]?.trim()
-    const existingLinks = isVideo ? videoLinks : otherLinks
-    const setLinks = isVideo ? setVideoLinks : setOtherLinks
-    const maxLinks = 3 // Maximum links per type
+  // Extract YouTube video ID from URL
+  const getVideoId = url => {
+    try {
+      const parsed = new URL(url)
+      const hostname = parsed.hostname.toLowerCase().replace("www.", "")
+
+      if (!hostname.includes("youtube.com") && !hostname.includes("youtu.be")) {
+        return null
+      }
+
+      let videoId = null
+
+      if (hostname === "youtube.com" || hostname === "m.youtube.com") {
+        const pathname = parsed.pathname
+        if (pathname.startsWith("/watch")) {
+          videoId = parsed.searchParams.get("v")
+        } else if (pathname.startsWith("/embed/")) {
+          videoId = pathname.split("/embed/")[1].split("/")[0].split("?")[0]
+        } else if (pathname.startsWith("/v/")) {
+          videoId = pathname.split("/v/")[1].split("/")[0].split("?")[0]
+        } else if (pathname.startsWith("/shorts/")) {
+          videoId = pathname.split("/shorts/")[1].split("/")[0].split("?")[0]
+        }
+      } else if (hostname === "youtu.be") {
+        videoId = parsed.pathname.slice(1).split("/")[0].split("?")[0]
+      }
+
+      return videoId
+    } catch {
+      return null
+    }
+  }
+
+  // Validate URL for reference links
+  const validateUrl = url => {
+    switch (type) {
+      case "yt":
+        const videoId = getVideoId(url)
+        const videoIdRegex = /^[a-zA-Z0-9_-]{11}$/
+        if (!videoId || !videoIdRegex.test(videoId)) {
+          return {
+            valid: false,
+            error: "Please enter a valid YouTube video link with a proper video ID.",
+          }
+        }
+        break
+      default:
+        try {
+          new URL(url)
+        } catch (e) {
+          return { valid: false, error: "Please enter a valid URL (e.g., https://example.com)." }
+        }
+    }
+    return { valid: true }
+  }
+
+  // Add reference links
+  const handleAddLink = () => {
+    const input = formData.otherLinkInput?.trim()
+    const maxLinks = 3
 
     if (!input) {
-      setErrors((prev) => ({ ...prev, [errorKey]: true }))
-      message.error(`Please enter at least one ${isVideo ? "video" : "other"} link.`)
+      setErrors(prev => ({
+        ...prev,
+        otherLinks: `Please enter valid ${type === "yt" ? "youtube" : "reference"} links.`,
+      }))
       return
     }
 
     const newLinks = input
       .split(",")
-      .map((link) => link.trim())
-      .filter((link) => link !== "")
+      .map(link => link.trim())
+      .filter(link => link !== "")
 
     const validNewLinks = []
 
-    for (let rawLink of newLinks) {
-      let validatedUrl = rawLink
-      if (!/^https?:\/\//i.test(validatedUrl)) {
-        validatedUrl = `https://${validatedUrl}`
+    for (let link of newLinks) {
+      if (otherLinks.includes(link) || validNewLinks.includes(link)) {
+        continue
       }
 
-      try {
-        const urlObj = new URL(validatedUrl)
-        if (isVideo) {
-          const videoDomains = ["youtube.com", "youtu.be", "vimeo.com"]
-          if (!videoDomains.some((domain) => urlObj.hostname.includes(domain))) {
-            setErrors((prev) => ({ ...prev, videoLinks: true }))
-            message.error("Please enter a valid video URL (e.g., YouTube, Vimeo).")
-            continue
-          }
-        }
-        if (
-          !videoLinks.includes(validatedUrl) &&
-          !otherLinks.includes(validatedUrl) &&
-          !validNewLinks.includes(validatedUrl)
-        ) {
-          validNewLinks.push(validatedUrl)
-        }
-      } catch {
-        setErrors((prev) => ({ ...prev, [errorKey]: true }))
-        message.error(`Invalid ${isVideo ? "video" : "other"} URL: ${rawLink}`)
+      const validation = validateUrl(link)
+      if (!validation.valid) {
+        setErrors(prev => ({ ...prev, otherLinks: validation.error }))
+        message.error(validation.error)
+        return
       }
+
+      validNewLinks.push(link)
     }
 
     if (validNewLinks.length === 0) {
-      setErrors((prev) => ({ ...prev, [errorKey]: true }))
-      message.error(`No valid, unique ${isVideo ? "video" : "other"} URLs found.`)
+      setErrors(prev => ({
+        ...prev,
+        otherLinks: "No valid, unique links found.",
+      }))
       return
     }
 
-    if (existingLinks.length + validNewLinks.length > maxLinks) {
-      setErrors((prev) => ({ ...prev, [errorKey]: true }))
-      message.error(`You can only add up to ${maxLinks} ${isVideo ? "video" : "other"} links.`)
+    if (otherLinks.length + validNewLinks.length > maxLinks) {
+      setErrors(prev => ({
+        ...prev,
+        otherLinks: `You can only add up to ${maxLinks} links.`,
+      }))
       return
     }
 
-    setLinks([...existingLinks, ...validNewLinks])
-    setFormData((prev) => ({
+    setOtherLinks([...otherLinks, ...validNewLinks])
+    setFormData(prev => ({
       ...prev,
-      [inputKey]: "",
+      otherLinkInput: "",
     }))
-    setErrors((prev) => ({ ...prev, [errorKey]: false }))
+    setErrors(prev => ({ ...prev, otherLinks: "" }))
   }
 
   // Handle Enter key for links
-  const handleKeyDown = (e, type) => {
+  const handleKeyDown = e => {
     if (e.key === "Enter") {
       e.preventDefault()
-      handleAddLink(type)
+      handleAddLink()
     }
   }
 
-  // Remove a link
-  const handleRemoveLink = (index, type) => {
-    const isVideo = type === "video"
-    const existingLinks = isVideo ? videoLinks : otherLinks
-    const setLinks = isVideo ? setVideoLinks : setOtherLinks
-    const updatedLinks = [...existingLinks]
+  // Remove a reference link
+  const handleRemoveLink = index => {
+    const updatedLinks = [...otherLinks]
     updatedLinks.splice(index, 1)
-    setLinks(updatedLinks)
-    setErrors((prev) => ({ ...prev, [isVideo ? "videoLinks" : "otherLinks"]: false }))
+    setOtherLinks(updatedLinks)
+    setErrors(prev => ({ ...prev, otherLinks: "" }))
   }
+
+  const imageSources = [
+    { id: "unsplash", label: "Stock Images", value: "unsplash" },
+    { id: "ai-generated", label: "AI-Generated Images", value: "ai-generated" },
+  ]
 
   return (
     <Modal
-      title="Generate Quick Blog"
+      title={`Generate ${type === "quick" ? "Quick" : "Youtube"} Blog`}
       open={true}
       onCancel={handleClose}
       footer={
@@ -294,7 +378,7 @@ const QuickBlogModal = ({ closeFnc }) => {
           : [
               <button
                 key="previous"
-                onClick={handlePrev}
+                onClick={() => setCurrentStep(0)}
                 className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
                 aria-label="Previous step"
               >
@@ -314,252 +398,108 @@ const QuickBlogModal = ({ closeFnc }) => {
       centered
       transitionName=""
       maskTransitionName=""
+      destroyOnHidden
     >
-      <div className="p-6 space-y-6">
+      <div className="p-2 space-y-2">
         {currentStep === 0 && (
-          <div className="p-3">
-            <Carousel>
-              {packages.map((pkg, index) => (
-                <div
-                  key={index}
-                  className={`cursor-pointer transition-all duration-200 ${
-                    formData.template === pkg.name ? "border-gray-300 border-2 rounded-md" : ""
-                  }`}
-                  onClick={() => handlePackageSelect(index)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => e.key === "Enter" && handlePackageSelect(index)}
-                  aria-label={`Select ${pkg.name} template`}
-                >
-                  <div className="bg-white rounded-md overflow-hidden">
-                    <div className="relative">
-                      <img
-                        src={pkg.imgSrc || "/placeholder.svg"}
-                        alt={pkg.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="p-2 mt-2">
-                      <h3 className="font-medium text-gray-900 mb-1">{pkg.name}</h3>
-                      <p className="text-sm text-gray-500 line-clamp-2">{pkg.description}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </Carousel>
-            {errors.template && (
-              <p className="text-red-500 text-sm mt-2">Please select a template.</p>
-            )}
-          </div>
+          <>
+            <div
+              className={`!max-h-[75vh] overflow-clip p-4 pt-0 ${
+                errors.template ? "border-2 border-red-500 rounded-lg p-2" : ""
+              }`}
+            >
+              <TemplateSelection
+                userSubscriptionPlan={user?.subscription?.plan ?? "free"}
+                onClick={handlePackageSelect}
+                preSelectedIds={formData.templateIds}
+              />
+            </div>
+            {errors.template && <p className="text-red-500 text-sm mt-2">{errors.template}</p>}
+          </>
         )}
         {currentStep === 1 && (
-          <div className="space-y-8">
+          <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Focus Keywords <span className="text-red-500">*</span>
+                Topic <span className="text-red-500">*</span>
               </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={formData.focusKeywordInput}
-                  onChange={(e) => handleKeywordInputChange(e, "focusKeywords")}
-                  onKeyDown={(e) => handleKeyPress(e, "focusKeywords")}
-                  className={`flex-1 px-3 py-2 border ${
-                    errors.focusKeywords ? "border-red-500" : "border-gray-200"
-                  } rounded-md text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-600`}
-                  placeholder="Enter focus keywords, separated by commas"
-                  aria-label="Focus keywords"
-                />
-                <button
-                  onClick={() => handleAddKeyword("focusKeywords")}
-                  className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm flex items-center hover:bg-[#1B6FC9]/90 transition-colors"
-                  aria-label="Add focus keywords"
-                >
-                  <Plus size={16} />
-                </button>
-              </div>
-              {errors.focusKeywords && (
-                <p className="text-red-500 text-sm mt-1">Please add at least one focus keyword.</p>
-              )}
-              <div className="flex flex-wrap gap-2 mt-2">
-                {formData.focusKeywords.map((keyword, index) => (
-                  <span
-                    key={index}
-                    className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
-                  >
-                    {keyword}
-                    <button
-                      onClick={() => handleRemoveKeyword(index, "focusKeywords")}
-                      className="ml-1 text-blue-400 hover:text-blue-600"
-                      aria-label={`Remove ${keyword}`}
-                    >
-                      <X size={16} />
-                    </button>
-                  </span>
-                ))}
-              </div>
+              <input
+                type="text"
+                name="topic"
+                value={formData.topic}
+                onChange={handleChange}
+                className={`w-full px-3 py-2 border ${
+                  errors.topic ? "border-red-500" : "border-gray-200"
+                } rounded-md text-sm bg-gray-50`}
+                placeholder="Enter the blog topic"
+                aria-label="Blog topic"
+              />
+              {errors.topic && <p className="text-red-500 text-sm mt-1">{errors.topic}</p>}
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Keywords <span className="text-red-500">*</span>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Perform Keyword Research
               </label>
-              <div className="flex gap-2">
+              <label className="relative inline-block w-11 h-6 cursor-pointer">
                 <input
-                  type="text"
-                  value={formData.keywordInput}
-                  onChange={(e) => handleKeywordInputChange(e, "keywords")}
-                  onKeyDown={(e) => handleKeyPress(e, "keywords")}
-                  className={`flex-1 px-3 py-2 border ${
-                    errors.keywords ? "border-red-500" : "border-gray-200"
-                  } rounded-md text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-600`}
-                  placeholder="Enter secondary keywords, separated by commas"
-                  aria-label="Secondary keywords"
-                />
-                <button
-                  onClick={() => handleAddKeyword("keywords")}
-                  className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm flex items-center hover:bg-[#1B6FC9]/90 transition-colors"
-                  aria-label="Add secondary keywords"
-                >
-                  <Plus size={16} />
-                </button>
-              </div>
-              {errors.keywords && (
-                <p className="text-red-500 text-sm mt-1">
-                  Please add at least one secondary keyword.
-                </p>
-              )}
-              <div className="flex flex-wrap gap-2 mt-2">
-                {formData.keywords.map((keyword, index) => (
-                  <span
-                    key={index}
-                    className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
-                  >
-                    {keyword}
-                    <button
-                      onClick={() => handleRemoveKeyword(index, "keywords")}
-                      className="ml-1 text-blue-400 hover:text-blue-600"
-                      aria-label={`Remove ${keyword}`}
-                    >
-                      <X size={16} />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Video Links (e.g., YouTube, Vimeo) <span className="text-red-500">*</span>
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={formData.videoLinkInput}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, videoLinkInput: e.target.value }))
+                  type="checkbox"
+                  checked={formData.performKeywordResearch}
+                  onChange={e =>
+                    setFormData(prev => ({
+                      ...prev,
+                      performKeywordResearch: e.target.checked,
+                      focusKeywords: e.target.checked ? [] : prev.focusKeywords,
+                      keywords: e.target.checked ? [] : prev.keywords,
+                      focusKeywordInput: "",
+                      keywordInput: "",
+                    }))
                   }
-                  onKeyDown={(e) => handleKeyDown(e, "video")}
-                  className={`flex-1 px-3 py-2 border ${
-                    errors.videoLinks ? "border-red-500" : "border-gray-200"
-                  } rounded-md text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-600`}
-                  placeholder="Enter video links (e.g., YouTube, Vimeo), separated by commas"
-                  aria-label="Video links"
+                  className="sr-only peer"
                 />
-                <button
-                  onClick={() => handleAddLink("video")}
-                  className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm flex items-center hover:bg-[#1B6FC9]/90 transition-colors"
-                  aria-label="Add video links"
-                >
-                  <Plus size={16} />
-                </button>
-              </div>
-              {errors.videoLinks && (
-                <p className="text-red-500 text-sm mt-1">
-                  Please add at least one valid video link (up to 3 allowed).
-                </p>
-              )}
-              <div className="flex flex-wrap gap-2 mt-2">
-                {videoLinks.map((link, index) => (
-                  <span
-                    key={index}
-                    className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
-                  >
-                    {link}
-                    <button
-                      onClick={() => handleRemoveLink(index, "video")}
-                      className="ml-1 text-blue-400 hover:text-blue-600"
-                      aria-label={`Remove ${link}`}
-                    >
-                      <X size={16} />
-                    </button>
-                  </span>
-                ))}
-              </div>
+                <div className="absolute inset-0 bg-gray-200 rounded-full transition-colors duration-200 peer-checked:bg-[#1B6FC9]"></div>
+                <div className="absolute top-[2px] left-[2px] h-5 w-5 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-5"></div>
+              </label>
             </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Other Links (e.g., articles, websites)
-                  {isOtherLinksEnabled && <span className="text-red-500">*</span>}
-                </label>
-                <div className="flex items-center gap-2">
-                  {/* <span className="text-sm text-gray-600">Enable Other Links</span> */}
-                  <Switch
-                    checked={isOtherLinksEnabled}
-                    onChange={(checked) => {
-                      setIsOtherLinksEnabled(checked)
-                      if (!checked) {
-                        setOtherLinks([]) // Clear other links when toggle is turned off
-                        setFormData((prev) => ({ ...prev, otherLinkInput: "" }))
-                        setErrors((prev) => ({ ...prev, otherLinks: false }))
-                      }
-                    }}
-                    aria-label="Toggle other links input"
-                  />
-                </div>
-              </div>
-              {isOtherLinksEnabled && (
-                <div className="space-y-2">
+            {!formData.performKeywordResearch && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Focus Keywords (Max 3) <span className="text-red-500">*</span>
+                  </label>
                   <div className="flex gap-2">
                     <input
                       type="text"
-                      value={formData.otherLinkInput}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, otherLinkInput: e.target.value }))
-                      }
-                      onKeyDown={(e) => handleKeyDown(e, "other")}
+                      value={formData.focusKeywordInput}
+                      onChange={e => handleKeywordInputChange(e, "focusKeywords")}
+                      onKeyDown={e => handleKeyPress(e, "focusKeywords")}
                       className={`flex-1 px-3 py-2 border ${
-                        errors.otherLinks ? "border-red-500" : "border-gray-200"
-                      } rounded-md text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-600`}
-                      placeholder="Enter other links (e.g., articles, websites), separated by commas"
-                      aria-label="Other links"
+                        errors.focusKeywords ? "border-red-500" : "border-gray-200"
+                      } rounded-md text-sm bg-gray-50`}
+                      placeholder="Enter focus keywords, separated by commas"
+                      aria-label="Focus keywords"
                     />
                     <button
-                      onClick={() => handleAddLink("other")}
+                      onClick={() => handleAddKeyword("focusKeywords")}
                       className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm flex items-center hover:bg-[#1B6FC9]/90 transition-colors"
-                      aria-label="Add other links"
+                      aria-label="Add focus keywords"
                     >
                       <Plus size={16} />
                     </button>
                   </div>
-                  {errors.otherLinks && (
-                    <p className="text-red-500 text-sm">
-                      Please add at least one valid other link (up to 3 allowed).
-                    </p>
+                  {errors.focusKeywords && (
+                    <p className="text-red-500 text-sm mt-1">{errors.focusKeywords}</p>
                   )}
-                  <div className="flex flex-wrap gap-2">
-                    {otherLinks.map((link, index) => (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {formData.focusKeywords.map((keyword, index) => (
                       <span
                         key={index}
                         className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
                       >
-                        {link}
+                        {keyword}
                         <button
-                          onClick={() => handleRemoveLink(index, "other")}
+                          onClick={() => handleRemoveKeyword(index, "focusKeywords")}
                           className="ml-1 text-blue-400 hover:text-blue-600"
-                          aria-label={`Remove ${link}`}
+                          aria-label={`Remove ${keyword}`}
                         >
                           <X size={16} />
                         </button>
@@ -567,7 +507,154 @@ const QuickBlogModal = ({ closeFnc }) => {
                     ))}
                   </div>
                 </div>
-              )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Keywords <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={formData.keywordInput}
+                      onChange={e => handleKeywordInputChange(e, "keywords")}
+                      onKeyDown={e => handleKeyPress(e, "keywords")}
+                      className={`flex-1 px-3 py-2 border ${
+                        errors.keywords ? "border-red-500" : "border-gray-200"
+                      } rounded-md text-sm bg-gray-50`}
+                      placeholder="Enter secondary keywords, separated by commas"
+                      aria-label="Secondary keywords"
+                    />
+                    <button
+                      onClick={() => handleAddKeyword("keywords")}
+                      className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm flex items-center hover:bg-[#1B6FC9]/90 transition-colors"
+                      aria-label="Add secondary keywords"
+                    >
+                      <Plus size={16} />
+                    </button>
+                  </div>
+                  {errors.keywords && (
+                    <p className="text-red-500 text-sm mt-1">{errors.keywords}</p>
+                  )}
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {formData.keywords.map((keyword, index) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
+                      >
+                        {keyword}
+                        <button
+                          onClick={() => handleRemoveKeyword(index, "keywords")}
+                          className="ml-1 text-blue-400 hover:text-blue-600"
+                          aria-label={`Remove ${keyword}`}
+                        >
+                          <X size={16} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Add Images & Source Selection */}
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-700">Add Images</label>
+              <label className="relative inline-block w-11 h-6 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.addImages}
+                  onChange={e =>
+                    setFormData(prev => ({
+                      ...prev,
+                      addImages: e.target.checked,
+                    }))
+                  }
+                  className="sr-only peer"
+                />
+                <div className="absolute inset-0 bg-gray-200 rounded-full transition-colors duration-200 peer-checked:bg-[#1B6FC9]"></div>
+                <div className="absolute top-[2px] left-[2px] h-5 w-5 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-5"></div>
+              </label>
+            </div>
+            {formData.addImages && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">Image Source</label>
+                <div className={`grid grid-cols-2 gap-4 mx-auto w-full mb-2`}>
+                  {imageSources.map(source => (
+                    <label
+                      key={source.id}
+                      htmlFor={source.id}
+                      className={`relative border rounded-lg px-4 py-3 flex items-center gap-3 justify-center cursor-pointer transition-all duration-150
+                      ${
+                        formData.imageSource === source.value
+                          ? "border-blue-600 bg-blue-50"
+                          : "border-gray-300"
+                      } hover:shadow-sm w-full`}
+                    >
+                      <input
+                        type="radio"
+                        id={source.id}
+                        name="imageSource"
+                        value={source.value}
+                        checked={formData.imageSource === source.value}
+                        onChange={handleChange}
+                        className="hidden"
+                      />
+                      <span className="text-sm font-medium text-gray-800">{source.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Reference Links Section */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {type === "yt"
+                  ? "YouTube Video Links "
+                  : "Reference Links (e.g., articles, websites)"}{" "}
+                (Max 3 links) {type === "yt" && <span className="text-red-500">*</span>}
+              </label>
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    value={formData.otherLinkInput}
+                    onChange={e =>
+                      setFormData(prev => ({ ...prev, otherLinkInput: e.target.value }))
+                    }
+                    onKeyDown={e => handleKeyDown(e)}
+                    className={`flex-1 px-3 py-2 border rounded-md text-sm bg-gray-50`}
+                    placeholder="Enter full URLs (e.g., https://example.com), separated by commas"
+                    aria-label="Reference/Video links"
+                  />
+                  <button
+                    onClick={() => handleAddLink()}
+                    className="px-4 py-2 bg-[#1B6FC9] text-white rounded-md text-sm flex items-center hover:bg-[#1B6FC9]/90 transition-colors"
+                    aria-label="Add reference/video links"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+                {errors.otherLinks && (
+                  <p className="text-red-500 text-sm mt-1">{errors.otherLinks}</p>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  {otherLinks.map((link, index) => (
+                    <span
+                      key={index}
+                      className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
+                    >
+                      {link}
+                      <button
+                        onClick={() => handleRemoveLink(index)}
+                        className="ml-1 text-blue-400 hover:text-blue-600"
+                        aria-label={`Remove ${link}`}
+                      >
+                        <X size={16} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         )}

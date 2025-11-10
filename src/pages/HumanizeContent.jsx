@@ -9,21 +9,17 @@ import {
   ArrowRight,
   Loader2,
 } from "lucide-react"
-import { message } from "antd"
+import { Button, message } from "antd"
 import { useDispatch, useSelector } from "react-redux"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { generateHumanizedContent, resetHumanizeState } from "@store/slices/humanizeSlice"
-import Loading from "@components/Loading"
+import LoadingScreen from "@components/UI/LoadingScreen"
 
 const HumanizeContent = () => {
   const [inputContent, setInputContent] = useState("")
   const dispatch = useDispatch()
-  const {
-    loading: isLoading,
-    result: outputContent,
-    error,
-  } = useSelector((state) => state.humanize)
-  const user = useSelector((state) => state.auth.user)
+  const { loading: isLoading, result: outputContent, error } = useSelector(state => state.humanize)
+  const user = useSelector(state => state.auth.user)
   const userPlan = user?.plan ?? user?.subscription?.plan
   const { handlePopup } = useConfirmPopup()
   const leftPanelRef = useRef()
@@ -34,7 +30,7 @@ const HumanizeContent = () => {
   const wordCount = inputContent.trim().split(/\s+/).filter(Boolean).length
 
   // Synchronized scrolling function
-  const handleScroll = useCallback((source) => {
+  const handleScroll = useCallback(source => {
     if (isScrollingSyncRef.current) return
 
     isScrollingSyncRef.current = true
@@ -70,7 +66,8 @@ const HumanizeContent = () => {
 
   const handleMagicWandClick = () => {
     if (userPlan === "free" || userPlan === "basic") {
-      showUpgradePopup()
+      // showUpgradePopup()
+      navigate("/pricing")
       return
     }
     handleSubmit()
@@ -131,7 +128,7 @@ const HumanizeContent = () => {
   if (isLoading) {
     return (
       <div className="h-[calc(100vh-200px)] p-4 flex items-center justify-center">
-        <Loading />
+        <LoadingScreen />
       </div>
     )
   }
@@ -140,21 +137,26 @@ const HumanizeContent = () => {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/50">
       <div className="max-w-7xl mx-auto space-y-6 p-5">
         {/* Header */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6">
+          <div className="flex flex-col gap-2">
+            {/* Top row: icon + heading */}
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-                <Sparkles className="w-6 h-6 text-white" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Humanize Content</h1>
-                <p className="text-gray-600">Transform your content with AI-powered processing</p>
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Humanize Content</h1>
+                <p className="text-sm sm:text-base text-gray-600">
+                  Transform your content with AI-powered processing
+                </p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+
+            {/* Bottom row: reset button aligned right */}
+            <div className="flex justify-end">
               <button
                 onClick={handleReset}
-                className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
                 title="Reset all content"
               >
                 <RefreshCw className="w-4 h-4" />
@@ -173,42 +175,28 @@ const HumanizeContent = () => {
           <div className="space-y-4">
             <textarea
               value={inputContent}
-              onChange={(e) => setInputContent(e.target.value)}
+              onChange={e => setInputContent(e.target.value)}
               placeholder="Paste or type your content here (300–500 words)..."
               className="w-full h-60 p-4 border-2 border-gray-200 rounded-xl resize-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all duration-300 text-gray-800 placeholder-gray-500"
             />
-            <div className="flex justify-between items-center">
+            <div className="flex justify-end items-center">
               <p
-                className={`text-sm ${
-                  wordCount < 300
-                    ? "text-gray-600"
-                    : wordCount > 300
-                    ? "text-red-500"
-                    : "text-green-600"
-                }`}
+                className={`text-sm mb-2 ${wordCount < 300 ? "text-yellow-500" : "text-green-600"}`}
               >
-                Word count: {wordCount}{" "}
-                {wordCount < 300
-                  ? "(Minimum 300 words required)"
-                  : wordCount > 300
-                  ? "(Maximum 300 words allowed)"
-                  : ""}
+                Word count: {wordCount} {wordCount < 300 ? "(Minimum 300 words required)" : ""}
               </p>
-
-              <button
-                onClick={handleMagicWandClick}
-                disabled={isLoading || !inputContent.trim() || wordCount > 300}
-                className={`flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl transition-all duration-300 hover:shadow-lg ${
-                  !inputContent.trim() || wordCount > 300
-                    ? "opacity-50 cursor-not-allowed"
-                    : "hover:from-blue-700 hover:to-purple-700 hover:scale-105"
-                }`}
-              >
-                <Send className="w-5 h-5" />
-                Process Content
-                <ArrowRight className="w-4 h-4" />
-              </button>
             </div>
+            <Button
+              onClick={handleMagicWandClick}
+              disabled={isLoading || !inputContent.trim() || wordCount < 300}
+              className={`flex items-center justify-center gap-2 px-6 py-3 w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl transition-all duration-300 hover:shadow-lg ${
+                !inputContent.trim() || wordCount < 300
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:from-blue-700 hover:to-purple-700 hover:scale-105"
+              }`}
+            >
+              Process Content
+            </Button>
           </div>
         </div>
 
@@ -221,7 +209,7 @@ const HumanizeContent = () => {
                 Processing Results
               </h2>
             </div>
-            <div className="grid lg:grid-cols-2 gap-0 h-96">
+            <div className="h-96 overflow-y-auto grid lg:grid-cols-2 gap-0 border border-gray-200 rounded-lg">
               {/* Original Content Panel */}
               <div className="flex flex-col border-r border-gray-200">
                 <div className="flex items-center justify-between p-4 bg-gray-50 border-b border-gray-200">
@@ -237,14 +225,11 @@ const HumanizeContent = () => {
                     <Copy className="w-4 h-4" />
                   </button>
                 </div>
-                <div
-                  ref={leftPanelRef}
-                  onScroll={() => handleScroll("left")}
-                  className="flex-1 p-4 overflow-y-auto bg-gray-50/50 text-gray-800 text-sm leading-relaxed whitespace-pre-wrap"
-                >
+                <div className="p-4 bg-gray-50/50 text-gray-800 text-sm leading-relaxed whitespace-pre-wrap">
                   {inputContent}
                 </div>
               </div>
+
               {/* Processed Content Panel */}
               <div className="flex flex-col">
                 <div className="flex items-center justify-between p-4 bg-blue-50 border-b border-gray-200">
@@ -271,11 +256,7 @@ const HumanizeContent = () => {
                     </button>
                   </div>
                 </div>
-                <div
-                  ref={rightPanelRef}
-                  onScroll={() => handleScroll("right")}
-                  className="flex-1 p-4 overflow-y-auto bg-white text-gray-800 text-sm leading-relaxed whitespace-pre-wrap"
-                >
+                <div className="p-4 bg-white text-gray-800 text-sm leading-relaxed whitespace-pre-wrap">
                   {isLoading ? (
                     <div className="flex items-center justify-center h-full">
                       <div className="text-center">

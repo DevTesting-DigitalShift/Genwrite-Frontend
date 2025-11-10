@@ -1,4 +1,14 @@
 import axiosInstance from "."
+const getIP = async () => {
+  try {
+    const res = await fetch("https://api64.ipify.org?format=json")
+    const { ip } = await res.json()
+    return ip
+  } catch (err) {
+    console.error("IP Fecth Error", err)
+    return ""
+  }
+}
 
 // Utility function to retry API calls
 const retry = async (fn, retries = 3, delay = 1000) => {
@@ -13,15 +23,16 @@ const retry = async (fn, retries = 3, delay = 1000) => {
 }
 
 export const login = async (reqBody) => {
+  reqBody.ip = await getIP()
   const response = await axiosInstance.post("/auth/login", reqBody)
   return response.data
 }
 
 export const signup = async (body) => {
+  body.ip = await getIP()
   const response = await axiosInstance.post("/auth/register", body)
   return response.data
 }
-
 export const UserLogout = async () => {
   const response = await axiosInstance.get(`/auth/logout`)
   localStorage.removeItem("token") // Clear token on logout
