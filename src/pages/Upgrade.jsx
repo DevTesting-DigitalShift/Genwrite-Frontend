@@ -29,20 +29,14 @@ const PricingCard = ({
   const [modalType, setModalType] = useState(null)
   const [modalMessage, setModalMessage] = useState({ title: "", body: "" })
 
-  const tierLevels = {
-    basic: 1,
-    pro: 2,
-    enterprise: 3,
-  }
+  const tierLevels = { basic: 1, pro: 2, enterprise: 3 }
 
   const handleCustomCreditsChange = e => {
     const value = parseInt(e.target.value, 10)
     setCustomCredits(value)
   }
 
-  const calculateCustomPrice = () => {
-    return (customCredits * 0.01).toFixed(2)
-  }
+  const calculateCustomPrice = () => (customCredits * 0.01).toFixed(2)
 
   const displayPrice =
     plan.type === "credit_purchase"
@@ -139,9 +133,20 @@ const PricingCard = ({
     userBillingPeriod = diffDays > 60 ? "annual" : "monthly"
   }
 
+  // ----- NEW: Badge & Rollover Logic -----
+  const currentUserTier = userPlan?.toLowerCase()
+  const isBasic = plan.tier === "basic"
+  const isPro = plan.tier === "pro"
+
+  const showTrialBadge =
+    (currentUserTier === "basic" && isPro) || (currentUserTier === "pro" && isBasic)
+
+  const showRolloverMessage = showTrialBadge && user?.subscription?.trialOpted === false
+
+  // ---------------------------------------
+
   const handleButtonClick = () => {
     if (isDisabled) return
-
     if (plan.type === "credit_purchase" && customCredits < 500) return
 
     if (plan.type === "credit_purchase") {
@@ -218,6 +223,7 @@ const PricingCard = ({
 
   return (
     <div className={`relative group ${plan.featured && !isDisabled ? "lg:scale-105" : ""}`}>
+      {/* Most Popular Badge (unchanged) */}
       {plan.featured &&
         !isDisabled &&
         (userSubscription?.plan?.toLowerCase() === "basic" && plan.tier === "pro" ? (
@@ -241,6 +247,7 @@ const PricingCard = ({
           isDisabled ? "" : "hover:scale-[1.02]"
         } ${styles.container} overflow-hidden p-8 h-full flex flex-col`}
       >
+        {/* Header */}
         <div className="text-center mb-8">
           <div
             className={`w-16 h-16 mx-auto mb-4 rounded-xl flex items-center justify-center ${styles.icon}`}
@@ -251,6 +258,7 @@ const PricingCard = ({
           <p className="text-gray-600 text-sm leading-relaxed">{plan.description}</p>
         </div>
 
+        {/* Price */}
         <div className="text-center mb-8">
           {plan.type === "credit_purchase" ? (
             <div className="space-y-4">
@@ -302,7 +310,8 @@ const PricingCard = ({
           )}
         </div>
 
-        <div className="space-y-3 mb-8 flex-grow">
+        {/* Features */}
+        <div className="space-y-3 mb-6 flex-grow">
           {plan.features.map((feature, index) => (
             <div key={index} className="flex items-start gap-3">
               <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -322,6 +331,24 @@ const PricingCard = ({
           ))}
         </div>
 
+        {/* ----- NEW: 7-Day Free Trial Badge ----- */}
+        {showTrialBadge && (
+          <div className="mb-4">
+            <div className="inline-flex items-center gap-1 bg-gradient-to-r from-amber-400 to-orange-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-sm">
+              <Star className="w-3.5 h-3.5" />
+              7-Day Free Trial
+            </div>
+          </div>
+        )}
+
+        {/* ----- NEW: Rollover Message ----- */}
+        {showRolloverMessage && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-700 font-medium text-center">
+            Any remaining trial credits will roll over to your next plan.
+          </div>
+        )}
+
+        {/* CTA Button */}
         <button
           onClick={handleButtonClick}
           className={`w-full py-4 px-6 rounded-lg font-semibold transition-all duration-300 ${
@@ -337,6 +364,8 @@ const PricingCard = ({
           {isDisabled ? "Current Plan" : plan.cta}
         </button>
       </div>
+
+      {/* Confirmation Modal (unchanged) */}
       <Modal
         title={<span className="text-lg">{modalMessage.title}</span>}
         open={showConfirmModal}
@@ -505,9 +534,7 @@ const Upgrade = () => {
     const gaCookie = document.cookie.split("; ").find(row => row.startsWith("_ga="))
     if (gaCookie) {
       const parts = gaCookie.split(".")
-      if (parts.length > 2) {
-        return parts[2] + "." + parts[3]
-      }
+      if (parts.length > 2) return parts[2] + "." + parts[3]
     }
     return null
   }
@@ -552,7 +579,6 @@ const Upgrade = () => {
   }
 
   const totalCredits = user?.credits?.base + user?.credits?.extra
-
   const showTrialMessage = !user?.subscription?.trialOpted
 
   return (
@@ -561,6 +587,7 @@ const Upgrade = () => {
         <title>Subscription | GenWrite</title>
       </Helmet>
       <div className="mx-auto">
+        {/* Global trial banner (unchanged) */}
         {showTrialMessage && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -579,6 +606,8 @@ const Upgrade = () => {
             </div>
           </motion.div>
         )}
+
+        {/* Enterprise message (unchanged) */}
         {user?.subscription?.plan === "enterprise" && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -591,6 +620,8 @@ const Upgrade = () => {
             </p>
           </motion.div>
         )}
+
+        {/* Header & toggle (unchanged) */}
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center mb-16">
           <motion.div initial={{ y: -20 }} animate={{ y: 0 }} className="inline-block mb-4">
             <motion.h1
@@ -639,6 +670,7 @@ const Upgrade = () => {
           </div>
         </motion.div>
 
+        {/* Cards */}
         <div className="grid lg:grid-cols-4 md:grid-cols-2 gap-10">
           <AnimatePresence>
             {loading
@@ -660,6 +692,7 @@ const Upgrade = () => {
           </AnimatePresence>
         </div>
 
+        {/* Comparison Table (unchanged) */}
         <AnimatePresence>
           {showComparisonTable && (
             <motion.div
@@ -674,6 +707,8 @@ const Upgrade = () => {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Cancel link (unchanged) */}
       {user?.subscription?.plan !== "free" && (
         <div className="flex justify-end mt-4 mr-20">
           <a
