@@ -141,9 +141,7 @@ const PricingCard = ({
   const showTrialBadge =
     (currentUserTier === "basic" && isPro) || (currentUserTier === "pro" && isBasic)
 
-  const showRolloverMessage = showTrialBadge && user?.subscription?.trialOpted === false
-
-  // ---------------------------------------
+  const showRolloverMessage = user?.subscription?.trialOpted === false
 
   const handleButtonClick = () => {
     if (isDisabled) return
@@ -330,23 +328,6 @@ const PricingCard = ({
             </div>
           ))}
         </div>
-
-        {/* ----- NEW: 7-Day Free Trial Badge ----- */}
-        {showTrialBadge && (
-          <div className="mb-4">
-            <div className="inline-flex items-center gap-1 bg-gradient-to-r from-amber-400 to-orange-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-sm">
-              <Star className="w-3.5 h-3.5" />
-              7-Day Free Trial
-            </div>
-          </div>
-        )}
-
-        {/* ----- NEW: Rollover Message ----- */}
-        {showRolloverMessage && (
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-700 font-medium text-center">
-            Any remaining trial credits will roll over to your next plan.
-          </div>
-        )}
 
         {/* CTA Button */}
         <button
@@ -603,6 +584,7 @@ const Upgrade = () => {
                 powerful AI content creation tools at no cost. Select a plan below to begin your
                 trial and elevate your content creation journey.
               </p>
+              <p className="text-blue-600">Any remaining trial credits will roll over to your next plan.</p>
             </div>
           </motion.div>
         )}
