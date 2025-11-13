@@ -157,7 +157,6 @@ const MainEditorPage = () => {
 
       const postedData = response?.data?.posting?.items?.[postData.type.platform] || null
       setIsPosted(prev => ({ ...prev, [postData.type.platform]: postedData }))
-      console.log("Posted Blog:", { platform: postData.type.platform, data: postedData })
       message.success(
         `Blog ${isPosted?.[postData.type.platform] ? "updated" : "posted"} successfully!`
       )

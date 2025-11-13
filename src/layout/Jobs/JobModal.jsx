@@ -266,7 +266,7 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
       setErrors({})
       dispatch(clearSelectedKeywords())
     } catch (error) {
-      console.log(error)
+      console.error(error)
     }
   }
 

@@ -255,7 +255,6 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
     ) => {
       const { name, value } = event.target
 
-      // console.log(name, value)
       if (!name) throw new Error("Advanced blog form component error")
 
       const keys = name.split(".")

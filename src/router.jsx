@@ -33,6 +33,7 @@ const OutlineEditor = lazy(() => import("@pages/OutlineEditor"))
 const GenerateMetaData = lazy(() => import("@pages/GenerateMetaData"))
 const PromptContent = lazy(() => import("@pages/PromptContent"))
 const UnsubscribeEmail = lazy(() => import("@pages/UnsubscribeEmail"))
+const EmailVerification = lazy(() => import("@pages/EmailVerification"))
 
 /**
  * Wraps a component in React.Suspense with fallback support.
@@ -94,6 +95,7 @@ const router = createBrowserRouter([
       { path: "reset-password", element: withSuspense(ResetPassword) },
       { path: "privacy-policy", element: withSuspense(PrivacyPolicy) },
       { path: "terms-and-conditions", element: withSuspense(TermsAndConditions) },
+      { path: "email-verify/:email", element: withSuspense(EmailVerification) },
       {
         path: "payment",
         children: [

@@ -8,10 +8,6 @@ import { QueryProvider } from "./utils/queryClient.jsx"
 
 const root = ReactDOM.createRoot(document.getElementById("root"))
 
-// console.log(import.meta.env.MODE) // e.g., "development" or "production"
-// console.log(import.meta.env.DEV) // true in development, false in production
-// console.log(import.meta.env.PROD) // true in production, false in development
-
 if (import.meta.env.PROD && "serviceWorker" in navigator) {
   navigator.serviceWorker.register("/sw.js")
 }

@@ -6,23 +6,11 @@ import Confetti from "react-confetti"
 import { subscriptions } from "@/data/subscriptions"
 import { pushToDataLayer } from "@utils/DataLayer"
 
-// type paramsObj = {
-//   userId?: string
-//   isTrialOpted?: string
-//   type?: string
-//   plan?: string
-//   billingPeriod?: string
-//   [k: string]: string | undefined
-// }
-// type SubscriptionKey = keyof typeof subscriptions
-
 const SuccessPage = () => {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
 
   const allParamsObject = Object.fromEntries(searchParams.entries())
-
-  console.log("All Params:", allParamsObject)
 
   useEffect(() => {
     // const timer = setTimeout(() => navigate("/dashboard"), 5000)
@@ -42,7 +30,6 @@ const SuccessPage = () => {
           : undefined,
       }
 
-      console.log("event to be sent : ", eventData)
       pushToDataLayer(eventData)
     }
     // return () => clearTimeout(timer)
