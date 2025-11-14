@@ -465,9 +465,78 @@ const PluginsMain = () => {
       )
     }
 
+    // ── SHOPIFY & WIX ──
     if (plugin.id === 113 || plugin.id === 114) {
       const isShopify = plugin.id === 113
 
+      // -----------------------------------------------------------------
+      // 1. Load saved domain from Redux (you can store it in any slice)
+      // -----------------------------------------------------------------
+      const savedDomain = useSelector(
+        state => state.integration?.shopifyWix?.[isShopify ? "shopify" : "wix"]?.domain
+      )
+      const [domain, setDomain] = useState(savedDomain ?? "")
+      const [isValidDomain, setIsValidDomain] = useState(true)
+      const [editing, setEditing] = useState(!savedDomain) // force edit on first visit
+      const [localLoading, setLocalLoading] = useState(false)
+
+      // -----------------------------------------------------------------
+      // 2. Validate domain (Shopify → *.myshopify.com, Wix → any URL)
+      // -----------------------------------------------------------------
+      const validateDomain = val => {
+        if (!val) return false
+        if (isShopify) {
+          return /^[\w-]+\.myshopify\.com$/i.test(val)
+        }
+        try {
+          new URL(`https://${val}`)
+          return true
+        } catch {
+          return false
+        }
+      }
+
+      useEffect(() => {
+        setIsValidDomain(validateDomain(domain))
+      }, [domain])
+
+      // -----------------------------------------------------------------
+      // 3. Save / Update domain (calls your thunk – create one if needed)
+      // -----------------------------------------------------------------
+      const saveDomain = async () => {
+        if (!isValidDomain) return
+        setLocalLoading(true)
+        try {
+          await dispatch(
+            updateShopifyWixDomain({
+              type: isShopify ? "shopify" : "wix",
+              domain,
+            })
+          ).unwrap()
+          message.success(`${plugin.name} domain saved!`)
+          setEditing(false)
+        } catch (e) {
+          message.error(e.message ?? "Failed to save domain")
+        } finally {
+          setLocalLoading(false)
+        }
+      }
+
+      // -----------------------------------------------------------------
+      // 4. “Install Plugin” – just opens the generated install URL
+      // -----------------------------------------------------------------
+      const openInstallUrl = () => {
+        if (!domain) return
+        const base = isShopify
+          ? `https://${domain}/admin/oauth/authorize?client_id=YOUR_CLIENT_ID&scope=write_products,write_content&redirect_uri=YOUR_REDIRECT`
+          : `https://www.wix.com/installer/install?appId=YOUR_WIX_APP_ID&redirectUrl=YOUR_REDIRECT&token=${domain}`
+        window.open(base, "_blank", "noopener,noreferrer")
+        message.info("Opening installer…")
+      }
+
+      // -----------------------------------------------------------------
+      // 5. UI
+      // -----------------------------------------------------------------
       const palette = isShopify
         ? {
             grad: "from-emerald-500 to-green-400",
@@ -511,7 +580,6 @@ const PluginsMain = () => {
               {plugin.description}
             </Text>
 
-            {/* Version + Updated */}
             <div className="mt-5 flex flex-wrap justify-center gap-6">
               <Flex align="center" gap="small">
                 <Tag size={16} className="text-teal-500" />
@@ -524,50 +592,93 @@ const PluginsMain = () => {
             </div>
           </div>
 
-          {/* ── Action Card ── */}
+          {/* ── Domain Card ── */}
           <Card
             className={`w-full max-w-2xl border-0 ${palette.card} p-8 shadow backdrop-blur-sm transition-all duration-300`}
           >
-            <Paragraph className="mb-8 text-center text-base leading-relaxed text-gray-700 md:text-lg">
-              {plugin.message}
-            </Paragraph>
-
-            <Space direction="vertical" size="middle" className="w-full">
-              {/* Connect Button */}
-              <Button
-                size="large"
-                block
-                onClick={() => message.success(`${plugin.pluginName} connection simulated!`)}
-                className={`h-12 rounded-xl border-0 bg-gradient-to-r ${palette.grad} ${palette.hover} font-semibold text-white shadow-md transition-all duration-300`}
-              >
-                <Flex align="center" justify="center" gap="small">
-                  <Server size={18} />
-                  Connect {plugin.name}
-                </Flex>
-              </Button>
-
-              {/* Download Guide */}
-              <a
-                href={plugin.downloadLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block"
-              >
+            <Flex vertical gap="middle">
+              <Flex justify="between" align="center">
+                <Text strong>{isShopify ? "Shopify Store Domain" : "Wix Site URL"}</Text>
                 <Button
-                  type="text"
-                  block
-                  icon={<Download size={16} />}
-                  className={`h-10 rounded-lg border border-transparent ${
-                    palette.link
-                  } font-medium transition-all duration-200 hover:border-${
-                    isShopify ? "emerald" : "indigo"
-                  }-300 hover:bg-${isShopify ? "emerald" : "indigo"}-50`}
+                  type="link"
+                  icon={<Edit size={16} />}
+                  onClick={() => setEditing(e => !e)}
+                  className="p-0 text-blue-500 hover:text-blue-600"
                 >
-                  Download Integration Guide
+                  {editing ? "Cancel" : "Edit"}
                 </Button>
-              </a>
-            </Space>
+              </Flex>
+
+              <div className="relative">
+                <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <input
+                  placeholder={
+                    isShopify ? "your-store.myshopify.com" : "https://your-site.wixsite.com/mysite"
+                  }
+                  value={domain}
+                  onChange={e => setDomain(e.target.value.trim())}
+                  disabled={!editing || localLoading}
+                  className={`w-full rounded-lg border ${
+                    domain && !isValidDomain ? "border-red-400" : "border-gray-300"
+                  } pl-10 pr-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100`}
+                />
+              </div>
+
+              {domain && !isValidDomain && (
+                <Text type="danger" className="text-xs">
+                  {isShopify ? "Enter a valid *.myshopify.com domain" : "Enter a valid URL"}
+                </Text>
+              )}
+
+              {editing ? (
+                <Button
+                  type="primary"
+                  size="large"
+                  block
+                  loading={localLoading}
+                  disabled={!domain || !isValidDomain}
+                  onClick={saveDomain}
+                  className="bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600"
+                >
+                  Save Domain
+                </Button>
+              ) : (
+                <Button
+                  size="large"
+                  block
+                  onClick={openInstallUrl}
+                  disabled={!savedDomain}
+                  className={`bg-gradient-to-r ${palette.grad} ${palette.hover} text-white font-semibold`}
+                >
+                  <Flex align="center" justify="center" gap="small">
+                    <Server size={18} />
+                    Install {plugin.name} Plugin
+                  </Flex>
+                </Button>
+              )}
+            </Flex>
           </Card>
+
+          {/* ── Download Guide ── */}
+          <a
+            href={plugin.downloadLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block mt-6"
+          >
+            <Button
+              type="text"
+              block
+              icon={<Download size={16} />}
+              className={`h-10 rounded-lg border border-transparent ${
+                palette.link
+              } font-medium transition-all hover:border-${
+                isShopify ? "emerald" : "indigo"
+              }-300 hover:bg-${isShopify ? "emerald" : "indigo"}-50`}
+            >
+              Download Integration Guide
+            </Button>
+          </a>
 
           {/* ── Footer Note ── */}
           <Paragraph className="mt-8 max-w-xl text-center text-xs text-gray-500">
