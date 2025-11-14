@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { Tabs, Button, Card, Flex, Typography, message, Space, Spin } from "antd"
 import { Server, Download, Tag, Clock, CheckCircle, Edit, Globe, XCircle } from "lucide-react"
 import { pluginsData } from "@/data/pluginsData"
@@ -10,6 +10,7 @@ import {
   pingIntegrationThunk,
 } from "@store/slices/otherSlice"
 import { fetchCategories, updateExistingIntegration } from "@store/slices/integrationSlice"
+import axiosInstance from "@api/index"
 
 const { Title, Text, Paragraph } = Typography
 
@@ -465,31 +466,27 @@ const PluginsMain = () => {
       )
     }
 
-    // ── SHOPIFY & WIX ──
     if (plugin.id === 113 || plugin.id === 114) {
       const isShopify = plugin.id === 113
 
-      // -----------------------------------------------------------------
-      // 1. Load saved domain from Redux (you can store it in any slice)
-      // -----------------------------------------------------------------
+      // savedDomain from redux (shopify / wix)
       const savedDomain = useSelector(
         state => state.integration?.shopifyWix?.[isShopify ? "shopify" : "wix"]?.domain
       )
+
       const [domain, setDomain] = useState(savedDomain ?? "")
       const [isValidDomain, setIsValidDomain] = useState(true)
-      const [editing, setEditing] = useState(!savedDomain) // force edit on first visit
       const [localLoading, setLocalLoading] = useState(false)
 
-      // -----------------------------------------------------------------
-      // 2. Validate domain (Shopify → *.myshopify.com, Wix → any URL)
-      // -----------------------------------------------------------------
+      const installWindowRef = useRef(null)
+      const pollTimerRef = useRef(null)
+
+      // Validate domain
       const validateDomain = val => {
         if (!val) return false
-        if (isShopify) {
-          return /^[\w-]+\.myshopify\.com$/i.test(val)
-        }
+        if (isShopify) return /^[\w-]+\.myshopify\.com$/i.test(val)
         try {
-          new URL(`https://${val}`)
+          new URL(val.startsWith("http") ? val : `https://${val}`)
           return true
         } catch {
           return false
@@ -500,192 +497,245 @@ const PluginsMain = () => {
         setIsValidDomain(validateDomain(domain))
       }, [domain])
 
-      // -----------------------------------------------------------------
-      // 3. Save / Update domain (calls your thunk – create one if needed)
-      // -----------------------------------------------------------------
-      const saveDomain = async () => {
-        if (!isValidDomain) return
+      useEffect(() => {
+        // cleanup on unmount
+        return () => {
+          if (pollTimerRef.current) {
+            clearInterval(pollTimerRef.current)
+          }
+          window.removeEventListener("message", handleMessage)
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [])
+
+      // Handler for optional postMessage from callback window
+      const handleMessage = event => {
+        try {
+          // optional origin check - if your callback will postMessage, prefer checking event.origin
+          // if (event.origin !== window.location.origin) return
+          const payload = event.data
+          if (!payload) return
+          if (typeof payload === "string" && payload.toLowerCase().includes("shopify")) {
+            // simple success signal
+            message.success("Shopify connected")
+            dispatch(getIntegrationsThunk()).catch(() => {})
+          }
+          // you can add more structured message handling here
+        } catch (err) {
+          // ignore silently
+        }
+      }
+      window.addEventListener("message", handleMessage)
+
+      // Open installer: call backend to generate Shopify install URL
+      const openInstallUrl = async () => {
+        if (!domain || !isValidDomain) {
+          message.error(isShopify ? "Enter a valid myshopify domain" : "Enter a valid URL")
+          return
+        }
+
         setLocalLoading(true)
         try {
-          await dispatch(
-            updateShopifyWixDomain({
-              type: isShopify ? "shopify" : "wix",
-              domain,
+          if (isShopify) {
+            // correct backend endpoint
+            const resp = await axiosInstance.post("/integrations/connect", {
+              shop: domain,
+              type: "SHOPIFY",
             })
-          ).unwrap()
-          message.success(`${plugin.name} domain saved!`)
-          setEditing(false)
-        } catch (e) {
-          message.error(e.message ?? "Failed to save domain")
+
+            const redirectUrl = resp.data?.redirectUrl
+            if (!redirectUrl) {
+              throw new Error("No installer URL returned from server")
+            }
+
+            installWindowRef.current = window.open(redirectUrl, "_blank", "noopener,noreferrer")
+            message.info("Opening Shopify installer…")
+
+            // Poll window close
+            pollTimerRef.current = setInterval(() => {
+              const w = installWindowRef.current
+              if (!w || w.closed) {
+                clearInterval(pollTimerRef.current)
+                pollTimerRef.current = null
+                installWindowRef.current = null
+
+                // Refresh integrations
+                dispatch(getIntegrationsThunk())
+                  .unwrap()
+                  .catch(() => {})
+
+                // Check Shopify status
+                dispatch(pingIntegrationThunk("SHOPIFY")).catch(() => {})
+              }
+            }, 1200)
+          }
+        } catch (err) {
+          console.error("Open install URL failed:", err)
+          const msg = err.response?.data?.message || err.message || "Failed to open installer"
+          message.error(msg)
         } finally {
           setLocalLoading(false)
         }
       }
 
-      // -----------------------------------------------------------------
-      // 4. “Install Plugin” – just opens the generated install URL
-      // -----------------------------------------------------------------
-      const openInstallUrl = () => {
-        if (!domain) return
-        const base = isShopify
-          ? `https://${domain}/admin/oauth/authorize?client_id=YOUR_CLIENT_ID&scope=write_products,write_content&redirect_uri=YOUR_REDIRECT`
-          : `https://www.wix.com/installer/install?appId=YOUR_WIX_APP_ID&redirectUrl=YOUR_REDIRECT&token=${domain}`
-        window.open(base, "_blank", "noopener,noreferrer")
-        message.info("Opening installer…")
+      // Ping the saved integration status
+      const handlePing = async () => {
+        if (loading || localLoading) return
+        setLocalLoading(true)
+        try {
+          const type = isShopify ? "SHOPIFY" : "WIX"
+          const result = await dispatch(pingIntegrationThunk(type)).unwrap()
+          setWordpressStatus(prev => ({
+            ...prev,
+            [plugin.id]: {
+              status: result.status || "success",
+              message: result.message,
+              success: result.success,
+            },
+          }))
+          if (result.success) message.success(result.message)
+          else message.error(result.message)
+        } catch (err) {
+          const msg = err.message || `Failed to check ${plugin.name} connection`
+          setWordpressStatus(prev => ({
+            ...prev,
+            [plugin.id]: { status: "error", message: msg, success: false },
+          }))
+          message.error(msg)
+        } finally {
+          setLocalLoading(false)
+        }
       }
 
-      // -----------------------------------------------------------------
-      // 5. UI
-      // -----------------------------------------------------------------
-      const palette = isShopify
-        ? {
-            grad: "from-emerald-500 to-green-400",
-            hover: "hover:from-emerald-600 hover:to-green-500",
-            badge: "bg-emerald-600",
-            card: "bg-gradient-to-br from-emerald-50 to-green-100/60",
-            text: "text-emerald-700",
-            link: "text-emerald-600 hover:text-emerald-700",
-          }
-        : {
-            grad: "from-neutral-900 to-gray-800",
-            hover: "hover:from-black hover:to-gray-700",
-            badge: "bg-neutral-900 text-white",
-            card: "bg-gradient-to-br from-gray-50 to-gray-200/60",
-            text: "text-neutral-800",
-            link: "text-gray-900 hover:text-black hover:underline",
-          }
-
+      // UI
       return (
-        <div className="flex min-h-full flex-col items-center justify-center p-6 md:p-10">
-          {/* ── Header ── */}
-          <div className="relative mb-8 flex flex-col items-center text-center">
-            <div className="relative">
+        <div className="h-full p-6">
+          <Flex vertical gap="large">
+            {/* Header */}
+            <Flex className="flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-6">
               <img
                 src={plugin.pluginImage}
                 alt={plugin.pluginName}
-                className="h-24 w-24 md:h-28 md:w-28 rounded-xl object-contain shadow-lg transition-transform duration-300 hover:scale-105"
+                className="h-16 w-16 md:h-20 md:w-20 object-contain rounded-lg shadow-sm"
               />
-            </div>
-
-            <Title
-              level={2}
-              className={`mt-4 bg-gradient-to-r ${
-                isShopify ? "from-emerald-600 to-green-500" : "from-indigo-600 to-purple-500"
-              } bg-clip-text text-2xl font-extrabold text-transparent md:text-3xl`}
-            >
-              {plugin.pluginName}
-            </Title>
-
-            <Text className="mt-2 max-w-xl text-base text-gray-600 md:text-lg">
-              {plugin.description}
-            </Text>
-
-            <div className="mt-5 flex flex-wrap justify-center gap-6">
-              <Flex align="center" gap="small">
-                <Tag size={16} className="text-teal-500" />
-                <Text className="font-medium text-teal-600">v{plugin.version}</Text>
-              </Flex>
-              <Flex align="center" gap="small">
-                <Clock size={16} className="text-blue-500" />
-                <Text className="font-medium text-blue-600">{plugin.updatedDate}</Text>
-              </Flex>
-            </div>
-          </div>
-
-          {/* ── Domain Card ── */}
-          <Card
-            className={`w-full max-w-2xl border-0 ${palette.card} p-8 shadow backdrop-blur-sm transition-all duration-300`}
-          >
-            <Flex vertical gap="middle">
-              <Flex justify="between" align="center">
-                <Text strong>{isShopify ? "Shopify Store Domain" : "Wix Site URL"}</Text>
-                <Button
-                  type="link"
-                  icon={<Edit size={16} />}
-                  onClick={() => setEditing(e => !e)}
-                  className="p-0 text-blue-500 hover:text-blue-600"
-                >
-                  {editing ? "Cancel" : "Edit"}
-                </Button>
-              </Flex>
-
-              <div className="relative">
-                <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <input
-                  placeholder={
-                    isShopify ? "your-store.myshopify.com" : "https://your-site.wixsite.com/mysite"
-                  }
-                  value={domain}
-                  onChange={e => setDomain(e.target.value.trim())}
-                  disabled={!editing || localLoading}
-                  className={`w-full rounded-lg border ${
-                    domain && !isValidDomain ? "border-red-400" : "border-gray-300"
-                  } pl-10 pr-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100`}
-                />
-              </div>
-
-              {domain && !isValidDomain && (
-                <Text type="danger" className="text-xs">
-                  {isShopify ? "Enter a valid *.myshopify.com domain" : "Enter a valid URL"}
-                </Text>
-              )}
-
-              {editing ? (
-                <Button
-                  type="primary"
-                  size="large"
-                  block
-                  loading={localLoading}
-                  disabled={!domain || !isValidDomain}
-                  onClick={saveDomain}
-                  className="bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600"
-                >
-                  Save Domain
-                </Button>
-              ) : (
-                <Button
-                  size="large"
-                  block
-                  onClick={openInstallUrl}
-                  disabled={!savedDomain}
-                  className={`bg-gradient-to-r ${palette.grad} ${palette.hover} text-white font-semibold`}
-                >
-                  <Flex align="center" justify="center" gap="small">
-                    <Server size={18} />
-                    Install {plugin.name} Plugin
+              <Flex vertical gap="small">
+                <Title level={2} className="text-gray-900 m-0 font-bold text-lg md:text-2xl">
+                  {plugin.pluginName}
+                </Title>
+                <Text className="text-gray-600 text-sm md:text-base">{plugin.description}</Text>
+                <Flex className="flex flex-wrap gap-4 mt-2">
+                  <Flex align="center" gap="small">
+                    <Tag size={16} className="text-teal-500" />
+                    <Text className="text-teal-600 font-medium text-sm md:text-base">
+                      Version {plugin.version}
+                    </Text>
                   </Flex>
-                </Button>
-              )}
+                  <Flex align="center" gap="small">
+                    <Clock size={16} className="text-blue-500" />
+                    <Text className="text-blue-600 font-medium text-sm md:text-base">
+                      Updated {plugin.updatedDate}
+                    </Text>
+                  </Flex>
+                </Flex>
+              </Flex>
             </Flex>
-          </Card>
 
-          {/* ── Download Guide ── */}
-          <a
-            href={plugin.downloadLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block mt-6"
-          >
-            <Button
-              type="text"
-              block
-              icon={<Download size={16} />}
-              className={`h-10 rounded-lg border border-transparent ${
-                palette.link
-              } font-medium transition-all hover:border-${
-                isShopify ? "emerald" : "indigo"
-              }-300 hover:bg-${isShopify ? "emerald" : "indigo"}-50`}
-            >
-              Download Integration Guide
-            </Button>
-          </a>
+            {/* Integration Card */}
+            <Card className="bg-gray-50 border-0 rounded-lg shadow-sm">
+              <Flex vertical gap="middle">
+                <Flex align="center" gap="small">
+                  <Text strong>
+                    {isShopify ? "Shopify Store Integration" : "Wix Site Integration"}
+                  </Text>
 
-          {/* ── Footer Note ── */}
-          <Paragraph className="mt-8 max-w-xl text-center text-xs text-gray-500">
-            {isShopify
-              ? "Publish blogs or product descriptions directly from GenWrite to your Shopify store."
-              : "Instantly push AI-generated content to your Wix Studio site with a single click."}
-          </Paragraph>
+                  {savedDomain &&
+                    wordpressStatus[plugin.id]?.success !== undefined &&
+                    (wordpressStatus[plugin.id]?.success ? (
+                      <Flex align="center" gap="small">
+                        <CheckCircle size={16} className="text-green-500" />
+                        <Text className="text-green-600">Connected</Text>
+                      </Flex>
+                    ) : (
+                      <Flex align="center" gap="small">
+                        <XCircle size={16} className="text-red-500" />
+                        <Text className="text-red-600">Not Connected</Text>
+                      </Flex>
+                    ))}
+                </Flex>
+
+                <Flex vertical gap="middle" className="w-full">
+                  <Text strong>Store URL</Text>
+
+                  <div className="flex flex-col gap-3 w-full">
+                    <div className="flex flex-col w-full">
+                      <label className="text-sm font-medium text-gray-700 mb-1">
+                        {isShopify ? "Shopify Store Domain" : "Wix Site URL"}
+                      </label>
+                      <div className="relative w-full">
+                        <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <input
+                          placeholder={
+                            isShopify
+                              ? "your-store.myshopify.com"
+                              : "https://your-site.wixsite.com/mysite"
+                          }
+                          value={domain}
+                          onChange={e => setDomain(e.target.value.trim())}
+                          disabled={!!savedDomain || localLoading}
+                          className={`w-full rounded-lg border ${
+                            domain && !isValidDomain ? "border-red-400" : "border-gray-300"
+                          } px-10 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 disabled:bg-gray-100`}
+                        />
+                      </div>
+                      {domain && !isValidDomain && (
+                        <span className="text-red-500 text-xs mt-1">
+                          {isShopify ? "Enter a valid *.myshopify.com domain" : "Enter a valid URL"}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <Button
+                        type="primary"
+                        size="large"
+                        block
+                        onClick={openInstallUrl}
+                        disabled={!domain || !isValidDomain || localLoading}
+                        className={`flex-1 bg-gradient-to-r ${
+                          isShopify
+                            ? "from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
+                            : "from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600"
+                        } text-white`}
+                      >
+                        <Flex align="center" justify="center" gap="small">
+                          <Server size={18} />
+                          Install {plugin.name}
+                        </Flex>
+                      </Button>
+
+                      <Button
+                        type="primary"
+                        size="large"
+                        block
+                        onClick={handlePing}
+                        loading={localLoading}
+                        disabled={!domain || localLoading}
+                        className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white"
+                      >
+                        Check Status
+                      </Button>
+                    </div>
+                  </div>
+                </Flex>
+              </Flex>
+            </Card>
+
+            <Card className="bg-gray-50 border-0 rounded-lg shadow-sm">
+              <Paragraph className="text-sm md:text-base text-gray-700 leading-relaxed mb-0">
+                {plugin.message}
+              </Paragraph>
+            </Card>
+          </Flex>
         </div>
       )
     }
