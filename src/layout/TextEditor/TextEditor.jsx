@@ -191,7 +191,6 @@ const TextEditor = ({
     //   .use(rehypeStringify)
     //   // And finally, process the input
     //   .processSync(markdown)
-    // console.log(result.toString())
     // return result.toString()
   }, [])
 
@@ -652,10 +651,7 @@ const TextEditor = ({
       ),
       confirmText: "Yes, Rewrite",
       cancelText: "Cancel",
-      onConfirm: handleRetry, // ✅ directly call your rewrite handler
-      onCancel: () => {
-        console.log("User cancelled rewrite") // optional
-      },
+      onConfirm: handleRetry, 
     })
   }
 

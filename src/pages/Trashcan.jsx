@@ -77,7 +77,6 @@ const Trashcan = () => {
         limit: pageSize,
       }
       const response = await getAllBlogs(queryParams)
-      console.log(response)
       return {
         trashedBlogs: response.data || [],
         totalBlogs: response.totalItems || 0,
@@ -87,8 +86,6 @@ const Trashcan = () => {
 
   const trashedBlogs = data?.trashedBlogs || []
   const totalBlogs = data?.totalBlogs || 0
-
-  console.log(trashedBlogs, data)
 
   // Socket for real-time updates
   useEffect(() => {

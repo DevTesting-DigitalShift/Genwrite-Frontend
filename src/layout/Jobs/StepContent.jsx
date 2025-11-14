@@ -472,7 +472,6 @@ const StepContent = ({
   }
 
   const handleTemplateSelection = useCallback(temps => {
-    console.log(temps)
     setNewJob(prev => ({
       ...prev,
       blogs: {

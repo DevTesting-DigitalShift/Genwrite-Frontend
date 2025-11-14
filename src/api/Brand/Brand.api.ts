@@ -19,7 +19,6 @@ export const BrandAPI = {
   },
 
   update: async (id: string, payload: Partial<Brand>): Promise<Brand> => {
-    console.log("Brand Payload: ", payload)
     const res = await axiosInstance.put(`/brand/${id}`, payload)
     return res.data
   },
