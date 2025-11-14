@@ -57,7 +57,6 @@ export default function EmailVerification() {
         email: values.email,
       })
 
-      message.success("Verification code sent!")
       startResendCountdown()
       setShowOTP(true)
     } catch (err) {
@@ -93,24 +92,6 @@ export default function EmailVerification() {
     await handleSendCode()
   }
 
-  // SUCCESS PAGE
-  if (verified) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
-        <Result
-          status="success"
-          icon={<CheckCircleOutlined className="text-green-500 text-6xl" />}
-          title="Email Verified!"
-          subTitle={
-            <span>
-              Your email <strong>{email}</strong> is verified.
-            </span>
-          }
-        />
-      </div>
-    )
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-xl border-0">
@@ -132,11 +113,7 @@ export default function EmailVerification() {
                 { type: "email", message: "Invalid email" },
               ]}
             >
-              <Input
-                placeholder="you@example.com"
-                size="large"
-                disabled={!!email} // 🔥 IMPORTANT: disable if URL email found
-              />
+              <Input placeholder="you@example.com" size="large" />
             </Form.Item>
 
             {/* STEP 1 — SEND CODE SCREEN */}
@@ -154,45 +131,22 @@ export default function EmailVerification() {
                     <div>
                       <Text strong>{email}</Text>
                       <br />
-                      <Text type="secondary">A 6-digit code was sent to your inbox.</Text>
+                      <Text type="secondary">Check your inbox and click on link.</Text>
                     </div>
                   }
                   type="info"
                   showIcon
                 />
 
-                <Form.Item
-                  name="code"
-                  rules={[
-                    { required: true, message: "Enter the 6-digit code" },
-                    { len: 6, message: "Code must be 6 digits" },
-                  ]}
+                <Button
+                  size="large"
+                  className="w-full"
+                  onClick={handleResend}
+                  disabled={!canResend || loading}
+                  icon={resendCountdown > 0 ? <ReloadOutlined spin /> : <ReloadOutlined />}
                 >
-                  <Input.OTP length={6} />
-                </Form.Item>
-
-                {error && <Alert message={error} type="error" showIcon />}
-
-                <div className="flex gap-3">
-                  <Button
-                    type="primary"
-                    size="large"
-                    htmlType="submit"
-                    loading={loading}
-                    className="flex-1"
-                  >
-                    Verify
-                  </Button>
-
-                  <Button
-                    size="large"
-                    onClick={handleResend}
-                    disabled={!canResend || loading}
-                    icon={resendCountdown > 0 ? <ReloadOutlined spin /> : <ReloadOutlined />}
-                  >
-                    {resendCountdown > 0 ? `${resendCountdown}s` : "Resend"}
-                  </Button>
-                </div>
+                  {resendCountdown > 0 ? `${resendCountdown}s` : "Resend"}
+                </Button>
               </>
             )}
           </Space>

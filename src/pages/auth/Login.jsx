@@ -101,12 +101,19 @@ const Auth = ({ path }) => {
     onSuccess: async tokenResponse => {
       dispatch(googleLogin({ access_token: tokenResponse.access_token }))
         .unwrap()
-        .then(({ authStatus, user }) => {
+        .then(data => {
           message.success("Google login successful!")
-          navigate(authStatus === "sign_up" ? "/pricing" : "/dashboard", { replace: true })
-        })
-        .catch(err => {
-          console.error("Google login error:", err)
+
+          const user = data.user || data?.data?.user || data 
+
+          console.log(data.user)
+          console.log(!user.emailVerified)
+
+          if (!user.emailVerified) {
+            navigate(`/email-verify/${user.email}`, { replace: true })
+          } else {
+            navigate("/dashboard", { replace: true })
+          }
         })
     },
     onError: () => {
@@ -118,9 +125,7 @@ const Auth = ({ path }) => {
   const handleSubmit = useCallback(
     async e => {
       e.preventDefault()
-      if (!validateForm()) {
-        return
-      }
+      if (!validateForm()) return
 
       setLoading(true)
 
@@ -138,12 +143,17 @@ const Auth = ({ path }) => {
               captchaToken: recaptchaValue,
             })
 
-        await dispatch(action).unwrap()
+        // only dispatch ONCE
+        const { user } = await dispatch(action).unwrap()
 
         message.success(isSignup ? "Signup successful!" : "Login successful!")
-        setTimeout(() => {
-          navigate(isSignup ? "/pricing" : "/dashboard", { replace: true })
-        }, 100)
+
+        // 🔥 Correct redirect logic
+        if (!user.emailVerified) {
+          navigate(`/email-verify/${user.email}`, { replace: true })
+        } else {
+          navigate("/dashboard", { replace: true })
+        }
       } catch (err) {
         console.error("Auth error:", err)
         message.error(err.data?.message || err?.message || "Signup failed")
