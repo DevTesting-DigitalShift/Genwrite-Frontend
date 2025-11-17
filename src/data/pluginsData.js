@@ -1,5 +1,5 @@
 import { pingIntegrationThunk } from "@store/slices/otherSlice"
-import { FaServer, FaWordpressSimple } from "react-icons/fa"
+import { FaServer, FaWordpressSimple, FaShopify, FaWix } from "react-icons/fa"
 
 export const pluginsData = dispatch => [
   {
@@ -61,5 +61,39 @@ export const pluginsData = dispatch => [
         }
       }
     },
+  },
+  {
+    id: 113,
+    pluginName: "Shopify Integration",
+    name: "Shopify",
+    pluginImage: "/Images/shopify.png", // put your temp image inside public/images
+    description: "Sync your GenWrite content directly to your Shopify store.",
+    version: "1.0.0",
+    updatedDate: "Nov 2025",
+    downloadLink: "#", // you can later attach doc or zip
+    icon: FaShopify, // or use any lucide icon you want
+    message: "Easily publish product content and blog posts directly to Shopify.",
+    onCheck: async () => ({
+      status: 200,
+      message: "Temporary mock connection successful",
+      success: true,
+    }),
+  },
+  {
+    id: 114,
+    pluginName: "Wix Studio Integration",
+    name: "Wix Studio",
+    pluginImage: "/Images/wix.png",
+    description: "Connect your Wix Studio projects with GenWrite for seamless publishing.",
+    version: "1.0.0",
+    updatedDate: "Nov 2025",
+    downloadLink: "#",
+    icon: FaWix,
+    message: "Push AI-generated blogs and marketing copy directly to your Wix site.",
+    onCheck: async () => ({
+      status: 200,
+      message: "Temporary mock connection successful",
+      success: true,
+    }),
   },
 ]

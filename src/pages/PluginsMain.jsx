@@ -11,6 +11,7 @@ import {
 } from "@store/slices/otherSlice"
 import { fetchCategories, updateExistingIntegration } from "@store/slices/integrationSlice"
 import axiosInstance from "@api/index"
+import { FaShopify, FaWix } from "react-icons/fa"
 
 const { Title, Text, Paragraph } = Typography
 
@@ -32,43 +33,7 @@ const PluginsMain = () => {
   } = useSelector(state => state.integration)
 
   const extendedPlugins = useMemo(() => {
-    return [
-      ...plugins,
-      {
-        id: 113,
-        pluginName: "Shopify Integration",
-        name: "Shopify",
-        pluginImage: "/Images/shopify.png", // put your temp image inside public/images
-        description: "Sync your GenWrite content directly to your Shopify store.",
-        version: "1.0.0",
-        updatedDate: "Nov 2025",
-        downloadLink: "#", // you can later attach doc or zip
-        icon: Server, // or use any lucide icon you want
-        message: "Easily publish product content and blog posts directly to Shopify.",
-        onCheck: async () => ({
-          status: 200,
-          message: "Temporary mock connection successful",
-          success: true,
-        }),
-      },
-      {
-        id: 114,
-        pluginName: "Wix Studio Integration",
-        name: "Wix Studio",
-        pluginImage: "/Images/wix.png",
-        description: "Connect your Wix Studio projects with GenWrite for seamless publishing.",
-        version: "1.0.0",
-        updatedDate: "Nov 2025",
-        downloadLink: "#",
-        icon: Server,
-        message: "Push AI-generated blogs and marketing copy directly to your Wix site.",
-        onCheck: async () => ({
-          status: 200,
-          message: "Temporary mock connection successful",
-          success: true,
-        }),
-      },
-    ]
+    return [...plugins]
   }, [plugins])
 
   useEffect(() => {
@@ -470,10 +435,8 @@ const PluginsMain = () => {
       const isShopify = plugin.id === 113
 
       // savedDomain from redux (shopify / wix)
-      const savedDomain = useSelector(
-        state => state.integration?.shopifyWix?.[isShopify ? "shopify" : "wix"]?.domain
-      )
-
+      // const integrations = useSelector(state => state.integration)
+      const savedDomain = integrations?.integrations?.[isShopify ? "SHOPIFY" : "WIX"]?.url
       const [domain, setDomain] = useState(savedDomain ?? "")
       const [isValidDomain, setIsValidDomain] = useState(true)
       const [localLoading, setLocalLoading] = useState(false)
