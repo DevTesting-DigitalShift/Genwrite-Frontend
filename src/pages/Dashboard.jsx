@@ -160,9 +160,9 @@ const Dashboard = () => {
   }
 
   const openSecondStepJobModal = () => {
-    setKeywordResearchModal(false)
-    dispatch(openJobModal())
+    setActiveModel("")
     navigate("/jobs")
+    dispatch(openJobModal())
   }
 
   useEffect(() => {
@@ -222,7 +222,7 @@ const Dashboard = () => {
   }
 
   const handleCloseActiveModal = () => {
-    if ([ACTIVE_MODELS.Advanced_Blog, ACTIVE_MODELS.Keyword_Research].includes(activeModel)) {
+    if ([ACTIVE_MODELS.Advanced_Blog].includes(activeModel)) {
       dispatch(clearSelectedKeywords())
     }
     setActiveModel("")
