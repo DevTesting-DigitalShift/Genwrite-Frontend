@@ -1,5 +1,5 @@
 import { Suspense, useEffect } from "react"
-import { useNavigate, Outlet, useLocation } from "react-router-dom"
+import { useNavigate, Outlet, useLocation, useSearchParams } from "react-router-dom"
 import { Helmet } from "react-helmet"
 import LoadingScreen from "@components/UI/LoadingScreen"
 import { connectSocket } from "@utils/socket"
@@ -23,6 +23,12 @@ const App = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const dispatch = useDispatch()
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  useEffect(() => {
+    const params = Object.fromEntries(searchParams.entries())
+    console.log(params)
+  }, [searchParams])
 
   const { user } = useSelector(state => state.auth)
 

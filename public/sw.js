@@ -3,7 +3,7 @@
 // File: public/sw.js
 // ============================================
 
-const CACHE_NAME = "app-v1.0.0"
+const CACHE_NAME = "app-v1.0.1"
 const STATIC_ASSETS = ["/", "/index.html", "/manifest.json"]
 const CACHE_EXPIRY_HOURS = 24 // Cache JS/HTML for 6 hours (can set 4–7)
 
@@ -75,20 +75,37 @@ self.addEventListener("fetch", event => {
   const { request } = event
   const url = new URL(request.url)
 
+  const isSameOrigin = url.origin === self.location.origin
+  const isBackend = url.hostname === "api.genwrite.co"
+  const isLocalBackend = url.origin === "http://localhost:8000"
+
   // -------- SKIP API CALLS --------
-  // API calls should NEVER be cached (or cached very briefly)
-  // Your data changes, so you always want fresh data from the server
-  if (url.origin === "http://localhost:8000" || url.hostname === "https://api.genwrite.co") {
-    // Just pass it through to the network - no caching
+
+  // ------------------------------------------
+  // 1. BLOCK ANY NON-SAME-ORIGIN FROM CACHING
+  // ------------------------------------------
+  if (!isSameOrigin) {
     event.respondWith(fetch(request))
-    return // IMPORTANT: Exit here so the code below doesn't run
+    return
+  }
+  // ------------------------------------------
+  // 2. NEVER CACHE BACKEND OR AUTH
+  // ------------------------------------------
+  if (isBackend || isLocalBackend) {
+    event.respondWith(fetch(request))
+    return
   }
 
-  if (
-    url.protocol === "chrome-extension:" ||
-    url.protocol === "moz-extension:" ||
-    request.method !== "GET"
-  ) {
+  // ------------------------------------------
+  // 3. NEVER CACHE NON-GET REQUESTS
+  // ------------------------------------------
+  if (req.method !== "GET") {
+    event.respondWith(fetch(request))
+    return
+  }
+
+  if (url.protocol === "chrome-extension:" || url.protocol === "moz-extension:") {
+    event.respondWith(fetch(request))
     return // Don't intercept extension requests
   }
 
