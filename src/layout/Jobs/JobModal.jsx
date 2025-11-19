@@ -79,6 +79,7 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
 
   useEffect(() => {
     if (selectedJob) {
+      console.log("====================",selectedJob)
       setFormData(prev => ({
         ...prev,
         aiModel: selectedJob.blogs?.aiModel || initialJob.blogs.aiModel,
@@ -86,6 +87,7 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
           selectedJob.options?.performKeywordResearch ?? initialJob.options.performKeywordResearch,
         keywords: selectedJob.blogs?.keywords ?? initialJob.blogs.keywords,
         postingType: selectedJob.blogs?.postingType || initialJob.blogs.postingType,
+        templates: selectedJob.blogs?.templates || initialJob.blogs.templates,
       }))
       setNewJob(selectedJob)
     } else {

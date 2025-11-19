@@ -482,7 +482,7 @@ const StepContent = ({
     }))
     setErrors(prev => ({ ...prev, templates: false }))
   }, [])
-
+  console.log(newJob?.blogs)
   switch (currentStep) {
     case 1:
       return (
@@ -496,7 +496,7 @@ const StepContent = ({
           <TemplateSelection
             numberOfSelection={3}
             userSubscriptionPlan={userPlan ?? "free"}
-            preSelectedIds={newJob?.templateIds ?? []}
+            preSelectedIds={newJob?.blogs?.templates ?? []}
             onClick={handleTemplateSelection}
           />
           {/* <p className="text-sm text-gray-600 mb-3 sm:mb-4">

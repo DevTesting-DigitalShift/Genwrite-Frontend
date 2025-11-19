@@ -20,7 +20,7 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
     keywordAnalysis: keywordAnalysisResult,
     loading: analyzing,
     selectedKeywords,
-  } = useSelector((state) => state.analysis)
+  } = useSelector(state => state.analysis)
 
   useEffect(() => {
     if (keywords.length === 0) {
@@ -33,14 +33,14 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
     const input = newKeyword.trim()
     if (!input) return
 
-    const existing = keywords.map((k) => k.toLowerCase())
+    const existing = keywords.map(k => k.toLowerCase())
     const seen = new Set()
 
     const newKeywords = input
       .split(",")
-      .map((k) => k.trim())
+      .map(k => k.trim())
       .filter(
-        (k) =>
+        k =>
           k &&
           !existing.includes(k.toLowerCase()) &&
           !seen.has(k.toLowerCase()) &&
@@ -53,7 +53,7 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
     }
   }
 
-  const removeKeyword = (index) => {
+  const removeKeyword = index => {
     const keywordToRemove = keywords[index]
     const updatedKeywords = keywords.filter((_, i) => i !== index)
     setKeywords(updatedKeywords)
@@ -64,7 +64,7 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
     // Remove from selectedKeywords if present
     if (selectedKeywords?.allKeywords?.includes(keywordToRemove)) {
       const updatedSelectedKeywords = selectedKeywords.allKeywords.filter(
-        (kw) => kw !== keywordToRemove
+        kw => kw !== keywordToRemove
       )
       dispatch(
         setSelectedKeywords({
@@ -76,7 +76,7 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
     }
   }
 
-  const handleKeyPress = (e) => {
+  const handleKeyPress = e => {
     if (e.key === "Enter") {
       e.preventDefault()
       addKeyword()
@@ -92,7 +92,7 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
 
   const getAutoSelectedKeywords = () => {
     const byCompetition = { LOW: [], MEDIUM: [], HIGH: [] }
-    keywordAnalysisResult?.forEach((kw) => {
+    keywordAnalysisResult?.forEach(kw => {
       if (byCompetition[kw.competition]) {
         byCompetition[kw.competition].push({
           keyword: kw.keyword,
@@ -112,9 +112,9 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
     ).slice(0, 2)
 
     return [
-      ...sortedLow.map((item) => item.keyword),
-      ...sortedMedium.map((item) => item.keyword),
-      ...sortedHigh.map((item) => item.keyword),
+      ...sortedLow.map(item => item.keyword),
+      ...sortedMedium.map(item => item.keyword),
+      ...sortedHigh.map(item => item.keyword),
     ]
   }
 
@@ -139,7 +139,7 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
         <div>
           <p>We selected these keywords automatically based on competition index:</p>
           <ul className="list-disc ml-5 mt-2">
-            {autoKeywords.map((kw) => (
+            {autoKeywords.map(kw => (
               <li key={kw} className="capitalize text-sm sm:text-base">
                 {kw}
               </li>
@@ -154,7 +154,7 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
       onOk() {
         const finalKeywords = [
           ...(selectedKeywords?.allKeywords || []),
-          ...autoKeywords.filter((kw) => !selectedKeywords?.allKeywords?.includes(kw)),
+          ...autoKeywords.filter(kw => !selectedKeywords?.allKeywords?.includes(kw)),
         ].slice(0, 6) // Limit to 6 keywords
         dispatch(
           setSelectedKeywords({
@@ -179,7 +179,7 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
     })
   }
 
-  const proceedWithSelectedKeywords = async (type) => {
+  const proceedWithSelectedKeywords = async type => {
     const finalKeywords = selectedKeywords?.allKeywords || []
     await dispatch(
       setSelectedKeywords({
@@ -188,18 +188,18 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
         allKeywords: finalKeywords,
       })
     )
-
+    closeFnc()
     setTimeout(() => {
       if (type === "blog") {
-        openSecondStepModal({
-          focusKeywords: finalKeywords.slice(0, 3),
-          keywords: finalKeywords.slice(3),
-          allKeywords: finalKeywords,
-        })
+        openSecondStepModal()
+        // openSecondStepModal({
+        //   focusKeywords: finalKeywords.slice(0, 3),
+        //   keywords: finalKeywords.slice(3),
+        //   allKeywords: finalKeywords,
+        // })
       } else {
         openJobModal()
       }
-      closeFnc()
     }, 100)
   }
 
@@ -217,21 +217,21 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
       dataIndex: "keyword",
       key: "keyword",
       sorter: (a, b) => a.keyword.localeCompare(b.keyword),
-      render: (text) => <span className="font-medium capitalize text-sm sm:text-base">{text}</span>,
+      render: text => <span className="font-medium capitalize text-sm sm:text-base">{text}</span>,
     },
     {
       title: "Monthly Searches",
       dataIndex: "avgMonthlySearches",
       key: "avgMonthlySearches",
       sorter: (a, b) => a.avgMonthlySearches - b.avgMonthlySearches,
-      render: (value) => new Intl.NumberFormat().format(value),
+      render: value => new Intl.NumberFormat().format(value),
     },
     {
       title: "Competition",
       dataIndex: "competition",
       key: "competition",
       sorter: (a, b) => a.competition_index - b.competition_index,
-      render: (text) => (
+      render: text => (
         <Tag
           color={
             text === "LOW"
@@ -253,7 +253,7 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
       dataIndex: "competition_index",
       key: "competition_index",
       sorter: (a, b) => a.competition_index - b.competition_index,
-      render: (value) => (value ? value : "-"),
+      render: value => (value ? value : "-"),
     },
   ]
 
@@ -270,10 +270,10 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
     })) || []
 
   const filteredTableData = showSelectedOnly
-    ? tableData.filter((row) => selectedKeywords?.allKeywords?.includes(row.keyword))
+    ? tableData.filter(row => selectedKeywords?.allKeywords?.includes(row.keyword))
     : tableData
 
-  const handlePageChange = (page) => setCurrentPage(page)
+  const handlePageChange = page => setCurrentPage(page)
 
   useEffect(() => {
     return () => {
@@ -374,7 +374,7 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
           <Input
             placeholder="Enter a keyword"
             value={newKeyword}
-            onChange={(e) => setNewKeyword(e.target.value)}
+            onChange={e => setNewKeyword(e.target.value)}
             onKeyPress={handleKeyPress}
             className="flex-1 text-sm sm:text-base"
             aria-label="Enter keyword"
@@ -394,7 +394,7 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
               animate={{ opacity: 1 }}
               className="bg-blue-100 text-blue-800 px-2 sm:px-3 py-1 rounded-full flex items-center text-xs sm:text-sm"
             >
-              <span className="capitalize">{keyword}</span>
+              <span className="lowercase">{keyword}</span>
               <motion.div
                 whileHover={{ scale: 1.2 }}
                 whileTap={{ scale: 0.8 }}
@@ -425,7 +425,7 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
             <div className="flex items-center mb-3 sm:mb-4">
               <Switch
                 checked={showSelectedOnly}
-                onChange={(checked) => setShowSelectedOnly(checked)}
+                onChange={checked => setShowSelectedOnly(checked)}
                 disabled={!hasSelectedKeywords}
                 size="small"
               />
@@ -447,7 +447,7 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
                 }}
                 rowSelection={{
                   selectedRowKeys: selectedKeywords?.allKeywords || [],
-                  onChange: (selected) => {
+                  onChange: selected => {
                     dispatch(
                       setSelectedKeywords({
                         focusKeywords: selected.slice(0, 3),
@@ -456,11 +456,11 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
                       })
                     )
                   },
-                  getCheckboxProps: (record) => ({
+                  getCheckboxProps: record => ({
                     name: record.keyword,
                   }),
                 }}
-                rowKey={(record) => record.keyword}
+                rowKey={record => record.keyword}
                 scroll={{ x: 600 }}
                 className="min-w-[600px]"
               />

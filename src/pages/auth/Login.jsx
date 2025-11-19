@@ -19,6 +19,7 @@ import { FcGoogle } from "react-icons/fc"
 import { Sparkles, Zap, PenTool, CheckCircle } from "lucide-react"
 import { Helmet } from "react-helmet"
 import { message } from "antd"
+import { FiGift } from "react-icons/fi"
 
 const Auth = ({ path }) => {
   const [formData, setFormData] = useState({
@@ -104,10 +105,7 @@ const Auth = ({ path }) => {
         .then(data => {
           message.success("Google login successful!")
 
-          const user = data.user || data?.data?.user || data 
-
-          console.log(data.user)
-          console.log(!user.emailVerified)
+          const user = data.user || data?.data?.user || data
 
           if (!user.emailVerified) {
             navigate(`/email-verify/${user.email}`, { replace: true })
@@ -181,6 +179,10 @@ const Auth = ({ path }) => {
     { icon: <CheckCircle className="w-5 h-5" />, text: "Automated Content Scheduling" },
     { icon: <FaGoogle className="w-5 h-5" />, text: "Competitor Analysis Insights" },
     { icon: <Sparkles className="w-5 h-5" />, text: "Performance & Keyword Analytics" },
+    {
+      icon: <FiGift className="w-5 h-5" />,
+      text: "Enjoy a 7-Days Trial on Plan You Choose",
+    },
   ]
 
   return (
@@ -264,7 +266,7 @@ const Auth = ({ path }) => {
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-900">Start for Free</h3>
-                  <p className="text-sm text-gray-600">No credit card required</p>
+                  <p className="text-sm text-gray-600">With just minimum cost.</p>
                 </div>
               </div>
               <p className="text-sm text-gray-600">

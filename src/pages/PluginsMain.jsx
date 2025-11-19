@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { Tabs, Button, Card, Flex, Typography, message, Space, Spin } from "antd"
 import { Server, Download, Tag, Clock, CheckCircle, Edit, Globe, XCircle } from "lucide-react"
 import { pluginsData } from "@/data/pluginsData"
@@ -10,6 +10,8 @@ import {
   pingIntegrationThunk,
 } from "@store/slices/otherSlice"
 import { fetchCategories, updateExistingIntegration } from "@store/slices/integrationSlice"
+import axiosInstance from "@api/index"
+import { FaShopify, FaWix } from "react-icons/fa"
 
 const { Title, Text, Paragraph } = Typography
 
@@ -30,11 +32,15 @@ const PluginsMain = () => {
     loading: postsLoading,
   } = useSelector(state => state.integration)
 
+  const extendedPlugins = useMemo(() => {
+    return plugins.filter(p => p.isVisible)
+  }, [plugins])
+
   useEffect(() => {
     dispatch(getIntegrationsThunk())
-    if (plugins.length > 0 && !activeTab) {
-      setActiveTab(plugins[0].id.toString())
-      checkPlugin(plugins[0])
+    if (extendedPlugins.length > 0 && !activeTab) {
+      setActiveTab(extendedPlugins[0].id.toString())
+      checkPlugin(extendedPlugins[0])
     }
   }, [plugins, dispatch, activeTab])
 
@@ -425,6 +431,289 @@ const PluginsMain = () => {
       )
     }
 
+    if (plugin.id === 113 || plugin.id === 114) {
+      const isShopify = plugin.id === 113
+
+      // savedDomain from redux (shopify / wix)
+      // const integrations = useSelector(state => state.integration)
+      const savedDomain = integrations?.integrations?.[isShopify ? "SHOPIFY" : "WIX"]?.url
+      const [domain, setDomain] = useState(savedDomain ?? "")
+      const [isValidDomain, setIsValidDomain] = useState(true)
+      const [localLoading, setLocalLoading] = useState(false)
+
+      const installWindowRef = useRef(null)
+      const pollTimerRef = useRef(null)
+
+      // Validate domain
+      const validateDomain = val => {
+        if (!val) return false
+
+        if (isShopify) {
+          try {
+            // If user enters full URL, extract hostname
+            const normalized = val.startsWith("http") ? new URL(val).hostname : val
+            return /^[\w-]+\.myshopify\.com$/i.test(normalized)
+          } catch {
+            return false
+          }
+        }
+
+        // Wix or others
+        try {
+          new URL(val.startsWith("http") ? val : `https://${val}`)
+          return true
+        } catch {
+          return false
+        }
+      }
+
+      useEffect(() => {
+        setIsValidDomain(validateDomain(domain))
+      }, [domain])
+
+      useEffect(() => {
+        // cleanup on unmount
+        return () => {
+          if (pollTimerRef.current) {
+            clearInterval(pollTimerRef.current)
+          }
+          window.removeEventListener("message", handleMessage)
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [])
+
+      // Handler for optional postMessage from callback window
+      const handleMessage = event => {
+        try {
+          // optional origin check - if your callback will postMessage, prefer checking event.origin
+          // if (event.origin !== window.location.origin) return
+          const payload = event.data
+          if (!payload) return
+          if (typeof payload === "string" && payload.toLowerCase().includes("shopify")) {
+            // simple success signal
+            message.success("Shopify connected")
+            dispatch(getIntegrationsThunk()).catch(() => {})
+          }
+          // you can add more structured message handling here
+        } catch (err) {
+          // ignore silently
+        }
+      }
+      window.addEventListener("message", handleMessage)
+
+      // Open installer: call backend to generate Shopify install URL
+      const openInstallUrl = async () => {
+        if (!domain || !isValidDomain) {
+          message.error(isShopify ? "Enter a valid myshopify domain" : "Enter a valid URL")
+          return
+        }
+
+        setLocalLoading(true)
+        try {
+          if (isShopify) {
+            // correct backend endpoint
+            const resp = await axiosInstance.post("/integrations/connect", {
+              shop: domain,
+              type: "SHOPIFY",
+            })
+
+            const redirectUrl = resp.data?.redirectUrl
+            if (!redirectUrl) {
+              throw new Error("No installer URL returned from server")
+            }
+
+            installWindowRef.current = window.open(redirectUrl, "_blank", "noopener,noreferrer")
+            message.info("Opening Shopify installer…")
+
+            // Poll window close
+            pollTimerRef.current = setInterval(() => {
+              const w = installWindowRef.current
+              if (!w || w.closed) {
+                clearInterval(pollTimerRef.current)
+                pollTimerRef.current = null
+                installWindowRef.current = null
+
+                // Refresh integrations
+                dispatch(getIntegrationsThunk())
+                  .unwrap()
+                  .catch(() => {})
+
+                // Check Shopify status
+                dispatch(pingIntegrationThunk("SHOPIFY")).catch(() => {})
+              }
+            }, 1200)
+          }
+        } catch (err) {
+          console.error("Open install URL failed:", err)
+          const msg = err.response?.data?.message || err.message || "Failed to open installer"
+          message.error(msg)
+        } finally {
+          setLocalLoading(false)
+        }
+      }
+
+      // Ping the saved integration status
+      const handlePing = async () => {
+        if (loading || localLoading) return
+        setLocalLoading(true)
+        try {
+          const type = isShopify ? "SHOPIFY" : "WIX"
+          const result = await dispatch(pingIntegrationThunk(type)).unwrap()
+          setWordpressStatus(prev => ({
+            ...prev,
+            [plugin.id]: {
+              status: result.status || "success",
+              message: result.message,
+              success: result.success,
+            },
+          }))
+          if (result.success) message.success(result.message)
+          else message.error(result.message)
+        } catch (err) {
+          const msg = err.message || `Failed to check ${plugin.name} connection`
+          setWordpressStatus(prev => ({
+            ...prev,
+            [plugin.id]: { status: "error", message: msg, success: false },
+          }))
+          message.error(msg)
+        } finally {
+          setLocalLoading(false)
+        }
+      }
+
+      // UI
+      return (
+        <div className="h-full p-6">
+          <Flex vertical gap="large">
+            {/* Header */}
+            <Flex className="flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-6">
+              <img
+                src={plugin.pluginImage}
+                alt={plugin.pluginName}
+                className="h-16 w-16 md:h-20 md:w-20 object-contain rounded-lg shadow-sm"
+              />
+              <Flex vertical gap="small">
+                <Title level={2} className="text-gray-900 m-0 font-bold text-lg md:text-2xl">
+                  {plugin.pluginName}
+                </Title>
+                <Text className="text-gray-600 text-sm md:text-base">{plugin.description}</Text>
+                <Flex className="flex flex-wrap gap-4 mt-2">
+                  <Flex align="center" gap="small">
+                    <Tag size={16} className="text-teal-500" />
+                    <Text className="text-teal-600 font-medium text-sm md:text-base">
+                      Version {plugin.version}
+                    </Text>
+                  </Flex>
+                  <Flex align="center" gap="small">
+                    <Clock size={16} className="text-blue-500" />
+                    <Text className="text-blue-600 font-medium text-sm md:text-base">
+                      Updated {plugin.updatedDate}
+                    </Text>
+                  </Flex>
+                </Flex>
+              </Flex>
+            </Flex>
+
+            {/* Integration Card */}
+            <Card className="bg-gray-50 border-0 rounded-lg shadow-sm">
+              <Flex vertical gap="middle">
+                <Flex align="center" gap="small">
+                  <Text strong>
+                    {isShopify ? "Shopify Store Integration" : "Wix Site Integration"}
+                  </Text>
+
+                  {savedDomain &&
+                    wordpressStatus[plugin.id]?.success !== undefined &&
+                    (wordpressStatus[plugin.id]?.success ? (
+                      <Flex align="center" gap="small">
+                        <CheckCircle size={16} className="text-green-500" />
+                        <Text className="text-green-600">Connected</Text>
+                      </Flex>
+                    ) : (
+                      <Flex align="center" gap="small">
+                        <XCircle size={16} className="text-red-500" />
+                        <Text className="text-red-600">Not Connected</Text>
+                      </Flex>
+                    ))}
+                </Flex>
+
+                <Flex vertical gap="middle" className="w-full">
+                  <Text strong>Store URL</Text>
+
+                  <div className="flex flex-col gap-3 w-full">
+                    <div className="flex flex-col w-full">
+                      <label className="text-sm font-medium text-gray-700 mb-1">
+                        {isShopify ? "Shopify Store Domain" : "Wix Site URL"}
+                      </label>
+                      <div className="relative w-full">
+                        <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <input
+                          placeholder={
+                            isShopify
+                              ? "your-store.myshopify.com"
+                              : "https://your-site.wixsite.com/mysite"
+                          }
+                          value={domain}
+                          onChange={e => setDomain(e.target.value.trim())}
+                          disabled={!!savedDomain || localLoading}
+                          className={`w-full rounded-lg border ${
+                            domain && !isValidDomain ? "border-red-400" : "border-gray-300"
+                          } px-10 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 disabled:bg-gray-100`}
+                        />
+                      </div>
+                      {domain && !isValidDomain && (
+                        <span className="text-red-500 text-xs mt-1">
+                          {isShopify ? "Enter a valid *.myshopify.com domain" : "Enter a valid URL"}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <Button
+                        type="primary"
+                        size="large"
+                        block
+                        onClick={openInstallUrl}
+                        disabled={!domain || !isValidDomain || localLoading}
+                        className={`flex-1 bg-gradient-to-r ${
+                          isShopify
+                            ? "from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600"
+                            : "from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600"
+                        } text-white`}
+                      >
+                        <Flex align="center" justify="center" gap="small">
+                          <Server size={18} />
+                          Install {plugin.name}
+                        </Flex>
+                      </Button>
+
+                      <Button
+                        type="primary"
+                        size="large"
+                        block
+                        onClick={handlePing}
+                        loading={localLoading}
+                        disabled={!domain || localLoading}
+                        className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white"
+                      >
+                        Check Status
+                      </Button>
+                    </div>
+                  </div>
+                </Flex>
+              </Flex>
+            </Card>
+
+            <Card className="bg-gray-50 border-0 rounded-lg shadow-sm">
+              <Paragraph className="text-sm md:text-base text-gray-700 leading-relaxed mb-0">
+                {plugin.message}
+              </Paragraph>
+            </Card>
+          </Flex>
+        </div>
+      )
+    }
+
     return (
       <div
         initial={{ opacity: 0, y: 20 }}
@@ -583,7 +872,7 @@ const PluginsMain = () => {
     <DefaultTabBar {...props} className="custom-tab-bar rounded-t-lg" />
   )
 
-  const tabItems = plugins.map(plugin => ({
+  const tabItems = extendedPlugins.map(plugin => ({
     key: plugin.id.toString(),
     label: (
       <Flex align="center" gap="small" className="font-sans font-medium text-base">
