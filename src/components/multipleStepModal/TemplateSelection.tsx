@@ -8,7 +8,7 @@ interface TemplateSelectionProps {
   numberOfSelection?: number
   userSubscriptionPlan: string
   onClick: Function
-  preSelectedIds?: string[]
+  preSelectedIds?: Array<string | number>
   className?: string
 }
 
@@ -27,7 +27,6 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
   onClick,
   className = "",
 }) => {
-  console.log(preSelectedIds)
   const { isProUser, initialTemplates } = useMemo(() => {
     const isProUser = !["free", "basic"].includes(userSubscriptionPlan)
     if (isProUser) {
@@ -48,6 +47,10 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
   // Memoize preSelectedIds to stabilize the reference
   const stabilizedPreSelectedIds = useMemo<number[]>(() => {
     if (!preSelectedIds || !Array.isArray(preSelectedIds)) return []
+
+    if (typeof preSelectedIds[0] === "number") {
+      return [...preSelectedIds] as number[]
+    }
 
     const mapped = preSelectedIds
       .map(name => {

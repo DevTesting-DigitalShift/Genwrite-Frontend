@@ -513,7 +513,7 @@ const PluginsMain = () => {
           if (isShopify) {
             // correct backend endpoint
             const resp = await axiosInstance.post("/integrations/connect", {
-              shop: domain,
+              url: domain,
               type: "SHOPIFY",
             })
 
@@ -655,7 +655,7 @@ const PluginsMain = () => {
                           }
                           value={domain}
                           onChange={e => setDomain(e.target.value.trim())}
-                          disabled={!!savedDomain || localLoading}
+                          disabled={localLoading}
                           className={`w-full rounded-lg border ${
                             domain && !isValidDomain ? "border-red-400" : "border-gray-300"
                           } px-10 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 disabled:bg-gray-100`}
