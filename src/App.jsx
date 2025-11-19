@@ -25,14 +25,7 @@ const App = () => {
   const dispatch = useDispatch()
   const [searchParams, setSearchParams] = useSearchParams()
 
-  useEffect(() => {
-    const params = Object.fromEntries(searchParams.entries())
-    console.log(params)
-  }, [searchParams])
-
   const { user } = useSelector(state => state.auth)
-
-  console.log(user?.emailVerified)
 
   useEffect(() => {
     const init = async () => {

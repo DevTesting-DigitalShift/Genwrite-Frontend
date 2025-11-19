@@ -188,10 +188,8 @@ const KeywordResearchModel = ({ closeFnc, openSecondStepModal, openJobModal, vis
         allKeywords: finalKeywords,
       })
     )
-    console.log("Final Keywords:", finalKeywords)
     closeFnc()
     setTimeout(() => {
-      console.log("Proceeding with type:", type)
       if (type === "blog") {
         openSecondStepModal()
         // openSecondStepModal({

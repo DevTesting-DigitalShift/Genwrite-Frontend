@@ -33,7 +33,7 @@ const PluginsMain = () => {
   } = useSelector(state => state.integration)
 
   const extendedPlugins = useMemo(() => {
-    return [...plugins]
+    return plugins.filter(p => p.isVisible)
   }, [plugins])
 
   useEffect(() => {
@@ -447,7 +447,18 @@ const PluginsMain = () => {
       // Validate domain
       const validateDomain = val => {
         if (!val) return false
-        if (isShopify) return /^[\w-]+\.myshopify\.com$/i.test(val)
+
+        if (isShopify) {
+          try {
+            // If user enters full URL, extract hostname
+            const normalized = val.startsWith("http") ? new URL(val).hostname : val
+            return /^[\w-]+\.myshopify\.com$/i.test(normalized)
+          } catch {
+            return false
+          }
+        }
+
+        // Wix or others
         try {
           new URL(val.startsWith("http") ? val : `https://${val}`)
           return true

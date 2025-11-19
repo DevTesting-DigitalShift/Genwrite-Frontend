@@ -98,10 +98,27 @@ const TextEditorSidebar = ({
     !hasAnyIntegration || // Disable if no integration at all
     (formData.wordpressPostStatus && !integrations.integrations.WORDPRESS)
 
+  // const postedLinks = posted
+  //   ? Object.entries(posted)
+  //       .filter(([_, data]) => data?.link)
+  //       .map(([platform, data]) => ({ platform, link: data.link }))
+  //   : []
+
+  const PLATFORM_LABELS = {
+    WORDPRESS: "WordPress",
+    SHOPIFY: "Shopify",
+    SERVERENDPOINT: "Server",
+    WIX: "Wix",
+  }
+
   const postedLinks = posted
     ? Object.entries(posted)
         .filter(([_, data]) => data?.link)
-        .map(([platform, data]) => ({ platform, link: data.link }))
+        .map(([platform, data]) => ({
+          platform,
+          link: data.link,
+          label: PLATFORM_LABELS[platform] || platform,
+        }))
     : []
 
   // Reset metadata and history when blog changes
@@ -1121,7 +1138,7 @@ const TextEditorSidebar = ({
             </Button>
           </motion.div>
 
-          {postedLinks.length > 0 && (
+          {/* {postedLinks.length > 0 && (
             <div className="mt-3 flex flex-col gap-2">
               {postedLinks.map(({ platform, link }) => (
                 <motion.div
@@ -1142,6 +1159,57 @@ const TextEditorSidebar = ({
                   </a>
                 </motion.div>
               ))}
+            </div>
+          )} */}
+
+          {postedLinks.length > 0 && (
+            <div className="mt-3 flex flex-col gap-2">
+              {/* CASE 1: Only 1 link → direct button */}
+              {postedLinks.length === 1 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="text-center"
+                >
+                  <a
+                    href={postedLinks[0].link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-blue-600 text-sm hover:text-blue-700 font-medium"
+                  >
+                    View {postedLinks[0].label} Post
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
+                </motion.div>
+              )}
+
+              {/* CASE 2: Multiple → ask which one to visit */}
+              {postedLinks.length > 1 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="flex flex-col gap-2 text-center"
+                >
+                  <p className="text-gray-600 text-sm font-medium">
+                    This post was published to multiple platforms. Where do you want to visit?
+                  </p>
+
+                  {postedLinks.map(({ platform, link, label }) => (
+                    <a
+                      key={platform}
+                      href={link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-2 text-blue-600 text-sm hover:text-blue-700 font-medium"
+                    >
+                      Visit {label}
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
+                  ))}
+                </motion.div>
+              )}
             </div>
           )}
         </div>
@@ -1164,6 +1232,8 @@ const TextEditorSidebar = ({
         initialCategory={formData.category}
         initialIncludeTableOfContents={formData.includeTableOfContents}
         integrations={integrations}
+        blogData={blog}
+        posted={posted}
       />
     </>
   )

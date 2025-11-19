@@ -31,6 +31,8 @@ const CategoriesModal = ({
   initialCategory = "",
   initialIncludeTableOfContents = false,
   integrations,
+  blogData,
+  posted,
 }) => {
   const [customCategory, setCustomCategory] = useState("")
   const [selectedCategory, setSelectedCategory] = useState(initialCategory)
@@ -38,8 +40,14 @@ const CategoriesModal = ({
     initialIncludeTableOfContents
   )
   const [categoryError, setCategoryError] = useState(false)
-  const { categories, error: wordpressError } = useSelector((state) => state.wordpress)
+  const { categories, error: wordpressError } = useSelector(state => state.wordpress)
   const [selectedIntegration, setSelectedIntegration] = useState(null)
+  const [isCategoryLocked, setIsCategoryLocked] = useState(false)
+
+  const hasShopifyPosted = posted?.SHOPIFY?.link ? true : false
+
+  console.log(posted)
+
   const dispatch = useDispatch()
 
   useEffect(() => {
@@ -49,12 +57,26 @@ const CategoriesModal = ({
   }, [dispatch, selectedIntegration?.platform])
 
   const handleIntegrationChange = (platform, url) => {
-    setSelectedIntegration({ platform, url })
+    setSelectedIntegration({
+      platform: platform.toLowerCase(), // for UI
+      rawPlatform: platform, // for backend
+      url,
+    })
+
+    if (platform === "SHOPIFY") {
+      if (hasShopifyPosted) {
+        setIsCategoryLocked(true)
+      } else {
+        setIsCategoryLocked(false)
+      }
+    } else {
+      setIsCategoryLocked(false)
+    }
   }
 
   // Handle adding a category (custom or predefined)
   const handleCategoryAdd = useCallback(
-    (category) => {
+    category => {
       if (selectedCategory) {
         // message.error("Only one category can be selected.")
         return
@@ -85,7 +107,7 @@ const CategoriesModal = ({
   }, [customCategory, selectedCategory])
 
   // Handle table of contents toggle
-  const handleCheckboxChange = useCallback((e) => {
+  const handleCheckboxChange = useCallback(e => {
     setIncludeTableOfContents(e.target.checked)
   }, [])
 
@@ -94,10 +116,18 @@ const CategoriesModal = ({
     if (!selectedCategory) {
       setCategoryError(true)
       message.error("Please select a category.")
-
       return
     }
-    onSubmit({ category: selectedCategory, includeTableOfContents, type: selectedIntegration })
+
+    onSubmit({
+      category: selectedCategory,
+      includeTableOfContents,
+      type: {
+        platform: selectedIntegration?.rawPlatform, // SEND UPPERCASE
+        url: selectedIntegration?.url,
+      },
+    })
+
     setIsCategoryModalOpen(false)
     setSelectedCategory("")
     setIncludeTableOfContents(false)
@@ -120,7 +150,7 @@ const CategoriesModal = ({
     setCategoryError(false)
   }, [setIsCategoryModalOpen])
 
-  const handleCategoryChange = useCallback((value) => {
+  const handleCategoryChange = useCallback(value => {
     if (value.length > 1) {
       message.error("Only one category can be selected.")
       return
@@ -129,6 +159,26 @@ const CategoriesModal = ({
     setSelectedCategory(newCategory)
     setCategoryError(false)
   }, [])
+
+  useEffect(() => {
+    if (!isCategoryModalOpen) return
+
+    const shopifyIntegration = integrations?.integrations?.SHOPIFY
+
+    if (!shopifyIntegration) return // shopify not connected
+
+    setSelectedIntegration({
+      platform: "shopify",
+      rawPlatform: "SHOPIFY",
+      url: shopifyIntegration.url,
+    })
+
+    if (hasShopifyPosted) {
+      setIsCategoryLocked(true)
+    } else {
+      setIsCategoryLocked(false)
+    }
+  }, [isCategoryModalOpen, integrations, hasShopifyPosted])
 
   return (
     <Modal
@@ -170,10 +220,10 @@ const CategoriesModal = ({
             <Select
               className="w-full mt-2"
               placeholder="Select platform"
-              value={selectedIntegration?.platform || undefined}
-              onChange={(platform) => {
+              value={selectedIntegration?.rawPlatform || undefined}
+              onChange={platform => {
                 const details = integrations.integrations[platform]
-                handleIntegrationChange(platform, details.url)
+                handleIntegrationChange(platform, details?.url)
               }}
             >
               {Object.entries(integrations.integrations).map(([platform, details]) => (
@@ -194,15 +244,17 @@ const CategoriesModal = ({
               className="flex items-center gap-2 px-3 py-1.5 bg-blue-500 text-white rounded-full text-sm w-fit"
             >
               <span className="truncate max-w-[150px]">{selectedCategory}</span>
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={handleCategoryRemove}
-                className="text-white hover:text-gray-200"
-                aria-label={`Remove category ${selectedCategory}`}
-              >
-                <X size={15} />
-              </motion.button>
+              {!isCategoryLocked && (
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={handleCategoryRemove}
+                  className="text-white hover:text-gray-200"
+                  aria-label={`Remove category ${selectedCategory}`}
+                >
+                  <X size={15} />
+                </motion.button>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -212,10 +264,10 @@ const CategoriesModal = ({
           <div>
             <h3 className="text-sm font-semibold text-gray-700 mb-2">Auto-Generated Categories</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-y-auto p-3 rounded-md border border-indigo-200 bg-indigo-50 max-h-96">
-              {categories.map((category) => (
+              {categories.map(category => (
                 <motion.div
                   key={category}
-                  onClick={() => handleCategoryAdd(category)}
+                  onClick={() => !isCategoryLocked && handleCategoryAdd(category)}
                   whileHover={{ scale: 1.02, backgroundColor: "#e0e7ff" }}
                   className={`flex items-center justify-between p-3 rounded-md bg-white border ${
                     categoryError && !selectedCategory ? "border-red-500" : "border-indigo-200"
@@ -252,13 +304,14 @@ const CategoriesModal = ({
             placeholder="Select or type a category"
             value={selectedCategory ? [selectedCategory] : []}
             onChange={handleCategoryChange}
+            disabled={isCategoryLocked}
             className="w-full"
             allowClear
             showSearch
             filterOption={(input, option) =>
               option.label.toLowerCase().includes(input.toLowerCase())
             }
-            options={POPULAR_CATEGORIES.map((category) => ({
+            options={POPULAR_CATEGORIES.map(category => ({
               value: category,
               label: category,
             }))}
@@ -277,6 +330,20 @@ const CategoriesModal = ({
             </motion.p>
           )}
         </div>
+
+        {selectedIntegration?.platform === "shopify" && (
+          <div
+            className={`p-3 rounded-md text-sm ${
+              isCategoryLocked
+                ? "bg-red-100 text-red-700 border border-red-300"
+                : "bg-blue-100 text-blue-700 border border-blue-300"
+            }`}
+          >
+            {isCategoryLocked
+              ? "This blog was already published on Shopify. Category is locked and cannot be changed."
+              : "Once you publish on Shopify, the category becomes permanent and cannot be changed later."}
+          </div>
+        )}
 
         {/* Table of Contents Toggle */}
         <div className="flex items-center justify-between py-2">

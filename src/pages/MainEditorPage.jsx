@@ -17,6 +17,7 @@ import { OpenAIFilled } from "@ant-design/icons"
 import TextEditorSidebar from "@/layout/TextEditorSidebar/TextEditorSidebar"
 import TextEditor from "@/layout/TextEditor/TextEditor"
 import "../layout/TextEditor/editor.css"
+import LoadingScreen from "@components/UI/LoadingScreen"
 
 const MainEditorPage = () => {
   const { id } = useParams()
@@ -135,8 +136,15 @@ const MainEditorPage = () => {
       setIsPosting(false)
       return
     }
-    if (!postData.category) {
+    if (!postData.categories) {
       // 🔄 changed from categories → category
+      message.error("Please select a category.")
+      setIsPosting(false)
+      return
+    }
+
+    const selectedCategory = postData.categories || formData.categories
+    if (!selectedCategory) {
       message.error("Please select a category.")
       setIsPosting(false)
       return
@@ -147,7 +155,7 @@ const MainEditorPage = () => {
         type: postData.type.platform,
         blogId: blog._id,
         includeTableOfContents: postData.includeTableOfContents ?? false,
-        category: postData.category, // 🔄 match backend param
+        category: selectedCategory,
         removeWaterMark: postData.removeWaterMark ?? true,
       }
 
@@ -373,6 +381,14 @@ const MainEditorPage = () => {
     setActiveTab("Normal")
     message.info("Retained original content.")
   }, [setIsHumanizeModalOpen, setActiveTab])
+
+  if (isLoading || isPosting) {
+    return (
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-white/90 backdrop-blur-sm">
+        <LoadingScreen />
+      </div>
+    )
+  }
 
   return (
     <>
