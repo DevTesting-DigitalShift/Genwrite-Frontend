@@ -51,7 +51,7 @@ const CategoriesModal = ({
 
   useEffect(() => {
     if (selectedIntegration?.platform) {
-      dispatch(getCategoriesThunk(selectedIntegration.platform)).unwrap()
+      dispatch(getCategoriesThunk(selectedIntegration.platform.toUpperCase())).unwrap()
     }
   }, [dispatch, selectedIntegration?.platform])
 
