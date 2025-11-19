@@ -28,14 +28,13 @@ const CategoriesModal = ({
   isCategoryModalOpen,
   setIsCategoryModalOpen,
   onSubmit,
-  initialCategory = "",
   initialIncludeTableOfContents = false,
   integrations,
   blogData,
   posted,
 }) => {
   const [customCategory, setCustomCategory] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState(initialCategory)
+  const [selectedCategory, setSelectedCategory] = useState("")
   const [includeTableOfContents, setIncludeTableOfContents] = useState(
     initialIncludeTableOfContents
   )
@@ -163,22 +162,60 @@ const CategoriesModal = ({
   useEffect(() => {
     if (!isCategoryModalOpen) return
 
-    const shopifyIntegration = integrations?.integrations?.SHOPIFY
+    const shopify = posted?.SHOPIFY
 
-    if (!shopifyIntegration) return // shopify not connected
-
-    setSelectedIntegration({
-      platform: "shopify",
-      rawPlatform: "SHOPIFY",
-      url: shopifyIntegration.url,
-    })
-
-    if (hasShopifyPosted) {
+    // CASE 1: Posted via Shopify → lock everything
+    if (shopify?.link) {
       setIsCategoryLocked(true)
-    } else {
-      setIsCategoryLocked(false)
+      setSelectedCategory(blogData?.category || "")
+
+      setSelectedIntegration({
+        platform: "shopify",
+        rawPlatform: "SHOPIFY",
+        url: shopify?.url || "",
+      })
+
+      return
     }
-  }, [isCategoryModalOpen, integrations, hasShopifyPosted])
+
+    // CASE 2: Shopify connected but NOT posted yet → first time posting
+    if (shopify && !shopify.link) {
+      setIsCategoryLocked(false)
+
+      setSelectedIntegration({
+        platform: "shopify",
+        rawPlatform: "SHOPIFY",
+        url: shopify?.url || "",
+      })
+
+      return
+    }
+
+    // CASE 3: Posted on other platforms → DO NOT LOCK CATEGORY
+    const otherPosted = Object.entries(posted || {}).find(
+      ([key, val]) => key !== "SHOPIFY" && val?.link
+    )
+
+    if (otherPosted) {
+      const [platformKey, val] = otherPosted
+
+      // platform auto-select only (NO category lock)
+      setIsCategoryLocked(false)
+
+      setSelectedIntegration({
+        platform: platformKey.toLowerCase(),
+        rawPlatform: platformKey,
+        url: val?.url || "",
+      })
+
+      return
+    }
+
+    // CASE 4: No posting anywhere → everything unlocked
+    setIsCategoryLocked(false)
+    setSelectedCategory("")
+    setSelectedIntegration(null)
+  }, [isCategoryModalOpen, posted, blogData])
 
   return (
     <Modal

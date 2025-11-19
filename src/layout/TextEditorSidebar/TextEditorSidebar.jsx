@@ -73,6 +73,7 @@ const TextEditorSidebar = ({
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
   const [activeSection, setActiveSection] = useState("overview")
+  const [choosePlatformOpen, setChoosePlatformOpen] = useState(false)
   const { data: integrations } = useSelector(state => state.wordpress)
   const [metadata, setMetadata] = useState({
     title: blog?.seoMetadata?.title || "",
@@ -1184,30 +1185,21 @@ const TextEditorSidebar = ({
                 </motion.div>
               )}
 
-              {/* CASE 2: Multiple → ask which one to visit */}
+              {/* CASE 2: Multiple → open selection popup */}
               {postedLinks.length > 1 && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3 }}
-                  className="flex flex-col gap-2 text-center"
+                  className="text-center"
                 >
-                  <p className="text-gray-600 text-sm font-medium">
-                    This post was published to multiple platforms. Where do you want to visit?
-                  </p>
-
-                  {postedLinks.map(({ platform, link, label }) => (
-                    <a
-                      key={platform}
-                      href={link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center gap-2 text-blue-600 text-sm hover:text-blue-700 font-medium"
-                    >
-                      Visit {label}
-                      <ExternalLink className="w-4 h-4" />
-                    </a>
-                  ))}
+                  <button
+                    onClick={() => setChoosePlatformOpen(true)}
+                    className="inline-flex items-center gap-2 text-blue-600 text-sm hover:text-blue-700 font-medium"
+                  >
+                    View Published Links
+                    <ExternalLink className="w-4 h-4" />
+                  </button>
                 </motion.div>
               )}
             </div>
@@ -1235,6 +1227,31 @@ const TextEditorSidebar = ({
         blogData={blog}
         posted={posted}
       />
+      <Modal
+        title="Choose Platform"
+        open={choosePlatformOpen}
+        onCancel={() => setChoosePlatformOpen(false)}
+        footer={null}
+        centered
+        width={380}
+      >
+        <div className="flex flex-col gap-3 py-2">
+          <p className="text-sm text-gray-600">
+            This post was published to multiple platforms. Where do you want to visit?
+          </p>
+
+          {postedLinks.map(({ platform, link, label }) => (
+            <button
+              key={platform}
+              onClick={() => window.open(link, "_blank")}
+              className="w-full text-left px-3 py-2 bg-gray-50 border border-gray-200 rounded-md hover:bg-gray-100 text-sm font-medium flex items-center justify-between"
+            >
+              <span>{label}</span>
+              <ExternalLink className="w-4 h-4" />
+            </button>
+          ))}
+        </div>
+      </Modal>
     </>
   )
 }
