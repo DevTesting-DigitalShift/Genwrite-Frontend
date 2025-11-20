@@ -1,65 +1,11 @@
 import { Suspense, useEffect } from "react"
-import { useNavigate, Outlet, useLocation, useSearchParams } from "react-router-dom"
+import { Outlet } from "react-router-dom"
 import { Helmet } from "react-helmet"
 import LoadingScreen from "@components/UI/LoadingScreen"
-import { connectSocket } from "@utils/socket"
 import { message } from "antd"
-import { useDispatch, useSelector } from "react-redux"
-import { loadAuthenticatedUser } from "@store/slices/authSlice"
-
-const PUBLIC_PATHS = [
-  "/login",
-  "/signup",
-  "/forgot-password",
-  "/reset-password",
-  "/privacy-policy",
-  "/terms-and-conditions",
-  "/unsubscribe",
-  "/email-verify",
-  "/verify-email",
-]
 
 const App = () => {
-  const navigate = useNavigate()
-  const location = useLocation()
-  const dispatch = useDispatch()
-  const [searchParams, setSearchParams] = useSearchParams()
-
-  const { user } = useSelector(state => state.auth)
-
-  useEffect(() => {
-    const init = async () => {
-      try {
-        await dispatch(loadAuthenticatedUser()).unwrap()
-      } catch {
-        navigate("/login")
-      }
-    }
-    init()
-  }, [])
-
-  useEffect(() => {
-    if (!user) return
-
-    const isPublic = PUBLIC_PATHS.some(p => location.pathname.startsWith(p))
-
-    // 🔥 unverified should never access private pages
-    if (user.emailVerified === false && !isPublic) {
-      navigate(`/email-verify/${user.email}`, { replace: true })
-      return
-    }
-
-    // 🔥 verified user shouldn't stay on login/signup page
-    if (user.emailVerified === true && isPublic) {
-      navigate("/dashboard", { replace: true })
-    }
-  }, [user, location.pathname])
-
-  useEffect(() => {
-    const token = localStorage.getItem("token")
-    if (token) connectSocket(token)
-  }, [])
-
+  // Show desktop warning on mobile devices
   useEffect(() => {
     const hasShown = sessionStorage.getItem("desktopWarningShown")
     if (window.innerWidth < 1024 && !hasShown) {
@@ -74,6 +20,33 @@ const App = () => {
         <title>GenWrite</title>
       </Helmet>
       <Outlet />
+      <footer className="w-full bg-white border-t border-gray-300 py-6 px-4 text-sm text-gray-700 relative">
+        <div className="flex flex-col sm:flex-row items-center justify-between max-w-7xl mx-auto">
+          {/* Copyright */}
+          <p className="text-center sm:text-left mb-2 sm:mb-0">
+            &copy; {new Date().getFullYear()} <strong>GenWrite</strong>. All rights reserved.
+          </p>
+
+          {/* Links */}
+          <div className="flex flex-row items-center gap-2 sm:gap-4 text-blue-500">
+            <a
+              href="/terms-and-conditions"
+              target="_blank"
+              className="transition hover:text-blue-700 hover:underline"
+            >
+              Terms of Service
+            </a>
+            <span className="hidden sm:inline text-gray-400">|</span>
+            <a
+              href="/privacy-policy"
+              target="_blank"
+              className="transition hover:text-blue-700 hover:underline"
+            >
+              Privacy Policy
+            </a>
+          </div>
+        </div>
+      </footer>
     </Suspense>
   )
 }

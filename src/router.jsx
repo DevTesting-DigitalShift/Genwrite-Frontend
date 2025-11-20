@@ -37,6 +37,7 @@ const PromptContent = lazy(() => import("@pages/PromptContent"))
 const UnsubscribeEmail = lazy(() => import("@pages/UnsubscribeEmail"))
 const EmailVerification = lazy(() => import("@pages/EmailVerification"))
 const ShopifyDashboard = lazy(() => import("@pages/ShopifyDashboard"))
+const PricingCalculator = lazy(() => import("@pages/PricingCalculator"))
 
 /**
  * Wraps a component in React.Suspense with fallback support.
@@ -60,6 +61,30 @@ const router = createBrowserRouter([
     element: <App />,
     errorElement: withSuspense(ErrorBoundary),
     children: [
+      {
+        path: "/",
+        element: withSuspense(PublicRoutesLayout),
+        children: [
+          { path: "login", element: withSuspense(Login, { path: "login" }) },
+          { path: "unsubscribe", element: withSuspense(UnsubscribeEmail) },
+          { path: "signup", element: withSuspense(Login, { path: "signup" }) },
+          { path: "forgot-password", element: withSuspense(ForgotPassword) },
+          { path: "reset-password", element: withSuspense(ResetPassword) },
+          { path: "privacy-policy", element: withSuspense(PrivacyPolicy) },
+          { path: "terms-and-conditions", element: withSuspense(TermsAndConditions) },
+          { path: "email-verify/:email", element: withSuspense(EmailVerification) },
+          { path: "verify-email", element: withSuspense(VerifiedEmail) },
+          {
+            path: "payment",
+            children: [
+              { path: "success", element: withSuspense(SuccessPage) },
+              { path: "cancel", element: withSuspense(CancelPage) },
+            ],
+          },
+          { path: "pricing-calculator", element: withSuspense(PricingCalculator) },
+          { path: "*", element: withSuspense(ErrorPage) },
+        ],
+      },
       {
         path: "/",
         element: withSuspense(PrivateRoutesLayout),
@@ -89,29 +114,6 @@ const router = createBrowserRouter([
           { path: "generate-metadata", element: withSuspense(GenerateMetaData) },
           { path: "prompt-content", element: withSuspense(PromptContent) },
           { path: "shopify-dashboard", element: withSuspense(ShopifyDashboard) },
-        ],
-      },
-      {
-        path: "/",
-        element: withSuspense(PublicRoutesLayout),
-        children: [
-          { path: "login", element: withSuspense(Login, { path: "login" }) },
-          { path: "unsubscribe", element: withSuspense(UnsubscribeEmail) },
-          { path: "signup", element: withSuspense(Login, { path: "signup" }) },
-          { path: "forgot-password", element: withSuspense(ForgotPassword) },
-          { path: "reset-password", element: withSuspense(ResetPassword) },
-          { path: "privacy-policy", element: withSuspense(PrivacyPolicy) },
-          { path: "terms-and-conditions", element: withSuspense(TermsAndConditions) },
-          { path: "email-verify/:email", element: withSuspense(EmailVerification) },
-          { path: "verify-email", element: withSuspense(VerifiedEmail) },
-          {
-            path: "payment",
-            children: [
-              { path: "success", element: withSuspense(SuccessPage) },
-              { path: "cancel", element: withSuspense(CancelPage) },
-            ],
-          },
-          { path: "*", element: withSuspense(ErrorPage) },
         ],
       },
     ],

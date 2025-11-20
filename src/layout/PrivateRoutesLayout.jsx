@@ -1,13 +1,46 @@
-import { Navigate, Outlet } from "react-router-dom"
+import { Navigate, Outlet, useNavigate, useLocation } from "react-router-dom"
 import LayoutWithSidebarAndHeader from "@components/SideBar_Header"
 import ChatBox from "@components/generateBlog/ChatBox"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { RiChatAiLine } from "react-icons/ri"
 import { Tooltip } from "antd"
+import { useDispatch, useSelector } from "react-redux"
+import { loadAuthenticatedUser } from "@store/slices/authSlice"
+import { connectSocket } from "@utils/socket"
 
 const PrivateRoutesLayout = () => {
   const token = localStorage.getItem("token")
   const [chatOpen, setChatOpen] = useState(false)
+  const navigate = useNavigate()
+  const location = useLocation()
+  const dispatch = useDispatch()
+  const { user } = useSelector(state => state.auth)
+
+  // Load authenticated user on mount
+  useEffect(() => {
+    const init = async () => {
+      try {
+        await dispatch(loadAuthenticatedUser()).unwrap()
+      } catch {
+        navigate("/login")
+      }
+    }
+    if (token) {
+      init()
+      // Connect socket when token is available
+      connectSocket(token)
+    }
+  }, [])
+
+  // Check email verification for private routes
+  useEffect(() => {
+    if (!user) return
+
+    // If user is not verified, redirect to email verification page
+    if (user.emailVerified === false) {
+      navigate(`/email-verify/${user.email}`, { replace: true })
+    }
+  }, [user, location.pathname])
 
   // Check if token exists
   return token ? (
