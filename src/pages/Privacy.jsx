@@ -162,14 +162,6 @@ const PrivacyPolicy = () => {
               <Mail className="w-4 h-4" />
               genwrite.co@gmail.com
             </a>
-            <Link
-              to="/contact"
-              className="inline-flex items-center gap-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-100 transition-colors font-medium"
-              aria-label="Visit contact support page"
-            >
-              <Users className="w-4 h-4" />
-              Contact Support
-            </Link>
           </div>
         </section>
 

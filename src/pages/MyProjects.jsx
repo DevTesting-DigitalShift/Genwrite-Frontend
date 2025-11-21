@@ -171,10 +171,8 @@ const MyProjects = () => {
     if (!socket || !user) return
 
     const handleStatusChange = debounce(() => {
-      queryClient.invalidateQueries({
-        queryKey: ["blogs", userId, blogFilters],
-        refetchType: "all", // ← Critical: refetch ALL pages
-      })
+      console.log("🔥 Invalidate triggered")
+      queryClient.invalidateQueries(["blogs", userId], { refetchType: "all" })
     }, 100)
 
     socket.on("blog:statusChanged", handleStatusChange)

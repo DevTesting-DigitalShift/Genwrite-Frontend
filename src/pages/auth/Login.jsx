@@ -20,6 +20,7 @@ import { Sparkles, Zap, PenTool, CheckCircle } from "lucide-react"
 import { Helmet } from "react-helmet"
 import { message } from "antd"
 import { FiGift } from "react-icons/fi"
+import Footer from "@components/Footer"
 
 const Auth = ({ path }) => {
   const [formData, setFormData] = useState({
@@ -608,6 +609,7 @@ const Auth = ({ path }) => {
           </motion.div>
         </div>
       </div>
+      <Footer />
     </div>
   )
 }

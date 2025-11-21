@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react"
 import { Card, Input, Button, Form, Typography, Alert, Space, Result, message } from "antd"
 import { MailOutlined, CheckCircleOutlined, ReloadOutlined } from "@ant-design/icons"
-import { useParams, useNavigate } from "react-router-dom"
+import { useParams, useNavigate, Link } from "react-router-dom"
 import axiosInstance from "@api/index"
 
 const { Title, Text } = Typography
@@ -151,6 +151,15 @@ export default function EmailVerification() {
             )}
           </Space>
         </Form>
+
+        {/* Back to Login Link */}
+        <div className="text-center mt-4">
+          <Link to="/login">
+            <Text type="secondary" className="hover:text-blue-600 transition-colors">
+              ← Back to Login
+            </Text>
+          </Link>
+        </div>
       </Card>
     </div>
   )
