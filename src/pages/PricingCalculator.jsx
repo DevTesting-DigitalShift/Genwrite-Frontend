@@ -46,7 +46,10 @@ const PricingCalculator = () => {
   const calculateCredits = values => {
     let credits = 0
     const wordCountChunks = Math.ceil(values.wordCount / pricingConfig.wordCount.base)
-    credits += wordCountChunks * pricingConfig.wordCount.cost
+    credits +=
+      wordCountChunks *
+      pricingConfig.wordCount.cost *
+      pricingConfig.aiModels[values.aiModel].costMultiplier
 
     Object.keys(pricingConfig.features).forEach(feature => {
       if (values[feature]) credits += pricingConfig.features[feature].cost
@@ -56,10 +59,6 @@ const PricingCalculator = () => {
     else if (values.imageType === "ai") credits += pricingConfig.images.ai.featureFee
     else if (values.imageType === "upload")
       credits += (values.uploadedImageCount || 0) * pricingConfig.images.upload.perImageFee
-
-    if (values.aiModel && pricingConfig.aiModels[values.aiModel]) {
-      credits += pricingConfig.aiModels[values.aiModel].cost
-    }
 
     return credits
   }
@@ -110,6 +109,8 @@ const PricingCalculator = () => {
                       step={pricingConfig.wordCount.base}
                       className="w-full"
                       addonAfter="words"
+                      min={500}
+                      max={5000}
                     />
                   </Form.Item>
                 </div>
@@ -197,7 +198,9 @@ const PricingCalculator = () => {
                       {Object.entries(pricingConfig.aiModels).map(([key, config]) => (
                         <Radio.Button key={key} value={key} className="calc-radio-btn">
                           <span className="font-semibold">{config.label}</span>
-                          <span className="text-xs text-gray-500 mx-4">+{config.cost}</span>
+                          <span className="text-xs text-gray-500 mx-4">
+                            x{config.costMultiplier}
+                          </span>
                         </Radio.Button>
                       ))}
                     </Radio.Group>
@@ -222,11 +225,27 @@ const PricingCalculator = () => {
 
                 <div className="summary-breakdown">
                   <div className="summary-row">
-                    <Text>Base Cost</Text>
+                    <Text>Words Cost</Text>
                     <Text strong>
                       {Math.ceil(
                         (form.getFieldValue("wordCount") || 500) / pricingConfig.wordCount.base
                       ) * pricingConfig.wordCount.cost}
+                    </Text>
+                  </div>
+                  <div className="summary-row">
+                    <Text>AI Model Multiplier</Text>
+                    <Text strong>
+                      {pricingConfig.aiModels[form.getFieldValue("aiModel")]?.costMultiplier || 0}
+                    </Text>
+                  </div>
+                  <div className="summary-row">
+                    <Text>Base Cost</Text>
+                    <Text strong>
+                      {Math.ceil(
+                        (form.getFieldValue("wordCount") || 500) / pricingConfig.wordCount.base
+                      ) *
+                        pricingConfig.wordCount.cost *
+                        pricingConfig.aiModels[form.getFieldValue("aiModel")]?.costMultiplier || 0}
                     </Text>
                   </div>
                   <div className="summary-row">
@@ -252,12 +271,6 @@ const PricingCalculator = () => {
                           )
                         return 0
                       })()}
-                    </Text>
-                  </div>
-                  <div className="summary-row">
-                    <Text>AI Model</Text>
-                    <Text strong>
-                      {pricingConfig.aiModels[form.getFieldValue("aiModel")]?.cost || 0}
                     </Text>
                   </div>
                 </div>
