@@ -45,8 +45,6 @@ const CategoriesModal = ({
 
   const hasShopifyPosted = posted?.SHOPIFY?.link ? true : false
 
-  console.log(posted)
-
   const dispatch = useDispatch()
 
   useEffect(() => {

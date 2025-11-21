@@ -110,6 +110,11 @@ const Auth = ({ path }) => {
 
           if (!user.emailVerified) {
             navigate(`/email-verify/${user.email}`, { replace: true })
+            return
+          }
+
+          if (isSignup) {
+            navigate("/pricing", { replace: true })
           } else {
             navigate("/dashboard", { replace: true })
           }
@@ -142,16 +147,21 @@ const Auth = ({ path }) => {
               captchaToken: recaptchaValue,
             })
 
-        // only dispatch ONCE
         const { user } = await dispatch(action).unwrap()
 
         message.success(isSignup ? "Signup successful!" : "Login successful!")
 
-        // 🔥 Correct redirect logic
+        // ❗ If email not verified → block everything
         if (!user.emailVerified) {
           navigate(`/email-verify/${user.email}`, { replace: true })
+          return
+        }
+
+        // 🔥 Your new redirect rule
+        if (isSignup) {
+          navigate("/pricing", { replace: true }) // New user flow
         } else {
-          navigate("/dashboard", { replace: true })
+          navigate("/dashboard", { replace: true }) // Returning user flow
         }
       } catch (err) {
         console.error("Auth error:", err)

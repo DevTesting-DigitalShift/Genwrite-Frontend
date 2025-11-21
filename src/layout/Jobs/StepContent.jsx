@@ -482,7 +482,7 @@ const StepContent = ({
     }))
     setErrors(prev => ({ ...prev, templates: false }))
   }, [])
-  console.log(newJob?.blogs)
+  
   switch (currentStep) {
     case 1:
       return (

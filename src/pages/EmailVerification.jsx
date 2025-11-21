@@ -1,5 +1,3 @@
-"use client"
-
 import React, { useState, useEffect } from "react"
 import { Card, Input, Button, Form, Typography, Alert, Space, Result, message } from "antd"
 import { MailOutlined, CheckCircleOutlined, ReloadOutlined } from "@ant-design/icons"
