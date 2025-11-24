@@ -15,13 +15,28 @@ const VerifiedEmail = () => {
   const [status, setStatus] = useState("loading") // loading | success | error
   const [errorMessage, setErrorMessage] = useState("")
 
+  // This prevents double execution no matter what
+  const hasVerified = useRef(false)
+
   // 🔥 VERIFY EMAIL USING TOKEN
   useEffect(() => {
+    if (!token) {
+      setStatus("error")
+      setErrorMessage("Verification token missing")
+      return
+    }
+
+    if (hasVerified.current) {
+      console.log("Already verified, skipping duplicate call")
+      return
+    }
+
     const verifyEmail = async () => {
       try {
         const res = await axiosInstance.post("/auth/verify-email", { token })
 
         if (res.data?.success) {
+          hasVerified.current = true
           setStatus("success")
         } else {
           setStatus("error")
@@ -31,12 +46,6 @@ const VerifiedEmail = () => {
         setStatus("error")
         setErrorMessage(err.response?.data?.message || "Invalid or expired token")
       }
-    }
-
-    if (token) verifyEmail()
-    else {
-      setStatus("error")
-      setErrorMessage("Verification token missing")
     }
   }, [token])
 
