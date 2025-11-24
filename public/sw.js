@@ -99,7 +99,7 @@ self.addEventListener("fetch", event => {
   // ------------------------------------------
   // 3. NEVER CACHE NON-GET REQUESTS
   // ------------------------------------------
-  if (req.method !== "GET") {
+  if (request.method !== "GET") {
     event.respondWith(fetch(request))
     return
   }
