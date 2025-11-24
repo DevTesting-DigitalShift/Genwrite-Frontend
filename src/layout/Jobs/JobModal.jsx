@@ -79,7 +79,6 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
 
   useEffect(() => {
     if (selectedJob) {
-      console.log("====================",selectedJob)
       setFormData(prev => ({
         ...prev,
         aiModel: selectedJob.blogs?.aiModel || initialJob.blogs.aiModel,

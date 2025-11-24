@@ -354,10 +354,6 @@ const ForgotPassword = () => {
                 <span>Secure</span>
               </div>
               <div className="flex items-center gap-1">
-                <Clock className="w-3 h-3 text-blue-500" />
-                <span>15 min expiry</span>
-              </div>
-              <div className="flex items-center gap-1">
                 <Sparkles className="w-3 h-3 text-purple-500" />
                 <span>Encrypted</span>
               </div>

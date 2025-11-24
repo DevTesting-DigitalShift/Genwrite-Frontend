@@ -1,5 +1,3 @@
-"use client"
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import SkeletonLoader from "../components/UI/SkeletonLoader"
@@ -171,10 +169,7 @@ const MyProjects = () => {
     if (!socket || !user) return
 
     const handleStatusChange = debounce(() => {
-      queryClient.invalidateQueries({
-        queryKey: ["blogs", userId, blogFilters],
-        refetchType: "all", // ← Critical: refetch ALL pages
-      })
+      queryClient.invalidateQueries(["blogs", userId], { refetchType: "all" })
     }, 100)
 
     socket.on("blog:statusChanged", handleStatusChange)
