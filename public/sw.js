@@ -3,7 +3,7 @@
 // File: public/sw.js
 // ============================================
 
-const CACHE_NAME = "app-v1.0.9"
+const CACHE_NAME = "app-v1.0.10"
 const STATIC_ASSETS = ["/", "/index.html", "/manifest.json"]
 const CACHE_EXPIRY_HOURS = 24 // Cache JS/HTML for 6 hours (can set 4–7)
 
