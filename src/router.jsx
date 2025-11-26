@@ -37,6 +37,7 @@ const PromptContent = lazy(() => import("@pages/PromptContent"))
 const UnsubscribeEmail = lazy(() => import("@pages/UnsubscribeEmail"))
 const EmailVerification = lazy(() => import("@pages/EmailVerification"))
 const ShopifyDashboard = lazy(() => import("@pages/ShopifyDashboard"))
+const ShopifyVerification = lazy(() => import("@pages/ShopifyVerification"))
 const PricingCalculator = lazy(() => import("@pages/PricingCalculator"))
 
 /**
@@ -81,7 +82,7 @@ const router = createBrowserRouter([
               { path: "cancel", element: withSuspense(CancelPage) },
             ],
           },
-          { path: "pricing-calculator", element: withSuspense(PricingCalculator) },
+          { path: "shopify-verify", element: withSuspense(ShopifyVerification) },
           { path: "*", element: withSuspense(ErrorPage) },
         ],
       },

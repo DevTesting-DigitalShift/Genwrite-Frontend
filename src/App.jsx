@@ -19,6 +19,7 @@ const App = () => {
       <Helmet>
         <title>GenWrite</title>
       </Helmet>
+
       <Outlet />
     </Suspense>
   )
