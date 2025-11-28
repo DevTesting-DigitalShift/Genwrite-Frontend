@@ -2,10 +2,10 @@ import { lazy, Suspense } from "react"
 import { createBrowserRouter, Navigate } from "react-router-dom"
 import LoadingScreen from "@components/UI/LoadingScreen"
 import App from "./App"
+import ErrorBoundary from "./layout/error/ErrorBoundary"
 import VerifiedEmail from "@pages/VerifiedEmail"
 const CreditLogsTable = lazy(() => import("@pages/CreditLogs"))
 const Transactions = lazy(() => import("@pages/Transactions"))
-const ErrorBoundary = lazy(() => import("./layout/error/ErrorBoundary"))
 const PublicRoutesLayout = lazy(() => import("./layout/PublicRoutesLayout"))
 const PrivateRoutesLayout = lazy(() => import("./layout/PrivateRoutesLayout"))
 const Dashboard = lazy(() => import("@pages/Dashboard"))
@@ -60,7 +60,7 @@ const router = createBrowserRouter([
   {
     path: "/",
     element: <App />,
-    errorElement: withSuspense(ErrorBoundary),
+    errorElement: <ErrorBoundary />,
     children: [
       {
         path: "/",

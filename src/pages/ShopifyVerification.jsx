@@ -10,7 +10,6 @@ import {
 } from "@ant-design/icons"
 import { motion } from "framer-motion"
 import { useNavigate, useSearchParams } from "react-router-dom"
-import { verifyIntegrationTypeHost } from "@api/integrationApi"
 import axiosInstance from "@api/index"
 
 const { Title, Text, Paragraph } = Typography
