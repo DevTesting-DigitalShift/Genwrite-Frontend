@@ -36,9 +36,7 @@ const GenerateMetaData = lazy(() => import("@pages/GenerateMetaData"))
 const PromptContent = lazy(() => import("@pages/PromptContent"))
 const UnsubscribeEmail = lazy(() => import("@pages/UnsubscribeEmail"))
 const EmailVerification = lazy(() => import("@pages/EmailVerification"))
-const ShopifyDashboard = lazy(() => import("@pages/ShopifyDashboard"))
 const ShopifyVerification = lazy(() => import("@pages/ShopifyVerification"))
-const PricingCalculator = lazy(() => import("@pages/PricingCalculator"))
 
 /**
  * Wraps a component in React.Suspense with fallback support.
@@ -114,7 +112,6 @@ const router = createBrowserRouter([
           { path: "analytics", element: withSuspense(AnalyticsPage) },
           { path: "generate-metadata", element: withSuspense(GenerateMetaData) },
           { path: "prompt-content", element: withSuspense(PromptContent) },
-          { path: "shopify-dashboard", element: withSuspense(ShopifyDashboard) },
         ],
       },
     ],
