@@ -10,6 +10,7 @@ import { sendStripeGTMEvent } from "@utils/stripeGTMEvents"
 import { useSelector } from "react-redux"
 import ComparisonTable from "@components/ComparisonTable"
 import { useNavigate } from "react-router-dom"
+import CountdownTimer from "@components/CountdownTimer"
 
 const PricingCard = ({
   plan,
@@ -286,21 +287,50 @@ const PricingCard = ({
             </div>
           ) : (
             <div className="space-y-2">
+              {/* Original Price with Strike-through */}
+              {typeof displayPrice === "number" && (
+                <div className="flex items-end justify-center gap-1">
+                  <span className="text-2xl font-bold text-gray-400 line-through">
+                    ${displayPrice}
+                  </span>
+                  <span className="text-gray-400 text-sm pb-1">/month</span>
+                </div>
+              )}
+
+              {/* Discounted Price (50% off) */}
               <div className="flex items-end justify-center gap-1">
-                <span className={`text-4xl font-bold ${styles.price}`}>
-                  {typeof displayPrice === "string" ? displayPrice : `$${displayPrice}`}
-                </span>
-                {typeof displayPrice !== "string" && (
-                  <span className="text-gray-500 text-lg pb-1">/monthly</span>
+                {typeof displayPrice === "string" ? (
+                  <span className={`text-4xl font-bold ${styles.price}`}>{displayPrice}</span>
+                ) : (
+                  <>
+                    <span className={`text-4xl font-bold ${styles.price}`}>
+                      ${(displayPrice * 0.5).toFixed(2)}
+                    </span>
+                    <span className="text-gray-500 text-lg pb-1">/month</span>
+                  </>
                 )}
               </div>
+
+              {/* First Month Indicator */}
+              {typeof displayPrice === "number" && (
+                <div className="mt-2">
+                  <span className="inline-block bg-gradient-to-r from-red-500 to-pink-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+                    🎄 50% OFF FIRST MONTH
+                  </span>
+                </div>
+              )}
+
               {billingPeriod === "annual" && typeof displayPrice === "number" && (
                 <div className="space-y-1 mt-2">
                   <div className="text-gray-500 text-sm font-medium">
-                    Billed annually at <strong>${plan.annualPrice}</strong>
+                    Then <span className="line-through">${plan.annualPrice}</span>{" "}
+                    <strong className="text-green-600">
+                      ${(plan.annualPrice * 0.5).toFixed(2)}
+                    </strong>{" "}
+                    for first year
                   </div>
                   <div className="text-green-600 text-sm font-medium bg-green-50 px-3 py-1 rounded-full inline-block">
-                    Save ${(plan.annualPrice / 0.833 - plan.annualPrice).toFixed(0)} per year
+                    Save ${(plan.annualPrice * 0.5).toFixed(0)} first year + 20% always
                   </div>
                 </div>
               )}
@@ -563,11 +593,84 @@ const Upgrade = () => {
   const showTrialMessage = !user?.subscription?.trialOpted
 
   return (
-    <div className="bg-gray-50 py-10 px-4">
+    <div className="bg-gray-50 pb-10 pt-5 px-4">
       <Helmet>
         <title>Subscription | GenWrite</title>
       </Helmet>
+      <motion.div className="flex flex-col justify-center items-center mb-8 mx-auto">
+        <motion.h1
+          whileHover={{ scale: 1.02 }}
+          className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
+        >
+          Flexible Pricing Plans
+        </motion.h1>
+        <motion.div
+          className="h-1 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto w-24 rounded-full"
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: 1 }}
+          transition={{ delay: 0.3 }}
+        />
+
+        <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+          Choose the perfect plan for your team. Scale seamlessly as your needs grow.
+        </p>
+      </motion.div>
+
       <div className="mx-auto">
+        {/* Christmas Sale Countdown Timer Banner */}
+        <div className="max-w-6xl mx-auto mb-8 grid grid-cols-2 place-content-center place-items-center gap-4">
+          <CountdownTimer
+            startDate="2024-12-01T00:00:00"
+            endDate="2026-01-05T23:59:59"
+            discount="50%"
+          />
+
+          {/* Important Sale Terms Notice */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-xl p-5 shadow-md"
+          >
+            <div className="flex items-start gap-3">
+              <div className="text-2xl">⚠️</div>
+              <div className="flex-1 flex-col justify-around">
+                <h4 className="text-lg font-bold text-amber-900 mb-2 flex items-center gap-2">
+                  🎅 Christmas Sale - Important Terms
+                </h4>
+                <div className="space-y-1.5 text-sm text-amber-800">
+                  <p className="flex items-start gap-2">
+                    <span className="text-lg leading-none">•</span>
+                    <span>
+                      <strong className="font-bold">First-Time Subscribers Only:</strong> This 50%
+                      discount is exclusively available for new customers who have never subscribed
+                      to GenWrite before.
+                    </span>
+                  </p>
+                  <p className="flex items-start gap-2">
+                    <span className="text-lg leading-none">•</span>
+                    <span>
+                      <strong className="font-bold">First Month Only:</strong> The 50% discount
+                      applies to your{" "}
+                      <strong className="underline">first month of subscription only</strong>.
+                      Starting from the second month, you will be charged the regular subscription
+                      price.
+                    </span>
+                  </p>
+                  <p className="flex items-start gap-2">
+                    <span className="text-lg leading-none">•</span>
+                    <span>
+                      <strong className="font-bold">Limited Time:</strong> This special Christmas &
+                      New Year offer is valid only during the promotional period shown in the
+                      countdown timer above.
+                    </span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+
         {/* Global trial banner (unchanged) */}
         {showTrialMessage && (
           <motion.div
@@ -584,7 +687,9 @@ const Upgrade = () => {
                 powerful AI content creation tools at no cost. Select a plan below to begin your
                 trial and elevate your content creation journey.
               </p>
-              <p className="text-blue-600">Any remaining trial credits will roll over to your next plan.</p>
+              <p className="text-blue-600">
+                Any remaining trial credits will roll over to your next plan.
+              </p>
             </div>
           </motion.div>
         )}
@@ -605,25 +710,6 @@ const Upgrade = () => {
 
         {/* Header & toggle (unchanged) */}
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center mb-16">
-          <motion.div initial={{ y: -20 }} animate={{ y: 0 }} className="inline-block mb-4">
-            <motion.h1
-              whileHover={{ scale: 1.02 }}
-              className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mt-10"
-            >
-              Flexible Pricing Plans
-            </motion.h1>
-            <motion.div
-              className="h-1 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto w-24 rounded-full"
-              initial={{ scaleX: 0 }}
-              animate={{ scaleX: 1 }}
-              transition={{ delay: 0.3 }}
-            />
-          </motion.div>
-
-          <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-            Choose the perfect plan for your team. Scale seamlessly as your needs grow.
-          </p>
-
           <div className="flex justify-center mt-8">
             <div className="inline-flex items-center bg-white rounded-full p-1 border border-gray-200 shadow-sm">
               {["monthly", "annual"].map(period => (

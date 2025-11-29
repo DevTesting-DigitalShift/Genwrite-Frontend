@@ -24,7 +24,7 @@ const ComparisonTable = ({ plans }) => {
           details: {
             basic: "1 Jobs",
             pro: "5 Jobs",
-            enterprise: "Unlimited Jobs",
+            enterprise: "Custom Jobs",
           },
         },
       ],
@@ -43,7 +43,7 @@ const ComparisonTable = ({ plans }) => {
           details: {
             basic: "50 Images",
             pro: "200 Images",
-            enterprise: "Unlimited Images",
+            enterprise: "Custom Images",
           },
         },
         { name: "Proofreading", available: ["pro", "enterprise"] },
