@@ -37,6 +37,7 @@ const PromptContent = lazy(() => import("@pages/PromptContent"))
 const UnsubscribeEmail = lazy(() => import("@pages/UnsubscribeEmail"))
 const EmailVerification = lazy(() => import("@pages/EmailVerification"))
 const ShopifyVerification = lazy(() => import("@pages/ShopifyVerification"))
+const PricingCalculator = lazy(() => import("@pages/PricingCalculator"))
 
 /**
  * Wraps a component in React.Suspense with fallback support.
@@ -81,6 +82,7 @@ const router = createBrowserRouter([
             ],
           },
           { path: "shopify-verify", element: withSuspense(ShopifyVerification) },
+          { path: "pricing-calculator", element: withSuspense(PricingCalculator) },
           { path: "*", element: withSuspense(ErrorPage) },
         ],
       },
