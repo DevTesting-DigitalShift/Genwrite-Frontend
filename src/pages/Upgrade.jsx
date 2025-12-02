@@ -593,14 +593,14 @@ const Upgrade = () => {
   const showTrialMessage = !user?.subscription?.trialOpted
 
   return (
-    <div className="bg-gray-50 pb-10 pt-5 px-4">
+    <div className="pb-10 pt-5 px-4 sm:px-6 lg:px-8 mt-10">
       <Helmet>
         <title>Subscription | GenWrite</title>
       </Helmet>
-      <motion.div className="flex flex-col justify-center items-center mb-8 mx-auto">
+      <motion.div className="flex flex-col justify-center items-center mb-6 sm:mb-8 mx-auto">
         <motion.h1
           whileHover={{ scale: 1.02 }}
-          className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
+          className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent text-center px-4"
         >
           Flexible Pricing Plans
         </motion.h1>
@@ -611,14 +611,14 @@ const Upgrade = () => {
           transition={{ delay: 0.3 }}
         />
 
-        <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+        <p className="text-gray-600 text-sm sm:text-base md:text-lg max-w-2xl mx-auto text-center px-4">
           Choose the perfect plan for your team. Scale seamlessly as your needs grow.
         </p>
       </motion.div>
 
-      <div className="mx-auto">
+      <div className="mx-auto max-w-7xl">
         {/* Christmas Sale Countdown Timer Banner */}
-        <div className="max-w-6xl mx-auto mb-8 grid grid-cols-2 place-content-center place-items-center gap-4">
+        <div className="max-w-6xl mx-auto mb-6 sm:mb-8 grid grid-cols-1 lg:grid-cols-2 place-content-center place-items-center gap-4 sm:gap-6">
           <CountdownTimer
             startDate="2024-12-01T00:00:00"
             endDate="2026-01-05T23:59:59"
@@ -630,15 +630,15 @@ const Upgrade = () => {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-xl p-5 shadow-md"
+            className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-xl p-4 sm:p-5 shadow-md w-full"
           >
             <div className="flex items-start gap-3">
               <div className="text-2xl">⚠️</div>
               <div className="flex-1 flex-col justify-around">
-                <h4 className="text-lg font-bold text-amber-900 mb-2 flex items-center gap-2">
+                <h4 className="text-base sm:text-lg font-bold text-amber-900 mb-2 flex items-center gap-2">
                   🎅 Christmas Sale - Important Terms
                 </h4>
-                <div className="space-y-1.5 text-sm text-amber-800">
+                <div className="space-y-1.5 text-xs sm:text-sm text-amber-800">
                   <p className="flex items-start gap-2">
                     <span className="text-lg leading-none">•</span>
                     <span>
@@ -677,17 +677,19 @@ const Upgrade = () => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
-            className="mb-8 bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-xl shadow-lg border border-blue-200 max-w-3xl mx-auto"
+            className="mb-6 sm:mb-8 bg-gradient-to-r from-blue-50 to-purple-50 p-4 sm:p-6 rounded-xl shadow-lg border border-blue-200 max-w-3xl mx-auto"
           >
             <div className="flex flex-col items-center text-center">
-              <Star className="w-8 h-8 text-blue-600 mb-4" />
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Start Your 7-Day Free Trial</h2>
-              <p className="text-gray-600 text-lg max-w-xl mb-6">
+              <Star className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 mb-3 sm:mb-4" />
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 px-4">
+                Start Your 7-Day Free Trial
+              </h2>
+              <p className="text-gray-600 text-sm sm:text-base md:text-lg max-w-xl mb-4 sm:mb-6 px-4">
                 Unlock the full potential of GenWrite with a 7-day free trial. Experience our
                 powerful AI content creation tools at no cost. Select a plan below to begin your
                 trial and elevate your content creation journey.
               </p>
-              <p className="text-blue-600">
+              <p className="text-blue-600 text-sm sm:text-base px-4">
                 Any remaining trial credits will roll over to your next plan.
               </p>
             </div>
@@ -699,9 +701,9 @@ const Upgrade = () => {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-center mb-8"
+            className="text-center mb-6 sm:mb-8 px-4"
           >
-            <p className="text-lg font-semibold text-purple-600">
+            <p className="text-base sm:text-lg font-semibold text-purple-600">
               You are at the top tier with our Enterprise plan! Contact our dedicated support team
               for any tailored solutions you require.
             </p>
@@ -709,14 +711,18 @@ const Upgrade = () => {
         )}
 
         {/* Header & toggle (unchanged) */}
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center mb-16">
-          <div className="flex justify-center mt-8">
-            <div className="inline-flex items-center bg-white rounded-full p-1 border border-gray-200 shadow-sm">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center mb-8 sm:mb-12 lg:mb-16"
+        >
+          <div className="flex justify-center mt-4 sm:mt-6 lg:mt-8 px-4">
+            <div className="inline-flex items-center bg-white rounded-full p-1 border border-gray-200 shadow-sm w-full sm:w-auto">
               {["monthly", "annual"].map(period => (
                 <button
                   key={period}
                   onClick={() => setBillingPeriod(period)}
-                  className={`px-6 py-3 rounded-full text-sm font-semibold transition-all duration-300 ${
+                  className={`px-4 sm:px-6 py-2 sm:py-3 rounded-full text-xs sm:text-sm font-semibold transition-all duration-300 flex-1 sm:flex-none ${
                     billingPeriod === period
                       ? "bg-blue-600 text-white shadow-sm"
                       : "text-gray-600 hover:text-gray-900"
@@ -725,7 +731,7 @@ const Upgrade = () => {
                   {period === "annual" ? (
                     <>
                       Annual
-                      <span className="ml-2 px-2 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
+                      <span className="ml-1 sm:ml-2 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
                         Save 20%
                       </span>
                     </>
@@ -739,7 +745,7 @@ const Upgrade = () => {
         </motion.div>
 
         {/* Cards */}
-        <div className="grid lg:grid-cols-4 md:grid-cols-2 gap-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 lg:gap-10 px-4 sm:px-0">
           <AnimatePresence>
             {loading
               ? Array.from({ length: 4 }).map((_, idx) => <SkeletonCard key={idx} />)
@@ -768,7 +774,7 @@ const Upgrade = () => {
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.3 }}
-              className="mt-20"
+              className="mt-12 sm:mt-16 lg:mt-20 px-4 sm:px-0"
             >
               <ComparisonTable plans={plans} billingPeriod={billingPeriod} />
             </motion.div>
@@ -778,7 +784,7 @@ const Upgrade = () => {
 
       {/* Cancel link (unchanged) */}
       {user?.subscription?.plan !== "free" && (
-        <div className="flex justify-end mt-4 mr-20">
+        <div className="flex justify-center sm:justify-end mt-4 sm:mt-6 px-4 sm:mr-8 lg:mr-20">
           <a
             href="/cancel-subscription"
             className="text-sm font-medium text-white transition-colors 

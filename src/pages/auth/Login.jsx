@@ -265,19 +265,29 @@ const Auth = ({ path }) => {
         <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-12 items-start">
           {/* Left Side - Countdown + Subscription Features */}
           <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5 }}
-            className="hidden lg:block space-y-6"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="lg:hidden mb-6" /* mobile-only */
           >
-            {/* Countdown Timer */}
             <CountdownTimer
               startDate="2025-12-01T00:00:00"
               endDate="2026-01-02T23:59:59"
               discount="50%"
             />
+          </motion.div>
 
-            {/* Feature Banner */}
+          {/* Desktop-only left section */}
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5 }}
+            className="hidden lg:block space-y-6"
+          >
+            <CountdownTimer
+              startDate="2025-12-01T00:00:00"
+              endDate="2026-01-02T23:59:59"
+              discount="50%"
+            />
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -303,8 +313,7 @@ const Auth = ({ path }) => {
                 ))}
               </div>
             </motion.div>
-
-            {/* 7-Day Trial Highlight */}
+            {/* 7-day trial card */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}

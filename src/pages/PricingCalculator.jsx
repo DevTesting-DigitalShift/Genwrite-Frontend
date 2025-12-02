@@ -1,17 +1,6 @@
 import React, { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import {
-  Slider,
-  Checkbox,
-  Radio,
-  Card,
-  Button,
-  Divider,
-  Space,
-  Typography,
-  InputNumber,
-  Switch,
-} from "antd"
+import { Slider, Radio, Card, Button, Divider, Space, Typography, Switch } from "antd"
 import {
   FileTextOutlined,
   BulbOutlined,
@@ -24,6 +13,8 @@ import {
   ThunderboltOutlined,
   CheckCircleOutlined,
   ArrowRightOutlined,
+  MinusOutlined,
+  RocketOutlined,
 } from "@ant-design/icons"
 import { pricingConfig, computeCost } from "@/data/pricingConfig"
 import { Helmet } from "react-helmet"
@@ -61,52 +52,72 @@ const PricingCalculator = () => {
 
   // State management
   const [wordCount, setWordCount] = useState(1000)
-  const [selectedFeatures, setSelectedFeatures] = useState([])
-  const [imageType, setImageType] = useState("stock")
-  const [imageCount, setImageCount] = useState(3)
+  const [selectedFeatures, setSelectedFeatures] = useState({
+    brandVoice: false,
+    competitorResearch: false,
+    keywordResearch: false,
+    internalLinking: false,
+    faqGeneration: false,
+    automaticPosting: false,
+  })
+  const [imageType, setImageType] = useState("none")
+  const [imageCount, setImageCount] = useState(0)
   const [aiModel, setAiModel] = useState("gemini")
   const [totalCost, setTotalCost] = useState(0)
-  const [prevCost, setPrevCost] = useState(0)
-  const [includeImages, setIncludeImages] = useState(true)
 
-  // Feature icons mapping
-  const featureIcons = {
-    brandVoice: <BulbOutlined />,
-    competitorResearch: <SearchOutlined />,
-    keywordResearch: <SearchOutlined />,
-    internalLinking: <LinkOutlined />,
-    faqGeneration: <QuestionCircleOutlined />,
-    automaticPosting: <RobotOutlined />,
-  }
-
-  // Calculate total cost using the computeCost function
+  // Calculate total cost
   useEffect(() => {
+    const includeImages = imageType !== "none"
+    const featuresArray = Object.keys(selectedFeatures).filter(key => selectedFeatures[key])
+
     const cost = computeCost({
       wordCount,
-      features: selectedFeatures,
+      features: featuresArray,
       aiModel,
       includeImages,
       imageSource: includeImages ? imageType : null,
       numberOfImages: includeImages && imageType === "upload" ? imageCount : 0,
     })
 
-    setPrevCost(totalCost)
     setTotalCost(cost)
-  }, [wordCount, selectedFeatures, imageType, imageCount, aiModel, includeImages])
+  }, [wordCount, selectedFeatures, imageType, imageCount, aiModel])
 
-  // Feature options
-  const featureOptions = Object.keys(pricingConfig.features).map(key => ({
-    label: (
-      <div className="flex items-center gap-2">
-        <span className="text-lg">{featureIcons[key]}</span>
-        <span>{pricingConfig.features[key].label}</span>
-        <span className="text-xs text-gray-500 ml-auto">
-          +{pricingConfig.features[key].cost} credits
-        </span>
-      </div>
-    ),
-    value: key,
-  }))
+  const toggleFeature = key => {
+    setSelectedFeatures(prev => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  // Calculate breakdown values
+  const wordCountNum = wordCount
+  const rawBaseCost =
+    Math.ceil(wordCountNum / pricingConfig.wordCount.base) * pricingConfig.wordCount.cost
+  const modelMultiplier = pricingConfig.aiModels[aiModel]?.costMultiplier || 1
+  const baseCost = Math.round(rawBaseCost * modelMultiplier)
+
+  const featuresCost = Object.keys(pricingConfig.features).reduce(
+    (acc, key) => acc + (selectedFeatures[key] ? pricingConfig.features[key].cost : 0),
+    0
+  )
+
+  const imagesCost =
+    imageType === "stock"
+      ? pricingConfig.images.stock.featureFee
+      : imageType === "ai"
+      ? pricingConfig.images.ai.featureFee
+      : imageType === "upload"
+      ? imageCount * pricingConfig.images.upload.perImageFee
+      : 0
+
+  const imageOptions = [
+    { key: "none", label: "None", icon: <MinusOutlined />, cost: 0 },
+    {
+      key: "stock",
+      label: "Stock",
+      icon: <PictureOutlined />,
+      cost: pricingConfig.images.stock.featureFee,
+    },
+    { key: "ai", label: "AI", icon: <RobotOutlined />, cost: pricingConfig.images.ai.featureFee },
+    { key: "upload", label: "Upload", icon: <CloudUploadOutlined />, cost: null },
+  ]
 
   return (
     <>
@@ -118,74 +129,50 @@ const PricingCalculator = () => {
         />
       </Helmet>
 
-      <div
-        className="min-h-screen py-12 px-4 sm:px-6 lg:px-8"
-        style={{
-          background: "linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)",
-        }}
-      >
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="max-w-7xl mx-auto"
-        >
-          {/* Header */}
-          <motion.div variants={itemVariants} className="text-center mb-12">
-            <Title
-              level={1}
-              className="!text-white !text-4xl sm:!text-5xl !font-bold !mb-4"
-              style={{ fontFamily: "Montserrat, sans-serif" }}
-            >
-              AI Content Pricing Calculator
-            </Title>
-            <Paragraph className="!text-white/90 !text-lg sm:!text-xl !max-w-2xl !mx-auto">
-              Estimate the cost of your blog content with our transparent pricing. Customize your
-              requirements and see real-time pricing.
-            </Paragraph>
-          </motion.div>
+      {/* Main Calculator */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 mb-20">
+        <motion.div variants={containerVariants} initial="hidden" animate="visible">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* LEFT SIDE */}
+            <div className="lg:col-span-2 space-y-6">
+              <Card className="border border-gray-100 shadow-sm rounded-2xl">
+                <Title level={4} className="!mb-6 !text-lg">
+                  Content Settings
+                </Title>
 
-          {/* Main Content Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-            {/* Left Column - Controls */}
-            <motion.div variants={itemVariants} className="lg:col-span-2 space-y-4 lg:space-y-6">
-              {/* Word Count Section */}
-              <Card
-                className="overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300"
-                style={{
-                  background: "rgba(255, 255, 255, 0.95)",
-                  backdropFilter: "blur(10px)",
-                  borderRadius: "16px",
-                  border: "1px solid rgba(255, 255, 255, 0.3)",
-                }}
-              >
-                <motion.div
-                  initial={{ scale: 0.95 }}
-                  animate={{ scale: 1 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <Space direction="vertical" className="w-full" size="large">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
-                        style={{
-                          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                          color: "white",
-                        }}
-                      >
-                        <FileTextOutlined />
-                      </div>
-                      <div>
-                        <Title level={4} className="!mb-0">
-                          Word Count
-                        </Title>
-                        <Text type="secondary" className="text-sm">
-                          Base: {pricingConfig.wordCount.cost} credits per{" "}
-                          {pricingConfig.wordCount.base} words
-                        </Text>
-                      </div>
+                {/* WORD COUNT */}
+                <div className="mb-8">
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="inline-flex items-center justify-center w-7 h-7 text-base rounded-full bg-slate-100 font-semibold">
+                      1
+                    </span>
+                    <div>
+                      <Text strong className="text-base">
+                        Target Word Count
+                      </Text>
+                      <br />
+                      <Text className="text-xs text-slate-500">
+                        Base chunk: {pricingConfig.wordCount.base} words
+                      </Text>
                     </div>
+                  </div>
 
+                  <div className="space-y-4">
+                    {/* Large Word Count Display */}
+                    <motion.div
+                      key={wordCountNum}
+                      initial={{ scale: 1.1, opacity: 0.8 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ duration: 0.3, ease: "easeOut" }}
+                      className="text-center py-6 px-6 bg-gradient-to-r from-purple-50 to-sky-50 rounded-xl border border-purple-200"
+                    >
+                      <p className="text-5xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-sky-600">
+                        {wordCountNum.toLocaleString()}
+                      </p>
+                      <p className="text-xs text-slate-500 mt-2">words</p>
+                    </motion.div>
+
+                    {/* Slider */}
                     <div className="px-2">
                       <Slider
                         min={500}
@@ -193,302 +180,199 @@ const PricingCalculator = () => {
                         step={100}
                         value={wordCount}
                         onChange={setWordCount}
-                        tooltip={{
-                          formatter: value => `${value} words`,
-                        }}
+                        tooltip={{ formatter: value => `${value} words` }}
                         styles={{
                           track: {
-                            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                            background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
                           },
-                          rail: {
-                            background: "#e5e7eb",
-                          },
+                          rail: { background: "#e5e7eb" },
                         }}
                       />
-                      <div className="flex justify-between mt-2">
-                        <Text type="secondary">500 words</Text>
-                        <motion.div
-                          key={wordCount}
-                          initial={{ scale: 1.2, color: "#667eea" }}
-                          animate={{ scale: 1, color: "#000" }}
-                          transition={{ duration: 0.3 }}
-                        >
-                          <Text strong className="text-lg">
-                            {wordCount.toLocaleString()} words
-                          </Text>
-                        </motion.div>
-                        <Text type="secondary">5,000 words</Text>
+                      <div className="flex justify-between mt-2 text-xs text-slate-500">
+                        <span>500</span>
+                        <span>5,000</span>
                       </div>
                     </div>
-                  </Space>
-                </motion.div>
-              </Card>
+                  </div>
+                </div>
 
-              {/* Features Section */}
-              <Card
-                className="overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300"
-                style={{
-                  background: "rgba(255, 255, 255, 0.95)",
-                  backdropFilter: "blur(10px)",
-                  borderRadius: "16px",
-                  border: "1px solid rgba(255, 255, 255, 0.3)",
-                }}
-              >
-                <Space direction="vertical" className="w-full" size="large">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
-                      style={{
-                        background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
-                        color: "white",
-                      }}
-                    >
-                      <ThunderboltOutlined />
-                    </div>
+                <Divider className="!my-6 !border-gray-100" />
+
+                {/* FEATURES */}
+                <div className="mb-8">
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="inline-flex items-center justify-center w-7 h-7 text-base rounded-full bg-purple-100 font-semibold">
+                      2
+                    </span>
                     <div>
-                      <Title level={4} className="!mb-0">
-                        Advanced Features
-                      </Title>
-                      <Text type="secondary" className="text-sm">
-                        Select features to enhance your content
+                      <Text strong className="text-base">
+                        Additional Features
+                      </Text>
+                      <br />
+                      <Text className="text-xs text-slate-500">Select helpful add-ons</Text>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    {Object.entries(pricingConfig.features).map(([key, cfg]) => (
+                      <div
+                        key={key}
+                        className="p-4 rounded-xl border border-gray-200 hover:shadow-sm transition-all"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <Text strong className="text-base text-slate-700">
+                            {cfg.label}
+                          </Text>
+                          <Switch
+                            size="small"
+                            checked={selectedFeatures[key]}
+                            onChange={() => toggleFeature(key)}
+                          />
+                        </div>
+                        <Text className="text-xs text-slate-600">+{cfg.cost} credits</Text>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <Divider className="!my-6 !border-gray-100" />
+
+                {/* IMAGE SETTINGS */}
+                <div className="mb-8">
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="inline-flex items-center justify-center w-7 h-7 text-base rounded-full bg-green-100 font-semibold">
+                      3
+                    </span>
+                    <div>
+                      <Text strong className="text-base">
+                        Image Settings
+                      </Text>
+                      <br />
+                      <Text className="text-xs text-slate-500">
+                        Choose stock, AI-generated or upload your images
                       </Text>
                     </div>
                   </div>
 
-                  <Checkbox.Group
-                    value={selectedFeatures}
-                    onChange={setSelectedFeatures}
+                  <Radio.Group
+                    value={imageType}
+                    onChange={e => setImageType(e.target.value)}
                     className="w-full"
                   >
-                    <div className="grid sm:grid-cols-2 mx-auto gap-4">
-                      {featureOptions.map((option, index) => (
-                        <motion.div
-                          key={option.value}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.05 }}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                        >
-                          <Checkbox
-                            value={option.value}
-                            className="w-full p-3 rounded-lg border border-gray-200 hover:border-purple-400 transition-all duration-200"
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {imageOptions.map(opt => {
+                        const isActive = imageType === opt.key
+                        return (
+                          <Radio.Button
+                            key={opt.key}
+                            value={opt.key}
+                            className={`!h-auto !p-4 !rounded-xl !text-center border ${
+                              isActive ? "!bg-purple-50" : "!bg-white border-gray-200"
+                            }`}
                             style={{
-                              background: selectedFeatures.includes(option.value)
-                                ? "linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)"
-                                : "white",
+                              border: isActive ? "2px solid #a855f7" : "1px solid #e2e8f0",
                             }}
                           >
-                            {option.label}
-                          </Checkbox>
-                        </motion.div>
-                      ))}
+                            <div className="flex flex-col items-center gap-2">
+                              <div className="flex items-center justify-between w-full">
+                                <div className="flex items-center gap-2">
+                                  <span
+                                    className={`text-base ${
+                                      isActive ? "text-purple-700" : "text-slate-600"
+                                    }`}
+                                  >
+                                    {opt.icon}
+                                  </span>
+                                  <span
+                                    className={`font-medium text-base ${
+                                      isActive ? "text-purple-700" : "text-slate-700"
+                                    }`}
+                                  >
+                                    {opt.label}
+                                  </span>
+                                </div>
+                                {opt.cost !== null && (
+                                  <span
+                                    className={`text-xs ${
+                                      isActive ? "text-purple-700" : "text-slate-500"
+                                    }`}
+                                  >
+                                    +{opt.cost}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </Radio.Button>
+                        )
+                      })}
                     </div>
-                  </Checkbox.Group>
-                </Space>
-              </Card>
-
-              {/* Image Options Section */}
-              <Card
-                className="overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300"
-                style={{
-                  background: "rgba(255, 255, 255, 0.95)",
-                  backdropFilter: "blur(10px)",
-                  borderRadius: "16px",
-                  border: "1px solid rgba(255, 255, 255, 0.3)",
-                }}
-              >
-                <Space direction="vertical" className="w-full" size="large">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
-                        style={{
-                          background: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
-                          color: "white",
-                        }}
-                      >
-                        <PictureOutlined />
-                      </div>
-                      <div>
-                        <Title level={4} className="!mb-0">
-                          Image Options
-                        </Title>
-                        <Text type="secondary" className="text-sm">
-                          Choose how to add images to your content
-                        </Text>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Text type="secondary" className="text-sm">
-                        {includeImages ? "Enabled" : "Disabled"}
-                      </Text>
-                      <Switch
-                        checked={includeImages}
-                        onChange={setIncludeImages}
-                        style={{
-                          background: includeImages
-                            ? "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)"
-                            : undefined,
-                        }}
-                      />
-                    </div>
-                  </div>
+                  </Radio.Group>
 
                   <AnimatePresence>
-                    {includeImages && (
+                    {imageType === "upload" && (
                       <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.3 }}
+                        className="mt-4"
                       >
-                        <Radio.Group
-                          value={imageType}
-                          onChange={e => setImageType(e.target.value)}
-                          className="w-full"
-                        >
-                          <div className="grid sm:grid-cols-3 gap-3">
-                            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                              <Radio.Button
-                                value="stock"
-                                className="w-full h-auto p-4 rounded-lg text-center"
-                                style={{
-                                  background:
-                                    imageType === "stock"
-                                      ? "linear-gradient(135deg, rgba(79, 172, 254, 0.2) 0%, rgba(0, 242, 254, 0.2) 100%)"
-                                      : "white",
-                                  border:
-                                    imageType === "stock"
-                                      ? "2px solid #4facfe"
-                                      : "1px solid #d9d9d9",
-                                }}
-                              >
-                                <div className="flex flex-col items-center gap-2">
-                                  <PictureOutlined className="text-2xl" />
-                                  <div>
-                                    <div className="font-semibold">Stock Images</div>
-                                    <div className="text-xs text-gray-500">
-                                      +{pricingConfig.images.stock.featureFee} credits
-                                    </div>
-                                  </div>
-                                </div>
-                              </Radio.Button>
-                            </motion.div>
+                        <div className="flex gap-5 items-center mb-3">
+                          <Text className="text-sm semi-bold">
+                            Number of Images to Upload
+                          </Text>
+                          <Text className="text-lg font-semibold text-purple-700">
+                            {imageCount}
+                          </Text>
+                        </div>
 
-                            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                              <Radio.Button
-                                value="ai"
-                                className="w-full h-auto p-4 rounded-lg text-center"
-                                style={{
-                                  background:
-                                    imageType === "ai"
-                                      ? "linear-gradient(135deg, rgba(79, 172, 254, 0.2) 0%, rgba(0, 242, 254, 0.2) 100%)"
-                                      : "white",
-                                  border:
-                                    imageType === "ai" ? "2px solid #4facfe" : "1px solid #d9d9d9",
-                                }}
-                              >
-                                <div className="flex flex-col items-center gap-2">
-                                  <RobotOutlined className="text-2xl" />
-                                  <div>
-                                    <div className="font-semibold">AI Generated</div>
-                                    <div className="text-xs text-gray-500">
-                                      +{pricingConfig.images.ai.featureFee} credits
-                                    </div>
-                                  </div>
-                                </div>
-                              </Radio.Button>
-                            </motion.div>
+                        <Slider
+                          min={0}
+                          max={20}
+                          step={1}
+                          value={imageCount}
+                          onChange={setImageCount}
+                          styles={{
+                            track: {
+                              background: "linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)",
+                            },
+                          }}
+                        />
 
-                            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                              <Radio.Button
-                                value="upload"
-                                className="w-full h-auto p-4 rounded-lg text-center"
-                                style={{
-                                  background:
-                                    imageType === "upload"
-                                      ? "linear-gradient(135deg, rgba(79, 172, 254, 0.2) 0%, rgba(0, 242, 254, 0.2) 100%)"
-                                      : "white",
-                                  border:
-                                    imageType === "upload"
-                                      ? "2px solid #4facfe"
-                                      : "1px solid #d9d9d9",
-                                }}
-                              >
-                                <div className="flex flex-col items-center gap-2">
-                                  <CloudUploadOutlined className="text-2xl" />
-                                  <div>
-                                    <div className="font-semibold">Upload</div>
-                                    <div className="text-xs text-gray-500">
-                                      +{pricingConfig.images.upload.perImageFee} credits/image
-                                    </div>
-                                  </div>
-                                </div>
-                              </Radio.Button>
-                            </motion.div>
-                          </div>
-                        </Radio.Group>
-
-                        <AnimatePresence>
-                          {imageType === "upload" && (
-                            <motion.div
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: "auto" }}
-                              exit={{ opacity: 0, height: 0 }}
-                              transition={{ duration: 0.3 }}
-                              className="pt-4 border-t"
+                        <div className="flex justify-between mt-2 px-1">
+                          {[0, 5, 10, 15, 20].map(val => (
+                            <span
+                              key={val}
+                              className={`text-xs font-medium ${
+                                imageCount === val ? "text-purple-600" : "text-slate-400"
+                              }`}
                             >
-                              <Text className="block mb-2">Number of Images: {imageCount}</Text>
-                              <Slider
-                                min={1}
-                                max={15}
-                                value={imageCount}
-                                onChange={setImageCount}
-                                marks={{ 1: "1", 5: "5", 10: "10", 15: "15" }}
-                                styles={{
-                                  track: {
-                                    background: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
-                                  },
-                                }}
-                              />
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
+                              {val}
+                            </span>
+                          ))}
+                        </div>
+
+                        <Text className="text-xs text-slate-500 mt-2 block">
+                          Upload fee: {pricingConfig.images.upload.perImageFee} credits / image
+                        </Text>
                       </motion.div>
                     )}
                   </AnimatePresence>
-                </Space>
-              </Card>
+                </div>
 
-              {/* AI Model Section */}
-              <Card
-                className="overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300"
-                style={{
-                  background: "rgba(255, 255, 255, 0.95)",
-                  backdropFilter: "blur(10px)",
-                  borderRadius: "16px",
-                  border: "1px solid rgba(255, 255, 255, 0.3)",
-                }}
-              >
-                <Space direction="vertical" className="w-full" size="large">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
-                      style={{
-                        background: "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
-                        color: "white",
-                      }}
-                    >
-                      <RobotOutlined />
-                    </div>
+                <Divider className="!my-6 !border-gray-100" />
+
+                {/* AI MODEL */}
+                <div>
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="inline-flex items-center justify-center w-7 h-7 text-base rounded-full bg-orange-100 font-semibold">
+                      4
+                    </span>
                     <div>
-                      <Title level={4} className="!mb-0">
-                        AI Model Selection
-                      </Title>
-                      <Text type="secondary" className="text-sm">
-                        Choose your preferred AI model
+                      <Text strong className="text-base">
+                        AI Model
                       </Text>
+                      <br />
+                      <Text className="text-xs text-slate-500">Choose model cost</Text>
                     </div>
                   </div>
 
@@ -497,204 +381,189 @@ const PricingCalculator = () => {
                     onChange={e => setAiModel(e.target.value)}
                     className="w-full"
                   >
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      {Object.keys(pricingConfig.aiModels).map(modelKey => {
-                        const model = pricingConfig.aiModels[modelKey]
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {Object.entries(pricingConfig.aiModels).map(([key, cfg]) => {
+                        const isActive = aiModel === key
                         return (
-                          <motion.div
-                            key={modelKey}
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
+                          <Radio.Button
+                            key={key}
+                            value={key}
+                            className={`!h-auto !p-4 !rounded-xl border ${
+                              isActive ? "!bg-purple-50" : "!bg-white border-gray-100"
+                            }`}
+                            style={{
+                              border: isActive ? "2px solid #a855f7" : "1px solid #e2e8f0",
+                            }}
                           >
-                            <Radio.Button
-                              value={modelKey}
-                              className="w-full h-auto p-4 rounded-lg text-center"
-                              style={{
-                                background:
-                                  aiModel === modelKey
-                                    ? "linear-gradient(135deg, rgba(250, 112, 154, 0.2) 0%, rgba(254, 225, 64, 0.2) 100%)"
-                                    : "white",
-                                border:
-                                  aiModel === modelKey ? "2px solid #fa709a" : "1px solid #d9d9d9",
-                              }}
-                            >
-                              <div className="flex flex-col items-center gap-2">
-                                <img
-                                  src={`/Images/${modelKey}.png`}
-                                  alt={model.label}
-                                  className="w-12 h-12 object-contain"
-                                />
-                                <div className="font-semibold text-base">{model.label}</div>
-                                <div className="text-xs text-gray-500">
-                                  {model.costMultiplier}x multiplier (word cost only)
-                                </div>
-                              </div>
-                            </Radio.Button>
-                          </motion.div>
+                            <div className="flex items-center justify-between w-full">
+                              <Text
+                                strong
+                                className={`text-base ${
+                                  isActive ? "text-purple-700" : "text-slate-700"
+                                }`}
+                              >
+                                {cfg.label}
+                              </Text>
+                              <Text
+                                className={`text-xs ${
+                                  isActive ? "text-purple-700" : "text-slate-500"
+                                }`}
+                              >
+                                {cfg.costMultiplier}x
+                              </Text>
+                            </div>
+                          </Radio.Button>
                         )
                       })}
                     </div>
                   </Radio.Group>
-                </Space>
+                </div>
               </Card>
-            </motion.div>
+            </div>
 
-            {/* Right Column - Cost Summary (Sticky on desktop) */}
-            <motion.div variants={itemVariants} className="lg:col-span-1">
-              <div className="lg:sticky lg:top-8">
-                <Card
-                  className="overflow-hidden shadow-2xl"
-                  style={{
-                    background: "rgba(255, 255, 255, 0.98)",
-                    backdropFilter: "blur(20px)",
-                    borderRadius: "20px",
-                    border: "2px solid rgba(255, 255, 255, 0.5)",
-                  }}
-                >
-                  <Space direction="vertical" className="w-full" size="large">
-                    <div className="text-center">
-                      <Text type="secondary" className="uppercase text-xs tracking-wider">
-                        Estimated Cost
-                      </Text>
-                      <motion.div
-                        key={totalCost}
-                        initial={{ scale: 1.2, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={{ type: "spring", stiffness: 200, damping: 15 }}
-                      >
-                        <Title
-                          level={1}
-                          className="!mb-0 !mt-2"
-                          style={{
-                            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                            WebkitBackgroundClip: "text",
-                            WebkitTextFillColor: "transparent",
-                            fontSize: "3.5rem",
-                          }}
-                        >
-                          {totalCost.toLocaleString()}
-                        </Title>
-                      </motion.div>
-                      <Text type="secondary" className="text-sm">
-                        credits
-                      </Text>
-                    </div>
+            {/* RIGHT SIDE (STICKY SUMMARY) */}
+            <div className="lg:col-span-1">
+              <div className="sticky top-24">
+                <Card className="border border-gray-100 shadow-sm rounded-2xl text-center">
+                  <Text className="text-xs text-slate-500 uppercase tracking-widest font-semibold">
+                    Estimated Cost
+                  </Text>
 
-                    <Divider className="!my-2" />
+                  {/* BIG CENTERED CREDITS */}
+                  <motion.div
+                    key={totalCost}
+                    initial={{ scale: 1.2, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ duration: 0.4, ease: "easeOut" }}
+                    className="my-6"
+                  >
+                    <p className="text-7xl font-semibold text-sky-600 tracking-tight">{totalCost}</p>
+                    <p className="text-lg text-slate-500 tracking-wider mt-2">credits</p>
+                  </motion.div>
 
-                    {/* Cost Breakdown */}
-                    <div className="space-y-3">
-                      <Text strong className="block text-sm uppercase tracking-wide text-gray-600">
-                        Cost Breakdown
-                      </Text>
+                  <Divider className="!my-6" />
 
-                      <AnimatePresence mode="wait">
-                        <motion.div
-                          key={`${wordCount}-${selectedFeatures.length}-${imageType}-${imageCount}-${aiModel}`}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -10 }}
-                          transition={{ duration: 0.3 }}
-                          className="space-y-2"
-                        >
-                          {/* Base Word Count */}
-                          <div className="flex justify-between items-center text-sm">
-                            <Text type="secondary">
-                              {wordCount} words (
-                              {Math.ceil(wordCount / pricingConfig.wordCount.base)} ×{" "}
-                              {pricingConfig.wordCount.cost})
-                            </Text>
-                            <Text strong>
-                              {Math.ceil(wordCount / pricingConfig.wordCount.base) *
-                                pricingConfig.wordCount.cost}
-                            </Text>
-                          </div>
+                  {/* Breakdown */}
+                  <div className="space-y-4 text-left">
+                    <Text
+                      strong
+                      className="text-xs text-slate-400 uppercase tracking-wider block mb-3"
+                    >
+                      Cost Breakdown
+                    </Text>
 
-                          {/* Selected Features */}
-                          {selectedFeatures.map(feature => (
-                            <motion.div
-                              key={feature}
-                              initial={{ opacity: 0, x: -10 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              exit={{ opacity: 0, x: 10 }}
-                              className="flex justify-between items-center text-sm"
-                            >
-                              <Text type="secondary" className="flex items-center gap-2">
-                                <CheckCircleOutlined className="text-green-500" />
-                                {pricingConfig.features[feature].label}
-                              </Text>
-                              <Text strong>+{pricingConfig.features[feature].cost}</Text>
-                            </motion.div>
-                          ))}
-
-                          {/* Image Cost */}
-                          {includeImages && (
-                            <div className="flex justify-between items-center text-sm">
-                              <Text type="secondary">
-                                {imageType === "stock"
-                                  ? "Stock Images"
-                                  : imageType === "ai"
-                                  ? "AI Images"
-                                  : `Upload (${imageCount} images)`}
-                              </Text>
-                              <Text strong>
-                                +
-                                {imageType === "stock"
-                                  ? pricingConfig.images.stock.featureFee
-                                  : imageType === "ai"
-                                  ? pricingConfig.images.ai.featureFee
-                                  : pricingConfig.images.upload.perImageFee * imageCount}
-                              </Text>
-                            </div>
-                          )}
-
-                          {/* AI Model Multiplier */}
-                          {pricingConfig.aiModels[aiModel].costMultiplier > 1 && (
-                            <div className="flex justify-between items-center text-sm pt-2 border-t">
-                              <Text type="secondary">
-                                {pricingConfig.aiModels[aiModel].label} (
-                                {pricingConfig.aiModels[aiModel].costMultiplier}x on word cost)
-                              </Text>
-                              <Text strong className="text-purple-600">
-                                Multiplier Applied
-                              </Text>
-                            </div>
-                          )}
-                        </motion.div>
-                      </AnimatePresence>
-                    </div>
-
-                    <Divider className="!my-2" />
-
-                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                      <Button
-                        type="primary"
-                        size="large"
-                        block
-                        icon={<ArrowRightOutlined />}
-                        iconPosition="end"
-                        onClick={() => navigate("/signup")}
-                        style={{
-                          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                          border: "none",
-                          height: "56px",
-                          fontSize: "16px",
-                          fontWeight: 600,
-                          borderRadius: "12px",
-                          boxShadow: "0 4px 15px rgba(102, 126, 234, 0.4)",
-                        }}
-                      >
-                        Get Started
-                      </Button>
+                    {/* Base Cost */}
+                    <motion.div
+                      key={`base-${baseCost}`}
+                      initial={{ x: -10, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      transition={{ duration: 0.3 }}
+                      className="p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors"
+                    >
+                      <div className="flex justify-between items-center">
+                        <div className="flex-1">
+                          <Text strong className="text-base text-slate-700">
+                            Base Cost
+                          </Text>
+                          <br />
+                          <Text className="text-xs text-slate-500">
+                            {Math.ceil(wordCountNum / pricingConfig.wordCount.base)} chunks ×{" "}
+                            {pricingConfig.wordCount.cost} credits × {modelMultiplier}x (
+                            {pricingConfig.aiModels[aiModel]?.label})
+                          </Text>
+                        </div>
+                        <Text strong className="text-lg text-slate-900">
+                          {baseCost}
+                        </Text>
+                      </div>
                     </motion.div>
 
-                    <Text type="secondary" className="text-xs text-center block">
-                      No credit card required to start
-                    </Text>
-                  </Space>
+                    {/* Features Cost */}
+                    <motion.div
+                      key={`features-${featuresCost}`}
+                      initial={{ x: -10, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      transition={{ duration: 0.3, delay: 0.1 }}
+                      className="p-3 rounded-lg bg-purple-50 hover:bg-purple-100 transition-colors"
+                    >
+                      <div className="flex justify-between items-center">
+                        <div className="flex-1 mr-4">
+                          <Text strong className="text-base text-purple-700">
+                            Features
+                          </Text>
+                          <div className="flex flex-wrap gap-1.5 mt-1">
+                            {Object.keys(pricingConfig.features).filter(k => selectedFeatures[k])
+                              .length > 0 ? (
+                              Object.keys(pricingConfig.features)
+                                .filter(k => selectedFeatures[k])
+                                .map(k => (
+                                  <span
+                                    key={k}
+                                    className="inline-block px-2 py-0.5 rounded-md text-[10px] font-semibold bg-white/60 text-purple-700 border border-purple-100 shadow-sm"
+                                  >
+                                    {pricingConfig.features[k].label}
+                                  </span>
+                                ))
+                            ) : (
+                              <Text className="text-xs text-purple-400 italic">
+                                No add-ons selected
+                              </Text>
+                            )}
+                          </div>
+                        </div>
+                        <Text strong className="text-lg text-purple-900">
+                          {featuresCost}
+                        </Text>
+                      </div>
+                    </motion.div>
+
+                    {/* Images Cost */}
+                    <motion.div
+                      key={`images-${imagesCost}`}
+                      initial={{ x: -10, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      transition={{ duration: 0.3, delay: 0.2 }}
+                      className="p-3 rounded-lg bg-sky-50 hover:bg-sky-100 transition-colors"
+                    >
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <Text strong className="text-base text-sky-700">
+                            Images
+                          </Text>
+                          <br />
+                          <Text className="text-xs text-sky-600">
+                            {imageType === "stock" && "Stock images"}
+                            {imageType === "ai" && "AI generated"}
+                            {imageType === "upload" && `${imageCount} uploaded`}
+                            {imageType === "none" && "None"}
+                          </Text>
+                        </div>
+                        <Text strong className="text-lg text-sky-900">
+                          {imagesCost}
+                        </Text>
+                      </div>
+                    </motion.div>
+                  </div>
+
+                  {/* Button */}
+                  <Button
+                    type="primary"
+                    size="large"
+                    block
+                    icon={<RocketOutlined />}
+                    onClick={() => navigate("/signup")}
+                    className="!mt-6 !h-12 !text-base !font-semibold !rounded-xl"
+                    style={{
+                      background: "linear-gradient(to right, #a855f7, #0ea5e9)",
+                      border: "none",
+                      boxShadow: "0 10px 15px -3px rgba(168, 85, 247, 0.3)",
+                    }}
+                  >
+                    Start Generating
+                  </Button>
                 </Card>
               </div>
-            </motion.div>
+            </div>
           </div>
         </motion.div>
       </div>

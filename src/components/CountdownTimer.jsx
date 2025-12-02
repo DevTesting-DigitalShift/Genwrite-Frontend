@@ -72,7 +72,7 @@ const CountdownTimer = ({ startDate, endDate, discount = "50%" }) => {
     status: "loading",
   })
 
-  useEffect(() => {
+  useEffect(() => { 
     const calculateTimeLeft = () => {
       const now = new Date().getTime()
       const start = new Date(startDate).getTime()
@@ -152,7 +152,12 @@ const CountdownTimer = ({ startDate, endDate, discount = "50%" }) => {
             {discount} OFF ALL PLANS
           </h3>
           <p className="text-sm font-semibold text-gray-700">
-            {timeLeft.status === "before" ? "Sale Starts In:" : "Sale Ends In:"}
+            <span className="hidden sm:inline">
+              {timeLeft.status === "before" ? "Sale Starts In:" : "Sale Ends In:"}
+            </span>
+            <span className="sm:hidden">
+              {timeLeft.status === "before" ? "Starts In:" : "Ends In:"}
+            </span>
           </p>
         </div>
 
