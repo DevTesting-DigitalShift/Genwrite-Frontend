@@ -682,10 +682,10 @@ const Upgrade = () => {
             <div className="flex flex-col items-center text-center">
               <Star className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 mb-3 sm:mb-4" />
               <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 px-4">
-                Start Your 7-Day Free Trial
+                Start Your 3-Day Free Trial
               </h2>
               <p className="text-gray-600 text-sm sm:text-base md:text-lg max-w-xl mb-4 sm:mb-6 px-4">
-                Unlock the full potential of GenWrite with a 7-day free trial. Experience our
+                Unlock the full potential of GenWrite with a 3-day free trial. Experience our
                 powerful AI content creation tools at no cost. Select a plan below to begin your
                 trial and elevate your content creation journey.
               </p>

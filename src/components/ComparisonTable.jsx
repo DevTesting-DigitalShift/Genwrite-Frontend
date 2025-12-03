@@ -164,13 +164,15 @@ const ComparisonTable = ({ plans }) => {
                 <React.Fragment key={category.name}>
                   <tr className={`${category.index > 0 ? "mt-6 sm:mt-10" : ""}`}>
                     <td
-                      colSpan={plans.length + 1}
                       className={`p-2 sm:p-3 md:p-4 uppercase tracking-widest font-bold text-gray-700 text-sm sm:text-base md:text-lg ${
                         category.index > 1 ? "pt-6 sm:pt-8 md:pt-10" : ""
-                      } sticky left-0 bg-white z-30`} // 👈 add this
+                      } sticky left-0 bg-white z-30`}
                     >
                       {category.name}
                     </td>
+                    {plans.map(plan => (
+                      <td key={plan.name} className="bg-white"></td>
+                    ))}
                   </tr>
 
                   {category.features.map((feature, featIndex) => {

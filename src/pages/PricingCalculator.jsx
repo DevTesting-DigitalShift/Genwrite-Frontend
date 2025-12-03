@@ -213,7 +213,7 @@ const PricingCalculator = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {Object.entries(pricingConfig.features).map(([key, cfg]) => (
                       <div
                         key={key}
@@ -317,9 +317,7 @@ const PricingCalculator = () => {
                         className="mt-4"
                       >
                         <div className="flex gap-5 items-center mb-3">
-                          <Text className="text-sm semi-bold">
-                            Number of Images to Upload
-                          </Text>
+                          <Text className="text-sm semi-bold">Number of Images to Upload</Text>
                           <Text className="text-lg font-semibold text-purple-700">
                             {imageCount}
                           </Text>
@@ -437,7 +435,9 @@ const PricingCalculator = () => {
                     transition={{ duration: 0.4, ease: "easeOut" }}
                     className="my-6"
                   >
-                    <p className="text-7xl font-semibold text-sky-600 tracking-tight">{totalCost}</p>
+                    <p className="text-7xl font-semibold text-sky-600 tracking-tight">
+                      {totalCost}
+                    </p>
                     <p className="text-lg text-slate-500 tracking-wider mt-2">credits</p>
                   </motion.div>
 

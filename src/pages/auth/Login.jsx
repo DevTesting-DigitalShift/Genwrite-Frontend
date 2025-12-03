@@ -705,7 +705,7 @@ const Auth = ({ path }) => {
                   </div>
                   <div className="flex items-center gap-1">
                     <CheckCircle className="w-3 h-3 text-green-500" />
-                    <span>7-Day Trial</span>
+                    <span>3-Day Trial</span>
                   </div>
                   {isSignup && (
                     <div className="flex items-center gap-1">
