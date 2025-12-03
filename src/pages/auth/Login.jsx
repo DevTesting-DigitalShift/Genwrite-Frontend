@@ -199,7 +199,7 @@ const Auth = ({ path }) => {
   ]
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50">
+    <div className="min-h-screen relative  bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50">
       {/* Ice Animation */}
       <IceAnimation density={30} />
 
@@ -209,46 +209,48 @@ const Auth = ({ path }) => {
 
       {/* 3D Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* Large animated orbs */}
+        {/* Large animated orbs - hidden on mobile to prevent overflow */}
         <motion.div
           animate={{ rotate: [0, 360], scale: [1, 1.1, 1], x: [0, 30, 0] }}
           transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-          className="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-purple-400/10 to-blue-400/10 rounded-full blur-3xl"
+          className="hidden md:block absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-purple-400/10 to-blue-400/10 rounded-full blur-3xl"
         />
         <motion.div
           animate={{ rotate: [360, 0], scale: [1, 1.2, 1], x: [0, -30, 0] }}
           transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-          className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-br from-blue-400/10 to-purple-400/10 rounded-full blur-3xl"
+          className="hidden md:block absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-br from-blue-400/10 to-purple-400/10 rounded-full blur-3xl"
         />
 
-        {/* Medium geometric shapes */}
+        {/* Medium geometric shapes - smaller on mobile */}
         <motion.div
           animate={{ rotate: [0, 45, 0] }}
           transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-1/4 right-1/4 w-40 h-40 border-2 border-purple-300/15 rotate-45"
+          className="hidden lg:block absolute top-1/4 right-1/4 w-40 h-40 border-2 border-purple-300/15 rotate-45"
         />
         <motion.div
           animate={{ scale: [1, 1.1, 1] }}
           transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute bottom-1/3 left-1/3 w-32 h-32 bg-blue-500/5 rounded-full"
+          className="hidden lg:block absolute bottom-1/3 left-1/3 w-32 h-32 bg-blue-500/5 rounded-full"
         />
 
-        {/* Christmas decorations with purple/blue tint */}
+        {/* Christmas decorations with purple/blue tint - smaller and repositioned on mobile */}
         <div
-          className="absolute top-20 left-10 text-6xl opacity-15"
+          className="absolute top-20 left-4 md:left-10 text-3xl md:text-6xl opacity-10 md:opacity-15"
           style={{ filter: "hue-rotate(240deg)" }}
         >
           🎄
         </div>
         <div
-          className="absolute top-1/3 right-20 text-5xl opacity-10"
+          className="absolute top-1/3 right-4 md:right-20 text-2xl md:text-5xl opacity-8 md:opacity-10"
           style={{ filter: "hue-rotate(240deg)" }}
         >
           🎁
         </div>
-        <div className="absolute bottom-1/4 left-1/4 text-5xl opacity-12">⭐</div>
-        <div className="absolute top-2/3 right-1/3 text-4xl opacity-15">🔔</div>
-        <div className="absolute bottom-40 right-10 text-6xl opacity-20 text-blue-300">❄️</div>
+        <div className="hidden md:block absolute bottom-1/4 left-1/4 text-5xl opacity-12">⭐</div>
+        <div className="hidden md:block absolute top-2/3 right-1/3 text-4xl opacity-15">🔔</div>
+        <div className="absolute bottom-40 right-4 md:right-10 text-3xl md:text-6xl opacity-15 md:opacity-20 text-blue-300">
+          ❄️
+        </div>
       </div>
 
       {/* Logo */}
@@ -256,13 +258,17 @@ const Auth = ({ path }) => {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="absolute top-8 transform -translate-x-1/2 z-20 mb-2 flex justify-center w-full"
+        className="absolute top-4 md:top-8 left-1/2 transform -translate-x-1/2 z-20"
       >
-        <img src="/Images/logo_genwrite_2.png" alt="GenWrite Logo" className="w-40 h-auto" />
+        <img
+          src="/Images/logo_genwrite_2.png"
+          alt="GenWrite Logo"
+          className="w-32 md:w-40 h-auto"
+        />
       </motion.div>
 
-      <div className="flex items-center justify-center min-h-screen px-4 pt-28 pb-8">
-        <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-12 items-start">
+      <div className="flex items-center justify-center min-h-screen px-4 pt-20 md:pt-28 pb-8">
+        <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-6 lg:gap-12 items-start">
           {/* Left Side - Countdown + Subscription Features */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
@@ -318,7 +324,7 @@ const Auth = ({ path }) => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="relative bg-white/85 backdrop-blur-lg rounded-2xl p-6 border-2 border-purple-200/50 shadow-lg overflow-hidden"
+              className="relative bg-white/85 backdrop-blur-lg rounded-2xl p-6 border-2 border-purple-200/50 shadow-lg "
             >
               <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-300/15 to-blue-300/15 rounded-full blur-2xl -translate-y-8 translate-x-8" />
 
@@ -370,7 +376,7 @@ const Auth = ({ path }) => {
             className="w-full max-w-md mx-auto space-y-6"
           >
             {/* Main Form Card */}
-            <div className="bg-white/85 backdrop-blur-xl rounded-3xl shadow-2xl border border-purple-200/30 p-8 relative overflow-hidden">
+            <div className="bg-white/85 backdrop-blur-xl rounded-3xl shadow-2xl border border-purple-200/30 p-6 md:p-8 relative overflow-hidden">
               {/* Decorative Elements */}
               <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-400/10 to-blue-400/10 rounded-full -translate-y-16 translate-x-16" />
               <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-blue-400/10 to-purple-400/10 rounded-full translate-y-12 -translate-x-12" />

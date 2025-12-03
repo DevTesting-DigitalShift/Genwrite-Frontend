@@ -33,27 +33,27 @@ const TimeUnit = React.memo(
   function TimeUnit({ digit1, digit2, label }) {
     return (
       <div className="flex flex-col items-center">
-        <div className="flex gap-1">
+        <div className="flex gap-0.5 sm:gap-1">
           <motion.div
             whileHover={{ scale: 1.05 }}
-            className="relative bg-gradient-to-br from-purple-600 to-purple-700 rounded-xl p-3 min-w-[35px] shadow-lg border-2 border-purple-400/30"
+            className="relative bg-gradient-to-br from-purple-600 to-purple-700 rounded-lg sm:rounded-xl p-1.5 sm:p-2 md:p-3 min-w-[28px] sm:min-w-[32px] md:min-w-[35px] shadow-lg border-2 border-purple-400/30"
           >
-            <div className="text-2xl font-bold text-white text-center">
+            <div className="text-lg sm:text-xl md:text-2xl font-bold text-white text-center">
               <AnimatedDigit value={digit1} />
             </div>
           </motion.div>
 
           <motion.div
             whileHover={{ scale: 1.05 }}
-            className="relative bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl p-3 min-w-[35px] shadow-lg border-2 border-blue-400/30"
+            className="relative bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg sm:rounded-xl p-1.5 sm:p-2 md:p-3 min-w-[28px] sm:min-w-[32px] md:min-w-[35px] shadow-lg border-2 border-blue-400/30"
           >
-            <div className="text-2xl font-bold text-white text-center">
+            <div className="text-lg sm:text-xl md:text-2xl font-bold text-white text-center">
               <AnimatedDigit value={digit2} />
             </div>
           </motion.div>
         </div>
 
-        <span className="text-xs font-semibold text-gray-700 mt-2 uppercase tracking-wider">
+        <span className="text-[10px] sm:text-xs font-semibold text-gray-700 mt-1 sm:mt-2 uppercase tracking-wider">
           {label}
         </span>
       </div>
@@ -72,7 +72,7 @@ const CountdownTimer = ({ startDate, endDate, discount = "50%" }) => {
     status: "loading",
   })
 
-  useEffect(() => { 
+  useEffect(() => {
     const calculateTimeLeft = () => {
       const now = new Date().getTime()
       const start = new Date(startDate).getTime()
@@ -128,30 +128,33 @@ const CountdownTimer = ({ startDate, endDate, discount = "50%" }) => {
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="relative bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 rounded-2xl p-6 border-2 border-purple-200/50 shadow-xl overflow-hidden backdrop-blur-sm bg-white/80"
+      className="relative bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 border-2 border-purple-200/50 shadow-xl overflow-hidden backdrop-blur-sm bg-white/80"
     >
       {/* Decorative Christmas elements */}
-      <div className="absolute top-0 right-0 text-6xl opacity-10 -rotate-12 filter hue-rotate-[240deg]">
+      <div className="absolute top-0 right-0 text-3xl sm:text-5xl md:text-6xl opacity-10 -rotate-12 filter hue-rotate-[240deg]">
         🎄
       </div>
-      <div className="absolute bottom-0 left-0 text-5xl opacity-10 rotate-12">🎁</div>
+      <div className="absolute bottom-0 left-0 text-2xl sm:text-4xl md:text-5xl opacity-10 rotate-12">
+        🎁
+      </div>
 
       <div className="relative z-10">
         {/* Header */}
-        <div className="text-center mb-5">
+        <div className="text-center mb-3 sm:mb-4 md:mb-5">
           <motion.div
             animate={{ scale: [1, 1.05, 1] }}
             transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-            className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white px-5 py-2.5 rounded-full text-sm font-bold shadow-lg mb-3"
+            className="inline-flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white px-3 py-1.5 sm:px-4 sm:py-2 md:px-5 md:py-2.5 rounded-full text-xs sm:text-sm font-bold shadow-lg mb-2 sm:mb-3"
           >
-            <FiGift className="w-5 h-5" />
-            🎅 CHRISTMAS & NEW YEAR SPECIAL ❄️
+            <FiGift className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
+            <span className="hidden sm:inline">🎅 CHRISTMAS & NEW YEAR SPECIAL ❄️</span>
+            <span className="sm:hidden">🎅 SPECIAL OFFER ❄️</span>
           </motion.div>
 
-          <h3 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-1">
+          <h3 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-1">
             {discount} OFF ALL PLANS
           </h3>
-          <p className="text-sm font-semibold text-gray-700">
+          <p className="text-xs sm:text-sm font-semibold text-gray-700">
             <span className="hidden sm:inline">
               {timeLeft.status === "before" ? "Sale Starts In:" : "Sale Ends In:"}
             </span>
@@ -162,7 +165,7 @@ const CountdownTimer = ({ startDate, endDate, discount = "50%" }) => {
         </div>
 
         {/* Countdown */}
-        <div className="flex justify-center gap-3 mb-4">
+        <div className="flex justify-center gap-2 sm:gap-2.5 md:gap-3 mb-3 sm:mb-4">
           <TimeUnit digit1={digits.days[0]} digit2={digits.days[1]} label="Days" />
           <TimeUnit digit1={digits.hours[0]} digit2={digits.hours[1]} label="Hours" />
           <TimeUnit digit1={digits.minutes[0]} digit2={digits.minutes[1]} label="Mins" />
@@ -171,7 +174,7 @@ const CountdownTimer = ({ startDate, endDate, discount = "50%" }) => {
 
         {/* Footer */}
         <div className="text-center">
-          <p className="text-xs text-gray-600 leading-relaxed">
+          <p className="text-[10px] sm:text-xs text-gray-600 leading-relaxed">
             Limited time offer • New users only
           </p>
         </div>
