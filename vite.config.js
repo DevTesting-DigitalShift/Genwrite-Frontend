@@ -68,8 +68,6 @@ export default defineConfig({
       "marked",
       "dompurify",
     ],
-    exclude: [
-      // Exclude these from pre-bundling if they cause issues
-    ],
+    exclude: ["lexical", "lexical-react"],
   },
 })
