@@ -242,9 +242,7 @@ const PricingCard = ({
         ) : null)}
 
       <div
-        className={`relative rounded-2xl transition-all duration-300 ${
-          isDisabled ? "" : "hover:scale-[1.02]"
-        } ${styles.container} overflow-hidden p-8 h-full flex flex-col`}
+        className={`relative rounded-2xl transition-all duration-300 ${styles.container} overflow-hidden p-8 h-full flex flex-col`}
       >
         {/* Header */}
         <div className="text-center mb-8">
@@ -254,7 +252,7 @@ const PricingCard = ({
             {plan.icon}
           </div>
           <h3 className="text-2xl font-bold text-gray-900 mb-3">{plan.name}</h3>
-          <p className="text-gray-600 text-sm leading-relaxed">{plan.description}</p>
+          <p className="text-gray-600 text-sm leading-relaxed h-12">{plan.description}</p>
         </div>
 
         {/* Price */}
@@ -311,27 +309,12 @@ const PricingCard = ({
                 )}
               </div>
 
-              {/* First Month Indicator */}
+              {/* First Month/Time Indicator */}
               {typeof displayPrice === "number" && (
                 <div className="mt-2">
-                  <span className="inline-block bg-gradient-to-r from-red-500 to-pink-500 text-white px-3 py-1 rounded-full text-xs font-bold">
-                    🎄 50% OFF FIRST MONTH
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700">
+                    {billingPeriod === "monthly" ? "50% OFF FIRST MONTH" : "50% OFF FIRST TIME"}
                   </span>
-                </div>
-              )}
-
-              {billingPeriod === "annual" && typeof displayPrice === "number" && (
-                <div className="space-y-1 mt-2">
-                  <div className="text-gray-500 text-sm font-medium">
-                    Then <span className="line-through">${plan.annualPrice}</span>{" "}
-                    <strong className="text-green-600">
-                      ${(plan.annualPrice * 0.5).toFixed(2)}
-                    </strong>{" "}
-                    for first year
-                  </div>
-                  <div className="text-green-600 text-sm font-medium bg-green-50 px-3 py-1 rounded-full inline-block">
-                    Save ${(plan.annualPrice * 0.5).toFixed(0)} first year + 20% always
-                  </div>
                 </div>
               )}
             </div>
@@ -745,7 +728,7 @@ const Upgrade = () => {
         </motion.div>
 
         {/* Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 lg:gap-10 px-4 sm:px-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 px-4 sm:px-0">
           <AnimatePresence>
             {loading
               ? Array.from({ length: 4 }).map((_, idx) => <SkeletonCard key={idx} />)
