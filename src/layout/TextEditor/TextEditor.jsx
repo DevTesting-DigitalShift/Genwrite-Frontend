@@ -5,11 +5,7 @@ import StarterKit from "@tiptap/starter-kit"
 import Image from "@tiptap/extension-image"
 import TextAlign from "@tiptap/extension-text-align"
 import { motion } from "framer-motion"
-import ReactMarkdown from "react-markdown"
-import remarkGfm from "remark-gfm"
 import DOMPurify from "dompurify"
-import Prism from "prismjs"
-import "prismjs/themes/prism-tomorrow.css"
 import {
   Bold,
   Italic,
@@ -24,14 +20,11 @@ import {
   AlignRight,
   Link as LinkIcon,
   Image as ImageIcon,
-  Eye,
-  EyeOff,
   Undo2,
   Redo2,
   RotateCcw,
   Copy,
   Trash2,
-  Upload,
 } from "lucide-react"
 import { useDispatch, useSelector } from "react-redux"
 import { Input, Modal, Tooltip, message, Select, Button } from "antd"
@@ -40,46 +33,22 @@ import TurndownService from "turndown"
 import { useBlocker, useLocation, useNavigate } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { ProofreadingDecoration } from "@/extensions/ProofreadingDecoration"
-import { Iframe } from "@/extensions/Iframe"
 import { ReloadOutlined } from "@ant-design/icons"
 import { sendRetryLines } from "@api/blogApi"
 import { retryBlog } from "@store/slices/blogSlice"
-import { EditorView, basicSetup } from "codemirror"
-import { EditorState } from "@codemirror/state"
-import { markdown } from "@codemirror/lang-markdown"
-import { html } from "@codemirror/lang-html"
-import { markdownLanguage } from "@codemirror/lang-markdown"
-import { languages } from "@codemirror/language-data"
-import { lazy, Suspense } from "react"
 import { createPortal } from "react-dom"
-import { getLinkPreview } from "link-preview-js" // Assume this library is installed via npm i link-preview-js
+import { getLinkPreview } from "link-preview-js"
 import { useQueryClient } from "@tanstack/react-query"
 import { useProofreadingUI } from "@/layout/Editor/useProofreadingUI"
 import ContentDiffViewer from "../Editor/ContentDiffViewer"
 import "./editor.css"
 import { VideoEmbed } from "@/extensions/VideoEmbed"
 import LoadingScreen from "@components/UI/LoadingScreen"
-import rehypeRaw from "rehype-raw"
-import rehypeSanitize, { defaultSchema } from "rehype-sanitize"
-import remarkHtml from "remark-html"
-import { remark } from "remark"
-
-import { unified } from "unified"
-import remarkParse from "remark-parse"
-import remarkFrontmatter from "remark-frontmatter"
-import remarkParseFrontmatter from "remark-parse-frontmatter"
-import remarkRehype from "remark-rehype"
-import rehypeStringify from "rehype-stringify"
 
 import { Table } from "@tiptap/extension-table"
 import TableRow from "@tiptap/extension-table-row"
 import TableCell from "@tiptap/extension-table-cell"
 import TableHeader from "@tiptap/extension-table-header"
-
-const MarkdownEditor = lazy(() =>
-  import("./OtherEditors").then(m => ({ default: m.MarkdownEditor }))
-)
-const HtmlEditor = lazy(() => import("./OtherEditors").then(m => ({ default: m.HtmlEditor })))
 
 const FONT_OPTIONS = [
   { label: "Arial", value: "font-arial" },
@@ -90,8 +59,6 @@ const FONT_OPTIONS = [
 
 const TextEditor = ({
   blog,
-  activeTab,
-  setActiveTab,
   content,
   setContent,
   title,
@@ -115,7 +82,6 @@ const TextEditor = ({
   const [linkUrl, setLinkUrl] = useState("")
   const [imageUrl, setImageUrl] = useState("")
   const [imageAlt, setImageAlt] = useState("")
-  const [markdownPreview, setMarkdownPreview] = useState(false)
   const [editorReady, setEditorReady] = useState(false)
   const [selectionPosition, setSelectionPosition] = useState(null)
   const [isRetrying, setIsRetrying] = useState(false)
@@ -123,12 +89,6 @@ const TextEditor = ({
   const [originalContent, setOriginalContent] = useState(null)
   const [selectionRange, setSelectionRange] = useState({ from: 0, to: 0 })
   const [retryModalOpen, setRetryModalOpen] = useState(false)
-  const [hoveredSuggestion, setHoveredSuggestion] = useState(null)
-  const [htmlContent, setHtmlContent] = useState("")
-  const htmlEditorRef = useRef(null)
-  const mdEditorRef = useRef(null)
-  const htmlCmContainerRef = useRef(null)
-  const mdCmContainerRef = useRef(null)
   const dropdownRef = useRef(null)
   const [bubblePos, setBubblePos] = useState({ top: 0, left: 0 })
   const navigate = useNavigate()
@@ -137,7 +97,6 @@ const TextEditor = ({
   const userPlan = user?.subscription?.plan
   const hasShownToast = useRef(false)
   const location = useLocation()
-  const fileInputRef = useRef(null)
   const pathDetect = location.pathname === `/blog-editor/${blog?._id}`
   const [editImageModalOpen, setEditImageModalOpen] = useState(false)
   const [selectedImage, setSelectedImage] = useState(null)
@@ -255,7 +214,6 @@ const TextEditor = ({
         const markdown = htmlToMarkdown(html)
 
         setContent(markdown)
-        setHtmlContent(html.replace(/>\s*</g, ">\n<"))
 
         const normCurrent = normalizeContent(markdown)
         const unsaved = normCurrent !== lastNormalizedSavedContent.current
@@ -398,7 +356,7 @@ const TextEditor = ({
       message.error("Script tags are not allowed in image URLs.")
       return
     }
-    if (activeTab === "Normal" && normalEditor) {
+    if (normalEditor) {
       const { from } = normalEditor.state.selection
       normalEditor
         .chain()
@@ -408,14 +366,8 @@ const TextEditor = ({
         .run()
       setImageModalOpen(false)
       message.success("Image added.")
-    } else if (activeTab === "Markdown") {
-      message.success("Image added.")
-      setImageModalOpen(false)
-    } else if (activeTab === "HTML") {
-      message.success("Image added.")
-      setImageModalOpen(false)
     }
-  }, [imageUrl, imageAlt, normalEditor, activeTab])
+  }, [imageUrl, imageAlt, normalEditor])
 
   const handleImageClick = useCallback(event => {
     if (event.target.tagName === "IMG") {
@@ -431,7 +383,7 @@ const TextEditor = ({
       message.error("Alt text is required.")
       return
     }
-    if (activeTab === "Normal" && normalEditor) {
+    if (normalEditor) {
       let updated = false
       normalEditor.state.doc.descendants((node, pos) => {
         if (node.type.name === "image" && node.attrs.src === selectedImage.src) {
@@ -452,40 +404,8 @@ const TextEditor = ({
       } else {
         message.error("Failed to update image alt text.")
       }
-    } else if (activeTab === "Markdown") {
-      const markdownImageRegex = new RegExp(
-        `!\\[${escapeRegExp(selectedImage.alt || "")}\\]\\(${escapeRegExp(selectedImage.src)}\\)`,
-        "g"
-      )
-      const newMarkdownImage = `![${imageAlt}](${selectedImage.src})`
-      setContent(prev => {
-        const newContent = prev.replace(markdownImageRegex, newMarkdownImage)
-        return newContent
-      })
-      message.success("Image alt text updated.")
-      setEditImageModalOpen(false)
-      setSelectedImage(null)
-      setImageAlt("")
-    } else if (activeTab === "HTML") {
-      const htmlImageRegex = new RegExp(
-        `<img\\s+src="${escapeRegExp(selectedImage.src)}"\\s+alt="${escapeRegExp(
-          selectedImage.alt || ""
-        )}"\\s*/>`,
-        "g"
-      )
-      const newHtmlImage = `<img src="${selectedImage.src}" alt="${imageAlt}" />`
-      setContent(prev => {
-        const html = markdownToHtml(prev)
-        const updatedHtml = html.replace(htmlImageRegex, newHtmlImage)
-        const newContent = htmlToMarkdown(updatedHtml)
-        return newContent
-      })
-      message.success("Image alt text updated.")
-      setEditImageModalOpen(false)
-      setSelectedImage(null)
-      setImageAlt("")
     }
-  }, [selectedImage, imageAlt, normalEditor, activeTab, setContent, markdownToHtml, htmlToMarkdown])
+  }, [selectedImage, imageAlt, normalEditor])
 
   const escapeRegExp = string => {
     return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
@@ -510,69 +430,23 @@ const TextEditor = ({
     setLinkPreviewElement(null)
   }
 
-  const handleFileImport = useCallback(
-    event => {
-      const file = event.target.files[0]
-      if (!file) return
-
-      const isMarkdown = activeTab === "Markdown" && file.name.endsWith(".md")
-      const isHtml = activeTab === "HTML" && file.name.endsWith(".html")
-
-      if (!isMarkdown && !isHtml) {
-        message.error(`Please upload a ${activeTab === "Markdown" ? ".md" : ".html"} file.`)
-        return
-      }
-
-      const reader = new FileReader()
-      reader.onload = e => {
-        let fileContent = e.target.result
-        if (isHtml && hasScriptTag(fileContent)) {
-          message.error(
-            "Script tags are not allowed in imported HTML content for security reasons."
-          )
-          return
-        }
-        setContent(fileContent)
-        message.success(`${file.name} imported successfully!`)
-      }
-      reader.onerror = () => {
-        message.error("Failed to read the file.")
-      }
-      reader.readAsText(file)
-
-      event.target.value = null
-    },
-    [activeTab, setContent]
-  )
-
-  const isFullHtmlDocument = useCallback(text => {
-    return text.trim().startsWith("<!DOCTYPE html>") || text.trim().startsWith("<html")
-  }, [])
-
   const handleRetry = async () => {
     if (!blog?._id) {
       message.error("Blog ID is missing.")
       return
     }
-    if (!normalEditor && activeTab === "Normal") {
+    if (!normalEditor) {
       message.error("Editor is not initialized.")
       return
     }
-    let selectedText
-    let from, to
-    if (activeTab === "Normal") {
-      const selection = normalEditor.state.selection
-      from = selection.from
-      to = selection.to
-      if (from === to) {
-        message.error("Please select some text to retry.")
-        return
-      }
-      selectedText = normalEditor.state.doc.textBetween(from, to, "\n")
-    } else {
+    const selection = normalEditor.state.selection
+    const from = selection.from
+    const to = selection.to
+    if (from === to) {
       message.error("Please select some text to retry.")
       return
     }
+    const selectedText = normalEditor.state.doc.textBetween(from, to, "\n")
     setOriginalContent(selectedText)
     setSelectionRange({ from, to })
     const payload = {
@@ -605,7 +479,7 @@ const TextEditor = ({
 
   const handleAcceptRetry = () => {
     if (!retryContent) return
-    if (activeTab === "Normal" && normalEditor) {
+    if (normalEditor) {
       const parsedContent = markdownToHtml(retryContent)
       normalEditor
         .chain()
@@ -651,12 +525,8 @@ const TextEditor = ({
       ),
       confirmText: "Yes, Rewrite",
       cancelText: "Cancel",
-      onConfirm: handleRetry, 
+      onConfirm: handleRetry,
     })
-  }
-
-  const handleTabClick = tab => {
-    setActiveTab(tab)
   }
 
   const handleAcceptHumanizedContentModified = useCallback(() => {
@@ -666,21 +536,13 @@ const TextEditor = ({
         const htmlContent = markdownToHtml(humanizedContent)
         normalEditor.commands.setContent(htmlContent, false)
       }
-      setHtmlContent(markdownToHtml(humanizedContent).replace(/>\s*</g, ">\n<"))
       handleAcceptHumanizedContent()
     }
-  }, [
-    humanizedContent,
-    setContent,
-    normalEditor,
-    markdownToHtml,
-    setHtmlContent,
-    handleAcceptHumanizedContent,
-  ])
+  }, [humanizedContent, setContent, normalEditor, markdownToHtml, handleAcceptHumanizedContent])
 
   const handleDeleteImage = useCallback(() => {
     if (!selectedImage) return
-    if (activeTab === "Normal" && normalEditor) {
+    if (normalEditor) {
       let deleted = false
       normalEditor.state.doc.descendants((node, pos) => {
         if (node.type.name === "image" && node.attrs.src === selectedImage.src) {
@@ -699,36 +561,8 @@ const TextEditor = ({
       } else {
         message.error("Failed to delete image.")
       }
-    } else if (activeTab === "Markdown") {
-      const markdownImageRegex = new RegExp(
-        `!\\[${escapeRegExp(selectedImage.alt || "")}\\]\\(${escapeRegExp(selectedImage.src)}\\)`,
-        "g"
-      )
-      setContent(prev => {
-        const newContent = prev.replace(markdownImageRegex, "")
-        return newContent
-      })
-      setEditImageModalOpen(false)
-      setSelectedImage(null)
-      setImageAlt("")
-    } else if (activeTab === "HTML") {
-      const htmlImageRegex = new RegExp(
-        `<img\\s+src="${escapeRegExp(selectedImage.src)}"\\s+alt="${escapeRegExp(
-          selectedImage.alt || ""
-        )}"\\s*/>`,
-        "g"
-      )
-      setContent(prev => {
-        const html = markdownToHtml(prev)
-        const updatedHtml = html.replace(htmlImageRegex, "")
-        const newContent = htmlToMarkdown(updatedHtml)
-        return newContent
-      })
-      setEditImageModalOpen(false)
-      setSelectedImage(null)
-      setImageAlt("")
     }
-  }, [selectedImage, normalEditor, activeTab, setContent, markdownToHtml, htmlToMarkdown])
+  }, [selectedImage, normalEditor])
 
   function useNavigationBlocker(when) {
     const blocker = useBlocker(
@@ -757,27 +591,15 @@ const TextEditor = ({
   }, [normalEditor, blog, markdownToHtml])
 
   useEffect(() => {
-    const scrollToTop = () => {
-      if (activeTab === "Normal" && normalEditor && normalEditor?.view?.dom) {
-        const editorElement = normalEditor.view.dom
-        if (editorElement) {
-          editorElement.scrollTop = 0
-        }
-      }
-    }
-    scrollToTop()
-  }, [activeTab, normalEditor])
-
-  useEffect(() => {
     setIsEditorLoading(true)
     const timer = setTimeout(() => {
       setIsEditorLoading(false)
-      if (normalEditor && activeTab === "Normal") {
+      if (normalEditor) {
         normalEditor.commands.focus()
       }
     }, 300)
     return () => clearTimeout(timer)
-  }, [activeTab, normalEditor])
+  }, [normalEditor])
 
   useEffect(() => {
     if (blog?.status === "failed" && !hasShownToast.current) {
@@ -814,12 +636,6 @@ const TextEditor = ({
       }
     }
   }, [normalEditor])
-
-  useEffect(() => {
-    if (activeTab === "HTML" && !markdownPreview) {
-      requestAnimationFrame(() => Prism.highlightAll())
-    }
-  }, [safeContent, activeTab, markdownPreview])
 
   useEffect(() => {
     const handleClickOutside = event => {
@@ -866,7 +682,7 @@ const TextEditor = ({
   }, [blog, safeContent, setContent])
 
   useEffect(() => {
-    if (activeTab === "Normal" && normalEditor && normalEditor?.view?.dom) {
+    if (normalEditor && normalEditor?.view?.dom) {
       const editorElement = normalEditor.view.dom
       editorElement.addEventListener("click", handleImageClick)
       return () => {
@@ -875,7 +691,7 @@ const TextEditor = ({
         }
       }
     }
-  }, [normalEditor, activeTab, handleImageClick])
+  }, [normalEditor, handleImageClick])
 
   useEffect(() => {
     const editorDom = normalEditor.view.dom
@@ -929,7 +745,7 @@ const TextEditor = ({
       editorDom.removeEventListener("mouseout", handleMouseOut, true)
       if (hideTimeout.current) clearTimeout(hideTimeout.current)
     }
-  }, [activeTab, normalEditor])
+  }, [normalEditor])
 
   useEffect(() => {
     if (blocker.state === "blocked") {
@@ -969,12 +785,11 @@ const TextEditor = ({
             <button
               onClick={() =>
                 safeEditorAction(() => {
-                  if (activeTab === "Normal")
-                    normalEditor.chain().focus().toggleHeading({ level }).run()
+                  normalEditor.chain().focus().toggleHeading({ level }).run()
                 })
               }
               className={`p-2 rounded-md transition-colors duration-150 flex items-center justify-center ${
-                activeTab === "Normal" && normalEditor?.isActive("heading", { level })
+                normalEditor?.isActive("heading", { level })
                   ? "bg-blue-100 text-blue-600"
                   : "hover:bg-gray-100"
               }`}
@@ -997,13 +812,11 @@ const TextEditor = ({
           <button
             onClick={() =>
               safeEditorAction(() => {
-                if (activeTab === "Normal") normalEditor.chain().focus().toggleBold().run()
+                normalEditor.chain().focus().toggleBold().run()
               })
             }
             className={`p-2 rounded-md transition-colors duration-150 flex items-center justify-center ${
-              activeTab === "Normal" && normalEditor?.isActive("bold")
-                ? "bg-blue-100 text-blue-600"
-                : "hover:bg-gray-100"
+              normalEditor?.isActive("bold") ? "bg-blue-100 text-blue-600" : "hover:bg-gray-100"
             }`}
             aria-label="Bold"
             type="button"
@@ -1015,13 +828,11 @@ const TextEditor = ({
           <button
             onClick={() =>
               safeEditorAction(() => {
-                if (activeTab === "Normal") normalEditor.chain().focus().toggleItalic().run()
+                normalEditor.chain().focus().toggleItalic().run()
               })
             }
             className={`p-2 rounded-md transition-colors duration-150 flex items-center justify-center ${
-              activeTab === "Normal" && normalEditor?.isActive("italic")
-                ? "bg-blue-100 text-blue-600"
-                : "hover:bg-gray-100"
+              normalEditor?.isActive("italic") ? "bg-blue-100 text-blue-600" : "hover:bg-gray-100"
             }`}
             aria-label="Italic"
             type="button"
@@ -1033,11 +844,11 @@ const TextEditor = ({
           <button
             onClick={() =>
               safeEditorAction(() => {
-                if (activeTab === "Normal") normalEditor.chain().focus().toggleUnderline().run()
+                normalEditor.chain().focus().toggleUnderline().run()
               })
             }
             className={`p-2 rounded-md transition-colors duration-150 flex items-center justify-center ${
-              activeTab === "Normal" && normalEditor?.isActive("underline")
+              normalEditor?.isActive("underline")
                 ? "bg-blue-100 text-blue-600"
                 : "hover:bg-gray-100"
             }`}
@@ -1058,11 +869,11 @@ const TextEditor = ({
             <button
               onClick={() =>
                 safeEditorAction(() => {
-                  if (activeTab === "Normal") normalEditor.chain().focus().setTextAlign(align).run()
+                  normalEditor.chain().focus().setTextAlign(align).run()
                 })
               }
               className={`p-2 rounded-md transition-colors duration-150 flex items-center justify-center ${
-                activeTab === "Normal" && normalEditor?.isActive({ textAlign: align })
+                normalEditor?.isActive({ textAlign: align })
                   ? "bg-blue-100 text-blue-600"
                   : "hover:bg-gray-100"
               }`}
@@ -1085,11 +896,11 @@ const TextEditor = ({
           <button
             onClick={() =>
               safeEditorAction(() => {
-                if (activeTab === "Normal") normalEditor.chain().focus().toggleBulletList().run()
+                normalEditor.chain().focus().toggleBulletList().run()
               })
             }
             className={`p-2 rounded-md transition-colors duration-150 flex items-center justify-center ${
-              activeTab === "Normal" && normalEditor?.isActive("bulletList")
+              normalEditor?.isActive("bulletList")
                 ? "bg-blue-100 text-blue-600"
                 : "hover:bg-gray-100"
             }`}
@@ -1103,11 +914,11 @@ const TextEditor = ({
           <button
             onClick={() =>
               safeEditorAction(() => {
-                if (activeTab === "Normal") normalEditor.chain().focus().toggleOrderedList().run()
+                normalEditor.chain().focus().toggleOrderedList().run()
               })
             }
             className={`p-2 rounded-md transition-colors duration-150 flex items-center justify-center ${
-              activeTab === "Normal" && normalEditor?.isActive("orderedList")
+              normalEditor?.isActive("orderedList")
                 ? "bg-blue-100 text-blue-600"
                 : "hover:bg-gray-100"
             }`}
@@ -1177,19 +988,6 @@ const TextEditor = ({
             </button>
           </Tooltip>
         )}
-        <Tooltip title="Copy">
-          <button
-            onClick={() => {
-              navigator.clipboard.writeText(activeTab === "HTML" ? htmlContent : safeContent)
-              message.success("Content copied to clipboard!")
-            }}
-            className="p-2 rounded-md hover:bg-gray-100 flex-shrink-0 flex items-center justify-center"
-            aria-label="Copy"
-            type="button"
-          >
-            <Copy className="w-4 h-4" />
-          </button>
-        </Tooltip>
         {!pathDetect && (
           <Tooltip title="Regenerate Content">
             <button
@@ -1202,30 +1000,7 @@ const TextEditor = ({
             </button>
           </Tooltip>
         )}
-        {(activeTab === "Markdown" || activeTab === "HTML") && (
-          <Tooltip title={`Import ${activeTab === "Markdown" ? ".md" : ".html"} File`}>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="p-2 rounded-md hover:bg-gray-100 flex-shrink-0 flex items-center justify-center"
-              aria-label="Import File"
-              type="button"
-            >
-              <Upload className="w-4 h-4" />
-            </button>
-          </Tooltip>
-        )}
       </div>
-
-      {/* Hidden file input */}
-      {(activeTab === "Markdown" || activeTab === "HTML") && (
-        <input
-          type="file"
-          ref={fileInputRef}
-          style={{ display: "none" }}
-          accept={activeTab === "Markdown" ? ".md" : ".html"}
-          onChange={handleFileImport}
-        />
-      )}
 
       {/* Divider */}
       <div className="w-px h-6 bg-gray-200 mx-2 flex-shrink-0" />
@@ -1243,25 +1018,6 @@ const TextEditor = ({
           </Select.Option>
         ))}
       </Select>
-
-      {/* Markdown/HTML Preview */}
-      {(activeTab === "Markdown" || activeTab === "HTML") && (
-        <>
-          <div className="w-px h-6 bg-gray-200 mx-2 flex-shrink-0" />
-          <Tooltip title={markdownPreview ? "Hide Preview" : "Show Preview"}>
-            <button
-              onClick={() => setMarkdownPreview(!markdownPreview)}
-              className={`p-2 rounded-md flex items-center justify-center transition-colors duration-150 ${
-                markdownPreview ? "bg-blue-100 text-blue-600" : "hover:bg-gray-100"
-              }`}
-              aria-label="Toggle Preview"
-              type="button"
-            >
-              {markdownPreview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
-          </Tooltip>
-        </>
-      )}
     </div>
   )
 
@@ -1327,312 +1083,117 @@ const TextEditor = ({
       )
     }
 
-    if (activeTab === "Normal") {
-      if (humanizedContent && showDiff) {
-        if (!editorContent && !humanizedContent) {
-          return (
-            <div className="p-4 bg-white h-screen overflow-auto">
-              <p className="text-gray-500">No content to compare.</p>
-            </div>
-          )
-        }
-
+    if (humanizedContent && showDiff) {
+      if (!editorContent && !humanizedContent) {
         return (
-          <Suspense fallback={<LoadingScreen />}>
-            <ContentDiffViewer
-              oldMarkdown={editorContent}
-              newMarkdown={humanizedContent}
-              onAccept={handleAcceptHumanizedContentModified}
-              onReject={handleAcceptOriginalContent}
-            />
-          </Suspense>
-        )
-      } else {
-        return (
-          <div className="overflow-auto custom-scroll">
-            {normalEditor && (
-              <BubbleMenu
-                editor={normalEditor}
-                className="flex gap-2 bg-white shadow-lg p-2 rounded-lg border border-gray-200"
-              >
-                <Tooltip title="Bold" placement="top">
-                  <button
-                    className="p-2 rounded hover:bg-gray-200 text-gray-600"
-                    onClick={() => {
-                      safeEditorAction(() => {
-                        normalEditor.chain().focus().toggleBold().run()
-                      })
-                    }}
-                  >
-                    <Bold className="w-5 h-5" />
-                  </button>
-                </Tooltip>
-                <Tooltip title="Italic" placement="top">
-                  <button
-                    className="p-2 rounded hover:bg-gray-200 text-gray-600"
-                    onClick={() => {
-                      safeEditorAction(() => {
-                        normalEditor.chain().focus().toggleItalic().run()
-                      })
-                    }}
-                  >
-                    <Italic className="w-5 h-5" />
-                  </button>
-                </Tooltip>
-                <Tooltip title="Heading" placement="top">
-                  <button
-                    className="p-2 rounded hover:bg-gray-200 text-gray-600"
-                    onClick={() => {
-                      safeEditorAction(() => {
-                        normalEditor.chain().focus().toggleHeading({ level: 2 }).run()
-                      })
-                    }}
-                  >
-                    <Heading2 className="w-5 h-5" />
-                  </button>
-                </Tooltip>
-                <Tooltip title="Link" placement="top">
-                  <button
-                    className="p-2 rounded hover:bg-gray-200 text-gray-600"
-                    onClick={handleAddLink}
-                  >
-                    <LinkIcon className="w-5 h-5" />
-                  </button>
-                </Tooltip>
-                <Tooltip title="Image" placement="top">
-                  <button
-                    className="p-2 rounded hover:bg-gray-200 text-gray-600"
-                    onClick={handleAddImage}
-                  >
-                    <ImageIcon className="w-5 h-5" />
-                  </button>
-                </Tooltip>
-                {!pathDetect && (
-                  <Tooltip title="Rewrite" placement="top">
-                    <button
-                      className="p-2 rounded hover:bg-gray-200 text-gray-600"
-                      onClick={handleRewrite}
-                    >
-                      <RotateCcw className="w-4 h-4" />
-                    </button>
-                  </Tooltip>
-                )}
-              </BubbleMenu>
-            )}
-            <EditorContent editor={normalEditor} />
-            {activeSpan instanceof HTMLElement && (
-              <div
-                className="proof-ui-bubble"
-                ref={bubbleRef}
-                style={{
-                  position: "absolute",
-                  top: bubblePos.top,
-                  left: bubblePos.left,
-                }}
-              >
-                <div style={{ marginBottom: 4 }}>
-                  Replace with: <strong>{activeSpan.dataset.suggestion}</strong>
-                </div>
-                <button onClick={applyChange}>✅ Accept</button>
-                <button onClick={rejectChange} style={{ marginLeft: 6 }}>
-                  ❌ Reject
-                </button>
-              </div>
-            )}
-          </div>
-        )
-      }
-    }
-
-    if (markdownPreview && (activeTab === "Markdown" || activeTab === "HTML")) {
-      if (activeTab === "HTML" && isFullHtmlDocument(htmlContent)) {
-        const sanitizedHtml = DOMPurify.sanitize(htmlContent, {
-          USE_PROFILES: { html: true },
-          ADD_TAGS: ["style"],
-          ADD_ATTR: ["target"],
-        })
-        return (
-          <div
-            className={`p-8 rounded-lg rounded-t-none overflow-y-auto custom-scroll h-screen border border-gray-200 ${selectedFont}`}
-          >
-            <iframe srcDoc={sanitizedHtml} title="HTML Preview" sandbox="allow-same-origin" />
+          <div className="p-4 bg-white h-screen overflow-auto">
+            <p className="text-gray-500">No content to compare.</p>
           </div>
         )
       }
 
       return (
-        <div
-          className={`p-8 rounded-lg rounded-t-none overflow-y-auto custom-scroll h-screen border border-gray-200 bg-white ${selectedFont}`}
-        >
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            rehypePlugins={[rehypeRaw]}
-            components={{
-              a: ({ href, children }) => (
-                <Tooltip title={href} placement="top">
-                  <a
-                    href={href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline"
-                  >
-                    {children}
-                  </a>
-                </Tooltip>
-              ),
-              img: ({ src, alt }) => (
-                <img
-                  src={src}
-                  alt={alt}
-                  className="rounded-lg mx-auto my-3 w-3/4 h-auto shadow-sm"
-                />
-              ),
-              h1: ({ children }) => <h1 className="text-2xl font-bold">{children}</h1>,
-              h2: ({ children }) => <h2 className="text-xl font-semibold">{children}</h2>,
-              h3: ({ children }) => <h3 className="text-lg font-medium">{children}</h3>,
-              p: ({ children }) => {
-                return (
-                  <p className="mb-4 leading-relaxed text-gray-700">
-                    {React.Children.map(children, (child, index) => {
-                      if (typeof child === "string") {
-                        let remainingText = child
-                        let elements = []
-                        let keyIndex = 0
-                        const sortedSuggestions = [...proofreadingResults].sort(
-                          (a, b) => b.original.length - a.original.length
-                        )
-                        while (remainingText.length > 0) {
-                          let matched = false
-                          for (const suggestion of sortedSuggestions) {
-                            const regex = new RegExp(
-                              suggestion.original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
-                              "i"
-                            )
-                            const match = remainingText.match(regex)
-                            if (match && match.index === 0) {
-                              elements.push(
-                                <span
-                                  key={`${index}-${keyIndex++}`}
-                                  className="suggestion-highlight"
-                                  onMouseEnter={() => setHoveredSuggestion(suggestion)}
-                                  onMouseLeave={() => setHoveredSuggestion(null)}
-                                >
-                                  {match[0]}
-                                  {hoveredSuggestion === suggestion && (
-                                    <div
-                                      className="suggestion-tooltip"
-                                      style={{ top: "100%", left: 0 }}
-                                    >
-                                      <p className="text-sm mb-2">
-                                        <strong>Suggested:</strong> {suggestion.change}
-                                      </p>
-                                      <button
-                                        className="bg-blue-600 text-white px-2 py-1 rounded"
-                                        onClick={() =>
-                                          handleReplace(suggestion.original, suggestion.change)
-                                        }
-                                      >
-                                        Replace
-                                      </button>
-                                    </div>
-                                  )}
-                                </span>
-                              )
-                              remainingText = remainingText.slice(match[0].length)
-                              matched = true
-                              break
-                            }
-                          }
-                          if (!matched) {
-                            let minIndex = remainingText.length
-                            let nextMatch = null
-                            for (const suggestion of sortedSuggestions) {
-                              const regex = new RegExp(
-                                suggestion.original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
-                                "i"
-                              )
-                              const match = remainingText.match(regex)
-                              if (match && match.index < minIndex) {
-                                minIndex = match.index
-                                nextMatch = match
-                              }
-                            }
-                            if (minIndex === remainingText.length) {
-                              elements.push(
-                                <span key={`${index}-${keyIndex++}`}>{remainingText}</span>
-                              )
-                              remainingText = ""
-                            } else {
-                              elements.push(
-                                <span key={`${index}-${keyIndex++}`}>
-                                  {remainingText.slice(0, minIndex)}
-                                </span>
-                              )
-                              remainingText = remainingText.slice(minIndex)
-                            }
-                          }
-                        }
-                        return elements
-                      }
-                      return child
-                    })}
-                  </p>
-                )
-              },
-              ul: ({ children }) => (
-                <ul className="list-disc list-inside mb-4 space-y-2 text-gray-700">{children}</ul>
-              ),
-              ol: ({ children }) => (
-                <ol className="list-decimal list-inside mb-4 space-y-2 text-gray-700">
-                  {children}
-                </ol>
-              ),
-              li: ({ children }) => <li className="leading-relaxed">{children}</li>,
-              code: ({ node, inline, className, children, ...props }) => {
-                const match = /language-(\w+)/.exec(className || "")
-                return !inline && match ? (
-                  <pre className="bg-gray-800 text-white p-4 rounded-lg">
-                    <code className={className} {...props}>
-                      {children}
-                    </code>
-                  </pre>
-                ) : (
-                  <code className="bg-gray-100 text-red-600 px-1 rounded" {...props}>
-                    {children}
-                  </code>
-                )
-              },
-            }}
-          >
-            {safeContent}
-          </ReactMarkdown>
-        </div>
+        <ContentDiffViewer
+          oldMarkdown={editorContent}
+          newMarkdown={humanizedContent}
+          onAccept={handleAcceptHumanizedContentModified}
+          onReject={handleAcceptOriginalContent}
+        />
       )
     }
 
     return (
-      <Suspense fallback={<LoadingScreen />}>
-        {activeTab === "Markdown" && (
-          <MarkdownEditor
-            content={safeContent}
-            onChange={newContent => {
-              setContent(newContent)
-              setHtmlContent(markdownToHtml(newContent).replace(/>\s*</g, ">\n<"))
-            }}
-            setUnsavedChanges={setUnsavedChanges}
-          />
+      <div className="overflow-auto custom-scroll">
+        {normalEditor && (
+          <BubbleMenu
+            editor={normalEditor}
+            className="flex gap-2 bg-white shadow-lg p-2 rounded-lg border border-gray-200"
+          >
+            <Tooltip title="Bold" placement="top">
+              <button
+                className="p-2 rounded hover:bg-gray-200 text-gray-600"
+                onClick={() => {
+                  safeEditorAction(() => {
+                    normalEditor.chain().focus().toggleBold().run()
+                  })
+                }}
+              >
+                <Bold className="w-5 h-5" />
+              </button>
+            </Tooltip>
+            <Tooltip title="Italic" placement="top">
+              <button
+                className="p-2 rounded hover:bg-gray-200 text-gray-600"
+                onClick={() => {
+                  safeEditorAction(() => {
+                    normalEditor.chain().focus().toggleItalic().run()
+                  })
+                }}
+              >
+                <Italic className="w-5 h-5" />
+              </button>
+            </Tooltip>
+            <Tooltip title="Heading" placement="top">
+              <button
+                className="p-2 rounded hover:bg-gray-200 text-gray-600"
+                onClick={() => {
+                  safeEditorAction(() => {
+                    normalEditor.chain().focus().toggleHeading({ level: 2 }).run()
+                  })
+                }}
+              >
+                <Heading2 className="w-5 h-5" />
+              </button>
+            </Tooltip>
+            <Tooltip title="Link" placement="top">
+              <button
+                className="p-2 rounded hover:bg-gray-200 text-gray-600"
+                onClick={handleAddLink}
+              >
+                <LinkIcon className="w-5 h-5" />
+              </button>
+            </Tooltip>
+            <Tooltip title="Image" placement="top">
+              <button
+                className="p-2 rounded hover:bg-gray-200 text-gray-600"
+                onClick={handleAddImage}
+              >
+                <ImageIcon className="w-5 h-5" />
+              </button>
+            </Tooltip>
+            {!pathDetect && (
+              <Tooltip title="Rewrite" placement="top">
+                <button
+                  className="p-2 rounded hover:bg-gray-200 text-gray-600"
+                  onClick={handleRewrite}
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </button>
+              </Tooltip>
+            )}
+          </BubbleMenu>
         )}
-        {activeTab === "HTML" && (
-          <HtmlEditor
-            content={htmlContent}
-            onChange={newHtml => {
-              setHtmlContent(newHtml)
-              setContent(htmlToMarkdown(newHtml))
+        <EditorContent editor={normalEditor} />
+        {activeSpan instanceof HTMLElement && (
+          <div
+            className="proof-ui-bubble"
+            ref={bubbleRef}
+            style={{
+              position: "absolute",
+              top: bubblePos.top,
+              left: bubblePos.left,
             }}
-            setUnsavedChanges={setUnsavedChanges}
-          />
+          >
+            <div style={{ marginBottom: 4 }}>
+              Replace with: <strong>{activeSpan.dataset.suggestion}</strong>
+            </div>
+            <button onClick={applyChange}>✅ Accept</button>
+            <button onClick={rejectChange} style={{ marginLeft: 6 }}>
+              ❌ Reject
+            </button>
+          </div>
         )}
-      </Suspense>
+      </div>
     )
   }
 
@@ -1731,23 +1292,8 @@ const TextEditor = ({
         </motion.div>
       )}
       <div className="flex flex-col h-full">
-        {/* Sticky header: Tabs + Toolbar */}
-        <div className="sticky top-0 z-50 bg-white shadow-sm">
-          {!blog.isManuallyEdited && (
-            <div className="flex border-b bg-white shadow-sm border-x">
-              {["Normal", "Markdown", "HTML"].map(tab => (
-                <button
-                  key={tab}
-                  onClick={() => handleTabClick(tab)}
-                  className={`editor-tab ${activeTab === tab ? "active" : ""}`}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
-          )}
-          {renderToolbar()}
-        </div>
+        {/* Sticky header: Toolbar */}
+        <div className="sticky top-0 z-50 bg-white shadow-sm">{renderToolbar()}</div>
 
         {/* Scrollable content area */}
         <div className="flex-1 overflow-auto">{renderContentArea()}</div>

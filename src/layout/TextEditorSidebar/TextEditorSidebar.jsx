@@ -49,7 +49,6 @@ const TextEditorSidebar = ({
   keywords,
   setKeywords,
   onPost,
-  activeTab,
   handleReplace,
   setProofreadingResults,
   proofreadingResults,
@@ -815,17 +814,15 @@ const TextEditorSidebar = ({
                       buttonText="Run Analysis"
                       icon={TrendingUp}
                     />
-                    {activeTab === "Normal" && (
-                      <FeatureCard
-                        title="AI Proofreading"
-                        description="Grammar and style improvements"
-                        isPro={["free", "basic"].includes(userPlan?.toLowerCase?.())}
-                        isLoading={isAnalyzingProofreading}
-                        onClick={handleProofreadingBlog}
-                        buttonText="Proofread Content"
-                        icon={FileText}
-                      />
-                    )}
+                    <FeatureCard
+                      title="AI Proofreading"
+                      description="Grammar and style improvements"
+                      isPro={["free", "basic"].includes(userPlan?.toLowerCase?.())}
+                      isLoading={isAnalyzingProofreading}
+                      onClick={handleProofreadingBlog}
+                      buttonText="Proofread Content"
+                      icon={FileText}
+                    />
                     <FeatureCard
                       title="Generate Metadata"
                       description="Create SEO-friendly title and description"

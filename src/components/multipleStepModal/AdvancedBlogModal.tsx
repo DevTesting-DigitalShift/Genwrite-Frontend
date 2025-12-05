@@ -26,12 +26,15 @@ import clsx from "clsx"
 import { Crown, Sparkles, TriangleAlert } from "lucide-react"
 import { FC, useCallback, useEffect, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
+import { useNavigate } from "react-router-dom"
 import "./antd.css"
 import { getValueByPath, setValueByPath } from "@utils/ObjectPath"
 import { AI_MODELS, TONES, IMAGE_OPTIONS } from "@/data/blogData"
 import BlogImageUpload from "@components/multipleStepModal/BlogImageUpload"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
 import { selectSelectedAnalysisKeywords } from "@store/slices/analysisSlice"
+import { getEstimatedCost } from "@utils/getEstimatedCost"
+import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 
 const { Text } = Typography
 
@@ -62,6 +65,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
     isCheckedQuick: false as boolean,
     isCheckedBrand: false as boolean,
     brandId: "" as string,
+    languageToWrite: "English" as string,
     options: {
       performKeywordResearch: false as boolean,
       includeFaqs: false as boolean,
@@ -95,10 +99,23 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
     },
   ]
 
+  const LANGUAGES = [
+    { value: "English", label: "English" },
+    { value: "Spanish", label: "Spanish" },
+    { value: "German", label: "German" },
+    { value: "French", label: "French" },
+    { value: "Italian", label: "Italian" },
+    { value: "Portuguese", label: "Portuguese" },
+    { value: "Dutch", label: "Dutch" },
+    { value: "Japanese", label: "Japanese" },
+  ]
+
   type FormError = Partial<Record<keyof typeof initialData, string>>
 
   const dispatch = useDispatch()
   const user = useSelector(selectUser)
+  const navigate = useNavigate()
+  const { handlePopup } = useConfirmPopup()
 
   const [currentStep, setCurrentStep] = useState<number>(0)
   const [formData, setFormData] = useState<typeof initialData>(initialData)
@@ -221,6 +238,36 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
 
   const handleSubmit = () => {
     if (validateFields()) {
+      // Check if user has sufficient credits
+      const estimatedCost = getEstimatedCost(
+        "blog.single",
+        (formData.aiModel || "gemini") as "gemini" | "chatgpt" | "claude"
+      )
+      const userCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
+
+      if (userCredits < estimatedCost) {
+        handlePopup({
+          title: "Insufficient Credits",
+          description: (
+            <div>
+              <p>You don't have enough credits to generate this blog.</p>
+              <p className="mt-1">
+                <strong>Required:</strong> {estimatedCost} credits
+              </p>
+              <p>
+                <strong>Available:</strong> {userCredits} credits
+              </p>
+            </div>
+          ),
+          okText: "Buy Credits",
+          onConfirm: () => {
+            navigate("/pricing")
+            handleClose()
+          },
+        })
+        return
+      }
+
       console.debug("Advanced Modal Form Data : ", formData)
       const data = { ...formData, options: { ...formData.options } } as Partial<typeof initialData>
       if (!formData.isCheckedGeneratedImages || formData.imageSource !== "custom") {
@@ -321,6 +368,21 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
               />
               {errors.topic && <Text className="error-text">{errors.topic}</Text>}
             </Space>
+
+            {/* Language Selection */}
+            <label htmlFor="blog-language">
+              Language <span className="text-red-500">*</span>
+            </label>
+            <Select
+              id="blog-language"
+              placeholder="Select a language"
+              value={formData.languageToWrite}
+              onChange={val =>
+                handleInputChange({ target: { name: "languageToWrite", value: val } })
+              }
+              options={LANGUAGES}
+              className="custom-placeholder"
+            />
 
             <Flex justify="space-between" className="mt-3 form-item-wrapper">
               <label htmlFor="blog-auto-generate-title-keywords">
@@ -760,23 +822,37 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
       open={true}
       onCancel={handleClose}
       footer={
-        <Flex justify="end" gap={12} className="mt-2">
-          {currentStep > 0 && (
-            <Button
-              onClick={handlePrev}
-              type="default"
-              className="h-10 px-6 text-[length:1rem] font-medium !text-gray-700 bg-white border border-gray-300 rounded-md hover:!bg-gray-50"
-            >
-              Previous
-            </Button>
+        <Flex justify="space-between" align="center" gap={12} className="mt-2">
+          {currentStep === 3 && (
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-gray-600">Estimated Cost:</span>
+              <span className="font-bold text-blue-600">
+                {getEstimatedCost(
+                  "blog.single",
+                  (formData.aiModel || "gemini") as "gemini" | "chatgpt" | "claude"
+                )}{" "}
+                credits
+              </span>
+            </div>
           )}
-          <Button
-            onClick={currentStep === 3 ? handleSubmit : handleNext}
-            type="default"
-            className="h-10 px-6 text-[length:1rem] font-medium !text-white bg-[#1B6FC9] rounded-md hover:!bg-[#1B6FC9]/90"
-          >
-            {currentStep === 3 ? "Generate Blog" : "Next"}
-          </Button>
+          <Flex justify="end" gap={12} className={currentStep !== 3 ? "w-full" : ""}>
+            {currentStep > 0 && (
+              <Button
+                onClick={handlePrev}
+                type="default"
+                className="h-10 px-6 text-[length:1rem] font-medium !text-gray-700 bg-white border border-gray-300 rounded-md hover:!bg-gray-50"
+              >
+                Previous
+              </Button>
+            )}
+            <Button
+              onClick={currentStep === 3 ? handleSubmit : handleNext}
+              type="default"
+              className="h-10 px-6 text-[length:1rem] font-medium !text-white bg-[#1B6FC9] rounded-md hover:!bg-[#1B6FC9]/90"
+            >
+              {currentStep === 3 ? "Generate Blog" : "Next"}
+            </Button>
+          </Flex>
         </Flex>
       }
       width={700}

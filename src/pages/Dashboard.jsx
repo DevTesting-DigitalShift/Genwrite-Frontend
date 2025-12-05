@@ -194,26 +194,32 @@ const Dashboard = () => {
     try {
       const totalCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
       const estimatedBlogCost = getEstimatedCost("blog.single", updatedData.aiModel || "default")
-      handlePopup({
-        title: "Confirm Blog Creation",
-        description: (
-          <>
-            <span>
-              Single Blog generation cost: <b>{estimatedBlogCost} credits</b>
-            </span>
-            <br />
-            <span>Do you want to continue?</span>
-          </>
-        ),
-        onConfirm: () => {
-          if (estimatedBlogCost > totalCredits) {
-            message.error("You do not have enough credits to generate this blog.")
-            handlePopup(false)
-            return
-          }
-          dispatch(createNewBlog({ blogData: updatedData, user, navigate }))
-        },
-      })
+
+      // Check if user has sufficient credits
+      if (estimatedBlogCost > totalCredits) {
+        handlePopup({
+          title: "Insufficient Credits",
+          description: (
+            <div>
+              <p>You don't have enough credits to generate this blog.</p>
+              <p className="mt-1">
+                <strong>Required:</strong> {estimatedBlogCost} credits
+              </p>
+              <p>
+                <strong>Available:</strong> {totalCredits} credits
+              </p>
+            </div>
+          ),
+          okText: "Buy Credits",
+          onConfirm: () => {
+            navigate("/pricing")
+          },
+        })
+        return
+      }
+
+      // Directly create blog without confirmation
+      dispatch(createNewBlog({ blogData: updatedData, user, navigate }))
       dispatch(clearSelectedKeywords())
     } catch (error) {
       console.error("Error submitting form:", error)

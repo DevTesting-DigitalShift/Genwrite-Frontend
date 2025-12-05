@@ -22,6 +22,7 @@ const PricingCard = ({
   userStartDate,
   userSubscription,
   user,
+  currency,
 }) => {
   const [customCredits, setCustomCredits] = useState(500)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
@@ -71,14 +72,12 @@ const PricingCard = ({
   const getCardStyles = () => {
     const baseStyles = {
       container: isDisabled
-        ? `bg-white border border-gray-200 opacity-80 cursor-not-allowed`
-        : `bg-white border border-gray-200 hover:border-gray-300 hover:shadow-lg`,
-      icon: `bg-gray-50 text-gray-600`,
-      price: `text-gray-900`,
+        ? `bg-gradient-to-br from-teal-50 to-emerald-50 border-2 border-teal-200 opacity-80 cursor-not-allowed`
+        : `bg-gradient-to-br from-teal-50 to-emerald-50 border-2 border-teal-200 hover:border-teal-300 hover:shadow-xl`,
+      price: `text-teal-700`,
       button: isDisabled
-        ? `bg-gray-300 text-white cursor-not-allowed`
-        : `bg-gray-900 hover:bg-gray-800 text-white`,
-      accent: `text-gray-600`,
+        ? `bg-teal-300 text-white cursor-not-allowed`
+        : `bg-teal-600 hover:bg-teal-700 text-white`,
     }
 
     switch (plan.tier) {
@@ -86,38 +85,29 @@ const PricingCard = ({
         return baseStyles
       case "pro":
         return {
-          ...baseStyles,
           container: isDisabled
-            ? `bg-white border-2 border-blue-200 opacity-80 cursor-not-allowed`
-            : `bg-white border-2 border-blue-200 hover:border-blue-300 hover:shadow-xl shadow-lg`,
-          icon: `bg-blue-50 text-blue-600`,
-          price: `text-blue-600`,
+            ? `bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-300 opacity-80 cursor-not-allowed`
+            : `bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-300 hover:border-blue-400 hover:shadow-xl shadow-lg`,
+          price: `text-blue-700`,
           button: isDisabled
             ? `bg-blue-300 text-white cursor-not-allowed`
             : `bg-blue-600 hover:bg-blue-700 text-white`,
-          accent: `text-blue-600`,
         }
       case "enterprise":
         return {
-          ...baseStyles,
           container: isDisabled
-            ? `bg-white border border-purple-200 opacity-80 cursor-not-allowed`
-            : `bg-white border border-purple-200 hover:border-purple-300 hover:shadow-lg`,
-          icon: `bg-purple-50 text-purple-600`,
-          price: `text-purple-600`,
+            ? `bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-200 opacity-80 cursor-not-allowed`
+            : `bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-200 hover:border-purple-300 hover:shadow-xl`,
+          price: `text-purple-700`,
           button: isDisabled
             ? `bg-purple-300 text-white cursor-not-allowed`
             : `bg-purple-600 hover:bg-purple-700 text-white`,
-          accent: `text-purple-600`,
         }
       case "credits":
         return {
-          ...baseStyles,
-          container: `bg-white border border-emerald-200 hover:border-emerald-300 hover:shadow-lg`,
-          icon: `bg-emerald-50 text-emerald-600`,
-          price: `text-emerald-600`,
+          container: `bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-200 hover:border-emerald-300 hover:shadow-xl`,
+          price: `text-emerald-700`,
           button: `bg-emerald-600 hover:bg-emerald-700 text-white`,
-          accent: `text-emerald-600`,
         }
       default:
         return baseStyles
@@ -242,21 +232,25 @@ const PricingCard = ({
         ) : null)}
 
       <div
-        className={`relative rounded-2xl transition-all duration-300 ${styles.container} overflow-hidden p-8 h-full flex flex-col`}
+        className={`relative rounded-2xl transition-all duration-300 ${styles.container} overflow-hidden h-full flex flex-col`}
       >
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div
-            className={`w-16 h-16 mx-auto mb-4 rounded-xl flex items-center justify-center ${styles.icon}`}
-          >
-            {plan.icon}
-          </div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-3">{plan.name}</h3>
-          <p className="text-gray-600 text-sm leading-relaxed h-12">{plan.description}</p>
+        {/* Header Section */}
+        <div className="px-6 pt-5 rounded-t-2xl">
+          <h3 className="text-xl font-bold text-gray-900 mb-2 mt-6">{plan.name}</h3>
+          <p className="text-gray-600 text-sm leading-relaxed h-[48px] font-medium">{plan.description}</p>
+
+          {/* 50% OFF Badge */}
+          {plan.type !== "credit_purchase" && typeof displayPrice === "number" && (
+            <div className="mt-4">
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-red-200 text-red-600">
+                50% OFF {billingPeriod === "monthly" ? "FIRST TIME" : "FIRST TIME"}
+              </span>
+            </div>
+          )}
         </div>
 
-        {/* Price */}
-        <div className="text-center mb-8">
+        {/* Price Section */}
+        <div className="px-6 pb-6 min-h-[140px] flex flex-col justify-center">
           {plan.type === "credit_purchase" ? (
             <div className="space-y-4">
               <div className="flex items-center gap-4">
@@ -265,10 +259,10 @@ const PricingCard = ({
                   min="500"
                   value={customCredits}
                   onChange={handleCustomCreditsChange}
-                  className={`flex-1 py-3 text-center text-xl font-bold bg-gray-50 border-2 rounded-lg focus:outline-none w-1/2 transition-all ${
+                  className={`flex-1 py-3 text-center text-xl font-bold bg-white border-2 rounded-lg focus:outline-none transition-all ${
                     customCredits < 500
                       ? "border-red-300 focus:border-red-500 text-red-600"
-                      : `border-emerald-300 focus:border-emerald-500 ${styles.accent}`
+                      : `border-emerald-300 focus:border-emerald-500 text-emerald-700`
                   }`}
                   placeholder="Credits"
                 />
@@ -284,56 +278,97 @@ const PricingCard = ({
               </div>
             </div>
           ) : (
-            <div className="space-y-2">
-              {/* Original Price with Strike-through */}
+            <div className="space-y-1">
               {typeof displayPrice === "number" && (
-                <div className="flex items-end justify-center gap-1">
-                  <span className="text-2xl font-bold text-gray-400 line-through">
-                    ${displayPrice}
-                  </span>
-                  <span className="text-gray-400 text-sm pb-1">/month</span>
-                </div>
+                <>
+                  {/* Original Price with Strike-through */}
+                  <div className="flex items-baseline justify-center gap-1">
+                    <span className="text-2xl font-semibold text-gray-400 line-through">
+                      {currency === "INR"
+                        ? `₹${
+                            plan[billingPeriod === "annual" ? "priceAnnualINR" : "priceMonthlyINR"]
+                          }`
+                        : `$${displayPrice}`}
+                    </span>
+                    <span className="text-gray-400 text-sm">/month</span>
+                  </div>
+
+                  {/* Discounted Price (50% off) */}
+                  <div className="flex items-baseline gap-1">
+                    <span className={`text-4xl font-bold ${styles.price}`}>
+                      {currency === "INR"
+                        ? `₹${(
+                            plan[
+                              billingPeriod === "annual" ? "priceAnnualINR" : "priceMonthlyINR"
+                            ] * 0.5
+                          ).toFixed(0)}`
+                        : `$${(displayPrice * 0.5).toFixed(2)}`}
+                    </span>
+                    <span className="text-gray-600 text-sm">/month</span>
+                  </div>
+
+                  {/* Billed Amount */}
+                  <div className="mt-2">
+                    <span className="text-sm font-se text-gray-500">
+                      Billed{" "}
+                      {currency === "INR"
+                        ? `₹${(
+                            plan[
+                              billingPeriod === "annual" ? "priceAnnualINR" : "priceMonthlyINR"
+                            ] *
+                            0.5 *
+                            (billingPeriod === "annual" ? 12 : 1)
+                          ).toFixed(0)}`
+                        : `$${(displayPrice * 0.5 * (billingPeriod === "annual" ? 12 : 1)).toFixed(
+                            2
+                          )}`}{" "}
+                      {billingPeriod === "annual" ? "annually" : "monthly"}
+                    </span>
+                  </div>
+                </>
               )}
 
-              {/* Discounted Price (50% off) */}
-              <div className="flex items-end justify-center gap-1">
-                {typeof displayPrice === "string" ? (
+              {/* Custom/Enterprise Pricing */}
+              {typeof displayPrice === "string" && (
+                <div className="flex items-baseline justify-center">
                   <span className={`text-4xl font-bold ${styles.price}`}>{displayPrice}</span>
-                ) : (
-                  <>
-                    <span className={`text-4xl font-bold ${styles.price}`}>
-                      ${(displayPrice * 0.5).toFixed(2)}
-                    </span>
-                    <span className="text-gray-500 text-lg pb-1">/month</span>
-                  </>
-                )}
-              </div>
-
-              {/* First Month/Time Indicator */}
-              {typeof displayPrice === "number" && (
-                <div className="mt-2">
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700">
-                    {billingPeriod === "monthly" ? "50% OFF FIRST MONTH" : "50% OFF FIRST TIME"}
-                  </span>
                 </div>
               )}
             </div>
           )}
         </div>
 
+        {/* CTA Button */}
+        <div className="px-6 pb-6">
+          <button
+            onClick={handleButtonClick}
+            className={`w-full py-3 px-6 rounded-lg font-semibold transition-all duration-300 ${
+              isDisabled ? "" : "hover:transform hover:scale-[1.02] hover:shadow-lg"
+            } ${styles.button} ${
+              plan.type === "credit_purchase" && customCredits < 500
+                ? "opacity-50 cursor-not-allowed"
+                : ""
+            } flex items-center justify-center gap-2`}
+            disabled={isDisabled || (plan.type === "credit_purchase" && customCredits < 500)}
+          >
+            {plan.name.toLowerCase().includes("enterprise") && <Mail className="w-4 h-4" />}
+            {isDisabled ? "Current Plan" : plan.cta}
+          </button>
+        </div>
+
         {/* Features */}
-        <div className="space-y-3 mb-6 flex-grow">
+        <div className="px-6 pb-6 space-y-2.5 flex-grow">
           {plan.features.map((feature, index) => (
-            <div key={index} className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <Check className="w-3 h-3 text-green-600" />
+            <div key={index} className="flex items-start gap-2">
+              <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Check className="w-2.5 h-2.5 text-white stroke-[3]" />
               </div>
               <span
-                className={`text-sm ${
+                className={`text-sm leading-relaxed ${
                   feature === "Everything in Basic, additionally:" ||
                   feature === "Everything in Pro, additionally:"
-                    ? "text-blue-600 font-bold"
-                    : "text-gray-700 font-medium"
+                    ? "text-gray-900 font-bold"
+                    : "text-gray-700"
                 }`}
               >
                 {feature}
@@ -341,22 +376,6 @@ const PricingCard = ({
             </div>
           ))}
         </div>
-
-        {/* CTA Button */}
-        <button
-          onClick={handleButtonClick}
-          className={`w-full py-4 px-6 rounded-lg font-semibold transition-all duration-300 ${
-            isDisabled ? "" : "hover:transform hover:scale-105 hover:shadow-lg"
-          } ${styles.button} ${
-            plan.type === "credit_purchase" && customCredits < 500
-              ? "opacity-50 cursor-not-allowed"
-              : ""
-          } flex items-center justify-center gap-2`}
-          disabled={isDisabled || (plan.type === "credit_purchase" && customCredits < 500)}
-        >
-          {plan.name.toLowerCase().includes("enterprise") && <Mail className="w-4 h-4" />}
-          {isDisabled ? "Current Plan" : plan.cta}
-        </button>
       </div>
 
       {/* Confirmation Modal (unchanged) */}
@@ -402,9 +421,12 @@ const PricingCard = ({
 const Upgrade = () => {
   const [loading, setLoading] = useState(true)
   const [billingPeriod, setBillingPeriod] = useState("annual")
+  const [currency, setCurrency] = useState("USD")
   const [showComparisonTable, setShowComparisonTable] = useState(true)
   const user = useSelector(state => state.auth.user)
   const navigate = useNavigate()
+
+  const CONVERSION_RATE = 100 // USD to INR conversion rate
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1200)
@@ -419,6 +441,8 @@ const Upgrade = () => {
         eventName: "Basic_" + billingPeriod + "_clicks",
         priceMonthly: 20,
         priceAnnual: 16.58,
+        priceMonthlyINR: 1999,
+        priceAnnualINR: 1666,
         annualPrice: 199,
         credits: 1000,
         description: "Perfect for individuals getting started with AI content creation.",
@@ -444,6 +468,8 @@ const Upgrade = () => {
         eventName: "Pro_" + billingPeriod + "_clicks",
         priceMonthly: 50,
         priceAnnual: 41.58,
+        priceMonthlyINR: 4999,
+        priceAnnualINR: 4166,
         annualPrice: 499,
         credits: 4500,
         description: "Advanced AI features with priority support for growing teams.",
@@ -599,7 +625,7 @@ const Upgrade = () => {
         </p>
       </motion.div>
 
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto">
         {/* Christmas Sale Countdown Timer Banner */}
         <div className="max-w-6xl mx-auto mb-6 sm:mb-8 grid grid-cols-1 lg:grid-cols-2 place-content-center place-items-center gap-4 sm:gap-6">
           <CountdownTimer
@@ -693,19 +719,15 @@ const Upgrade = () => {
           </motion.div>
         )}
 
-        {/* Header & toggle (unchanged) */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-center mb-8 sm:mb-12 lg:mb-16"
-        >
-          <div className="flex justify-center mt-4 sm:mt-6 lg:mt-8 px-4">
-            <div className="inline-flex items-center bg-white rounded-full p-1 border border-gray-200 shadow-sm w-full sm:w-auto">
+        {/* Billing Period Toggle - Centered */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center mb-8">
+          <div className="flex justify-center px-4">
+            <div className="inline-flex items-center bg-white rounded-full p-1 border border-gray-200 shadow-sm">
               {["monthly", "annual"].map(period => (
                 <button
                   key={period}
                   onClick={() => setBillingPeriod(period)}
-                  className={`px-4 sm:px-6 py-2 sm:py-3 rounded-full text-xs sm:text-sm font-semibold transition-all duration-300 flex-1 sm:flex-none ${
+                  className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 ${
                     billingPeriod === period
                       ? "bg-blue-600 text-white shadow-sm"
                       : "text-gray-600 hover:text-gray-900"
@@ -714,7 +736,7 @@ const Upgrade = () => {
                   {period === "annual" ? (
                     <>
                       Annual
-                      <span className="ml-1 sm:ml-2 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
+                      <span className="ml-2 px-2 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
                         Save 20%
                       </span>
                     </>
@@ -727,8 +749,29 @@ const Upgrade = () => {
           </div>
         </motion.div>
 
+        {/* Currency Toggle - Top Right Above Cards */}
+        <div className="mx-auto px-4 mb-10">
+          <div className="flex justify-end">
+            <div className="inline-flex items-center bg-white rounded-lg p-0.5 border border-gray-200 shadow-sm">
+              {["USD", "INR"].map(curr => (
+                <button
+                  key={curr}
+                  onClick={() => setCurrency(curr)}
+                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all duration-300 ${
+                    currency === curr
+                      ? "bg-purple-600 text-white shadow-sm"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  {curr === "USD" ? "USD" : "INR"}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
         {/* Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 px-4 sm:px-0">
+        <div className="mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 px-4">
           <AnimatePresence>
             {loading
               ? Array.from({ length: 4 }).map((_, idx) => <SkeletonCard key={idx} />)
@@ -740,6 +783,7 @@ const Upgrade = () => {
                     index={index}
                     onBuy={handleBuy}
                     billingPeriod={billingPeriod}
+                    currency={currency}
                     userPlan={user?.subscription?.plan}
                     userStatus={user?.subscription?.status}
                     userStartDate={user?.subscription?.startDate}

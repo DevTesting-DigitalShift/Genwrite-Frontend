@@ -24,7 +24,6 @@ const MainEditorPage = () => {
   const dispatch = useDispatch()
   const blog = useSelector(state => state.blog.selectedBlog)
   const { metadata } = useSelector(state => state.wordpress)
-  const [activeTab, setActiveTab] = useState("Normal")
   const [isLoading, setIsLoading] = useState(true)
   const [keywords, setKeywords] = useState([])
   const [editorContent, setEditorContent] = useState("")
@@ -372,15 +371,13 @@ const MainEditorPage = () => {
   const handleAcceptHumanizedContent = useCallback(() => {
     setEditorContent(humanizedContent)
     setIsHumanizeModalOpen(false)
-    setActiveTab("Normal")
     message.success("Humanized content applied successfully!")
-  }, [humanizedContent, setEditorContent, setIsHumanizeModalOpen, setActiveTab])
+  }, [humanizedContent, setEditorContent, setIsHumanizeModalOpen])
 
   const handleAcceptOriginalContent = useCallback(() => {
     setIsHumanizeModalOpen(false)
-    setActiveTab("Normal")
     message.info("Retained original content.")
-  }, [setIsHumanizeModalOpen, setActiveTab])
+  }, [setIsHumanizeModalOpen])
 
   if (isLoading || isPosting) {
     return (
@@ -569,7 +566,7 @@ const MainEditorPage = () => {
                 </div>
               )}
             </header>
-            <div key={activeTab} className="flex-grow overflow-auto max-h-[800px]">
+            <div className="flex-grow overflow-auto max-h-[800px]">
               {isLoading ? (
                 <div className="flex justify-center items-center h-[calc(100vh-120px)]">
                   <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
@@ -579,8 +576,6 @@ const MainEditorPage = () => {
                   keywords={keywords}
                   setKeywords={setKeywords}
                   blog={blog}
-                  activeTab={activeTab}
-                  setActiveTab={setActiveTab}
                   proofreadingResults={proofreadingResults}
                   handleReplace={handleReplace}
                   content={editorContent}
@@ -608,7 +603,6 @@ const MainEditorPage = () => {
               keywords={keywords}
               setKeywords={setKeywords}
               onPost={handlePostToWordPress}
-              activeTab={activeTab}
               handleReplace={handleReplace}
               proofreadingResults={proofreadingResults}
               setProofreadingResults={setProofreadingResults}
@@ -645,7 +639,6 @@ const MainEditorPage = () => {
                   keywords={keywords}
                   setKeywords={setKeywords}
                   onPost={handlePostToWordPress}
-                  activeTab={activeTab}
                   handleReplace={handleReplace}
                   proofreadingResults={proofreadingResults}
                   setProofreadingResults={setProofreadingResults}

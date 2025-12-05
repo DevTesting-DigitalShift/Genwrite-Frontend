@@ -482,7 +482,7 @@ const StepContent = ({
     }))
     setErrors(prev => ({ ...prev, templates: false }))
   }, [])
-  
+
   switch (currentStep) {
     case 1:
       return (
@@ -938,6 +938,28 @@ const StepContent = ({
                   <Option value="empathetic">Empathetic</Option>
                 </Select>
                 {errors.tone && <p className="text-red-500 text-xs mt-1">{errors.tone}</p>}
+              </div>
+              <div>
+                <label htmlFor="language" className="block text-sm font-medium text-gray-700 mb-2">
+                  Language <span className="text-red-500">*</span>
+                </label>
+                <Select
+                  className="w-full"
+                  value={newJob.blogs.languageToWrite}
+                  onChange={value => {
+                    setNewJob({ ...newJob, blogs: { ...newJob.blogs, languageToWrite: value } })
+                  }}
+                  placeholder="Select language"
+                >
+                  <Option value="English">English</Option>
+                  <Option value="Spanish">Spanish</Option>
+                  <Option value="German">German</Option>
+                  <Option value="French">French</Option>
+                  <Option value="Italian">Italian</Option>
+                  <Option value="Portuguese">Portuguese</Option>
+                  <Option value="Dutch">Dutch</Option>
+                  <Option value="Japanese">Japanese</Option>
+                </Select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

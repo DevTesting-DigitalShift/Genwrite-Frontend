@@ -27,6 +27,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     otherLinkInput: "",
     focusKeywordInput: "",
     keywordInput: "",
+    languageToWrite: "English",
   }
 
   const initialErrors = {
@@ -121,29 +122,51 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
       return
     }
 
+    // Check if user has sufficient credits
+    const estimatedCost = getEstimatedCost("blog.quick")
+    const userCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
+
+    console.log("=== Credits Check ===")
+    console.log("Estimated Cost:", estimatedCost)
+    console.log("User Credits (base):", user?.credits?.base)
+    console.log("User Credits (extra):", user?.credits?.extra)
+    console.log("Total User Credits:", userCredits)
+    console.log("Has Sufficient Credits:", userCredits >= estimatedCost)
+
+    if (userCredits < estimatedCost) {
+      console.log("🚫 Insufficient credits - showing popup")
+      handlePopup({
+        title: "Insufficient Credits",
+        description: (
+          <div>
+            <p>You don't have enough credits to generate this blog.</p>
+            <p className="mt-1">
+              <strong>Required:</strong> {estimatedCost} credits
+            </p>
+            <p>
+              <strong>Available:</strong> {userCredits} credits
+            </p>
+          </div>
+        ),
+        okText: "Buy Credits",
+        onConfirm: () => {
+          navigate("/pricing")
+          handleClose()
+        },
+      })
+      return
+    }
+
+    console.log("✅ Sufficient credits - proceeding with blog creation")
+
     const finalData = {
       ...formData,
       type,
       otherLinks,
     }
 
-    handlePopup({
-      title: `${type === "quick" ? "Quick" : "Youtube"} Blog Generation`,
-      description: (
-        <>
-          <span>
-            {type === "quick" ? "Quick" : "Youtube"} blog generation will cost you{" "}
-            <b>{getEstimatedCost(`blog.quick`)} credits</b>.
-          </span>
-          <br />
-          <span>Are you sure you want to proceed?</span>
-        </>
-      ),
-      onConfirm: () => {
-        dispatch(createNewQuickBlog({ blogData: finalData, user, navigate, type }))
-        handleClose()
-      },
-    })
+    dispatch(createNewQuickBlog({ blogData: finalData, user, navigate, type }))
+    handleClose()
   }
 
   // Handle template selection
@@ -358,6 +381,17 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     { id: "ai-generated", label: "AI-Generated Images", value: "ai-generated" },
   ]
 
+  const languages = [
+    { value: "English", label: "English" },
+    { value: "Spanish", label: "Spanish" },
+    { value: "German", label: "German" },
+    { value: "French", label: "French" },
+    { value: "Italian", label: "Italian" },
+    { value: "Portuguese", label: "Portuguese" },
+    { value: "Dutch", label: "Dutch" },
+    { value: "Japanese", label: "Japanese" },
+  ]
+
   return (
     <Modal
       title={`Generate ${type === "quick" ? "Quick" : "Youtube"} Blog`}
@@ -376,22 +410,32 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
               </button>,
             ]
           : [
-              <button
-                key="previous"
-                onClick={() => setCurrentStep(0)}
-                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
-                aria-label="Previous step"
-              >
-                Previous
-              </button>,
-              <button
-                key="submit"
-                onClick={handleSubmit}
-                className="px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 transition-colors ml-3"
-                aria-label="Submit quick blog"
-              >
-                Submit
-              </button>,
+              <div key="footer-content" className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-gray-600">Estimated Cost:</span>
+                  <span className="font-bold text-blue-600">
+                    {getEstimatedCost(`blog.quick`)} credits
+                  </span>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    key="previous"
+                    onClick={() => setCurrentStep(0)}
+                    className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+                    aria-label="Previous step"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    key="submit"
+                    onClick={handleSubmit}
+                    className="px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 transition-colors ml-3"
+                    aria-label="Submit quick blog"
+                  >
+                    Submit
+                  </button>
+                </div>
+              </div>,
             ]
       }
       width={800}
@@ -435,6 +479,24 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                 aria-label="Blog topic"
               />
               {errors.topic && <p className="text-red-500 text-sm mt-1">{errors.topic}</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Language <span className="text-red-500">*</span>
+              </label>
+              <select
+                name="languageToWrite"
+                value={formData.languageToWrite}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#1B6FC9] focus:border-transparent"
+                aria-label="Select language"
+              >
+                {languages.map(lang => (
+                  <option key={lang.value} value={lang.value}>
+                    {lang.label}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="flex items-center justify-between mb-2">
               <label className="block text-sm font-medium text-gray-700">

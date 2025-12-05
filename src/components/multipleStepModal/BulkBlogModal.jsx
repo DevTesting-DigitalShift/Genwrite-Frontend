@@ -40,6 +40,7 @@ const BulkBlogModal = ({ closeFnc }) => {
     keywordInput: "",
     performKeywordResearch: true,
     tone: "",
+    languageToWrite: "English",
     userDefinedLength: 1000,
     imageSource: "unsplash",
     useBrandVoice: false,
@@ -195,24 +196,37 @@ const BulkBlogModal = ({ closeFnc }) => {
     const model = formData.aiModel || "gemini"
     const blogCost = getEstimatedCost("blog.single", model)
     const totalCost = formData.numberOfBlogs * blogCost
+    const userCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
 
-    handlePopup({
-      title: "Bulk Blog Generation",
-      description: (
-        <>
-          <span>
-            Estimated cost for <b>{formData.numberOfBlogs}</b> blog
-            {formData.numberOfBlogs > 1 ? "s" : ""}: <b>{totalCost} credits</b>
-          </span>
-          <br />
-          <span>Do you want to continue?</span>
-        </>
-      ),
-      onConfirm: () => {
-        dispatch(createMultiBlog({ blogData: formData, user, navigate }))
-        handleClose()
-      },
-    })
+    // Check if user has sufficient credits
+    if (userCredits < totalCost) {
+      handlePopup({
+        title: "Insufficient Credits",
+        description: (
+          <div>
+            <p>
+              You don't have enough credits to generate {formData.numberOfBlogs} blog
+              {formData.numberOfBlogs > 1 ? "s" : ""}.
+            </p>
+            <p className="mt-2">
+              <strong>Required:</strong> {totalCost} credits
+            </p>
+            <p>
+              <strong>Available:</strong> {userCredits} credits
+            </p>
+          </div>
+        ),
+        okText: "Buy Credits",
+        onConfirm: () => {
+          navigate("/pricing")
+          handleClose()
+        },
+      })
+      return
+    }
+
+    dispatch(createMultiBlog({ blogData: formData, user, navigate }))
+    handleClose()
   }
 
   const handlePackageSelect = useCallback(templates => {
@@ -674,21 +688,36 @@ const BulkBlogModal = ({ closeFnc }) => {
       open={true}
       onCancel={handleClose}
       footer={
-        <div className="flex justify-end gap-3">
-          {currentStep > 0 && (
-            <button
-              onClick={handlePrev}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none"
-            >
-              Previous
-            </button>
+        <div className="flex items-center justify-between w-full">
+          {currentStep === 2 && (
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-gray-600">Estimated Cost:</span>
+              <span className="font-bold text-blue-600">
+                {formData.numberOfBlogs *
+                  getEstimatedCost("blog.single", formData.aiModel || "gemini")}{" "}
+                credits
+              </span>
+              <span className="text-xs text-gray-500">
+                ({formData.numberOfBlogs} blog{formData.numberOfBlogs > 1 ? "s" : ""})
+              </span>
+            </div>
           )}
-          <button
-            onClick={currentStep === 2 ? handleSubmit : handleNext}
-            className="px-4 py-2 text-sm font-medium text-white bg-[#1B6FC9] rounded-md hover:bg-[#1B6FC9]/90 focus:outline-none"
-          >
-            {currentStep === 2 ? "Generate Blogs" : "Next"}
-          </button>
+          <div className={`flex gap-3 ${currentStep !== 2 ? "w-full justify-end" : ""}`}>
+            {currentStep > 0 && (
+              <button
+                onClick={handlePrev}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none"
+              >
+                Previous
+              </button>
+            )}
+            <button
+              onClick={currentStep === 2 ? handleSubmit : handleNext}
+              className="px-4 py-2 text-sm font-medium text-white bg-[#1B6FC9] rounded-md hover:bg-[#1B6FC9]/90 focus:outline-none"
+            >
+              {currentStep === 2 ? "Generate Blogs" : "Next"}
+            </button>
+          </div>
         </div>
       }
       width={800}
@@ -930,6 +959,28 @@ const BulkBlogModal = ({ closeFnc }) => {
                   <Option value="empathetic">Empathetic</Option>
                 </Select>
                 {errors.tone && <p className="text-red-500 text-xs mt-1">{errors.tone}</p>}
+              </div>
+              <div>
+                <label htmlFor="language" className="block text-sm font-medium text-gray-700 mb-2">
+                  Language <span className="text-red-500">*</span>
+                </label>
+                <Select
+                  className="w-full"
+                  value={formData.languageToWrite}
+                  onChange={value => {
+                    setFormData(prev => ({ ...prev, languageToWrite: value }))
+                  }}
+                  placeholder="Select language"
+                >
+                  <Option value="English">English</Option>
+                  <Option value="Spanish">Spanish</Option>
+                  <Option value="German">German</Option>
+                  <Option value="French">French</Option>
+                  <Option value="Italian">Italian</Option>
+                  <Option value="Portuguese">Portuguese</Option>
+                  <Option value="Dutch">Dutch</Option>
+                  <Option value="Japanese">Japanese</Option>
+                </Select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

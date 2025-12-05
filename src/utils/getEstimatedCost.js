@@ -1,5 +1,7 @@
-const CHATGPT_MULTIPLIER = 3
-const CLAUDE_MULTIPLIER = 5
+// BACKEND-SYNCED MULTIPLIERS
+const GEMINI_MULTIPLIER = 1
+const CHATGPT_MULTIPLIER = 1.75
+const CLAUDE_MULTIPLIER = 2.5
 
 export const creditCostsWithGemini = Object.freeze({
   analysis: {
@@ -33,6 +35,9 @@ export function getEstimatedCost(type, aiModel = "gemini") {
     case "claude":
       cost = Math.ceil(CLAUDE_MULTIPLIER * cost)
       break
+    case "gemini":
+    default:
+      cost = Math.ceil(GEMINI_MULTIPLIER * cost)
   }
 
   return cost
