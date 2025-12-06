@@ -28,7 +28,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     focusKeywordInput: "",
     keywordInput: "",
     languageToWrite: "English",
-    costCutter: false,
+    costCutter: true,
   }
 
   const initialErrors = {

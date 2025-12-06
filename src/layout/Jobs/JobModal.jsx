@@ -28,7 +28,7 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
       blogImages: [],
       postingType: null,
       languageToWrite: "English",
-      costCutter: false,
+      costCutter: true,
     },
     options: {
       wordpressPosting: false,

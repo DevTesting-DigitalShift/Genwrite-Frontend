@@ -66,7 +66,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
     isCheckedBrand: false as boolean,
     brandId: "" as string,
     languageToWrite: "English" as string,
-    costCutter: false as boolean,
+    costCutter: true as boolean,
     options: {
       performKeywordResearch: false as boolean,
       includeFaqs: false as boolean,

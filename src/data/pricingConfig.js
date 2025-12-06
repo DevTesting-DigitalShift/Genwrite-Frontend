@@ -3,7 +3,7 @@
 export const pricingConfig = {
   wordCount: {
     base: 100, // words per unit
-    cost: 5, // credits per base
+    cost: 10, // credits per base
   },
   features: {
     brandVoice: { label: "Brand Voice", cost: 10 },
@@ -16,8 +16,8 @@ export const pricingConfig = {
   images: { stock: { featureFee: 10 }, ai: { featureFee: 20 }, upload: { perImageFee: 5 } },
   aiModels: {
     gemini: { label: "Gemini", costMultiplier: 1 },
-    chatgpt: { label: "ChatGPT", costMultiplier: 2 },
-    claude: { label: "Claude", costMultiplier: 2.5 },
+    chatgpt: { label: "ChatGPT", costMultiplier: 1.5 },
+    claude: { label: "Claude", costMultiplier: 2 },
   },
 }
 
@@ -49,7 +49,7 @@ export function computeCost({
   cost += Math.round(baseCost * multiplier)
 
   // Add feature costs (NO multiplier)
-  features.forEach(featureKey => { 
+  features.forEach(featureKey => {
     if (pricingConfig.features[featureKey]) {
       cost += pricingConfig.features[featureKey].cost
     }
