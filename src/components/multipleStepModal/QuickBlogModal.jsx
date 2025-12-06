@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom"
 import { createNewQuickBlog } from "../../store/slices/blogSlice"
 import { selectUser } from "@store/slices/authSlice"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
-import { getEstimatedCost } from "@utils/getEstimatedCost"
+import { computeCost } from "@/data/pricingConfig"
 import { message, Modal, Tooltip } from "antd"
 import { Plus, X, Crown } from "lucide-react" // Added Crown icon
 import Carousel from "./Carousel"
@@ -28,6 +28,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     focusKeywordInput: "",
     keywordInput: "",
     languageToWrite: "English",
+    costCutter: false,
   }
 
   const initialErrors = {
@@ -48,18 +49,6 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
 
   // Check if user has a pro subscription
   const isProUser = user?.subscription?.plan === "pro"
-
-  // // Sync selected template when modal opens
-  // useEffect(() => {
-  //   if (formData.template) {
-  //     const index = packages.findIndex(pkg => pkg.name === formData.template)
-  //     if (index !== -1) {
-  //       setSelectedPackage(index)
-  //     }
-  //   } else {
-  //     setSelectedPackage(null)
-  //   }
-  // }, [formData.template])
 
   // Handle navigation to the next step
   const handleNext = () => {
@@ -123,7 +112,20 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     }
 
     // Check if user has sufficient credits
-    const estimatedCost = getEstimatedCost("blog.quick")
+    let estimatedCost = computeCost({
+      wordCount: 1500,
+      features: [],
+      aiModel: "gemini",
+      includeImages: formData.addImages,
+      imageSource: formData.imageSource === "ai-generated" ? "ai" : "stock",
+      numberOfImages: 0, // AI decides the number
+    })
+
+    // Apply Cost Cutter discount (25% off)
+    if (formData.costCutter) {
+      estimatedCost = Math.round(estimatedCost * 0.75)
+    }
+
     const userCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
 
     console.log("=== Credits Check ===")
@@ -414,8 +416,25 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                 <div className="flex items-center gap-2 text-sm">
                   <span className="text-gray-600">Estimated Cost:</span>
                   <span className="font-bold text-blue-600">
-                    {getEstimatedCost(`blog.quick`)} credits
+                    {(() => {
+                      let cost = computeCost({
+                        wordCount: 1500,
+                        features: [],
+                        aiModel: "gemini",
+                        includeImages: formData.addImages,
+                        imageSource: formData.imageSource === "ai-generated" ? "ai" : "stock",
+                        numberOfImages: 0,
+                      })
+                      if (formData.costCutter) {
+                        cost = Math.round(cost * 0.75)
+                      }
+                      return cost
+                    })()}{" "}
+                    credits
                   </span>
+                  {formData.costCutter && (
+                    <span className="text-xs text-green-600 font-medium">(-25% off)</span>
+                  )}
                 </div>
                 <div className="flex gap-3">
                   <button
@@ -498,6 +517,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                 ))}
               </select>
             </div>
+
             <div className="flex items-center justify-between mb-2">
               <label className="block text-sm font-medium text-gray-700">
                 Perform Keyword Research
@@ -715,6 +735,70 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                       </button>
                     </span>
                   ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Cost Cutter Toggle */}
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-green-900 mb-1">💰 Cost Cutter</h3>
+                  <p className="text-xs text-green-700">Use AI Flash model for 25% savings</p>
+                </div>
+                <label className="relative inline-block w-14 h-7 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.costCutter}
+                    onChange={e =>
+                      setFormData(prev => ({
+                        ...prev,
+                        costCutter: e.target.checked,
+                      }))
+                    }
+                    className="sr-only peer"
+                  />
+                  <div className="absolute inset-0 bg-gray-300 rounded-full transition-colors duration-200 peer-checked:bg-green-500"></div>
+                  <div className="absolute top-[2px] left-[2px] h-6 w-6 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-7 shadow-md"></div>
+                </label>
+              </div>
+            </div>
+
+            {/* Blog Configuration Info */}
+            <div className="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-5 shadow-sm">
+              <h3 className="text-base font-semibold text-blue-900 mb-3 flex items-center gap-2">
+                📝 Blog Configuration
+              </h3>
+
+              <div className="space-y-2 text-sm">
+                {/* Row */}
+                <div className="flex items-center justify-between">
+                  <span className="text-blue-900/70">Word Count</span>
+                  <span className="font-semibold text-blue-900">~1500 words</span>
+                </div>
+
+                {/* Divider */}
+                <div className="border-t border-blue-200/60"></div>
+
+                {/* Row */}
+                <div className="flex items-center justify-between">
+                  <span className="text-blue-900/70">AI Model</span>
+                  <span className="font-semibold text-blue-900">Gemini Flash</span>
+                </div>
+
+                {/* Divider */}
+                <div className="border-t border-blue-200/60"></div>
+
+                {/* Row */}
+                <div className="flex items-center justify-between">
+                  <span className="text-blue-900/70">Images</span>
+                  <span className="font-semibold text-blue-900">
+                    {formData.addImages
+                      ? formData.imageSource === "ai-generated"
+                        ? "AI Generated"
+                        : "Stock Images"
+                      : "None"}
+                  </span>
                 </div>
               </div>
             </div>

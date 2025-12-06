@@ -33,6 +33,8 @@ const Jobs = () => {
   const usage = user?.usage?.createdJobs
   const usageLimit = user?.usageLimits?.createdJobs
 
+  console.log(usage >= usageLimit)
+
   // TanStack Query for fetching jobs
   const { data: queryJobs = [], isLoading: queryLoading } = useQuery({
     queryKey: ["jobs", user?.id],

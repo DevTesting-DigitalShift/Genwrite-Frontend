@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from "react-redux"
 import { createNewBlog, fetchAllBlogs, fetchBlogs } from "@store/slices/blogSlice"
 import { useNavigate } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
-import { getEstimatedCost } from "@utils/getEstimatedCost"
+import { computeCost } from "@/data/pricingConfig"
 import { AnimatePresence, motion } from "framer-motion"
 import { loadAuthenticatedUser, selectUser } from "@store/slices/authSlice"
 import { Clock, Sparkles } from "lucide-react"
@@ -193,7 +193,25 @@ const Dashboard = () => {
   const handleSubmit = updatedData => {
     try {
       const totalCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
-      const estimatedBlogCost = getEstimatedCost("blog.single", updatedData.aiModel || "default")
+      // Prepare features array based on selected options
+      const features = []
+      if (updatedData.isCheckedBrand) features.push("brandVoice")
+      if (updatedData.options?.includeCompetitorResearch) features.push("competitorResearch")
+      if (updatedData.options?.performKeywordResearch) features.push("keywordResearch")
+      if (updatedData.options?.includeInterlinks) features.push("internalLinking")
+      if (updatedData.options?.includeFaqs) features.push("faqGeneration")
+
+      const estimatedBlogCost = computeCost({
+        wordCount: updatedData.userDefinedLength || 1000,
+        features,
+        aiModel: updatedData.aiModel || "gemini",
+        includeImages: updatedData.isCheckedGeneratedImages || false,
+        imageSource: updatedData.imageSource || "stock",
+        numberOfImages:
+          updatedData.imageSource === "custom"
+            ? updatedData.blogImages?.length || 0
+            : updatedData.numberOfImages || 0,
+      })
 
       // Check if user has sufficient credits
       if (estimatedBlogCost > totalCredits) {

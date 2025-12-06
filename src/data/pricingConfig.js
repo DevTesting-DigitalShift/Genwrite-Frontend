@@ -49,7 +49,7 @@ export function computeCost({
   cost += Math.round(baseCost * multiplier)
 
   // Add feature costs (NO multiplier)
-  features.forEach(featureKey => {
+  features.forEach(featureKey => { 
     if (pricingConfig.features[featureKey]) {
       cost += pricingConfig.features[featureKey].cost
     }

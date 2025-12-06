@@ -33,7 +33,7 @@ import { AI_MODELS, TONES, IMAGE_OPTIONS } from "@/data/blogData"
 import BlogImageUpload from "@components/multipleStepModal/BlogImageUpload"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
 import { selectSelectedAnalysisKeywords } from "@store/slices/analysisSlice"
-import { getEstimatedCost } from "@utils/getEstimatedCost"
+import { computeCost } from "@/data/pricingConfig"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 
 const { Text } = Typography
@@ -66,6 +66,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
     isCheckedBrand: false as boolean,
     brandId: "" as string,
     languageToWrite: "English" as string,
+    costCutter: false as boolean,
     options: {
       performKeywordResearch: false as boolean,
       includeFaqs: false as boolean,
@@ -239,20 +240,37 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
   const handleSubmit = () => {
     if (validateFields()) {
       // Check if user has sufficient credits
-      const estimatedCost = getEstimatedCost(
-        "blog.single",
-        (formData.aiModel || "gemini") as "gemini" | "chatgpt" | "claude"
-      )
+      // Prepare features array based on selected options
+      const features = []
+      if (formData.isCheckedBrand) features.push("brandVoice")
+      if (formData.options.includeCompetitorResearch) features.push("competitorResearch")
+      if (formData.options.performKeywordResearch) features.push("keywordResearch")
+      if (formData.options.includeInterlinks) features.push("internalLinking")
+      if (formData.options.includeFaqs) features.push("faqGeneration")
+
+      const estimatedCost = computeCost({
+        wordCount: formData.userDefinedLength,
+        features,
+        aiModel: formData.aiModel || "gemini",
+        includeImages: formData.isCheckedGeneratedImages,
+        imageSource: formData.imageSource,
+        numberOfImages:
+          formData.imageSource === "custom" ? formData.blogImages.length : formData.numberOfImages,
+      })
+
+      // Apply Cost Cutter discount (25% off)
+      const finalCost = formData.costCutter ? Math.round(estimatedCost * 0.75) : estimatedCost
+
       const userCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
 
-      if (userCredits < estimatedCost) {
+      if (userCredits < finalCost) {
         handlePopup({
           title: "Insufficient Credits",
           description: (
             <div>
               <p>You don't have enough credits to generate this blog.</p>
               <p className="mt-1">
-                <strong>Required:</strong> {estimatedCost} credits
+                <strong>Required:</strong> {finalCost} credits
               </p>
               <p>
                 <strong>Available:</strong> {userCredits} credits
@@ -789,6 +807,21 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
                 />
               </Flex>
             ))}
+
+            {/* Cost Cutter Toggle */}
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 shadow-sm">
+              <Flex justify="space-between" align="center">
+                <div>
+                  <h3 className="text-sm font-semibold text-green-900 mb-1">💰 Cost Cutter</h3>
+                  <p className="text-xs text-green-700">Use AI Flash model for 25% savings</p>
+                </div>
+                <Switch
+                  checked={formData.costCutter}
+                  onChange={checked => updateFormData({ costCutter: checked })}
+                />
+              </Flex>
+            </div>
+
             <Space direction="vertical" className="form-item-wrapper">
               <BrandVoiceSelector
                 label="Write with Brand Voice"
@@ -827,12 +860,38 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
             <div className="flex items-center gap-2 text-sm">
               <span className="text-gray-600">Estimated Cost:</span>
               <span className="font-bold text-blue-600">
-                {getEstimatedCost(
-                  "blog.single",
-                  (formData.aiModel || "gemini") as "gemini" | "chatgpt" | "claude"
-                )}{" "}
+                {(() => {
+                  const features = []
+                  if (formData.isCheckedBrand) features.push("brandVoice")
+                  if (formData.options.includeCompetitorResearch)
+                    features.push("competitorResearch")
+                  if (formData.options.performKeywordResearch) features.push("keywordResearch")
+                  if (formData.options.includeInterlinks) features.push("internalLinking")
+                  if (formData.options.includeFaqs) features.push("faqGeneration")
+
+                  let cost = computeCost({
+                    wordCount: formData.userDefinedLength,
+                    features,
+                    aiModel: formData.aiModel || "gemini",
+                    includeImages: formData.isCheckedGeneratedImages,
+                    imageSource: formData.imageSource,
+                    numberOfImages:
+                      formData.imageSource === "custom"
+                        ? formData.blogImages.length
+                        : formData.numberOfImages,
+                  })
+
+                  if (formData.costCutter) {
+                    cost = Math.round(cost * 0.75)
+                  }
+
+                  return cost
+                })()}{" "}
                 credits
               </span>
+              {formData.costCutter && (
+                <span className="text-xs text-green-600 font-medium">(-25% off)</span>
+              )}
             </div>
           )}
           <Flex justify="end" gap={12} className={currentStep !== 3 ? "w-full" : ""}>

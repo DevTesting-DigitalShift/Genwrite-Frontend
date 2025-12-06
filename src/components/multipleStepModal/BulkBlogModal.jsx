@@ -6,7 +6,7 @@ import { Info, TriangleAlert, Upload, X } from "lucide-react"
 import { packages } from "@/data/templates"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { createMultiBlog } from "@store/slices/blogSlice"
-import { getEstimatedCost } from "@utils/getEstimatedCost"
+import { computeCost } from "@/data/pricingConfig"
 import { message, Modal, Select, Tooltip } from "antd"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { getIntegrationsThunk } from "@store/slices/otherSlice"
@@ -60,6 +60,7 @@ const BulkBlogModal = ({ closeFnc }) => {
     brandId: null,
     addCTA: false,
     isDragging: false,
+    costCutter: false,
   }
 
   const initialErrorsState = {
@@ -194,8 +195,34 @@ const BulkBlogModal = ({ closeFnc }) => {
     }
 
     const model = formData.aiModel || "gemini"
-    const blogCost = getEstimatedCost("blog.single", model)
-    const totalCost = formData.numberOfBlogs * blogCost
+
+    // Prepare features array based on selected options
+    const features = []
+    if (formData.useBrandVoice) features.push("brandVoice")
+    if (formData.useCompetitors) features.push("competitorResearch")
+    if (formData.performKeywordResearch) features.push("keywordResearch")
+    if (formData.includeInterlinks) features.push("internalLinking")
+    if (formData.includeFaqs) features.push("faqGeneration")
+    if (formData.wordpressPostStatus) features.push("automaticPosting")
+
+    const blogCost = computeCost({
+      wordCount: formData.userDefinedLength,
+      features,
+      aiModel: model,
+      includeImages: formData.isCheckedGeneratedImages,
+      imageSource: formData.imageSource,
+      numberOfImages:
+        formData.imageSource === "customImage"
+          ? formData.blogImages.length
+          : formData.numberOfImages,
+    })
+    let totalCost = formData.numberOfBlogs * blogCost
+
+    // Apply Cost Cutter discount (25% off)
+    if (formData.costCutter) {
+      totalCost = Math.round(totalCost * 0.75)
+    }
+
     const userCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
 
     // Check if user has sufficient credits
@@ -693,10 +720,39 @@ const BulkBlogModal = ({ closeFnc }) => {
             <div className="flex items-center gap-2 text-sm">
               <span className="text-gray-600">Estimated Cost:</span>
               <span className="font-bold text-blue-600">
-                {formData.numberOfBlogs *
-                  getEstimatedCost("blog.single", formData.aiModel || "gemini")}{" "}
+                {(() => {
+                  const features = []
+                  if (formData.useBrandVoice) features.push("brandVoice")
+                  if (formData.useCompetitors) features.push("competitorResearch")
+                  if (formData.performKeywordResearch) features.push("keywordResearch")
+                  if (formData.includeInterlinks) features.push("internalLinking")
+                  if (formData.includeFaqs) features.push("faqGeneration")
+                  if (formData.wordpressPostStatus) features.push("automaticPosting")
+
+                  const blogCost = computeCost({
+                    wordCount: formData.userDefinedLength,
+                    features,
+                    aiModel: formData.aiModel || "gemini",
+                    includeImages: formData.isCheckedGeneratedImages,
+                    imageSource: formData.imageSource,
+                    numberOfImages:
+                      formData.imageSource === "customImage"
+                        ? formData.blogImages.length
+                        : formData.numberOfImages,
+                  })
+
+                  let totalCost = formData.numberOfBlogs * blogCost
+                  if (formData.costCutter) {
+                    totalCost = Math.round(totalCost * 0.75)
+                  }
+
+                  return totalCost
+                })()}{" "}
                 credits
               </span>
+              {formData.costCutter && (
+                <span className="text-xs text-green-600 font-medium">(-25% off)</span>
+              )}
               <span className="text-xs text-gray-500">
                 ({formData.numberOfBlogs} blog{formData.numberOfBlogs > 1 ? "s" : ""})
               </span>
@@ -1085,6 +1141,41 @@ const BulkBlogModal = ({ closeFnc }) => {
               </div>
               {errors.aiModel && <p className="text-red-500 text-xs mt-1">{errors.aiModel}</p>}
             </div>
+
+            {/* Cost Cutter Toggle */}
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-green-900 mb-1">💰 Cost Cutter</h3>
+                  <p className="text-xs text-green-700">Use AI Flash model for 25% savings</p>
+                </div>
+                <label htmlFor="bulk-cost-cutter-toggle" className="relative inline-block w-12 h-6">
+                  <input
+                    type="checkbox"
+                    id="bulk-cost-cutter-toggle"
+                    className="sr-only peer"
+                    checked={formData.costCutter || false}
+                    onChange={e => {
+                      setFormData(prev => ({
+                        ...prev,
+                        costCutter: e.target.checked,
+                      }))
+                    }}
+                  />
+                  <div
+                    className={`w-12 h-6 rounded-full transition-all duration-300 ${
+                      formData.costCutter ? "bg-green-500" : "bg-gray-300"
+                    }`}
+                  />
+                  <div
+                    className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-300 shadow-md ${
+                      formData.costCutter ? "translate-x-6" : ""
+                    }`}
+                  />
+                </label>
+              </div>
+            </div>
+
             <div className="flex justify-between items-center">
               <label className="block text-sm font-semibold text-gray-700 mb-2">Add Image</label>
               <div className="flex items-center">

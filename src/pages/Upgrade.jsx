@@ -237,7 +237,9 @@ const PricingCard = ({
         {/* Header Section */}
         <div className="px-6 pt-5 rounded-t-2xl">
           <h3 className="text-xl font-bold text-gray-900 mb-2 mt-6">{plan.name}</h3>
-          <p className="text-gray-600 text-sm leading-relaxed h-[48px] font-medium">{plan.description}</p>
+          <p className="text-gray-600 text-sm leading-relaxed h-[48px] font-medium">
+            {plan.description}
+          </p>
 
           {/* 50% OFF Badge */}
           {plan.type !== "credit_purchase" && typeof displayPrice === "number" && (
@@ -427,6 +429,15 @@ const Upgrade = () => {
   const navigate = useNavigate()
 
   const CONVERSION_RATE = 100 // USD to INR conversion rate
+
+  // Auto-set currency based on user's country
+  useEffect(() => {
+    if (user?.countryCode === "IN") {
+      setCurrency("INR")
+    } else {
+      setCurrency("USD")
+    }
+  }, [user?.countryCode])
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1200)
