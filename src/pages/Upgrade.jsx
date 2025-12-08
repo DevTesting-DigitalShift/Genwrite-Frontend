@@ -314,16 +314,21 @@ const PricingCard = ({
                     <span className="text-sm font-se text-gray-500">
                       Billed{" "}
                       {currency === "INR"
-                        ? `₹${(
+                        ? `₹${Math.round(
                             plan[
                               billingPeriod === "annual" ? "priceAnnualINR" : "priceMonthlyINR"
                             ] *
-                            0.5 *
-                            (billingPeriod === "annual" ? 12 : 1)
-                          ).toFixed(0)}`
-                        : `$${(displayPrice * 0.5 * (billingPeriod === "annual" ? 12 : 1)).toFixed(
-                            2
-                          )}`}{" "}
+                              (billingPeriod === "annual" ? 12 : 1) *
+                              0.7 -
+                              (billingPeriod === "annual" && 2)
+                          )}`
+                        : `$${(
+                            Math.round(
+                              displayPrice * (billingPeriod === "annual" ? 12 : 1) * 0.7 * 100
+                            ) /
+                              100 +
+                            (billingPeriod === "annual" && 0.05)
+                          ).toFixed(2)}`}
                       {billingPeriod === "annual" ? "annually" : "monthly"}
                     </span>
                   </div>
@@ -641,11 +646,10 @@ const Upgrade = () => {
         {/* Christmas Sale Countdown Timer Banner */}
         <div className="max-w-6xl mx-auto mb-6 sm:mb-8 grid grid-cols-1 lg:grid-cols-2 place-content-center place-items-center gap-4 sm:gap-6">
           <CountdownTimer
-            startDate="2024-12-01T00:00:00"
-            endDate="2026-01-05T23:59:59"
+            startDate="2025-12-01T00:00:00"
+            endDate="2026-01-01T23:59:59"
             discount="30%"
           />
-
           {/* Important Sale Terms Notice */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
