@@ -335,7 +335,7 @@ const Auth = ({ path }) => {
                   </div>
                   <div>
                     <h3 className="text-xl font-bold text-gray-900 mb-1">
-                      Try Any Premium Plan FREE for 7 Days
+                      Try Premium Plan FREE for 3 Days
                     </h3>
                     <p className="text-sm text-purple-700 font-semibold">
                       No credit card • Cancel anytime • Full access
@@ -360,8 +360,8 @@ const Auth = ({ path }) => {
                 </div>
                 <div className="mt-5 pt-4 border-t border-purple-200">
                   <p className="text-xs text-gray-600 leading-relaxed">
-                    Choose your plan after signup and enjoy complete access for 7 days. Only pay if
-                    you love it. Plus, get 50% OFF with our Christmas special! 🎄
+                    Start right after signup and enjoy complete access for 3 days. Only pay if you
+                    love it. Plus, get 50% OFF with our Christmas special! 🎄
                   </p>
                 </div>
               </div>
