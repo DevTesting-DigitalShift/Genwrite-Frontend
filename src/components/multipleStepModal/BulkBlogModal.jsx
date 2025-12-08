@@ -61,7 +61,7 @@ const BulkBlogModal = ({ closeFnc }) => {
     brandId: null,
     addCTA: false,
     isDragging: false,
-    costCutter: false,
+    costCutter: true,
   }
 
   const initialErrorsState = {

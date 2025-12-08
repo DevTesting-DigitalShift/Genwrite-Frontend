@@ -15,10 +15,19 @@ export const connectSocket = token => {
     path: "/events",
     auth: { token },
     transports: ["websocket"],
-    reconnection: true,
-    reconnectionAttempts: 5,
-    reconnectionDelay: 1000,
   })
+
+  // Log every event
+  const onevent = socket.onevent
+  socket.onevent = function (packet) {
+    try {
+      const [eventName, ...args] = packet.data || []
+      console.log("📡 Incoming Event:", eventName, args)
+    } catch (e) {
+      console.warn("Failed to log event:", e)
+    }
+    onevent.call(this, packet)
+  }
 
   socket.on("connect", () => {
     console.log("✅✅✅ Socket connected successfully! ✅✅✅")
@@ -33,26 +42,7 @@ export const connectSocket = token => {
   })
 
   socket.on("connect_error", err => {
-    console.error("❌ Socket connection error:", err.message)
-    console.error("Error details:", err)
-  })
-
-  // Log ALL events for debugging
-  socket.onAny((eventName, ...args) => {
-    console.log(`📡📡📡 Socket event received: ${eventName}`, args)
-  })
-
-  // Test listeners
-  socket.on("blog:statusChanged", data => {
-    console.log("🎯🎯🎯 BLOG STATUS CHANGED EVENT RECEIVED!", data)
-  })
-
-  socket.on("blog:updated", data => {
-    console.log("🎯🎯🎯 BLOG UPDATED EVENT RECEIVED!", data)
-  })
-
-  socket.on("blog:created", data => {
-    console.log("🎯🎯🎯 BLOG CREATED EVENT RECEIVED!", data)
+    console.error("Connection error:", err.message)
   })
 
   return socket
