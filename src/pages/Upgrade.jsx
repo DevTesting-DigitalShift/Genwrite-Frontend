@@ -245,7 +245,7 @@ const PricingCard = ({
           {plan.type !== "credit_purchase" && typeof displayPrice === "number" && (
             <div className="mt-4">
               <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-red-200 text-red-600">
-                30% OFF {billingPeriod === "monthly" ? "FIRST TIME" : "FIRST TIME"}
+                30% OFF {billingPeriod === "monthly" ? "FIRST MONTH" : "FIRST TIME"}
               </span>
             </div>
           )}
