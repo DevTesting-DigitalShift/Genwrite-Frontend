@@ -255,7 +255,7 @@ const PricingCard = ({
         <div className="px-6 pb-6 min-h-[140px] flex flex-col justify-center">
           {plan.type === "credit_purchase" ? (
             <div className="space-y-4">
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col items-center gap-4">
                 <input
                   type="number"
                   min="500"
@@ -575,6 +575,13 @@ const Upgrade = () => {
     return null
   }
 
+  const countryMapping = {
+    INR: "IN",
+    USD: "US",
+  }
+
+  const countryToSend = countryMapping[currency] || "US"
+
   const handleBuy = async (plan, credits, billingPeriod) => {
     const stripe = await loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
     if (!stripe) {
@@ -591,7 +598,7 @@ const Upgrade = () => {
           : "credits",
         credits: plan.type === "credit_purchase" ? credits : plan.credits,
         billingPeriod,
-        currency: currency, // Send INR or USD based on user selection
+        country: countryToSend,
         client_id: getGaClientId(),
         success_url: `${window.location.origin}/payment/success`,
         cancel_url: `${window.location.origin}/payment/cancel`,
@@ -697,7 +704,7 @@ const Upgrade = () => {
         </div>
 
         {/* Global trial banner (unchanged) */}
-        {showTrialMessage && (
+        {/* {showTrialMessage && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -719,7 +726,7 @@ const Upgrade = () => {
               </p>
             </div>
           </motion.div>
-        )}
+        )} */}
 
         {/* Enterprise message (unchanged) */}
         {user?.subscription?.plan === "enterprise" && (
