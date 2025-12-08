@@ -105,45 +105,6 @@ const ShopifyVerification = () => {
     },
   ])
 
-  // useEffect(() => {
-  //   async function init() {
-  //     try {
-  //       // 1. Get the token directly from the global v4 object
-  //       // This handles the generation and refreshing automatically.
-  //       // @ts-ignore
-  //       const token = await window.shopify.idToken()
-
-  //       // 2. Call your backend with the token
-  //       console.log(token)
-  //       const res = await axiosInstance.post("/callbacks/verify", {
-  //         type: "SHOPIFY",
-  //         token,
-  //       })
-  //       if (res.status == 200) {
-  //         console.log(res.data)
-  //         setVerified(true)
-  //         setError(null)
-  //       } else {
-  //         console.error("Auth failed")
-  //       }
-  //     } catch (err) {
-  //       console.error("Error fetching token or data:", err)
-  //     } finally {
-  //       setLoading(false)
-  //     }
-  //   }
-
-  //   // Wait for the script to be ready if it loads slowly
-  //   if (window?.shopify) {
-  //     init()
-  //   } else {
-  //     window.addEventListener("shopify.loaded", init)
-  //   }
-
-  //   return () => window.removeEventListener("shopify.loaded", init)
-  // }, [])
-
-  // Table columns configuration
   const columns = [
     {
       title: "Blog Title",

@@ -12,12 +12,21 @@ export const creditCostsWithGemini = Object.freeze({
     quick: 10,
     proofread: 5,
     single: 10,
+    regenerate: 15,
+  },
+  tools: {
+    humanize: 10,
+    outline: 5,
+    boost: 10,
+    metadata: 5,
+    rewrite: 5,
   },
   aiImages: 10,
 })
 
 /**
- * @param {"analysis.competitors"|"analysis.keywords"|"blog.quick"|"blog.proofread"|"blog.single"|"aiImages"} type
+ * Get the estimated credit cost for a specific operation
+ * @param {"analysis.competitors"|"analysis.keywords"|"blog.quick"|"blog.proofread"|"blog.single"|"blog.regenerate"|"tools.humanize"|"tools.outline"|"tools.boost"|"tools.metadata"|"tools.rewrite"|"aiImages"} type
  * @param {"gemini"|"chatgpt"|"claude"} aiModel
  * @returns {number}
  */

@@ -241,11 +241,11 @@ const PricingCard = ({
             {plan.description}
           </p>
 
-          {/* 50% OFF Badge */}
+          {/* 30% OFF Badge */}
           {plan.type !== "credit_purchase" && typeof displayPrice === "number" && (
             <div className="mt-4">
               <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-red-200 text-red-600">
-                50% OFF {billingPeriod === "monthly" ? "FIRST TIME" : "FIRST TIME"}
+                30% OFF {billingPeriod === "monthly" ? "FIRST TIME" : "FIRST TIME"}
               </span>
             </div>
           )}
@@ -295,16 +295,16 @@ const PricingCard = ({
                     <span className="text-gray-400 text-sm">/month</span>
                   </div>
 
-                  {/* Discounted Price (50% off) */}
+                  {/* Discounted Price (30% off) */}
                   <div className="flex items-baseline gap-1">
                     <span className={`text-4xl font-bold ${styles.price}`}>
                       {currency === "INR"
                         ? `₹${(
                             plan[
                               billingPeriod === "annual" ? "priceAnnualINR" : "priceMonthlyINR"
-                            ] * 0.5
+                            ] * 0.7
                           ).toFixed(0)}`
-                        : `$${(displayPrice * 0.5).toFixed(2)}`}
+                        : `$${(displayPrice * 0.7).toFixed(2)}`}
                     </span>
                     <span className="text-gray-600 text-sm">/month</span>
                   </div>
@@ -586,6 +586,7 @@ const Upgrade = () => {
           : "credits",
         credits: plan.type === "credit_purchase" ? credits : plan.credits,
         billingPeriod,
+        currency: currency, // Send INR or USD based on user selection
         client_id: getGaClientId(),
         success_url: `${window.location.origin}/payment/success`,
         cancel_url: `${window.location.origin}/payment/cancel`,
@@ -642,7 +643,7 @@ const Upgrade = () => {
           <CountdownTimer
             startDate="2024-12-01T00:00:00"
             endDate="2026-01-05T23:59:59"
-            discount="50%"
+            discount="30%"
           />
 
           {/* Important Sale Terms Notice */}
@@ -662,7 +663,7 @@ const Upgrade = () => {
                   <p className="flex items-start gap-2">
                     <span className="text-lg leading-none">•</span>
                     <span>
-                      <strong className="font-bold">First-Time Subscribers Only:</strong> This 50%
+                      <strong className="font-bold">First-Time Subscribers Only:</strong> This 30%
                       discount is exclusively available for new customers who have never subscribed
                       to GenWrite before.
                     </span>
@@ -670,7 +671,7 @@ const Upgrade = () => {
                   <p className="flex items-start gap-2">
                     <span className="text-lg leading-none">•</span>
                     <span>
-                      <strong className="font-bold">First Month Only:</strong> The 50% discount
+                      <strong className="font-bold">First Month Only:</strong> The 30% discount
                       applies to your{" "}
                       <strong className="underline">first month of subscription only</strong>.
                       Starting from the second month, you will be charged the regular subscription

@@ -44,6 +44,7 @@ import ContentDiffViewer from "../Editor/ContentDiffViewer"
 import "./editor.css"
 import { VideoEmbed } from "@/extensions/VideoEmbed"
 import LoadingScreen from "@components/UI/LoadingScreen"
+import { computeCost } from "@/data/pricingConfig"
 
 import { Table } from "@tiptap/extension-table"
 import TableRow from "@tiptap/extension-table-row"
@@ -303,20 +304,68 @@ const TextEditor = ({
     }
 
     const proceedWithRegenerate = async () => {
-      const modelCostMap = {
-        gemini: 10,
-        chatgpt: 30,
-        claude: 50,
+      // Build features array based on blog options
+      const features = []
+      if (blog?.options?.performKeywordResearch) features.push("keywordResearch")
+      if (blog?.options?.includeCompetitorResearch) features.push("competitorResearch")
+      if (blog?.options?.includeInterlinks) features.push("internalLinking")
+      if (blog?.options?.includeFaqs) features.push("faqGeneration")
+      if (blog?.options?.automaticPosting) features.push("automaticPosting")
+      if (blog?.isCheckedQuick) features.push("quickSummary")
+      if (blog?.options?.addOutBoundLinks) features.push("outboundLinks")
+      if (blog?.isCheckedBrand || blog?.brandId) features.push("brandVoice")
+
+      // Calculate cost using computeCost
+      let estimatedCost = computeCost({
+        wordCount: blog?.userDefinedLength || 1000,
+        features,
+        aiModel: blog?.aiModel || "gemini",
+        includeImages: blog?.isCheckedGeneratedImages || false,
+        imageSource: blog?.imageSource || "stock",
+        numberOfImages: blog?.numberOfImages || 0,
+      })
+
+      // Apply Cost Cutter discount if enabled
+      if (blog?.costCutter) {
+        estimatedCost = Math.round(estimatedCost * 0.75)
       }
 
-      const credits = modelCostMap[blog?.aiModel?.toLowerCase()] || 10 // fallback to 10
+      // Check if user has sufficient credits
+      const userCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
+
+      if (userCredits < estimatedCost) {
+        handlePopup({
+          title: "Insufficient Credits",
+          description: (
+            <div>
+              <p>You don't have enough credits to regenerate this blog.</p>
+              <p className="mt-2">
+                <strong>Required:</strong> {estimatedCost} credits
+              </p>
+              <p>
+                <strong>Available:</strong> {userCredits} credits
+              </p>
+            </div>
+          ),
+          okText: "Buy Credits",
+          onConfirm: () => {
+            navigate("/pricing")
+          },
+        })
+        return
+      }
 
       handlePopup({
         title: "Regenerate Blog",
         description: (
           <>
             Are you sure you want to retry generating this blog?{" "}
-            <span className="font-bold">This will cost {credits} credits</span>
+            <span className="font-bold">This will cost {estimatedCost} credits</span>
+            {blog?.costCutter && (
+              <span className="text-green-600 text-sm block mt-1">
+                (Cost Cutter applied: -25% off)
+              </span>
+            )}
           </>
         ),
         onConfirm: handleReGenerate,

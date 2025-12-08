@@ -18,6 +18,7 @@ import TextEditorSidebar from "@/layout/TextEditorSidebar/TextEditorSidebar"
 import TextEditor from "@/layout/TextEditor/TextEditor"
 import "../layout/TextEditor/editor.css"
 import LoadingScreen from "@components/UI/LoadingScreen"
+import { getSocket } from "@utils/socket"
 
 const MainEditorPage = () => {
   const { id } = useParams()
@@ -111,6 +112,45 @@ const MainEditorPage = () => {
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [])
+
+  // Socket listener for blog status changes
+  useEffect(() => {
+    if (!id || !blog) return
+
+    const socket = getSocket()
+    if (!socket) {
+      console.warn("Socket not connected")
+      return
+    }
+
+    const handleStatusChange = data => {
+      console.debug("Blog status changed:", data)
+
+      if (data.blogId === id || data.blogId === blog._id) {
+        // Refresh blog data when status changes
+        dispatch(fetchBlogById(id))
+          .unwrap()
+          .then(() => {
+            if (data.status === "completed") {
+              message.success("Blog generation completed!")
+            } else if (data.status === "failed") {
+              message.error("Blog generation failed.")
+            }
+          })
+          .catch(err => {
+            console.error("Failed to fetch updated blog:", err)
+          })
+      }
+    }
+
+    socket.on("blog:statusChanged", handleStatusChange)
+    socket.on("blog:updated", handleStatusChange)
+
+    return () => {
+      socket.off("blog:statusChanged", handleStatusChange)
+      socket.off("blog:updated", handleStatusChange)
+    }
+  }, [id, blog, dispatch])
 
   const handleReplace = (original, change) => {
     if (typeof original !== "string" || typeof change !== "string") {
@@ -379,7 +419,7 @@ const MainEditorPage = () => {
     message.info("Retained original content.")
   }, [setIsHumanizeModalOpen])
 
-  if (isLoading || isPosting) {
+  if (isLoading || isPosting || blog?.status === "pending") {
     return (
       <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-white/90 backdrop-blur-sm">
         <LoadingScreen />

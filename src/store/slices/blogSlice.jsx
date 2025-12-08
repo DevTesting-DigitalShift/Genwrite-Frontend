@@ -61,14 +61,13 @@ export const fetchBlogDetails = createAsyncThunk(
 
 export const createNewBlog = createAsyncThunk(
   "blogs/createNewBlog",
-  async ({ blogData, user, navigate }, { rejectWithValue }) => {
+  async ({ blogData, user, navigate, queryClient }, { rejectWithValue }) => {
     try {
       if (!blogData) {
         message.error("Blog data is required to create a blog.")
         throw new Error("Blog data is required to create a blog.")
       }
       const blog = await createBlog(blogData)
-      message.success("Blog created successfully")
       pushToDataLayer({
         event: "Blog Creation",
         event_type: "Single blog",
@@ -88,6 +87,12 @@ export const createNewBlog = createAsyncThunk(
         blog_isBriefedByUser: blogData?.brief?.length ? "yes" : "no",
         blog_quickSummary: blogData.isCheckedQuick,
       })
+
+      // Invalidate blogs query to refresh the list
+      if (queryClient) {
+        queryClient.invalidateQueries({ queryKey: ["blogs"], refetchType: "all" })
+      }
+
       return blog
     } catch (error) {
       pushToDataLayer({
@@ -122,10 +127,9 @@ export const createNewBlog = createAsyncThunk(
 
 export const createNewQuickBlog = createAsyncThunk(
   "blogs/createNewQuickBlog",
-  async ({ blogData, user, navigate, type = "quick" }, { rejectWithValue }) => {
+  async ({ blogData, user, navigate, queryClient, type = "quick" }, { rejectWithValue }) => {
     try {
       const blog = await createQuickBlog(blogData, type)
-      message.success(`${type === "yt" ? "YouTube" : "Quick"} Blog created successfully`)
 
       pushToDataLayer({
         event: "Blog Creation",
@@ -142,6 +146,11 @@ export const createNewQuickBlog = createAsyncThunk(
         blog_isBriefedByUser: blogData?.brief ? "yes" : "no",
         blog_quickSummary: blogData?.isCheckedQuick || false,
       })
+
+      // Invalidate blogs query to refresh the list
+      if (queryClient) {
+        queryClient.invalidateQueries({ queryKey: ["blogs"], refetchType: "all" })
+      }
 
       navigate(`/blogs`)
       return blog
@@ -170,7 +179,7 @@ export const createNewQuickBlog = createAsyncThunk(
 
 export const createMultiBlog = createAsyncThunk(
   "blogs/createMultiBlog",
-  async ({ blogData, user, navigate }, { rejectWithValue }) => {
+  async ({ blogData, user, navigate, queryClient }, { rejectWithValue }) => {
     try {
       const blogs = await createBlogMultiple(blogData)
 
@@ -193,6 +202,12 @@ export const createMultiBlog = createAsyncThunk(
           : "no_images",
         blog_isBranded: blogData?.useBrandVoice || false,
       })
+
+      // Invalidate blogs query to refresh the list
+      if (queryClient) {
+        queryClient.invalidateQueries({ queryKey: ["blogs"], refetchType: "all" })
+      }
+
       navigate("/blogs")
     } catch (error) {
       pushToDataLayer({

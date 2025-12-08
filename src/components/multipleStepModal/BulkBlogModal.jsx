@@ -13,6 +13,7 @@ import { getIntegrationsThunk } from "@store/slices/otherSlice"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
 
+// Bulk Blog Modal Component - Updated with Outbound Links pricing
 const BulkBlogModal = ({ closeFnc }) => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
@@ -204,6 +205,7 @@ const BulkBlogModal = ({ closeFnc }) => {
     if (formData.includeInterlinks) features.push("internalLinking")
     if (formData.includeFaqs) features.push("faqGeneration")
     if (formData.wordpressPostStatus) features.push("automaticPosting")
+    if (formData.addOutBoundLinks) features.push("outboundLinks")
 
     const blogCost = computeCost({
       wordCount: formData.userDefinedLength,
@@ -252,7 +254,7 @@ const BulkBlogModal = ({ closeFnc }) => {
       return
     }
 
-    dispatch(createMultiBlog({ blogData: formData, user, navigate }))
+    dispatch(createMultiBlog({ blogData: formData, user, navigate, queryClient }))
     handleClose()
   }
 
@@ -728,6 +730,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                   if (formData.includeInterlinks) features.push("internalLinking")
                   if (formData.includeFaqs) features.push("faqGeneration")
                   if (formData.wordpressPostStatus) features.push("automaticPosting")
+                  if (formData.addOutBoundLinks) features.push("outboundLinks")
 
                   const blogCost = computeCost({
                     wordCount: formData.userDefinedLength,

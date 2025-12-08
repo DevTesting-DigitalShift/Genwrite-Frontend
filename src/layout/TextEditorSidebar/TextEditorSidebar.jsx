@@ -774,18 +774,6 @@ const TextEditorSidebar = ({
                     </h3>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 mt-4">
-                    <div className="bg-blue-50 rounded-lg p-3 text-center">
-                      <div className="text-lg font-bold text-blue-600">
-                        {getWordCount(editorContent)}
-                      </div>
-                      <div className="text-xs text-blue-600">Words</div>
-                    </div>
-                    <div className="bg-purple-50 rounded-lg p-3 text-center">
-                      <div className="text-lg font-bold text-purple-600">{keywords?.length}</div>
-                      <div className="text-xs text-purple-600">Keywords</div>
-                    </div>
-                  </div>
                   <div className="space-y-5">
                     <ScoreCard title="Content Score" score={blog?.blogScore} icon={FileText} />
                     <ScoreCard

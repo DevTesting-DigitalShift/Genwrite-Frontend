@@ -10,7 +10,9 @@ import { Plus, X, Crown } from "lucide-react" // Added Crown icon
 import Carousel from "./Carousel"
 import { packages } from "@/data/templates"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
+import { useQueryClient } from "@tanstack/react-query"
 
+// Quick Blog Modal Component - Updated pricing calculation
 const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   const [currentStep, setCurrentStep] = useState(0)
   const [otherLinks, setOtherLinks] = useState([])
@@ -46,6 +48,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
   const user = useSelector(selectUser)
+  const queryClient = useQueryClient()
 
   // Check if user has a pro subscription
   const isProUser = user?.subscription?.plan === "pro"
@@ -112,9 +115,12 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     }
 
     // Check if user has sufficient credits
+    const features = []
+    if (formData.performKeywordResearch) features.push("keywordResearch")
+
     let estimatedCost = computeCost({
       wordCount: 1500,
-      features: [],
+      features,
       aiModel: "gemini",
       includeImages: formData.addImages,
       imageSource: formData.imageSource === "ai-generated" ? "ai" : "stock",
@@ -128,15 +134,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
 
     const userCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
 
-    console.log("=== Credits Check ===")
-    console.log("Estimated Cost:", estimatedCost)
-    console.log("User Credits (base):", user?.credits?.base)
-    console.log("User Credits (extra):", user?.credits?.extra)
-    console.log("Total User Credits:", userCredits)
-    console.log("Has Sufficient Credits:", userCredits >= estimatedCost)
-
     if (userCredits < estimatedCost) {
-      console.log("🚫 Insufficient credits - showing popup")
       handlePopup({
         title: "Insufficient Credits",
         description: (
@@ -159,15 +157,13 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
       return
     }
 
-    console.log("✅ Sufficient credits - proceeding with blog creation")
-
     const finalData = {
       ...formData,
       type,
       otherLinks,
     }
 
-    dispatch(createNewQuickBlog({ blogData: finalData, user, navigate, type }))
+    dispatch(createNewQuickBlog({ blogData: finalData, user, navigate, queryClient, type }))
     handleClose()
   }
 
@@ -417,9 +413,12 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                   <span className="text-gray-600">Estimated Cost:</span>
                   <span className="font-bold text-blue-600">
                     {(() => {
+                      const features = []
+                      if (formData.performKeywordResearch) features.push("keywordResearch")
+
                       let cost = computeCost({
                         wordCount: 1500,
-                        features: [],
+                        features,
                         aiModel: "gemini",
                         includeImages: formData.addImages,
                         imageSource: formData.imageSource === "ai-generated" ? "ai" : "stock",

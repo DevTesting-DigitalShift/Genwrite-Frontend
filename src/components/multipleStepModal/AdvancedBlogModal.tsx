@@ -43,6 +43,7 @@ interface AdvancedBlogModalProps {
   closeFnc: Function
 }
 
+// Advanced Blog Modal Component - Updated pricing on Steps 2 & 3
 const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) => {
   const STEP_TITLES = ["Template Selection", "Basic Information", "Customization", "Blog Options"]
 
@@ -247,6 +248,8 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
       if (formData.options.performKeywordResearch) features.push("keywordResearch")
       if (formData.options.includeInterlinks) features.push("internalLinking")
       if (formData.options.includeFaqs) features.push("faqGeneration")
+      if (formData.isCheckedQuick) features.push("quickSummary")
+      if (formData.options.addOutBoundLinks) features.push("outboundLinks")
 
       const estimatedCost = computeCost({
         wordCount: formData.userDefinedLength,
@@ -856,7 +859,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
       onCancel={handleClose}
       footer={
         <Flex justify="space-between" align="center" gap={12} className="mt-2">
-          {currentStep === 3 && (
+          {(currentStep === 2 || currentStep === 3) && (
             <div className="flex items-center gap-2 text-sm">
               <span className="text-gray-600">Estimated Cost:</span>
               <span className="font-bold text-blue-600">
@@ -868,6 +871,8 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
                   if (formData.options.performKeywordResearch) features.push("keywordResearch")
                   if (formData.options.includeInterlinks) features.push("internalLinking")
                   if (formData.options.includeFaqs) features.push("faqGeneration")
+                  if (formData.isCheckedQuick) features.push("quickSummary")
+                  if (formData.options.addOutBoundLinks) features.push("outboundLinks")
 
                   let cost = computeCost({
                     wordCount: formData.userDefinedLength,
@@ -894,7 +899,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
               )}
             </div>
           )}
-          <Flex justify="end" gap={12} className={currentStep !== 3 ? "w-full" : ""}>
+          <Flex justify="end" gap={12} className={currentStep < 2 ? "w-full" : ""}>
             {currentStep > 0 && (
               <Button
                 onClick={handlePrev}

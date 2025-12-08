@@ -166,17 +166,37 @@ const MyProjects = () => {
   // Socket for real-time updates
   useEffect(() => {
     const socket = getSocket()
-    if (!socket || !user) return
+    if (!socket || !user) {
+      console.warn("⚠️ Socket or user not available for MyProjects")
+      return
+    }
 
-    const handleStatusChange = debounce(() => {
-      queryClient.invalidateQueries(["blogs", userId], { refetchType: "all" })
-    }, 100)
+    console.log("🔌 MyProjects: Setting up socket listeners")
+    console.log("Socket connected:", socket.connected)
+    console.log("Socket ID:", socket.id)
 
+    const handleStatusChange = data => {
+      console.log("📡📡📡 MyProjects received socket event:", data)
+      // Invalidate all blog queries to trigger refetch
+      queryClient.invalidateQueries({
+        queryKey: ["blogs"],
+        refetchType: "all",
+      })
+      console.log("✅ Query invalidated, blogs should refetch now")
+    }
+
+    // Set up listeners
     socket.on("blog:statusChanged", handleStatusChange)
+    socket.on("blog:updated", handleStatusChange)
+    socket.on("blog:created", handleStatusChange)
+
+    console.log("✅ MyProjects: Socket listeners registered")
 
     return () => {
+      console.log("🧹 MyProjects: Cleaning up socket listeners")
       socket.off("blog:statusChanged", handleStatusChange)
-      handleStatusChange.cancel?.()
+      socket.off("blog:updated", handleStatusChange)
+      socket.off("blog:created", handleStatusChange)
     }
   }, [user, userId, queryClient])
 

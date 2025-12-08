@@ -30,6 +30,7 @@ import InlineAnnouncementBanner from "@/layout/InlineAnnouncementBanner"
 import dayjs from "dayjs"
 import LoadingScreen from "@components/UI/LoadingScreen"
 import { ACTIVE_MODELS } from "@/data/dashModels"
+import { useQueryClient } from "@tanstack/react-query"
 
 // lazy imports
 const QuickBlogModal = lazy(() => import("@components/multipleStepModal/QuickBlogModal"))
@@ -66,6 +67,7 @@ const Dashboard = () => {
   const navigate = useNavigate()
   const user = useSelector(selectUser)
   const { handlePopup } = useConfirmPopup()
+  const queryClient = useQueryClient()
 
   // Default state
   const [dateRange, setDateRange] = useState([undefined, undefined])
@@ -237,7 +239,7 @@ const Dashboard = () => {
       }
 
       // Directly create blog without confirmation
-      dispatch(createNewBlog({ blogData: updatedData, user, navigate }))
+      dispatch(createNewBlog({ blogData: updatedData, user, navigate, queryClient }))
       dispatch(clearSelectedKeywords())
     } catch (error) {
       console.error("Error submitting form:", error)

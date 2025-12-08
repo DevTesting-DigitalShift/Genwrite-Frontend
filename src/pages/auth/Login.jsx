@@ -117,7 +117,7 @@ const Auth = ({ path }) => {
 
           if (isSignup) {
             navigate("/pricing", { replace: true })
-          } else {
+          } else { 
             navigate("/dashboard", { replace: true })
           }
         })
