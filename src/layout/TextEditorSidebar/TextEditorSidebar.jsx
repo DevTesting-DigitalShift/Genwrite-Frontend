@@ -41,6 +41,7 @@ import {
 } from "./FeatureComponents"
 import FeatureSettingsModal from "./FeatureSettingsModal"
 import CategoriesModal from "../Editor/CategoriesModal"
+import * as cheerio from "cheerio"
 
 const { Panel } = Collapse
 const { TextArea } = Input
@@ -600,32 +601,26 @@ const TextEditorSidebar = ({
   }
 
   function countWordsFromHTML(html) {
-    if (!html) return 0
+    const isHTML = html?.includes("<article")
+    if (!isHTML) return getWordCount(html)
 
-    // 1. Remove all HTML tags
-    let text = html.replace(/<[^>]+>/g, " ")
+    const $ = cheerio.load(html)
+    const fullText = $("body").text()
+    const cleanedText = fullText.replace(/\s+/g, " ").trim()
+    const words = cleanedText.split(" ")
 
-    // 2. Decode HTML entities like &amp; &nbsp; &#39;
-    text = text
-      .replace(/&nbsp;/g, " ")
-      .replace(/&amp;/g, "&")
-      .replace(/&#39;/g, "'")
-      .replace(/&quot;/g, '"')
-      .replace(/&lt;/g, "<")
-      .replace(/&gt;/g, ">")
+    // Filter out any empty strings that might result from splitting
+    const filteredWords = words.filter(word => word !== "")
 
-    // 3. Remove URLs (image links count as words otherwise)
-    text = text.replace(/https?:\/\/\S+/g, " ")
+    // Get the word count
+    const wordCount = filteredWords.length
 
-    // 4. Remove extra whitespace
-    text = text.replace(/\s+/g, " ").trim()
-
-    console.log(text)
-
-    if (!text) return 0
-
-    // 5. Split into words
-    return text.split(" ").length
+    // const lengthMatrix = {
+    //   headings: ["h1", "h2", "h3", "h4"],
+    //   paragraphs: ["p"],
+    //   lists: ["ul", "ol"],
+    // }
+    return wordCount
   }
 
   return (
@@ -814,7 +809,7 @@ const TextEditorSidebar = ({
                     <div className="grid grid-cols-2 gap-3">
                       <StatCard
                         title="Words"
-                        value={countWordsFromHTML(editorContent)}
+                        value={countWordsFromHTML(editorContent) || blog?.userDefinedLength}
                         icon={FileText}
                       />
 
