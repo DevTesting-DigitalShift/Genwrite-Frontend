@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { NavLink, useLocation, useNavigate } from "react-router-dom"
 import { useDispatch, useSelector } from "react-redux"
 import { RxAvatar } from "react-icons/rx"
@@ -17,7 +17,14 @@ import {
   UsersRound,
   Zap,
 } from "lucide-react"
-import { loadAuthenticatedUser, logoutUser, selectUser } from "../store/slices/authSlice"
+import {
+  loadAuthenticatedUser,
+  logoutUser,
+  selectUser,
+  updateCredits,
+  addNotification,
+  updateUserPartial,
+} from "../store/slices/authSlice"
 import { Tooltip, Dropdown, Avatar } from "antd"
 import { RiCoinsFill } from "react-icons/ri"
 import NotificationDropdown from "@components/NotificationDropdown"
@@ -35,14 +42,53 @@ const SideBar_Header = () => {
   const navigate = useNavigate()
   const sidebarRef = useRef(null) // Ref for sidebar
 
-  const fetchCurrentUser = async () => {
+  // Stable reference to fetch user - wrapped in useCallback
+  const fetchCurrentUser = useCallback(async () => {
     try {
+      console.log("📡 Socket triggered full user refresh")
       await dispatch(loadAuthenticatedUser()).unwrap()
     } catch (err) {
       console.error("User load failed:", err)
       navigate("/login")
     }
-  }
+  }, [dispatch, navigate])
+
+  // Handle credits update from socket - granular update when data is provided
+  const handleCreditsUpdate = useCallback(
+    data => {
+      console.log("💰 Credits update received:", data)
+      if (
+        data &&
+        typeof data === "object" &&
+        (data.base !== undefined || data.extra !== undefined || data.credits !== undefined)
+      ) {
+        // If socket sends the credits data directly, update Redux store directly (fast)
+        dispatch(updateCredits(data.credits || data))
+      } else {
+        // Fallback: refetch the entire user
+        fetchCurrentUser()
+      }
+    },
+    [dispatch, fetchCurrentUser]
+  )
+
+  // Handle notification update from socket - granular update when data is provided
+  const handleNotificationUpdate = useCallback(
+    data => {
+      console.log("🔔 Notification update received:", data)
+      if (data && typeof data === "object" && data.message) {
+        // If socket sends the notification data directly, add it to Redux store (fast)
+        dispatch(addNotification(data))
+      } else if (data && typeof data === "object" && data.notifications) {
+        // If socket sends all notifications, update user partially
+        dispatch(updateUserPartial({ notifications: data.notifications }))
+      } else {
+        // Fallback: refetch the entire user
+        fetchCurrentUser()
+      }
+    },
+    [dispatch, fetchCurrentUser]
+  )
 
   const handleCloseModal = () => {
     setShowWhatsNew(false)
@@ -67,18 +113,43 @@ const SideBar_Header = () => {
     }
   }, [sidebarOpen])
 
+  // Socket listeners for real-time user updates (credits, notifications)
   useEffect(() => {
-    const socket = getSocket()
-    if (!socket) return
+    let socket = getSocket()
+    let retryCount = 0
+    const maxRetries = 10
+    let retryTimeout
 
-    socket.on("user:credits", fetchCurrentUser)
-    socket.on("user:notification", fetchCurrentUser)
+    const setupListeners = () => {
+      if (!socket) {
+        socket = getSocket()
+        if (!socket && retryCount < maxRetries) {
+          retryCount++
+          console.log(`⏳ Waiting for socket connection... (attempt ${retryCount}/${maxRetries})`)
+          retryTimeout = setTimeout(setupListeners, 500)
+          return
+        }
+        if (!socket) {
+          console.warn("⚠️ Socket not available after retries")
+          return
+        }
+      }
+
+      console.log("🔌 Setting up socket listeners for user:credits and user:notification")
+      socket.on("user:credits", handleCreditsUpdate)
+      socket.on("user:notification", handleNotificationUpdate)
+    }
+
+    setupListeners()
 
     return () => {
-      socket.off("user:credits", fetchCurrentUser)
-      socket.off("user:notification", fetchCurrentUser)
+      if (retryTimeout) clearTimeout(retryTimeout)
+      if (socket) {
+        socket.off("user:credits", handleCreditsUpdate)
+        socket.off("user:notification", handleNotificationUpdate)
+      }
     }
-  }, [])
+  }, [handleCreditsUpdate, handleNotificationUpdate])
 
   useEffect(() => {
     fetchCurrentUser()

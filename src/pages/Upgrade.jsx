@@ -319,8 +319,8 @@ const PricingCard = ({
                               billingPeriod === "annual" ? "priceAnnualINR" : "priceMonthlyINR"
                             ] *
                               (billingPeriod === "annual" ? 12 : 1) *
-                              0.7 -
-                              (billingPeriod === "annual" && 2)
+                              0.7 +
+                              (billingPeriod === "annual" && 7)
                           )}`
                         : `$${(
                             Math.round(
@@ -328,7 +328,7 @@ const PricingCard = ({
                             ) /
                               100 +
                             (billingPeriod === "annual" && 0.05)
-                          ).toFixed(2)}`}
+                          ).toFixed(2)}`}{" "}
                       {billingPeriod === "annual" ? "annually" : "monthly"}
                     </span>
                   </div>
@@ -456,9 +456,9 @@ const Upgrade = () => {
         name: "GenWrite Basic",
         eventName: "Basic_" + billingPeriod + "_clicks",
         priceMonthly: 20,
-        priceAnnual: 16.58,
-        priceMonthlyINR: 1999,
-        priceAnnualINR: 1666,
+        priceAnnual: 16.66,
+        priceMonthlyINR: 1799,
+        priceAnnualINR: 1499,
         annualPrice: 199,
         credits: 1000,
         description: "Perfect for individuals getting started with AI content creation.",
@@ -484,8 +484,8 @@ const Upgrade = () => {
         eventName: "Pro_" + billingPeriod + "_clicks",
         priceMonthly: 50,
         priceAnnual: 41.58,
-        priceMonthlyINR: 4999,
-        priceAnnualINR: 4166,
+        priceMonthlyINR: 4499,
+        priceAnnualINR: 3749,
         annualPrice: 499,
         credits: 4500,
         description: "Advanced AI features with priority support for growing teams.",

@@ -34,6 +34,7 @@ import LoadingScreen from "@components/UI/LoadingScreen"
 import {
   FeatureCard,
   ScoreCard,
+  StatCard,
   CompetitorsList,
   AnalysisInsights,
   ProofreadingSuggestion,
@@ -598,6 +599,35 @@ const TextEditorSidebar = ({
     )
   }
 
+  function countWordsFromHTML(html) {
+    if (!html) return 0
+
+    // 1. Remove all HTML tags
+    let text = html.replace(/<[^>]+>/g, " ")
+
+    // 2. Decode HTML entities like &amp; &nbsp; &#39;
+    text = text
+      .replace(/&nbsp;/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/&#39;/g, "'")
+      .replace(/&quot;/g, '"')
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+
+    // 3. Remove URLs (image links count as words otherwise)
+    text = text.replace(/https?:\/\/\S+/g, " ")
+
+    // 4. Remove extra whitespace
+    text = text.replace(/\s+/g, " ").trim()
+
+    console.log(text)
+
+    if (!text) return 0
+
+    // 5. Split into words
+    return text.split(" ").length
+  }
+
   return (
     <>
       <motion.div
@@ -774,13 +804,22 @@ const TextEditorSidebar = ({
                     </h3>
                   </div>
 
-                  <div className="space-y-5">
+                  <div className="space-y-3">
                     <ScoreCard title="Content Score" score={blog?.blogScore} icon={FileText} />
                     <ScoreCard
                       title="SEO Score"
                       score={result?.insights?.blogScore || blog?.seoScore}
                       icon={TrendingUp}
                     />
+                    <div className="grid grid-cols-2 gap-3">
+                      <StatCard
+                        title="Words"
+                        value={countWordsFromHTML(editorContent)}
+                        icon={FileText}
+                      />
+
+                      <StatCard title="Keywords" value={keywords?.length || 0} icon={Target} />
+                    </div>
                   </div>
                 </div>
 
