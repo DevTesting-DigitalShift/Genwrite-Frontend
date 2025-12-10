@@ -3,7 +3,7 @@
 // File: public/sw.js
 // ============================================
 
-const CACHE_NAME = "app-v1.0.11"
+const CACHE_NAME = "app-v1.0.12"
 const STATIC_ASSETS = ["/", "/index.html", "/manifest.json"]
 const CACHE_EXPIRY_HOURS = 24 // Cache JS/HTML for 6 hours (can set 4–7)
 
@@ -76,8 +76,10 @@ self.addEventListener("fetch", event => {
   const url = new URL(request.url)
 
   const isSameOrigin = url.origin === self.location.origin
-  const isBackend = url.hostname === "api.genwrite.co"
-  const isLocalBackend = url.origin === "http://localhost:8000"
+  const isApiRequest =
+    url.pathname.startsWith("/api/v1") ||
+    url.origin === "https://api.genwrite.co" ||
+    url.origin === "http://localhost:8000"
 
   // -------- SKIP API CALLS --------
 
@@ -91,7 +93,7 @@ self.addEventListener("fetch", event => {
   // ------------------------------------------
   // 2. NEVER CACHE BACKEND OR AUTH
   // ------------------------------------------
-  if (isBackend || isLocalBackend) {
+  if (isApiRequest) {
     event.respondWith(fetch(request))
     return
   }
