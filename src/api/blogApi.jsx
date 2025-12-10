@@ -209,3 +209,17 @@ export const getBlogPrompt = async (id, prompt) => {
     throw new Error(error.response?.data?.message || "Failed to fetch blog prompt")
   }
 }
+
+/**
+ * Get blog postings for a specific blog
+ * @param {string} blogId - The blog ID
+ * @returns {Promise<Array>} Array of posting objects
+ */
+export const getBlogPostings = async blogId => {
+  try {
+    const response = await axiosInstance.get(`/blogs/postings/${blogId}`)
+    return response.data.postings || []
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to fetch blog postings")
+  }
+}

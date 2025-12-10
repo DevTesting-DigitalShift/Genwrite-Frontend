@@ -17,8 +17,27 @@ import {
   Eye,
   Maximize2,
   ExternalLink,
+  Globe,
+  Calendar,
+  CheckCircle,
+  Clock,
+  AlertCircle,
+  ImageIcon,
+  RefreshCw,
 } from "lucide-react"
-import { Button, Tooltip, message, Tabs, Badge, Collapse, Dropdown, Menu, Tag, Input } from "antd"
+import {
+  Button,
+  Tooltip,
+  message,
+  Tabs,
+  Badge,
+  Collapse,
+  Dropdown,
+  Menu,
+  Tag,
+  Input,
+  Spin,
+} from "antd"
 import { fetchProofreadingSuggestions, fetchBlogPrompt } from "@store/slices/blogSlice"
 import { fetchCompetitiveAnalysisThunk } from "@store/slices/analysisSlice"
 import { generateMetadataThunk, getIntegrationsThunk } from "@store/slices/otherSlice"
@@ -42,6 +61,11 @@ import {
 import FeatureSettingsModal from "./FeatureSettingsModal"
 import CategoriesModal from "../Editor/CategoriesModal"
 import * as cheerio from "cheerio"
+import { getBlogPostings } from "@api/blogApi"
+import dayjs from "dayjs"
+import relativeTime from "dayjs/plugin/relativeTime"
+
+dayjs.extend(relativeTime)
 
 const { Panel } = Collapse
 const { TextArea } = Input
@@ -100,28 +124,96 @@ const TextEditorSidebar = ({
     !hasAnyIntegration || // Disable if no integration at all
     (formData.wordpressPostStatus && !integrations.integrations.WORDPRESS)
 
-  // const postedLinks = posted
-  //   ? Object.entries(posted)
-  //       .filter(([_, data]) => data?.link)
-  //       .map(([platform, data]) => ({ platform, link: data.link }))
-  //   : []
+  // State for blog postings from API
+  const [blogPostings, setBlogPostings] = useState([])
+  const [isLoadingPostings, setIsLoadingPostings] = useState(false)
 
-  const PLATFORM_LABELS = {
-    WORDPRESS: "WordPress",
-    SHOPIFY: "Shopify",
-    SERVERENDPOINT: "Server",
-    WIX: "Wix",
+  // Platform configuration with icons and colors
+  const PLATFORM_CONFIG = {
+    WORDPRESS: {
+      label: "WordPress",
+      color: "#21759b",
+      bgColor: "bg-blue-50",
+      textColor: "text-blue-700",
+      borderColor: "border-blue-200",
+    },
+    SHOPIFY: {
+      label: "Shopify",
+      color: "#96bf48",
+      bgColor: "bg-green-50",
+      textColor: "text-green-700",
+      borderColor: "border-green-200",
+    },
+    SERVERENDPOINT: {
+      label: "Server",
+      color: "#6366f1",
+      bgColor: "bg-indigo-50",
+      textColor: "text-indigo-700",
+      borderColor: "border-indigo-200",
+    },
+    WIX: {
+      label: "Wix",
+      color: "#faad14",
+      bgColor: "bg-yellow-50",
+      textColor: "text-yellow-700",
+      borderColor: "border-yellow-200",
+    },
   }
 
-  const postedLinks = posted
-    ? Object.entries(posted)
-        .filter(([_, data]) => data?.link)
-        .map(([platform, data]) => ({
-          platform,
-          link: data.link,
-          label: PLATFORM_LABELS[platform] || platform,
+  // Image CDN status configuration
+  const IMAGE_CDN_STATUS_CONFIG = {
+    pending: { icon: Clock, color: "text-yellow-500", label: "Images Pending" },
+    processing: { icon: RefreshCw, color: "text-blue-500", label: "Processing Images" },
+    completed: { icon: CheckCircle, color: "text-green-500", label: "Images Ready" },
+    failed: { icon: AlertCircle, color: "text-red-500", label: "Image Error" },
+  }
+
+  // Fetch blog postings from API
+  useEffect(() => {
+    const fetchPostings = async () => {
+      if (!blog?._id) {
+        setBlogPostings([])
+        return
+      }
+
+      setIsLoadingPostings(true)
+      try {
+        const postings = await getBlogPostings(blog._id)
+        setBlogPostings(postings)
+      } catch (error) {
+        console.error("Failed to fetch blog postings:", error)
+        setBlogPostings([])
+      } finally {
+        setIsLoadingPostings(false)
+      }
+    }
+
+    fetchPostings()
+  }, [blog?._id, posted]) // Re-fetch when posted changes (after posting)
+
+  // Derived list for display - combines API data with fallback to prop
+  const postedLinks =
+    blogPostings.length > 0
+      ? blogPostings.map(posting => ({
+          ...posting,
+          platform: posting.integrationType,
+          label: PLATFORM_CONFIG[posting.integrationType]?.label || posting.integrationType,
+          config: PLATFORM_CONFIG[posting.integrationType] || PLATFORM_CONFIG.SERVERENDPOINT,
         }))
-    : []
+      : posted
+      ? Object.entries(posted)
+          .filter(([_, data]) => data?.link)
+          .map(([platform, data]) => ({
+            platform,
+            link: data.link,
+            label: PLATFORM_CONFIG[platform]?.label || platform,
+            config: PLATFORM_CONFIG[platform] || PLATFORM_CONFIG.SERVERENDPOINT,
+            postedOn: data.postedOn,
+          }))
+      : []
+
+  // Check if blog has been posted
+  const hasPostings = postedLinks.length > 0
 
   // Reset metadata and history when blog changes
   useEffect(() => {
@@ -1150,78 +1242,160 @@ const TextEditorSidebar = ({
               disabled={isDisabled}
               className="w-full h-12 text-base font-semibold bg-gradient-to-r from-green-600 to-emerald-600 border-0 hover:shadow-lg"
             >
-              {isPosting
-                ? "Posting..."
-                : posted && Object.keys(posted).length > 0
-                ? "Re-Post"
-                : "Post Blog"}
+              {isPosting ? "Posting..." : hasPostings ? "Re-Post" : "Post Blog"}
             </Button>
           </motion.div>
 
-          {/* {postedLinks.length > 0 && (
-            <div className="mt-3 flex flex-col gap-2">
-              {postedLinks.map(({ platform, link }) => (
-                <motion.div
-                  key={platform}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="text-center"
-                >
-                  <a
-                    href={link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 text-blue-600 text-sm hover:text-blue-700 font-medium"
-                  >
-                    {platform === "WORDPRESS" ? "View WordPress Post" : "View Server Post"}
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
-                </motion.div>
-              ))}
+          {/* Loading state for postings */}
+          {isLoadingPostings && (
+            <div className="mt-3 flex items-center justify-center gap-2 text-gray-500 text-sm">
+              <Spin size="small" />
+              <span>Loading postings...</span>
             </div>
-          )} */}
+          )}
 
-          {postedLinks.length > 0 && (
-            <div className="mt-3 flex flex-col gap-2">
-              {/* CASE 1: Only 1 link → direct button */}
-              {postedLinks.length === 1 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="text-center"
-                >
-                  <a
-                    href={postedLinks[0].link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 text-blue-600 text-sm hover:text-blue-700 font-medium"
-                  >
-                    View {postedLinks[0].label} Post
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
-                </motion.div>
-              )}
-
-              {/* CASE 2: Multiple → open selection popup */}
-              {postedLinks.length > 1 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="text-center"
-                >
+          {/* Posted Links Display - New Premium UI */}
+          {!isLoadingPostings && postedLinks.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="mt-4"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-500" />
+                  <span className="text-sm font-medium text-gray-700">
+                    Published ({postedLinks.length})
+                  </span>
+                </div>
+                {postedLinks.length > 1 && (
                   <button
                     onClick={() => setChoosePlatformOpen(true)}
-                    className="inline-flex items-center gap-2 text-blue-600 text-sm hover:text-blue-700 font-medium"
+                    className="text-xs text-blue-600 hover:text-blue-700 font-medium"
                   >
-                    View Published Links
-                    <ExternalLink className="w-4 h-4" />
+                    View All
                   </button>
-                </motion.div>
+                )}
+              </div>
+
+              {/* Single posting - show inline card */}
+              {postedLinks.length === 1 && (
+                <div
+                  className={`p-3 rounded-lg border ${
+                    postedLinks[0].config?.borderColor || "border-gray-200"
+                  } ${
+                    postedLinks[0].config?.bgColor || "bg-gray-50"
+                  } cursor-pointer hover:shadow-md transition-all`}
+                  onClick={() => window.open(postedLinks[0].link, "_blank")}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                          postedLinks[0].config?.bgColor || "bg-gray-100"
+                        }`}
+                      >
+                        <Globe
+                          className={`w-4 h-4 ${
+                            postedLinks[0].config?.textColor || "text-gray-600"
+                          }`}
+                        />
+                      </div>
+                      <div>
+                        <p
+                          className={`text-sm font-semibold ${
+                            postedLinks[0].config?.textColor || "text-gray-700"
+                          }`}
+                        >
+                          {postedLinks[0].label}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {postedLinks[0].postedOn
+                            ? dayjs(postedLinks[0].postedOn).fromNow()
+                            : "Recently posted"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {/* Image CDN Status Badge */}
+                      {postedLinks[0].imageCdnStatus &&
+                        IMAGE_CDN_STATUS_CONFIG[postedLinks[0].imageCdnStatus] && (
+                          <Tooltip
+                            title={IMAGE_CDN_STATUS_CONFIG[postedLinks[0].imageCdnStatus].label}
+                          >
+                            {(() => {
+                              const StatusIcon =
+                                IMAGE_CDN_STATUS_CONFIG[postedLinks[0].imageCdnStatus].icon
+                              return (
+                                <StatusIcon
+                                  className={`w-4 h-4 ${
+                                    IMAGE_CDN_STATUS_CONFIG[postedLinks[0].imageCdnStatus].color
+                                  } ${
+                                    postedLinks[0].imageCdnStatus === "processing"
+                                      ? "animate-spin"
+                                      : ""
+                                  }`}
+                                />
+                              )
+                            })()}
+                          </Tooltip>
+                        )}
+                      <ExternalLink className="w-4 h-4 text-gray-400" />
+                    </div>
+                  </div>
+                </div>
               )}
-            </div>
+
+              {/* Multiple postings - show compact list */}
+              {postedLinks.length > 1 && (
+                <div className="space-y-2">
+                  {postedLinks.slice(0, 2).map((posting, index) => (
+                    <div
+                      key={posting._id || posting.platform + index}
+                      className={`p-2 rounded-lg border ${
+                        posting.config?.borderColor || "border-gray-200"
+                      } ${
+                        posting.config?.bgColor || "bg-gray-50"
+                      } cursor-pointer hover:shadow-sm transition-all`}
+                      onClick={() => window.open(posting.link, "_blank")}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Globe
+                            className={`w-3.5 h-3.5 ${
+                              posting.config?.textColor || "text-gray-600"
+                            }`}
+                          />
+                          <span
+                            className={`text-xs font-medium ${
+                              posting.config?.textColor || "text-gray-700"
+                            }`}
+                          >
+                            {posting.label}
+                          </span>
+                          {posting.postedOn && (
+                            <span className="text-xs text-gray-400">
+                              • {dayjs(posting.postedOn).fromNow()}
+                            </span>
+                          )}
+                        </div>
+                        <ExternalLink className="w-3.5 h-3.5 text-gray-400" />
+                      </div>
+                    </div>
+                  ))}
+                  {postedLinks.length > 2 && (
+                    <button
+                      onClick={() => setChoosePlatformOpen(true)}
+                      className="w-full text-center text-xs text-blue-600 hover:text-blue-700 font-medium py-1"
+                    >
+                      +{postedLinks.length - 2} more platforms
+                    </button>
+                  )}
+                </div>
+              )}
+            </motion.div>
           )}
         </div>
       </motion.div>
@@ -1246,29 +1420,151 @@ const TextEditorSidebar = ({
         blogData={blog}
         posted={posted}
       />
+
+      {/* Enhanced Platform Selection Modal */}
       <Modal
-        title="Choose Platform"
+        title={
+          <div className="flex items-center gap-2">
+            <Globe className="w-5 h-5 text-blue-600" />
+            <span>Published Platforms</span>
+          </div>
+        }
         open={choosePlatformOpen}
         onCancel={() => setChoosePlatformOpen(false)}
         footer={null}
         centered
-        width={380}
+        width={440}
       >
-        <div className="flex flex-col gap-3 py-2">
-          <p className="text-sm text-gray-600">
-            This post was published to multiple platforms. Where do you want to visit?
+        <div className="py-2">
+          <p className="text-sm text-gray-600 mb-4">
+            This blog has been published to {postedLinks.length} platform
+            {postedLinks.length > 1 ? "s" : ""}.
           </p>
 
-          {postedLinks.map(({ platform, link, label }) => (
-            <button
-              key={platform}
-              onClick={() => window.open(link, "_blank")}
-              className="w-full text-left px-3 py-2 bg-gray-50 border border-gray-200 rounded-md hover:bg-gray-100 text-sm font-medium flex items-center justify-between"
+          <div className="space-y-3">
+            {postedLinks.map((posting, index) => {
+              const cdnStatus = posting.imageCdnStatus
+                ? IMAGE_CDN_STATUS_CONFIG[posting.imageCdnStatus]
+                : null
+              const CdnIcon = cdnStatus?.icon
+
+              return (
+                <motion.div
+                  key={posting._id || posting.platform + index}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className={`p-4 rounded-xl border-2 ${
+                    posting.config?.borderColor || "border-gray-200"
+                  } ${
+                    posting.config?.bgColor || "bg-gray-50"
+                  } hover:shadow-lg transition-all cursor-pointer group`}
+                  onClick={() => window.open(posting.link, "_blank")}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-3">
+                      {/* Platform Icon */}
+                      <div
+                        className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                          posting.config?.bgColor || "bg-gray-100"
+                        } border ${posting.config?.borderColor || "border-gray-200"}`}
+                      >
+                        <Globe
+                          className={`w-6 h-6 ${posting.config?.textColor || "text-gray-600"}`}
+                        />
+                      </div>
+
+                      {/* Platform Info */}
+                      <div className="flex-1">
+                        <h4
+                          className={`font-semibold ${
+                            posting.config?.textColor || "text-gray-800"
+                          }`}
+                        >
+                          {posting.label}
+                        </h4>
+
+                        {/* Posting Date */}
+                        <div className="flex items-center gap-1 mt-1">
+                          <Calendar className="w-3 h-3 text-gray-400" />
+                          <span className="text-xs text-gray-500">
+                            {posting.postedOn
+                              ? dayjs(posting.postedOn).format("MMM D, YYYY [at] h:mm A")
+                              : "Recently posted"}
+                          </span>
+                        </div>
+
+                        {/* Image CDN Status */}
+                        {cdnStatus && (
+                          <div className="flex items-center gap-1.5 mt-2">
+                            <ImageIcon className="w-3 h-3 text-gray-400" />
+                            <div className="flex items-center gap-1">
+                              {CdnIcon && (
+                                <CdnIcon
+                                  className={`w-3 h-3 ${cdnStatus.color} ${
+                                    posting.imageCdnStatus === "processing" ? "animate-spin" : ""
+                                  }`}
+                                />
+                              )}
+                              <span className={`text-xs ${cdnStatus.color}`}>
+                                {cdnStatus.label}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Category if available */}
+                        {posting.category && (
+                          <div className="mt-2">
+                            <Tag color="blue" className="text-xs">
+                              {posting.category}
+                            </Tag>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* External Link Icon */}
+                    <div className="opacity-50 group-hover:opacity-100 transition-opacity">
+                      <ExternalLink className="w-5 h-5 text-gray-400 group-hover:text-blue-500" />
+                    </div>
+                  </div>
+
+                  {/* Link Preview */}
+                  <div className="mt-3 pt-3 border-t border-gray-200/50">
+                    <p className="text-xs text-gray-400 truncate font-mono">{posting.link}</p>
+                  </div>
+                </motion.div>
+              )
+            })}
+          </div>
+
+          {/* Refresh Button */}
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <Button
+              type="text"
+              size="small"
+              icon={<RefreshCw className={`w-4 h-4 ${isLoadingPostings ? "animate-spin" : ""}`} />}
+              onClick={async () => {
+                if (blog?._id) {
+                  setIsLoadingPostings(true)
+                  try {
+                    const postings = await getBlogPostings(blog._id)
+                    setBlogPostings(postings)
+                    message.success("Postings refreshed")
+                  } catch (error) {
+                    message.error("Failed to refresh postings")
+                  } finally {
+                    setIsLoadingPostings(false)
+                  }
+                }
+              }}
+              disabled={isLoadingPostings}
+              className="text-gray-500 hover:text-blue-600"
             >
-              <span>{label}</span>
-              <ExternalLink className="w-4 h-4" />
-            </button>
-          ))}
+              Refresh Postings
+            </Button>
+          </div>
         </div>
       </Modal>
     </>
