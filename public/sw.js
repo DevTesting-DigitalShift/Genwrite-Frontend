@@ -3,7 +3,7 @@
 // File: public/sw.js
 // ============================================
 
-const CACHE_NAME = "app-v1.0.12"
+const CACHE_NAME = "app-v1.0.13"
 const STATIC_ASSETS = ["/", "/index.html", "/manifest.json"]
 const CACHE_EXPIRY_HOURS = 24 // Cache JS/HTML for 6 hours (can set 4–7)
 
@@ -76,10 +76,7 @@ self.addEventListener("fetch", event => {
   const url = new URL(request.url)
 
   const isSameOrigin = url.origin === self.location.origin
-  const isApiRequest =
-    url.pathname.startsWith("/api/v1") ||
-    url.origin === "https://api.genwrite.co" ||
-    url.origin === "http://localhost:8000"
+  const isApiRequest = url.pathname.startsWith("/api/v1") || url.origin.includes("api.genwrite.co")
 
   // -------- SKIP API CALLS --------
 
@@ -87,14 +84,14 @@ self.addEventListener("fetch", event => {
   // 1. BLOCK ANY NON-SAME-ORIGIN FROM CACHING
   // ------------------------------------------
   if (!isSameOrigin) {
-    event.respondWith(fetch(request))
+    event.respondWith(fetch(request, { cache: "no-store" }))
     return
   }
   // ------------------------------------------
   // 2. NEVER CACHE BACKEND OR AUTH
   // ------------------------------------------
   if (isApiRequest) {
-    event.respondWith(fetch(request))
+    event.respondWith(fetch(request, { cache: "no-store" }))
     return
   }
 
@@ -207,70 +204,3 @@ async function handleTimedCache(request) {
     return new Response("Network unavailable", { status: 503 })
   }
 }
-
-// ============================================
-// TIME-LIMITED CACHE STRATEGY (Optional Advanced Version)
-// ============================================
-// Use this version if you want to cache responses but invalidate them after X minutes
-
-// self.addEventListener("fetch", event => {
-//   const { request } = event
-//   const url = new URL(request.url)
-
-//   // Skip API calls - always fetch fresh
-//   if (url.pathname.startsWith("/api/")) {
-//     event.respondWith(fetch(request))
-//     return
-//   }
-
-//   event.respondWith(
-//     caches
-//       .match(request)
-//       .then(cachedResponse => {
-//         // If in cache, check if it's expired
-//         if (cachedResponse) {
-//           // Get the timestamp when this was cached (stored in metadata)
-//           const cacheTime = cachedResponse.headers.get("sw-cache-time")
-
-//           if (cacheTime) {
-//             const now = Date.now()
-//             const cacheAgeMinutes = (now - parseInt(cacheTime)) / 1000 / 60
-
-//             // If cache is still fresh (within time limit), use it
-//             if (cacheAgeMinutes < CACHE_EXPIRY_MINUTES) {
-//               return cachedResponse
-//             }
-//             // If expired, fall through to fetch fresh version
-//           }
-//         }
-
-//         // Fetch fresh version from network
-//         return fetch(request).then(response => {
-//           if (!response || response.status !== 200) {
-//             return response
-//           }
-
-//           const responseToCache = response.clone()
-
-//           // Create a new response with cache timestamp header
-//           const headersWithTime = new Headers(responseToCache.headers)
-//           headersWithTime.append("sw-cache-time", Date.now().toString())
-
-//           const responseWithTime = new Response(responseToCache.body, {
-//             status: responseToCache.status,
-//             statusText: responseToCache.statusText,
-//             headers: headersWithTime,
-//           })
-
-//           caches.open(CACHE_NAME).then(cache => {
-//             cache.put(request, responseWithTime)
-//           })
-
-//           return response
-//         })
-//       })
-//       .catch(() => {
-//         return new Response("Network request failed", { status: 503 })
-//       })
-//   )
-// })
