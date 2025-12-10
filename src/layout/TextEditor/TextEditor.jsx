@@ -16,6 +16,7 @@ import LoadingScreen from "@components/UI/LoadingScreen"
 import rehypeRaw from "rehype-raw"
 import showdown from "showdown"
 import SectionCard from "./SectionCard"
+import { EditorProvider } from "./EditorContext"
 
 const { TextArea } = Input
 
@@ -189,6 +190,15 @@ const TextEditor = ({
   const pathDetect = location.pathname === `/blog-editor/${blog?._id}`
   const dispatch = useDispatch()
   const queryClient = useQueryClient()
+
+  // Get section image by sectionId
+  const getSectionImage = useCallback(
+    sectionId => {
+      if (!blog?.images || !Array.isArray(blog.images)) return null
+      return blog.images.find(img => img.sectionId === sectionId && img.role === "section")
+    },
+    [blog?.images]
+  )
 
   // Check if there are actual content changes (not just reveals)
   const hasContentChanges = useMemo(() => {
@@ -478,9 +488,6 @@ const TextEditor = ({
     message.info("Regeneration discarded.")
   }
 
-  // Get revealed sections for preview
-  const revealedSections = useMemo(() => sections.filter(s => s.revealed), [sections])
-
   // Copy all content
   const copyContent = async () => {
     try {
@@ -521,29 +528,32 @@ const TextEditor = ({
     }
   }, [blog?.status])
 
-  // Render section item using SectionCard component
-  const renderSectionItem = (section, index) => {
-    const locked = userPlan === "free" && index > 1
-    const isEditing = editingIndex === index
-
-    return (
-      <SectionCard
-        key={section.id || index}
-        section={section}
-        index={index}
-        isEditing={isEditing}
-        locked={locked}
-        onReveal={() => handleReveal(index)}
-        onDelete={() => handleDelete(index)}
-        onRegenerate={() => handleRegenerate(index)}
-        onContentChange={updates => handleSectionChange(index, updates)}
-        onTitleChange={newTitle => handleSectionTitleChange(index, newTitle)}
-        onStartEditing={() => setEditingIndex(index)}
-        onStopEditing={() => setEditingIndex(null)}
-        onNavigateToPricing={() => navigate("/pricing")}
-      />
-    )
-  }
+  // Editor context value for child components
+  const editorContextValue = useMemo(
+    () => ({
+      userPlan,
+      editingIndex,
+      setEditingIndex,
+      handleDelete,
+      handleRegenerate,
+      handleSectionChange,
+      handleSectionTitleChange,
+      navigateToPricing: () => navigate("/pricing"),
+      getSectionImage,
+      proofreadingResults: proofreadingResults || [],
+    }),
+    [
+      userPlan,
+      editingIndex,
+      handleDelete,
+      handleRegenerate,
+      handleSectionChange,
+      handleSectionTitleChange,
+      navigate,
+      getSectionImage,
+      proofreadingResults,
+    ]
+  )
 
   // Render FAQ section
   const renderFAQ = () => {
@@ -583,8 +593,7 @@ const TextEditor = ({
     <div className="bg-white border-b border-gray-200 shadow-sm px-4 py-3 flex flex-wrap items-center justify-between gap-2">
       <div className="flex items-center gap-4">
         <span className="text-gray-600 text-sm">
-          <span className="font-semibold">{revealedSections.length}</span> / {sections.length}{" "}
-          sections revealed
+          <span className="font-semibold">{sections.length}</span> sections
         </span>
         {hasContentChanges && (
           <span className="text-orange-600 text-sm font-medium flex items-center gap-1">
@@ -692,10 +701,14 @@ const TextEditor = ({
         </div>
 
         {/* Sections */}
-        <div className="space-y-6">
-          {sections.map((section, index) => renderSectionItem(section, index))}
-          {renderFAQ()}
-        </div>
+        <EditorProvider value={editorContextValue}>
+          <div className="space-y-6">
+            {sections.map((section, index) => (
+              <SectionCard key={section.id || index} section={section} index={index} />
+            ))}
+          </div>
+        </EditorProvider>
+        {renderFAQ()}
       </div>
     )
   }
@@ -779,7 +792,7 @@ const TextEditor = ({
           <h1 className="text-3xl font-bold mb-2">{blogTitle}</h1>
           {blogDescription && <p className="text-gray-600 mb-6">{blogDescription}</p>}
 
-          {revealedSections.map((sec, i) => (
+          {sections.map((sec, i) => (
             <div key={i} className="mb-10">
               <h2 className="text-2xl font-bold mb-4">{sec.title}</h2>
               <div
@@ -789,7 +802,7 @@ const TextEditor = ({
             </div>
           ))}
 
-          {faq && faqRevealed && (
+          {faq && (
             <div className="mt-10">
               <h2 className="text-2xl font-bold mb-4">{faq.heading}</h2>
               {faq.qa.map((item, i) => (
@@ -801,10 +814,8 @@ const TextEditor = ({
             </div>
           )}
 
-          {revealedSections.length === 0 && (
-            <div className="text-center py-10 text-gray-500">
-              No sections revealed yet. Click on sections to reveal their content.
-            </div>
+          {sections.length === 0 && (
+            <div className="text-center py-10 text-gray-500">No sections available.</div>
           )}
         </div>
       </Modal>

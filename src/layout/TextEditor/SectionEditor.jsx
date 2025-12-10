@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useState, useRef } from "react"
 import { EditorContent, useEditor } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 import Underline from "@tiptap/extension-underline"
@@ -9,6 +9,7 @@ import Heading from "@tiptap/extension-heading"
 import BulletList from "@tiptap/extension-bullet-list"
 import OrderedList from "@tiptap/extension-ordered-list"
 import ListItem from "@tiptap/extension-list-item"
+import { ProofreadingDecoration } from "@/extensions/ProofreadingDecoration"
 import {
   Bold,
   Italic,
@@ -27,6 +28,9 @@ import {
   Redo,
   ExternalLink,
   X,
+  Trash2,
+  Edit,
+  Check,
 } from "lucide-react"
 import { Tooltip, message, Modal, Input } from "antd"
 
@@ -49,13 +53,20 @@ const ToolbarButton = ({ active, onClick, disabled, children, title }) => (
   </Tooltip>
 )
 
-const SectionEditor = ({ initialContent, onChange, onBlur }) => {
+const SectionEditor = ({ initialContent, onChange, onBlur, proofreadingResults = [] }) => {
   const [linkModalOpen, setLinkModalOpen] = useState(false)
   const [linkUrl, setLinkUrl] = useState("")
   const [linkText, setLinkText] = useState("")
   const [imageModalOpen, setImageModalOpen] = useState(false)
   const [imageUrl, setImageUrl] = useState("")
+  const [imageAltText, setImageAltText] = useState("")
   const [selectedLink, setSelectedLink] = useState(null)
+  const [selectedImage, setSelectedImage] = useState(null)
+  const [imageEditMode, setImageEditMode] = useState(false)
+
+  // Proofreading state
+  const [activeProofSpan, setActiveProofSpan] = useState(null)
+  const proofBubbleRef = useRef(null)
 
   const editor = useEditor({
     extensions: [
@@ -72,7 +83,7 @@ const SectionEditor = ({ initialContent, onChange, onBlur }) => {
       Underline,
       Image.configure({
         HTMLAttributes: {
-          class: "rounded-lg max-w-full h-auto object-contain my-4",
+          class: "rounded-lg max-w-full h-auto object-contain my-4 cursor-pointer",
         },
       }),
       TextAlign.configure({
@@ -85,6 +96,9 @@ const SectionEditor = ({ initialContent, onChange, onBlur }) => {
           rel: "noopener noreferrer",
           target: "_blank",
         },
+      }),
+      ProofreadingDecoration.configure({
+        suggestions: proofreadingResults,
       }),
     ],
     content: initialContent,
@@ -113,13 +127,52 @@ const SectionEditor = ({ initialContent, onChange, onBlur }) => {
             text: link.textContent,
             element: link,
           })
+          setSelectedImage(null)
           return true
         }
+
+        // Check if clicked on an image
+        const img = event.target.closest("img")
+        if (img) {
+          event.preventDefault()
+          setSelectedImage({
+            src: img.src,
+            alt: img.alt || "",
+            element: img,
+          })
+          setSelectedLink(null)
+          setImageEditMode(false)
+          return true
+        }
+
+        // Check if clicked on proofreading mark
+        const proofMark = event.target.closest(".proofreading-mark")
+        if (proofMark && proofMark.dataset.suggestion) {
+          event.preventDefault()
+          setActiveProofSpan(proofMark)
+          return true
+        }
+
         setSelectedLink(null)
+        setSelectedImage(null)
+        setActiveProofSpan(null)
         return false
       },
     },
   })
+
+  // Update proofreading suggestions when they change
+  useEffect(() => {
+    if (editor && proofreadingResults?.length > 0) {
+      const proofExt = editor.extensionManager.extensions.find(
+        ext => ext.name === "proofreadingDecoration"
+      )
+      if (proofExt) {
+        proofExt.options.suggestions = proofreadingResults
+        editor.view.dispatch(editor.state.tr)
+      }
+    }
+  }, [proofreadingResults, editor])
 
   // Update content when initialContent changes externally
   useEffect(() => {
@@ -130,6 +183,30 @@ const SectionEditor = ({ initialContent, onChange, onBlur }) => {
 
   if (!editor) return null
 
+  // Proofreading handlers
+  const applyProofChange = () => {
+    if (!activeProofSpan || !editor) return
+
+    const from = Number(activeProofSpan.dataset.from)
+    const to = Number(activeProofSpan.dataset.to)
+    const suggestion = activeProofSpan.dataset.suggestion
+
+    if (!suggestion || isNaN(from) || isNaN(to)) return
+
+    try {
+      editor.chain().focus().deleteRange({ from, to }).insertContent(suggestion).run()
+      setActiveProofSpan(null)
+      message.success("Change applied")
+    } catch (error) {
+      console.error("Error applying change:", error)
+    }
+  }
+
+  const rejectProofChange = () => {
+    setActiveProofSpan(null)
+  }
+
+  // Link handlers
   const handleAddLink = () => {
     const { from, to } = editor.state.selection
     const selectedText = editor.state.doc.textBetween(from, to, " ")
@@ -167,8 +244,10 @@ const SectionEditor = ({ initialContent, onChange, onBlur }) => {
     message.success("Link removed")
   }
 
+  // Image handlers
   const handleAddImage = () => {
     setImageUrl("")
+    setImageAltText("")
     setImageModalOpen(true)
   }
 
@@ -183,10 +262,74 @@ const SectionEditor = ({ initialContent, onChange, onBlur }) => {
       url = "https://" + url
     }
 
-    editor.chain().focus().setImage({ src: url }).run()
+    editor.chain().focus().setImage({ src: url, alt: imageAltText }).run()
     setImageModalOpen(false)
     setImageUrl("")
+    setImageAltText("")
     message.success("Image added")
+  }
+
+  const updateImageAlt = () => {
+    if (selectedImage && selectedImage.element) {
+      selectedImage.element.alt = imageAltText
+      // Force content update
+      onChange(editor.getHTML())
+      setImageEditMode(false)
+      message.success("Alt text updated")
+    }
+  }
+
+  const deleteSelectedImage = () => {
+    if (selectedImage && editor) {
+      // Find and delete the image node
+      const { state } = editor
+      let imagePos = null
+
+      state.doc.descendants((node, pos) => {
+        if (node.type.name === "image" && node.attrs.src === selectedImage.src) {
+          imagePos = pos
+          return false
+        }
+      })
+
+      if (imagePos !== null) {
+        editor
+          .chain()
+          .focus()
+          .deleteRange({ from: imagePos, to: imagePos + 1 })
+          .run()
+        setSelectedImage(null)
+        message.success("Image deleted")
+      }
+    }
+  }
+
+  const replaceImage = () => {
+    setImageUrl(selectedImage?.src || "")
+    setImageAltText(selectedImage?.alt || "")
+    setImageModalOpen(true)
+
+    // Delete the old image first
+    if (selectedImage && editor) {
+      const { state } = editor
+      let imagePos = null
+
+      state.doc.descendants((node, pos) => {
+        if (node.type.name === "image" && node.attrs.src === selectedImage.src) {
+          imagePos = pos
+          return false
+        }
+      })
+
+      if (imagePos !== null) {
+        editor
+          .chain()
+          .focus()
+          .deleteRange({ from: imagePos, to: imagePos + 1 })
+          .run()
+      }
+    }
+    setSelectedImage(null)
   }
 
   return (
@@ -343,6 +486,90 @@ const SectionEditor = ({ initialContent, onChange, onBlur }) => {
         </div>
       )}
 
+      {/* Image Edit Bar */}
+      {selectedImage && (
+        <div className="flex items-center gap-2 px-3 py-2 bg-purple-50 border-b text-sm">
+          <ImageIcon className="w-4 h-4 text-purple-600" />
+          {imageEditMode ? (
+            <div className="flex items-center gap-2 flex-1">
+              <Input
+                size="small"
+                value={imageAltText}
+                onChange={e => setImageAltText(e.target.value)}
+                placeholder="Alt text"
+                className="flex-1"
+              />
+              <Tooltip title="Save">
+                <button onClick={updateImageAlt} className="p-1 hover:bg-green-100 rounded">
+                  <Check className="w-4 h-4 text-green-600" />
+                </button>
+              </Tooltip>
+              <Tooltip title="Cancel">
+                <button
+                  onClick={() => setImageEditMode(false)}
+                  className="p-1 hover:bg-gray-100 rounded"
+                >
+                  <X className="w-4 h-4 text-gray-500" />
+                </button>
+              </Tooltip>
+            </div>
+          ) : (
+            <>
+              <span className="text-purple-700 truncate flex-1">
+                {selectedImage.alt || "No alt text"}
+              </span>
+              <Tooltip title="Edit Alt Text">
+                <button
+                  onClick={() => {
+                    setImageAltText(selectedImage.alt || "")
+                    setImageEditMode(true)
+                  }}
+                  className="p-1 hover:bg-purple-100 rounded"
+                >
+                  <Edit className="w-4 h-4 text-purple-600" />
+                </button>
+              </Tooltip>
+              <Tooltip title="Replace Image">
+                <button onClick={replaceImage} className="p-1 hover:bg-blue-100 rounded">
+                  <ImageIcon className="w-4 h-4 text-blue-600" />
+                </button>
+              </Tooltip>
+              <Tooltip title="Delete Image">
+                <button onClick={deleteSelectedImage} className="p-1 hover:bg-red-100 rounded">
+                  <Trash2 className="w-4 h-4 text-red-500" />
+                </button>
+              </Tooltip>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Proofreading Popup */}
+      {activeProofSpan && (
+        <div
+          ref={proofBubbleRef}
+          className="flex items-center gap-2 px-3 py-2 bg-amber-50 border-b text-sm"
+        >
+          <span className="text-amber-700">
+            <strong>Suggestion:</strong> {activeProofSpan.dataset.suggestion}
+          </span>
+          <div className="flex gap-1 ml-auto">
+            <button
+              onClick={applyProofChange}
+              className="px-2 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600"
+            >
+              Accept
+            </button>
+            <button
+              onClick={rejectProofChange}
+              className="px-2 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300"
+            >
+              Reject
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Editor Content */}
       <div className="p-4" onClick={() => editor.chain().focus().run()}>
         <EditorContent editor={editor} />
@@ -386,13 +613,25 @@ const SectionEditor = ({ initialContent, onChange, onBlur }) => {
         onOk={confirmAddImage}
         okText="Add Image"
       >
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
-          <Input
-            value={imageUrl}
-            onChange={e => setImageUrl(e.target.value)}
-            placeholder="https://example.com/image.jpg"
-          />
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
+            <Input
+              value={imageUrl}
+              onChange={e => setImageUrl(e.target.value)}
+              placeholder="https://example.com/image.jpg"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Alt Text (optional)
+            </label>
+            <Input
+              value={imageAltText}
+              onChange={e => setImageAltText(e.target.value)}
+              placeholder="Description of the image"
+            />
+          </div>
         </div>
       </Modal>
     </div>

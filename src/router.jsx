@@ -3,7 +3,6 @@ import { createBrowserRouter, Navigate } from "react-router-dom"
 import LoadingScreen from "@components/UI/LoadingScreen"
 import App from "./App"
 import VerifiedEmail from "@pages/VerifiedEmail"
-import TestEditor from "./layout/TestEditor/TestPage"
 const CreditLogsTable = lazy(() => import("@pages/CreditLogs"))
 const Transactions = lazy(() => import("@pages/Transactions"))
 const ErrorBoundary = lazy(() => import("./layout/error/ErrorBoundary"))
@@ -75,7 +74,6 @@ const router = createBrowserRouter([
           { path: "terms-and-conditions", element: withSuspense(TermsAndConditions) },
           { path: "email-verify/:email", element: withSuspense(EmailVerification) },
           { path: "verify-email", element: withSuspense(VerifiedEmail) },
-          { path: "test-editor", element: withSuspense(TestEditor) },
           {
             path: "payment",
             children: [
