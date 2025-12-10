@@ -23,6 +23,7 @@ import { FiGift } from "react-icons/fi"
 import Footer from "@components/Footer"
 import CountdownTimer from "@components/CountdownTimer"
 import IceAnimation from "@components/IceAnimation"
+import { Copy } from "lucide-react"
 
 const Auth = ({ path }) => {
   const [formData, setFormData] = useState({
@@ -36,6 +37,9 @@ const Auth = ({ path }) => {
   const [loading, setLoading] = useState(false)
   const [termsAccepted, setTermsAccepted] = useState(false)
   const [recaptchaValue, setRecaptchaValue] = useState(null)
+  const [couponCopied, setCouponCopied] = useState(false)
+
+  const COUPON_CODE = "HOLIDAY30"
 
   const dispatch = useDispatch()
   const navigate = useNavigate()
@@ -198,6 +202,18 @@ const Auth = ({ path }) => {
     { icon: <Sparkles className="w-4 h-4" />, text: "Human-Like Text" },
   ]
 
+  // Copy coupon code to clipboard
+  const handleCopyCoupon = async () => {
+    try {
+      await navigator.clipboard.writeText(COUPON_CODE)
+      setCouponCopied(true)
+      message.success("Coupon code copied!")
+      setTimeout(() => setCouponCopied(false), 2000)
+    } catch (err) {
+      message.error("Failed to copy coupon code")
+    }
+  }
+
   return (
     <div className="min-h-screen relative  bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50">
       {/* Ice Animation */}
@@ -280,6 +296,31 @@ const Auth = ({ path }) => {
               endDate="2026-01-01T23:59:59"
               discount="30%"
             />
+
+            {/* Coupon Code Banner - Mobile */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2 }}
+              className="mt-4 bg-gradient-to-r from-red-500 to-pink-500 rounded-xl p-3 shadow-lg"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">🎁</span>
+                  <div>
+                    <p className="text-white text-xs font-medium">Use code at checkout:</p>
+                    <p className="text-white text-lg font-bold tracking-wider">{COUPON_CODE}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleCopyCoupon}
+                  className="bg-white/20 hover:bg-white/30 text-white px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all"
+                >
+                  <Copy className="w-3 h-3" />
+                  {couponCopied ? "Copied!" : "Copy"}
+                </button>
+              </div>
+            </motion.div>
           </motion.div>
 
           {/* Desktop-only left section */}
@@ -294,6 +335,51 @@ const Auth = ({ path }) => {
               endDate="2026-01-01T23:59:59"
               discount="30%"
             />
+
+            {/* Coupon Code Banner - Desktop */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+              className="bg-gradient-to-r from-red-500 via-pink-500 to-red-500 rounded-2xl p-5 shadow-lg relative overflow-hidden"
+            >
+              {/* Animated background pattern */}
+              <div className="absolute inset-0 opacity-10">
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    backgroundImage:
+                      "repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px)",
+                  }}
+                />
+              </div>
+
+              <div className="relative z-10">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                      <span className="text-2xl">🎁</span>
+                    </div>
+                    <div>
+                      <p className="text-white/90 text-sm font-medium">Christmas Special Coupon</p>
+                      <p className="text-white text-2xl font-bold tracking-wider">{COUPON_CODE}</p>
+                    </div>
+                  </div>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleCopyCoupon}
+                    className="bg-white text-red-600 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg hover:shadow-xl transition-all"
+                  >
+                    <Copy className="w-4 h-4" />
+                    {couponCopied ? "Copied!" : "Copy Code"}
+                  </motion.button>
+                </div>
+                <p className="text-white/80 text-xs mt-3">
+                  Apply this code at checkout to get 30% off your first subscription! 🎄
+                </p>
+              </div>
+            </motion.div>
 
             <motion.div
               initial={{ opacity: 0, y: 20 }}

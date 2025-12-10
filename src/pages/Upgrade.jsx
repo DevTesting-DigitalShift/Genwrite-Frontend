@@ -33,12 +33,22 @@ const PricingCard = ({
 
   const tierLevels = { basic: 1, pro: 2, enterprise: 3 }
 
+  // USD to INR conversion rate
+  const CREDIT_CONVERSION_RATE = 89.92
+
   const handleCustomCreditsChange = e => {
     const value = parseInt(e.target.value, 10)
     setCustomCredits(value)
   }
 
-  const calculateCustomPrice = () => (customCredits * 0.01).toFixed(2)
+  // Calculate credit price based on currency
+  const calculateCustomPrice = () => {
+    const usdPrice = customCredits * 0.01
+    if (currency === "INR") {
+      return Math.round(usdPrice * CREDIT_CONVERSION_RATE)
+    }
+    return usdPrice.toFixed(2)
+  }
 
   const displayPrice =
     plan.type === "credit_purchase"
@@ -271,7 +281,8 @@ const PricingCard = ({
                 <div className="text-right">
                   {customCredits >= 500 ? (
                     <div className={`${styles.price} text-2xl font-bold`}>
-                      ${calculateCustomPrice()}
+                      {currency === "INR" ? "₹" : "$"}
+                      {calculateCustomPrice()}
                     </div>
                   ) : (
                     <div className="text-red-500 text-sm font-medium">Min 500 credits</div>
@@ -433,7 +444,7 @@ const Upgrade = () => {
   const user = useSelector(state => state.auth.user)
   const navigate = useNavigate()
 
-  const CONVERSION_RATE = 100 // USD to INR conversion rate
+  const CONVERSION_RATE = 89.92 // USD to INR conversion rate
 
   // Auto-set currency based on user's country
   useEffect(() => {
