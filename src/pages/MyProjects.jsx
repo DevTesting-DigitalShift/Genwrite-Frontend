@@ -196,8 +196,6 @@ const MyProjects = () => {
 
     // Set up listeners
     socket.on("blog:statusChanged", handleStatusChange)
-    socket.on("blog:updated", handleStatusChange)
-    socket.on("blog:created", handleStatusChange)
 
     console.log(
       "✅ MyProjects: Socket listeners registered for blog:statusChanged, blog:updated, blog:created"
@@ -206,44 +204,42 @@ const MyProjects = () => {
     return () => {
       console.log("🧹 MyProjects: Cleaning up socket listeners")
       socket.off("blog:statusChanged", handleStatusChange)
-      socket.off("blog:updated", handleStatusChange)
-      socket.off("blog:created", handleStatusChange)
     }
   }, [user, userId, queryClient])
 
   // Polling fallback for pending blogs - when socket events aren't received
   // This ensures pending blogs get updated even if socket connection has issues
-  useEffect(() => {
-    // Check if there are any pending blogs
-    const hasPendingBlogs = allBlogs.some(blog => blog.status === "pending")
+  // useEffect(() => {
+  //   // Check if there are any pending blogs
+  //   const hasPendingBlogs = allBlogs.some(blog => blog.status === "in-progress")
 
-    if (!hasPendingBlogs || !user) {
-      return
-    }
+  //   if (!hasPendingBlogs || !user) {
+  //     return
+  //   }
 
-    console.log("⏰ Starting polling for pending blogs...")
+  //   console.log("⏰ Starting polling for pending blogs...")
 
-    // Poll every 5 seconds when there are pending blogs
-    const pollInterval = setInterval(() => {
-      console.log("⏰ Polling for pending blog status updates...")
-      queryClient
-        .refetchQueries({
-          queryKey: ["blogs"],
-          type: "active",
-        })
-        .then(() => {
-          console.log("✅ Poll refetch completed")
-        })
-        .catch(err => {
-          console.error("❌ Poll refetch failed:", err)
-        })
-    }, 5000) // Poll every 5 seconds
+  //   // Poll every 5 seconds when there are pending blogs
+  //   const pollInterval = setInterval(() => {
+  //     console.log("⏰ Polling for pending blog status updates...")
+  //     queryClient
+  //       .refetchQueries({
+  //         queryKey: ["blogs"],
+  //         type: "active",
+  //       })
+  //       .then(() => {
+  //         console.log("✅ Poll refetch completed")
+  //       })
+  //       .catch(err => {
+  //         console.error("❌ Poll refetch failed:", err)
+  //       })
+  //   }, 30000) // Poll every 30 seconds
 
-    return () => {
-      console.log("🛑 Stopping pending blogs polling")
-      clearInterval(pollInterval)
-    }
-  }, [allBlogs, user, queryClient])
+  //   return () => {
+  //     console.log("🛑 Stopping pending blogs polling")
+  //     clearInterval(pollInterval)
+  //   }
+  // }, [allBlogs, user, queryClient])
 
   // Navigation handlers
   const handleBlogClick = useCallback(

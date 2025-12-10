@@ -175,7 +175,7 @@ const CountdownTimer = ({ startDate, endDate, discount = "50%" }) => {
         {/* Footer */}
         <div className="text-center">
           <p className="text-[10px] sm:text-xs text-gray-600 leading-relaxed">
-            Limited time offer • New users only
+            Limited time offer • New Subscribed Users Only
           </p>
         </div>
       </div>

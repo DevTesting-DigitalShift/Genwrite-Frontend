@@ -34,7 +34,7 @@ const PricingCard = ({
   const tierLevels = { basic: 1, pro: 2, enterprise: 3 }
 
   // USD to INR conversion rate
-  const CREDIT_CONVERSION_RATE = 89.92
+  const CREDIT_CONVERSION_RATE = 90
 
   const handleCustomCreditsChange = e => {
     const value = parseInt(e.target.value, 10)
@@ -45,7 +45,7 @@ const PricingCard = ({
   const calculateCustomPrice = () => {
     const usdPrice = customCredits * 0.01
     if (currency === "INR") {
-      return Math.round(usdPrice * CREDIT_CONVERSION_RATE)
+      return Math.ceil(usdPrice * CREDIT_CONVERSION_RATE)
     }
     return usdPrice.toFixed(2)
   }
@@ -444,7 +444,7 @@ const Upgrade = () => {
   const user = useSelector(state => state.auth.user)
   const navigate = useNavigate()
 
-  const CONVERSION_RATE = 89.92 // USD to INR conversion rate
+  const CONVERSION_RATE = 90 // USD to INR conversion rate
 
   // Auto-set currency based on user's country
   useEffect(() => {
