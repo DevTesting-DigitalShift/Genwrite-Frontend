@@ -40,12 +40,10 @@ const SideBar_Header = () => {
   const location = useLocation()
   const dispatch = useDispatch()
   const navigate = useNavigate()
-  const sidebarRef = useRef(null) // Ref for sidebar
+  const sidebarRef = useRef(null)
 
-  // Stable reference to fetch user - wrapped in useCallback
   const fetchCurrentUser = useCallback(async () => {
     try {
-      console.log("📡 Socket triggered full user refresh")
       await dispatch(loadAuthenticatedUser()).unwrap()
     } catch (err) {
       console.error("User load failed:", err)
@@ -53,37 +51,28 @@ const SideBar_Header = () => {
     }
   }, [dispatch, navigate])
 
-  // Handle credits update from socket - granular update when data is provided
   const handleCreditsUpdate = useCallback(
     data => {
-      console.log("💰 Credits update received:", data)
       if (
         data &&
         typeof data === "object" &&
         (data.base !== undefined || data.extra !== undefined || data.credits !== undefined)
       ) {
-        // If socket sends the credits data directly, update Redux store directly (fast)
         dispatch(updateCredits(data.credits || data))
       } else {
-        // Fallback: refetch the entire user
         fetchCurrentUser()
       }
     },
     [dispatch, fetchCurrentUser]
   )
 
-  // Handle notification update from socket - granular update when data is provided
   const handleNotificationUpdate = useCallback(
     data => {
-      console.log("🔔 Notification update received:", data)
       if (data && typeof data === "object" && data.message) {
-        // If socket sends the notification data directly, add it to Redux store (fast)
         dispatch(addNotification(data))
       } else if (data && typeof data === "object" && data.notifications) {
-        // If socket sends all notifications, update user partially
         dispatch(updateUserPartial({ notifications: data.notifications }))
       } else {
-        // Fallback: refetch the entire user
         fetchCurrentUser()
       }
     },
@@ -94,14 +83,13 @@ const SideBar_Header = () => {
     setShowWhatsNew(false)
   }
 
-  // Handle outside click to close sidebar
   useEffect(() => {
     const handleClickOutside = event => {
       if (
         sidebarOpen &&
         sidebarRef.current &&
         !sidebarRef.current.contains(event.target) &&
-        window.innerWidth < 768 // Only close on mobile (md breakpoint)
+        window.innerWidth < 768
       ) {
         setSidebarOpen(false)
       }
@@ -113,7 +101,6 @@ const SideBar_Header = () => {
     }
   }, [sidebarOpen])
 
-  // Socket listeners for real-time user updates (credits, notifications)
   useEffect(() => {
     let socket = getSocket()
     let retryCount = 0
@@ -125,7 +112,6 @@ const SideBar_Header = () => {
         socket = getSocket()
         if (!socket && retryCount < maxRetries) {
           retryCount++
-          console.log(`⏳ Waiting for socket connection... (attempt ${retryCount}/${maxRetries})`)
           retryTimeout = setTimeout(setupListeners, 500)
           return
         }
@@ -135,7 +121,6 @@ const SideBar_Header = () => {
         }
       }
 
-      console.log("🔌 Setting up socket listeners for user:credits and user:notification")
       socket.on("user:credits", handleCreditsUpdate)
       socket.on("user:notification", handleNotificationUpdate)
     }
@@ -239,7 +224,7 @@ const SideBar_Header = () => {
         }`}
         onMouseEnter={() => setSidebarOpen(true)}
         onMouseLeave={() => {
-          if (window.innerWidth >= 768) setSidebarOpen(false) // Only close on hover for desktop
+          if (window.innerWidth >= 768) setSidebarOpen(false)
         }}
       >
         {/* Logo or menu icon */}
