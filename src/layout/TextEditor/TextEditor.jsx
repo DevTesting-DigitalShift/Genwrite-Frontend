@@ -1,24 +1,27 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { motion } from "framer-motion"
-import ReactMarkdown from "react-markdown"
-import remarkGfm from "remark-gfm"
-import { RotateCcw, Copy, Eye, Edit3 } from "lucide-react"
-import { useDispatch, useSelector } from "react-redux"
+import { Copy, Eye, Edit3, RefreshCw, Plus, Trash2 } from "lucide-react"
+import { useSelector } from "react-redux"
 import { Modal, Tooltip, message, Button, Input } from "antd"
+
+const { TextArea } = Input
 import TurndownService from "turndown"
 import { useBlocker, useLocation, useNavigate } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
-import { sendRetryLines } from "@api/blogApi"
-import { retryBlog } from "@store/slices/blogSlice"
-import { useQueryClient } from "@tanstack/react-query"
 import "./editor.css"
 import LoadingScreen from "@components/UI/LoadingScreen"
-import rehypeRaw from "rehype-raw"
 import showdown from "showdown"
 import SectionCard from "./SectionCard"
 import { EditorProvider } from "./EditorContext"
+import InlineEditor from "./InlineEditor"
+import RegenerateModal from "../TextEditorSidebar/RegenerateModal"
 
-const { TextArea } = Input
+// Configure showdown for better image handling
+showdown.setOption("tables", true)
+showdown.setOption("tasklists", true)
+showdown.setOption("simpleLineBreaks", true)
+showdown.setOption("openLinksInNewWindow", true)
+showdown.setOption("emoji", true)
 
 // Convert HTML → Markdown for saving
 function htmlToMarkdownSection(html) {
@@ -42,19 +45,16 @@ function parseHtmlIntoSections(htmlString) {
   let description = ""
   const sections = []
 
-  // Get title from h1.blog-title
   const titleEl = doc.querySelector(".blog-title")
   if (titleEl) {
     title = titleEl.textContent?.trim() || ""
   }
 
-  // Get description from p.blog-description
   const descEl = doc.querySelector(".blog-description, .meta-description")
   if (descEl) {
     description = descEl.textContent?.trim() || ""
   }
 
-  // Get all blog sections
   const sectionEls = doc.querySelectorAll(".blog-section")
   sectionEls.forEach((secEl, index) => {
     const sectionTitle =
@@ -65,19 +65,23 @@ function parseHtmlIntoSections(htmlString) {
       id: secEl.id || `section-${index}`,
       title: sectionTitle,
       content: sectionContent,
-      keywords: [],
-      summary: "",
-      revealed: false,
-      originalContent: sectionContent, // Store for change detection
+      originalContent: sectionContent,
     })
   })
 
   return { title, description, sections, faq: null }
 }
 
-// Parse markdown into sections (fallback)
-function parseMarkdownIntoSections(markdown, keywords = []) {
+// Parse markdown into sections with proper image handling
+function parseMarkdownIntoSections(markdown) {
   if (!markdown) return []
+
+  const converter = new showdown.Converter({
+    tables: true,
+    tasklists: true,
+    simpleLineBreaks: true,
+    openLinksInNewWindow: true,
+  })
 
   const headingRegex = /^##\s+(.+)$/gm
   let match
@@ -93,16 +97,12 @@ function parseMarkdownIntoSections(markdown, keywords = []) {
   }
 
   if (matches.length === 0) {
-    const converter = new showdown.Converter()
     const htmlContent = converter.makeHtml(markdown)
     return [
       {
         id: "section-0",
         title: "Content",
         content: htmlContent,
-        keywords: keywords,
-        summary: "",
-        revealed: true,
         originalContent: htmlContent,
       },
     ]
@@ -112,7 +112,6 @@ function parseMarkdownIntoSections(markdown, keywords = []) {
     introContent = markdown.substring(0, matches[0].index).trim()
   }
 
-  const converter = new showdown.Converter()
   const sections = matches.map((m, i) => {
     const startPos = m.index + m.fullMatch.length
     const endPos = i < matches.length - 1 ? matches[i + 1].index : markdown.length
@@ -126,9 +125,6 @@ function parseMarkdownIntoSections(markdown, keywords = []) {
       id: `section-${i}`,
       title: m.title,
       content: htmlContent,
-      keywords: keywords,
-      summary: "",
-      revealed: false,
       originalContent: htmlContent,
     }
   })
@@ -157,14 +153,9 @@ const TextEditor = ({
   handleSubmit,
 }) => {
   const [isEditorLoading, setIsEditorLoading] = useState(true)
-  const [isRetrying, setIsRetrying] = useState(false)
-  const [retryContent, setRetryContent] = useState(null)
-  const [originalContent, setOriginalContent] = useState(null)
-  const [retryModalOpen, setRetryModalOpen] = useState(false)
-  const [retrySectionIndex, setRetrySectionIndex] = useState(null)
   const [openPreview, setOpenPreview] = useState(false)
   const [editingIndex, setEditingIndex] = useState(null)
-  const [faqRevealed, setFaqRevealed] = useState(false)
+  const [isRegenerateSidebarOpen, setIsRegenerateSidebarOpen] = useState(false)
 
   // Sections state
   const [sections, setSections] = useState([])
@@ -181,6 +172,9 @@ const TextEditor = ({
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [isEditingDescription, setIsEditingDescription] = useState(false)
 
+  // Section images state
+  const [sectionImages, setSectionImages] = useState([])
+
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
   const user = useSelector(state => state.auth.user)
@@ -188,34 +182,49 @@ const TextEditor = ({
   const hasShownToast = useRef(false)
   const location = useLocation()
   const pathDetect = location.pathname === `/blog-editor/${blog?._id}`
-  const dispatch = useDispatch()
-  const queryClient = useQueryClient()
+
+  // Initialize section images from blog
+  useEffect(() => {
+    if (blog?.images && Array.isArray(blog.images)) {
+      setSectionImages(blog.images)
+    }
+  }, [blog?.images])
 
   // Get section image by sectionId
   const getSectionImage = useCallback(
     sectionId => {
-      if (!blog?.images || !Array.isArray(blog.images)) return null
-      return blog.images.find(img => img.sectionId === sectionId && img.role === "section")
+      if (!sectionImages || !Array.isArray(sectionImages)) return null
+      return sectionImages.find(img => img.sectionId === sectionId && img.role === "section")
     },
-    [blog?.images]
+    [sectionImages]
   )
 
-  // Check if there are actual content changes (not just reveals)
+  // Update section image
+  const handleUpdateSectionImage = useCallback((sectionId, updatedImage) => {
+    setSectionImages(prev =>
+      prev.map(img =>
+        img.sectionId === sectionId && img.role === "section" ? { ...img, ...updatedImage } : img
+      )
+    )
+  }, [])
+
+  // Delete section image
+  const handleDeleteSectionImage = useCallback(sectionId => {
+    setSectionImages(prev =>
+      prev.filter(img => !(img.sectionId === sectionId && img.role === "section"))
+    )
+  }, [])
+
+  // Check if there are actual content changes
   const hasContentChanges = useMemo(() => {
-    // Check title change
     if (blogTitle !== originalBlogTitle) return true
-
-    // Check description change
     if (blogDescription !== originalBlogDescription) return true
-
-    // Check if any sections were deleted
     if (sections.length !== originalSections.length) return true
 
-    // Check if any section content was changed
     for (let i = 0; i < sections.length; i++) {
       const current = sections[i]
       const original = originalSections.find(s => s.id === current.id)
-      if (!original) return true // New section
+      if (!original) return true
       if (current.content !== original.originalContent) return true
       if (current.title !== original.title) return true
     }
@@ -256,15 +265,20 @@ const TextEditor = ({
         parsedData.description = data.description || ""
 
         if (data.sections && Array.isArray(data.sections)) {
+          const converter = new showdown.Converter({
+            tables: true,
+            tasklists: true,
+            simpleLineBreaks: true,
+          })
+
           parsedData.sections = data.sections.map((sec, i) => {
-            const converter = new showdown.Converter()
+            // Check if content is already HTML or needs conversion from markdown
             const htmlContent = sec.content?.includes("<")
               ? sec.content
               : converter.makeHtml(sec.content || "")
             return {
               ...sec,
               id: sec.id || `section-${i}`,
-              revealed: sec.revealed || false,
               content: htmlContent,
               originalContent: htmlContent,
             }
@@ -278,7 +292,7 @@ const TextEditor = ({
       // Fallback: Parse as markdown
       else if (blog.content) {
         parsedData.title = blog.title || ""
-        parsedData.sections = parseMarkdownIntoSections(blog.content, blog.keywords || [])
+        parsedData.sections = parseMarkdownIntoSections(blog.content)
       }
 
       setBlogTitle(parsedData.title)
@@ -293,23 +307,6 @@ const TextEditor = ({
     }
   }, [blog])
 
-  // Build content for saving (only revealed/edited sections)
-  const buildSavePayload = useCallback(() => {
-    return {
-      title: blogTitle,
-      description: blogDescription,
-      sections: sections.map(sec => ({
-        id: sec.id,
-        title: sec.title,
-        content: htmlToMarkdownSection(sec.content),
-        keywords: sec.keywords || [],
-        summary: sec.summary || "",
-        revealed: sec.revealed,
-      })),
-      faq: faq,
-    }
-  }, [blogTitle, blogDescription, sections, faq])
-
   // Sync sections back to markdown content for parent
   const syncSectionsToContent = useCallback(() => {
     let markdown = ""
@@ -319,7 +316,7 @@ const TextEditor = ({
       markdown += htmlToMarkdownSection(sec.content) + "\n\n"
     })
 
-    if (faq && faqRevealed) {
+    if (faq) {
       markdown += `## ${faq.heading}\n\n`
       faq.qa.forEach(item => {
         markdown += `### ${item.question}\n\n${item.answer}\n\n`
@@ -327,7 +324,7 @@ const TextEditor = ({
     }
 
     return markdown.trim()
-  }, [sections, faq, faqRevealed])
+  }, [sections, faq])
 
   // Update parent content when sections change
   useEffect(() => {
@@ -335,14 +332,7 @@ const TextEditor = ({
     if (setContent) {
       setContent(newContent)
     }
-  }, [sections, faqRevealed, syncSectionsToContent, setContent])
-
-  // Handle reveal section (doesn't count as unsaved change)
-  const handleReveal = index => {
-    setSections(prev => prev.map((s, i) => (i === index ? { ...s, revealed: true } : s)))
-    // Also update originalSections to reflect revealed state
-    setOriginalSections(prev => prev.map((s, i) => (i === index ? { ...s, revealed: true } : s)))
-  }
+  }, [sections, syncSectionsToContent, setContent])
 
   // Handle delete section
   const handleDelete = index => {
@@ -368,124 +358,37 @@ const TextEditor = ({
     setSections(prev => prev.map((s, i) => (i === index ? { ...s, title: newTitle } : s)))
   }
 
-  // Handle regenerate section
-  const handleRegenerate = async index => {
-    if (!blog?._id) {
-      message.error("Blog ID is missing.")
-      return
+  // Handle add section below
+  const handleAddSection = afterIndex => {
+    const newSection = {
+      id: `section-${Date.now()}`,
+      title: "New Section",
+      content: "<p>Start writing here...</p>",
+      originalContent: "",
     }
-
-    if (userPlan === "free" || userPlan === "basic") {
-      navigate("/pricing")
-      return
-    }
-
-    const section = sections[index]
-    setRetrySectionIndex(index)
-    setOriginalContent(htmlToMarkdownSection(section.content))
-
-    const payload = {
-      contentPart: htmlToMarkdownSection(section.content).trim(),
-      sectionIndex: index,
-      sectionTitle: section.title,
-    }
-
-    handlePopup({
-      title: "Regenerate Section",
-      description: (
-        <>
-          Do you want to regenerate this section?{" "}
-          <span className="font-bold">This will use your credits.</span>
-        </>
-      ),
-      confirmText: "Yes, Regenerate",
-      cancelText: "Cancel",
-      onConfirm: async () => {
-        try {
-          setIsRetrying(true)
-          const res = await sendRetryLines(blog._id, payload)
-          if (res.data) {
-            setRetryContent(res.data)
-            setRetryModalOpen(true)
-          } else {
-            message.error("No content received from regeneration.")
-          }
-        } catch (error) {
-          console.error("Regeneration failed:", error)
-          message.error(error.message || "Regeneration failed.")
-        } finally {
-          setIsRetrying(false)
-        }
-      },
+    setSections(prev => {
+      const newSections = [...prev]
+      newSections.splice(afterIndex + 1, 0, newSection)
+      return newSections
     })
+    message.success("New section added")
   }
 
-  // Handle full blog regenerate
-  const handleReGenerate = async () => {
-    if (!blog?._id) {
-      message.error("Blog ID is missing.")
-      return
-    }
+  // Handle move section up or down
+  const handleMoveSection = (index, direction) => {
+    setSections(prev => {
+      const newSections = [...prev]
+      const targetIndex = direction === "up" ? index - 1 : index + 1
 
-    const payload = { createNew: true }
-    try {
-      await dispatch(retryBlog({ id: blog._id, payload }))
-      queryClient.invalidateQueries({ queryKey: ["blogs"] })
-      queryClient.invalidateQueries({ queryKey: ["blog", blog._id] })
-      setUnsavedChanges(false)
-      navigate("/blogs")
-    } catch (error) {
-      console.error("Retry failed:", error)
-      message.error(error.message || "Retry failed.")
-    }
-  }
+      if (targetIndex < 0 || targetIndex >= newSections.length) return prev
 
-  const handleFullRegenerate = async () => {
-    if (userPlan === "free" || userPlan === "basic") {
-      navigate("/pricing")
-      return
-    }
+      // Swap sections
+      const temp = newSections[index]
+      newSections[index] = newSections[targetIndex]
+      newSections[targetIndex] = temp
 
-    const modelCostMap = { gemini: 10, chatgpt: 30, claude: 50 }
-    const credits = modelCostMap[blog?.aiModel?.toLowerCase()] || 10
-
-    handlePopup({
-      title: "Regenerate Blog",
-      description: (
-        <>
-          Are you sure you want to regenerate this blog?{" "}
-          <span className="font-bold">This will cost {credits} credits</span>
-        </>
-      ),
-      onConfirm: handleReGenerate,
+      return newSections
     })
-  }
-
-  // Accept regenerated content
-  const handleAcceptRetry = () => {
-    if (!retryContent || retrySectionIndex === null) return
-
-    const converter = new showdown.Converter()
-    const htmlContent = retryContent.includes("<") ? retryContent : converter.makeHtml(retryContent)
-
-    setSections(prev =>
-      prev.map((s, i) => (i === retrySectionIndex ? { ...s, content: htmlContent } : s))
-    )
-
-    message.success("Section regenerated successfully!")
-    setRetryModalOpen(false)
-    setRetryContent(null)
-    setOriginalContent(null)
-    setRetrySectionIndex(null)
-  }
-
-  // Reject regenerated content
-  const handleRejectRetry = () => {
-    setRetryModalOpen(false)
-    setRetryContent(null)
-    setOriginalContent(null)
-    setRetrySectionIndex(null)
-    message.info("Regeneration discarded.")
   }
 
   // Copy all content
@@ -535,52 +438,165 @@ const TextEditor = ({
       editingIndex,
       setEditingIndex,
       handleDelete,
-      handleRegenerate,
       handleSectionChange,
       handleSectionTitleChange,
+      handleAddSection,
+      handleMoveSection,
+      sectionsCount: sections.length,
       navigateToPricing: () => navigate("/pricing"),
       getSectionImage,
       proofreadingResults: proofreadingResults || [],
+      onUpdateSectionImage: handleUpdateSectionImage,
+      onDeleteSectionImage: handleDeleteSectionImage,
     }),
     [
       userPlan,
       editingIndex,
       handleDelete,
-      handleRegenerate,
       handleSectionChange,
       handleSectionTitleChange,
+      handleAddSection,
+      handleMoveSection,
+      sections.length,
       navigate,
       getSectionImage,
       proofreadingResults,
+      handleUpdateSectionImage,
+      handleDeleteSectionImage,
     ]
   )
 
-  // Render FAQ section
+  // Handle FAQ edit
+  const handleFaqEdit = (index, field, value) => {
+    setFaq(prev => {
+      if (!prev) return prev
+      const newQa = [...prev.qa]
+      newQa[index] = { ...newQa[index], [field]: value }
+      return { ...prev, qa: newQa }
+    })
+  }
+
+  // Handle FAQ heading edit
+  const handleFaqHeadingEdit = value => {
+    setFaq(prev => (prev ? { ...prev, heading: value } : prev))
+  }
+
+  // Handle add FAQ item
+  const handleAddFaqItem = () => {
+    setFaq(prev => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        qa: [...prev.qa, { question: "New Question", answer: "New Answer" }],
+      }
+    })
+  }
+
+  // Handle delete FAQ item
+  const handleDeleteFaqItem = index => {
+    setFaq(prev => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        qa: prev.qa.filter((_, i) => i !== index),
+      }
+    })
+  }
+
+  // Render FAQ section - editable
+  const [editingFaqIndex, setEditingFaqIndex] = useState(null)
+  const [editingFaqHeading, setEditingFaqHeading] = useState(false)
+
   const renderFAQ = () => {
     if (!faq) return null
 
     return (
       <motion.div
-        className="relative border rounded-xl p-5 shadow-sm bg-white mb-6 cursor-pointer hover:shadow-md transition-shadow"
+        className="border rounded-xl p-5 shadow-sm bg-white mb-6"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        onClick={() => setFaqRevealed(true)}
       >
-        {!faqRevealed && (
-          <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-10 rounded-xl flex items-center justify-center">
-            <button className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
-              Click to Reveal FAQ
-            </button>
-          </div>
-        )}
+        {/* Editable Heading - using InlineEditor */}
+        <div className="flex items-center justify-between mb-4">
+          {editingFaqHeading ? (
+            <InlineEditor
+              value={faq.heading}
+              onChange={handleFaqHeadingEdit}
+              placeholder="FAQ Heading..."
+              onBlur={() => setEditingFaqHeading(false)}
+              autoFocus
+              singleLine
+              editorClassName="text-2xl font-bold"
+            />
+          ) : (
+            <div
+              className="flex items-center gap-2 group cursor-pointer"
+              onClick={() => setEditingFaqHeading(true)}
+            >
+              <h2 className="text-2xl font-bold">{faq.heading}</h2>
+              <Edit3 className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
+          )}
+          <button
+            onClick={handleAddFaqItem}
+            className="flex items-center gap-1 px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 rounded-lg"
+          >
+            <Plus className="w-4 h-4" /> Add FAQ
+          </button>
+        </div>
 
-        <h2 className="text-2xl font-bold mb-4">{faq.heading}</h2>
-
-        <div className="space-y-6">
+        <div className="space-y-4">
           {faq.qa.map((item, i) => (
-            <div key={i}>
-              <h3 className="font-semibold text-lg">{item.question}</h3>
-              <p className="text-gray-600 mt-1">{item.answer}</p>
+            <div
+              key={i}
+              className="relative group p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              {/* Delete button */}
+              <button
+                onClick={() => handleDeleteFaqItem(i)}
+                className="absolute top-2 right-2 p-1.5 text-red-500 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+
+              {/* Question - editable with InlineEditor */}
+              {editingFaqIndex === `q-${i}` ? (
+                <div className="mb-2">
+                  <InlineEditor
+                    value={item.question}
+                    onChange={val => handleFaqEdit(i, "question", val)}
+                    placeholder="Enter question..."
+                    onBlur={() => setEditingFaqIndex(null)}
+                    autoFocus
+                    singleLine
+                    editorClassName="font-semibold text-lg"
+                  />
+                </div>
+              ) : (
+                <div
+                  className="flex items-center gap-2 cursor-pointer mb-2"
+                  onClick={() => setEditingFaqIndex(`q-${i}`)}
+                >
+                  <h3 className="font-semibold text-lg">{item.question}</h3>
+                  <Edit3 className="w-3 h-3 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+              )}
+
+              {/* Answer - editable with InlineEditor */}
+              {editingFaqIndex === `a-${i}` ? (
+                <InlineEditor
+                  value={item.answer}
+                  onChange={val => handleFaqEdit(i, "answer", val)}
+                  placeholder="Enter answer..."
+                  onBlur={() => setEditingFaqIndex(null)}
+                  autoFocus
+                  editorClassName="text-gray-600"
+                />
+              ) : (
+                <div className="cursor-pointer" onClick={() => setEditingFaqIndex(`a-${i}`)}>
+                  <p className="text-gray-600">{item.answer}</p>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -624,17 +640,15 @@ const TextEditor = ({
           </button>
         </Tooltip>
 
-        {!pathDetect && (
-          <Tooltip title="Regenerate All">
-            <button
-              onClick={handleFullRegenerate}
-              className="px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 flex items-center gap-2 text-sm"
-            >
-              <RotateCcw className="w-4 h-4" />
-              <span className="hidden sm:inline">Regenerate</span>
-            </button>
-          </Tooltip>
-        )}
+        <Tooltip title="Regenerate Blog">
+          <button
+            onClick={() => setIsRegenerateSidebarOpen(true)}
+            className="px-3 py-1.5 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center gap-2 text-sm"
+          >
+            <RefreshCw className="w-4 h-4" />
+            <span className="hidden sm:inline">Regenerate</span>
+          </button>
+        </Tooltip>
       </div>
     </div>
   )
@@ -648,53 +662,57 @@ const TextEditor = ({
         </div>
       )
     }
-    //test
 
     return (
       <div className="p-4 sm:p-6 bg-white min-h-screen">
-        {/* Blog title - editable */}
+        {/* Blog title - editable with rich text bubble menu */}
         <div className="mb-4">
           {isEditingTitle ? (
-            <Input
+            <InlineEditor
               value={blogTitle}
-              onChange={e => setBlogTitle(e.target.value)}
-              onBlur={() => setIsEditingTitle(false)}
-              onPressEnter={() => setIsEditingTitle(false)}
-              autoFocus
-              className="text-3xl font-bold w-full"
+              onChange={setBlogTitle}
               placeholder="Enter blog title..."
+              onBlur={() => setIsEditingTitle(false)}
+              autoFocus
+              singleLine
+              editorClassName="text-3xl font-bold text-gray-900"
             />
           ) : (
             <div
               className="flex items-center gap-2 group cursor-pointer"
               onClick={() => setIsEditingTitle(true)}
             >
-              <h1 className="text-3xl font-bold text-gray-900">{blogTitle || "Untitled Blog"}</h1>
+              <div
+                className="text-3xl font-bold text-gray-900"
+                dangerouslySetInnerHTML={{ __html: blogTitle || "Untitled Blog" }}
+              />
               <Edit3 className="w-5 h-5 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
           )}
         </div>
 
-        {/* Blog description - editable */}
+        {/* Blog description - editable with rich text bubble menu */}
         <div className="mb-8">
           {isEditingDescription ? (
-            <TextArea
+            <InlineEditor
               value={blogDescription}
-              onChange={e => setBlogDescription(e.target.value)}
+              onChange={setBlogDescription}
+              placeholder="Enter blog description..."
               onBlur={() => setIsEditingDescription(false)}
               autoFocus
-              autoSize={{ minRows: 2, maxRows: 6 }}
-              className="text-gray-600"
-              placeholder="Enter blog description..."
+              editorClassName="text-gray-600"
             />
           ) : (
             <div
               className="flex items-start gap-2 group cursor-pointer"
               onClick={() => setIsEditingDescription(true)}
             >
-              <p className="text-gray-600 flex-1">
-                {blogDescription || "Click to add description..."}
-              </p>
+              <div
+                className="text-gray-600 flex-1"
+                dangerouslySetInnerHTML={{
+                  __html: blogDescription || "Click to add description...",
+                }}
+              />
               <Edit3 className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity mt-1" />
             </div>
           )}
@@ -720,56 +738,10 @@ const TextEditor = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
     >
-      {(isRetrying || isSavingKeyword) && (
+      {isSavingKeyword && (
         <div className="fixed inset-0 bg-white/80 flex items-center justify-center z-50">
           <LoadingScreen />
         </div>
-      )}
-
-      {/* Retry Modal */}
-      {retryModalOpen && (
-        <motion.div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-        >
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto mx-4">
-            <h3 className="text-lg font-semibold mb-4">Regenerated Content</h3>
-            <div className="space-y-4">
-              <div>
-                <h4 className="text-sm font-medium text-gray-700 mb-2">Original</h4>
-                <div className="p-4 bg-gray-100 rounded-md prose max-w-none">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
-                    {originalContent || "No content"}
-                  </ReactMarkdown>
-                </div>
-              </div>
-              <div>
-                <h4 className="text-sm font-medium text-gray-700 mb-2">Regenerated</h4>
-                <div className="p-4 bg-green-50 rounded-md prose max-w-none">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
-                    {retryContent}
-                  </ReactMarkdown>
-                </div>
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 mt-4">
-              <button
-                onClick={handleRejectRetry}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
-              >
-                Reject
-              </button>
-              <button
-                onClick={handleAcceptRetry}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                Accept
-              </button>
-            </div>
-          </div>
-        </motion.div>
       )}
 
       {/* Preview Modal */}
@@ -792,15 +764,41 @@ const TextEditor = ({
           <h1 className="text-3xl font-bold mb-2">{blogTitle}</h1>
           {blogDescription && <p className="text-gray-600 mb-6">{blogDescription}</p>}
 
-          {sections.map((sec, i) => (
-            <div key={i} className="mb-10">
-              <h2 className="text-2xl font-bold mb-4">{sec.title}</h2>
-              <div
-                className="prose max-w-none blog-content"
-                dangerouslySetInnerHTML={{ __html: sec.content }}
-              />
-            </div>
-          ))}
+          {sections.map((sec, i) => {
+            const sectionImg = getSectionImage(sec.id)
+            return (
+              <div key={i} className="mb-10">
+                <h2 className="text-2xl font-bold mb-4">{sec.title}</h2>
+                {/* Section Image */}
+                {sectionImg && (
+                  <div className="mb-4">
+                    <img
+                      src={sectionImg.url}
+                      alt={sectionImg.altText || sec.title}
+                      className="w-full max-h-96 object-cover rounded-lg shadow-md"
+                    />
+                    {sectionImg.attribution?.name && (
+                      <p className="text-xs text-gray-500 mt-1 text-center">
+                        Photo by{" "}
+                        <a
+                          href={sectionImg.attribution.profile}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline"
+                        >
+                          {sectionImg.attribution.name}
+                        </a>
+                      </p>
+                    )}
+                  </div>
+                )}
+                <div
+                  className="prose max-w-none blog-content"
+                  dangerouslySetInnerHTML={{ __html: sec.content }}
+                />
+              </div>
+            )
+          })}
 
           {faq && (
             <div className="mt-10">
@@ -824,6 +822,13 @@ const TextEditor = ({
         <div className="sticky top-0 z-50 bg-white shadow-sm">{renderToolbar()}</div>
         <div className="flex-1 overflow-auto">{renderContentArea()}</div>
       </div>
+
+      {/* Regenerate Modal */}
+      <RegenerateModal
+        blog={blog}
+        isOpen={isRegenerateSidebarOpen}
+        onClose={() => setIsRegenerateSidebarOpen(false)}
+      />
     </motion.div>
   )
 }

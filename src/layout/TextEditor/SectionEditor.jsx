@@ -10,6 +10,7 @@ import BulletList from "@tiptap/extension-bullet-list"
 import OrderedList from "@tiptap/extension-ordered-list"
 import ListItem from "@tiptap/extension-list-item"
 import { ProofreadingDecoration } from "@/extensions/ProofreadingDecoration"
+import { getLinkPreview } from "link-preview-js"
 import {
   Bold,
   Italic,
@@ -31,6 +32,7 @@ import {
   Trash2,
   Edit,
   Check,
+  Loader2,
 } from "lucide-react"
 import { Tooltip, message, Modal, Input } from "antd"
 
@@ -63,6 +65,15 @@ const SectionEditor = ({ initialContent, onChange, onBlur, proofreadingResults =
   const [selectedLink, setSelectedLink] = useState(null)
   const [selectedImage, setSelectedImage] = useState(null)
   const [imageEditMode, setImageEditMode] = useState(false)
+
+  // Link hover preview state with metadata
+  const [hoveredLink, setHoveredLink] = useState(null)
+  const [linkPreviewData, setLinkPreviewData] = useState(null)
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false)
+  const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 })
+  const hoverTimeoutRef = useRef(null)
+  const editorContainerRef = useRef(null)
+  const previewCacheRef = useRef({}) // Cache previews to avoid refetching
 
   // Proofreading state
   const [activeProofSpan, setActiveProofSpan] = useState(null)
@@ -571,8 +582,185 @@ const SectionEditor = ({ initialContent, onChange, onBlur, proofreadingResults =
       )}
 
       {/* Editor Content */}
-      <div className="p-4" onClick={() => editor.chain().focus().run()}>
+      <div
+        ref={editorContainerRef}
+        className="p-4 relative"
+        onClick={() => editor.chain().focus().run()}
+        onMouseOver={e => {
+          const link = e.target.closest("a")
+          if (link) {
+            // Clear any existing timeout
+            if (hoverTimeoutRef.current) {
+              clearTimeout(hoverTimeoutRef.current)
+            }
+            // Set hover after a small delay to avoid flickering
+            hoverTimeoutRef.current = setTimeout(async () => {
+              const rect = link.getBoundingClientRect()
+              const containerRect = editorContainerRef.current?.getBoundingClientRect()
+              if (containerRect) {
+                setHoverPosition({
+                  x: Math.min(rect.left - containerRect.left, containerRect.width - 280),
+                  y: rect.bottom - containerRect.top + 5,
+                })
+              }
+
+              const linkHref = link.href
+              setHoveredLink({
+                href: linkHref,
+                text: link.textContent,
+              })
+
+              // Check cache first
+              if (previewCacheRef.current[linkHref]) {
+                setLinkPreviewData(previewCacheRef.current[linkHref])
+              } else {
+                // Fetch link preview using getLinkPreview
+                setIsLoadingPreview(true)
+                setLinkPreviewData(null)
+                try {
+                  const preview = await getLinkPreview(linkHref, {
+                    timeout: 5000,
+                    followRedirects: "follow",
+                    headers: {
+                      "user-agent": "googlebot",
+                    },
+                  })
+
+                  const previewData = {
+                    title: preview.title || "",
+                    description: preview.description || "",
+                    image: preview.images?.[0] || preview.favicons?.[0] || "",
+                    siteName: preview.siteName || new URL(linkHref).hostname,
+                  }
+
+                  previewCacheRef.current[linkHref] = previewData
+                  setLinkPreviewData(previewData)
+                } catch (error) {
+                  console.log("Link preview failed:", error.message)
+                  // Fallback: just show the URL
+                  const fallbackData = {
+                    title: "",
+                    description: "",
+                    image: "",
+                    siteName: new URL(linkHref).hostname,
+                  }
+                  previewCacheRef.current[linkHref] = fallbackData
+                  setLinkPreviewData(fallbackData)
+                } finally {
+                  setIsLoadingPreview(false)
+                }
+              }
+            }, 300)
+          }
+        }}
+        onMouseOut={e => {
+          const link = e.target.closest("a")
+          const relatedTarget = e.relatedTarget
+          if (link && (!relatedTarget || !relatedTarget.closest?.(".link-hover-preview"))) {
+            if (hoverTimeoutRef.current) {
+              clearTimeout(hoverTimeoutRef.current)
+            }
+            // Delay hiding to allow moving to the tooltip
+            hoverTimeoutRef.current = setTimeout(() => {
+              setHoveredLink(null)
+              setLinkPreviewData(null)
+            }, 200)
+          }
+        }}
+      >
         <EditorContent editor={editor} />
+
+        {/* Link Hover Preview Tooltip with Rich Preview */}
+        {hoveredLink && !selectedLink && (
+          <div
+            className="link-hover-preview absolute z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-3 w-72"
+            style={{ left: hoverPosition.x, top: hoverPosition.y }}
+            onMouseEnter={() => {
+              if (hoverTimeoutRef.current) {
+                clearTimeout(hoverTimeoutRef.current)
+              }
+            }}
+            onMouseLeave={() => {
+              setHoveredLink(null)
+              setLinkPreviewData(null)
+            }}
+          >
+            {isLoadingPreview ? (
+              <div className="flex items-center gap-2 py-2">
+                <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
+                <span className="text-sm text-gray-500">Loading preview...</span>
+              </div>
+            ) : linkPreviewData ? (
+              <div>
+                {/* Preview Image */}
+                {linkPreviewData.image && (
+                  <div className="mb-2 -mx-3 -mt-3">
+                    <img
+                      src={linkPreviewData.image}
+                      alt=""
+                      className="w-full h-32 object-cover rounded-t-lg"
+                      onError={e => (e.target.style.display = "none")}
+                    />
+                  </div>
+                )}
+
+                {/* Preview Title */}
+                {linkPreviewData.title && (
+                  <h4 className="font-semibold text-sm text-gray-900 line-clamp-2 mb-1">
+                    {linkPreviewData.title}
+                  </h4>
+                )}
+
+                {/* Preview Description */}
+                {linkPreviewData.description && (
+                  <p className="text-xs text-gray-500 line-clamp-2 mb-2">
+                    {linkPreviewData.description}
+                  </p>
+                )}
+
+                {/* Site Name */}
+                <div className="flex items-center gap-1 text-xs text-gray-400 mb-2">
+                  <LinkIcon className="w-3 h-3" />
+                  <span className="truncate">{linkPreviewData.siteName}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 mb-2">
+                <LinkIcon className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                <a
+                  href={hoveredLink.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:underline text-sm truncate"
+                >
+                  {hoveredLink.href}
+                </a>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex gap-1 pt-2 border-t border-gray-100">
+              <a
+                href={hoveredLink.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 px-2 py-1.5 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center justify-center gap-1"
+              >
+                <ExternalLink className="w-3 h-3" /> Open
+              </a>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(hoveredLink.href)
+                  message.success("Link copied!")
+                  setHoveredLink(null)
+                }}
+                className="flex-1 px-2 py-1.5 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+              >
+                Copy URL
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Link Modal */}

@@ -1,37 +1,151 @@
 import React, { useState } from "react"
 import { motion } from "framer-motion"
-import { RotateCcw, Trash2, Lock, Edit3 } from "lucide-react"
-import { Tooltip, Input } from "antd"
+import {
+  Trash2,
+  Lock,
+  Edit3,
+  Image as ImageIcon,
+  Check,
+  X,
+  Plus,
+  ChevronUp,
+  ChevronDown,
+  GripVertical,
+} from "lucide-react"
+import { Tooltip, Input, message, Modal, Popover } from "antd"
 import SectionEditor from "./SectionEditor"
 import { useEditorContext } from "./EditorContext"
 
 const SectionCard = ({ section, index }) => {
   const [editingTitle, setEditingTitle] = useState(false)
+  const [imageMenuOpen, setImageMenuOpen] = useState(false)
+  const [editingImageAlt, setEditingImageAlt] = useState(false)
+  const [imageAltText, setImageAltText] = useState("")
+  const [replaceImageModalOpen, setReplaceImageModalOpen] = useState(false)
+  const [newImageUrl, setNewImageUrl] = useState("")
 
   const {
     userPlan,
     editingIndex,
     setEditingIndex,
     handleDelete,
-    handleRegenerate,
     handleSectionChange,
     handleSectionTitleChange,
+    handleAddSection,
+    handleMoveSection,
+    sectionsCount,
     navigateToPricing,
     getSectionImage,
     proofreadingResults,
+    onUpdateSectionImage,
+    onDeleteSectionImage,
   } = useEditorContext()
 
   const locked = userPlan === "free" && index > 1
   const isEditing = editingIndex === index
   const sectionImage = getSectionImage?.(section.id)
+  const isFirst = index === 0
+  const isLast = index === sectionsCount - 1
 
   // Get proofreading suggestions for this section
   const sectionProofResults = proofreadingResults || []
 
+  // Handle image alt text update
+  const handleUpdateAlt = () => {
+    if (onUpdateSectionImage && sectionImage) {
+      onUpdateSectionImage(section.id, { ...sectionImage, altText: imageAltText })
+      message.success("Alt text updated")
+    }
+    setEditingImageAlt(false)
+    setImageMenuOpen(false)
+  }
+
+  // Handle image delete
+  const handleDeleteImage = () => {
+    if (onDeleteSectionImage) {
+      onDeleteSectionImage(section.id)
+      message.success("Image removed")
+    }
+    setImageMenuOpen(false)
+  }
+
+  // Handle image replace
+  const handleReplaceImage = () => {
+    if (!newImageUrl) {
+      message.error("Please enter an image URL")
+      return
+    }
+    if (onUpdateSectionImage && sectionImage) {
+      onUpdateSectionImage(section.id, { ...sectionImage, url: newImageUrl })
+      message.success("Image replaced")
+    }
+    setReplaceImageModalOpen(false)
+    setNewImageUrl("")
+    setImageMenuOpen(false)
+  }
+
+  // Image action menu content
+  const imageMenuContent = (
+    <div className="min-w-[150px]">
+      {editingImageAlt ? (
+        <div className="space-y-2">
+          <Input
+            size="small"
+            value={imageAltText}
+            onChange={e => setImageAltText(e.target.value)}
+            placeholder="Enter alt text"
+            autoFocus
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={handleUpdateAlt}
+              className="flex-1 px-2 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600 flex items-center justify-center gap-1"
+            >
+              <Check className="w-3 h-3" /> Save
+            </button>
+            <button
+              onClick={() => setEditingImageAlt(false)}
+              className="flex-1 px-2 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300 flex items-center justify-center gap-1"
+            >
+              <X className="w-3 h-3" /> Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-1">
+          <button
+            onClick={() => {
+              setImageAltText(sectionImage?.altText || "")
+              setEditingImageAlt(true)
+            }}
+            className="w-full px-1 py-1 text-left text-sm hover:bg-gray-100 rounded flex items-center gap-2"
+          >
+            <Edit3 className="w-4 h-4" /> Edit Alt Text
+          </button>
+          <button
+            onClick={() => {
+              setNewImageUrl(sectionImage?.url || "")
+              setReplaceImageModalOpen(true)
+            }}
+            className="w-full px-1 py-1 text-left text-sm hover:bg-gray-100 rounded flex items-center gap-2"
+          >
+            <ImageIcon className="w-4 h-4" /> Replace Image
+          </button>
+          <button
+            onClick={handleDeleteImage}
+            className="w-full px-1 py-1 text-left text-sm hover:bg-red-50 text-red-600 rounded flex items-center gap-2"
+          >
+            <Trash2 className="w-4 h-4" /> Delete Image
+          </button>
+        </div>
+      )}
+    </div>
+  )
+
   return (
     <motion.div
       key={section.id || index}
-      className="relative border rounded-xl p-5 shadow-sm bg-white mb-6 hover:shadow-md transition-shadow"
+      className="relative border rounded-xl p-5 shadow-sm bg-white mb-6 hover:shadow-md transition-shadow group"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: index * 0.05 }}
@@ -55,34 +169,59 @@ const SectionCard = ({ section, index }) => {
         </div>
       )}
 
-      {/* Action buttons */}
-      <div className="absolute top-3 right-3 flex gap-2 z-20">
-        <Tooltip title="Regenerate Section">
+      {/* Action buttons - move and delete */}
+      <div className="absolute top-3 right-3 flex items-center gap-1 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+        {/* Move Up */}
+        <Tooltip title="Move Up">
           <button
             onClick={e => {
               e.stopPropagation()
-              handleRegenerate(index)
+              handleMoveSection(index, "up")
             }}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            disabled={isFirst}
+            className={`p-1.5 rounded-lg transition-colors ${
+              isFirst ? "opacity-30 cursor-not-allowed" : "hover:bg-gray-100"
+            }`}
           >
-            <RotateCcw className="w-4 h-4 text-gray-500" />
+            <ChevronUp className="w-4 h-4 text-gray-500" />
           </button>
         </Tooltip>
+        {/* Move Down */}
+        <Tooltip title="Move Down">
+          <button
+            onClick={e => {
+              e.stopPropagation()
+              handleMoveSection(index, "down")
+            }}
+            disabled={isLast}
+            className={`p-1.5 rounded-lg transition-colors ${
+              isLast ? "opacity-30 cursor-not-allowed" : "hover:bg-gray-100"
+            }`}
+          >
+            <ChevronDown className="w-4 h-4 text-gray-500" />
+          </button>
+        </Tooltip>
+        {/* Delete */}
         <Tooltip title="Delete Section">
           <button
             onClick={e => {
               e.stopPropagation()
               handleDelete(index)
             }}
-            className="p-2 rounded-lg hover:bg-red-50 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-red-50 transition-colors"
           >
             <Trash2 className="w-4 h-4 text-red-500" />
           </button>
         </Tooltip>
       </div>
 
+      {/* Drag handle indicator */}
+      <div className="absolute top-1/2 -left-2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <GripVertical className="w-4 h-4 text-gray-300" />
+      </div>
+
       {/* Section title - editable */}
-      <div className="mb-3 pr-20">
+      <div className="mb-3 pr-12">
         {editingTitle ? (
           <Input
             value={section.title}
@@ -106,25 +245,31 @@ const SectionCard = ({ section, index }) => {
         )}
       </div>
 
-      {/* Keywords */}
-      {section.keywords && section.keywords.length > 0 && (
-        <div className="flex gap-2 flex-wrap mb-4">
-          {section.keywords.map((kw, i) => (
-            <span key={i} className="px-2 py-1 bg-blue-100 text-blue-700 rounded-md text-xs">
-              #{kw}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* Section Image */}
+      {/* Section Image - with edit options */}
       {sectionImage && (
-        <div className="mb-4">
-          <img
-            src={sectionImage.url}
-            alt={sectionImage.altText || section.title}
-            className="w-full max-h-80 object-cover rounded-lg shadow-sm"
-          />
+        <div className="mb-4 relative group">
+          <Popover
+            content={imageMenuContent}
+            trigger="click"
+            open={imageMenuOpen}
+            onOpenChange={setImageMenuOpen}
+            placement="bottom"
+            className="p-0"
+          >
+            <div className="cursor-pointer relative">
+              <img
+                src={sectionImage.url}
+                alt={sectionImage.altText || section.title}
+                className="w-full h-full object-cover rounded-lg shadow-sm transition-all group-hover:brightness-95"
+              />
+              {/* Overlay hint on hover */}
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all rounded-lg flex items-center justify-center">
+                <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-700 shadow">
+                  Click to edit image
+                </span>
+              </div>
+            </div>
+          </Popover>
           {sectionImage.attribution?.name && (
             <p className="text-xs text-gray-500 mt-1 text-center">
               Photo by{" "}
@@ -140,6 +285,37 @@ const SectionCard = ({ section, index }) => {
           )}
         </div>
       )}
+
+      {/* Replace Image Modal */}
+      <Modal
+        title="Replace Image"
+        open={replaceImageModalOpen}
+        onCancel={() => setReplaceImageModalOpen(false)}
+        onOk={handleReplaceImage}
+        okText="Replace"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">New Image URL</label>
+            <Input
+              value={newImageUrl}
+              onChange={e => setNewImageUrl(e.target.value)}
+              placeholder="https://example.com/image.jpg"
+            />
+          </div>
+          {newImageUrl && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Preview</label>
+              <img
+                src={newImageUrl}
+                alt="Preview"
+                className="max-h-40 rounded-lg"
+                onError={e => (e.target.style.display = "none")}
+              />
+            </div>
+          )}
+        </div>
+      </Modal>
 
       {/* Content area - always editable, no reveal */}
       {isEditing ? (
@@ -162,6 +338,24 @@ const SectionCard = ({ section, index }) => {
               <span className="text-sm text-gray-500">Click to edit</span>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Add Section Below - appears on hover */}
+      {!locked && (
+        <div className="absolute -bottom-3 left-1/2 transform -translate-x-1/2 opacity-0 hover:opacity-100 group-hover:opacity-100 transition-opacity z-30">
+          <Tooltip title="Add section below">
+            <button
+              onClick={e => {
+                e.stopPropagation()
+                handleAddSection(index)
+              }}
+              className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-xs rounded-full shadow-lg hover:bg-blue-700 transition-colors"
+            >
+              <Plus className="w-3 h-3" />
+              Add Section
+            </button>
+          </Tooltip>
         </div>
       )}
     </motion.div>
