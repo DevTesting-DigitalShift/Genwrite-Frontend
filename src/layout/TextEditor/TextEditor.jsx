@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
-import { motion } from "framer-motion"
+import { motion, Reorder } from "framer-motion"
 import { Copy, Eye, Edit3, RefreshCw, Plus, Trash2 } from "lucide-react"
 import { useSelector } from "react-redux"
 import { Modal, Tooltip, message, Button, Input } from "antd"
@@ -14,7 +14,6 @@ import showdown from "showdown"
 import SectionCard from "./SectionCard"
 import { EditorProvider } from "./EditorContext"
 import InlineEditor from "./InlineEditor"
-import RegenerateModal from "../TextEditorSidebar/RegenerateModal"
 
 // Configure showdown for better image handling
 showdown.setOption("tables", true)
@@ -155,7 +154,6 @@ const TextEditor = ({
   const [isEditorLoading, setIsEditorLoading] = useState(true)
   const [openPreview, setOpenPreview] = useState(false)
   const [editingIndex, setEditingIndex] = useState(null)
-  const [isRegenerateSidebarOpen, setIsRegenerateSidebarOpen] = useState(false)
 
   // Sections state
   const [sections, setSections] = useState([])
@@ -391,6 +389,25 @@ const TextEditor = ({
     })
   }
 
+  // Handle find and replace text in sections (for proofreading)
+  const handleReplaceInSections = useCallback((original, change) => {
+    if (!original || !change) return
+
+    const regex = new RegExp(original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g")
+
+    setSections(prev =>
+      prev.map(section => {
+        if (section.content && section.content.includes(original)) {
+          return {
+            ...section,
+            content: section.content.replace(regex, change),
+          }
+        }
+        return section
+      })
+    )
+  }, [])
+
   // Copy all content
   const copyContent = async () => {
     try {
@@ -431,6 +448,19 @@ const TextEditor = ({
     }
   }, [blog?.status])
 
+  // Wrapped handleReplace that updates both parent and local sections
+  const handleReplaceWithSections = useCallback(
+    (original, change) => {
+      // Update sections locally
+      handleReplaceInSections(original, change)
+      // Also call parent's handleReplace if available
+      if (handleReplace) {
+        handleReplace(original, change)
+      }
+    },
+    [handleReplaceInSections, handleReplace]
+  )
+
   // Editor context value for child components
   const editorContextValue = useMemo(
     () => ({
@@ -446,6 +476,7 @@ const TextEditor = ({
       navigateToPricing: () => navigate("/pricing"),
       getSectionImage,
       proofreadingResults: proofreadingResults || [],
+      handleReplace: handleReplaceWithSections, // Use wrapped version that updates sections
       onUpdateSectionImage: handleUpdateSectionImage,
       onDeleteSectionImage: handleDeleteSectionImage,
     }),
@@ -461,6 +492,7 @@ const TextEditor = ({
       navigate,
       getSectionImage,
       proofreadingResults,
+      handleReplaceWithSections,
       handleUpdateSectionImage,
       handleDeleteSectionImage,
     ]
@@ -620,16 +652,6 @@ const TextEditor = ({
       </div>
 
       <div className="flex gap-2">
-        <Tooltip title="Copy All Content">
-          <button
-            onClick={copyContent}
-            className="px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 flex items-center gap-2 text-sm"
-          >
-            <Copy className="w-4 h-4" />
-            <span className="hidden sm:inline">Copy</span>
-          </button>
-        </Tooltip>
-
         <Tooltip title="Preview">
           <button
             onClick={() => setOpenPreview(true)}
@@ -637,16 +659,6 @@ const TextEditor = ({
           >
             <Eye className="w-4 h-4" />
             <span className="hidden sm:inline">Preview</span>
-          </button>
-        </Tooltip>
-
-        <Tooltip title="Regenerate Blog">
-          <button
-            onClick={() => setIsRegenerateSidebarOpen(true)}
-            className="px-3 py-1.5 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center gap-2 text-sm"
-          >
-            <RefreshCw className="w-4 h-4" />
-            <span className="hidden sm:inline">Regenerate</span>
           </button>
         </Tooltip>
       </div>
@@ -718,13 +730,13 @@ const TextEditor = ({
           )}
         </div>
 
-        {/* Sections */}
+        {/* Sections - Drag and Drop enabled */}
         <EditorProvider value={editorContextValue}>
-          <div className="space-y-6">
+          <Reorder.Group axis="y" values={sections} onReorder={setSections} className="space-y-6">
             {sections.map((section, index) => (
               <SectionCard key={section.id || index} section={section} index={index} />
             ))}
-          </div>
+          </Reorder.Group>
         </EditorProvider>
         {renderFAQ()}
       </div>
@@ -749,42 +761,53 @@ const TextEditor = ({
         open={openPreview}
         onCancel={() => setOpenPreview(false)}
         footer={null}
-        width={900}
+        width={950}
         centered
         title={
-          <div className="flex justify-between items-center w-full pr-8">
-            <span className="text-xl font-bold">Preview</span>
-            <Button type="primary" onClick={copyContent}>
+          <div className="flex justify-between items-center w-full pr-4">
+            <span className="text-lg font-semibold text-gray-800">Blog Preview</span>
+
+            <Button
+              type="primary"
+              onClick={copyContent}
+              className="!bg-gradient-to-r !from-indigo-500 !to-purple-600 !shadow-sm hover:!shadow-md mr-5"
+            >
               Copy All
             </Button>
           </div>
         }
       >
-        <div className="max-h-[70vh] overflow-y-auto px-2">
-          <h1 className="text-3xl font-bold mb-2">{blogTitle}</h1>
-          {blogDescription && <p className="text-gray-600 mb-6">{blogDescription}</p>}
+        <div className="max-h-[70vh] overflow-y-auto px-4 pb-6 custom-scroll">
+          {/* Blog Title */}
+          <h1 className="text-2xl font-semibold mb-2 leading-snug text-gray-900">{blogTitle}</h1>
 
+          {blogDescription && <p className="text-gray-600 text-sm mb-6">{blogDescription}</p>}
+
+          {/* Blog Sections */}
           {sections.map((sec, i) => {
             const sectionImg = getSectionImage(sec.id)
             return (
-              <div key={i} className="mb-10">
-                <h2 className="text-2xl font-bold mb-4">{sec.title}</h2>
+              <div key={i} className="mb-10 border-b last:border-b-0">
+                {/* Section Heading */}
+                <h2 className="text-xl font-medium mb-3 text-gray-800">{sec.title}</h2>
+
                 {/* Section Image */}
                 {sectionImg && (
                   <div className="mb-4">
                     <img
                       src={sectionImg.url}
                       alt={sectionImg.altText || sec.title}
-                      className="w-full max-h-96 object-cover rounded-lg shadow-md"
+                      className="w-full max-h-[380px] object-cover rounded-lg shadow-md"
                     />
+
                     {sectionImg.attribution?.name && (
-                      <p className="text-xs text-gray-500 mt-1 text-center">
+                      <p className="text-xs text-gray-500 mt-2 text-center">
                         Photo by{" "}
                         <a
                           href={sectionImg.attribution.profile}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline"
+                          className="text-indigo-500 hover:underline"
                         >
                           {sectionImg.attribution.name}
                         </a>
@@ -792,28 +815,32 @@ const TextEditor = ({
                     )}
                   </div>
                 )}
+
+                {/* Section Content */}
                 <div
-                  className="prose max-w-none blog-content"
+                  className="prose max-w-none blog-content text-gray-700 leading-relaxed"
                   dangerouslySetInnerHTML={{ __html: sec.content }}
                 />
               </div>
             )
           })}
 
+          {/* FAQ Section */}
           {faq && (
-            <div className="mt-10">
-              <h2 className="text-2xl font-bold mb-4">{faq.heading}</h2>
+            <div className="mt-10 p-5 border rounded-lg bg-gray-50 shadow-sm">
+              <h2 className="text-xl font-medium mb-3 text-gray-800">{faq.heading}</h2>
+
               {faq.qa.map((item, i) => (
-                <div key={i} className="mt-4">
-                  <h3 className="font-semibold text-lg">{item.question}</h3>
-                  <p className="text-gray-700 mt-1">{item.answer}</p>
+                <div key={i} className="mt-3">
+                  <h3 className="font-medium text-base text-gray-800">{item.question}</h3>
+                  <p className="text-gray-600 text-sm mt-1">{item.answer}</p>
                 </div>
               ))}
             </div>
           )}
 
-          {sections.length === 0 && (
-            <div className="text-center py-10 text-gray-500">No sections available.</div>
+          {!sections.length && (
+            <div className="text-center py-12 text-gray-500">No sections available.</div>
           )}
         </div>
       </Modal>
@@ -822,13 +849,6 @@ const TextEditor = ({
         <div className="sticky top-0 z-50 bg-white shadow-sm">{renderToolbar()}</div>
         <div className="flex-1 overflow-auto">{renderContentArea()}</div>
       </div>
-
-      {/* Regenerate Modal */}
-      <RegenerateModal
-        blog={blog}
-        isOpen={isRegenerateSidebarOpen}
-        onClose={() => setIsRegenerateSidebarOpen(false)}
-      />
     </motion.div>
   )
 }

@@ -159,28 +159,26 @@ input[type="number"] {
   }
 }
 
-/* Highlighted proof text */
+/* Highlighted proof text - shows red underline in editor */
 .proofreading-mark {
   position: relative;
-  background-color: #fff4e5;
-  border-bottom: 2px dashed #f5320bdf; /* Amber-500 */
-  color: #1f2937; /* Neutral-800 */
+  background-color: #fee2e2; /* Red-100 */
+  border-bottom: 2px wavy #dc2626; /* Red-600 wavy underline */
+  color: #1f2937;
   cursor: pointer;
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  transition: all 0.2s ease;
+  padding: 0 2px;
+  border-radius: 2px;
 }
 
 .proofreading-mark:hover {
-  background-color: #ffedd5; /* Amber-100 */
-  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2); /* subtle highlight */
+  background-color: #fecaca; /* Red-200 */
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.2);
 }
 
-/* Suggestion preview inline */
+/* Remove the inline suggestion preview - too cluttered */
 .proofreading-mark::after {
-  content: " → " attr(data-suggestion);
-  color: #9ca3af; /* Gray-400 */
-  font-size: 0.85em;
-  font-style: italic;
-  margin-left: 6px;
+  content: none;
 }
 
 /* The Accept/Reject floating popup */

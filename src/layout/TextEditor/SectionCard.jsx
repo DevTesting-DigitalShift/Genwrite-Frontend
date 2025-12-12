@@ -1,5 +1,5 @@
 import React, { useState } from "react"
-import { motion } from "framer-motion"
+import { motion, Reorder, useDragControls } from "framer-motion"
 import {
   Trash2,
   Lock,
@@ -37,6 +37,7 @@ const SectionCard = ({ section, index }) => {
     navigateToPricing,
     getSectionImage,
     proofreadingResults,
+    handleReplace,
     onUpdateSectionImage,
     onDeleteSectionImage,
   } = useEditorContext()
@@ -47,8 +48,35 @@ const SectionCard = ({ section, index }) => {
   const isFirst = index === 0
   const isLast = index === sectionsCount - 1
 
-  // Get proofreading suggestions for this section
-  const sectionProofResults = proofreadingResults || []
+  // Helper function to strip HTML tags for text comparison
+  const stripHtml = html => {
+    if (!html) return ""
+    return html
+      .replace(/<[^>]*>/g, "")
+      .replace(/&nbsp;/g, " ")
+      .trim()
+  }
+
+  // Filter proofreading suggestions that match this section's content
+  const sectionSuggestions = (proofreadingResults || []).filter(suggestion => {
+    if (!section.content || !suggestion.original) return false
+    // Check if original text exists in the section content (plain text or HTML)
+    const plainContent = stripHtml(section.content)
+    return (
+      section.content.includes(suggestion.original) || plainContent.includes(suggestion.original)
+    )
+  })
+
+  // Handle accepting a proofreading suggestion
+  const handleAcceptSuggestion = suggestion => {
+    if (!suggestion?.original || !suggestion?.change) return
+
+    // Call handleReplace which updates sections and removes from suggestion list
+    if (handleReplace) {
+      handleReplace(suggestion.original, suggestion.change)
+      message.success("Change applied!")
+    }
+  }
 
   // Handle image alt text update
   const handleUpdateAlt = () => {
@@ -142,13 +170,25 @@ const SectionCard = ({ section, index }) => {
     </div>
   )
 
+  const dragControls = useDragControls()
+
   return (
-    <motion.div
-      key={section.id || index}
+    <Reorder.Item
+      value={section}
+      id={section.id || `section-${index}`}
+      dragListener={false}
+      dragControls={dragControls}
       className="relative border rounded-xl p-5 shadow-sm bg-white mb-6 hover:shadow-md transition-shadow group"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.3, delay: index * 0.05 }}
+      whileDrag={{
+        scale: 1.02,
+        boxShadow: "0 10px 40px rgba(0,0,0,0.15)",
+        zIndex: 50,
+        cursor: "grabbing",
+      }}
     >
       {/* Locked overlay for free users */}
       {locked && (
@@ -215,10 +255,20 @@ const SectionCard = ({ section, index }) => {
         </Tooltip>
       </div>
 
-      {/* Drag handle indicator */}
-      <div className="absolute top-1/2 -left-2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-        <GripVertical className="w-4 h-4 text-gray-300" />
-      </div>
+      {/* Drag handle - functional for drag and drop */}
+      {!locked && (
+        <Tooltip title="Drag to reorder">
+          <div
+            className="absolute top-1/2 -left-3 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing p-2 hover:bg-gray-100 rounded-lg z-30"
+            onPointerDown={e => {
+              e.preventDefault()
+              dragControls.start(e)
+            }}
+          >
+            <GripVertical className="w-5 h-5 text-gray-400" />
+          </div>
+        </Tooltip>
+      )}
 
       {/* Section title - editable */}
       <div className="mb-3 pr-12">
@@ -324,7 +374,8 @@ const SectionCard = ({ section, index }) => {
             initialContent={section.content}
             onChange={html => handleSectionChange(index, { content: html })}
             onBlur={() => setEditingIndex(null)}
-            proofreadingResults={sectionProofResults}
+            proofreadingResults={sectionSuggestions}
+            onAcceptSuggestion={handleAcceptSuggestion}
           />
         </div>
       ) : (
@@ -358,7 +409,7 @@ const SectionCard = ({ section, index }) => {
           </Tooltip>
         </div>
       )}
-    </motion.div>
+    </Reorder.Item>
   )
 }
 

@@ -9,6 +9,10 @@ import Heading from "@tiptap/extension-heading"
 import BulletList from "@tiptap/extension-bullet-list"
 import OrderedList from "@tiptap/extension-ordered-list"
 import ListItem from "@tiptap/extension-list-item"
+import { Table } from "@tiptap/extension-table"
+import { TableRow } from "@tiptap/extension-table-row"
+import { TableCell } from "@tiptap/extension-table-cell"
+import { TableHeader } from "@tiptap/extension-table-header"
 import { ProofreadingDecoration } from "@/extensions/ProofreadingDecoration"
 import { getLinkPreview } from "link-preview-js"
 import {
@@ -33,8 +37,11 @@ import {
   Edit,
   Check,
   Loader2,
+  Table as TableIcon,
+  Plus,
+  Minus,
 } from "lucide-react"
-import { Tooltip, message, Modal, Input } from "antd"
+import { Tooltip, message, Modal, Input, Dropdown, Button } from "antd"
 
 const ToolbarButton = ({ active, onClick, disabled, children, title }) => (
   <Tooltip title={title}>
@@ -55,7 +62,13 @@ const ToolbarButton = ({ active, onClick, disabled, children, title }) => (
   </Tooltip>
 )
 
-const SectionEditor = ({ initialContent, onChange, onBlur, proofreadingResults = [] }) => {
+const SectionEditor = ({
+  initialContent,
+  onChange,
+  onBlur,
+  proofreadingResults = [],
+  onAcceptSuggestion,
+}) => {
   const [linkModalOpen, setLinkModalOpen] = useState(false)
   const [linkUrl, setLinkUrl] = useState("")
   const [linkText, setLinkText] = useState("")
@@ -92,6 +105,27 @@ const SectionEditor = ({ initialContent, onChange, onBlur, proofreadingResults =
       OrderedList,
       ListItem,
       Underline,
+      Table.configure({
+        resizable: true,
+        HTMLAttributes: {
+          class: "border-collapse border border-gray-300 w-full my-4",
+        },
+      }),
+      TableRow.configure({
+        HTMLAttributes: {
+          class: "border border-gray-300",
+        },
+      }),
+      TableHeader.configure({
+        HTMLAttributes: {
+          class: "border border-gray-300 bg-gray-100 p-2 font-semibold text-left",
+        },
+      }),
+      TableCell.configure({
+        HTMLAttributes: {
+          class: "border border-gray-300 p-2",
+        },
+      }),
       Image.configure({
         HTMLAttributes: {
           class: "rounded-lg max-w-full h-auto object-contain my-4 cursor-pointer",
@@ -156,9 +190,11 @@ const SectionEditor = ({ initialContent, onChange, onBlur, proofreadingResults =
           return true
         }
 
-        // Check if clicked on proofreading mark
-        const proofMark = event.target.closest(".proofreading-mark")
-        if (proofMark && proofMark.dataset.suggestion) {
+        // Check if clicked on proofreading mark (original or suggestion)
+        const proofMark = event.target.closest(
+          ".proofreading-original, .proofreading-suggestion, .proofreading-mark"
+        )
+        if (proofMark && (proofMark.dataset.suggestion || proofMark.dataset.original)) {
           event.preventDefault()
           setActiveProofSpan(proofMark)
           return true
@@ -172,14 +208,15 @@ const SectionEditor = ({ initialContent, onChange, onBlur, proofreadingResults =
     },
   })
 
-  // Update proofreading suggestions when they change
+  // Update proofreading suggestions when they change (including when cleared)
   useEffect(() => {
-    if (editor && proofreadingResults?.length > 0) {
+    if (editor) {
       const proofExt = editor.extensionManager.extensions.find(
         ext => ext.name === "proofreadingDecoration"
       )
       if (proofExt) {
-        proofExt.options.suggestions = proofreadingResults
+        proofExt.options.suggestions = proofreadingResults || []
+        // Force a re-render of decorations
         editor.view.dispatch(editor.state.tr)
       }
     }
@@ -198,19 +235,30 @@ const SectionEditor = ({ initialContent, onChange, onBlur, proofreadingResults =
   const applyProofChange = () => {
     if (!activeProofSpan || !editor) return
 
-    const from = Number(activeProofSpan.dataset.from)
-    const to = Number(activeProofSpan.dataset.to)
+    const original = activeProofSpan.dataset.original
     const suggestion = activeProofSpan.dataset.suggestion
 
-    if (!suggestion || isNaN(from) || isNaN(to)) return
+    if (!original || !suggestion) return
 
-    try {
-      editor.chain().focus().deleteRange({ from, to }).insertContent(suggestion).run()
-      setActiveProofSpan(null)
-      message.success("Change applied")
-    } catch (error) {
-      console.error("Error applying change:", error)
+    // Use the callback from parent to properly update content and remove suggestion
+    if (onAcceptSuggestion) {
+      onAcceptSuggestion({ original, change: suggestion })
+    } else {
+      // Fallback: directly update in editor
+      const from = Number(activeProofSpan.dataset.from)
+      const to = Number(activeProofSpan.dataset.to)
+
+      if (!isNaN(from) && !isNaN(to)) {
+        try {
+          editor.chain().focus().deleteRange({ from, to }).insertContent(suggestion).run()
+          message.success("Change applied")
+        } catch (error) {
+          console.error("Error applying change:", error)
+        }
+      }
     }
+
+    setActiveProofSpan(null)
   }
 
   const rejectProofChange = () => {
@@ -440,13 +488,124 @@ const SectionEditor = ({ initialContent, onChange, onBlur, proofreadingResults =
 
         <div className="w-px h-6 bg-gray-300 mx-1" />
 
-        {/* Link & Image */}
+        {/* Link & Image & Table */}
         <ToolbarButton title="Add Link" active={editor.isActive("link")} onClick={handleAddLink}>
           <LinkIcon className="w-4 h-4" />
         </ToolbarButton>
         <ToolbarButton title="Add Image" onClick={handleAddImage}>
           <ImageIcon className="w-4 h-4" />
         </ToolbarButton>
+
+        {/* Table Dropdown */}
+        <Dropdown
+          menu={{
+            items: [
+              {
+                key: "insert",
+                label: (
+                  <div className="flex items-center gap-2">
+                    <TableIcon className="w-4 h-4" />
+                    <span>Insert 3×3 Table</span>
+                  </div>
+                ),
+                onClick: () =>
+                  editor
+                    .chain()
+                    .focus()
+                    .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+                    .run(),
+              },
+              { type: "divider" },
+              {
+                key: "addRowBefore",
+                label: (
+                  <div className="flex items-center gap-2">
+                    <Plus className="w-4 h-4" />
+                    <span>Add Row Before</span>
+                  </div>
+                ),
+                onClick: () => editor.chain().focus().addRowBefore().run(),
+                disabled: !editor.can().addRowBefore(),
+              },
+              {
+                key: "addRowAfter",
+                label: (
+                  <div className="flex items-center gap-2">
+                    <Plus className="w-4 h-4" />
+                    <span>Add Row After</span>
+                  </div>
+                ),
+                onClick: () => editor.chain().focus().addRowAfter().run(),
+                disabled: !editor.can().addRowAfter(),
+              },
+              {
+                key: "deleteRow",
+                label: (
+                  <div className="flex items-center gap-2 text-red-500">
+                    <Minus className="w-4 h-4" />
+                    <span>Delete Row</span>
+                  </div>
+                ),
+                onClick: () => editor.chain().focus().deleteRow().run(),
+                disabled: !editor.can().deleteRow(),
+              },
+              { type: "divider" },
+              {
+                key: "addColBefore",
+                label: (
+                  <div className="flex items-center gap-2">
+                    <Plus className="w-4 h-4" />
+                    <span>Add Column Before</span>
+                  </div>
+                ),
+                onClick: () => editor.chain().focus().addColumnBefore().run(),
+                disabled: !editor.can().addColumnBefore(),
+              },
+              {
+                key: "addColAfter",
+                label: (
+                  <div className="flex items-center gap-2">
+                    <Plus className="w-4 h-4" />
+                    <span>Add Column After</span>
+                  </div>
+                ),
+                onClick: () => editor.chain().focus().addColumnAfter().run(),
+                disabled: !editor.can().addColumnAfter(),
+              },
+              {
+                key: "deleteCol",
+                label: (
+                  <div className="flex items-center gap-2 text-red-500">
+                    <Minus className="w-4 h-4" />
+                    <span>Delete Column</span>
+                  </div>
+                ),
+                onClick: () => editor.chain().focus().deleteColumn().run(),
+                disabled: !editor.can().deleteColumn(),
+              },
+              { type: "divider" },
+              {
+                key: "deleteTable",
+                label: (
+                  <div className="flex items-center gap-2 text-red-500">
+                    <Trash2 className="w-4 h-4" />
+                    <span>Delete Table</span>
+                  </div>
+                ),
+                onClick: () => editor.chain().focus().deleteTable().run(),
+                disabled: !editor.can().deleteTable(),
+              },
+            ],
+          }}
+          trigger={["click"]}
+          placement="bottomLeft"
+        >
+          <div>
+            <ToolbarButton title="Table" active={editor.isActive("table")}>
+              <TableIcon className="w-4 h-4" />
+            </ToolbarButton>
+          </div>
+        </Dropdown>
 
         <div className="w-px h-6 bg-gray-300 mx-1" />
 
@@ -555,28 +714,72 @@ const SectionEditor = ({ initialContent, onChange, onBlur, proofreadingResults =
         </div>
       )}
 
-      {/* Proofreading Popup */}
+      {/* Proofreading Popup - Shows when clicking on highlighted text */}
       {activeProofSpan && (
         <div
           ref={proofBubbleRef}
-          className="flex items-center gap-2 px-3 py-2 bg-amber-50 border-b text-sm"
+          className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-xl shadow-lg mx-4 mb-4 overflow-hidden"
         >
-          <span className="text-amber-700">
-            <strong>Suggestion:</strong> {activeProofSpan.dataset.suggestion}
-          </span>
-          <div className="flex gap-1 ml-auto">
-            <button
-              onClick={applyProofChange}
-              className="px-2 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600"
-            >
-              Accept
-            </button>
-            <button
-              onClick={rejectProofChange}
-              className="px-2 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300"
-            >
-              Reject
-            </button>
+          {/* Header */}
+          <div className="px-4 py-2 bg-gradient-to-r from-amber-100 to-orange-100 border-b border-amber-200 flex items-center gap-2">
+            <div className="w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center">
+              <span className="text-white text-xs font-bold">!</span>
+            </div>
+            <span className="text-sm font-semibold text-amber-800">AI Suggestion</span>
+          </div>
+
+          {/* Content */}
+          <div className="p-4 space-y-3">
+            {/* Original */}
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-4 h-4 bg-red-100 rounded flex items-center justify-center">
+                  <X className="w-2.5 h-2.5 text-red-500" />
+                </div>
+                <span className="text-xs font-semibold text-red-600 uppercase">Original</span>
+              </div>
+              <div className="p-2 bg-red-50 border border-red-200 rounded-lg text-sm text-gray-700">
+                {activeProofSpan.dataset.original}
+              </div>
+            </div>
+
+            {/* Arrow */}
+            <div className="flex justify-center">
+              <div className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center">
+                <span className="text-gray-500 text-sm">↓</span>
+              </div>
+            </div>
+
+            {/* Suggested */}
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-4 h-4 bg-green-100 rounded flex items-center justify-center">
+                  <Check className="w-2.5 h-2.5 text-green-500" />
+                </div>
+                <span className="text-xs font-semibold text-green-600 uppercase">Suggested</span>
+              </div>
+              <div className="p-2 bg-green-50 border border-green-200 rounded-lg text-sm text-gray-700">
+                {activeProofSpan.dataset.suggestion}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={applyProofChange}
+                className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg text-sm font-semibold hover:shadow-md hover:scale-[1.02] transition-all"
+              >
+                <Check className="w-4 h-4" />
+                Accept Change
+              </button>
+              <button
+                onClick={rejectProofChange}
+                className="px-4 py-2.5 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-200 transition-all flex items-center gap-1.5"
+              >
+                <X className="w-4 h-4" />
+                Dismiss
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -750,13 +953,16 @@ const SectionEditor = ({ initialContent, onChange, onBlur, proofreadingResults =
               </a>
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(hoveredLink.href)
-                  message.success("Link copied!")
+                  // Remove the link but keep the text
+                  if (editor) {
+                    editor.chain().focus().unsetLink().run()
+                  }
                   setHoveredLink(null)
+                  message.success("Link removed!")
                 }}
-                className="flex-1 px-2 py-1.5 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                className="flex-1 px-2 py-1.5 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 flex items-center justify-center gap-1"
               >
-                Copy URL
+                <Trash2 className="w-3 h-3" /> Delete
               </button>
             </div>
           </div>
@@ -768,8 +974,14 @@ const SectionEditor = ({ initialContent, onChange, onBlur, proofreadingResults =
         title="Add Link"
         open={linkModalOpen}
         onCancel={() => setLinkModalOpen(false)}
-        onOk={confirmAddLink}
-        okText="Add Link"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button onClick={() => setLinkModalOpen(false)}>Cancel</Button>
+            <Button type="primary" onClick={confirmAddLink}>
+              Add Link
+            </Button>
+          </div>
+        }
       >
         <div className="space-y-4">
           <div>
@@ -798,8 +1010,14 @@ const SectionEditor = ({ initialContent, onChange, onBlur, proofreadingResults =
         title="Add Image"
         open={imageModalOpen}
         onCancel={() => setImageModalOpen(false)}
-        onOk={confirmAddImage}
-        okText="Add Image"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button onClick={() => setImageModalOpen(false)}>Cancel</Button>
+            <Button type="primary" onClick={confirmAddImage}>
+              Add Image
+            </Button>
+          </div>
+        }
       >
         <div className="space-y-4">
           <div>

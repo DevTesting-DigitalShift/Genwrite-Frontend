@@ -356,3 +356,113 @@
   border-top: 1px solid #e5e7eb;
   margin: 2rem 0;
 }
+
+/* TipTap Table Styles */
+.ProseMirror table {
+  border-collapse: collapse;
+  margin: 1rem 0;
+  width: 100%;
+  table-layout: fixed;
+  overflow: hidden;
+}
+
+.ProseMirror table td,
+.ProseMirror table th {
+  min-width: 1em;
+  border: 1px solid #d1d5db;
+  padding: 0.5rem 0.75rem;
+  vertical-align: top;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.ProseMirror table th {
+  background-color: #f3f4f6;
+  font-weight: 600;
+  text-align: left;
+}
+
+.ProseMirror table .selectedCell {
+  background-color: #dbeafe;
+  border-color: #3b82f6;
+}
+
+.ProseMirror table .selectedCell::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(59, 130, 246, 0.1);
+  pointer-events: none;
+}
+
+/* Column resize handle */
+.ProseMirror .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: #3b82f6;
+  pointer-events: none;
+}
+
+.ProseMirror.resize-cursor {
+  cursor: col-resize;
+}
+
+/* Custom scrollbar for modal content */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #94a3b8 0%, #cbd5e1 100%);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #64748b 0%, #94a3b8 100%);
+}
+
+/* Drag and drop section styles */
+.drag-section-item {
+  cursor: grab;
+}
+
+.drag-section-item:active {
+  cursor: grabbing;
+}
+
+.drag-section-item.dragging {
+  opacity: 0.8;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+}
+
+/* Regenerate modal override */
+.regenerate-modal .ant-modal-content {
+  padding: 0 !important;
+  overflow: hidden;
+  border-radius: 20px !important;
+}
+
+.regenerate-modal .ant-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+  color: white;
+}
+
+.regenerate-modal .ant-modal-close:hover {
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.1);
+}
