@@ -7,7 +7,6 @@ import { GoogleOAuthProvider } from "@react-oauth/google"
 import { QueryProvider } from "./utils/queryClient"
 import { RouterProvider } from "react-router-dom"
 import router from "./router"
-import { ConfirmPopupProvider } from "@/context/ConfirmPopupContext"
 
 if (import.meta.env.PROD && "serviceWorker" in navigator) {
   navigator.serviceWorker.register("/sw.js")
@@ -17,11 +16,9 @@ ReactDOM.createRoot(document.getElementById("root")).render(
   <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
     <QueryProvider>
       <Provider store={store}>
-        <ConfirmPopupProvider>
-          <RouterProvider router={router}>
-            <App />
-          </RouterProvider>
-        </ConfirmPopupProvider>
+        <RouterProvider router={router}>
+          <App />
+        </RouterProvider>
       </Provider>
     </QueryProvider>
   </GoogleOAuthProvider>

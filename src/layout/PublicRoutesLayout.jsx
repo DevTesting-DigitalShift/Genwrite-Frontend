@@ -3,7 +3,7 @@ import { motion } from "framer-motion"
 
 const PublicRoutesLayout = () => {
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-600 to-purple-700">
+    <div>
       {/* Main Content */}
       <main className="flex-1">
         <Outlet />

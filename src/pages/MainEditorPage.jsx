@@ -18,13 +18,13 @@ import TextEditorSidebar from "@/layout/TextEditorSidebar/TextEditorSidebar"
 import TextEditor from "@/layout/TextEditor/TextEditor"
 import "../layout/TextEditor/editor.css"
 import LoadingScreen from "@components/UI/LoadingScreen"
+import { getSocket } from "@utils/socket"
 
 const MainEditorPage = () => {
   const { id } = useParams()
   const dispatch = useDispatch()
   const blog = useSelector(state => state.blog.selectedBlog)
   const { metadata } = useSelector(state => state.wordpress)
-  const [activeTab, setActiveTab] = useState("Normal")
   const [isLoading, setIsLoading] = useState(true)
   const [keywords, setKeywords] = useState([])
   const [editorContent, setEditorContent] = useState("")
@@ -112,6 +112,45 @@ const MainEditorPage = () => {
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [])
+
+  // Socket listener for blog status changes
+  useEffect(() => {
+    if (!id || !blog) return
+
+    const socket = getSocket()
+    if (!socket) {
+      console.warn("Socket not connected")
+      return
+    }
+
+    const handleStatusChange = data => {
+      console.debug("Blog status changed:", data)
+
+      if (data.blogId === id || data.blogId === blog._id) {
+        // Refresh blog data when status changes
+        dispatch(fetchBlogById(id))
+          .unwrap()
+          .then(() => {
+            if (data.status === "completed") {
+              message.success("Blog generation completed!")
+            } else if (data.status === "failed") {
+              message.error("Blog generation failed.")
+            }
+          })
+          .catch(err => {
+            console.error("Failed to fetch updated blog:", err)
+          })
+      }
+    }
+
+    socket.on("blog:statusChanged", handleStatusChange)
+    socket.on("blog:updated", handleStatusChange)
+
+    return () => {
+      socket.off("blog:statusChanged", handleStatusChange)
+      socket.off("blog:updated", handleStatusChange)
+    }
+  }, [id, blog, dispatch])
 
   const handleReplace = (original, change) => {
     if (typeof original !== "string" || typeof change !== "string") {
@@ -372,17 +411,15 @@ const MainEditorPage = () => {
   const handleAcceptHumanizedContent = useCallback(() => {
     setEditorContent(humanizedContent)
     setIsHumanizeModalOpen(false)
-    setActiveTab("Normal")
     message.success("Humanized content applied successfully!")
-  }, [humanizedContent, setEditorContent, setIsHumanizeModalOpen, setActiveTab])
+  }, [humanizedContent, setEditorContent, setIsHumanizeModalOpen])
 
   const handleAcceptOriginalContent = useCallback(() => {
     setIsHumanizeModalOpen(false)
-    setActiveTab("Normal")
     message.info("Retained original content.")
-  }, [setIsHumanizeModalOpen, setActiveTab])
+  }, [setIsHumanizeModalOpen])
 
-  if (isLoading || isPosting) {
+  if (isLoading || isPosting || blog?.status === "pending") {
     return (
       <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-white/90 backdrop-blur-sm">
         <LoadingScreen />
@@ -569,7 +606,7 @@ const MainEditorPage = () => {
                 </div>
               )}
             </header>
-            <div key={activeTab} className="flex-grow overflow-auto max-h-[800px]">
+            <div className="flex-grow overflow-auto max-h-[800px]">
               {isLoading ? (
                 <div className="flex justify-center items-center h-[calc(100vh-120px)]">
                   <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
@@ -579,8 +616,6 @@ const MainEditorPage = () => {
                   keywords={keywords}
                   setKeywords={setKeywords}
                   blog={blog}
-                  activeTab={activeTab}
-                  setActiveTab={setActiveTab}
                   proofreadingResults={proofreadingResults}
                   handleReplace={handleReplace}
                   content={editorContent}
@@ -608,7 +643,6 @@ const MainEditorPage = () => {
               keywords={keywords}
               setKeywords={setKeywords}
               onPost={handlePostToWordPress}
-              activeTab={activeTab}
               handleReplace={handleReplace}
               proofreadingResults={proofreadingResults}
               setProofreadingResults={setProofreadingResults}
@@ -645,7 +679,6 @@ const MainEditorPage = () => {
                   keywords={keywords}
                   setKeywords={setKeywords}
                   onPost={handlePostToWordPress}
-                  activeTab={activeTab}
                   handleReplace={handleReplace}
                   proofreadingResults={proofreadingResults}
                   setProofreadingResults={setProofreadingResults}

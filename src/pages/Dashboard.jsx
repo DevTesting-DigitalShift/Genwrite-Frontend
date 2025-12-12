@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from "react-redux"
 import { createNewBlog, fetchAllBlogs, fetchBlogs } from "@store/slices/blogSlice"
 import { useNavigate } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
-import { getEstimatedCost } from "@utils/getEstimatedCost"
+import { computeCost } from "@/data/pricingConfig"
 import { AnimatePresence, motion } from "framer-motion"
 import { loadAuthenticatedUser, selectUser } from "@store/slices/authSlice"
 import { Clock, Sparkles } from "lucide-react"
@@ -30,6 +30,7 @@ import InlineAnnouncementBanner from "@/layout/InlineAnnouncementBanner"
 import dayjs from "dayjs"
 import LoadingScreen from "@components/UI/LoadingScreen"
 import { ACTIVE_MODELS } from "@/data/dashModels"
+import { useQueryClient } from "@tanstack/react-query"
 
 // lazy imports
 const QuickBlogModal = lazy(() => import("@components/multipleStepModal/QuickBlogModal"))
@@ -66,6 +67,7 @@ const Dashboard = () => {
   const navigate = useNavigate()
   const user = useSelector(selectUser)
   const { handlePopup } = useConfirmPopup()
+  const queryClient = useQueryClient()
 
   // Default state
   const [dateRange, setDateRange] = useState([undefined, undefined])
@@ -193,27 +195,51 @@ const Dashboard = () => {
   const handleSubmit = updatedData => {
     try {
       const totalCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
-      const estimatedBlogCost = getEstimatedCost("blog.single", updatedData.aiModel || "default")
-      handlePopup({
-        title: "Confirm Blog Creation",
-        description: (
-          <>
-            <span>
-              Single Blog generation cost: <b>{estimatedBlogCost} credits</b>
-            </span>
-            <br />
-            <span>Do you want to continue?</span>
-          </>
-        ),
-        onConfirm: () => {
-          if (estimatedBlogCost > totalCredits) {
-            message.error("You do not have enough credits to generate this blog.")
-            handlePopup(false)
-            return
-          }
-          dispatch(createNewBlog({ blogData: updatedData, user, navigate }))
-        },
+      // Prepare features array based on selected options
+      const features = []
+      if (updatedData.isCheckedBrand) features.push("brandVoice")
+      if (updatedData.options?.includeCompetitorResearch) features.push("competitorResearch")
+      if (updatedData.options?.performKeywordResearch) features.push("keywordResearch")
+      if (updatedData.options?.includeInterlinks) features.push("internalLinking")
+      if (updatedData.options?.includeFaqs) features.push("faqGeneration")
+
+      const estimatedBlogCost = computeCost({
+        wordCount: updatedData.userDefinedLength || 1000,
+        features,
+        aiModel: updatedData.aiModel || "gemini",
+        includeImages: updatedData.isCheckedGeneratedImages || false,
+        imageSource: updatedData.imageSource || "stock",
+        numberOfImages:
+          updatedData.imageSource === "custom"
+            ? updatedData.blogImages?.length || 0
+            : updatedData.numberOfImages || 0,
       })
+
+      // Check if user has sufficient credits
+      if (estimatedBlogCost > totalCredits) {
+        handlePopup({
+          title: "Insufficient Credits",
+          description: (
+            <div>
+              <p>You don't have enough credits to generate this blog.</p>
+              <p className="mt-1">
+                <strong>Required:</strong> {estimatedBlogCost} credits
+              </p>
+              <p>
+                <strong>Available:</strong> {totalCredits} credits
+              </p>
+            </div>
+          ),
+          okText: "Buy Credits",
+          onConfirm: () => {
+            navigate("/pricing")
+          },
+        })
+        return
+      }
+
+      // Directly create blog without confirmation
+      dispatch(createNewBlog({ blogData: updatedData, user, navigate, queryClient }))
       dispatch(clearSelectedKeywords())
     } catch (error) {
       console.error("Error submitting form:", error)

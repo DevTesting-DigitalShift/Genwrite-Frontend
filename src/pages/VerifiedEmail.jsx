@@ -27,7 +27,7 @@ const VerifiedEmail = () => {
     }
 
     if (hasVerified?.current) {
-      console.log("Already verified, skipping duplicate call")
+      console.debug("Already verified, skipping duplicate call")
       return
     }
 

@@ -82,35 +82,6 @@ const LoadingScreen = ({ message = "Loading..." }: LoadingScreenProps) => {
             </h1>
           </div>
         </div>
-
-        {/* Loading Message */}
-        <p className="loading-message">{message}</p>
-
-        {/* Circular Progress */}
-        <div className="circular-progress">
-          <svg className="progress-ring" viewBox="0 0 120 120">
-            <defs>
-              <linearGradient id="blueGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#3b82f6" />
-                <stop offset="100%" stopColor="#9333ea" />
-              </linearGradient>
-            </defs>
-            <circle className="progress-ring-bg" cx="60" cy="60" r="54" />
-            <circle className="progress-ring-fill" cx="60" cy="60" r="54" />
-          </svg>
-          <div className="progress-center">
-            <div className="progress-dots">
-              <span className="p-dot"></span>
-              <span className="p-dot"></span>
-              <span className="p-dot"></span>
-            </div>
-          </div>
-        </div>
-
-        {/* Status Indicator */}
-        <div className="status-bar">
-          <div className="status-pulse"></div>
-        </div>
       </div>
     </div>
   )

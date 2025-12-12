@@ -21,34 +21,36 @@ import { Crown } from "lucide-react"
 import { Flex } from "antd"
 import { Rocket } from "lucide-react"
 import { Layers } from "lucide-react"
+import { checkSufficientCredits, getInsufficientCreditsPopup } from "@/utils/creditCheck.jsx"
+import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 
 export default function ToolboxPage() {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState("content")
-  const [keywords, setKeywords] = useState([])
+  const [keywords, setKeywords] = useState([])  
   const [newKeyword, setNewKeyword] = useState("")
   const [competitiveAnalysisModalOpen, setCompetitiveAnalysisModalOpen] = useState(false)
   const [pageSize, setPageSize] = useState(10)
   const [currentPage, setCurrentPage] = useState(1)
   const [selectedRowKeys, setSelectedRowKeys] = useState([])
-  const { allBlogs } = useSelector((state) => state.blog)
+  const { allBlogs } = useSelector(state => state.blog)
   const dispatch = useDispatch()
   const { keywordAnalysis: keywordAnalysisResult, loading: analyzing } = useSelector(
-    (state) => state.analysis
+    state => state.analysis
   )
 
   const addKeyword = () => {
     const input = newKeyword.trim()
     if (!input) return
 
-    const existing = keywords.map((k) => k.toLowerCase())
+    const existing = keywords.map(k => k.toLowerCase())
     const seen = new Set()
 
     const newKeywords = input
       .split(",")
-      .map((k) => k.trim())
+      .map(k => k.trim())
       .filter(
-        (k) =>
+        k =>
           k &&
           !existing.includes(k.toLowerCase()) &&
           !seen.has(k.toLowerCase()) &&
@@ -61,11 +63,11 @@ export default function ToolboxPage() {
     }
   }
 
-  const removeKeyword = (index) => {
+  const removeKeyword = index => {
     setKeywords(keywords.filter((_, i) => i !== index))
   }
 
-  const handleKeyPress = (e) => {
+  const handleKeyPress = e => {
     if (e.key === "Enter") {
       e.preventDefault()
       addKeyword()
@@ -78,8 +80,8 @@ export default function ToolboxPage() {
     setSelectedRowKeys([])
   }
 
-  const deselectKeyword = (index) => {
-    setSelectedRowKeys(selectedRowKeys.filter((key) => key !== index))
+  const deselectKeyword = index => {
+    setSelectedRowKeys(selectedRowKeys.filter(key => key !== index))
   }
 
   const clearSelectedKeywords = () => {
@@ -111,7 +113,7 @@ export default function ToolboxPage() {
     const headers = ["keyword"]
     const csvContent = [
       headers.join(","),
-      ...selectedKeywords.map((kw) => [`${kw.keyword.replace(/"/g, '""')}`].join(",")),
+      ...selectedKeywords.map(kw => [`${kw.keyword.replace(/"/g, '""')}`].join(",")),
     ].join("\n")
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
@@ -132,14 +134,14 @@ export default function ToolboxPage() {
       dataIndex: "keyword",
       key: "keyword",
       sorter: (a, b) => a.keyword.localeCompare(b.keyword),
-      render: (text) => <span className="font-medium capitalize text-xs sm:text-sm">{text}</span>,
+      render: text => <span className="font-medium capitalize text-xs sm:text-sm">{text}</span>,
     },
     {
       title: "Monthly Searches",
       dataIndex: "avgMonthlySearches",
       key: "avgMonthlySearches",
       sorter: (a, b) => a.avgMonthlySearches - b.avgMonthlySearches,
-      render: (value) => (
+      render: value => (
         <span className="text-xs sm:text-sm">{new Intl.NumberFormat().format(value)}</span>
       ),
     },
@@ -148,7 +150,7 @@ export default function ToolboxPage() {
       dataIndex: "competition",
       key: "competition",
       sorter: (a, b) => a.competition_index - b.competition_index,
-      render: (text) => (
+      render: text => (
         <Tag
           color={
             text === "LOW"
@@ -170,7 +172,7 @@ export default function ToolboxPage() {
       dataIndex: "avgCpc",
       key: "avgCpc",
       sorter: (a, b) => a.avgCpc - b.avgCpc,
-      render: (value) => (
+      render: value => (
         <span className="text-xs sm:text-sm">{value ? value.toFixed(2) : "N/A"}</span>
       ),
     },
@@ -180,7 +182,7 @@ export default function ToolboxPage() {
       key: "lowBid",
       responsive: ["md"], // Hide on small screens
       sorter: (a, b) => a.lowBid - b.lowBid,
-      render: (value) => (
+      render: value => (
         <span className="text-xs sm:text-sm">{value ? value.toFixed(2) : "N/A"}</span>
       ),
     },
@@ -190,7 +192,7 @@ export default function ToolboxPage() {
       key: "highBid",
       responsive: ["md"], // Hide on small screens
       sorter: (a, b) => a.highBid - b.highBid,
-      render: (value) => (
+      render: value => (
         <span className="text-xs sm:text-sm">{value ? value.toFixed(2) : "N/A"}</span>
       ),
     },
@@ -198,10 +200,10 @@ export default function ToolboxPage() {
 
   const rowSelection = {
     selectedRowKeys,
-    onChange: (newSelectedRowKeys) => {
+    onChange: newSelectedRowKeys => {
       setSelectedRowKeys(newSelectedRowKeys)
     },
-    getCheckboxProps: (record) => ({
+    getCheckboxProps: record => ({
       name: record.keyword,
     }),
   }
@@ -219,7 +221,7 @@ export default function ToolboxPage() {
     })) || []
 
   const selectedKeywordsDisplay = keywordAnalysisResult
-    ? selectedRowKeys.map((idx) => keywordAnalysisResult[idx]?.keyword).filter(Boolean)
+    ? selectedRowKeys.map(idx => keywordAnalysisResult[idx]?.keyword).filter(Boolean)
     : []
 
   const handlePageSizeChange = (current, size) => {
@@ -227,7 +229,7 @@ export default function ToolboxPage() {
     setCurrentPage(1)
   }
 
-  const handlePageChange = (page) => {
+  const handlePageChange = page => {
     setCurrentPage(page)
   }
 
@@ -249,7 +251,8 @@ export default function ToolboxPage() {
         "Transform AI-generated text into natural, human-sounding content while preserving intent and clarity.",
       action: () => navigate("/humanize-content"),
       actionText: "Let's Convert",
-      credits: "5",
+      credits: "10",
+      creditType: "tools.humanize",
       color: "from-blue-500 to-indigo-600",
     },
     {
@@ -261,6 +264,7 @@ export default function ToolboxPage() {
       action: () => navigate("/outline"),
       actionText: "Let's Outline",
       credits: "5",
+      creditType: "tools.outline",
       color: "from-green-500 to-emerald-600",
     },
     {
@@ -270,6 +274,8 @@ export default function ToolboxPage() {
       description: "Analyze top performing content in your niche",
       action: () => setCompetitiveAnalysisModalOpen(true),
       actionText: "Start Analysis",
+      credits: "10",
+      creditType: "analysis.competitors",
       color: "from-rose-500 to-pink-600",
     },
     {
@@ -279,7 +285,8 @@ export default function ToolboxPage() {
       description: "Turn content into SEO-friendly metadata",
       action: () => navigate("/generate-metadata"),
       actionText: "Boost SEO",
-      credits: "2",
+      credits: "5",
+      creditType: "tools.metadata",
       color: "from-rose-500 to-pink-600",
     },
     {
@@ -289,7 +296,8 @@ export default function ToolboxPage() {
       description: "Transform your content into SEO-optimized metadata in seconds",
       action: () => navigate("/prompt-content"),
       actionText: "Boost SEO",
-      credits: "5", 
+      credits: "10",
+      creditType: "tools.boost",
       color: "from-rose-500 to-pink-600",
     },
   ]
@@ -363,12 +371,12 @@ export default function ToolboxPage() {
               children: (
                 <div className="grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8 mt-4 px-2 sm:px-4">
                   {cardItems
-                    .filter((item) =>
+                    .filter(item =>
                       ["ai-writer", "humanize-content", "outline", "prompt-content"].includes(
                         item.key
                       )
                     )
-                    .map((item) => (
+                    .map(item => (
                       <AnimatedCard key={item.key} item={item} />
                     ))}
                 </div>
@@ -389,10 +397,10 @@ export default function ToolboxPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8 mt-4 px-2 sm:px-4">
                   {cardItems
                     .filter(
-                      (item) =>
+                      item =>
                         item.key === "competitor-analysis" || item.key === "generated-metadata"
                     )
-                    .map((item) => (
+                    .map(item => (
                       <AnimatedCard key={item.key} item={item} />
                     ))}
                 </div>
@@ -436,7 +444,7 @@ export default function ToolboxPage() {
                         <Input
                           placeholder="Enter a keyword (e.g., tech)"
                           value={newKeyword}
-                          onChange={(e) => setNewKeyword(e.target.value)}
+                          onChange={e => setNewKeyword(e.target.value)}
                           onKeyPress={handleKeyPress}
                           className="flex-1 text-xs sm:text-sm"
                         />
@@ -661,12 +669,46 @@ export default function ToolboxPage() {
 function AnimatedCard({ item }) {
   const navigate = useNavigate()
   const user = useSelector(selectUser)
+  const { handlePopup } = useConfirmPopup()
   const [isUserPlanFree, setIsUserPlanFree] = useState(false)
+
   useEffect(() => {
     if (user) {
       setIsUserPlanFree(["free"].includes(user?.subscription?.plan))
     }
   }, [user])
+
+  const handleAction = () => {
+    // If user is on free plan, redirect to pricing
+    if (isUserPlanFree) {
+      navigate("/pricing")
+      return
+    }
+
+    // If tool requires credits, check if user has enough
+    if (item.credits && item.creditType) {
+      const creditCheck = checkSufficientCredits(user, item.creditType, "gemini")
+
+      if (!creditCheck.hasEnough) {
+        const popupConfig = getInsufficientCreditsPopup(
+          creditCheck.required,
+          creditCheck.available,
+          item.title
+        )
+
+        handlePopup({
+          ...popupConfig,
+          onConfirm: () => {
+            navigate("/pricing")
+          },
+        })
+        return
+      }
+    }
+
+    // Proceed with the action
+    item.action()
+  }
 
   return (
     <motion.div
@@ -706,7 +748,7 @@ function AnimatedCard({ item }) {
                 <Button
                   block
                   type={item.disabled ? "default" : "primary"}
-                  onClick={isUserPlanFree ? () => navigate("/pricing") : item.action}
+                  onClick={handleAction}
                   disabled={item.disabled}
                   className="transition-all w-full sm:w-5/6 text-xs sm:text-sm flex items-center justify-center gap-1"
                 >
@@ -721,7 +763,7 @@ function AnimatedCard({ item }) {
               <Button
                 block
                 type={item.disabled ? "default" : "primary"}
-                onClick={isUserPlanFree ? () => navigate("/pricing") : item.action}
+                onClick={handleAction}
                 disabled={item.disabled}
                 className="transition-all w-full sm:w-5/6 text-xs sm:text-sm flex items-center justify-center gap-1"
               >
