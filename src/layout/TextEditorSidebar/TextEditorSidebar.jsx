@@ -23,6 +23,9 @@ import {
   BarChart,
   RefreshCcw,
   Crown,
+  Download,
+  FileCode,
+  Lock,
 } from "lucide-react"
 import {
   Button,
@@ -56,7 +59,6 @@ import {
   AnalysisInsights,
   ProofreadingSuggestion,
 } from "./FeatureComponents"
-import FeatureSettingsModal from "./FeatureSettingsModal"
 
 const { TextArea } = Input
 const { Panel } = Collapse
@@ -71,7 +73,7 @@ const AI_MODELS = [
 // Sidebar navigation items
 const NAV_ITEMS = [
   { id: "overview", icon: BarChart3, label: "Overview" },
-  { id: "analysis", icon: TrendingUp, label: "Analysis" },
+  { id: "seo", icon: TrendingUp, label: "SEO" },
   { id: "suggestions", icon: Lightbulb, label: "Suggestions" },
   { id: "enhancement", icon: SlidersHorizontal, label: "Enhancement" },
   { id: "regenerate", icon: RefreshCw, label: "Regenerate" },
@@ -115,6 +117,16 @@ const TextEditorSidebar = ({
     title: blog?.seoMetadata?.title || "",
     description: blog?.seoMetadata?.description || "",
   })
+
+  // Generated metadata accept/reject modal state
+  const [generatedMetadataModal, setGeneratedMetadataModal] = useState(false)
+  const [generatedMetadata, setGeneratedMetadata] = useState(null)
+  const [isGeneratingMetadata, setIsGeneratingMetadata] = useState(false)
+
+  // Content enhancement editable options state
+  const [enhancementOptions, setEnhancementOptions] = useState({})
+  const [hasEnhancementChanges, setHasEnhancementChanges] = useState(false)
+  const [isSavingEnhancement, setIsSavingEnhancement] = useState(false)
 
   // Regenerate form data
   const [regenForm, setRegenForm] = useState({
@@ -207,6 +219,14 @@ const TextEditorSidebar = ({
   useEffect(() => {
     dispatch(getIntegrationsThunk())
   }, [dispatch])
+
+  // Initialize enhancement options from blog
+  useEffect(() => {
+    if (blog?.options) {
+      setEnhancementOptions(blog.options)
+      setHasEnhancementChanges(false)
+    }
+  }, [blog?.options])
 
   const getWordCount = text =>
     text
@@ -301,7 +321,7 @@ const TextEditorSidebar = ({
               keywords: keywords || blog?.focusKeywords || [],
             })
           ).unwrap()
-          setActivePanel("analysis")
+          setActivePanel("seo")
           message.success("Analysis complete!")
         } catch {
           message.error("Analysis failed")
@@ -346,21 +366,66 @@ const TextEditorSidebar = ({
         </>
       ),
       onConfirm: async () => {
+        setIsGeneratingMetadata(true)
         try {
-          await dispatch(
+          const result = await dispatch(
             generateMetadataThunk({
               content: editorContent,
               keywords: keywords || [],
               focusKeywords: blog?.focusKeywords || [],
             })
           ).unwrap()
-          message.success("Metadata generated!")
+          // Show the generated metadata in accept/reject modal
+          setGeneratedMetadata(result)
+          setGeneratedMetadataModal(true)
         } catch {
           message.error("Generation failed")
+        } finally {
+          setIsGeneratingMetadata(false)
         }
       },
     })
   }, [isPro, navigate, handlePopup, dispatch, editorContent, keywords, blog])
+
+  // Accept generated metadata
+  const handleAcceptMetadata = useCallback(async () => {
+    if (generatedMetadata) {
+      setMetadata({
+        title: generatedMetadata.title || generatedMetadata.metaTitle || "",
+        description: generatedMetadata.description || generatedMetadata.metaDescription || "",
+      })
+      setGeneratedMetadataModal(false)
+      setGeneratedMetadata(null)
+      message.success("Metadata applied! Click Save to keep changes.")
+    }
+  }, [generatedMetadata])
+
+  // Reject generated metadata - keep original
+  const handleRejectMetadata = useCallback(() => {
+    setGeneratedMetadataModal(false)
+    setGeneratedMetadata(null)
+    message.info("Metadata discarded")
+  }, [])
+
+  // Enhancement option toggle handler
+  const handleEnhancementToggle = useCallback((key, value) => {
+    setEnhancementOptions(prev => ({ ...prev, [key]: value }))
+    setHasEnhancementChanges(true)
+  }, [])
+
+  // Save enhancement options
+  const handleSaveEnhancement = useCallback(async () => {
+    setIsSavingEnhancement(true)
+    try {
+      await handleSubmit({ options: enhancementOptions })
+      setHasEnhancementChanges(false)
+      message.success("Enhancement settings saved!")
+    } catch {
+      message.error("Failed to save settings")
+    } finally {
+      setIsSavingEnhancement(false)
+    }
+  }, [enhancementOptions, handleSubmit])
 
   const handleCustomPromptBlog = useCallback(async () => {
     if (isPro) return navigate("/pricing")
@@ -420,6 +485,16 @@ const TextEditorSidebar = ({
   }, [handlePopup, handleSave])
 
   const handlePostClick = useCallback(() => {
+    // Block free users from posting
+    if (userPlan === "free") {
+      return handlePopup({
+        title: "Posting Unavailable",
+        description: "Free users cannot publish blogs. Upgrade to unlock automated posting.",
+        confirmText: "Upgrade Now",
+        onConfirm: () => navigate("/pricing"),
+      })
+    }
+
     if (unsavedChanges) {
       handlePopup({
         title: "Unsaved Changes",
@@ -435,7 +510,7 @@ const TextEditorSidebar = ({
     } else {
       setIsCategoryModalOpen(true)
     }
-  }, [unsavedChanges, handlePopup, handleSubmit, metadata])
+  }, [unsavedChanges, handlePopup, handleSubmit, metadata, userPlan, navigate])
 
   const handleCategorySubmit = useCallback(
     ({ category, includeTableOfContents, type }) => {
@@ -641,55 +716,6 @@ const TextEditorSidebar = ({
           </div>
         </div>
 
-        {/* SEO Metadata Card */}
-        <div className="space-y-4 p-3 bg-white border rounded-xl shadow-sm hover:shadow-md transition-all duration-200">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-blue-600" />
-              SEO Metadata
-            </span>
-
-            <button
-              onClick={handleMetadataGen}
-              className="text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1"
-            >
-              <Sparkles className="w-3 h-3" /> Generate
-            </button>
-          </div>
-
-          {/* Inputs */}
-          <div className="space-y-3">
-            <Input
-              value={metadata.title}
-              onChange={e => setMetadata(p => ({ ...p, title: e.target.value }))}
-              placeholder="Meta title..."
-              size="small"
-              className="rounded-md"
-            />
-
-            <TextArea
-              value={metadata.description}
-              onChange={e => setMetadata(p => ({ ...p, description: e.target.value }))}
-              placeholder="Meta description..."
-              rows={6}
-              className="!resize-none rounded-md"
-            />
-          </div>
-
-          {/* Save Button */}
-          <button
-            onClick={handleMetadataSave}
-            className="
-      w-full py-2 text-sm font-semibold rounded-lg
-      bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-600
-      text-white shadow hover:shadow-md hover:opacity-90 transition-all
-    "
-          >
-            Save Metadata
-          </button>
-        </div>
-
         {/* Custom AI Prompt Card */}
         <div className="space-y-4 p-3 bg-white border rounded-xl shadow-sm hover:shadow-md transition-all duration-200">
           {/* Header */}
@@ -751,20 +777,88 @@ const TextEditorSidebar = ({
           block
           onClick={handlePostClick}
           loading={isPosting}
-          disabled={isDisabled}
-          className="h-12 font-semibold bg-gradient-to-r from-green-500 to-emerald-600 border-0 hover:shadow-lg"
+          disabled={isDisabled || userPlan === "free"}
+          className={`h-12 font-semibold border-0 hover:shadow-lg ${
+            userPlan === "free"
+              ? "!bg-gray-400 cursor-not-allowed"
+              : "bg-gradient-to-r from-green-500 to-emerald-600"
+          }`}
         >
-          {isPosting
-            ? "Posting..."
-            : posted && Object.keys(posted).length > 0
-            ? "Re-Post Blog"
-            : "Post Blog"}
+          {userPlan === "free" ? (
+            <span className="flex items-center gap-2">
+              <Lock className="w-4 h-4" /> Upgrade to Post
+            </span>
+          ) : isPosting ? (
+            "Posting..."
+          ) : posted && Object.keys(posted).length > 0 ? (
+            "Re-Post Blog"
+          ) : (
+            "Post Blog"
+          )}
         </Button>
       </div>
     </div>
   )
 
-  const renderAnalysisPanel = () => (
+  // Export handlers
+  const handleExportMarkdown = () => {
+    if (userPlan === "free") {
+      return handlePopup({
+        title: "Export Unavailable",
+        description: "Free users cannot export blogs. Upgrade to unlock this feature.",
+        confirmText: "Upgrade Now",
+        onConfirm: () => navigate("/pricing"),
+      })
+    }
+
+    const markdown = editorContent || ""
+    const blob = new Blob([markdown], { type: "text/markdown" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `${blog?.title || "blog"}.md`
+    a.click()
+    URL.revokeObjectURL(url)
+    message.success("Exported as Markdown!")
+  }
+
+  const handleExportHTML = () => {
+    if (userPlan === "free") {
+      return handlePopup({
+        title: "Export Unavailable",
+        description: "Free users cannot export blogs. Upgrade to unlock this feature.",
+        confirmText: "Upgrade Now",
+        onConfirm: () => navigate("/pricing"),
+      })
+    }
+
+    const htmlContent = blog?.content || editorContent || ""
+    const fullHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${blog?.title || "Blog"}</title>
+  <meta name="description" content="${metadata.description || ""}">
+</head>
+<body>
+  <article>
+    <h1>${blog?.title || ""}</h1>
+    ${htmlContent}
+  </article>
+</body>
+</html>`
+    const blob = new Blob([fullHtml], { type: "text/html" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `${blog?.title || "blog"}.html`
+    a.click()
+    URL.revokeObjectURL(url)
+    message.success("Exported as HTML!")
+  }
+
+  const renderSeoPanel = () => (
     <div className="flex flex-col h-full">
       <div className="p-3 border-b bg-gradient-to-r from-gray-50 to-blue-50">
         <div className="flex items-center justify-between mb-2">
@@ -775,7 +869,7 @@ const TextEditorSidebar = ({
 
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-gray-900">SEO Analysis</h3>
+                <h3 className="font-semibold text-gray-900">SEO & Export</h3>
                 {isPro && (
                   <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
                     <Crown className="w-4 h-4" />
@@ -783,64 +877,144 @@ const TextEditorSidebar = ({
                 )}
               </div>
               <p className="text-xs text-gray-500 font-medium">
-                Keyword, optimization & ranking insights
+                Metadata, analysis & export options
               </p>
             </div>
           </div>
         </div>
       </div>
 
-      {result || blog?.generatedMetadata?.competitors ? (
-        <Collapse defaultActiveKey={["1"]} ghost expandIconPosition="end">
-          {(result?.competitors || blog?.generatedMetadata?.competitors)?.length > 0 && (
-            <Panel
-              header={
-                <div className="flex items-center gap-2">
-                  <Eye className="w-4 h-4 text-blue-600" />
-                  <span className="font-medium">Top Competitors</span>
-                </div>
-              }
-              key="1"
+      <div className="flex-1 overflow-y-auto p-3 space-y-4">
+        {/* SEO Metadata Section */}
+        <div className="space-y-3 p-3 bg-white border rounded-xl shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-blue-600" />
+              SEO Metadata
+            </span>
+            <button
+              onClick={handleMetadataGen}
+              className="text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1"
             >
-              <CompetitorsList
-                competitors={result?.competitors || blog?.generatedMetadata?.competitors}
-              />
-            </Panel>
-          )}
-          {(result?.insights?.analysis || result?.analysis) && (
-            <Panel
-              header={
-                <div className="flex items-center gap-2">
-                  <Lightbulb className="w-4 h-4 text-orange-500" />
-                  <span className="font-medium">Key Insights</span>
-                </div>
-              }
-              key="2"
-            >
-              <AnalysisInsights insights={result?.insights?.analysis || result?.analysis} />
-            </Panel>
-          )}
-        </Collapse>
-      ) : (
-        <div className="flex flex-col items-center justify-center py-12 text-center h-[80vh]">
-          <TrendingUp className="w-12 h-12 text-gray-300 mb-3" />
-
-          <p className="text-sm text-gray-500 mb-4">No analysis yet</p>
-
+              <Sparkles className="w-3 h-3" /> Generate
+            </button>
+          </div>
+          <div className="space-y-3">
+            <Input
+              value={metadata.title}
+              onChange={e => setMetadata(p => ({ ...p, title: e.target.value }))}
+              placeholder="Meta title..."
+              size="small"
+            />
+            <TextArea
+              value={metadata.description}
+              onChange={e => setMetadata(p => ({ ...p, description: e.target.value }))}
+              placeholder="Meta description..."
+              rows={4}
+              className="!resize-none"
+            />
+          </div>
           <button
-            onClick={handleAnalyzing}
-            disabled={isAnalyzingCompetitive}
-            className={`
-      px-6 py-2.5 rounded-lg text-sm font-semibold transition-all
-      bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow
-      hover:shadow-md hover:opacity-90
-      ${isAnalyzingCompetitive ? "opacity-60 cursor-not-allowed" : ""}
-    `}
+            onClick={handleMetadataSave}
+            className="w-full py-2 text-sm font-semibold rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow hover:shadow-md"
           >
-            {isAnalyzingCompetitive ? "Analyzing..." : "Run SEO Analysis"}
+            Save Metadata
           </button>
         </div>
-      )}
+
+        {/* Competitive Analysis Section */}
+        <div className="space-y-3 p-3 bg-white border rounded-xl shadow-sm">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-purple-600" />
+            <span className="text-sm font-semibold text-gray-900">Competitive Analysis</span>
+          </div>
+
+          {result || blog?.generatedMetadata?.competitors ? (
+            <Collapse defaultActiveKey={["1"]} ghost expandIconPosition="end" className="-mx-3">
+              {(result?.competitors || blog?.generatedMetadata?.competitors)?.length > 0 && (
+                <Panel
+                  header={
+                    <div className="flex items-center gap-2">
+                      <Eye className="w-4 h-4 text-blue-600" />
+                      <span className="font-medium text-sm">Top Competitors</span>
+                    </div>
+                  }
+                  key="1"
+                >
+                  <CompetitorsList
+                    competitors={result?.competitors || blog?.generatedMetadata?.competitors}
+                  />
+                </Panel>
+              )}
+              {(result?.insights?.analysis || result?.analysis) && (
+                <Panel
+                  header={
+                    <div className="flex items-center gap-2">
+                      <Lightbulb className="w-4 h-4 text-orange-500" />
+                      <span className="font-medium text-sm">Key Insights</span>
+                    </div>
+                  }
+                  key="2"
+                >
+                  <AnalysisInsights insights={result?.insights?.analysis || result?.analysis} />
+                </Panel>
+              )}
+            </Collapse>
+          ) : (
+            <button
+              onClick={handleAnalyzing}
+              disabled={isAnalyzingCompetitive}
+              className={`w-full py-2.5 rounded-lg text-sm font-semibold transition-all bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow ${
+                isAnalyzingCompetitive ? "opacity-60 cursor-not-allowed" : "hover:shadow-md"
+              }`}
+            >
+              {isAnalyzingCompetitive ? "Analyzing..." : "Run SEO Analysis"}
+            </button>
+          )}
+        </div>
+
+        {/* Export Section */}
+        <div className="space-y-3 p-3 bg-white border rounded-xl shadow-sm">
+          <div className="flex items-center gap-2">
+            <Download className="w-4 h-4 text-green-600" />
+            <span className="text-sm font-semibold text-gray-900">Export Blog</span>
+            {userPlan === "free" && (
+              <span className="ml-auto text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <Lock className="w-3 h-3" /> Pro
+              </span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={handleExportMarkdown}
+              className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium border transition-all ${
+                userPlan === "free"
+                  ? "bg-gray-50 text-gray-400 cursor-not-allowed"
+                  : "bg-white hover:bg-gray-50 text-gray-700 hover:border-gray-400"
+              }`}
+            >
+              <FileText className="w-4 h-4" />
+              Markdown
+            </button>
+            <button
+              onClick={handleExportHTML}
+              className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium border transition-all ${
+                userPlan === "free"
+                  ? "bg-gray-50 text-gray-400 cursor-not-allowed"
+                  : "bg-white hover:bg-gray-50 text-gray-700 hover:border-gray-400"
+              }`}
+            >
+              <FileCode className="w-4 h-4" />
+              HTML
+            </button>
+          </div>
+
+          {userPlan === "free" && (
+            <p className="text-xs text-gray-500 text-center">Upgrade to export your blogs</p>
+          )}
+        </div>
+      </div>
     </div>
   )
 
@@ -848,8 +1022,8 @@ const TextEditorSidebar = ({
     // Handle applying a single suggestion
     const handleApplySuggestion = (index, suggestion) => {
       if (handleReplace && suggestion) {
+        // handleReplace in MainEditorPage already removes the suggestion from the list
         handleReplace(suggestion.original, suggestion.change)
-        setProofreadingResults(prev => prev.filter((_, i) => i !== index))
         message.success("Change applied successfully!")
       }
     }
@@ -961,7 +1135,7 @@ const TextEditorSidebar = ({
 
   const renderEnhancementPanel = () => (
     <div className="flex flex-col h-full">
-      <div className="p-3 border-b bg-gradient-to-r from-gray-50 to-blue-50 mb-5">
+      <div className="p-3 border-b bg-gradient-to-r from-gray-50 to-blue-50">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <div className="p-2 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg">
@@ -969,7 +1143,7 @@ const TextEditorSidebar = ({
             </div>
 
             <div>
-              <div className="flex items-center  gap-2">
+              <div className="flex items-center gap-2">
                 <h3 className="font-semibold text-gray-900">Content Enhancement</h3>
                 {isPro && (
                   <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
@@ -978,14 +1152,66 @@ const TextEditorSidebar = ({
                 )}
               </div>
               <p className="text-xs text-gray-500 font-medium mt-0.5">
-                Tools that polish and optimize your blog content
+                Toggle options and save your preferences
               </p>
             </div>
           </div>
         </div>
       </div>
 
-      <FeatureSettingsModal features={blog?.options || {}} />
+      <div className="flex-1 overflow-y-auto p-3 space-y-3">
+        {Object.entries(enhancementOptions || {}).length > 0 ? (
+          Object.entries(enhancementOptions).map(([key, value]) => {
+            const isEnabled = Boolean(value)
+            const label = key
+              .replace(/([A-Z])/g, " $1")
+              .replace(/^./, str => str.toUpperCase())
+              .trim()
+            return (
+              <div
+                key={key}
+                className="flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-2 h-2 rounded-full ${isEnabled ? "bg-green-500" : "bg-gray-400"}`}
+                  />
+                  <span className="text-sm font-medium text-gray-700">{label}</span>
+                </div>
+                <Switch
+                  size="small"
+                  checked={isEnabled}
+                  onChange={checked => handleEnhancementToggle(key, checked)}
+                />
+              </div>
+            )
+          })
+        ) : (
+          <div className="text-center py-6">
+            <SlidersHorizontal className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+            <p className="text-sm text-gray-500">No enhancement features configured</p>
+          </div>
+        )}
+      </div>
+
+      {/* Save Button - Always visible */}
+      <div className="p-3 border-t bg-white">
+        <Button
+          type="primary"
+          block
+          size="large"
+          loading={isSavingEnhancement}
+          onClick={handleSaveEnhancement}
+          disabled={!hasEnhancementChanges}
+          className={`h-12 border-0 font-semibold ${
+            hasEnhancementChanges
+              ? "bg-gradient-to-r from-purple-600 to-indigo-600"
+              : "!bg-gray-300 !text-gray-500"
+          }`}
+        >
+          {hasEnhancementChanges ? "Save Enhancement Settings" : "No Changes to Save"}
+        </Button>
+      </div>
     </div>
   )
 
@@ -1240,8 +1466,8 @@ const TextEditorSidebar = ({
     switch (activePanel) {
       case "overview":
         return renderOverviewPanel()
-      case "analysis":
-        return renderAnalysisPanel()
+      case "seo":
+        return renderSeoPanel()
       case "suggestions":
         return renderSuggestionsPanel()
       case "enhancement":
@@ -1256,7 +1482,7 @@ const TextEditorSidebar = ({
   // Collapsed state - show only icon bar
   if (isCollapsed) {
     return (
-      <div className="w-16 bg-gradient-to-b from-slate-50 to-gray-100 border-l border-gray-200 flex flex-col items-center py-5 gap-2">
+      <div className="w-16 h-screen bg-gradient-to-b from-slate-50 to-gray-100 border-l border-gray-200 flex flex-col items-center py-5 gap-2">
         {NAV_ITEMS.map(item => {
           const Icon = item.icon
           const hasBadge = item.id === "suggestions" && proofreadingResults?.length > 0
@@ -1403,6 +1629,72 @@ const TextEditorSidebar = ({
               {label} <ExternalLink className="w-4 h-4" />
             </button>
           ))}
+        </div>
+      </Modal>
+
+      {/* Generated Metadata Accept/Reject Modal */}
+      <Modal
+        title="Generated SEO Metadata"
+        open={generatedMetadataModal}
+        onCancel={handleRejectMetadata}
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button onClick={handleRejectMetadata}>Reject</Button>
+            <Button
+              type="primary"
+              onClick={handleAcceptMetadata}
+              className="bg-gradient-to-r from-green-500 to-emerald-600 border-0"
+            >
+              Accept & Apply
+            </Button>
+          </div>
+        }
+        centered
+        width={500}
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-500 mb-4">
+            Review the AI-generated metadata below. Accept to apply these changes or reject to keep
+            your current data.
+          </p>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Generated Title</label>
+            <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-sm text-gray-800">
+                {generatedMetadata?.title || generatedMetadata?.metaTitle || "No title generated"}
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">
+              Generated Description
+            </label>
+            <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-sm text-gray-800">
+                {generatedMetadata?.description ||
+                  generatedMetadata?.metaDescription ||
+                  "No description generated"}
+              </p>
+            </div>
+          </div>
+
+          {/* Current values for comparison */}
+          <div className="border-t pt-4 mt-4">
+            <p className="text-xs font-medium text-gray-400 mb-2">
+              Current Values (will be replaced if accepted):
+            </p>
+            <div className="space-y-2">
+              <p className="text-xs text-gray-500">
+                <span className="font-medium">Title:</span> {metadata.title || "Not set"}
+              </p>
+              <p className="text-xs text-gray-500">
+                <span className="font-medium">Description:</span>{" "}
+                {metadata.description || "Not set"}
+              </p>
+            </div>
+          </div>
         </div>
       </Modal>
     </>

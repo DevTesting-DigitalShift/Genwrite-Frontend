@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useState, useRef } from "react"
 import { useLocation, useNavigate, useParams } from "react-router-dom"
 import { useDispatch, useSelector } from "react-redux"
 import { motion, AnimatePresence } from "framer-motion"
@@ -113,15 +113,30 @@ const MainEditorPage = () => {
     window.scrollTo(0, 0)
   }, [])
 
-  const handleReplace = (original, change) => {
+  // Store the section-aware replace function from TextEditor
+  const sectionReplaceRef = useRef(null)
+  const handleReplaceReady = useCallback(replaceFn => {
+    sectionReplaceRef.current = replaceFn
+  }, [])
+
+  const handleReplace = useCallback((original, change) => {
     if (typeof original !== "string" || typeof change !== "string") {
       message.error("Invalid suggestion format.")
       return
     }
-    const regex = new RegExp(original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g")
-    setEditorContent(prev => prev.replace(regex, change))
+
+    // Use section-aware replace if available (updates both sections and content)
+    if (sectionReplaceRef.current) {
+      sectionReplaceRef.current(original, change)
+    } else {
+      // Fallback to basic content replace
+      const regex = new RegExp(original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g")
+      setEditorContent(prev => prev.replace(regex, change))
+    }
+
+    // Remove suggestion from list
     setProofreadingResults(prev => prev.filter(s => s.original !== original))
-  }
+  }, [])
 
   const handlePostToWordPress = async postData => {
     setIsPosting(true)
@@ -598,6 +613,7 @@ const MainEditorPage = () => {
                   unsavedChanges={unsavedChanges}
                   setUnsavedChanges={setUnsavedChanges}
                   wordpressMetadata={metadata}
+                  onReplaceReady={handleReplaceReady}
                 />
               )}
             </div>

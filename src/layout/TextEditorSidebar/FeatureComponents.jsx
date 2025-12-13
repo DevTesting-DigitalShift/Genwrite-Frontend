@@ -1,4 +1,4 @@
-import { useState } from "react"
+import React, { useState } from "react"
 import { motion } from "framer-motion"
 import { Button, Tag } from "antd"
 import {
@@ -56,7 +56,7 @@ const FeatureCard = ({
 )
 
 const ScoreCard = ({ title, score, icon: Icon }) => {
-  const getScoreColor = (score) => {
+  const getScoreColor = score => {
     if (score >= 80) return "bg-green-100 text-green-700 border-green-200"
     if (score >= 60) return "bg-yellow-100 text-yellow-700 border-yellow-200"
     return "bg-red-100 text-red-700 border-red-200"
@@ -151,7 +151,7 @@ const AnalysisInsights = ({ insights }) => {
   const entries = Object.entries(insights || {})
   const visibleEntries = showAll ? entries : entries.slice(0, 3)
 
-  const toggleExpanded = (index) => {
+  const toggleExpanded = index => {
     const updated = new Set(expandedIndexes)
     updated.has(index) ? updated.delete(index) : updated.add(index)
     setExpandedIndexes(updated)
@@ -209,11 +209,9 @@ const AnalysisInsights = ({ insights }) => {
   )
 }
 
-const ProofreadingSuggestion = ({ suggestion, index, onApply }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 10 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ delay: index * 0.05 }}
+const ProofreadingSuggestion = React.forwardRef(({ suggestion, index, onApply, onReject }, ref) => (
+  <div
+    ref={ref}
     className="border border-gray-200 rounded-lg p-3 bg-white hover:shadow-sm transition-shadow"
   >
     <div className="space-y-3">
@@ -231,23 +229,27 @@ const ProofreadingSuggestion = ({ suggestion, index, onApply }) => (
           <CheckCircle className="w-4 h-4 text-green-500" />
           <span className="text-xs font-medium text-gray-700">Suggested</span>
         </div>
-        <div className="p-2 bg-green-50 border border-red-100 rounded text-xs text-gray-700 leading-relaxed">
+        <div className="p-2 bg-green-50 border border-green-100 rounded text-xs text-gray-700 leading-relaxed">
           {suggestion.change}
         </div>
       </div>
-      <Button
-        size="small"
-        type="primary"
-        ghost
-        onClick={() => {
-          onApply(index)
-        }}
-        className="w-full"
-      >
-        Apply This Change
-      </Button>
+      <div className="flex gap-2">
+        <Button
+          size="small"
+          type="primary"
+          onClick={() => onApply(index, suggestion)}
+          className="flex-1 !bg-gradient-to-r !from-green-500 !to-emerald-600 !border-0"
+        >
+          Accept
+        </Button>
+        <Button size="small" onClick={() => onReject(index)} className="flex-1">
+          Reject
+        </Button>
+      </div>
     </div>
-  </motion.div>
-)
+  </div>
+))
+
+ProofreadingSuggestion.displayName = "ProofreadingSuggestion"
 
 export { FeatureCard, ScoreCard, CompetitorsList, AnalysisInsights, ProofreadingSuggestion }

@@ -42,7 +42,8 @@ const SectionCard = ({ section, index }) => {
     onDeleteSectionImage,
   } = useEditorContext()
 
-  const locked = userPlan === "free" && index > 1
+  // No longer restricting content for free/basic users - all sections are accessible
+  const locked = false
   const isEditing = editingIndex === index
   const sectionImage = getSectionImage?.(section.id)
   const isFirst = index === 0
@@ -380,11 +381,21 @@ const SectionCard = ({ section, index }) => {
         </div>
       ) : (
         <div className="cursor-pointer group" onClick={() => !locked && setEditingIndex(index)}>
+          {/* Show proofreading badge when there are suggestions */}
+          {sectionSuggestions.length > 0 && (
+            <div className="mb-2 inline-flex items-center gap-1.5 px-2 py-1 bg-amber-50 border border-amber-200 rounded text-xs">
+              <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse" />
+              <span className="font-medium text-amber-700">
+                {sectionSuggestions.length} suggestion{sectionSuggestions.length > 1 ? "s" : ""}
+              </span>
+              <span className="text-amber-600">• Click to review</span>
+            </div>
+          )}
           <div
             className="prose max-w-none blog-content"
             dangerouslySetInnerHTML={{ __html: section.content }}
           />
-          {!locked && (
+          {!locked && !sectionSuggestions.length && (
             <div className="mt-2 text-center opacity-0 group-hover:opacity-100 transition-opacity">
               <span className="text-sm text-gray-500">Click to edit</span>
             </div>

@@ -212,7 +212,7 @@ export const createMultiBlog = createAsyncThunk(
           : "no_images",
         blog_isBranded: blogData?.useBrandVoice || false,
 
-        error_msg: err?.message || err?.response?.data?.message || "Blog Creation Failed",
+        error_msg: error?.message || error?.response?.data?.message || "Blog Creation Failed",
       })
       return rejectWithValue(error.message)
     }
@@ -259,7 +259,7 @@ export const createManualBlog = createAsyncThunk(
           : "no_images",
         blog_isBranded: blogData?.useBrandVoice || false,
 
-        error_msg: err?.message || err?.response?.data?.message || "Blog Creation Failed",
+        error_msg: error?.message || error?.response?.data?.message || "Blog Creation Failed",
       })
       return rejectWithValue(error)
     }

@@ -21,9 +21,8 @@ import {
   Underline as UnderlineIcon,
   List,
   ListOrdered,
-  Heading1,
-  Heading2,
   Heading3,
+  Heading4,
   AlignLeft,
   AlignCenter,
   AlignRight,
@@ -76,6 +75,8 @@ const SectionEditor = ({
   const [imageUrl, setImageUrl] = useState("")
   const [imageAltText, setImageAltText] = useState("")
   const [selectedLink, setSelectedLink] = useState(null)
+  const [editLinkModalOpen, setEditLinkModalOpen] = useState(false)
+  const [editLinkUrl, setEditLinkUrl] = useState("")
   const [selectedImage, setSelectedImage] = useState(null)
   const [imageEditMode, setImageEditMode] = useState(false)
 
@@ -100,7 +101,7 @@ const SectionEditor = ({
         orderedList: false,
         listItem: false,
       }),
-      Heading.configure({ levels: [1, 2, 3] }),
+      Heading.configure({ levels: [3, 4] }),
       BulletList,
       OrderedList,
       ListItem,
@@ -154,9 +155,8 @@ const SectionEditor = ({
       attributes: {
         class:
           "prose max-w-none focus:outline-none min-h-[200px] " +
-          "[&>h1]:text-3xl [&>h1]:font-bold [&>h1]:mb-4 " +
-          "[&>h2]:text-2xl [&>h2]:font-semibold [&>h2]:mb-3 " +
-          "[&>h3]:text-xl [&>h3]:font-semibold [&>h3]:mb-2 " +
+          "[&>h3]:text-lg [&>h3]:font-semibold [&>h3]:mb-2 [&>h3]:mt-4 " +
+          "[&>h4]:text-base [&>h4]:font-medium [&>h4]:mb-2 [&>h4]:mt-3 " +
           "[&>p]:mb-4 [&>p]:leading-relaxed " +
           "[&>ul]:list-disc [&>ul]:pl-6 [&>ul>li]:mb-2 " +
           "[&>ol]:list-decimal [&>ol]:pl-6 [&>ol>li]:mb-2 " +
@@ -303,6 +303,41 @@ const SectionEditor = ({
     message.success("Link removed")
   }
 
+  // Edit link handler - open modal to edit existing link
+  const openEditLinkModal = () => {
+    if (selectedLink) {
+      setEditLinkUrl(selectedLink.href)
+      setEditLinkModalOpen(true)
+    }
+  }
+
+  // Confirm edit link - update the link URL
+  const confirmEditLink = () => {
+    if (!editLinkUrl) {
+      message.error("Please enter a URL")
+      return
+    }
+
+    let url = editLinkUrl
+    if (!/^https?:\/\//i.test(url)) {
+      url = "https://" + url
+    }
+
+    // Find and update the link in the editor
+    if (editor && selectedLink) {
+      const { state } = editor
+      const { from, to } = state.selection
+
+      // First unset the old link, then set new one
+      editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run()
+
+      setEditLinkModalOpen(false)
+      setEditLinkUrl("")
+      setSelectedLink({ ...selectedLink, href: url })
+      message.success("Link updated")
+    }
+  }
+
   // Image handlers
   const handleAddImage = () => {
     setImageUrl("")
@@ -397,25 +432,18 @@ const SectionEditor = ({
       <div className="flex items-center gap-1 p-2 border-b bg-gray-50 rounded-t-lg flex-wrap">
         {/* Headings */}
         <ToolbarButton
-          title="Heading 1"
-          active={editor.isActive("heading", { level: 1 })}
-          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-        >
-          <Heading1 className="w-4 h-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          title="Heading 2"
-          active={editor.isActive("heading", { level: 2 })}
-          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-        >
-          <Heading2 className="w-4 h-4" />
-        </ToolbarButton>
-        <ToolbarButton
           title="Heading 3"
           active={editor.isActive("heading", { level: 3 })}
           onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
         >
           <Heading3 className="w-4 h-4" />
+        </ToolbarButton>
+        <ToolbarButton
+          title="Heading 4"
+          active={editor.isActive("heading", { level: 4 })}
+          onClick={() => editor.chain().focus().toggleHeading({ level: 4 }).run()}
+        >
+          <Heading4 className="w-4 h-4" />
         </ToolbarButton>
 
         <div className="w-px h-6 bg-gray-300 mx-1" />
@@ -626,31 +654,19 @@ const SectionEditor = ({
         </ToolbarButton>
       </div>
 
-      {/* Link Preview Bar */}
+      {/* Link Preview Bar - Edit and Delete options */}
       {selectedLink && (
         <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border-b text-sm">
           <LinkIcon className="w-4 h-4 text-blue-600" />
-          <a
-            href={selectedLink.href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-600 hover:underline truncate flex-1"
-          >
-            {selectedLink.href}
-          </a>
-          <Tooltip title="Open Link">
-            <a
-              href={selectedLink.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-1 hover:bg-blue-100 rounded"
-            >
-              <ExternalLink className="w-4 h-4 text-blue-600" />
-            </a>
+          <span className="text-blue-600 truncate flex-1">{selectedLink.href}</span>
+          <Tooltip title="Edit Link">
+            <button onClick={openEditLinkModal} className="p-1 hover:bg-blue-100 rounded">
+              <Edit className="w-4 h-4 text-blue-600" />
+            </button>
           </Tooltip>
-          <Tooltip title="Remove Link">
+          <Tooltip title="Delete Link">
             <button onClick={removeLink} className="p-1 hover:bg-red-100 rounded">
-              <X className="w-4 h-4 text-red-500" />
+              <Trash2 className="w-4 h-4 text-red-500" />
             </button>
           </Tooltip>
         </div>
@@ -718,7 +734,7 @@ const SectionEditor = ({
       {activeProofSpan && (
         <div
           ref={proofBubbleRef}
-          className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-xl shadow-lg mx-4 mb-4 overflow-hidden"
+          className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-xl  mx-4 mb-4 overflow-hidden mt-5"
         >
           {/* Header */}
           <div className="px-4 py-2 bg-gradient-to-r from-amber-100 to-orange-100 border-b border-amber-200 flex items-center gap-2">
@@ -731,7 +747,7 @@ const SectionEditor = ({
           {/* Content */}
           <div className="p-4 space-y-3">
             {/* Original */}
-            <div>
+            {/* <div>
               <div className="flex items-center gap-2 mb-1">
                 <div className="w-4 h-4 bg-red-100 rounded flex items-center justify-center">
                   <X className="w-2.5 h-2.5 text-red-500" />
@@ -741,14 +757,7 @@ const SectionEditor = ({
               <div className="p-2 bg-red-50 border border-red-200 rounded-lg text-sm text-gray-700">
                 {activeProofSpan.dataset.original}
               </div>
-            </div>
-
-            {/* Arrow */}
-            <div className="flex justify-center">
-              <div className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center">
-                <span className="text-gray-500 text-sm">↓</span>
-              </div>
-            </div>
+            </div> */}
 
             {/* Suggested */}
             <div>
@@ -1036,6 +1045,33 @@ const SectionEditor = ({
               value={imageAltText}
               onChange={e => setImageAltText(e.target.value)}
               placeholder="Description of the image"
+            />
+          </div>
+        </div>
+      </Modal>
+
+      {/* Edit Link Modal */}
+      <Modal
+        title="Edit Link"
+        open={editLinkModalOpen}
+        onCancel={() => setEditLinkModalOpen(false)}
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button onClick={() => setEditLinkModalOpen(false)}>Cancel</Button>
+            <Button type="primary" onClick={confirmEditLink}>
+              Update Link
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Link URL</label>
+            <Input
+              value={editLinkUrl}
+              onChange={e => setEditLinkUrl(e.target.value)}
+              placeholder="https://example.com"
+              onKeyDown={e => e.key === "Enter" && confirmEditLink()}
             />
           </div>
         </div>

@@ -33,9 +33,17 @@ function htmlToMarkdownSection(html) {
   return turndownService.turndown(html)
 }
 
-// Parse HTML article content into sections
+// Strip HTML tags from text for clean display
+function stripHtml(html) {
+  if (!html) return ""
+  const doc = new DOMParser().parseFromString(html, "text/html")
+  return doc.body.textContent || ""
+}
+
+// Parse HTML article content into sections based on blog HTML class structure
 function parseHtmlIntoSections(htmlString) {
-  if (!htmlString) return { title: "", description: "", sections: [], faq: null }
+  if (!htmlString)
+    return { title: "", description: "", sections: [], faq: null, cta: null, quickSummary: null }
 
   const parser = new DOMParser()
   const doc = parser.parseFromString(htmlString, "text/html")
@@ -43,21 +51,29 @@ function parseHtmlIntoSections(htmlString) {
   let title = ""
   let description = ""
   const sections = []
+  let faq = null
+  let cta = null
+  let quickSummary = null
 
-  const titleEl = doc.querySelector(".blog-title")
+  // Extract title from .blog-title or h1.heading-1
+  const titleEl = doc.querySelector(".blog-title, h1.heading-1")
   if (titleEl) {
     title = titleEl.textContent?.trim() || ""
   }
 
+  // Extract description from .blog-description or .meta-description
   const descEl = doc.querySelector(".blog-description, .meta-description")
   if (descEl) {
     description = descEl.textContent?.trim() || ""
   }
 
-  const sectionEls = doc.querySelectorAll(".blog-section")
+  // Extract content sections (.blog-section but not .faq-section)
+  const sectionEls = doc.querySelectorAll(".blog-section:not(.faq-section)")
   sectionEls.forEach((secEl, index) => {
+    // Get section title from h2.section-title or h3.section-title
     const sectionTitle =
       secEl.querySelector(".section-title")?.textContent?.trim() || `Section ${index + 1}`
+    // Get section content from .section-content
     const sectionContent = secEl.querySelector(".section-content")?.innerHTML || ""
 
     sections.push({
@@ -68,7 +84,38 @@ function parseHtmlIntoSections(htmlString) {
     })
   })
 
-  return { title, description, sections, faq: null }
+  // Extract FAQ section
+  const faqSection = doc.querySelector(".faq-section")
+  if (faqSection) {
+    const faqHeading = faqSection.querySelector(".faq-heading")?.textContent?.trim() || "FAQ"
+    const faqPairs = faqSection.querySelectorAll(".faq-qa-pair")
+    const qa = []
+    faqPairs.forEach(pair => {
+      const question = pair.querySelector(".faq-question")?.textContent?.trim() || ""
+      const answerEl = pair.querySelector(".faq-answer")
+      const answer = answerEl?.textContent?.trim() || ""
+      if (question) {
+        qa.push({ question, answer })
+      }
+    })
+    if (qa.length > 0) {
+      faq = { heading: faqHeading, qa }
+    }
+  }
+
+  // Extract CTA
+  const ctaEl = doc.querySelector(".blog-brand-cta, .cta-wrapper")
+  if (ctaEl) {
+    cta = ctaEl.innerHTML
+  }
+
+  // Extract Quick Summary
+  const summaryEl = doc.querySelector(".blog-quick-summary, .summary-wrapper")
+  if (summaryEl) {
+    quickSummary = summaryEl.innerHTML
+  }
+
+  return { title, description, sections, faq, cta, quickSummary }
 }
 
 // Parse markdown into sections with proper image handling
@@ -150,6 +197,7 @@ const TextEditor = ({
   setUnsavedChanges,
   wordpressMetadata,
   handleSubmit,
+  onReplaceReady, // New: callback to expose handleReplaceWithSections to parent
 }) => {
   const [isEditorLoading, setIsEditorLoading] = useState(true)
   const [openPreview, setOpenPreview] = useState(false)
@@ -173,6 +221,9 @@ const TextEditor = ({
   // Section images state
   const [sectionImages, setSectionImages] = useState([])
 
+  // Table of contents toggle - initialized from blog options
+  const [showTableOfContents, setShowTableOfContents] = useState(false)
+
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
   const user = useSelector(state => state.auth.user)
@@ -187,6 +238,13 @@ const TextEditor = ({
       setSectionImages(blog.images)
     }
   }, [blog?.images])
+
+  // Initialize table of contents toggle from blog options
+  useEffect(() => {
+    if (blog?.options?.includeTableOfContents !== undefined) {
+      setShowTableOfContents(blog.options.includeTableOfContents)
+    }
+  }, [blog?.options?.includeTableOfContents])
 
   // Get section image by sectionId
   const getSectionImage = useCallback(
@@ -242,55 +300,61 @@ const TextEditor = ({
     setUnsavedChanges(hasContentChanges)
   }, [hasContentChanges, setUnsavedChanges])
 
-  // Parse blog content into sections
+  // Parse blog content into sections - PRIORITIZE content field over contentJSON
   useEffect(() => {
     if (blog) {
-      let parsedData = { title: "", description: "", sections: [], faq: null }
+      let parsedData = {
+        title: "",
+        description: "",
+        sections: [],
+        faq: null,
+        cta: null,
+        quickSummary: null,
+      }
 
-      // Check if content is HTML (article structure)
+      // PRIORITY 1: Use content field - check if content is HTML (article structure with classes)
       if (
-        (blog.content && blog.content.includes("<article")) ||
-        blog.content?.includes("<section")
+        blog.content &&
+        (blog.content.includes("<article") ||
+          blog.content.includes("<section") ||
+          blog.content.includes("blog-section") ||
+          blog.content.includes("section-content"))
       ) {
         parsedData = parseHtmlIntoSections(blog.content)
-      }
-      // Check if blog has contentJSON (section-based structure)
-      else if (blog.contentJSON) {
-        const data =
-          typeof blog.contentJSON === "string" ? JSON.parse(blog.contentJSON) : blog.contentJSON
-
-        parsedData.title = data.title || blog.title || ""
-        parsedData.description = data.description || ""
-
-        if (data.sections && Array.isArray(data.sections)) {
-          const converter = new showdown.Converter({
-            tables: true,
-            tasklists: true,
-            simpleLineBreaks: true,
-          })
-
-          parsedData.sections = data.sections.map((sec, i) => {
-            // Check if content is already HTML or needs conversion from markdown
-            const htmlContent = sec.content?.includes("<")
-              ? sec.content
-              : converter.makeHtml(sec.content || "")
-            return {
-              ...sec,
-              id: sec.id || `section-${i}`,
-              content: htmlContent,
-              originalContent: htmlContent,
-            }
-          })
-        }
-
-        if (data.faq) {
-          parsedData.faq = data.faq
+        // Use blog.title as fallback
+        if (!parsedData.title && blog.title) {
+          parsedData.title = blog.title
         }
       }
-      // Fallback: Parse as markdown
-      else if (blog.content) {
+      // PRIORITY 2: Content field with markdown (starts with ## or has markdown syntax)
+      else if (blog.content && (blog.content.includes("## ") || blog.content.includes("**"))) {
         parsedData.title = blog.title || ""
         parsedData.sections = parseMarkdownIntoSections(blog.content)
+      }
+      // PRIORITY 3: Plain content - treat as single section
+      else if (blog.content) {
+        const converter = new showdown.Converter({
+          tables: true,
+          tasklists: true,
+          simpleLineBreaks: true,
+        })
+        const htmlContent = blog.content.includes("<")
+          ? blog.content
+          : converter.makeHtml(blog.content)
+        parsedData.title = blog.title || ""
+        parsedData.sections = [
+          {
+            id: "section-0",
+            title: "Content",
+            content: htmlContent,
+            originalContent: htmlContent,
+          },
+        ]
+      }
+      // FALLBACK: Empty blog, create default structure
+      else {
+        parsedData.title = blog.title || "Untitled Blog"
+        parsedData.sections = []
       }
 
       setBlogTitle(parsedData.title)
@@ -448,17 +512,22 @@ const TextEditor = ({
     }
   }, [blog?.status])
 
-  // Wrapped handleReplace that updates both parent and local sections
+  // Wrapped handleReplace that updates both content and local sections
   const handleReplaceWithSections = useCallback(
     (original, change) => {
+      if (!original || !change) return
+
+      const regex = new RegExp(original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g")
+
       // Update sections locally
       handleReplaceInSections(original, change)
-      // Also call parent's handleReplace if available
-      if (handleReplace) {
-        handleReplace(original, change)
+
+      // Update parent content directly (don't call handleReplace to avoid circular loop)
+      if (setContent) {
+        setContent(prev => prev.replace(regex, change))
       }
     },
-    [handleReplaceInSections, handleReplace]
+    [handleReplaceInSections, setContent]
   )
 
   // Editor context value for child components
@@ -766,48 +835,136 @@ const TextEditor = ({
         title={
           <div className="flex justify-between items-center w-full pr-4">
             <span className="text-lg font-semibold text-gray-800">Blog Preview</span>
-
-            <Button
-              type="primary"
-              onClick={copyContent}
-              className="!bg-gradient-to-r !from-indigo-500 !to-purple-600 !shadow-sm hover:!shadow-md mr-5"
-            >
-              Copy All
-            </Button>
+            <div className="flex items-center gap-3">
+              {/* Table of Contents Toggle */}
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showTableOfContents}
+                  onChange={e => setShowTableOfContents(e.target.checked)}
+                  className="w-4 h-4 rounded border-gray-300"
+                />
+                <span className="text-sm text-gray-600">Table of Contents</span>
+              </label>
+              <Button
+                type="primary"
+                onClick={copyContent}
+                className="!bg-gradient-to-r !from-indigo-500 !to-purple-600 !shadow-sm hover:!shadow-md mr-5"
+              >
+                Copy All
+              </Button>
+            </div>
           </div>
         }
       >
         <div className="max-h-[70vh] overflow-y-auto px-4 pb-6 custom-scroll">
-          {/* Blog Title */}
-          <h1 className="text-2xl font-semibold mb-2 leading-snug text-gray-900">{blogTitle}</h1>
+          {/* Blog Title - H1 */}
+          <h1 className="text-3xl font-bold mb-4 text-gray-900">{stripHtml(blogTitle)}</h1>
 
-          {blogDescription && <p className="text-gray-600 text-sm mb-6">{blogDescription}</p>}
+          {/* Featured Image - First section image or main thumbnail */}
+          {(() => {
+            const mainImage = sectionImages?.find(
+              img => img.role === "thumbnail" || img.role === "main"
+            )
+            const firstSectionImage = sections.length > 0 ? getSectionImage(sections[0]?.id) : null
+            const featuredImage = mainImage || firstSectionImage
+            if (featuredImage) {
+              return (
+                <div className="mb-6">
+                  <img
+                    src={featuredImage.url}
+                    alt={featuredImage.altText || blogTitle}
+                    className="w-full max-h-[400px] object-cover"
+                  />
+                  {featuredImage.attribution?.name && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      Photo by{" "}
+                      <a
+                        href={featuredImage.attribution.profile}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline"
+                      >
+                        {featuredImage.attribution.name}
+                      </a>
+                    </p>
+                  )}
+                </div>
+              )
+            }
+            return null
+          })()}
 
-          {/* Blog Sections */}
+          {/* Description */}
+          {blogDescription && (
+            <p className="text-gray-600 mb-6 leading-relaxed">{blogDescription}</p>
+          )}
+
+          {/* Table of Contents - shown when toggle is on */}
+          {showTableOfContents && sections.length > 0 && (
+            <nav className="mb-8 p-4 bg-gray-50 border border-gray-200">
+              <h2 className="text-lg font-semibold mb-3 text-gray-800">Table of Contents</h2>
+              <ul className="space-y-2">
+                {sections.map((sec, i) => (
+                  <li key={i}>
+                    <a
+                      href={`#preview-section-${i}`}
+                      className="text-blue-600 hover:underline"
+                      onClick={e => {
+                        e.preventDefault()
+                        document
+                          .getElementById(`preview-section-${i}`)
+                          ?.scrollIntoView({ behavior: "smooth" })
+                      }}
+                    >
+                      {stripHtml(sec.title)}
+                    </a>
+                  </li>
+                ))}
+                {faq && (
+                  <li>
+                    <a
+                      href="#preview-faq"
+                      className="text-blue-600 hover:underline"
+                      onClick={e => {
+                        e.preventDefault()
+                        document
+                          .getElementById("preview-faq")
+                          ?.scrollIntoView({ behavior: "smooth" })
+                      }}
+                    >
+                      {faq.heading}
+                    </a>
+                  </li>
+                )}
+              </ul>
+            </nav>
+          )}
+
+          {/* Blog Sections - Clean layout */}
           {sections.map((sec, i) => {
             const sectionImg = getSectionImage(sec.id)
             return (
-              <div key={i} className="mb-10 border-b last:border-b-0">
-                {/* Section Heading */}
-                <h2 className="text-xl font-medium mb-3 text-gray-800">{sec.title}</h2>
+              <div key={i} id={`preview-section-${i}`} className="mb-8">
+                {/* Section Heading - H2 */}
+                <h2 className="text-xl font-semibold mb-3 text-gray-900">{stripHtml(sec.title)}</h2>
 
-                {/* Section Image */}
-                {sectionImg && (
+                {/* Section Image - only show if not the featured image */}
+                {sectionImg && i > 0 && (
                   <div className="mb-4">
                     <img
                       src={sectionImg.url}
                       alt={sectionImg.altText || sec.title}
-                      className="w-full max-h-[380px] object-cover rounded-lg shadow-md"
+                      className="w-full max-h-[350px] object-cover"
                     />
-
                     {sectionImg.attribution?.name && (
-                      <p className="text-xs text-gray-500 mt-2 text-center">
+                      <p className="text-xs text-gray-500 mt-2">
                         Photo by{" "}
                         <a
                           href={sectionImg.attribution.profile}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-indigo-500 hover:underline"
+                          className="text-blue-600 hover:underline"
                         >
                           {sectionImg.attribution.name}
                         </a>
@@ -816,26 +973,24 @@ const TextEditor = ({
                   </div>
                 )}
 
-                {/* Section Content */}
-                <div
-                  className="prose max-w-none blog-content text-gray-700 leading-relaxed"
-                  dangerouslySetInnerHTML={{ __html: sec.content }}
-                />
+                {/* Section Content - No additional styling, uses blog-content class */}
+                <div className="blog-content" dangerouslySetInnerHTML={{ __html: sec.content }} />
               </div>
             )
           })}
 
           {/* FAQ Section */}
           {faq && (
-            <div className="mt-10 p-5 border rounded-lg bg-gray-50 shadow-sm">
-              <h2 className="text-xl font-medium mb-3 text-gray-800">{faq.heading}</h2>
-
-              {faq.qa.map((item, i) => (
-                <div key={i} className="mt-3">
-                  <h3 className="font-medium text-base text-gray-800">{item.question}</h3>
-                  <p className="text-gray-600 text-sm mt-1">{item.answer}</p>
-                </div>
-              ))}
+            <div id="preview-faq" className="mt-8 pt-6 border-t">
+              <h2 className="text-xl font-semibold mb-4 text-gray-900">{faq.heading}</h2>
+              <div className="space-y-4">
+                {faq.qa.map((item, i) => (
+                  <div key={i}>
+                    <h3 className="font-medium text-gray-900">{item.question}</h3>
+                    <p className="text-gray-600 mt-1">{item.answer}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
