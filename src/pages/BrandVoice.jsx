@@ -6,14 +6,7 @@ import { Info, Loader2, Trash, Upload, RefreshCcw } from "lucide-react"
 import { Helmet } from "react-helmet"
 import { Modal, Tooltip, message, Button } from "antd"
 // import { useQuery, useQueryClient } from "@tanstack/react-query"
-import {
-  createBrandVoiceThunk,
-  deleteBrandVoiceThunk,
-  fetchBrands,
-  fetchSiteInfo,
-  updateBrandVoiceThunk,
-  resetSiteInfo,
-} from "@store/slices/brandSlice"
+import { fetchSiteInfo, resetSiteInfo } from "@store/slices/brandSlice"
 import BrandVoicesComponent from "@components/BrandVoiceComponent"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import UpgradeModal from "@components/UpgradeModal"
@@ -33,6 +26,7 @@ const BrandVoice = () => {
     keywords: [],
     describeBrand: "",
     sitemapUrl: "",
+    persona: "",
     selectedVoice: null,
     _id: undefined,
   })
@@ -76,6 +70,7 @@ const BrandVoice = () => {
         keywords: siteInfo.data.keywords || prev.keywords,
         postLink: siteInfo.data.postLink || prev.postLink,
         sitemapUrl: siteInfo.data.sitemap || prev.sitemapUrl,
+        persona: siteInfo.data.persona || prev.persona,
       }))
       setErrors(prev => ({
         ...prev,
@@ -84,6 +79,7 @@ const BrandVoice = () => {
         keywords: undefined,
         postLink: undefined,
         sitemapUrl: undefined,
+        persona: undefined,
       }))
       setLastScrapedUrl(formData.postLink)
     }
@@ -96,6 +92,7 @@ const BrandVoice = () => {
       keywords: [],
       describeBrand: "",
       sitemapUrl: "",
+      persona: "",
       selectedVoice: brands && brands.length > 0 ? brands[0] : null,
       _id: undefined,
     })
@@ -134,6 +131,9 @@ const BrandVoice = () => {
       } catch {
         newErrors.sitemapUrl = "Please enter a valid URL (e.g., https://example.com/sitemap.xml)."
       }
+    }
+    if (!formData.persona.trim()) {
+      newErrors.persona = "Persona is required."
     }
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -235,6 +235,7 @@ const BrandVoice = () => {
       keywords: formData.keywords.map(k => k.trim()).filter(Boolean),
       describeBrand: formData.describeBrand.trim(),
       sitemap: formData.sitemapUrl.trim(),
+      persona: formData.persona.trim(),
     }
 
     const isDuplicate = brands.some(
@@ -250,7 +251,6 @@ const BrandVoice = () => {
 
     try {
       if (formData._id) {
-        // await dispatch(updateBrandVoiceThunk({ id: formData._id, payload })).unwrap()
         await BrandVoice.update.mutateAsync({ id: formData._id, data: payload })
       } else {
         await BrandVoice.create.mutateAsync(payload)
@@ -272,6 +272,7 @@ const BrandVoice = () => {
       keywords: Array.isArray(brand.keywords) ? brand.keywords : [],
       describeBrand: brand.describeBrand || "",
       sitemapUrl: brand.sitemap || "",
+      persona: brand.persona || "",
       selectedVoice: brand,
       _id: brand._id,
     })
@@ -293,11 +294,6 @@ const BrandVoice = () => {
         confirmText: "Delete",
         onConfirm: async () => {
           try {
-            // queryClient.setQueryData(["brands"], (oldBrands = []) =>
-            //   oldBrands.filter(b => b._id !== brand._id)
-            // )
-            // await dispatch(deleteBrandVoiceThunk({ id: brand._id })).unwrap()
-            // queryClient.invalidateQueries(["brands"])
             await BrandVoice.delete.mutateAsync(brand._id)
             if (formData?.selectedVoice?._id === brand._id) {
               resetForm()
@@ -306,7 +302,6 @@ const BrandVoice = () => {
           } catch (error) {
             console.error("Failed to delete brand voice:", error)
             message.error("Failed to delete Brand Voice")
-            // queryClient.invalidateQueries(["brands"])
           }
         },
         confirmProps: {
@@ -649,6 +644,46 @@ const BrandVoice = () => {
             {errors.describeBrand && (
               <p id="describeBrand-error" className="text-red-500 text-xs sm:text-sm mt-1">
                 {errors.describeBrand}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label htmlFor="persona" className="text-sm font-medium text-gray-700 flex gap-2 mb-1">
+              Author Persona <span className="text-red-500">*</span>
+              <Tooltip
+                title="Describe the author's bio, writing style, tones (e.g., professional, casual), dialect preferences, target audiences, and brand identities. This helps generate content that resonates with your brand voice."
+                styles={{
+                  backgroundColor: "#4169e1",
+                  color: "#fff",
+                  borderRadius: "8px",
+                  padding: "8px 12px",
+                  fontSize: "13px",
+                  maxWidth: "320px",
+                }}
+              >
+                <span className="cursor-pointer">
+                  <Info className="w-4 sm:w-5 h-4 sm:h-5 text-blue-500" />
+                </span>
+              </Tooltip>
+            </label>
+            <motion.textarea
+              id="persona"
+              name="persona"
+              value={formData.persona}
+              onChange={handleInputChange}
+              placeholder="e.g., A seasoned tech blogger with a friendly, conversational tone. Writes for developers and startup founders. Uses American English with occasional technical jargon."
+              className={`w-full p-2 sm:p-3 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm sm:text-base ${
+                errors.persona ? "border-red-500" : "border-gray-300"
+              }`}
+              rows={3}
+              whileFocus={{ scale: 1.01 }}
+              aria-invalid={!!errors.persona}
+              aria-describedby={errors.persona ? "persona-error" : undefined}
+            />
+            {errors.persona && (
+              <p id="persona-error" className="text-red-500 text-xs sm:text-sm mt-1">
+                {errors.persona}
               </p>
             )}
           </div>

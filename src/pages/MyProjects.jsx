@@ -527,6 +527,7 @@ const MyProjects = () => {
                   onRetry={handleRetry}
                   onArchive={handleArchive}
                   handlePopup={handlePopup}
+                  hasGSCPermissions={Boolean(user?.gsc?.length)}
                 />
               ))}
             </div>
