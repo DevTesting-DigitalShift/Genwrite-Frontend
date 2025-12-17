@@ -476,6 +476,43 @@ const TextEditorSidebar = ({
     }
   }, [handleSubmit, metadata])
 
+  const handlePdfExport = useCallback(async () => {
+    if (!blog?._id) return message.error("Blog ID missing")
+
+    try {
+      message.loading({ content: "Generating PDF...", key: "pdf-export" })
+
+      const response = await fetch(`/api/blogs/${blog._id}/export?type=pdf`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to export PDF")
+      }
+
+      // Get the blob from response
+      const blob = await response.blob()
+
+      // Create download link
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `${blog.title || "blog"}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+
+      message.success({ content: "PDF downloaded successfully!", key: "pdf-export" })
+    } catch (error) {
+      console.error("PDF Export Error:", error)
+      message.error({ content: "Failed to export PDF", key: "pdf-export" })
+    }
+  }, [blog])
+
   const handleKeywordRewrite = useCallback(() => {
     handlePopup({
       title: "Rewrite Keywords",
@@ -592,7 +629,7 @@ const TextEditorSidebar = ({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3 space-y-5">
+      <div className="flex-1 overflow-y-auto p-3 space-y-5 custom-scroll">
         {/* Stats */}
         <div className="grid grid-cols-2 gap-3">
           <div className="p-3 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl text-center">
@@ -771,6 +808,7 @@ const TextEditorSidebar = ({
 
       {/* Floating Post Button */}
       <div className="p-3 border-t bg-white">
+        {/* Post Button */}
         <Button
           type="primary"
           size="large"
@@ -985,7 +1023,7 @@ const TextEditorSidebar = ({
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <button
               onClick={handleExportMarkdown}
               className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium border transition-all ${
@@ -1007,6 +1045,17 @@ const TextEditorSidebar = ({
             >
               <FileCode className="w-4 h-4" />
               HTML
+            </button>
+            <button
+              onClick={handlePdfExport}
+              className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium border transition-all ${
+                userPlan === "free"
+                  ? "bg-gray-50 text-gray-400 cursor-not-allowed"
+                  : "bg-white hover:bg-gray-50 text-gray-700 hover:border-gray-400"
+              }`}
+            >
+              <Download className="w-4 h-4" />
+              PDF
             </button>
           </div>
 
@@ -1241,7 +1290,7 @@ const TextEditorSidebar = ({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3 space-y-4">
+      <div className="flex-1 overflow-y-auto p-3 space-y-4 custom-scroll">
         {/* Topic & Title */}
         <div className="space-y-3">
           <div>

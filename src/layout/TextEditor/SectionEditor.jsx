@@ -14,6 +14,7 @@ import { TableRow } from "@tiptap/extension-table-row"
 import { TableCell } from "@tiptap/extension-table-cell"
 import { TableHeader } from "@tiptap/extension-table-header"
 import { ProofreadingDecoration } from "@/extensions/ProofreadingDecoration"
+import { Iframe } from "@/extensions/IframeExtension"
 import { getLinkPreview } from "link-preview-js"
 import {
   Bold,
@@ -39,8 +40,10 @@ import {
   Table as TableIcon,
   Plus,
   Minus,
+  Youtube,
+  Info,
 } from "lucide-react"
-import { Tooltip, message, Modal, Input, Dropdown, Button } from "antd"
+import { Tooltip, message, Modal, Input, Button, Dropdown, Popover } from "antd"
 
 const ToolbarButton = ({ active, onClick, disabled, children, title }) => (
   <Tooltip title={title}>
@@ -93,6 +96,12 @@ const SectionEditor = ({
   const [activeProofSpan, setActiveProofSpan] = useState(null)
   const proofBubbleRef = useRef(null)
 
+  // YouTube embed modal state
+  const [embedModalOpen, setEmbedModalOpen] = useState(false)
+  const [youtubeUrl, setYoutubeUrl] = useState("")
+  const [youtubeTitle, setYoutubeTitle] = useState("")
+  const [youtubeError, setYoutubeError] = useState("")
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -143,6 +152,7 @@ const SectionEditor = ({
           target: "_blank",
         },
       }),
+      Iframe,
       ProofreadingDecoration.configure({
         suggestions: proofreadingResults,
       }),
@@ -426,6 +436,87 @@ const SectionEditor = ({
     setSelectedImage(null)
   }
 
+  // YouTube URL validation
+  const validateYouTubeUrl = url => {
+    if (!url) return { valid: false, embedUrl: null, videoId: null }
+
+    // Check if it's already an embed URL
+    const embedMatch = url.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/)
+    if (embedMatch) {
+      return { valid: true, embedUrl: url, videoId: embedMatch[1] }
+    }
+
+    // Standard YouTube URL patterns
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
+      /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+      /(?:youtube\.com\/v\/)([a-zA-Z0-9_-]{11})/,
+      /(?:youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
+    ]
+
+    for (const pattern of patterns) {
+      const match = url.match(pattern)
+      if (match) {
+        return {
+          valid: true,
+          embedUrl: `https://www.youtube.com/embed/${match[1]}`,
+          videoId: match[1],
+        }
+      }
+    }
+
+    return { valid: false, embedUrl: null, videoId: null }
+  }
+
+  // Website URL validation
+  const validateWebsiteUrl = url => {
+    if (!url) return false
+    try {
+      const parsed = new URL(url.startsWith("http") ? url : `https://${url}`)
+      return parsed.protocol === "http:" || parsed.protocol === "https:"
+    } catch {
+      return false
+    }
+  }
+
+  // Handle adding YouTube embed
+  const handleAddYouTubeEmbed = () => {
+    const result = validateYouTubeUrl(youtubeUrl)
+    if (!result.valid) {
+      setYoutubeError("Please enter a valid YouTube URL")
+      return
+    }
+    if (!youtubeTitle.trim()) {
+      message.warning("Please add a title for SEO")
+      return
+    }
+
+    // Insert YouTube iframe using the extension
+    editor
+      .chain()
+      .focus()
+      .setIframe({
+        src: result.embedUrl,
+        title: youtubeTitle.trim(),
+      })
+      .run()
+
+    // Reset form
+    setYoutubeUrl("")
+    setYoutubeTitle("")
+    setYoutubeError("")
+    setEmbedModalOpen(false)
+    message.success("YouTube video added")
+  }
+
+  // Reset embed modal
+  const resetEmbedModal = () => {
+    setYoutubeUrl("")
+    setYoutubeTitle("")
+    setYoutubeError("")
+    setEmbedModalOpen(false)
+  }
+
   return (
     <div className="border rounded-lg bg-white shadow-sm">
       {/* Toolbar */}
@@ -522,6 +613,11 @@ const SectionEditor = ({
         </ToolbarButton>
         <ToolbarButton title="Add Image" onClick={handleAddImage}>
           <ImageIcon className="w-4 h-4" />
+        </ToolbarButton>
+
+        {/* YouTube Embed Button */}
+        <ToolbarButton title="Add YouTube Video" onClick={() => setEmbedModalOpen(true)}>
+          <Youtube className="w-4 h-4" />
         </ToolbarButton>
 
         {/* Table Dropdown */}
@@ -1075,6 +1171,82 @@ const SectionEditor = ({
             />
           </div>
         </div>
+      </Modal>
+
+      {/* YouTube Embed Modal */}
+      <Modal
+        title={
+          <div className="flex items-center gap-2">
+            <Youtube className="w-5 h-5 text-red-600" />
+            <span>Add YouTube Video</span>
+          </div>
+        }
+        open={embedModalOpen}
+        onCancel={resetEmbedModal}
+        footer={null}
+        width={520}
+        centered
+      >
+        {/* YouTube Form */}
+        {embedModalOpen && (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                YouTube URL <span className="text-red-500">*</span>
+              </label>
+              <Input
+                value={youtubeUrl}
+                onChange={e => {
+                  setYoutubeUrl(e.target.value)
+                  setYoutubeError("")
+                }}
+                placeholder="https://www.youtube.com/watch?v=... or embed URL"
+                status={youtubeError ? "error" : ""}
+              />
+              {youtubeError && <p className="text-xs text-red-500 mt-1">{youtubeError}</p>}
+              <p className="text-xs text-gray-500 mt-1">
+                Supports: youtube.com/watch, youtu.be, youtube.com/embed
+              </p>
+            </div>
+
+            {/* Preview */}
+            {youtubeUrl && validateYouTubeUrl(youtubeUrl).valid && (
+              <div className="border rounded-lg overflow-hidden">
+                <div className="aspect-video bg-gray-900">
+                  <iframe
+                    src={validateYouTubeUrl(youtubeUrl).embedUrl}
+                    title="Preview"
+                    frameBorder="0"
+                    className="w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Title <span className="text-red-500">*</span>
+              </label>
+              <Input
+                value={youtubeTitle}
+                onChange={e => setYoutubeTitle(e.target.value)}
+                placeholder="Video title for SEO and accessibility"
+              />
+            </div>
+
+            <Button
+              type="primary"
+              onClick={handleAddYouTubeEmbed}
+              disabled={!youtubeUrl || !youtubeTitle.trim()}
+              block
+              className="!bg-red-600 !hover:bg-red-700 !border-red-600"
+              icon={<Youtube className="w-4 h-4" />}
+            >
+              Add YouTube Video
+            </Button>
+          </div>
+        )}
       </Modal>
     </div>
   )

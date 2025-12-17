@@ -1,5 +1,6 @@
-import React, { useState } from "react"
-import { motion, Reorder, useDragControls } from "framer-motion"
+import React, { useState, useEffect } from "react"
+import { Reorder, useDragControls } from "framer-motion"
+import axiosInstance from "@/api"
 import {
   Trash2,
   Lock,
@@ -11,10 +12,15 @@ import {
   ChevronUp,
   ChevronDown,
   GripVertical,
+  Film,
+  Sparkles,
+  FileCheck,
+  MessageSquare,
 } from "lucide-react"
 import { Tooltip, Input, message, Modal, Popover } from "antd"
 import SectionEditor from "./SectionEditor"
 import { useEditorContext } from "./EditorContext"
+import { EmbedCard, parseEmbedsFromHtml } from "./EmbedManager"
 
 const SectionCard = ({ section, index }) => {
   const [editingTitle, setEditingTitle] = useState(false)
@@ -24,7 +30,23 @@ const SectionCard = ({ section, index }) => {
   const [replaceImageModalOpen, setReplaceImageModalOpen] = useState(false)
   const [newImageUrl, setNewImageUrl] = useState("")
 
+  // Embed state for display
+  const [sectionEmbeds, setSectionEmbeds] = useState([])
+
+  // AI Operations state
+  const [aiOperationModalOpen, setAiOperationModalOpen] = useState(false)
+  const [selectedAiOperation, setSelectedAiOperation] = useState(null) // 'rewrite', 'proofread', 'promptChanges'
+  const [customPrompt, setCustomPrompt] = useState("")
+  const [isProcessingAI, setIsProcessingAI] = useState(false)
+
+  // AI Result comparison modal
+  const [aiResultModalOpen, setAiResultModalOpen] = useState(false)
+  const [originalContent, setOriginalContent] = useState("")
+  const [newContent, setNewContent] = useState("")
+  const [currentOperation, setCurrentOperation] = useState("")
+
   const {
+    blogId,
     userPlan,
     editingIndex,
     setEditingIndex,
@@ -48,6 +70,14 @@ const SectionCard = ({ section, index }) => {
   const sectionImage = getSectionImage?.(section.id)
   const isFirst = index === 0
   const isLast = index === sectionsCount - 1
+
+  // Parse embeds from section content
+  useEffect(() => {
+    if (section.content) {
+      const parsedEmbeds = parseEmbedsFromHtml(section.content)
+      setSectionEmbeds(parsedEmbeds)
+    }
+  }, [section.content])
 
   // Helper function to strip HTML tags for text comparison
   const stripHtml = html => {
@@ -170,6 +200,82 @@ const SectionCard = ({ section, index }) => {
       )}
     </div>
   )
+
+  // Handle AI Operations
+  const handleAIOperation = operation => {
+    setSelectedAiOperation(operation)
+    if (operation === "promptChanges") {
+      setAiOperationModalOpen(true)
+    } else {
+      // For rewrite and proofread, execute immediately
+      executeAIOperation(operation, "")
+    }
+  }
+
+  const executeAIOperation = async (operation, userInstructions = "") => {
+    if (!blogId) {
+      message.error("Blog ID not found. Please save the blog first.")
+      return
+    }
+
+    setIsProcessingAI(true)
+    try {
+      const response = await axiosInstance.post(`/blogs/${blogId}/sectionTask`, {
+        sectionId: section.id,
+        task: operation,
+        userInstructions: userInstructions,
+      })
+
+      // Store original and new content for comparison
+      if (response.data?.content) {
+        setOriginalContent(section.content)
+        setNewContent(response.data.content)
+        setCurrentOperation(operation)
+        setAiResultModalOpen(true)
+        message.success(`${operation} completed! Review the changes.`)
+      }
+    } catch (error) {
+      console.error("AI Operation Error:", error)
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        `Failed to ${operation} section. Please try again.`
+      message.error(errorMessage)
+    } finally {
+      setIsProcessingAI(false)
+      setAiOperationModalOpen(false)
+      setCustomPrompt("")
+    }
+  }
+
+  // Handle accepting AI changes
+  const handleAcceptAIChanges = () => {
+    handleSectionChange(index, { content: newContent })
+    setAiResultModalOpen(false)
+    message.success("Changes applied successfully!")
+    // Reset state
+    setOriginalContent("")
+    setNewContent("")
+    setCurrentOperation("")
+  }
+
+  // Handle declining AI changes
+  const handleDeclineAIChanges = () => {
+    setAiResultModalOpen(false)
+    message.info("Changes discarded")
+    // Reset state
+    setOriginalContent("")
+    setNewContent("")
+    setCurrentOperation("")
+  }
+
+  const handleCustomPromptSubmit = () => {
+    if (!customPrompt.trim()) {
+      message.warning("Please enter a prompt")
+      return
+    }
+    executeAIOperation("promptChanges", customPrompt)
+  }
 
   const dragControls = useDragControls()
 
@@ -296,6 +402,46 @@ const SectionCard = ({ section, index }) => {
         )}
       </div>
 
+      {/* AI Operations Toolbar */}
+      {!locked && !isEditing && (
+        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <span className="text-xs text-gray-500 font-medium">AI Actions:</span>
+          <Tooltip title="Rewrite this section with AI">
+            <button
+              onClick={() => handleAIOperation("rewrite")}
+              disabled={isProcessingAI}
+              className="flex items-center gap-1 px-2 py-1 text-xs bg-purple-50 text-purple-700 rounded-md hover:bg-purple-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Sparkles className="w-3 h-3" />
+              Rewrite
+            </button>
+          </Tooltip>
+          <Tooltip title="Proofread and fix errors">
+            <button
+              onClick={() => handleAIOperation("proofread")}
+              disabled={isProcessingAI}
+              className="flex items-center gap-1 px-2 py-1 text-xs bg-green-50 text-green-700 rounded-md hover:bg-green-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <FileCheck className="w-3 h-3" />
+              Proofread
+            </button>
+          </Tooltip>
+          <Tooltip title="Custom AI prompt">
+            <button
+              onClick={() => handleAIOperation("promptChanges")}
+              disabled={isProcessingAI}
+              className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <MessageSquare className="w-3 h-3" />
+              Custom Prompt
+            </button>
+          </Tooltip>
+          {isProcessingAI && (
+            <span className="text-xs text-gray-500 animate-pulse">Processing...</span>
+          )}
+        </div>
+      )}
+
       {/* Section Image - with edit options */}
       {sectionImage && (
         <div className="mb-4 relative group">
@@ -403,8 +549,27 @@ const SectionCard = ({ section, index }) => {
         </div>
       )}
 
-      {/* Add Section Below - appears on hover */}
-      {!locked && (
+      {/* Embeds Section - Show YouTube/Website embeds from content */}
+      {sectionEmbeds.length > 0 && (
+        <div className="mt-4 border-t border-gray-100 pt-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Film className="w-4 h-4 text-purple-600" />
+              <span className="text-sm font-medium text-gray-700">
+                Embedded Content ({sectionEmbeds.length})
+              </span>
+            </div>
+          </div>
+          <div className="space-y-3">
+            {sectionEmbeds.map(embed => (
+              <EmbedCard key={embed.id} embed={embed} editable={false} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Add Section Below - appears on hover, but not on last section */}
+      {!locked && !isLast && (
         <div className="absolute -bottom-3 left-1/2 transform -translate-x-1/2 opacity-0 hover:opacity-100 group-hover:opacity-100 transition-opacity z-30">
           <Tooltip title="Add section below">
             <button
@@ -420,6 +585,123 @@ const SectionCard = ({ section, index }) => {
           </Tooltip>
         </div>
       )}
+
+      {/* Custom Prompt Modal */}
+      <Modal
+        title={
+          <div className="flex items-center gap-2">
+            <MessageSquare className="w-5 h-5 text-blue-600" />
+            <span>Custom AI Prompt</span>
+          </div>
+        }
+        open={aiOperationModalOpen}
+        onCancel={() => {
+          setAiOperationModalOpen(false)
+          setCustomPrompt("")
+        }}
+        footer={[
+          <button
+            key="cancel"
+            onClick={() => {
+              setAiOperationModalOpen(false)
+              setCustomPrompt("")
+            }}
+            className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+          >
+            Cancel
+          </button>,
+          <button
+            key="submit"
+            onClick={handleCustomPromptSubmit}
+            disabled={!customPrompt.trim() || isProcessingAI}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ml-2"
+          >
+            {isProcessingAI ? "Processing..." : "Apply Changes"}
+          </button>,
+        ]}
+        width={520}
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-gray-600">
+            Enter your custom instructions for how you want to modify this section:
+          </p>
+          <Input.TextArea
+            value={customPrompt}
+            onChange={e => setCustomPrompt(e.target.value)}
+            placeholder="E.g., Make it more professional, add statistics, simplify the language..."
+            rows={4}
+            maxLength={2000}
+            showCount
+            autoFocus
+          />
+          <p className="text-xs text-gray-500">
+            💡 Tip: Be specific about what changes you want to see in this section.
+          </p>
+        </div>
+      </Modal>
+
+      {/* AI Result Comparison Modal */}
+      <Modal
+        title={
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-purple-600" />
+            <span>Review AI Changes - {currentOperation}</span>
+          </div>
+        }
+        open={aiResultModalOpen}
+        onCancel={handleDeclineAIChanges}
+        footer={[
+          <button
+            key="decline"
+            onClick={handleDeclineAIChanges}
+            className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+          >
+            Decline
+          </button>,
+          <button
+            key="accept"
+            onClick={handleAcceptAIChanges}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors ml-2"
+          >
+            Accept Changes
+          </button>,
+        ]}
+        width={900}
+        centered
+      >
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            {/* Original Content */}
+            <div className="border rounded-lg p-4 bg-red-50">
+              <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                <X className="w-4 h-4 text-red-600" />
+                Original Content
+              </h4>
+              <div
+                className="prose prose-sm max-w-none text-gray-700 max-h-96 overflow-y-auto custom-scroll"
+                dangerouslySetInnerHTML={{ __html: originalContent }}
+              />
+            </div>
+
+            {/* New Content */}
+            <div className="border rounded-lg p-4 bg-green-50">
+              <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                <Check className="w-4 h-4 text-green-600" />
+                AI Generated Content
+              </h4>
+              <div
+                className="prose prose-sm max-w-none text-gray-700 max-h-96 overflow-y-auto custom-scroll"
+                dangerouslySetInnerHTML={{ __html: newContent }}
+              />
+            </div>
+          </div>
+
+          <p className="text-xs text-gray-500 text-center">
+            💡 Review the changes carefully before accepting. You can decline and try again with
+            different instructions.
+          </p>
+        </div>
+      </Modal>
     </Reorder.Item>
   )
 }

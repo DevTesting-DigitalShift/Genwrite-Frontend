@@ -3,13 +3,18 @@ import { useLocation, useNavigate, useParams } from "react-router-dom"
 import { useDispatch, useSelector } from "react-redux"
 import { motion, AnimatePresence } from "framer-motion"
 import axiosInstance from "../api"
-import { createManualBlog, fetchBlogById, updateBlogById } from "../store/slices/blogSlice"
-import { Loader2, FileText, Eye, Save, RefreshCw, PanelRightOpen, X } from "lucide-react"
+import {
+  createManualBlog,
+  fetchBlogById,
+  updateBlogById,
+  clearSelectedBlog,
+} from "../store/slices/blogSlice"
+import { Loader2, FileText, Eye, Save, RefreshCw, PanelRightOpen, X, Info } from "lucide-react"
 import { Helmet } from "react-helmet"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeRaw from "rehype-raw"
-import { Button, message, Modal, Typography } from "antd"
+import { Button, message, Modal, Typography, Popover } from "antd"
 import { htmlToText } from "html-to-text"
 import { sendRetryLines } from "@api/blogApi"
 import TemplateModal from "@components/generateBlog/TemplateModal"
@@ -25,7 +30,7 @@ const MainEditorPage = () => {
   const blog = useSelector(state => state.blog.selectedBlog)
   const { metadata } = useSelector(state => state.wordpress)
   const [activeTab, setActiveTab] = useState("Normal")
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(!!id)
   const [keywords, setKeywords] = useState([])
   const [editorContent, setEditorContent] = useState("")
   const [editorTitle, setEditorTitle] = useState("")
@@ -91,11 +96,20 @@ const MainEditorPage = () => {
         .unwrap()
         .catch(() => message.error("Failed to load blog."))
         .finally(() => setIsLoading(false))
+    } else {
+      // Clear selected blog when creating a new blog
+      dispatch(clearSelectedBlog())
+      // Clear editor state to prevent showing previous blog content
+      setEditorContent("")
+      setEditorTitle("")
+      setKeywords([])
+      setIsPosted(null)
+      setFormData({ category: "", includeTableOfContents: false })
     }
   }, [id, dispatch])
 
   useEffect(() => {
-    if (blog) {
+    if (blog && id) {
       setKeywords(blog.keywords || [])
       setEditorTitle(blog.title || "")
       setEditorContent(blog.content ?? "")
@@ -107,7 +121,7 @@ const MainEditorPage = () => {
       })
       setUnsavedChanges(false) // Reset unsavedChanges when blog is loaded
     }
-  }, [blog])
+  }, [blog, id])
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -530,6 +544,70 @@ const MainEditorPage = () => {
                       Preview
                     </button>
                   )}
+                  <Popover
+                    content={
+                      <div className="max-w-md">
+                        <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                          <Info className="w-5 h-5 text-blue-600" />
+                          Editor Guidelines
+                        </h3>
+                        <div className="space-y-3 text-sm text-gray-700">
+                          <div>
+                            <p className="font-medium text-gray-900 mb-1">📝 Heading Structure:</p>
+                            <ul className="list-disc list-inside space-y-1 ml-2">
+                              <li>
+                                <strong>H1:</strong> Blog title only (automatically set)
+                              </li>
+                              <li>
+                                <strong>H2:</strong> Section titles (automatically set)
+                              </li>
+                              <li>
+                                <strong>H3:</strong> Use for major subsections within content
+                              </li>
+                              <li>
+                                <strong>H4:</strong> Use for minor subsections and details
+                              </li>
+                            </ul>
+                          </div>
+
+                          <div>
+                            <p className="font-medium text-gray-900 mb-1">✨ Content Tips:</p>
+                            <ul className="list-disc list-inside space-y-1 ml-2">
+                              <li>
+                                Use <strong>H3</strong> for main points in your section
+                              </li>
+                              <li>
+                                Use <strong>H4</strong> for supporting details
+                              </li>
+                              <li>Add lists for better readability</li>
+                              <li>Insert tables for structured data</li>
+                              <li>Embed YouTube videos for rich content</li>
+                            </ul>
+                          </div>
+
+                          <div>
+                            <p className="font-medium text-gray-900 mb-1">🎯 Best Practices:</p>
+                            <ul className="list-disc list-inside space-y-1 ml-2">
+                              <li>Keep heading hierarchy logical (H3 → H4)</li>
+                              <li>Don't skip heading levels</li>
+                              <li>Use formatting (bold, italic) for emphasis</li>
+                              <li>Add alt text to images for SEO</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    }
+                    title={null}
+                    trigger="click"
+                    placement="bottomRight"
+                  >
+                    <button
+                      className="px-3 sm:px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center text-xs sm:text-sm"
+                      aria-label="Editor Guidelines"
+                    >
+                      <Info className="w-4 sm:w-5 h-4 sm:h-5" />
+                    </button>
+                  </Popover>
                   <button
                     onClick={() => handleSave({ metadata })}
                     className={`px-3 sm:px-4 py-2 min-w-[130px] rounded-lg font-semibold flex items-center gap-2 justify-center transition-all duration-300 ${

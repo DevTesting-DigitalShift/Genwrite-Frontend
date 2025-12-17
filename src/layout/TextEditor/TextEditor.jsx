@@ -22,6 +22,13 @@ showdown.setOption("simpleLineBreaks", true)
 showdown.setOption("openLinksInNewWindow", true)
 showdown.setOption("emoji", true)
 
+// Generate unique custom ID for sections
+function generateSectionId() {
+  const timestamp = Date.now().toString(36)
+  const randomStr = Math.random().toString(36).substring(2, 8)
+  return `sec-${timestamp}-${randomStr}`
+}
+
 // Convert HTML → Markdown for saving
 function htmlToMarkdownSection(html) {
   if (!html) return ""
@@ -77,7 +84,7 @@ function parseHtmlIntoSections(htmlString) {
     const sectionContent = secEl.querySelector(".section-content")?.innerHTML || ""
 
     sections.push({
-      id: secEl.id || `section-${index}`,
+      id: secEl.id || generateSectionId(),
       title: sectionTitle,
       content: sectionContent,
       originalContent: sectionContent,
@@ -146,7 +153,7 @@ function parseMarkdownIntoSections(markdown) {
     const htmlContent = converter.makeHtml(markdown)
     return [
       {
-        id: "section-0",
+        id: generateSectionId(),
         title: "Content",
         content: htmlContent,
         originalContent: htmlContent,
@@ -168,7 +175,7 @@ function parseMarkdownIntoSections(markdown) {
     const htmlContent = converter.makeHtml(fullContent)
 
     return {
-      id: `section-${i}`,
+      id: generateSectionId(),
       title: m.title,
       content: htmlContent,
       originalContent: htmlContent,
@@ -344,7 +351,7 @@ const TextEditor = ({
         parsedData.title = blog.title || ""
         parsedData.sections = [
           {
-            id: "section-0",
+            id: generateSectionId(),
             title: "Content",
             content: htmlContent,
             originalContent: htmlContent,
@@ -369,32 +376,62 @@ const TextEditor = ({
     }
   }, [blog])
 
-  // Sync sections back to markdown content for parent
-  const syncSectionsToContent = useCallback(() => {
-    let markdown = ""
+  // Reset original values when blog is saved (updatedAt changes)
+  useEffect(() => {
+    if (blog?.updatedAt) {
+      // Update originals to current state to clear "unsaved changes" after save
+      setOriginalBlogTitle(blogTitle)
+      setOriginalBlogDescription(blogDescription)
+      setOriginalSections(sections.map(s => ({ ...s, originalContent: s.content })))
+    }
+  }, [blog?.updatedAt])
 
-    sections.forEach(sec => {
-      markdown += `## ${sec.title}\n\n`
-      markdown += htmlToMarkdownSection(sec.content) + "\n\n"
-    })
+  // Sync sections to HTML content for saving (with proper blog structure and classes)
+  const syncSectionsToHTML = useCallback(() => {
+    let html = '<article class="blog-article">\n'
 
-    if (faq) {
-      markdown += `## ${faq.heading}\n\n`
-      faq.qa.forEach(item => {
-        markdown += `### ${item.question}\n\n${item.answer}\n\n`
-      })
+    // Add title
+    if (blogTitle) {
+      html += `  <h1 class="blog-title heading-1">${blogTitle}</h1>\n`
     }
 
-    return markdown.trim()
-  }, [sections, faq])
+    // Add description
+    if (blogDescription) {
+      html += `  <div class="blog-description meta-description">${blogDescription}</div>\n`
+    }
+
+    // Add sections
+    sections.forEach(sec => {
+      html += `  <section class="blog-section" id="${sec.id}">\n`
+      html += `    <h2 class="section-title">${sec.title}</h2>\n`
+      html += `    <div class="section-content">${sec.content}</div>\n`
+      html += `  </section>\n`
+    })
+
+    // Add FAQ if exists
+    if (faq && faq.qa && faq.qa.length > 0) {
+      html += `  <section class="blog-section faq-section">\n`
+      html += `    <h2 class="faq-heading">${faq.heading}</h2>\n`
+      faq.qa.forEach(item => {
+        html += `    <div class="faq-qa-pair">\n`
+        html += `      <h3 class="faq-question">${item.question}</h3>\n`
+        html += `      <p class="faq-answer">${item.answer}</p>\n`
+        html += `    </div>\n`
+      })
+      html += `  </section>\n`
+    }
+
+    html += "</article>"
+    return html
+  }, [sections, faq, blogTitle, blogDescription])
 
   // Update parent content when sections change
   useEffect(() => {
-    const newContent = syncSectionsToContent()
+    const newContent = syncSectionsToHTML()
     if (setContent) {
       setContent(newContent)
     }
-  }, [sections, syncSectionsToContent, setContent])
+  }, [sections, syncSectionsToHTML, setContent])
 
   // Handle delete section
   const handleDelete = index => {
@@ -423,7 +460,7 @@ const TextEditor = ({
   // Handle add section below
   const handleAddSection = afterIndex => {
     const newSection = {
-      id: `section-${Date.now()}`,
+      id: generateSectionId(),
       title: "New Section",
       content: "<p>Start writing here...</p>",
       originalContent: "",
@@ -434,6 +471,18 @@ const TextEditor = ({
       return newSections
     })
     message.success("New section added")
+  }
+
+  // Handle add first section when sections are empty
+  const handleAddFirstSection = () => {
+    const newSection = {
+      id: generateSectionId(),
+      title: "New Section",
+      content: "<p>Start writing here...</p>",
+      originalContent: "",
+    }
+    setSections([newSection])
+    message.success("Section added")
   }
 
   // Handle move section up or down
@@ -472,10 +521,29 @@ const TextEditor = ({
     )
   }, [])
 
-  // Copy all content
+  // Sync sections to Markdown for export/copy (kept for export functionality)
+  const syncSectionsToMarkdown = useCallback(() => {
+    let markdown = ""
+
+    sections.forEach(sec => {
+      markdown += `## ${sec.title}\n\n`
+      markdown += htmlToMarkdownSection(sec.content) + "\n\n"
+    })
+
+    if (faq) {
+      markdown += `## ${faq.heading}\n\n`
+      faq.qa.forEach(item => {
+        markdown += `### ${item.question}\n\n${item.answer}\n\n`
+      })
+    }
+
+    return markdown.trim()
+  }, [sections, faq])
+
+  // Copy all content as Markdown
   const copyContent = async () => {
     try {
-      const markdown = syncSectionsToContent()
+      const markdown = syncSectionsToMarkdown()
       await navigator.clipboard.writeText(markdown)
       message.success("Content copied to clipboard!")
     } catch (err) {
@@ -533,6 +601,7 @@ const TextEditor = ({
   // Editor context value for child components
   const editorContextValue = useMemo(
     () => ({
+      blogId: blog?._id,
       userPlan,
       editingIndex,
       setEditingIndex,
@@ -550,6 +619,7 @@ const TextEditor = ({
       onDeleteSectionImage: handleDeleteSectionImage,
     }),
     [
+      blog?._id,
       userPlan,
       editingIndex,
       handleDelete,
@@ -800,13 +870,51 @@ const TextEditor = ({
         </div>
 
         {/* Sections - Drag and Drop enabled */}
-        <EditorProvider value={editorContextValue}>
-          <Reorder.Group axis="y" values={sections} onReorder={setSections} className="space-y-6">
-            {sections.map((section, index) => (
-              <SectionCard key={section.id || index} section={section} index={index} />
-            ))}
-          </Reorder.Group>
-        </EditorProvider>
+        {sections.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 px-4 bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl">
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mb-4">
+              <Plus className="w-8 h-8 text-blue-600" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-700 mb-2">Start Building Your Blog</h3>
+            <p className="text-gray-500 text-center mb-6 max-w-md">
+              Add your first section to begin writing. Each section can have its own title and
+              content.
+            </p>
+            <button
+              onClick={handleAddFirstSection}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold hover:shadow-lg hover:scale-105 transition-all duration-300"
+            >
+              <Plus className="w-5 h-5" />
+              Add Section
+            </button>
+          </div>
+        ) : (
+          <>
+            <EditorProvider value={editorContextValue}>
+              <Reorder.Group
+                axis="y"
+                values={sections}
+                onReorder={setSections}
+                className="space-y-6"
+              >
+                {sections.map((section, index) => (
+                  <SectionCard key={section.id || index} section={section} index={index} />
+                ))}
+              </Reorder.Group>
+            </EditorProvider>
+
+            {/* Add Section button at bottom */}
+            <div className="flex justify-center mt-6">
+              <button
+                onClick={() => handleAddSection(sections.length - 1)}
+                className="flex items-center gap-2 px-5 py-2.5 bg-white border-2 border-dashed border-gray-300 text-gray-600 rounded-xl hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200"
+              >
+                <Plus className="w-5 h-5" />
+                Add Section
+              </button>
+            </div>
+          </>
+        )}
         {renderFAQ()}
       </div>
     )
@@ -947,7 +1055,7 @@ const TextEditor = ({
             return (
               <div key={i} id={`preview-section-${i}`} className="mb-8">
                 {/* Section Heading - H2 */}
-                <h2 className="text-xl font-semibold mb-3 text-gray-900">{stripHtml(sec.title)}</h2>
+                <h2 className="text-xl font-semibold text-gray-900">{stripHtml(sec.title)}</h2>
 
                 {/* Section Image - only show if not the featured image */}
                 {sectionImg && i > 0 && (

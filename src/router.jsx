@@ -38,6 +38,7 @@ const UnsubscribeEmail = lazy(() => import("@pages/UnsubscribeEmail"))
 const EmailVerification = lazy(() => import("@pages/EmailVerification"))
 const ShopifyDashboard = lazy(() => import("@pages/ShopifyDashboard"))
 const PricingCalculator = lazy(() => import("@pages/PricingCalculator"))
+const ImageGallery = lazy(() => import("@pages/ImageGallery"))
 
 /**
  * Wraps a component in React.Suspense with fallback support.
@@ -114,6 +115,7 @@ const router = createBrowserRouter([
           { path: "generate-metadata", element: withSuspense(GenerateMetaData) },
           { path: "prompt-content", element: withSuspense(PromptContent) },
           { path: "shopify-dashboard", element: withSuspense(ShopifyDashboard) },
+          { path: "image-gallery", element: withSuspense(ImageGallery) },
         ],
       },
     ],
