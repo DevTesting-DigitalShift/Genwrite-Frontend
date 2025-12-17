@@ -223,3 +223,30 @@ export const getBlogPostings = async blogId => {
     throw new Error(error.response?.data?.message || "Failed to fetch blog postings")
   }
 }
+
+export const getExportedBlog = async (blogId, type = "pdf") => {
+  try {
+    const response = await axiosInstance.get(`/blogs/${blogId}/export?type=${type}`, {
+      responseType: "blob",
+      withCredentials: true,
+      headers: {
+        Accept: "application/pdf",
+      },
+    })
+    // Create blob from response
+    const pdfBlob = new Blob([response.data], {
+      type: "application/pdf",
+    })
+
+    // Extract filename from backend headers
+    const disposition = response.headers["content-disposition"]
+    let filename = "blog.pdf"
+
+    if (disposition?.includes("filename=")) {
+      filename = disposition.split("filename=")[1].replace(/"/g, "")
+    }
+    return { pdfBlob, filename }
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to export blog")
+  }
+}

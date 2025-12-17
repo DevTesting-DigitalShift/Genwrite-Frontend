@@ -16,10 +16,11 @@ export default defineConfig({
     host: true,
     port: 5174,
     // Optimize dev server
-    hmr: {
-      host: "distinguishingly-postpeduncular-annalisa.ngrok-free.dev",
-      protocol: "wss",
-    },
+    hmr: true,
+    // hmr: {
+    //   host: "distinguishingly-postpeduncular-annalisa.ngrok-free.dev",
+    //   protocol: "wss",
+    // },
   },
   resolve: {
     alias: {

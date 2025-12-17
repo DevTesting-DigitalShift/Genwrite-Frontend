@@ -55,10 +55,6 @@ const BrandVoice = () => {
     if (!formData._id) {
       resetForm()
     }
-    return () => {
-      resetForm()
-      dispatch(resetSiteInfo())
-    }
   }, [dispatch])
 
   useEffect(() => {
@@ -101,6 +97,7 @@ const BrandVoice = () => {
     setLastScrapedUrl("")
     setIsFormReset(true)
     setShowAllKeywords(false)
+    dispatch(resetSiteInfo())
   }, [brands])
 
   const validateForm = useCallback(() => {
@@ -257,7 +254,6 @@ const BrandVoice = () => {
       }
       resetForm()
       // queryClient.invalidateQueries(["brands"])
-      dispatch(resetSiteInfo())
     } catch (error) {
       console.error("Error saving brand voice:", error)
     } finally {
@@ -297,7 +293,6 @@ const BrandVoice = () => {
             await BrandVoice.delete.mutateAsync(brand._id)
             if (formData?.selectedVoice?._id === brand._id) {
               resetForm()
-              dispatch(resetSiteInfo())
             }
           } catch (error) {
             console.error("Failed to delete brand voice:", error)

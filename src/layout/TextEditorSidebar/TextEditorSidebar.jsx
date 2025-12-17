@@ -61,7 +61,7 @@ import {
 import FeatureSettingsModal from "./FeatureSettingsModal"
 import CategoriesModal from "../Editor/CategoriesModal"
 import * as cheerio from "cheerio"
-import { getBlogPostings } from "@api/blogApi"
+import { getBlogPostings, getExportedBlog } from "@api/blogApi"
 import dayjs from "dayjs"
 import relativeTime from "dayjs/plugin/relativeTime"
 
@@ -583,26 +583,26 @@ const TextEditorSidebar = ({
         return
       }
       const title = blog?.title || "Untitled Blog"
+      let blob, filename
       if (type === "markdown") {
-        const blob = new Blob([editorContent], { type: "text/markdown" })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement("a")
-        a.href = url
-        a.download = `${title}.md`
-        a.click()
-        URL.revokeObjectURL(url)
-        message.success("Markdown exported successfully!")
+        blob = new Blob([editorContent], { type: "text/markdown" })
+        filename = `${title}.md`
       } else if (type === "html") {
         const htmlContent = marked.parse(editorContent, { gfm: true })
-        const blob = new Blob([htmlContent], { type: "text/html" })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement("a")
-        a.href = url
-        a.download = `${title}.html`
-        a.click()
-        URL.revokeObjectURL(url)
-        message.success("HTML exported successfully!")
+        blob = new Blob([htmlContent], { type: "text/html" })
+        filename = `${title}.html`
+      } else if (type === "pdf") {
+        const data = await getExportedBlog(blog._id)
+        blob = data.pdfBlob
+        filename = `${title}.pdf`
       }
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = filename
+      a.click()
+      URL.revokeObjectURL(url)
+      message.success(`${type.toUpperCase()} exported successfully!`)
     },
     [editorContent, blog]
   )
@@ -614,6 +614,9 @@ const TextEditorSidebar = ({
       </Menu.Item>
       <Menu.Item key="html" onClick={() => handleExport("html")}>
         Export as HTML
+      </Menu.Item>
+      <Menu.Item key="pdf" onClick={() => handleExport("pdf")}>
+        Export as PDF
       </Menu.Item>
     </Menu>
   )

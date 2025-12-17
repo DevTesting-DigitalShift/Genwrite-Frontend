@@ -1,6 +1,6 @@
 import { Navigate, Outlet, useNavigate, useLocation } from "react-router-dom"
 import LayoutWithSidebarAndHeader from "@components/SideBar_Header"
-import ChatBox from "@components/generateBlog/ChatBox"
+// import ChatBox from "@components/generateBlog/ChatBox"
 import { useState, useEffect } from "react"
 import { RiChatAiLine } from "react-icons/ri"
 import { Tooltip } from "antd"
@@ -10,7 +10,7 @@ import { connectSocket } from "@utils/socket"
 
 const PrivateRoutesLayout = () => {
   const token = localStorage.getItem("token")
-  const [chatOpen, setChatOpen] = useState(false)
+  // const [chatOpen, setChatOpen] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
   const dispatch = useDispatch()
@@ -50,7 +50,7 @@ const PrivateRoutesLayout = () => {
         <LayoutWithSidebarAndHeader />
         {/* Main content area */}
         <div className="flex-1 ml-0 md:ml-16 pt-16 sm:pt-20">
-          <Tooltip
+          {/* <Tooltip
             title="Chatbot"
             styles={{
               fontSize: "12px",
@@ -65,11 +65,11 @@ const PrivateRoutesLayout = () => {
             >
               <RiChatAiLine className="p-2 sm:p-3 size-10 sm:size-12 text-white" />
             </div>
-          </Tooltip>
+          </Tooltip> */}
           <main>
             <Outlet />
           </main>
-          <ChatBox isOpen={chatOpen} onClose={() => setChatOpen(false)} />
+          {/* <ChatBox isOpen={chatOpen} onClose={() => setChatOpen(false)} /> */}
         </div>
       </div>
       <style>
