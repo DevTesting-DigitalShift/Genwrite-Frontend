@@ -53,7 +53,6 @@ const MainEditorPage = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const pathDetect = location.pathname === `/blog-editor/${blog?._id}`
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false)
   const [unsavedChanges, setUnsavedChanges] = useState(false)
   const { Title } = Typography
   const [templateFormData, setTemplateFormData] = useState({
@@ -207,7 +206,11 @@ const MainEditorPage = () => {
   }
 
   const getWordCount = text => {
-    return text
+    if (!text) return 0
+    // Strip HTML tags first
+    const strippedText = text.replace(/<[^>]*>/g, " ")
+    // Count words
+    return strippedText
       .trim()
       .split(/\s+/)
       .filter(word => word.length > 0).length
@@ -380,16 +383,6 @@ const MainEditorPage = () => {
     }
   }
 
-  const handlePreview = () => {
-    if (!editorContent.trim()) {
-      message.error("Please write some content to preview.")
-      return
-    }
-    setIsPreviewOpen(true)
-  }
-
-  const handlePreviewClose = () => setIsPreviewOpen(false)
-
   const generatePreviewContent = () => {
     if (!editorContent.trim())
       return `<h1>${editorTitle || "Preview Title"}</h1><p>No content available for preview.</p>`
@@ -488,30 +481,6 @@ const MainEditorPage = () => {
           </div>
         </Modal>
 
-        <Modal
-          title="Blog Preview"
-          open={isPreviewOpen}
-          onCancel={handlePreviewClose}
-          footer={[
-            <button
-              key="close"
-              onClick={handlePreviewClose}
-              className="px-3 sm:px-4 py-2 bg-gray-400 text-white rounded-md hover:bg-gray-500 focus:outline-none focus:bg-gray-500"
-              aria-label="Close preview"
-            >
-              Close
-            </button>,
-          ]}
-          width="100%"
-          className="rounded-lg max-w-[700px] sm:max-w-[800px] md:max-w-[900px]"
-          centered
-        >
-          <div
-            className="prose prose-sm sm:prose-base max-w-none p-4 sm:p-6"
-            dangerouslySetInnerHTML={{ __html: generatePreviewContent() }}
-          />
-        </Modal>
-
         <div className="flex flex-col md:flex-row flex-grow overflow-hidden">
           <div className="flex-1 flex flex-col min-w-0">
             <header className="bg-white shadow-lg border rounded-tl-lg border-gray-200 p-4 sm:p-6">
@@ -534,80 +503,6 @@ const MainEditorPage = () => {
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
-                  {pathDetect && (
-                    <button
-                      onClick={handlePreview}
-                      className="px-3 sm:px-4 py-2 bg-gradient-to-r from-[#1B6FC9] to-[#4C9FE8] text-white rounded-lg hover:from-[#1B6FC9]/90 hover:to-[#4C9FE8]/90 flex items-center text-xs sm:text-sm"
-                      aria-label="Preview blog"
-                    >
-                      <Eye className="w-4 sm:w-5 h-4 sm:h-5 mr-2" />
-                      Preview
-                    </button>
-                  )}
-                  <Popover
-                    content={
-                      <div className="max-w-md">
-                        <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                          <Info className="w-5 h-5 text-blue-600" />
-                          Editor Guidelines
-                        </h3>
-                        <div className="space-y-3 text-sm text-gray-700">
-                          <div>
-                            <p className="font-medium text-gray-900 mb-1">📝 Heading Structure:</p>
-                            <ul className="list-disc list-inside space-y-1 ml-2">
-                              <li>
-                                <strong>H1:</strong> Blog title only (automatically set)
-                              </li>
-                              <li>
-                                <strong>H2:</strong> Section titles (automatically set)
-                              </li>
-                              <li>
-                                <strong>H3:</strong> Use for major subsections within content
-                              </li>
-                              <li>
-                                <strong>H4:</strong> Use for minor subsections and details
-                              </li>
-                            </ul>
-                          </div>
-
-                          <div>
-                            <p className="font-medium text-gray-900 mb-1">✨ Content Tips:</p>
-                            <ul className="list-disc list-inside space-y-1 ml-2">
-                              <li>
-                                Use <strong>H3</strong> for main points in your section
-                              </li>
-                              <li>
-                                Use <strong>H4</strong> for supporting details
-                              </li>
-                              <li>Add lists for better readability</li>
-                              <li>Insert tables for structured data</li>
-                              <li>Embed YouTube videos for rich content</li>
-                            </ul>
-                          </div>
-
-                          <div>
-                            <p className="font-medium text-gray-900 mb-1">🎯 Best Practices:</p>
-                            <ul className="list-disc list-inside space-y-1 ml-2">
-                              <li>Keep heading hierarchy logical (H3 → H4)</li>
-                              <li>Don't skip heading levels</li>
-                              <li>Use formatting (bold, italic) for emphasis</li>
-                              <li>Add alt text to images for SEO</li>
-                            </ul>
-                          </div>
-                        </div>
-                      </div>
-                    }
-                    title={null}
-                    trigger="click"
-                    placement="bottomRight"
-                  >
-                    <button
-                      className="px-3 sm:px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center text-xs sm:text-sm"
-                      aria-label="Editor Guidelines"
-                    >
-                      <Info className="w-4 sm:w-5 h-4 sm:h-5" />
-                    </button>
-                  </Popover>
                   <button
                     onClick={() => handleSave({ metadata })}
                     className={`px-3 sm:px-4 py-2 min-w-[130px] rounded-lg font-semibold flex items-center gap-2 justify-center transition-all duration-300 ${
@@ -662,7 +557,7 @@ const MainEditorPage = () => {
                 </div>
               )}
             </header>
-            <div key={activeTab} className="flex-grow overflow-auto max-h-[800px]">
+            <div key={activeTab} className="flex-grow overflow-auto max-h-[800px] custom-scroll">
               {isLoading ? (
                 <div className="flex justify-center items-center h-[calc(100vh-120px)]">
                   <Loader2 className="animate-spin h-8 w-8 text-blue-600" />

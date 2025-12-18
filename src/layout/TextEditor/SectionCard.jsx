@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useMemo } from "react"
 import { Reorder, useDragControls } from "framer-motion"
 import axiosInstance from "@/api"
+import ReactDiffViewer, { DiffMethod } from "react-diff-viewer-continued"
+import TurndownService from "turndown"
 import {
   Trash2,
   Lock,
@@ -21,6 +23,28 @@ import { Tooltip, Input, message, Modal, Popover } from "antd"
 import SectionEditor from "./SectionEditor"
 import { useEditorContext } from "./EditorContext"
 import { EmbedCard, parseEmbedsFromHtml } from "./EmbedManager"
+import { InlineImageManager } from "./InlineImageManager"
+
+// Helper function to strip markdown and HTML from text
+function toPlainText(input = "") {
+  return (
+    input
+      // remove everything from markdown image start till end
+      .replace(/!\[[^\]]*\]\([^)]+\)/g, "")
+      // remove HTML tags (even broken ones)
+      .replace(/<[^>]*>/g, " ")
+      // remove markdown links but keep text
+      .replace(/\[([^\]]+)\]\((.*?)\)/g, "$1")
+      // remove markdown bold / italic
+      .replace(/\*\*(.*?)\*\*/g, "$1")
+      .replace(/\*(.*?)\*/g, "$1")
+      .replace(/__(.*?)__/g, "$1")
+      .replace(/_(.*?)_/g, "$1")
+      // normalize spaces
+      .replace(/\s+/g, " ")
+      .trim()
+  )
+}
 
 const SectionCard = ({ section, index }) => {
   const [editingTitle, setEditingTitle] = useState(false)
@@ -44,6 +68,21 @@ const SectionCard = ({ section, index }) => {
   const [originalContent, setOriginalContent] = useState("")
   const [newContent, setNewContent] = useState("")
   const [currentOperation, setCurrentOperation] = useState("")
+
+  // Helper to convert HTML to Markdown for clean diff viewing
+  const htmlToMarkdown = html => {
+    if (!html) return ""
+    const turndownService = new TurndownService({
+      headingStyle: "atx",
+      bulletListMarker: "-",
+      codeBlockStyle: "fenced",
+    })
+    turndownService.keep(["table", "tr", "td", "th"])
+    return turndownService.turndown(html)
+  }
+
+  const oldMarkdown = useMemo(() => htmlToMarkdown(originalContent), [originalContent])
+  const newMarkdown = useMemo(() => htmlToMarkdown(newContent), [newContent])
 
   const {
     blogId,
@@ -317,7 +356,7 @@ const SectionCard = ({ section, index }) => {
       )}
 
       {/* Action buttons - move and delete */}
-      <div className="absolute top-3 right-3 flex items-center gap-1 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         {/* Move Up */}
         <Tooltip title="Move Up">
           <button
@@ -396,7 +435,8 @@ const SectionCard = ({ section, index }) => {
               setEditingTitle(true)
             }}
           >
-            <h2 className="text-xl font-bold">{section.title}</h2>
+            <h2 className="text-xl font-bold">{toPlainText(section.title)}</h2>
+
             <Edit3 className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
         )}
@@ -570,7 +610,7 @@ const SectionCard = ({ section, index }) => {
 
       {/* Add Section Below - appears on hover, but not on last section */}
       {!locked && !isLast && (
-        <div className="absolute -bottom-3 left-1/2 transform -translate-x-1/2 opacity-0 hover:opacity-100 group-hover:opacity-100 transition-opacity z-30">
+        <div className="absolute -bottom-3 left-1/2 transform -translate-x-1/2 opacity-0 hover:opacity-100 group-hover:opacity-100 transition-opacity">
           <Tooltip title="Add section below">
             <button
               onClick={e => {
@@ -666,40 +706,39 @@ const SectionCard = ({ section, index }) => {
             Accept Changes
           </button>,
         ]}
-        width={900}
+        width={1000}
         centered
+        className="section-ai-diff-modal"
       >
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            {/* Original Content */}
-            <div className="border rounded-lg p-4 bg-red-50">
-              <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                <X className="w-4 h-4 text-red-600" />
-                Original Content
-              </h4>
-              <div
-                className="prose prose-sm max-w-none text-gray-700 max-h-96 overflow-y-auto custom-scroll"
-                dangerouslySetInnerHTML={{ __html: originalContent }}
-              />
-            </div>
-
-            {/* New Content */}
-            <div className="border rounded-lg p-4 bg-green-50">
-              <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                <Check className="w-4 h-4 text-green-600" />
-                AI Generated Content
-              </h4>
-              <div
-                className="prose prose-sm max-w-none text-gray-700 max-h-96 overflow-y-auto custom-scroll"
-                dangerouslySetInnerHTML={{ __html: newContent }}
-              />
-            </div>
+          <div className="border rounded-lg overflow-y-auto max-h-[70vh]">
+            <ReactDiffViewer
+              oldValue={oldMarkdown}
+              newValue={newMarkdown}
+              splitView={true}
+              compareMethod={DiffMethod.WORDS}
+              leftTitle="Original Content"
+              rightTitle="AI Generated Content"
+              useDarkTheme={false}
+              styles={{
+                variables: {
+                  light: {
+                    diffViewerBackground: "#ffffff",
+                    addedBackground: "#e6ffec",
+                    addedColor: "#1a7f37",
+                    removedBackground: "#ffebe9",
+                    removedColor: "#cf222e",
+                    wordAddedBackground: "#abf2bc",
+                    wordRemovedBackground: "#ffc1c0",
+                  },
+                },
+                line: {
+                  fontSize: "14px",
+                  lineHeight: "1.6",
+                },
+              }}
+            />
           </div>
-
-          <p className="text-xs text-gray-500 text-center">
-            💡 Review the changes carefully before accepting. You can decline and try again with
-            different instructions.
-          </p>
         </div>
       </Modal>
     </Reorder.Item>

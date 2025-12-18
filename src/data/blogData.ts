@@ -1,3 +1,15 @@
+// Image Source Types must be defined before usage
+export const IMAGE_SOURCE = Object.freeze({
+  NONE: "none",
+  STOCK: "stock",
+  AI: "ai",
+  UPLOAD: "upload",
+})
+
+export const IMAGE_SOURCE_VALUES = Object.freeze(Object.values(IMAGE_SOURCE))
+
+export const DEFAULT_IMAGE_SOURCE = IMAGE_SOURCE.NONE
+
 export const TONES = [
   "Casual",
   "Conversational",
@@ -31,18 +43,18 @@ export const AI_MODELS = [
 
 export const IMAGE_OPTIONS = [
   {
-    id: "unsplash",
+    id: IMAGE_SOURCE.STOCK,
     label: "Stock Images",
     restrict: false,
   },
   {
-    id: "ai-generated",
+    id: IMAGE_SOURCE.AI,
     label: "AI-Generated Images",
     restrict: true,
   },
   {
-    id: "custom",
-    label: "Custom Images",
+    id: IMAGE_SOURCE.UPLOAD,
+    label: "Upload Images",
     restrict: true,
   },
 ]

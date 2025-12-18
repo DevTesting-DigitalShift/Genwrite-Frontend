@@ -209,3 +209,21 @@ export const getBlogPrompt = async (id, prompt) => {
     throw new Error(error.response?.data?.message || "Failed to fetch blog prompt")
   }
 }
+
+export const exportBlogAsPdf = async (id) => {
+  try {
+    const response = await axiosInstance.get(
+      `/blogs/${id}/export`,
+      {
+        params: { type: "pdf" },
+        responseType: "blob", // ✅ correct
+      }
+    )
+
+    return response.data
+  } catch (error) {
+    throw new Error(
+      error.response?.data?.message || "Failed to export PDF"
+    )
+  }
+}

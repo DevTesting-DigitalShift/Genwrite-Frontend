@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { motion, Reorder } from "framer-motion"
-import { Copy, Eye, Edit3, RefreshCw, Plus, Trash2 } from "lucide-react"
+import { Copy, Eye, Edit3, RefreshCw, Plus, Trash2, Info } from "lucide-react"
 import { useSelector } from "react-redux"
-import { Modal, Tooltip, message, Button, Input } from "antd"
+import { Modal, Tooltip, message, Button, Input, Popover } from "antd"
 
 const { TextArea } = Input
 import TurndownService from "turndown"
@@ -47,6 +47,36 @@ function stripHtml(html) {
   return doc.body.textContent || ""
 }
 
+// Helper function to convert markdown to HTML
+function convertMarkdownToHtml(text) {
+  if (!text) return text
+
+  const converter = new showdown.Converter({
+    tables: true,
+    tasklists: true,
+    simpleLineBreaks: true,
+    openLinksInNewWindow: true,
+    emoji: true,
+  })
+
+  return converter.makeHtml(text)
+}
+
+// Helper function to clean mixed markdown/HTML content
+function cleanMixedContent(content) {
+  if (!content) return content
+
+  // Check if content has markdown syntax (**, !, [], etc.)
+  const hasMarkdown = /\*\*|__|\!\[|\]\(|^\s*#{1,6}\s/m.test(content)
+
+  if (hasMarkdown) {
+    // Convert markdown to HTML
+    return convertMarkdownToHtml(content)
+  }
+
+  return content
+}
+
 // Parse HTML article content into sections based on blog HTML class structure
 function parseHtmlIntoSections(htmlString) {
   if (!htmlString)
@@ -71,7 +101,14 @@ function parseHtmlIntoSections(htmlString) {
   // Extract description from .blog-description or .meta-description
   const descEl = doc.querySelector(".blog-description, .meta-description")
   if (descEl) {
-    description = descEl.textContent?.trim() || ""
+    description = cleanMixedContent(descEl.innerHTML || "")
+  }
+
+  // Extract Main Image (Figure) usually found after title/desc but outside sections
+  const mainImageEl = doc.querySelector("figure.section-thumbnail, figure.thumbnail-main")
+  let mainImageHtml = ""
+  if (mainImageEl) {
+    mainImageHtml = mainImageEl.outerHTML
   }
 
   // Extract content sections (.blog-section but not .faq-section)
@@ -81,7 +118,8 @@ function parseHtmlIntoSections(htmlString) {
     const sectionTitle =
       secEl.querySelector(".section-title")?.textContent?.trim() || `Section ${index + 1}`
     // Get section content from .section-content
-    const sectionContent = secEl.querySelector(".section-content")?.innerHTML || ""
+    const rawContent = secEl.querySelector(".section-content")?.innerHTML || ""
+    const sectionContent = cleanMixedContent(rawContent)
 
     sections.push({
       id: secEl.id || generateSectionId(),
@@ -91,7 +129,24 @@ function parseHtmlIntoSections(htmlString) {
     })
   })
 
-  // Extract FAQ section
+  // If we have a main image, prepend it to the first section's content
+  if (mainImageHtml && sections.length > 0) {
+    // Avoid duplication if it's already in the content
+    if (!sections[0].content.includes('class="section-thumbnail')) {
+      sections[0].content = mainImageHtml + sections[0].content
+      sections[0].originalContent = sections[0].content
+    }
+  } else if (mainImageHtml && sections.length === 0) {
+    // If no sections, create one
+    sections.push({
+      id: generateSectionId(),
+      title: "Introduction",
+      content: mainImageHtml,
+      originalContent: mainImageHtml,
+    })
+  }
+
+  // Extract FAQ section (Structured)
   const faqSection = doc.querySelector(".faq-section")
   if (faqSection) {
     const faqHeading = faqSection.querySelector(".faq-heading")?.textContent?.trim() || "FAQ"
@@ -107,6 +162,35 @@ function parseHtmlIntoSections(htmlString) {
     })
     if (qa.length > 0) {
       faq = { heading: faqHeading, qa }
+    }
+  }
+
+  // Fallback: Check if FAQ is embedded in the last section (common AI issue)
+  if (!faq && sections.length > 0) {
+    const lastSec = sections[sections.length - 1]
+    // Check for FAQ header
+    const faqMatch = lastSec.content.match(
+      /(<h[2-4][^>]*>\s*(?:FAQ|Frequently Asked Questions)\s*<\/h[2-4]>)/i
+    )
+
+    if (faqMatch) {
+      const splitIndex = faqMatch.index
+      const contentBefore = lastSec.content.substring(0, splitIndex)
+      const faqContentRaw = lastSec.content.substring(splitIndex)
+
+      // Update last section to remove FAQ part
+      lastSec.content = contentBefore
+      lastSec.originalContent = contentBefore // Assume this is "correcting" the parse
+
+      // Try to structure it, or just add as a new section
+      // For simplicity and robustness, add as a new Text Section for now, so user can edit it separate
+      // The structured FAQ editor requires parsing QA pairs which might fail on raw HTML
+      sections.push({
+        id: generateSectionId(),
+        title: "FAQ",
+        content: faqContentRaw,
+        originalContent: faqContentRaw,
+      })
     }
   }
 
@@ -216,10 +300,16 @@ const TextEditor = ({
   const [blogTitle, setBlogTitle] = useState("")
   const [blogDescription, setBlogDescription] = useState("")
 
-  // Track original values for change detection
+  // Track original values for change detection - use refs to store the snapshot
   const [originalBlogTitle, setOriginalBlogTitle] = useState("")
   const [originalBlogDescription, setOriginalBlogDescription] = useState("")
   const [originalSections, setOriginalSections] = useState([])
+
+  // Track if originals have been initialized
+  const originalsInitialized = useRef(false)
+
+  // Track the blog ID to detect when we're loading a different blog
+  const lastBlogIdRef = useRef(null)
 
   // Editing states for title/description
   const [isEditingTitle, setIsEditingTitle] = useState(false)
@@ -278,18 +368,68 @@ const TextEditor = ({
     )
   }, [])
 
+  // Helper to normalize content for comparison (strip formatting, whitespace)
+  const normalizeContent = useCallback(content => {
+    if (!content) return ""
+    // Strip HTML tags and normalize whitespace
+    const text = content
+      .replace(/<[^>]*>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase()
+    return text
+  }, [])
+
   // Check if there are actual content changes
   const hasContentChanges = useMemo(() => {
-    if (blogTitle !== originalBlogTitle) return true
-    if (blogDescription !== originalBlogDescription) return true
-    if (sections.length !== originalSections.length) return true
+    // Don't check for changes until originals are initialized
+    if (!originalsInitialized.current) {
+      return false
+    }
 
+    // Compare titles (normalize for comparison)
+    const currentTitle = normalizeContent(blogTitle)
+    const originalTitle = normalizeContent(originalBlogTitle)
+    if (currentTitle !== originalTitle) {
+      return true
+    }
+
+    // Compare descriptions
+    const currentDesc = normalizeContent(blogDescription)
+    const originalDesc = normalizeContent(originalBlogDescription)
+    if (currentDesc !== originalDesc) {
+      return true
+    }
+
+    // Compare number of sections
+    if (sections.length !== originalSections.length) {
+      return true
+    }
+
+    // Compare each section's content
     for (let i = 0; i < sections.length; i++) {
       const current = sections[i]
       const original = originalSections.find(s => s.id === current.id)
-      if (!original) return true
-      if (current.content !== original.originalContent) return true
-      if (current.title !== original.title) return true
+
+      if (!original) {
+        // New section added
+        return true
+      }
+
+      // Compare section titles
+      const currentSectionTitle = normalizeContent(current.title)
+      const originalSectionTitle = normalizeContent(original.title)
+      if (currentSectionTitle !== originalSectionTitle) {
+        return true
+      }
+
+      // Compare section content (this is the key part)
+      const currentContent = normalizeContent(current.content)
+      const originalContent = normalizeContent(original.originalContent)
+
+      if (currentContent !== originalContent) {
+        return true
+      }
     }
 
     return false
@@ -300,6 +440,7 @@ const TextEditor = ({
     originalBlogTitle,
     originalBlogDescription,
     originalSections,
+    normalizeContent,
   ])
 
   // Update unsaved changes based on actual content changes
@@ -310,6 +451,13 @@ const TextEditor = ({
   // Parse blog content into sections - PRIORITIZE content field over contentJSON
   useEffect(() => {
     if (blog) {
+      // Check if we're loading a different blog
+      if (lastBlogIdRef.current !== blog._id) {
+        // Reset initialization flag for new blog
+        originalsInitialized.current = false
+        lastBlogIdRef.current = blog._id
+      }
+
       let parsedData = {
         title: "",
         description: "",
@@ -364,25 +512,47 @@ const TextEditor = ({
         parsedData.sections = []
       }
 
+      // Set current state
       setBlogTitle(parsedData.title)
       setBlogDescription(parsedData.description)
       setSections(parsedData.sections)
       setFaq(parsedData.faq)
 
-      // Store originals for change detection
-      setOriginalBlogTitle(parsedData.title)
-      setOriginalBlogDescription(parsedData.description)
-      setOriginalSections(parsedData.sections.map(s => ({ ...s })))
+      // Initialize originals ONLY if not already initialized for this blog
+      if (!originalsInitialized.current) {
+        // Use setTimeout to ensure state has settled
+        setTimeout(() => {
+          setOriginalBlogTitle(parsedData.title)
+          setOriginalBlogDescription(parsedData.description)
+          // Deep copy sections with originalContent preserved
+          setOriginalSections(
+            parsedData.sections.map(s => ({
+              id: s.id,
+              title: s.title,
+              content: s.content,
+              originalContent: s.originalContent || s.content,
+            }))
+          )
+          originalsInitialized.current = true
+        }, 150)
+      }
     }
   }, [blog])
 
   // Reset original values when blog is saved (updatedAt changes)
   useEffect(() => {
-    if (blog?.updatedAt) {
+    if (blog?.updatedAt && originalsInitialized.current) {
       // Update originals to current state to clear "unsaved changes" after save
       setOriginalBlogTitle(blogTitle)
       setOriginalBlogDescription(blogDescription)
-      setOriginalSections(sections.map(s => ({ ...s, originalContent: s.content })))
+      setOriginalSections(
+        sections.map(s => ({
+          id: s.id,
+          title: s.title,
+          content: s.content,
+          originalContent: s.content, // Set originalContent to current content after save
+        }))
+      )
     }
   }, [blog?.updatedAt])
 
@@ -449,12 +619,34 @@ const TextEditor = ({
 
   // Handle section content change
   const handleSectionChange = (index, updatedSection) => {
-    setSections(prev => prev.map((s, i) => (i === index ? { ...s, ...updatedSection } : s)))
+    setSections(prev =>
+      prev.map((s, i) => {
+        if (i === index) {
+          // Preserve originalContent when updating section
+          return {
+            ...s,
+            ...updatedSection,
+            originalContent: s.originalContent, // Keep the original reference
+          }
+        }
+        return s
+      })
+    )
   }
 
   // Handle section title change
   const handleSectionTitleChange = (index, newTitle) => {
-    setSections(prev => prev.map((s, i) => (i === index ? { ...s, title: newTitle } : s)))
+    setSections(prev =>
+      prev.map((s, i) =>
+        i === index
+          ? {
+              ...s,
+              title: newTitle,
+              originalContent: s.originalContent, // Preserve original
+            }
+          : s
+      )
+    )
   }
 
   // Handle add section below
@@ -674,6 +866,26 @@ const TextEditor = ({
     })
   }
 
+  function toPlainText(input = "") {
+    return (
+      input
+        // remove everything from markdown image start till end
+        .replace(/!\[[^\]]*\]\([^)]+\)/g, "")
+        // remove HTML tags (even broken ones)
+        .replace(/<[^>]*>/g, " ")
+        // remove markdown links but keep text
+        .replace(/\[([^\]]+)\]\((.*?)\)/g, "$1")
+        // remove markdown bold / italic
+        .replace(/\*\*(.*?)\*\*/g, "$1")
+        .replace(/\*(.*?)\*/g, "$1")
+        .replace(/__(.*?)__/g, "$1")
+        .replace(/_(.*?)_/g, "$1")
+        // normalize spaces
+        .replace(/\s+/g, " ")
+        .trim()
+    )
+  }
+
   // Render FAQ section - editable
   const [editingFaqIndex, setEditingFaqIndex] = useState(null)
   const [editingFaqHeading, setEditingFaqHeading] = useState(false)
@@ -683,7 +895,7 @@ const TextEditor = ({
 
     return (
       <motion.div
-        className="border rounded-xl p-5 shadow-sm bg-white mb-6"
+        className="border rounded-xl p-5 shadow-sm bg-white my-6"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       >
@@ -791,6 +1003,70 @@ const TextEditor = ({
       </div>
 
       <div className="flex gap-2">
+        <Popover
+          content={
+            <div className="max-w-md">
+              <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <Info className="w-5 h-5 text-blue-600" />
+                Editor Guidelines
+              </h3>
+              <div className="space-y-3 text-sm text-gray-700">
+                <div>
+                  <p className="font-medium text-gray-900 mb-1">📝 Heading Structure:</p>
+                  <ul className="list-disc list-inside space-y-1 ml-2">
+                    <li>
+                      <strong>H1:</strong> Blog title only (automatically set)
+                    </li>
+                    <li>
+                      <strong>H2:</strong> Section titles (automatically set)
+                    </li>
+                    <li>
+                      <strong>H3:</strong> Use for major subsections within content
+                    </li>
+                    <li>
+                      <strong>H4:</strong> Use for minor subsections and details
+                    </li>
+                  </ul>
+                </div>
+
+                <div>
+                  <p className="font-medium text-gray-900 mb-1">✨ Content Tips:</p>
+                  <ul className="list-disc list-inside space-y-1 ml-2">
+                    <li>
+                      Use <strong>H3</strong> for main points in your section
+                    </li>
+                    <li>
+                      Use <strong>H4</strong> for supporting details
+                    </li>
+                    <li>Add lists for better readability</li>
+                    <li>Insert tables for structured data</li>
+                    <li>Embed YouTube videos for rich content</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <p className="font-medium text-gray-900 mb-1">🎯 Best Practices:</p>
+                  <ul className="list-disc list-inside space-y-1 ml-2">
+                    <li>Keep heading hierarchy logical (H3 → H4)</li>
+                    <li>Don't skip heading levels</li>
+                    <li>Use formatting (bold, italic) for emphasis</li>
+                    <li>Add alt text to images for SEO</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          }
+          title={null}
+          trigger="click"
+          placement="bottomRight"
+        >
+          <button
+            className="px-3 sm:px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center text-xs sm:text-sm"
+            aria-label="Editor Guidelines"
+          >
+            <Info className="w-4 sm:w-5 h-4 sm:h-5" />
+          </button>
+        </Popover>
         <Tooltip title="Preview">
           <button
             onClick={() => setOpenPreview(true)}
@@ -858,12 +1134,10 @@ const TextEditor = ({
               className="flex items-start gap-2 group cursor-pointer"
               onClick={() => setIsEditingDescription(true)}
             >
-              <div
-                className="text-gray-600 flex-1"
-                dangerouslySetInnerHTML={{
-                  __html: blogDescription || "Click to add description...",
-                }}
-              />
+              <div className="text-gray-600 flex-1">
+                {toPlainText(blogDescription || "Click to add description...")}
+              </div>
+
               <Edit3 className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity mt-1" />
             </div>
           )}
@@ -967,7 +1241,7 @@ const TextEditor = ({
       >
         <div className="max-h-[70vh] overflow-y-auto px-4 pb-6 custom-scroll">
           {/* Blog Title - H1 */}
-          <h1 className="text-3xl font-bold mb-4 text-gray-900">{stripHtml(blogTitle)}</h1>
+          <h1 className="text-2xl font-semibold mb-4 text-gray-900">{toPlainText(blogTitle)}</h1>
 
           {/* Featured Image - First section image or main thumbnail */}
           {(() => {
@@ -1005,7 +1279,10 @@ const TextEditor = ({
 
           {/* Description */}
           {blogDescription && (
-            <p className="text-gray-600 mb-6 leading-relaxed">{blogDescription}</p>
+            <div
+              className="text-gray-600 mb-6 leading-relaxed"
+              dangerouslySetInnerHTML={{ __html: blogDescription }}
+            />
           )}
 
           {/* Table of Contents - shown when toggle is on */}
@@ -1025,7 +1302,7 @@ const TextEditor = ({
                           ?.scrollIntoView({ behavior: "smooth" })
                       }}
                     >
-                      {stripHtml(sec.title)}
+                      {toPlainText(sec.title)}
                     </a>
                   </li>
                 ))}
@@ -1055,7 +1332,7 @@ const TextEditor = ({
             return (
               <div key={i} id={`preview-section-${i}`} className="mb-8">
                 {/* Section Heading - H2 */}
-                <h2 className="text-xl font-semibold text-gray-900">{stripHtml(sec.title)}</h2>
+                <h2 className="text-xl font-semibold text-gray-900">{toPlainText(sec.title)}</h2>
 
                 {/* Section Image - only show if not the featured image */}
                 {sectionImg && i > 0 && (
@@ -1109,7 +1386,7 @@ const TextEditor = ({
       </Modal>
 
       <div className="flex flex-col h-full">
-        <div className="sticky top-0 z-50 bg-white shadow-sm">{renderToolbar()}</div>
+        <div className="sticky top-0 bg-white shadow-sm z-10">{renderToolbar()}</div>
         <div className="flex-1 overflow-auto">{renderContentArea()}</div>
       </div>
     </motion.div>

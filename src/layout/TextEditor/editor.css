@@ -532,3 +532,29 @@
 .blog-content .embed-container {
   margin: 1.5rem 0;
 }
+
+/* Figure and Thumbnail Styles */
+.blog-content figure {
+  margin: 1.5rem 0;
+  width: 100%;
+}
+
+.blog-content figure.section-thumbnail {
+  margin: 0 0 2rem 0;
+}
+
+.blog-content figure img {
+  margin: 0 auto;
+  display: block;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  max-width: 100%;
+}
+
+.blog-content figcaption {
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin-top: 0.75rem;
+  font-style: italic;
+}

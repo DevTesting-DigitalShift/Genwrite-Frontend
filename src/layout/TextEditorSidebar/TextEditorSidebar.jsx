@@ -50,7 +50,7 @@ import { openUpgradePopup } from "@utils/UpgardePopUp"
 import { Modal } from "antd"
 import CategoriesModal from "../Editor/CategoriesModal"
 import { TONES } from "@/data/blogData"
-import { updateBlog, retryBlogById } from "@api/blogApi"
+import { updateBlog, retryBlogById, exportBlogAsPdf } from "@api/blogApi"
 import { useQueryClient } from "@tanstack/react-query"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
 import {
@@ -59,6 +59,8 @@ import {
   AnalysisInsights,
   ProofreadingSuggestion,
 } from "./FeatureComponents"
+
+import { IMAGE_SOURCE, DEFAULT_IMAGE_SOURCE } from "@/data/blogData"
 
 const { TextArea } = Input
 const { Panel } = Collapse
@@ -138,7 +140,7 @@ const TextEditorSidebar = ({
     userDefinedLength: 1000,
     aiModel: "gemini",
     isCheckedGeneratedImages: false,
-    imageSource: "unsplash",
+    imageSource: DEFAULT_IMAGE_SOURCE,
     numberOfImages: 0,
     useBrandVoice: false,
     brandId: "",
@@ -201,7 +203,7 @@ const TextEditorSidebar = ({
         userDefinedLength: blog.userDefinedLength || 1000,
         aiModel: blog.aiModel || "gemini",
         isCheckedGeneratedImages: blog.isCheckedGeneratedImages || false,
-        imageSource: blog.imageSource || "unsplash",
+        imageSource: blog.imageSource || DEFAULT_IMAGE_SOURCE,
         numberOfImages: blog.numberOfImages || 0,
         useBrandVoice: blog.isCheckedBrand || false,
         brandId: blog.brandId || "",
@@ -228,13 +230,16 @@ const TextEditorSidebar = ({
     }
   }, [blog?.options])
 
-  const getWordCount = text =>
-    text
-      ? text
-          .trim()
-          .split(/\s+/)
-          .filter(word => word.length > 0).length
-      : 0
+  const getWordCount = text => {
+    if (!text) return 0
+    // Strip HTML tags first
+    const strippedText = text.replace(/<[^>]*>/g, " ")
+    // Count words
+    return strippedText
+      .trim()
+      .split(/\s+/)
+      .filter(word => word.length > 0).length
+  }
 
   // Update regen form field
   const updateRegenField = useCallback((field, value) => {
@@ -252,7 +257,7 @@ const TextEditorSidebar = ({
     let cost = getEstimatedCost("blog.single", regenForm.aiModel)
     if (regenForm.isCheckedGeneratedImages) {
       cost +=
-        regenForm.imageSource === "ai"
+        regenForm.imageSource === IMAGE_SOURCE.AI
           ? creditCostsWithGemini.aiImages * (regenForm.numberOfImages || 3)
           : 10
     }
@@ -478,26 +483,19 @@ const TextEditorSidebar = ({
 
   const handlePdfExport = useCallback(async () => {
     if (!blog?._id) return message.error("Blog ID missing")
+    if (!editorContent?.trim()) return message.error("No content to export")
 
     try {
       message.loading({ content: "Generating PDF...", key: "pdf-export" })
 
-      const response = await fetch(`/api/blogs/${blog._id}/export?type=pdf`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
+      // Use the API function which uses axiosInstance with correct backend URL
+      const pdfBlob = await exportBlogAsPdf(blog._id, {
+        title: blog.title,
+        content: editorContent,
       })
 
-      if (!response.ok) {
-        throw new Error("Failed to export PDF")
-      }
-
-      // Get the blob from response
-      const blob = await response.blob()
-
       // Create download link
-      const url = window.URL.createObjectURL(blob)
+      const url = window.URL.createObjectURL(pdfBlob)
       const a = document.createElement("a")
       a.href = url
       a.download = `${blog.title || "blog"}.pdf`
@@ -509,9 +507,9 @@ const TextEditorSidebar = ({
       message.success({ content: "PDF downloaded successfully!", key: "pdf-export" })
     } catch (error) {
       console.error("PDF Export Error:", error)
-      message.error({ content: "Failed to export PDF", key: "pdf-export" })
+      message.error({ content: error.message || "Failed to export PDF", key: "pdf-export" })
     }
-  }, [blog])
+  }, [blog, editorContent])
 
   const handleKeywordRewrite = useCallback(() => {
     handlePopup({
@@ -1023,44 +1021,63 @@ const TextEditorSidebar = ({
             )}
           </div>
 
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-3">
             <button
               onClick={handleExportMarkdown}
-              className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium border transition-all ${
+              disabled={userPlan === "free"}
+              className={`group flex flex-col items-center justify-center gap-2 py-4 px-3 rounded-xl text-sm font-semibold border-2 transition-all duration-300 ${
                 userPlan === "free"
-                  ? "bg-gray-50 text-gray-400 cursor-not-allowed"
-                  : "bg-white hover:bg-gray-50 text-gray-700 hover:border-gray-400"
+                  ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
+                  : "bg-gradient-to-br from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 text-blue-700 border-blue-200 hover:border-blue-300 hover:shadow-lg hover:scale-105"
               }`}
             >
-              <FileText className="w-4 h-4" />
-              Markdown
+              <FileText
+                className={`w-6 h-6 ${
+                  userPlan !== "free" && "group-hover:scale-110 transition-transform"
+                }`}
+              />
+              <span>Markdown</span>
             </button>
             <button
               onClick={handleExportHTML}
-              className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium border transition-all ${
+              disabled={userPlan === "free"}
+              className={`group flex flex-col items-center justify-center gap-2 py-4 px-3 rounded-xl text-sm font-semibold border-2 transition-all duration-300 ${
                 userPlan === "free"
-                  ? "bg-gray-50 text-gray-400 cursor-not-allowed"
-                  : "bg-white hover:bg-gray-50 text-gray-700 hover:border-gray-400"
+                  ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
+                  : "bg-gradient-to-br from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100 text-purple-700 border-purple-200 hover:border-purple-300 hover:shadow-lg hover:scale-105"
               }`}
             >
-              <FileCode className="w-4 h-4" />
-              HTML
+              <FileCode
+                className={`w-6 h-6 ${
+                  userPlan !== "free" && "group-hover:scale-110 transition-transform"
+                }`}
+              />
+              <span>HTML</span>
             </button>
             <button
               onClick={handlePdfExport}
-              className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium border transition-all ${
+              disabled={userPlan === "free"}
+              className={`group flex flex-col items-center justify-center gap-2 py-4 px-3 rounded-xl text-sm font-semibold border-2 transition-all duration-300 ${
                 userPlan === "free"
-                  ? "bg-gray-50 text-gray-400 cursor-not-allowed"
-                  : "bg-white hover:bg-gray-50 text-gray-700 hover:border-gray-400"
+                  ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
+                  : "bg-gradient-to-br from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 text-green-700 border-green-200 hover:border-green-300 hover:shadow-lg hover:scale-105"
               }`}
             >
-              <Download className="w-4 h-4" />
-              PDF
+              <Download
+                className={`w-6 h-6 ${
+                  userPlan !== "free" && "group-hover:scale-110 transition-transform"
+                }`}
+              />
+              <span>PDF</span>
             </button>
           </div>
 
           {userPlan === "free" && (
-            <p className="text-xs text-gray-500 text-center">Upgrade to export your blogs</p>
+            <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-xs text-amber-700 text-center font-medium">
+                🔒 Upgrade to export your blogs in multiple formats
+              </p>
+            </div>
           )}
         </div>
       </div>
@@ -1436,14 +1453,64 @@ const TextEditorSidebar = ({
 
         {/* Options */}
         <div className="space-y-2">
-          <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
-            <span className="text-sm text-gray-700">Add Images</span>
-            <Switch
-              size="small"
-              checked={regenForm.isCheckedGeneratedImages}
-              onChange={val => updateRegenField("isCheckedGeneratedImages", val)}
-            />
+          {/* Add Images Section */}
+          <div className="space-y-2 p-3 bg-gray-50 rounded-lg">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-700 font-medium">Add Images</span>
+              <Switch
+                size="small"
+                checked={regenForm.isCheckedGeneratedImages}
+                onChange={val => updateRegenField("isCheckedGeneratedImages", val)}
+              />
+            </div>
+
+            {/* Image Source Options - Show when images are enabled */}
+            {regenForm.isCheckedGeneratedImages && (
+              <div className="space-y-2 pt-2">
+                <label className="text-xs font-medium text-gray-500 block">Image Source</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => updateRegenField("imageSource", IMAGE_SOURCE.STOCK)}
+                    className={`p-2 rounded-lg border text-center text-xs transition-all ${
+                      regenForm.imageSource === IMAGE_SOURCE.STOCK
+                        ? "border-blue-500 bg-blue-50 text-blue-700"
+                        : "border-gray-200 hover:border-gray-300 text-gray-700"
+                    }`}
+                  >
+                    <div className="font-medium">Stock Images</div>
+                    <div className="text-[10px] text-gray-500 mt-0.5">Unsplash</div>
+                  </button>
+                  <button
+                    onClick={() => updateRegenField("imageSource", IMAGE_SOURCE.AI)}
+                    className={`p-2 rounded-lg border text-center text-xs transition-all ${
+                      regenForm.imageSource === IMAGE_SOURCE.AI
+                        ? "border-blue-500 bg-blue-50 text-blue-700"
+                        : "border-gray-200 hover:border-gray-300 text-gray-700"
+                    }`}
+                  >
+                    <div className="font-medium">AI Generated</div>
+                    <div className="text-[10px] text-gray-500 mt-0.5">Flux AI</div>
+                  </button>
+                </div>
+
+                {/* Number of Images */}
+                <div className="pt-1">
+                  <label className="text-xs font-medium text-gray-500 block mb-1">
+                    Number of Images: {regenForm.numberOfImages || 3}
+                  </label>
+                  <InputNumber
+                    size="small"
+                    min={1}
+                    max={10}
+                    value={regenForm.numberOfImages || 3}
+                    onChange={val => updateRegenField("numberOfImages", val)}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+            )}
           </div>
+
           <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
             <span className="text-sm text-gray-700">Include FAQs</span>
             <Switch
@@ -1624,17 +1691,17 @@ const TextEditorSidebar = ({
           <div className="mt-auto flex flex-col gap-2">
             {/* Divider */}
             <div className="w-8 h-px bg-gray-300 my-2" />
-
             {/* Collapse Button */}
-            <Tooltip title="Collapse Sidebar" placement="left">
-              <button
-                onClick={() => setIsCollapsed(true)}
-                className="w-11 h-11 rounded-2xl flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-white hover:shadow-md transition-all duration-200 group"
-              >
-                <ChevronRight className="w-5 h-5 transition-transform group-hover:translate-x-0.5" />
-              </button>
-            </Tooltip>
-
+            <div className="hidden md:block">
+              <Tooltip title="Collapse Sidebar" placement="left">
+                <button
+                  onClick={() => setIsCollapsed(true)}
+                  className="w-11 h-11 rounded-2xl items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-white hover:shadow-md transition-all duration-200 group flex"
+                >
+                  <ChevronRight className="w-5 h-5 transition-transform group-hover:translate-x-0.5" />
+                </button>
+              </Tooltip>
+            </div>
             {/* Mobile close */}
             <div className="md:hidden">
               <button

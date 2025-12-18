@@ -1,24 +1,61 @@
 import { useState, useEffect, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Input, Select, Slider, Pagination, Spin, Empty, Tag, Modal, message } from "antd"
-import { Search, Image as ImageIcon, X, Download, ZoomIn, Filter, Sparkles } from "lucide-react"
+import { Input, Select, Slider, Spin, Empty, Tag, Modal, message, Button } from "antd"
+import { Search, Image as ImageIcon, X, Download, Filter, Sparkles } from "lucide-react"
 import { Helmet } from "react-helmet"
 import { getImages, searchImages } from "@api/imageGalleryApi"
 import { debounce } from "lodash"
+import { useInView } from "react-intersection-observer"
 
 const { Option } = Select
 
+// Skeleton Loader Component
+const ImageSkeleton = () => {
+  return (
+    <div className="break-inside-avoid rounded-xl overflow-hidden bg-gray-100 animate-pulse">
+      <div className="w-full aspect-[3/4] bg-gradient-to-br from-gray-200 to-gray-300"></div>
+    </div>
+  )
+}
+
+// Generate random heights for more natural masonry skeleton
+const SkeletonGrid = ({ count = 12 }) => {
+  const heights = ["aspect-[3/4]", "aspect-[4/5]", "aspect-square", "aspect-[2/3]", "aspect-[5/6]"]
+
+  return (
+    <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4">
+      {Array.from({ length: count }).map((_, index) => (
+        <div
+          key={index}
+          className="break-inside-avoid rounded-xl overflow-hidden bg-gray-100 animate-pulse"
+        >
+          <div
+            className={`w-full ${
+              heights[index % heights.length]
+            } bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_200%] animate-shimmer`}
+          ></div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 const ImageGallery = () => {
   const [images, setImages] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize, setPageSize] = useState(24)
+  const [pageSize] = useState(20)
   const [totalImages, setTotalImages] = useState(0)
   const [minScore, setMinScore] = useState(0)
   const [selectedTags, setSelectedTags] = useState([])
   const [previewImage, setPreviewImage] = useState(null)
-  const [showFilters, setShowFilters] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
+
+  const { ref: loadMoreRef, inView } = useInView({
+    threshold: 0,
+    rootMargin: "200px",
+  })
 
   // Available tags (you can make this dynamic by fetching from backend)
   const availableTags = [
@@ -34,8 +71,17 @@ const ImageGallery = () => {
     "animals",
   ]
 
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+    setHasMore(true)
+    setImages([]) // Clear images to show loading state or fresh results
+  }, [searchQuery, minScore, selectedTags])
+
   // Fetch images
   const fetchImages = useCallback(async () => {
+    if (!hasMore && currentPage > 1) return
+
     setLoading(true)
     try {
       const params = {
@@ -52,26 +98,44 @@ const ImageGallery = () => {
         response = await getImages(params)
       }
 
-      setImages(response.data || [])
-      setTotalImages(response.pagination?.total || 0)
+      const newImages = response.data || []
+      const total = response.pagination?.total || 0
+
+      setTotalImages(total)
+
+      setImages(prev => {
+        if (currentPage === 1) return newImages
+        // Filter out duplicates just in case
+        const existingIds = new Set(prev.map(img => img._id))
+        const uniqueNewImages = newImages.filter(img => !existingIds.has(img._id))
+        return [...prev, ...uniqueNewImages]
+      })
+
+      setHasMore(newImages.length === pageSize) // If we got full page, maybe more exists
     } catch (error) {
       console.error("Error fetching images:", error)
       message.error("Failed to load images")
-      setImages([])
     } finally {
       setLoading(false)
     }
-  }, [currentPage, pageSize, minScore, selectedTags, searchQuery])
+  }, [currentPage, pageSize, minScore, selectedTags, searchQuery, hasMore])
 
+  // Initial fetch and pagination trigger
   useEffect(() => {
     fetchImages()
   }, [fetchImages])
+
+  // Load more when scrolling to bottom
+  useEffect(() => {
+    if (inView && hasMore && !loading) {
+      setCurrentPage(prev => prev + 1)
+    }
+  }, [inView, hasMore, loading])
 
   // Debounced search
   const debouncedSearch = useCallback(
     debounce(value => {
       setSearchQuery(value)
-      setCurrentPage(1)
     }, 500),
     []
   )
@@ -82,27 +146,18 @@ const ImageGallery = () => {
 
   const handleTagToggle = tag => {
     setSelectedTags(prev => (prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]))
-    setCurrentPage(1)
   }
 
   const handleScoreChange = value => {
     setMinScore(value)
-    setCurrentPage(1)
-  }
-
-  const handlePageChange = (page, size) => {
-    setCurrentPage(page)
-    if (size !== pageSize) {
-      setPageSize(size)
-      setCurrentPage(1)
-    }
   }
 
   const handleImageClick = image => {
     setPreviewImage(image)
   }
 
-  const handleDownload = async image => {
+  const handleDownload = async (image, e) => {
+    if (e) e.stopPropagation()
     try {
       const response = await fetch(image.url)
       const blob = await response.blob()
@@ -116,6 +171,7 @@ const ImageGallery = () => {
       document.body.removeChild(a)
       message.success("Image downloaded successfully!")
     } catch (error) {
+      console.error(error)
       message.error("Failed to download image")
     }
   }
@@ -124,7 +180,6 @@ const ImageGallery = () => {
     setSearchQuery("")
     setSelectedTags([])
     setMinScore(0)
-    setCurrentPage(1)
   }
 
   const hasActiveFilters = searchQuery || selectedTags.length > 0 || minScore > 0
@@ -135,290 +190,181 @@ const ImageGallery = () => {
         <title>Image Gallery | GenWrite</title>
       </Helmet>
 
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 p-4 md:p-8">
+      <div className="min-h-screen p-4 md:p-6 lg:p-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-4xl font-extrabold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
-                Image Gallery
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
+            <div className="text-center md:text-left">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Explore Creations
               </h1>
-              <p className="text-gray-600">
-                Discover and download high-quality images for your content
+              <p className="text-gray-500 text-sm mt-2 max-w-md">
+                Curated high-quality generations for your next project
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="px-4 py-2 bg-white rounded-lg shadow-sm border border-gray-200">
-                <span className="text-sm text-gray-500">Total Images:</span>
-                <span className="ml-2 text-lg font-bold text-blue-600">{totalImages}</span>
-              </div>
-            </div>
           </div>
-        </motion.div>
 
-        {/* Search and Filters */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-white rounded-2xl shadow-lg p-6 mb-6"
-        >
-          {/* Search Bar */}
-          <div className="flex flex-col md:flex-row gap-4 mb-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          {/* Search and Filters Bar */}
+          <div className="mb-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search images by description or tags..."
+                placeholder="Search..."
                 onChange={handleSearchChange}
-                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400"
               />
             </div>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={`px-6 py-3 rounded-xl font-semibold flex items-center gap-2 transition-all ${
-                showFilters
-                  ? "bg-blue-600 text-white shadow-lg"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              <Filter className="w-5 h-5" />
-              Filters
-              {hasActiveFilters && (
-                <span className="ml-1 px-2 py-0.5 bg-white text-blue-600 rounded-full text-xs font-bold">
-                  {(selectedTags.length > 0 ? 1 : 0) + (minScore > 0 ? 1 : 0)}
-                </span>
-              )}
-            </button>
           </div>
-
-          {/* Filters Panel */}
-          <AnimatePresence>
-            {showFilters && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="overflow-hidden"
-              >
-                <div className="pt-4 border-t border-gray-200 space-y-4">
-                  {/* Tags Filter */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Filter by Tags
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {availableTags.map(tag => (
-                        <button
-                          key={tag}
-                          onClick={() => handleTagToggle(tag)}
-                          className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                            selectedTags.includes(tag)
-                              ? "bg-blue-600 text-white shadow-md"
-                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                          }`}
-                        >
-                          {tag}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Score Filter */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Minimum Quality Score: {minScore}
-                    </label>
-                    <Slider
-                      min={0}
-                      max={100}
-                      value={minScore}
-                      onChange={handleScoreChange}
-                      className="max-w-md"
-                    />
-                  </div>
-
-                  {/* Clear Filters */}
-                  {hasActiveFilters && (
-                    <button
-                      onClick={clearFilters}
-                      className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-all font-medium flex items-center gap-2"
-                    >
-                      <X className="w-4 h-4" />
-                      Clear All Filters
-                    </button>
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </motion.div>
 
-        {/* Images Grid */}
-        {loading ? (
-          <div className="flex justify-center items-center h-96">
-            <Spin size="large" />
-          </div>
-        ) : images.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="flex flex-col items-center justify-center h-96 bg-white rounded-2xl shadow-lg"
-          >
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={
-                <div className="text-center">
-                  <p className="text-xl font-semibold text-gray-700 mb-2">No images found</p>
-                  <p className="text-gray-500">
-                    {hasActiveFilters
-                      ? "Try adjusting your filters or search query"
-                      : "No images available at the moment"}
-                  </p>
-                </div>
-              }
-            />
-          </motion.div>
-        ) : (
-          <>
+        <div>
+          <AnimatePresence mode="wait">
             <motion.div
+              key={`${searchQuery}-${selectedTags.join(",")}-${minScore}`}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.2 }}
-              className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8"
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4"
             >
               {images.map((image, index) => (
                 <motion.div
                   key={image._id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="group relative bg-white rounded-xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 cursor-pointer"
+                  transition={{ duration: 0.3, delay: index * 0.02 }}
+                  className="break-inside-avoid relative group rounded-xl overflow-hidden cursor-pointer bg-gray-100"
                   onClick={() => handleImageClick(image)}
                 >
-                  {/* Image */}
-                  <div className="aspect-square overflow-hidden bg-gray-100">
-                    <img
-                      src={image.url}
-                      alt={image.description || "Gallery image"}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                      loading="lazy"
-                    />
-                  </div>
+                  <img
+                    src={image.url}
+                    alt={image.description}
+                    className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
+                    loading="lazy"
+                  />
 
-                  {/* Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <div className="absolute bottom-0 left-0 right-0 p-4">
-                      <p className="text-white text-sm line-clamp-2 mb-2">
-                        {image.description || "No description"}
+                  {/* Hover Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-white text-sm line-clamp-2 font-medium mr-2">
+                        {image.description}
                       </p>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1">
-                          <Sparkles className="w-4 h-4 text-yellow-400" />
-                          <span className="text-white text-sm font-semibold">{image.score}</span>
-                        </div>
-                        <button
-                          onClick={e => {
-                            e.stopPropagation()
-                            handleDownload(image)
-                          }}
-                          className="p-2 bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition-all"
-                        >
-                          <Download className="w-4 h-4 text-white" />
-                        </button>
-                      </div>
+                      <button
+                        onClick={e => handleDownload(image, e)}
+                        className="p-2 bg-white text-gray-900 rounded-full hover:bg-gray-100 transition-colors duration-200 shadow-lg flex-shrink-0"
+                      >
+                        <Download className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
-
-                  {/* Tags */}
-                  {image.tags && image.tags.length > 0 && (
-                    <div className="absolute top-2 left-2 flex flex-wrap gap-1">
-                      {image.tags.slice(0, 2).map((tag, i) => (
-                        <span
-                          key={i}
-                          className="px-2 py-1 bg-white/90 backdrop-blur-sm text-xs font-medium text-gray-700 rounded-full"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                      {image.tags.length > 2 && (
-                        <span className="px-2 py-1 bg-white/90 backdrop-blur-sm text-xs font-medium text-gray-700 rounded-full">
-                          +{image.tags.length - 2}
-                        </span>
-                      )}
-                    </div>
-                  )}
                 </motion.div>
               ))}
             </motion.div>
+          </AnimatePresence>
 
-            {/* Pagination */}
-            <div className="flex justify-center">
-              <Pagination
-                current={currentPage}
-                pageSize={pageSize}
-                total={totalImages}
-                onChange={handlePageChange}
-                showSizeChanger
-                pageSizeOptions={[12, 24, 48, 96]}
-                showTotal={total => `Total ${total} images`}
-                className="bg-white px-6 py-4 rounded-xl shadow-lg"
-              />
+          {/* Loading State - Skeleton */}
+          {loading && images.length === 0 && <SkeletonGrid count={12} />}
+
+          {/* Empty State */}
+          {!loading && images.length === 0 && (
+            <div className="py-20 flex flex-col items-center justify-center">
+              <ImageIcon className="w-16 h-16 text-gray-300 mb-4" />
+              <h3 className="text-lg font-semibold text-gray-700 mb-2">No images found</h3>
+              <p className="text-gray-500 text-sm">Try adjusting your search or filters</p>
             </div>
-          </>
-        )}
+          )}
 
-        {/* Image Preview Modal */}
+          {/* Infinite Scroll Loader */}
+          {hasMore && images.length > 0 && (
+            <div ref={loadMoreRef} className="py-12 flex justify-center w-full">
+              {loading && <Spin size="large" />}
+            </div>
+          )}
+        </div>
+
+        {/* Enhanced Modal */}
         <Modal
           open={!!previewImage}
           onCancel={() => setPreviewImage(null)}
           footer={null}
-          width="90%"
-          style={{ maxWidth: "1200px" }}
           centered
-          className="image-preview-modal"
+          width={1000}
+          closeIcon={null}
+          className="image-detail-modal"
+          styles={{
+            content: {
+              padding: 0,
+              borderRadius: "24px",
+              overflow: "hidden",
+              backgroundColor: "transparent",
+              boxShadow: "none",
+            },
+          }}
         >
           {previewImage && (
-            <div className="p-4">
-              <div className="mb-4">
-                <img
-                  src={previewImage.url}
-                  alt={previewImage.description}
-                  className="w-full h-auto rounded-lg"
-                />
-              </div>
-              <div className="space-y-3">
-                <h3 className="text-xl font-bold text-gray-900">
-                  {previewImage.description || "Image Details"}
-                </h3>
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-yellow-500" />
-                  <span className="text-lg font-semibold">Quality Score: {previewImage.score}</span>
+            <div className="bg-white rounded-3xl overflow-hidden shadow-2xl flex flex-col md:flex-row max-h-[90vh]">
+              {/* Left: Image Container */}
+              <div className="flex-1 relative group flex items-center justify-center p-4">
+                <div className="relative max-h-full max-w-full shadow-lg rounded-lg overflow-hidden">
+                  <img
+                    src={previewImage.url}
+                    alt={previewImage.description}
+                    className="max-h-[85vh] w-auto object-contain"
+                  />
                 </div>
-                {previewImage.tags && previewImage.tags.length > 0 && (
-                  <div>
-                    <p className="text-sm font-semibold text-gray-700 mb-2">Tags:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {previewImage.tags.map((tag, i) => (
-                        <Tag key={i} color="blue">
-                          {tag}
-                        </Tag>
-                      ))}
-                    </div>
-                  </div>
-                )}
                 <button
-                  onClick={() => handleDownload(previewImage)}
-                  className="w-full mt-4 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                  onClick={() => setPreviewImage(null)}
+                  className="absolute top-4 left-4 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-all backdrop-blur-sm z-10"
                 >
-                  <Download className="w-5 h-5" />
-                  Download Image
+                  <X className="w-5 h-5" />
                 </button>
+              </div>
+
+              {/* Right: Details */}
+              <div className="w-full md:w-[350px] bg-white p-6 md:p-8 flex flex-col overflow-y-auto border-l border-gray-100">
+                <h3 className="text-xl font-semibold text-gray-900 leading-snug mb-4">
+                  Prompt Details
+                </h3>
+
+                <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                  <p className="text-gray-600 leading-relaxed text-sm mb-6">
+                    {previewImage.description || "No description provided for this generation."}
+                  </p>
+
+                  {previewImage.tags && previewImage.tags.length > 0 && (
+                    <div className="mb-6">
+                      <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
+                        Tags
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {previewImage.tags.map((tag, i) => (
+                          <span
+                            key={i}
+                            className="px-3 py-1 bg-gray-100 text-gray-600 rounded-lg text-xs font-medium border border-gray-200"
+                          >
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="mt-0 md:mt-6 pt-0 md:pt-6 border-t border-gray-100 space-y-3">
+                  <button
+                    onClick={() => handleDownload(previewImage)}
+                    className="w-full py-4 bg-gray-900 hover:bg-black text-white rounded-xl font-bold transition-all shadow-lg shadow-gray-200 flex items-center justify-center gap-2"
+                  >
+                    <Download className="w-5 h-5" />
+                    Download Image
+                  </button>
+                </div>
               </div>
             </div>
           )}
