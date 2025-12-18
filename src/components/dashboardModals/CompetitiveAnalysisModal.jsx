@@ -359,9 +359,10 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
           >
             <Collapse accordion>
               {Object.entries(analysis).map(([key, value], index) => {
-                const match = value.match(/\((\d+\/\d+)\)$/)
-                const score = match ? match[1] : null
-                const description = cleanMarkdown(value.replace(/\s*\(\d+\/\d+\)$/, "").trim())
+                const { score, maxScore, feedback } = value
+                const description = cleanMarkdown(
+                  value?.feedback?.replace(/\s*\(\d+\/\d+\)$/, "").trim()
+                )
                 return (
                   <Panel
                     key={key}
@@ -371,7 +372,11 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
                           {cleanMarkdown(key)}
                         </span>
                         <Tooltip title="Relatable Score">
-                          {score && <Tag color="blue">{score.replace("/", " / ")}</Tag>}
+                          {score && maxScore && (
+                            <Tag color="blue">
+                              {score}/{maxScore}
+                            </Tag>
+                          )}
                         </Tooltip>
                       </div>
                     }
@@ -390,8 +395,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
             key="suggestions"
           >
             <ul className="list-decimal pl-6 space-y-3 text-sm md:text-base text-gray-700">
-              {suggestions
-                .split(/(?:\d+\.\s)/)
+              {(Array.isArray(suggestions) ? suggestions : suggestions.split(/(?:\d+\.\s)/))
                 .filter(Boolean)
                 .map((point, index) => (
                   <li key={index}>
@@ -723,9 +727,11 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
                         }}
                       >
                         <ul className="list-decimal pl-6 space-y-3 text-sm md:text-base text-gray-700">
-                          {analysisResults?.insights?.suggestions
-                            ?.split(/(?:\d+\.\s)/)
-                            .filter(Boolean)
+                          {(Array.isArray(analysisResults?.insights?.suggestions)
+                            ? analysisResults?.insights?.suggestions
+                            : analysisResults?.insights?.suggestions?.split(/(?:\d+\.\s)/)
+                          )
+                            ?.filter(Boolean)
                             .map((point, index) => (
                               <li key={index}>
                                 <span
