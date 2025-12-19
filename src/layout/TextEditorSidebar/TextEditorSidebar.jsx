@@ -26,6 +26,7 @@ import {
   Download,
   FileCode,
   Lock,
+  Globe,
 } from "lucide-react"
 import {
   Button,
@@ -53,15 +54,10 @@ import { TONES } from "@/data/blogData"
 import { updateBlog, retryBlogById, exportBlogAsPdf } from "@api/blogApi"
 import { useQueryClient } from "@tanstack/react-query"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
-import {
-  ScoreCard,
-  StatCard,
-  CompetitorsList,
-  AnalysisInsights,
-  ProofreadingSuggestion,
-} from "./FeatureComponents"
+import { ScoreCard, StatCard, CompetitorsList, AnalysisInsights } from "./FeatureComponents"
 
 import { IMAGE_SOURCE, DEFAULT_IMAGE_SOURCE } from "@/data/blogData"
+import { computeCost } from "@/data/pricingConfig"
 
 const { TextArea } = Input
 const { Panel } = Collapse
@@ -77,7 +73,6 @@ const AI_MODELS = [
 const NAV_ITEMS = [
   { id: "overview", icon: BarChart3, label: "Overview" },
   { id: "seo", icon: TrendingUp, label: "SEO" },
-  { id: "suggestions", icon: Lightbulb, label: "Suggestions" },
   { id: "regenerate", icon: RefreshCw, label: "Regenerate" },
 ]
 
@@ -106,7 +101,6 @@ const TextEditorSidebar = ({
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
   const [choosePlatformOpen, setChoosePlatformOpen] = useState(false)
-  const [isAnalyzingProofreading, setIsAnalyzingProofreading] = useState(false)
   const [customPrompt, setCustomPrompt] = useState("")
   const [newKeyword, setNewKeyword] = useState("")
   const [isRegenerating, setIsRegenerating] = useState(false)
@@ -255,18 +249,26 @@ const TextEditorSidebar = ({
     })
   }, [])
 
-  // Calculate regenerate cost
+  // Calculate regenerate cost using pricing config
   const calculateRegenCost = useCallback(() => {
-    let cost = getEstimatedCost("blog.single", regenForm.aiModel)
-    if (regenForm.isCheckedGeneratedImages) {
-      cost +=
-        regenForm.imageSource === IMAGE_SOURCE.AI
-          ? creditCostsWithGemini.aiImages * (regenForm.numberOfImages || 3)
-          : 10
-    }
-    if (regenForm.options.includeCompetitorResearch) cost += 10
-    if (regenForm.useBrandVoice) cost += 10
-    return cost
+    const features = []
+
+    // Add features based on selections
+    if (regenForm.useBrandVoice) features.push("brandVoice")
+    if (regenForm.options.includeCompetitorResearch) features.push("competitorResearch")
+    if (regenForm.options.includeFaqs) features.push("faqGeneration")
+    if (regenForm.options.includeInterlinks) features.push("internalLinking")
+    if (regenForm.options.addOutBoundLinks) features.push("outboundLinks")
+
+    return computeCost({
+      wordCount: regenForm.userDefinedLength || 1000,
+      features,
+      aiModel: regenForm.aiModel || "gemini",
+      includeImages: regenForm.isCheckedGeneratedImages,
+      imageSource: regenForm.imageSource,
+      numberOfImages: regenForm.numberOfImages || 3,
+      isCheckedBrand: regenForm.useBrandVoice,
+    })
   }, [regenForm])
 
   // Handlers
@@ -348,32 +350,6 @@ const TextEditorSidebar = ({
       },
     })
   }, [isPro, navigate, handlePopup, dispatch, blog, keywords])
-
-  const handleProofreading = useCallback(() => {
-    if (isPro) return navigate("/pricing")
-    handlePopup({
-      title: "AI Proofreading",
-      description: (
-        <>
-          Check grammar & style?{" "}
-          <span className="font-bold">{getEstimatedCost("blog.proofread")} credits</span>
-        </>
-      ),
-      onConfirm: async () => {
-        setIsAnalyzingProofreading(true)
-        try {
-          const result = await dispatch(fetchProofreadingSuggestions({ id: blog._id })).unwrap()
-          setProofreadingResults(result)
-          setActivePanel("suggestions")
-          message.success(`Found ${result.length} suggestions`)
-        } catch {
-          message.error("Proofreading failed")
-        } finally {
-          setIsAnalyzingProofreading(false)
-        }
-      },
-    })
-  }, [isPro, navigate, handlePopup, dispatch, blog, setProofreadingResults])
 
   const handleMetadataGen = useCallback(() => {
     if (isPro) return navigate("/pricing")
@@ -1156,8 +1132,6 @@ const TextEditorSidebar = ({
         return renderOverviewPanel()
       case "seo":
         return renderSeoPanel()
-      case "suggestions":
-        return renderSuggestionsPanel()
       default:
         return renderOverviewPanel()
     }
@@ -1169,7 +1143,6 @@ const TextEditorSidebar = ({
       <div className="w-16 h-screen bg-gradient-to-b from-slate-50 to-gray-100 border-l border-gray-200 flex flex-col items-center py-5 gap-2">
         {NAV_ITEMS.map(item => {
           const Icon = item.icon
-          const hasBadge = item.id === "suggestions" && proofreadingResults?.length > 0
           return (
             <Tooltip key={item.id} title={item.label} placement="left">
               <button
@@ -1187,11 +1160,6 @@ const TextEditorSidebar = ({
                 className="w-11 h-11 rounded-2xl flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-white hover:shadow-md transition-all duration-200 relative group"
               >
                 <Icon className="w-5 h-5 transition-transform group-hover:scale-110" />
-                {hasBadge && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-br from-red-500 to-pink-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold shadow-md animate-pulse">
-                    {proofreadingResults.length}
-                  </span>
-                )}
               </button>
             </Tooltip>
           )
@@ -1237,7 +1205,6 @@ const TextEditorSidebar = ({
           {NAV_ITEMS.map(item => {
             const Icon = item.icon
             const isActive = activePanel === item.id
-            const hasBadge = item.id === "suggestions" && proofreadingResults?.length > 0
             return (
               <Tooltip key={item.id} title={item.label} placement="left">
                 <button
@@ -1261,11 +1228,6 @@ const TextEditorSidebar = ({
                       isActive ? "" : "group-hover:scale-110"
                     }`}
                   />
-                  {hasBadge && (
-                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-br from-red-500 to-pink-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold shadow-md animate-pulse">
-                      {proofreadingResults.length}
-                    </span>
-                  )}
                 </button>
               </Tooltip>
             )
@@ -1418,12 +1380,11 @@ const TextEditorSidebar = ({
         footer={
           <div className="flex justify-between items-center">
             <div className="text-sm text-gray-500">
-              {regenerateStep === 2 && (
-                <div className="flex items-center gap-1">
-                  <Zap className="w-4 h-4 text-amber-500" />
-                  <span className="font-bold text-blue-600">{calculateRegenCost()} credits</span>
-                </div>
-              )}
+              <div className="flex items-center gap-1">
+                <Zap className="w-4 h-4 text-amber-500" />
+                <span className="text-xs text-gray-600">Estimated Cost:</span>
+                <span className="font-bold text-blue-600">{calculateRegenCost()} credits</span>
+              </div>
             </div>
             <div className="flex gap-2">
               {regenerateStep === 2 && <Button onClick={() => setRegenerateStep(1)}>Back</Button>}

@@ -70,7 +70,7 @@ const PrivateRoutesLayout = () => {
                 </div>
               </Tooltip>
 
-              <ChatBox isOpen={chatOpen} onClose={() => setChatOpen(false)} />
+              {/* <ChatBox isOpen={chatOpen} onClose={() => setChatOpen(false)} /> */}
             </>
           )}
 

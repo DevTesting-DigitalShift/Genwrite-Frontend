@@ -224,29 +224,15 @@ export const getBlogPostings = async blogId => {
   }
 }
 
-export const getExportedBlog = async (blogId, type = "pdf") => {
+export const exportBlogAsPdf = async id => {
   try {
-    const response = await axiosInstance.get(`/blogs/${blogId}/export?type=${type}`, {
-      responseType: "blob",
-      withCredentials: true,
-      headers: {
-        Accept: "application/pdf",
-      },
-    })
-    // Create blob from response
-    const pdfBlob = new Blob([response.data], {
-      type: "application/pdf",
+    const response = await axiosInstance.get(`/blogs/${id}/export`, {
+      params: { type: "pdf" },
+      responseType: "blob", // ✅ correct
     })
 
-    // Extract filename from backend headers
-    const disposition = response.headers["content-disposition"]
-    let filename = "blog.pdf"
-
-    if (disposition?.includes("filename=")) {
-      filename = disposition.split("filename=")[1].replace(/"/g, "")
-    }
-    return { pdfBlob, filename }
+    return response.data
   } catch (error) {
-    throw new Error(error.response?.data?.message || "Failed to export blog")
+    throw new Error(error.response?.data?.message || "Failed to export PDF")
   }
 }

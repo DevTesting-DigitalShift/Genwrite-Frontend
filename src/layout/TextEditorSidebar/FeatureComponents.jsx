@@ -57,7 +57,6 @@ const FeatureCard = ({
 
 const ScoreCard = ({ title, score, icon: Icon }) => {
   const getScoreColor = score => {
-  const getScoreColor = score => {
     if (score >= 80) return "bg-green-100 text-green-700 border-green-200"
     if (score >= 60) return "bg-yellow-100 text-yellow-700 border-yellow-200"
     return "bg-red-100 text-red-700 border-red-200"
@@ -174,7 +173,6 @@ const AnalysisInsights = ({ insights }) => {
   const entries = Object.entries(insights || {})
   const visibleEntries = showAll ? entries : entries.slice(0, 3)
 
-  const toggleExpanded = index => {
   const toggleExpanded = index => {
     const updated = new Set(expandedIndexes)
     updated.has(index) ? updated.delete(index) : updated.add(index)
