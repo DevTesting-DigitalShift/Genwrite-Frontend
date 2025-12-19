@@ -1,6 +1,6 @@
 import React from "react"
 import { Badge, Button, Tooltip, Flex, Typography, Tag } from "antd"
-import { RotateCcw, Trash2 } from "lucide-react"
+import { RotateCcw, Trash2, MousePointerClick, Eye } from "lucide-react"
 
 interface Blog {
   _id: string
@@ -16,6 +16,8 @@ interface Blog {
   isManuallyEdited?: boolean
   isArchived: boolean
   archiveDate: string
+  gscClicks: number
+  gscImpressions: number
 }
 
 interface BlogCardProps {
@@ -25,6 +27,7 @@ interface BlogCardProps {
   onRetry: (id: string) => void
   onArchive: (id: string) => void
   handlePopup: (config: any) => void
+  hasGSCPermissions?: boolean
 }
 
 const TRUNCATE_LENGTH = 160
@@ -47,6 +50,7 @@ const BlogCard: React.FC<BlogCardProps> = ({
   onRetry,
   onArchive,
   handlePopup,
+  hasGSCPermissions = false,
 }) => {
   const truncateContent = (content: string, length = TRUNCATE_LENGTH) => {
     if (!content) return ""
@@ -75,9 +79,10 @@ const BlogCard: React.FC<BlogCardProps> = ({
     agendaNextRun,
     isArchived,
     archiveDate,
+    gscClicks,
+    gscImpressions,
   } = blog
   const isGemini = /gemini/gi.test(aiModel)
-
   return (
     <Badge.Ribbon
       key={_id}
@@ -259,10 +264,32 @@ const BlogCard: React.FC<BlogCardProps> = ({
         </Flex>
 
         <Flex
-          justify="end"
+          justify="center"
+          align="center"
+          gap="middle"
           className="mt-3 -mb-2 text-xs sm:text-sm text-right text-gray-500 font-medium"
         >
-          <Text type="secondary" className="ml-auto">
+          {/* GSC Metrics Display */}
+          {hasGSCPermissions && (
+            <Flex gap="middle" className="mt-3 mb-2 justify-center">
+              <Tooltip title="Total clicks from Google Search Console" color="#2E7D32">
+                <div className="flex items-center gap-1.5 bg-green-50 border border-green-200 text-green-700 px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium shadow-sm hover:shadow-md transition-shadow cursor-default">
+                  <MousePointerClick className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="font-semibold">{gscClicks?.toLocaleString() || 0}</span>
+                  <span className="text-green-600 hidden sm:inline">clicks</span>
+                </div>
+              </Tooltip>
+              <Tooltip title="Total impressions from Google Search Console" color="#1565C0">
+                <div className="flex items-center gap-1.5 bg-blue-50 border border-blue-200 text-blue-700 px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium shadow-sm hover:shadow-md transition-shadow cursor-default">
+                  <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="font-semibold">{gscImpressions?.toLocaleString() || 0}</span>
+                  <span className="text-blue-600 hidden sm:inline">impressions</span>
+                </div>
+              </Tooltip>
+            </Flex>
+          )}
+
+          <Text type="secondary" className="">
             {isArchived ? "Archived at: " : "UpdatedAt: "}
             {new Date(isArchived ? archiveDate : updatedAt).toLocaleDateString("en-US", {
               dateStyle: "medium",

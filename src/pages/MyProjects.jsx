@@ -166,21 +166,32 @@ const MyProjects = () => {
   // Socket for real-time updates
   useEffect(() => {
     const socket = getSocket()
-    if (!socket || !user) return
+    if (!socket || !user) {
+      console.warn("⚠️ Socket or user not available for MyProjects")
+      return
+    }
 
-    const handleStatusChange = debounce(() => {
-      queryClient.invalidateQueries(["blogs", userId], { refetchType: "all" })
-    }, 100)
+    const handleStatusChange = data => {
+      queryClient
+        .refetchQueries({
+          queryKey: ["blogs"],
+          type: "active",
+        })
+        .then(() => {
+          console.debug("Blogs refetched successfully after socket event")
+        })
+        .catch(err => {
+          console.error("Failed to refetch blogs:", err)
+        })
+    }
 
     socket.on("blog:statusChanged", handleStatusChange)
 
     return () => {
       socket.off("blog:statusChanged", handleStatusChange)
-      handleStatusChange.cancel?.()
     }
   }, [user, userId, queryClient])
 
-  // Navigation handlers
   const handleBlogClick = useCallback(
     blog => {
       navigate(`/toolbox/${blog._id}`)
@@ -516,6 +527,7 @@ const MyProjects = () => {
                   onRetry={handleRetry}
                   onArchive={handleArchive}
                   handlePopup={handlePopup}
+                  hasGSCPermissions={Boolean(user?.gsc?.length)}
                 />
               ))}
             </div>

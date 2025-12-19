@@ -1,6 +1,6 @@
 import { Navigate, Outlet, useNavigate, useLocation } from "react-router-dom"
 import LayoutWithSidebarAndHeader from "@components/SideBar_Header"
-import ChatBox from "@components/generateBlog/ChatBox"
+// import ChatBox from "@components/generateBlog/ChatBox"
 import { useState, useEffect } from "react"
 import { RiChatAiLine } from "react-icons/ri"
 import { Tooltip } from "antd"
@@ -10,7 +10,7 @@ import { connectSocket } from "@utils/socket"
 
 const PrivateRoutesLayout = () => {
   const token = localStorage.getItem("token")
-  const [chatOpen, setChatOpen] = useState(false)
+  // const [chatOpen, setChatOpen] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
   const dispatch = useDispatch()

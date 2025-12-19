@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useState, useRef } from "react"
 import { useSearchParams, useNavigate } from "react-router-dom"
 import { Card, Typography, Button, Result, Spin } from "antd"
 import { CheckCircleOutlined, WarningOutlined } from "@ant-design/icons"
@@ -26,8 +26,8 @@ const VerifiedEmail = () => {
       return
     }
 
-    if (hasVerified.current) {
-      console.log("Already verified, skipping duplicate call")
+    if (hasVerified?.current) {
+      console.debug("Already verified, skipping duplicate call")
       return
     }
 

@@ -57,6 +57,7 @@ const FeatureCard = ({
 
 const ScoreCard = ({ title, score, icon: Icon }) => {
   const getScoreColor = score => {
+  const getScoreColor = score => {
     if (score >= 80) return "bg-green-100 text-green-700 border-green-200"
     if (score >= 60) return "bg-yellow-100 text-yellow-700 border-yellow-200"
     return "bg-red-100 text-red-700 border-red-200"
@@ -71,7 +72,7 @@ const ScoreCard = ({ title, score, icon: Icon }) => {
         </div>
         {score > 0 && (
           <span className="text-lg font-bold">
-            {score}
+            {Math.round(score)}
             <span className="text-xs ml-1">/100</span>
           </span>
         )}
@@ -90,6 +91,28 @@ const ScoreCard = ({ title, score, icon: Icon }) => {
           />
         </div>
       )}
+    </div>
+  )
+}
+
+// Simple stat card for displaying counts (word count, keywords count, etc.)
+const StatCard = ({ title, value, icon: Icon, subtitle }) => {
+  return (
+    <div className="p-3 rounded-lg border bg-gray-50 border-gray-200">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 bg-blue-100 rounded-md">
+            <Icon className="w-3.5 h-3.5 text-blue-600" />
+          </div>
+          <div>
+            <span className="text-sm font-medium text-gray-700">{title}</span>
+            {subtitle && <p className="text-xs text-gray-500">{subtitle}</p>}
+          </div>
+        </div>
+        <span className="text-lg font-bold text-gray-900">
+          {typeof value === "number" ? value.toLocaleString() : value}
+        </span>
+      </div>
     </div>
   )
 }
@@ -151,6 +174,7 @@ const AnalysisInsights = ({ insights }) => {
   const entries = Object.entries(insights || {})
   const visibleEntries = showAll ? entries : entries.slice(0, 3)
 
+  const toggleExpanded = index => {
   const toggleExpanded = index => {
     const updated = new Set(expandedIndexes)
     updated.has(index) ? updated.delete(index) : updated.add(index)
@@ -252,4 +276,11 @@ const ProofreadingSuggestion = React.forwardRef(({ suggestion, index, onApply, o
 
 ProofreadingSuggestion.displayName = "ProofreadingSuggestion"
 
-export { FeatureCard, ScoreCard, CompetitorsList, AnalysisInsights, ProofreadingSuggestion }
+export {
+  FeatureCard,
+  ScoreCard,
+  StatCard,
+  CompetitorsList,
+  AnalysisInsights,
+  ProofreadingSuggestion,
+}

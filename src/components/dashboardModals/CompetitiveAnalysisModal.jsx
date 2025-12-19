@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
 import { Activity, ExternalLink } from "lucide-react"
-import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import {
   Collapse,
@@ -18,10 +17,13 @@ import {
 } from "antd"
 import { motion } from "framer-motion"
 import { useDispatch, useSelector } from "react-redux"
+import { useNavigate } from "react-router-dom"
 import { fetchCompetitiveAnalysisThunk } from "@store/slices/analysisSlice"
 import { LoadingOutlined } from "@ant-design/icons"
 import { Link as LinkIcon } from "lucide-react"
 import { fetchBlogById, fetchBlogs } from "@store/slices/blogSlice"
+import { selectUser } from "@store/slices/authSlice"
+import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import LoadingScreen from "@components/UI/LoadingScreen"
 
 const { Panel } = Collapse
@@ -41,8 +43,10 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
   const [isLoading, setIsLoading] = useState(false)
   const [activeTab, setActiveTab] = useState(null)
   const [collapseKey, setCollapseKey] = useState(0) // Used to reset Collapse
-  const { handlePopup } = useConfirmPopup()
   const dispatch = useDispatch()
+  const navigate = useNavigate()
+  const user = useSelector(selectUser)
+  const { handlePopup } = useConfirmPopup()
   const { analysis, loading: analysisLoading } = useSelector(state => state.analysis)
   const { allBlogs: blogs, loading: blogLoading } = useSelector(state => state.blog)
 
@@ -150,7 +154,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
     }
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!formData.title.trim()) return
     if (!formData.content.trim()) return
     if (formData.keywords.length === 0 && formData.focusKeywords.length === 0) return
@@ -160,35 +164,50 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
       return
     }
 
-    handlePopup({
-      title: "Analyze Competitors",
-      description: (
-        <p>
-          Competitive Analysis cost: <b>{getEstimatedCost("analysis.competitors")} credits</b>
-          <br />
-          Do you wish to proceed?
-        </p>
-      ),
-      onConfirm: async () => {
-        setIsLoading(true)
-        try {
-          const result = await dispatch(
-            fetchCompetitiveAnalysisThunk({
-              title: formData.title,
-              content: formData.content,
-              keywords: [...new Set([...formData.keywords, ...formData.focusKeywords])], // Combine and deduplicate
-              contentType: formData.contentType,
-              blogId: formData?.selectedProject?._id,
-            })
-          ).unwrap()
-          setAnalysisResults(result)
-        } catch (err) {
-          console.error("Error fetching analysis:", err)
-        } finally {
-          setIsLoading(false)
-        }
-      },
-    })
+    // Check if user has sufficient credits
+    const estimatedCost = getEstimatedCost("analysis.competitors")
+    const userCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
+
+    if (userCredits < estimatedCost) {
+      handlePopup({
+        title: "Insufficient Credits",
+        description: (
+          <div>
+            <p>You don't have enough credits to run this competitive analysis.</p>
+            <p className="mt-2">
+              <strong>Required:</strong> {estimatedCost} credits
+            </p>
+            <p>
+              <strong>Available:</strong> {userCredits} credits
+            </p>
+          </div>
+        ),
+        okText: "Buy Credits",
+        onConfirm: () => {
+          navigate("/pricing")
+          closeFnc()
+        },
+      })
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      const result = await dispatch(
+        fetchCompetitiveAnalysisThunk({
+          title: formData.title,
+          content: formData.content,
+          keywords: [...new Set([...formData.keywords, ...formData.focusKeywords])], // Combine and deduplicate
+          contentType: formData.contentType,
+          blogId: formData?.selectedProject?._id,
+        })
+      ).unwrap()
+      setAnalysisResults(result)
+    } catch (err) {
+      console.error("Error fetching analysis:", err)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const cleanMarkdown = text => {
@@ -340,9 +359,10 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
           >
             <Collapse accordion>
               {Object.entries(analysis).map(([key, value], index) => {
-                const match = value.match(/\((\d+\/\d+)\)$/)
-                const score = match ? match[1] : null
-                const description = cleanMarkdown(value.replace(/\s*\(\d+\/\d+\)$/, "").trim())
+                const { score, maxScore, feedback } = value
+                const description = cleanMarkdown(
+                  value?.feedback?.replace(/\s*\(\d+\/\d+\)$/, "").trim()
+                )
                 return (
                   <Panel
                     key={key}
@@ -352,7 +372,11 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
                           {cleanMarkdown(key)}
                         </span>
                         <Tooltip title="Relatable Score">
-                          {score && <Tag color="blue">{score.replace("/", " / ")}</Tag>}
+                          {score && maxScore && (
+                            <Tag color="blue">
+                              {score}/{maxScore}
+                            </Tag>
+                          )}
                         </Tooltip>
                       </div>
                     }
@@ -371,8 +395,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
             key="suggestions"
           >
             <ul className="list-decimal pl-6 space-y-3 text-sm md:text-base text-gray-700">
-              {suggestions
-                .split(/(?:\d+\.\s)/)
+              {(Array.isArray(suggestions) ? suggestions : suggestions.split(/(?:\d+\.\s)/))
                 .filter(Boolean)
                 .map((point, index) => (
                   <li key={index}>
@@ -459,31 +482,39 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
       }
       onCancel={closeFnc}
       footer={[
-        <div key="footer" className="flex flex-col sm:flex-row justify-end gap-3">
-          <Button
-            onClick={closeFnc}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition w-full sm:w-auto"
-          >
-            Close
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            className={`px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition w-full sm:w-auto ${
-              isLoading || blogLoading || analysisLoading ? "opacity-50 cursor-not-allowed" : ""
-            }`}
-            disabled={isLoading || blogLoading || analysisLoading}
-          >
-            {isLoading || blogLoading || analysisLoading ? (
-              <span className="flex items-center gap-2">
-                <LoadingOutlined />
-                {analysisResults ? "Re-Analyzing..." : "Analyzing..."}
-              </span>
-            ) : analysisResults ? (
-              "Re-Run Analysis"
-            ) : (
-              "Run Competitive Analysis"
-            )}
-          </Button>
+        <div key="footer" className="flex items-center justify-between w-full">
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-gray-600">Estimated Cost:</span>
+            <span className="font-bold text-blue-600">
+              {getEstimatedCost("analysis.competitors")} credits
+            </span>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button
+              onClick={closeFnc}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition w-full sm:w-auto"
+            >
+              Close
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              className={`px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition w-full sm:w-auto ${
+                isLoading || blogLoading || analysisLoading ? "opacity-50 cursor-not-allowed" : ""
+              }`}
+              disabled={isLoading || blogLoading || analysisLoading}
+            >
+              {isLoading || blogLoading || analysisLoading ? (
+                <span className="flex items-center gap-2">
+                  <LoadingOutlined />
+                  {analysisResults ? "Re-Analyzing..." : "Analyzing..."}
+                </span>
+              ) : analysisResults ? (
+                "Re-Run Analysis"
+              ) : (
+                "Run Competitive Analysis"
+              )}
+            </Button>
+          </div>
         </div>,
       ]}
       width="100%"
@@ -696,9 +727,11 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
                         }}
                       >
                         <ul className="list-decimal pl-6 space-y-3 text-sm md:text-base text-gray-700">
-                          {analysisResults?.insights?.suggestions
-                            ?.split(/(?:\d+\.\s)/)
-                            .filter(Boolean)
+                          {(Array.isArray(analysisResults?.insights?.suggestions)
+                            ? analysisResults?.insights?.suggestions
+                            : analysisResults?.insights?.suggestions?.split(/(?:\d+\.\s)/)
+                          )
+                            ?.filter(Boolean)
                             .map((point, index) => (
                               <li key={index}>
                                 <span

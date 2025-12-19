@@ -2,10 +2,10 @@ import { lazy, Suspense } from "react"
 import { createBrowserRouter, Navigate } from "react-router-dom"
 import LoadingScreen from "@components/UI/LoadingScreen"
 import App from "./App"
+import ErrorBoundary from "./layout/error/ErrorBoundary"
 import VerifiedEmail from "@pages/VerifiedEmail"
 const CreditLogsTable = lazy(() => import("@pages/CreditLogs"))
 const Transactions = lazy(() => import("@pages/Transactions"))
-const ErrorBoundary = lazy(() => import("./layout/error/ErrorBoundary"))
 const PublicRoutesLayout = lazy(() => import("./layout/PublicRoutesLayout"))
 const PrivateRoutesLayout = lazy(() => import("./layout/PrivateRoutesLayout"))
 const Dashboard = lazy(() => import("@pages/Dashboard"))
@@ -36,7 +36,7 @@ const GenerateMetaData = lazy(() => import("@pages/GenerateMetaData"))
 const PromptContent = lazy(() => import("@pages/PromptContent"))
 const UnsubscribeEmail = lazy(() => import("@pages/UnsubscribeEmail"))
 const EmailVerification = lazy(() => import("@pages/EmailVerification"))
-const ShopifyDashboard = lazy(() => import("@pages/ShopifyDashboard"))
+const ShopifyVerification = lazy(() => import("@pages/ShopifyVerification"))
 const PricingCalculator = lazy(() => import("@pages/PricingCalculator"))
 const ImageGallery = lazy(() => import("@pages/ImageGallery"))
 
@@ -60,7 +60,7 @@ const router = createBrowserRouter([
   {
     path: "/",
     element: <App />,
-    errorElement: withSuspense(ErrorBoundary),
+    errorElement: <ErrorBoundary />,
     children: [
       {
         path: "/",
@@ -82,6 +82,7 @@ const router = createBrowserRouter([
               { path: "cancel", element: withSuspense(CancelPage) },
             ],
           },
+          { path: "shopify-verify", element: withSuspense(ShopifyVerification) },
           { path: "pricing-calculator", element: withSuspense(PricingCalculator) },
           { path: "*", element: withSuspense(ErrorPage) },
         ],
@@ -114,7 +115,6 @@ const router = createBrowserRouter([
           { path: "analytics", element: withSuspense(AnalyticsPage) },
           { path: "generate-metadata", element: withSuspense(GenerateMetaData) },
           { path: "prompt-content", element: withSuspense(PromptContent) },
-          { path: "shopify-dashboard", element: withSuspense(ShopifyDashboard) },
           { path: "image-gallery", element: withSuspense(ImageGallery) },
         ],
       },

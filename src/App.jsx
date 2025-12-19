@@ -3,6 +3,7 @@ import { Outlet } from "react-router-dom"
 import { Helmet } from "react-helmet"
 import LoadingScreen from "@components/UI/LoadingScreen"
 import { message } from "antd"
+import { ConfirmPopupProvider } from "@/context/ConfirmPopupContext"
 
 const App = () => {
   // Show desktop warning on mobile devices
@@ -15,12 +16,15 @@ const App = () => {
   }, [])
 
   return (
-    <Suspense fallback={<LoadingScreen />}>
-      <Helmet>
-        <title>GenWrite</title>
-      </Helmet>
-      <Outlet />
-    </Suspense>
+    <ConfirmPopupProvider>
+      <Suspense fallback={<LoadingScreen />}>
+        <Helmet>
+          <title>GenWrite</title>
+        </Helmet>
+
+        <Outlet />
+      </Suspense>
+    </ConfirmPopupProvider>
   )
 }
 

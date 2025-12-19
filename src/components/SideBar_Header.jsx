@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { NavLink, useLocation, useNavigate } from "react-router-dom"
 import { useDispatch, useSelector } from "react-redux"
 import { RxAvatar } from "react-icons/rx"
@@ -18,8 +18,15 @@ import {
   UsersRound,
   Zap,
 } from "lucide-react"
-import { loadAuthenticatedUser, logoutUser, selectUser } from "../store/slices/authSlice"
-import { Tooltip, Dropdown, Avatar, Image } from "antd"
+import {
+  loadAuthenticatedUser,
+  logoutUser,
+  selectUser,
+  updateCredits,
+  addNotification,
+  updateUserPartial,
+} from "../store/slices/authSlice"
+import { Tooltip, Dropdown, Avatar } from "antd"
 import { RiCoinsFill } from "react-icons/ri"
 import NotificationDropdown from "@components/NotificationDropdown"
 import GoProButton from "@components/GoProButton"
@@ -34,29 +41,56 @@ const SideBar_Header = () => {
   const location = useLocation()
   const dispatch = useDispatch()
   const navigate = useNavigate()
-  const sidebarRef = useRef(null) // Ref for sidebar
+  const sidebarRef = useRef(null)
 
-  const fetchCurrentUser = async () => {
+  const fetchCurrentUser = useCallback(async () => {
     try {
       await dispatch(loadAuthenticatedUser()).unwrap()
     } catch (err) {
       console.error("User load failed:", err)
       navigate("/login")
     }
-  }
+  }, [dispatch, navigate])
+
+  const handleCreditsUpdate = useCallback(
+    data => {
+      if (
+        data &&
+        typeof data === "object" &&
+        (data.base !== undefined || data.extra !== undefined || data.credits !== undefined)
+      ) {
+        dispatch(updateCredits(data.credits || data))
+      } else {
+        fetchCurrentUser()
+      }
+    },
+    [dispatch, fetchCurrentUser]
+  )
+
+  const handleNotificationUpdate = useCallback(
+    data => {
+      if (data && typeof data === "object" && data.message) {
+        dispatch(addNotification(data))
+      } else if (data && typeof data === "object" && data.notifications) {
+        dispatch(updateUserPartial({ notifications: data.notifications }))
+      } else {
+        fetchCurrentUser()
+      }
+    },
+    [dispatch, fetchCurrentUser]
+  )
 
   const handleCloseModal = () => {
     setShowWhatsNew(false)
   }
 
-  // Handle outside click to close sidebar
   useEffect(() => {
     const handleClickOutside = event => {
       if (
         sidebarOpen &&
         sidebarRef.current &&
         !sidebarRef.current.contains(event.target) &&
-        window.innerWidth < 768 // Only close on mobile (md breakpoint)
+        window.innerWidth < 768
       ) {
         setSidebarOpen(false)
       }
@@ -69,17 +103,39 @@ const SideBar_Header = () => {
   }, [sidebarOpen])
 
   useEffect(() => {
-    const socket = getSocket()
-    if (!socket) return
+    let socket = getSocket()
+    let retryCount = 0
+    const maxRetries = 10
+    let retryTimeout
 
-    socket.on("user:credits", fetchCurrentUser)
-    socket.on("user:notification", fetchCurrentUser)
+    const setupListeners = () => {
+      if (!socket) {
+        socket = getSocket()
+        if (!socket && retryCount < maxRetries) {
+          retryCount++
+          retryTimeout = setTimeout(setupListeners, 500)
+          return
+        }
+        if (!socket) {
+          console.warn("⚠️ Socket not available after retries")
+          return
+        }
+      }
+
+      socket.on("user:credits", handleCreditsUpdate)
+      socket.on("user:notification", handleNotificationUpdate)
+    }
+
+    setupListeners()
 
     return () => {
-      socket.off("user:credits", fetchCurrentUser)
-      socket.off("user:notification", fetchCurrentUser)
+      if (retryTimeout) clearTimeout(retryTimeout)
+      if (socket) {
+        socket.off("user:credits", handleCreditsUpdate)
+        socket.off("user:notification", handleNotificationUpdate)
+      }
     }
-  }, [])
+  }, [handleCreditsUpdate, handleNotificationUpdate])
 
   useEffect(() => {
     fetchCurrentUser()
@@ -170,7 +226,7 @@ const SideBar_Header = () => {
         }`}
         onMouseEnter={() => setSidebarOpen(true)}
         onMouseLeave={() => {
-          if (window.innerWidth >= 768) setSidebarOpen(false) // Only close on hover for desktop
+          if (window.innerWidth >= 768) setSidebarOpen(false)
         }}
       >
         {/* Logo or menu icon */}

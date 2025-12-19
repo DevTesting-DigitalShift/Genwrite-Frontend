@@ -6,14 +6,16 @@ import { Info, TriangleAlert, Upload, X } from "lucide-react"
 import { packages } from "@/data/templates"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { createMultiBlog } from "@store/slices/blogSlice"
-import { getEstimatedCost } from "@utils/getEstimatedCost"
+import { computeCost } from "@/data/pricingConfig"
 import { message, Modal, Select, Tooltip } from "antd"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { getIntegrationsThunk } from "@store/slices/otherSlice"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
+import { queryClient } from "@utils/queryClient"
 import { IMAGE_SOURCE } from "@/data/blogData"
 
+// Bulk Blog Modal Component - Updated with Outbound Links pricing
 const BulkBlogModal = ({ closeFnc }) => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
@@ -41,6 +43,7 @@ const BulkBlogModal = ({ closeFnc }) => {
     keywordInput: "",
     performKeywordResearch: true,
     tone: "",
+    languageToWrite: "English",
     userDefinedLength: 1000,
     imageSource: IMAGE_SOURCE.STOCK,
     useBrandVoice: false,
@@ -60,6 +63,7 @@ const BulkBlogModal = ({ closeFnc }) => {
     brandId: null,
     addCTA: false,
     isDragging: false,
+    costCutter: true,
   }
 
   const initialErrorsState = {
@@ -194,8 +198,29 @@ const BulkBlogModal = ({ closeFnc }) => {
     }
 
     const model = formData.aiModel || "gemini"
-    const blogCost = getEstimatedCost("blog.single", model)
-    const totalCost = formData.numberOfBlogs * blogCost
+
+    // Prepare features array based on selected options
+    const features = []
+    if (formData.useBrandVoice) features.push("brandVoice")
+    if (formData.useCompetitors) features.push("competitorResearch")
+    if (formData.performKeywordResearch) features.push("keywordResearch")
+    if (formData.includeInterlinks) features.push("internalLinking")
+    if (formData.includeFaqs) features.push("faqGeneration")
+    if (formData.wordpressPostStatus) features.push("automaticPosting")
+    if (formData.addOutBoundLinks) features.push("outboundLinks")
+
+    const blogCost = computeCost({
+      wordCount: formData.userDefinedLength,
+      features,
+      aiModel: model,
+      includeImages: formData.isCheckedGeneratedImages,
+      imageSource: formData.imageSource,
+      numberOfImages:
+        formData.imageSource === "customImage"
+          ? formData.blogImages.length
+          : formData.numberOfImages,
+    })
+    let totalCost = formData.numberOfBlogs * blogCost
 
     handlePopup({
       title: "Bulk Blog Generation",
@@ -220,6 +245,42 @@ const BulkBlogModal = ({ closeFnc }) => {
         handleClose()
       },
     })
+    // Apply Cost Cutter discount (25% off)
+    if (formData.costCutter) {
+      totalCost = Math.round(totalCost * 0.75)
+    }
+
+    const userCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
+
+    // Check if user has sufficient credits
+    if (userCredits < totalCost) {
+      handlePopup({
+        title: "Insufficient Credits",
+        description: (
+          <div>
+            <p>
+              You don't have enough credits to generate {formData.numberOfBlogs} blog
+              {formData.numberOfBlogs > 1 ? "s" : ""}.
+            </p>
+            <p className="mt-2">
+              <strong>Required:</strong> {totalCost} credits
+            </p>
+            <p>
+              <strong>Available:</strong> {userCredits} credits
+            </p>
+          </div>
+        ),
+        okText: "Buy Credits",
+        onConfirm: () => {
+          navigate("/pricing")
+          handleClose()
+        },
+      })
+      return
+    }
+
+    dispatch(createMultiBlog({ blogData: formData, user, navigate, queryClient }))
+    handleClose()
   }
 
   const handlePackageSelect = useCallback(templates => {
@@ -681,21 +742,66 @@ const BulkBlogModal = ({ closeFnc }) => {
       open={true}
       onCancel={handleClose}
       footer={
-        <div className="flex justify-end gap-3">
-          {currentStep > 0 && (
-            <button
-              onClick={handlePrev}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none"
-            >
-              Previous
-            </button>
+        <div className="flex items-center justify-between w-full">
+          {currentStep === 2 && (
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-gray-600">Estimated Cost:</span>
+              <span className="font-bold text-blue-600">
+                {(() => {
+                  const features = []
+                  if (formData.useBrandVoice) features.push("brandVoice")
+                  if (formData.useCompetitors) features.push("competitorResearch")
+                  if (formData.performKeywordResearch) features.push("keywordResearch")
+                  if (formData.includeInterlinks) features.push("internalLinking")
+                  if (formData.includeFaqs) features.push("faqGeneration")
+                  if (formData.wordpressPostStatus) features.push("automaticPosting")
+                  if (formData.addOutBoundLinks) features.push("outboundLinks")
+
+                  const blogCost = computeCost({
+                    wordCount: formData.userDefinedLength,
+                    features,
+                    aiModel: formData.aiModel || "gemini",
+                    includeImages: formData.isCheckedGeneratedImages,
+                    imageSource: formData.imageSource,
+                    numberOfImages:
+                      formData.imageSource === "customImage"
+                        ? formData.blogImages.length
+                        : formData.numberOfImages,
+                  })
+
+                  let totalCost = formData.numberOfBlogs * blogCost
+                  if (formData.costCutter) {
+                    totalCost = Math.round(totalCost * 0.75)
+                  }
+
+                  return totalCost
+                })()}{" "}
+                credits
+              </span>
+              {formData.costCutter && (
+                <span className="text-xs text-green-600 font-medium">(-25% off)</span>
+              )}
+              <span className="text-xs text-gray-500">
+                ({formData.numberOfBlogs} blog{formData.numberOfBlogs > 1 ? "s" : ""})
+              </span>
+            </div>
           )}
-          <button
-            onClick={currentStep === 2 ? handleSubmit : handleNext}
-            className="px-4 py-2 text-sm font-medium text-white bg-[#1B6FC9] rounded-md hover:bg-[#1B6FC9]/90 focus:outline-none"
-          >
-            {currentStep === 2 ? "Generate Blogs" : "Next"}
-          </button>
+          <div className={`flex gap-3 ${currentStep !== 2 ? "w-full justify-end" : ""}`}>
+            {currentStep > 0 && (
+              <button
+                onClick={handlePrev}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none"
+              >
+                Previous
+              </button>
+            )}
+            <button
+              onClick={currentStep === 2 ? handleSubmit : handleNext}
+              className="px-4 py-2 text-sm font-medium text-white bg-[#1B6FC9] rounded-md hover:bg-[#1B6FC9]/90 focus:outline-none"
+            >
+              {currentStep === 2 ? "Generate Blogs" : "Next"}
+            </button>
+          </div>
         </div>
       }
       width={800}
@@ -939,6 +1045,28 @@ const BulkBlogModal = ({ closeFnc }) => {
                 {errors.tone && <p className="text-red-500 text-xs mt-1">{errors.tone}</p>}
               </div>
               <div>
+                <label htmlFor="language" className="block text-sm font-medium text-gray-700 mb-2">
+                  Language <span className="text-red-500">*</span>
+                </label>
+                <Select
+                  className="w-full"
+                  value={formData.languageToWrite}
+                  onChange={value => {
+                    setFormData(prev => ({ ...prev, languageToWrite: value }))
+                  }}
+                  placeholder="Select language"
+                >
+                  <Option value="English">English</Option>
+                  <Option value="Spanish">Spanish</Option>
+                  <Option value="German">German</Option>
+                  <Option value="French">French</Option>
+                  <Option value="Italian">Italian</Option>
+                  <Option value="Portuguese">Portuguese</Option>
+                  <Option value="Dutch">Dutch</Option>
+                  <Option value="Japanese">Japanese</Option>
+                </Select>
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Approx. Blog Length (Words)
                 </label>
@@ -1041,6 +1169,41 @@ const BulkBlogModal = ({ closeFnc }) => {
               </div>
               {errors.aiModel && <p className="text-red-500 text-xs mt-1">{errors.aiModel}</p>}
             </div>
+
+            {/* Cost Cutter Toggle */}
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-green-900 mb-1">💰 Cost Cutter</h3>
+                  <p className="text-xs text-green-700">Use AI Flash model for 25% savings</p>
+                </div>
+                <label htmlFor="bulk-cost-cutter-toggle" className="relative inline-block w-12 h-6">
+                  <input
+                    type="checkbox"
+                    id="bulk-cost-cutter-toggle"
+                    className="sr-only peer"
+                    checked={formData.costCutter || false}
+                    onChange={e => {
+                      setFormData(prev => ({
+                        ...prev,
+                        costCutter: e.target.checked,
+                      }))
+                    }}
+                  />
+                  <div
+                    className={`w-12 h-6 rounded-full transition-all duration-300 ${
+                      formData.costCutter ? "bg-green-500" : "bg-gray-300"
+                    }`}
+                  />
+                  <div
+                    className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-300 shadow-md ${
+                      formData.costCutter ? "translate-x-6" : ""
+                    }`}
+                  />
+                </label>
+              </div>
+            </div>
+
             <div className="flex justify-between items-center">
               <label className="block text-sm font-semibold text-gray-700 mb-2">Add Image</label>
               <div className="flex items-center">

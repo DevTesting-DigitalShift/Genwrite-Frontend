@@ -210,20 +210,43 @@ export const getBlogPrompt = async (id, prompt) => {
   }
 }
 
-export const exportBlogAsPdf = async (id) => {
+/**
+ * Get blog postings for a specific blog
+ * @param {string} blogId - The blog ID
+ * @returns {Promise<Array>} Array of posting objects
+ */
+export const getBlogPostings = async blogId => {
   try {
-    const response = await axiosInstance.get(
-      `/blogs/${id}/export`,
-      {
-        params: { type: "pdf" },
-        responseType: "blob", // ✅ correct
-      }
-    )
-
-    return response.data
+    const response = await axiosInstance.get(`/blogs/postings/${blogId}`)
+    return response.data.postings || []
   } catch (error) {
-    throw new Error(
-      error.response?.data?.message || "Failed to export PDF"
-    )
+    throw new Error(error.response?.data?.message || "Failed to fetch blog postings")
+  }
+}
+
+export const getExportedBlog = async (blogId, type = "pdf") => {
+  try {
+    const response = await axiosInstance.get(`/blogs/${blogId}/export?type=${type}`, {
+      responseType: "blob",
+      withCredentials: true,
+      headers: {
+        Accept: "application/pdf",
+      },
+    })
+    // Create blob from response
+    const pdfBlob = new Blob([response.data], {
+      type: "application/pdf",
+    })
+
+    // Extract filename from backend headers
+    const disposition = response.headers["content-disposition"]
+    let filename = "blog.pdf"
+
+    if (disposition?.includes("filename=")) {
+      filename = disposition.split("filename=")[1].replace(/"/g, "")
+    }
+    return { pdfBlob, filename }
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to export blog")
   }
 }

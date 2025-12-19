@@ -26,12 +26,15 @@ import clsx from "clsx"
 import { Crown, Sparkles, TriangleAlert } from "lucide-react"
 import { FC, useCallback, useEffect, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
+import { useNavigate } from "react-router-dom"
 import "./antd.css"
 import { getValueByPath, setValueByPath } from "@utils/ObjectPath"
 import { AI_MODELS, TONES, IMAGE_OPTIONS, IMAGE_SOURCE } from "@/data/blogData"
 import BlogImageUpload from "@components/multipleStepModal/BlogImageUpload"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
 import { selectSelectedAnalysisKeywords } from "@store/slices/analysisSlice"
+import { computeCost } from "@/data/pricingConfig"
+import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 
 const { Text } = Typography
 
@@ -40,6 +43,7 @@ interface AdvancedBlogModalProps {
   closeFnc: Function
 }
 
+// Advanced Blog Modal Component - Updated pricing on Steps 2 & 3
 const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) => {
   const STEP_TITLES = ["Template Selection", "Basic Information", "Customization", "Blog Options"]
 
@@ -62,6 +66,8 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
     isCheckedQuick: false as boolean,
     isCheckedBrand: false as boolean,
     brandId: "" as string,
+    languageToWrite: "English" as string,
+    costCutter: true as boolean,
     options: {
       performKeywordResearch: false as boolean,
       includeFaqs: false as boolean,
@@ -95,10 +101,23 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
     },
   ]
 
+  const LANGUAGES = [
+    { value: "English", label: "English" },
+    { value: "Spanish", label: "Spanish" },
+    { value: "German", label: "German" },
+    { value: "French", label: "French" },
+    { value: "Italian", label: "Italian" },
+    { value: "Portuguese", label: "Portuguese" },
+    { value: "Dutch", label: "Dutch" },
+    { value: "Japanese", label: "Japanese" },
+  ]
+
   type FormError = Partial<Record<keyof typeof initialData, string>>
 
   const dispatch = useDispatch()
   const user = useSelector(selectUser)
+  const navigate = useNavigate()
+  const { handlePopup } = useConfirmPopup()
 
   const [currentStep, setCurrentStep] = useState<number>(0)
   const [formData, setFormData] = useState<typeof initialData>(initialData)
@@ -221,6 +240,55 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
 
   const handleSubmit = () => {
     if (validateFields()) {
+      // Check if user has sufficient credits
+      // Prepare features array based on selected options
+      const features = []
+      if (formData.isCheckedBrand) features.push("brandVoice")
+      if (formData.options.includeCompetitorResearch) features.push("competitorResearch")
+      if (formData.options.performKeywordResearch) features.push("keywordResearch")
+      if (formData.options.includeInterlinks) features.push("internalLinking")
+      if (formData.options.includeFaqs) features.push("faqGeneration")
+      if (formData.isCheckedQuick) features.push("quickSummary")
+      if (formData.options.addOutBoundLinks) features.push("outboundLinks")
+
+      const estimatedCost = computeCost({
+        wordCount: formData.userDefinedLength,
+        features,
+        aiModel: formData.aiModel || "gemini",
+        includeImages: formData.isCheckedGeneratedImages,
+        imageSource: formData.imageSource,
+        numberOfImages:
+          formData.imageSource === "custom" ? formData.blogImages.length : formData.numberOfImages,
+      })
+
+      // Apply Cost Cutter discount (25% off)
+      const finalCost = formData.costCutter ? Math.round(estimatedCost * 0.75) : estimatedCost
+
+      const userCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
+
+      if (userCredits < finalCost) {
+        handlePopup({
+          title: "Insufficient Credits",
+          description: (
+            <div>
+              <p>You don't have enough credits to generate this blog.</p>
+              <p className="mt-1">
+                <strong>Required:</strong> {finalCost} credits
+              </p>
+              <p>
+                <strong>Available:</strong> {userCredits} credits
+              </p>
+            </div>
+          ),
+          okText: "Buy Credits",
+          onConfirm: () => {
+            navigate("/pricing")
+            handleClose()
+          },
+        })
+        return
+      }
+
       console.debug("Advanced Modal Form Data : ", formData)
       const data = { ...formData, options: { ...formData.options } } as Partial<typeof initialData>
 
@@ -327,6 +395,21 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
               />
               {errors.topic && <Text className="error-text">{errors.topic}</Text>}
             </Space>
+
+            {/* Language Selection */}
+            <label htmlFor="blog-language">
+              Language <span className="text-red-500">*</span>
+            </label>
+            <Select
+              id="blog-language"
+              placeholder="Select a language"
+              value={formData.languageToWrite}
+              onChange={val =>
+                handleInputChange({ target: { name: "languageToWrite", value: val } })
+              }
+              options={LANGUAGES}
+              className="custom-placeholder"
+            />
 
             <Flex justify="space-between" className="mt-3 form-item-wrapper">
               <label htmlFor="blog-auto-generate-title-keywords">
@@ -733,6 +816,21 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
                 />
               </Flex>
             ))}
+
+            {/* Cost Cutter Toggle */}
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 shadow-sm">
+              <Flex justify="space-between" align="center">
+                <div>
+                  <h3 className="text-sm font-semibold text-green-900 mb-1">💰 Cost Cutter</h3>
+                  <p className="text-xs text-green-700">Use AI Flash model for 25% savings</p>
+                </div>
+                <Switch
+                  checked={formData.costCutter}
+                  onChange={checked => updateFormData({ costCutter: checked })}
+                />
+              </Flex>
+            </div>
+
             <Space direction="vertical" className="form-item-wrapper">
               <BrandVoiceSelector
                 label="Write with Brand Voice"
@@ -766,23 +864,65 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
       open={true}
       onCancel={handleClose}
       footer={
-        <Flex justify="end" gap={12} className="mt-2">
-          {currentStep > 0 && (
-            <Button
-              onClick={handlePrev}
-              type="default"
-              className="h-10 px-6 text-[length:1rem] font-medium !text-gray-700 bg-white border border-gray-300 rounded-md hover:!bg-gray-50"
-            >
-              Previous
-            </Button>
+        <Flex justify="space-between" align="center" gap={12} className="mt-2">
+          {(currentStep === 2 || currentStep === 3) && (
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-gray-600">Estimated Cost:</span>
+              <span className="font-bold text-blue-600">
+                {(() => {
+                  const features = []
+                  if (formData.isCheckedBrand) features.push("brandVoice")
+                  if (formData.options.includeCompetitorResearch)
+                    features.push("competitorResearch")
+                  if (formData.options.performKeywordResearch) features.push("keywordResearch")
+                  if (formData.options.includeInterlinks) features.push("internalLinking")
+                  if (formData.options.includeFaqs) features.push("faqGeneration")
+                  if (formData.isCheckedQuick) features.push("quickSummary")
+                  if (formData.options.addOutBoundLinks) features.push("outboundLinks")
+
+                  let cost = computeCost({
+                    wordCount: formData.userDefinedLength,
+                    features,
+                    aiModel: formData.aiModel || "gemini",
+                    includeImages: formData.isCheckedGeneratedImages,
+                    imageSource: formData.imageSource,
+                    numberOfImages:
+                      formData.imageSource === "custom"
+                        ? formData.blogImages.length
+                        : formData.numberOfImages,
+                  })
+
+                  if (formData.costCutter) {
+                    cost = Math.round(cost * 0.75)
+                  }
+
+                  return cost
+                })()}{" "}
+                credits
+              </span>
+              {formData.costCutter && (
+                <span className="text-xs text-green-600 font-medium">(-25% off)</span>
+              )}
+            </div>
           )}
-          <Button
-            onClick={currentStep === 3 ? handleSubmit : handleNext}
-            type="default"
-            className="h-10 px-6 text-[length:1rem] font-medium !text-white bg-[#1B6FC9] rounded-md hover:!bg-[#1B6FC9]/90"
-          >
-            {currentStep === 3 ? "Generate Blog" : "Next"}
-          </Button>
+          <Flex justify="end" gap={12} className={currentStep < 2 ? "w-full" : ""}>
+            {currentStep > 0 && (
+              <Button
+                onClick={handlePrev}
+                type="default"
+                className="h-10 px-6 text-[length:1rem] font-medium !text-gray-700 bg-white border border-gray-300 rounded-md hover:!bg-gray-50"
+              >
+                Previous
+              </Button>
+            )}
+            <Button
+              onClick={currentStep === 3 ? handleSubmit : handleNext}
+              type="default"
+              className="h-10 px-6 text-[length:1rem] font-medium !text-white bg-[#1B6FC9] rounded-md hover:!bg-[#1B6FC9]/90"
+            >
+              {currentStep === 3 ? "Generate Blog" : "Next"}
+            </Button>
+          </Flex>
         </Flex>
       }
       width={700}

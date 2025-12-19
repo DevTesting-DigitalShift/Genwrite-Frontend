@@ -482,7 +482,7 @@ const StepContent = ({
     }))
     setErrors(prev => ({ ...prev, templates: false }))
   }, [])
-  
+
   switch (currentStep) {
     case 1:
       return (
@@ -940,6 +940,28 @@ const StepContent = ({
                 {errors.tone && <p className="text-red-500 text-xs mt-1">{errors.tone}</p>}
               </div>
               <div>
+                <label htmlFor="language" className="block text-sm font-medium text-gray-700 mb-2">
+                  Language <span className="text-red-500">*</span>
+                </label>
+                <Select
+                  className="w-full"
+                  value={newJob.blogs.languageToWrite}
+                  onChange={value => {
+                    setNewJob({ ...newJob, blogs: { ...newJob.blogs, languageToWrite: value } })
+                  }}
+                  placeholder="Select language"
+                >
+                  <Option value="English">English</Option>
+                  <Option value="Spanish">Spanish</Option>
+                  <Option value="German">German</Option>
+                  <Option value="French">French</Option>
+                  <Option value="Italian">Italian</Option>
+                  <Option value="Portuguese">Portuguese</Option>
+                  <Option value="Dutch">Dutch</Option>
+                  <Option value="Japanese">Japanese</Option>
+                </Select>
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Approx. Blog Length (Words)
                 </label>
@@ -1213,6 +1235,43 @@ const StepContent = ({
                   )}
                 </label>
               ))}
+            </div>
+          </div>
+
+          {/* Cost Cutter Toggle */}
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 shadow-sm mb-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-green-900 mb-1">💰 Cost Cutter</h3>
+                <p className="text-xs text-green-700">Use AI Flash model for 25% savings</p>
+              </div>
+              <label htmlFor="cost-cutter-toggle" className="relative inline-block w-12 h-6">
+                <input
+                  type="checkbox"
+                  id="cost-cutter-toggle"
+                  className="sr-only peer"
+                  checked={newJob.blogs.costCutter || false}
+                  onChange={e => {
+                    setNewJob(prev => ({
+                      ...prev,
+                      blogs: {
+                        ...prev.blogs,
+                        costCutter: e.target.checked,
+                      },
+                    }))
+                  }}
+                />
+                <div
+                  className={`w-12 h-6 rounded-full transition-all duration-300 ${
+                    newJob.blogs.costCutter ? "bg-green-500" : "bg-gray-300"
+                  }`}
+                />
+                <div
+                  className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-300 shadow-md ${
+                    newJob.blogs.costCutter ? "translate-x-6" : ""
+                  }`}
+                />
+              </label>
             </div>
           </div>
 

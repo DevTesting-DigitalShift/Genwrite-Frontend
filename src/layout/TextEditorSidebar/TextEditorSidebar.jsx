@@ -55,6 +55,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
 import {
   ScoreCard,
+  StatCard,
   CompetitorsList,
   AnalysisInsights,
   ProofreadingSuggestion,
@@ -85,7 +86,6 @@ const TextEditorSidebar = ({
   keywords,
   setKeywords,
   onPost,
-  activeTab,
   handleReplace,
   setProofreadingResults,
   proofreadingResults,
@@ -1311,7 +1311,12 @@ const TextEditorSidebar = ({
       />
 
       <Modal
-        title="Choose Platform"
+        title={
+          <div className="flex items-center gap-2">
+            <Globe className="w-5 h-5 text-blue-600" />
+            <span>Published Platforms</span>
+          </div>
+        }
         open={choosePlatformOpen}
         onCancel={() => setChoosePlatformOpen(false)}
         footer={null}

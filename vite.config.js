@@ -15,12 +15,12 @@ export default defineConfig({
   server: {
     host: true,
     port: 5174,
-    // Enable HTTP/2 for better performance
-    https: false,
     // Optimize dev server
-    hmr: {
-      overlay: false,
-    },
+    hmr: true,
+    // hmr: {
+    //   host: "distinguishingly-postpeduncular-annalisa.ngrok-free.dev",
+    //   protocol: "wss",
+    // },
   },
   resolve: {
     alias: {
