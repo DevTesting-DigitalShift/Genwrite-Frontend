@@ -1,42 +1,43 @@
 import { useEffect, useState, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
-  X,
-  Plus,
-  SlidersHorizontal,
-  Download,
-  Minimize2,
-  BarChart3,
-  TrendingUp,
-  Lightbulb,
-  Target,
-  FileText,
-  Zap,
-  TagIcon,
-  Sparkles,
-  Eye,
-  Maximize2,
-  ExternalLink,
-  Globe,
-  Calendar,
-  CheckCircle,
-  Clock,
-  AlertCircle,
-  ImageIcon,
   RefreshCw,
+  TrendingUp,
+  FileText,
+  Sparkles,
+  Send,
+  ExternalLink,
+  Target,
+  Plus,
+  X,
+  TagIcon,
+  BarChart3,
+  Wand2,
+  Settings,
+  Zap,
+  Lightbulb,
+  ChevronLeft,
+  ChevronRight,
+  SlidersHorizontal,
+  Eye,
+  BarChart,
+  RefreshCcw,
+  Crown,
+  Download,
+  FileCode,
+  Lock,
 } from "lucide-react"
 import {
   Button,
-  Tooltip,
   message,
-  Tabs,
+  Input,
+  Select,
+  Slider,
+  Switch,
+  InputNumber,
+  Tooltip,
   Badge,
   Collapse,
-  Dropdown,
-  Menu,
-  Tag,
-  Input,
-  Spin,
 } from "antd"
 import { fetchProofreadingSuggestions, fetchBlogPrompt } from "@store/slices/blogSlice"
 import { fetchCompetitiveAnalysisThunk } from "@store/slices/analysisSlice"
@@ -44,31 +45,41 @@ import { generateMetadataThunk, getIntegrationsThunk } from "@store/slices/other
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useNavigate } from "react-router-dom"
 import { useDispatch, useSelector } from "react-redux"
+import { getEstimatedCost, creditCostsWithGemini } from "@utils/getEstimatedCost"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
-import { getEstimatedCost } from "@utils/getEstimatedCost"
-import { marked } from "marked"
-import { CrownTwoTone, DownOutlined } from "@ant-design/icons"
 import { Modal } from "antd"
-import LoadingScreen from "@components/UI/LoadingScreen"
+import CategoriesModal from "../Editor/CategoriesModal"
+import { TONES } from "@/data/blogData"
+import { updateBlog, retryBlogById, exportBlogAsPdf } from "@api/blogApi"
+import { useQueryClient } from "@tanstack/react-query"
+import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
 import {
-  FeatureCard,
   ScoreCard,
   StatCard,
   CompetitorsList,
   AnalysisInsights,
   ProofreadingSuggestion,
 } from "./FeatureComponents"
-import FeatureSettingsModal from "./FeatureSettingsModal"
-import CategoriesModal from "../Editor/CategoriesModal"
-import * as cheerio from "cheerio"
-import { getBlogPostings, getExportedBlog } from "@api/blogApi"
-import dayjs from "dayjs"
-import relativeTime from "dayjs/plugin/relativeTime"
 
-dayjs.extend(relativeTime)
+import { IMAGE_SOURCE, DEFAULT_IMAGE_SOURCE } from "@/data/blogData"
 
-const { Panel } = Collapse
 const { TextArea } = Input
+const { Panel } = Collapse
+
+// AI Models config
+const AI_MODELS = [
+  { id: "gemini", label: "Gemini", logo: "/Images/gemini.png", restrictedPlans: [] },
+  { id: "chatgpt", label: "ChatGPT", logo: "/Images/chatgpt.png", restrictedPlans: ["free"] },
+  { id: "claude", label: "Claude", logo: "/Images/claude.png", restrictedPlans: ["free", "basic"] },
+]
+
+// Sidebar navigation items
+const NAV_ITEMS = [
+  { id: "overview", icon: BarChart3, label: "Overview" },
+  { id: "seo", icon: TrendingUp, label: "SEO" },
+  { id: "suggestions", icon: Lightbulb, label: "Suggestions" },
+  { id: "regenerate", icon: RefreshCw, label: "Regenerate" },
+]
 
 const TextEditorSidebar = ({
   blog,
@@ -91,236 +102,506 @@ const TextEditorSidebar = ({
   setIsSidebarOpen,
   unsavedChanges,
 }) => {
-  const [newKeyword, setNewKeyword] = useState("")
-  const [isAnalyzingProofreading, setIsAnalyzingProofreading] = useState(false)
-  const [competitiveAnalysisResults, setCompetitiveAnalysisResults] = useState(null)
-  const [shouldRunCompetitive, setShouldRunCompetitive] = useState(false)
+  const [activePanel, setActivePanel] = useState("overview")
+  const [isCollapsed, setIsCollapsed] = useState(false)
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
-  const [isMinimized, setIsMinimized] = useState(false)
-  const [activeSection, setActiveSection] = useState("overview")
   const [choosePlatformOpen, setChoosePlatformOpen] = useState(false)
+  const [isAnalyzingProofreading, setIsAnalyzingProofreading] = useState(false)
+  const [customPrompt, setCustomPrompt] = useState("")
+  const [newKeyword, setNewKeyword] = useState("")
+  const [isRegenerating, setIsRegenerating] = useState(false)
+  const [keywordInput, setKeywordInput] = useState("")
+  const [focusKeywordInput, setFocusKeywordInput] = useState("")
+
+  // 2-step regenerate modal state
+  const [isRegenerateModalOpen, setIsRegenerateModalOpen] = useState(false)
+  const [regenerateStep, setRegenerateStep] = useState(1)
+
   const { data: integrations } = useSelector(state => state.wordpress)
   const [metadata, setMetadata] = useState({
     title: blog?.seoMetadata?.title || "",
     description: blog?.seoMetadata?.description || "",
   })
-  const [metadataHistory, setMetadataHistory] = useState([])
-  const [customPrompt, setCustomPrompt] = useState("")
+
+  // Generated metadata accept/reject modal state
+  const [generatedMetadataModal, setGeneratedMetadataModal] = useState(false)
+  const [generatedMetadata, setGeneratedMetadata] = useState(null)
+  const [isGeneratingMetadata, setIsGeneratingMetadata] = useState(false)
+
+  // Content enhancement editable options state
+  const [enhancementOptions, setEnhancementOptions] = useState({})
+  const [hasEnhancementChanges, setHasEnhancementChanges] = useState(false)
+  const [isSavingEnhancement, setIsSavingEnhancement] = useState(false)
+
+  // Regenerate form data
+  const [regenForm, setRegenForm] = useState({
+    topic: "",
+    title: "",
+    focusKeywords: [],
+    keywords: [],
+    tone: "Professional",
+    userDefinedLength: 1000,
+    aiModel: "gemini",
+    isCheckedGeneratedImages: false,
+    imageSource: DEFAULT_IMAGE_SOURCE,
+    numberOfImages: 0,
+    useBrandVoice: false,
+    brandId: "",
+    addCTA: false,
+    options: {
+      includeFaqs: false,
+      includeInterlinks: false,
+      includeCompetitorResearch: false,
+      addOutBoundLinks: false,
+    },
+  })
+
   const user = useSelector(state => state.auth.user)
-  const userPlan = user?.subscription?.plan
+  const userPlan = user?.subscription?.plan?.toLowerCase() || "free"
   const navigate = useNavigate()
   const dispatch = useDispatch()
+  const queryClient = useQueryClient()
   const { handlePopup } = useConfirmPopup()
   const { loading: isAnalyzingCompetitive } = useSelector(state => state.analysis)
-  const { metadata: reduxMetadata } = useSelector(state => state.wordpress)
-  const [open, setOpen] = useState(false)
   const { analysisResult } = useSelector(state => state.analysis)
-  const blogId = blog?._id
-  const result = analysisResult?.[blogId]
+  const result = analysisResult?.[blog?._id]
+
   const hasAnyIntegration =
-    integrations && integrations.integrations && Object.keys(integrations.integrations).length > 0
-  const isDisabled =
-    isPosting ||
-    !hasAnyIntegration || // Disable if no integration at all
-    (formData.wordpressPostStatus && !integrations.integrations.WORDPRESS)
+    integrations?.integrations && Object.keys(integrations.integrations).length > 0
+  const isDisabled = isPosting || !hasAnyIntegration
+  const isPro = ["free", "basic"].includes(userPlan)
 
-  // State for blog postings from API
-  const [blogPostings, setBlogPostings] = useState([])
-  const [isLoadingPostings, setIsLoadingPostings] = useState(false)
-
-  // Platform configuration with icons and colors
-  const PLATFORM_CONFIG = {
-    WORDPRESS: {
-      label: "WordPress",
-      color: "#21759b",
-      bgColor: "bg-blue-50",
-      textColor: "text-blue-700",
-      borderColor: "border-blue-200",
-    },
-    SHOPIFY: {
-      label: "Shopify",
-      color: "#96bf48",
-      bgColor: "bg-green-50",
-      textColor: "text-green-700",
-      borderColor: "border-green-200",
-    },
-    SERVERENDPOINT: {
-      label: "Server",
-      color: "#6366f1",
-      bgColor: "bg-indigo-50",
-      textColor: "text-indigo-700",
-      borderColor: "border-indigo-200",
-    },
-    WIX: {
-      label: "Wix",
-      color: "#faad14",
-      bgColor: "bg-yellow-50",
-      textColor: "text-yellow-700",
-      borderColor: "border-yellow-200",
-    },
+  const PLATFORM_LABELS = {
+    WORDPRESS: "WordPress",
+    SHOPIFY: "Shopify",
+    SERVERENDPOINT: "Server",
+    WIX: "Wix",
   }
-
-  // Image CDN status configuration
-  const IMAGE_CDN_STATUS_CONFIG = {
-    pending: { icon: Clock, color: "text-yellow-500", label: "Images Pending" },
-    processing: { icon: RefreshCw, color: "text-blue-500", label: "Processing Images" },
-    completed: { icon: CheckCircle, color: "text-green-500", label: "Images Ready" },
-    failed: { icon: AlertCircle, color: "text-red-500", label: "Image Error" },
-  }
-
-  // Fetch blog postings from API
-  useEffect(() => {
-    const fetchPostings = async () => {
-      if (!blog?._id) {
-        setBlogPostings([])
-        return
-      }
-
-      setIsLoadingPostings(true)
-      try {
-        const postings = await getBlogPostings(blog._id)
-        setBlogPostings(postings)
-      } catch (error) {
-        console.error("Failed to fetch blog postings:", error)
-        setBlogPostings([])
-      } finally {
-        setIsLoadingPostings(false)
-      }
-    }
-
-    fetchPostings()
-  }, [blog?._id, posted]) // Re-fetch when posted changes (after posting)
-
-  // Derived list for display - combines API data with fallback to prop
-  const postedLinks =
-    blogPostings.length > 0
-      ? blogPostings.map(posting => ({
-          ...posting,
-          platform: posting.integrationType,
-          label: PLATFORM_CONFIG[posting.integrationType]?.label || posting.integrationType,
-          config: PLATFORM_CONFIG[posting.integrationType] || PLATFORM_CONFIG.SERVERENDPOINT,
+  const postedLinks = posted
+    ? Object.entries(posted)
+        .filter(([_, data]) => data?.link)
+        .map(([platform, data]) => ({
+          platform,
+          link: data.link,
+          label: PLATFORM_LABELS[platform] || platform,
         }))
-      : posted
-      ? Object.entries(posted)
-          .filter(([_, data]) => data?.link)
-          .map(([platform, data]) => ({
-            platform,
-            link: data.link,
-            label: PLATFORM_CONFIG[platform]?.label || platform,
-            config: PLATFORM_CONFIG[platform] || PLATFORM_CONFIG.SERVERENDPOINT,
-            postedOn: data.postedOn,
-          }))
-      : []
+    : []
 
-  // Check if blog has been posted
-  const hasPostings = postedLinks.length > 0
-
-  // Reset metadata and history when blog changes
+  // Initialize data
   useEffect(() => {
     setMetadata({
       title: blog?.seoMetadata?.title || "",
       description: blog?.seoMetadata?.description || "",
     })
-    setMetadataHistory([])
   }, [blog?._id])
 
-  // Configure marked for HTML output and token parsing
-  marked.setOptions({
-    gfm: true,
-    breaks: true,
-    headerIds: false,
-    mangle: false,
-  })
-
-  const getWordCount = text => {
-    return text
-      ? text
-          .trim()
-          .split(/\s+/)
-          .filter(word => word.length > 0).length
-      : 0
-  }
-
   useEffect(() => {
-    setCompetitiveAnalysisResults(null)
-  }, [blog?._id])
-
-  // Handle reduxMetadata updates
-  useEffect(() => {
-    if (reduxMetadata && (reduxMetadata.title || reduxMetadata.description)) {
-      const newMeta = {
-        id: Date.now().toString(),
-        title: reduxMetadata.title || "",
-        description: reduxMetadata.description || "",
-      }
-      setMetadataHistory(prev => {
-        const exists = prev.some(
-          item => item.title === newMeta.title && item.description === newMeta.description
-        )
-        if (!exists && (newMeta.title || newMeta.description)) {
-          return [...prev, newMeta]
-        }
-        return prev
+    if (blog) {
+      setRegenForm({
+        topic: blog.topic || "",
+        title: blog.title || "",
+        focusKeywords: blog.focusKeywords || [],
+        keywords: blog.keywords || [],
+        tone: blog.tone || "Professional",
+        userDefinedLength: blog.userDefinedLength || 1000,
+        aiModel: blog.aiModel || "gemini",
+        isCheckedGeneratedImages: blog.isCheckedGeneratedImages || false,
+        imageSource: blog.imageSource || DEFAULT_IMAGE_SOURCE,
+        numberOfImages: blog.numberOfImages || 0,
+        useBrandVoice: blog.isCheckedBrand || false,
+        brandId: blog.brandId || "",
+        addCTA: blog.options?.addCTA || false,
+        options: {
+          includeFaqs: blog.options?.includeFaqs || false,
+          includeInterlinks: blog.options?.includeInterlinks || false,
+          includeCompetitorResearch: blog.options?.includeCompetitorResearch || false,
+          addOutBoundLinks: blog.options?.addOutBoundLinks || false,
+        },
       })
-      if (metadata.title !== newMeta.title || metadata.description !== newMeta.description) {
-        setMetadata({
-          title: newMeta.title,
-          description: newMeta.description,
-        })
-      }
     }
-  }, [reduxMetadata])
+  }, [blog])
 
   useEffect(() => {
     dispatch(getIntegrationsThunk())
   }, [dispatch])
 
-  const fetchCompetitiveAnalysis = useCallback(async () => {
-    if (!blog || !blog.title || !blog.content) {
-      message.error("Blog title or content is missing for analysis.")
-      return
+  // Initialize enhancement options from blog
+  useEffect(() => {
+    if (blog?.options) {
+      setEnhancementOptions(blog.options)
+      setHasEnhancementChanges(false)
+    }
+  }, [blog?.options])
+
+  const getWordCount = text => {
+    if (!text) return 0
+    // Strip HTML tags first
+    const strippedText = text.replace(/<[^>]*>/g, " ")
+    // Count words
+    return strippedText
+      .trim()
+      .split(/\s+/)
+      .filter(word => word.length > 0).length
+  }
+
+  // Update regen form field
+  const updateRegenField = useCallback((field, value) => {
+    setRegenForm(prev => {
+      if (field.includes(".")) {
+        const [parent, child] = field.split(".")
+        return { ...prev, [parent]: { ...prev[parent], [child]: value } }
+      }
+      return { ...prev, [field]: value }
+    })
+  }, [])
+
+  // Calculate regenerate cost
+  const calculateRegenCost = useCallback(() => {
+    let cost = getEstimatedCost("blog.single", regenForm.aiModel)
+    if (regenForm.isCheckedGeneratedImages) {
+      cost +=
+        regenForm.imageSource === IMAGE_SOURCE.AI
+          ? creditCostsWithGemini.aiImages * (regenForm.numberOfImages || 3)
+          : 10
+    }
+    if (regenForm.options.includeCompetitorResearch) cost += 10
+    if (regenForm.useBrandVoice) cost += 10
+    return cost
+  }, [regenForm])
+
+  // Handlers
+  const handleRegenerate = async () => {
+    if (!blog?._id) return message.error("Blog ID missing")
+
+    // Open the 2-step modal
+    setRegenerateStep(1)
+    setIsRegenerateModalOpen(true)
+  }
+
+  // Handle regenerate modal submission
+  const handleRegenerateSubmit = async () => {
+    const cost = calculateRegenCost()
+    const credits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
+
+    if (credits < cost) {
+      setIsRegenerateModalOpen(false)
+      return handlePopup({
+        title: "Insufficient Credits",
+        description: `Need ${cost} credits, have ${credits}.`,
+        confirmText: "Buy Credits",
+        onConfirm: () => navigate("/pricing"),
+      })
     }
 
-    const validKeywords =
-      keywords && keywords.length > 0 ? keywords : blog?.focusKeywords || blog.keywords
+    setIsRegenerating(true)
+    try {
+      // Prepare the payload with proper imageSource handling
+      const payload = {
+        ...regenForm,
+        isCheckedBrand: regenForm.useBrandVoice,
+        // If images are disabled, set imageSource to "none"
+        imageSource: regenForm.isCheckedGeneratedImages ? regenForm.imageSource : "none",
+      }
+
+      // Update the blog with new settings
+      await updateBlog(blog._id, payload)
+
+      // Call retry API to regenerate the blog
+      await retryBlogById(blog._id, { createNew: true })
+
+      queryClient.invalidateQueries({ queryKey: ["blogs"] })
+      message.success("Blog regeneration started!")
+      setIsRegenerateModalOpen(false)
+      navigate("/blogs")
+    } catch (error) {
+      message.error(error.message || "Failed to regenerate")
+    } finally {
+      setIsRegenerating(false)
+    }
+  }
+
+  const handleAnalyzing = useCallback(() => {
+    if (isPro) return navigate("/pricing")
+    handlePopup({
+      title: "SEO Analysis",
+      description: (
+        <>
+          Run competitive analysis? <span className="font-bold">10 credits</span>
+        </>
+      ),
+      confirmText: "Run",
+      onConfirm: async () => {
+        try {
+          await dispatch(
+            fetchCompetitiveAnalysisThunk({
+              blogId: blog._id,
+              title: blog.title,
+              content: blog.content,
+              keywords: keywords || blog?.focusKeywords || [],
+            })
+          ).unwrap()
+          setActivePanel("seo")
+          message.success("Analysis complete!")
+        } catch {
+          message.error("Analysis failed")
+        }
+      },
+    })
+  }, [isPro, navigate, handlePopup, dispatch, blog, keywords])
+
+  const handleProofreading = useCallback(() => {
+    if (isPro) return navigate("/pricing")
+    handlePopup({
+      title: "AI Proofreading",
+      description: (
+        <>
+          Check grammar & style?{" "}
+          <span className="font-bold">{getEstimatedCost("blog.proofread")} credits</span>
+        </>
+      ),
+      onConfirm: async () => {
+        setIsAnalyzingProofreading(true)
+        try {
+          const result = await dispatch(fetchProofreadingSuggestions({ id: blog._id })).unwrap()
+          setProofreadingResults(result)
+          setActivePanel("suggestions")
+          message.success(`Found ${result.length} suggestions`)
+        } catch {
+          message.error("Proofreading failed")
+        } finally {
+          setIsAnalyzingProofreading(false)
+        }
+      },
+    })
+  }, [isPro, navigate, handlePopup, dispatch, blog, setProofreadingResults])
+
+  const handleMetadataGen = useCallback(() => {
+    if (isPro) return navigate("/pricing")
+    handlePopup({
+      title: "Generate Metadata",
+      description: (
+        <>
+          Generate SEO metadata? <span className="font-bold">2 credits</span>
+        </>
+      ),
+      onConfirm: async () => {
+        setIsGeneratingMetadata(true)
+        try {
+          const result = await dispatch(
+            generateMetadataThunk({
+              content: editorContent,
+              keywords: keywords || [],
+              focusKeywords: blog?.focusKeywords || [],
+            })
+          ).unwrap()
+          // Show the generated metadata in accept/reject modal
+          setGeneratedMetadata(result)
+          setGeneratedMetadataModal(true)
+        } catch {
+          message.error("Generation failed")
+        } finally {
+          setIsGeneratingMetadata(false)
+        }
+      },
+    })
+  }, [isPro, navigate, handlePopup, dispatch, editorContent, keywords, blog])
+
+  // Accept generated metadata
+  const handleAcceptMetadata = useCallback(async () => {
+    if (generatedMetadata) {
+      setMetadata({
+        title: generatedMetadata.title || generatedMetadata.metaTitle || "",
+        description: generatedMetadata.description || generatedMetadata.metaDescription || "",
+      })
+      setGeneratedMetadataModal(false)
+      setGeneratedMetadata(null)
+      message.success("Metadata applied! Click Save to keep changes.")
+    }
+  }, [generatedMetadata])
+
+  // Reject generated metadata - keep original
+  const handleRejectMetadata = useCallback(() => {
+    setGeneratedMetadataModal(false)
+    setGeneratedMetadata(null)
+    message.info("Metadata discarded")
+  }, [])
+
+  // Enhancement option toggle handler
+  const handleEnhancementToggle = useCallback((key, value) => {
+    setEnhancementOptions(prev => ({ ...prev, [key]: value }))
+    setHasEnhancementChanges(true)
+  }, [])
+
+  // Save enhancement options
+  const handleSaveEnhancement = useCallback(async () => {
+    setIsSavingEnhancement(true)
+    try {
+      await handleSubmit({ options: enhancementOptions })
+      setHasEnhancementChanges(false)
+      message.success("Enhancement settings saved!")
+    } catch {
+      message.error("Failed to save settings")
+    } finally {
+      setIsSavingEnhancement(false)
+    }
+  }, [enhancementOptions, handleSubmit])
+
+  const handleCustomPromptBlog = useCallback(async () => {
+    if (isPro) return navigate("/pricing")
+    if (!customPrompt.trim()) return message.error("Enter a prompt")
+    handlePopup({
+      title: "Apply Custom Prompt",
+      description: (
+        <>
+          Modify content? <span className="font-bold">5 credits</span>
+        </>
+      ),
+      onConfirm: async () => {
+        setIsHumanizing(true)
+        try {
+          const result = await dispatch(
+            fetchBlogPrompt({ id: blog._id, prompt: customPrompt })
+          ).unwrap()
+          setHumanizedContent(result.data)
+          setIsHumanizeModalOpen(true)
+          setCustomPrompt("")
+          message.success("Prompt applied!")
+        } catch {
+          message.error("Failed")
+        } finally {
+          setIsHumanizing(false)
+        }
+      },
+    })
+  }, [
+    isPro,
+    navigate,
+    handlePopup,
+    dispatch,
+    blog,
+    customPrompt,
+    setHumanizedContent,
+    setIsHumanizing,
+    setIsHumanizeModalOpen,
+  ])
+
+  const handleMetadataSave = useCallback(async () => {
+    if (!metadata.title && !metadata.description) return message.error("Enter metadata")
+    try {
+      await handleSubmit({ metadata })
+      message.success("Saved!")
+    } catch {
+      message.error("Save failed")
+    }
+  }, [handleSubmit, metadata])
+
+  const handlePdfExport = useCallback(async () => {
+    if (!blog?._id) return message.error("Blog ID missing")
+    if (!editorContent?.trim()) return message.error("No content to export")
 
     try {
-      const resultAction = await dispatch(
-        fetchCompetitiveAnalysisThunk({
-          blogId: blog._id,
-          title: blog.title,
-          content: blog.content,
-          keywords: validKeywords,
-        })
-      ).unwrap()
+      message.loading({ content: "Generating PDF...", key: "pdf-export" })
 
-      setCompetitiveAnalysisResults(resultAction)
-      setActiveSection("analysis")
-    } catch (err) {
-      console.error("Failed to fetch competitive analysis:", {
-        error: err.message,
-        status: err.status,
-        response: err.response,
+      // Use the API function which uses axiosInstance with correct backend URL
+      const pdfBlob = await exportBlogAsPdf(blog._id, {
+        title: blog.title,
+        content: editorContent,
       })
-      message.error("Failed to perform competitive analysis.")
-    }
-  }, [blog, keywords, dispatch])
 
-  useEffect(() => {
-    if (shouldRunCompetitive) {
-      fetchCompetitiveAnalysis()
-      setShouldRunCompetitive(false)
-    }
-  }, [shouldRunCompetitive, fetchCompetitiveAnalysis])
+      // Create download link
+      const url = window.URL.createObjectURL(pdfBlob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `${blog.title || "blog"}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
 
-  useEffect(() => {
-    if (blog?.seoScore || blog?.generatedMetadata?.competitorsAnalysis) {
-      setCompetitiveAnalysisResults({
-        blogScore: blog.seoScore,
-        ...blog?.generatedMetadata?.competitorsAnalysis,
+      message.success({ content: "PDF downloaded successfully!", key: "pdf-export" })
+    } catch (error) {
+      console.error("PDF Export Error:", error)
+      message.error({ content: error.message || "Failed to export PDF", key: "pdf-export" })
+    }
+  }, [blog, editorContent])
+
+  const handleKeywordRewrite = useCallback(() => {
+    handlePopup({
+      title: "Rewrite Keywords",
+      description: "Rewrite content with keywords? (3 times max)",
+      onConfirm: handleSave,
+    })
+  }, [handlePopup, handleSave])
+
+  const handlePostClick = useCallback(() => {
+    // Block free users from posting
+    if (userPlan === "free") {
+      return handlePopup({
+        title: "Posting Unavailable",
+        description: "Free users cannot publish blogs. Upgrade to unlock automated posting.",
+        confirmText: "Upgrade Now",
+        onConfirm: () => navigate("/pricing"),
       })
     }
-  }, [blog])
+
+    if (unsavedChanges) {
+      handlePopup({
+        title: "Unsaved Changes",
+        description: "Save before posting?",
+        confirmText: "Save & Post",
+        cancelText: "Post Anyway",
+        onConfirm: async () => {
+          await handleSubmit({ metadata })
+          setIsCategoryModalOpen(true)
+        },
+        onCancel: e => e?.source === "button" && setIsCategoryModalOpen(true),
+      })
+    } else {
+      setIsCategoryModalOpen(true)
+    }
+  }, [unsavedChanges, handlePopup, handleSubmit, metadata, userPlan, navigate])
+
+  const handleCategorySubmit = useCallback(
+    ({ category, includeTableOfContents, type }) => {
+      onPost({ ...formData, categories: category, includeTableOfContents, type })
+    },
+    [formData, onPost]
+  )
+
+  const addRegenKeyword = type => {
+    const input = type === "focus" ? focusKeywordInput : keywordInput
+    const field = type === "focus" ? "focusKeywords" : "keywords"
+    if (!input.trim()) return
+    const existing = regenForm[field].map(k => k.toLowerCase())
+    const newKws = input
+      .split(",")
+      .map(k => k.trim().toLowerCase())
+      .filter(k => k && !existing.includes(k))
+    if (type === "focus" && regenForm.focusKeywords.length + newKws.length > 3) {
+      return message.warning("Max 3 focus keywords")
+    }
+    if (newKws.length > 0) updateRegenField(field, [...regenForm[field], ...newKws])
+    type === "focus" ? setFocusKeywordInput("") : setKeywordInput("")
+  }
+
+  const removeRegenKeyword = (type, index) => {
+    const field = type === "focus" ? "focusKeywords" : "keywords"
+    updateRegenField(
+      field,
+      regenForm[field].filter((_, i) => i !== index)
+    )
+  }
+
+  const addKeyword = useCallback(() => {
+    if (newKeyword.trim()) {
+      const newKws = newKeyword
+        .split(",")
+        .map(k => k.trim().toLowerCase())
+        .filter(k => k && !keywords.map(kw => kw.toLowerCase()).includes(k))
+      if (newKws.length > 0) setKeywords(prev => [...prev, ...newKws])
+      setNewKeyword("")
+    }
+  }, [newKeyword, keywords, setKeywords])
 
   const removeKeyword = useCallback(
     keyword => {
@@ -329,1090 +610,695 @@ const TextEditorSidebar = ({
     [setKeywords]
   )
 
-  const addKeywords = useCallback(() => {
-    if (newKeyword.trim()) {
-      const newKeywordsArray = newKeyword
-        .split(",")
-        .map(k => k.trim().toLowerCase())
-        .filter(k => k && !keywords.map(kw => kw.toLowerCase()).includes(k))
+  const seoScore = result?.insights?.blogScore || blog?.seoScore || 0
+  const contentScore = blog?.blogScore || 0
 
-      if (newKeywordsArray.length > 0) {
-        setKeywords(prev => [...prev, ...newKeywordsArray])
-      }
-      setNewKeyword("")
-    }
-  }, [newKeyword, keywords, setKeywords])
+  // ========== PANELS ==========
 
-  const handleKeyDown = useCallback(
-    e => {
-      if (e.key === "Enter") {
-        e.preventDefault()
-        addKeywords()
-      }
-    },
-    [addKeywords]
-  )
+  const renderOverviewPanel = () => (
+    <div className="flex flex-col h-full">
+      <div className="p-3 border-b bg-gradient-to-r from-gray-50 to-blue-50">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg">
+              <BarChart3 className="w-4 h-4 text-white" />
+            </div>
 
-  const handleProofreadingClick = useCallback(async () => {
-    if (!blog || !blog.content) {
-      message.error("Blog content is required for proofreading.")
-      return
-    }
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-gray-900">Overview</h3>
+                {isPro && (
+                  <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
+                    <Crown className="w-4 h-4" />
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 font-medium mt-0.5">
+                Summary of your content’s SEO performance
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
 
-    if (isAnalyzingCompetitive) {
-      message.error(
-        "Please wait for Competitive Analysis to complete before starting Proofreading."
-      )
-      return
-    }
+      <div className="flex-1 overflow-y-auto p-3 space-y-5 custom-scroll">
+        {/* Stats */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="p-3 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl text-center">
+            <div className="text-2xl font-bold text-blue-600">{getWordCount(editorContent)}</div>
+            <div className="text-xs text-blue-600/70">Words</div>
+          </div>
+          <div className="p-3 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl text-center">
+            <div className="text-2xl font-bold text-purple-600">{keywords?.length || 0}</div>
+            <div className="text-xs text-purple-600/70">Keywords</div>
+          </div>
+        </div>
 
-    setIsAnalyzingProofreading(true)
-    try {
-      const result = await dispatch(
-        fetchProofreadingSuggestions({
-          id: blog._id,
-        })
-      ).unwrap()
-      setProofreadingResults(result)
-      setActiveSection("suggestions")
-      message.success("Proofreading suggestions loaded successfully!")
-    } catch (error) {
-      console.error("Error fetching proofreading suggestions:", {
-        error: error.message,
-        status: error.status,
-        response: error.response,
-      })
-      message.error("Failed to fetch proofreading suggestions.")
-    } finally {
-      setIsAnalyzingProofreading(false)
-    }
-  }, [blog, dispatch, isAnalyzingCompetitive, setProofreadingResults])
+        {/* Scores */}
+        <div className="space-y-3">
+          <ScoreCard title="Content Score" score={contentScore} icon={FileText} />
+          <ScoreCard title="SEO Score" score={seoScore} icon={TrendingUp} />
+        </div>
 
-  const handleApplyAllSuggestions = useCallback(() => {
-    if (proofreadingResults.length === 0) {
-      message.info("No suggestions available to apply.")
-      return
-    }
+        {/* Keywords */}
+        {/* <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Target className="w-4 h-4 text-blue-600" />
+              <span className="font-medium text-gray-900">Keywords</span>
+            </div>
+            {keywords?.length > 0 && (
+              <button
+                onClick={handleKeywordRewrite}
+                className="text-xs text-green-600 flex items-center gap-1 hover:underline"
+              >
+                <Sparkles className="w-3 h-3" /> Optimize
+              </button>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {keywords?.map((kw, i) => (
+              <span
+                key={i}
+                className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs"
+              >
+                {kw}
+                <button onClick={() => removeKeyword(kw)} className="hover:text-blue-900">
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <Input
+              value={newKeyword}
+              onChange={e => setNewKeyword(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && addKeyword()}
+              placeholder="Add keyword..."
+              size="small"
+            />
+            <Button
+              size="small"
+              type="primary"
+              onClick={addKeyword}
+              icon={<Plus className="w-3 h-3" />}
+            />
+          </div>
+        </div> */}
 
-    proofreadingResults.forEach(suggestion => {
-      handleReplace(suggestion.original, suggestion.change)
-    })
-    setProofreadingResults([])
-    message.success("All proofreading suggestions applied successfully!")
-  }, [proofreadingResults, handleReplace, setProofreadingResults])
+        {/* Quick Actions */}
+        <div className="space-y-4">
+          <span className="text-sm font-semibold text-gray-900">Quick Actions</span>
 
-  const handleMetadataGeneration = useCallback(async () => {
-    if (!blog || !editorContent) {
-      message.error("Blog content is required for metadata generation.")
-      return
-    }
+          {/* SEO Analysis Card */}
+          <div className="p-3 border rounded-xl shadow-sm bg-white hover:shadow-md transition-all">
+            <div className="flex items-center gap-3 mb-3">
+              <TrendingUp className="w-5 h-5 text-blue-600" />
+              <h4 className="text-sm font-semibold text-gray-800">Competitive Analysis</h4>
+            </div>
 
-    if (["free", "basic"].includes(userPlan?.toLowerCase?.())) {
-      navigate("/pricing")
-      return
-    }
-
-    const validKeywords =
-      keywords && keywords.length > 0 ? keywords : blog?.focusKeywords || blog.keywords
-
-    try {
-      await dispatch(
-        generateMetadataThunk({
-          content: editorContent,
-          keywords: validKeywords,
-          focusKeywords: blog?.focusKeywords || [],
-        })
-      ).unwrap()
-    } catch (error) {
-      console.error("Error generating metadata:", error)
-      message.error("Failed to generate metadata.")
-    }
-  }, [blog, editorContent, keywords, dispatch, navigate, userPlan])
-
-  const handleMetadataSave = useCallback(async () => {
-    if (!metadata.title && !metadata.description) {
-      message.error("Please enter a meta title or description to save.")
-      return
-    }
-    try {
-      await handleSubmit({ metadata })
-      const newMeta = {
-        id: Date.now().toString(),
-        title: metadata.title || "",
-        description: metadata.description || "",
-      }
-      setMetadataHistory(prev => {
-        const exists = prev.some(
-          item => item.title === newMeta.title && item.description === newMeta.description
-        )
-        if (!exists && (newMeta.title || newMeta.description)) {
-          return [...prev, newMeta]
+            {/* Gradient Button */}
+            <button
+              onClick={handleAnalyzing}
+              disabled={isAnalyzingCompetitive}
+              className={`
+        w-full py-2.5 px-4 rounded-lg text-sm font-semibold transition-all
+        ${
+          isAnalyzingCompetitive
+            ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+            : "bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-600 text-white shadow-md hover:shadow-lg hover:from-purple-600 hover:via-indigo-600 hover:to-blue-700"
         }
-        return prev
-      })
-    } catch (error) {
-      console.error("Error saving metadata:", error)
-      // message.error("Failed to save metadata.")
-    }
-  }, [handleSubmit, metadata])
+      `}
+            >
+              {isAnalyzingCompetitive ? "Analyzing..." : "Run SEO Analysis"}
+            </button>
+          </div>
+        </div>
 
-  const handleAnalyzing = useCallback(() => {
-    if (["free", "basic"].includes(userPlan?.toLowerCase?.())) {
-      navigate("/pricing")
-      return
-    }
+        {/* Posted Links */}
+        {postedLinks.length > 0 && (
+          <div className="space-y-2">
+            <span className="text-sm font-medium text-gray-700">Published</span>
+            {postedLinks.map(({ platform, link, label }) => (
+              <a
+                key={platform}
+                href={link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between p-3 bg-green-50 rounded-lg hover:bg-green-100 text-sm"
+              >
+                <span className="text-green-700">{label}</span>
+                <ExternalLink className="w-4 h-4 text-green-600" />
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
 
-    const seoScore = blog?.seoScore
-    const competitors = blog?.generatedMetadata?.competitors
-    const hasScore = typeof seoScore === "number" && seoScore >= 0
-    const hasCompetitors = Array.isArray(competitors) && competitors.length > 0
-    const hasAnalysis = !!competitiveAnalysisResults
-
-    if (!hasScore && !hasCompetitors && !hasAnalysis) {
-      return handlePopup({
-        title: "Competitive Analysis",
-        description: "Do you really want to run competitive analysis? It will cost 10 credits.",
-        confirmText: "Run",
-        cancelText: "Cancel",
-        onConfirm: () => fetchCompetitiveAnalysis(),
-      })
-    }
-
-    return handlePopup({
-      title: "Run Competitive Analysis Again?",
-      description: (
-        <>
-          You have already performed a competitive analysis for this blog. Would you like to run it
-          again? <span className="font-bold">This will cost 10 credits.</span>
-        </>
-      ),
-      confirmText: "Run",
-      cancelText: "Cancel",
-      onConfirm: () => fetchCompetitiveAnalysis(),
-    })
-  }, [userPlan, blog, handlePopup, navigate, competitiveAnalysisResults, fetchCompetitiveAnalysis])
-
-  const handleProofreadingBlog = useCallback(() => {
-    if (["free", "basic"].includes(userPlan?.toLowerCase?.())) {
-      navigate("/pricing")
-    } else {
-      handlePopup({
-        title: "AI Proofreading",
-        description: (
-          <>
-            Do you really want to proofread the blog?{" "}
-            <span className="font-bold">
-              {" "}
-              This will cost {getEstimatedCost("blog.proofread")} credits.
+      {/* Floating Post Button */}
+      <div className="p-3 border-t bg-white">
+        {/* Post Button */}
+        <Button
+          type="primary"
+          size="large"
+          block
+          onClick={handlePostClick}
+          loading={isPosting}
+          disabled={isDisabled || userPlan === "free"}
+          className={`h-12 font-semibold border-0 hover:shadow-lg ${
+            userPlan === "free"
+              ? "!bg-gray-400 cursor-not-allowed"
+              : "bg-gradient-to-r from-green-500 to-emerald-600"
+          }`}
+        >
+          {userPlan === "free" ? (
+            <span className="flex items-center gap-2">
+              <Lock className="w-4 h-4" /> Upgrade to Post
             </span>
-          </>
-        ),
-        onConfirm: handleProofreadingClick,
+          ) : isPosting ? (
+            "Posting..."
+          ) : posted && Object.keys(posted).length > 0 ? (
+            "Re-Post Blog"
+          ) : (
+            "Post Blog"
+          )}
+        </Button>
+      </div>
+    </div>
+  )
+
+  // Export handlers
+  const handleExportMarkdown = () => {
+    if (userPlan === "free") {
+      return handlePopup({
+        title: "Export Unavailable",
+        description: "Free users cannot export blogs. Upgrade to unlock this feature.",
+        confirmText: "Upgrade Now",
+        onConfirm: () => navigate("/pricing"),
       })
     }
-  }, [userPlan, handlePopup, navigate, handleProofreadingClick])
 
-  const handleCustomPromptBlog = useCallback(async () => {
-    if (["free", "basic"].includes(userPlan?.toLowerCase?.())) {
-      navigate("/pricing")
-      return
-    }
+    const markdown = editorContent || ""
+    const blob = new Blob([markdown], { type: "text/markdown" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `${blog?.title || "blog"}.md`
+    a.click()
+    URL.revokeObjectURL(url)
+    message.success("Exported as Markdown!")
+  }
 
-    if (!blog || !editorContent) {
-      message.error("Blog content is required for prompt-based modification.")
-      return
-    }
-
-    handlePopup({
-      title: "Apply Custom Prompt",
-      description: (
-        <>
-          Do you want to modify the blog content using the prompt?{" "}
-          <span className="font-bold">This will cost 5 credits.</span>
-        </>
-      ),
-      confirmText: "Apply Prompt",
-      cancelText: "Cancel",
-      onConfirm: async () => {
-        setIsHumanizing(true)
-        try {
-          const result = await dispatch(
-            fetchBlogPrompt({
-              id: blog._id,
-              prompt: customPrompt,
-            })
-          ).unwrap()
-          setHumanizedContent(result.data)
-          setIsHumanizeModalOpen(true)
-          message.success("Content modified with custom prompt successfully!")
-          setCustomPrompt("")
-        } catch (error) {
-          console.error("Error applying custom prompt:", error)
-          message.error("Failed to apply custom prompt.")
-        } finally {
-          setIsHumanizing(false)
-        }
-      },
-    })
-  }, [
-    blog,
-    editorContent,
-    customPrompt,
-    dispatch,
-    handlePopup,
-    setHumanizedContent,
-    setIsHumanizing,
-    setIsHumanizeModalOpen,
-    userPlan,
-    navigate,
-  ])
-
-  const handleKeywordRewrite = useCallback(() => {
-    handlePopup({
-      title: "Rewrite Keywords",
-      description:
-        "Do you want to rewrite the entire content with added keywords? You can rewrite only 3 times.",
-      onConfirm: handleSave,
-    })
-  }, [handlePopup, handleSave])
-
-  const handleExport = useCallback(
-    async type => {
-      if (!editorContent) {
-        message.error("No content to export.")
-        return
-      }
-      const title = blog?.title || "Untitled Blog"
-      let blob, filename
-      if (type === "markdown") {
-        blob = new Blob([editorContent], { type: "text/markdown" })
-        filename = `${title}.md`
-      } else if (type === "html") {
-        const htmlContent = marked.parse(editorContent, { gfm: true })
-        blob = new Blob([htmlContent], { type: "text/html" })
-        filename = `${title}.html`
-      } else if (type === "pdf") {
-        const data = await getExportedBlog(blog._id)
-        blob = data.pdfBlob
-        filename = `${title}.pdf`
-      }
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = filename
-      a.click()
-      URL.revokeObjectURL(url)
-      message.success(`${type.toUpperCase()} exported successfully!`)
-    },
-    [editorContent, blog]
-  )
-
-  const exportMenu = (
-    <Menu>
-      <Menu.Item key="markdown" onClick={() => handleExport("markdown")}>
-        Export as Markdown
-      </Menu.Item>
-      <Menu.Item key="html" onClick={() => handleExport("html")}>
-        Export as HTML
-      </Menu.Item>
-      <Menu.Item key="pdf" onClick={() => handleExport("pdf")}>
-        Export as PDF
-      </Menu.Item>
-    </Menu>
-  )
-
-  const handleCategorySubmit = useCallback(
-    ({ category, includeTableOfContents, type }) => {
-      try {
-        onPost({ ...formData, categories: category, includeTableOfContents, type })
-      } catch (error) {
-        console.error("Failed to post blog:", {
-          error: error.message,
-          status: error.status,
-          response: error.response,
-        })
-        message.error("Failed to post blog. Please try again.")
-      }
-    },
-    [formData, onPost]
-  )
-
-  const handlePostClick = useCallback(() => {
-    if (unsavedChanges) {
-      handlePopup({
-        title: "Unsaved Changes",
-        description: (
-          <>
-            You have unsaved changes in your blog content. Would you like to save these changes
-            before posting? If you proceed without saving, your changes will be lost.
-          </>
-        ),
-        confirmText: "Save and Proceed",
-        cancelText: "Proceed without Saving",
-        onConfirm: async () => {
-          try {
-            await handleSubmit({ metadata })
-            setIsCategoryModalOpen(true)
-          } catch (error) {
-            console.error("Failed to save changes:", error)
-            message.error("Failed to save changes. Please try again.")
-          }
-        },
-        onCancel: e => {
-          if (e?.source == "button") {
-            setIsCategoryModalOpen(true)
-          }
-        },
+  const handleExportHTML = () => {
+    if (userPlan === "free") {
+      return handlePopup({
+        title: "Export Unavailable",
+        description: "Free users cannot export blogs. Upgrade to unlock this feature.",
+        confirmText: "Upgrade Now",
+        onConfirm: () => navigate("/pricing"),
       })
-    } else {
-      setIsCategoryModalOpen(true)
     }
-  }, [unsavedChanges, handlePopup, handleSubmit])
 
-  if (isAnalyzingCompetitive) {
+    const htmlContent = blog?.content || editorContent || ""
+    const fullHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${blog?.title || "Blog"}</title>
+  <meta name="description" content="${metadata.description || ""}">
+</head>
+<body>
+  <article>
+    <h1>${blog?.title || ""}</h1>
+    ${htmlContent}
+  </article>
+</body>
+</html>`
+    const blob = new Blob([fullHtml], { type: "text/html" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `${blog?.title || "blog"}.html`
+    a.click()
+    URL.revokeObjectURL(url)
+    message.success("Exported as HTML!")
+  }
+
+  const renderSeoPanel = () => (
+    <div className="flex flex-col h-full">
+      <div className="p-3 border-b bg-gradient-to-r from-gray-50 to-blue-50">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg">
+              <TrendingUp className="w-4 h-4 text-white" />
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-gray-900">SEO & Export</h3>
+                {isPro && (
+                  <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
+                    <Crown className="w-4 h-4" />
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 font-medium">
+                Metadata, analysis & export options
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-3 space-y-4">
+        {/* SEO Metadata Section */}
+        <div className="space-y-3 p-3 bg-white border rounded-xl shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-blue-600" />
+              SEO Metadata
+            </span>
+            <button
+              onClick={handleMetadataGen}
+              className="text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1"
+            >
+              <Sparkles className="w-3 h-3" /> Generate
+            </button>
+          </div>
+          <div className="space-y-3">
+            <Input
+              value={metadata.title}
+              onChange={e => setMetadata(p => ({ ...p, title: e.target.value }))}
+              placeholder="Meta title..."
+              size="small"
+            />
+            <TextArea
+              value={metadata.description}
+              onChange={e => setMetadata(p => ({ ...p, description: e.target.value }))}
+              placeholder="Meta description..."
+              rows={4}
+              className="!resize-none"
+            />
+          </div>
+          <button
+            onClick={handleMetadataSave}
+            className="w-full py-2 text-sm font-semibold rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow hover:shadow-md"
+          >
+            Save Metadata
+          </button>
+        </div>
+
+        {/* Competitive Analysis Section */}
+        <div className="space-y-3 p-3 bg-white border rounded-xl shadow-sm">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-purple-600" />
+            <span className="text-sm font-semibold text-gray-900">Competitive Analysis</span>
+          </div>
+
+          {result || blog?.generatedMetadata?.competitors ? (
+            <Collapse defaultActiveKey={["1"]} ghost expandIconPosition="end" className="-mx-3">
+              {(result?.competitors || blog?.generatedMetadata?.competitors)?.length > 0 && (
+                <Panel
+                  header={
+                    <div className="flex items-center gap-2">
+                      <Eye className="w-4 h-4 text-blue-600" />
+                      <span className="font-medium text-sm">Top Competitors</span>
+                    </div>
+                  }
+                  key="1"
+                >
+                  <CompetitorsList
+                    competitors={result?.competitors || blog?.generatedMetadata?.competitors}
+                  />
+                </Panel>
+              )}
+              {(result?.insights?.analysis || result?.analysis) && (
+                <Panel
+                  header={
+                    <div className="flex items-center gap-2">
+                      <Lightbulb className="w-4 h-4 text-orange-500" />
+                      <span className="font-medium text-sm">Key Insights</span>
+                    </div>
+                  }
+                  key="2"
+                >
+                  <AnalysisInsights insights={result?.insights?.analysis || result?.analysis} />
+                </Panel>
+              )}
+            </Collapse>
+          ) : (
+            <button
+              onClick={handleAnalyzing}
+              disabled={isAnalyzingCompetitive}
+              className={`w-full py-2.5 rounded-lg text-sm font-semibold transition-all bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow ${
+                isAnalyzingCompetitive ? "opacity-60 cursor-not-allowed" : "hover:shadow-md"
+              }`}
+            >
+              {isAnalyzingCompetitive ? "Analyzing..." : "Run SEO Analysis"}
+            </button>
+          )}
+        </div>
+
+        {/* Export Section */}
+        <div className="space-y-3 p-3 bg-white border rounded-xl shadow-sm">
+          <div className="flex items-center gap-2">
+            <Download className="w-4 h-4 text-green-600" />
+            <span className="text-sm font-semibold text-gray-900">Export Blog</span>
+            {userPlan === "free" && (
+              <span className="ml-auto text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <Lock className="w-3 h-3" /> Pro
+              </span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <button
+              onClick={handleExportMarkdown}
+              disabled={userPlan === "free"}
+              className={`group flex flex-col items-center justify-center gap-2 py-4 px-3 rounded-xl text-sm font-semibold border-2 transition-all duration-300 ${
+                userPlan === "free"
+                  ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
+                  : "bg-gradient-to-br from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 text-blue-700 border-blue-200 hover:border-blue-300 hover:shadow-lg hover:scale-105"
+              }`}
+            >
+              <FileText
+                className={`w-6 h-6 ${
+                  userPlan !== "free" && "group-hover:scale-110 transition-transform"
+                }`}
+              />
+              <span>Markdown</span>
+            </button>
+            <button
+              onClick={handleExportHTML}
+              disabled={userPlan === "free"}
+              className={`group flex flex-col items-center justify-center gap-2 py-4 px-3 rounded-xl text-sm font-semibold border-2 transition-all duration-300 ${
+                userPlan === "free"
+                  ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
+                  : "bg-gradient-to-br from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100 text-purple-700 border-purple-200 hover:border-purple-300 hover:shadow-lg hover:scale-105"
+              }`}
+            >
+              <FileCode
+                className={`w-6 h-6 ${
+                  userPlan !== "free" && "group-hover:scale-110 transition-transform"
+                }`}
+              />
+              <span>HTML</span>
+            </button>
+            <button
+              onClick={handlePdfExport}
+              disabled={userPlan === "free"}
+              className={`group flex flex-col items-center justify-center gap-2 py-4 px-3 rounded-xl text-sm font-semibold border-2 transition-all duration-300 ${
+                userPlan === "free"
+                  ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
+                  : "bg-gradient-to-br from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 text-green-700 border-green-200 hover:border-green-300 hover:shadow-lg hover:scale-105"
+              }`}
+            >
+              <Download
+                className={`w-6 h-6 ${
+                  userPlan !== "free" && "group-hover:scale-110 transition-transform"
+                }`}
+              />
+              <span>PDF</span>
+            </button>
+          </div>
+
+          {userPlan === "free" && (
+            <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-xs text-amber-700 text-center font-medium">
+                🔒 Upgrade to export your blogs in multiple formats
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+
+  const renderSuggestionsPanel = () => {
+    // Handle applying a single suggestion
+    const handleApplySuggestion = (index, suggestion) => {
+      if (handleReplace && suggestion) {
+        // handleReplace in MainEditorPage already removes the suggestion from the list
+        handleReplace(suggestion.original, suggestion.change)
+        message.success("Change applied successfully!")
+      }
+    }
+
+    // Handle rejecting a suggestion
+    const handleRejectSuggestion = index => {
+      setProofreadingResults(prev => prev.filter((_, i) => i !== index))
+    }
+
+    // Handle applying all suggestions
+    const handleApplyAll = () => {
+      if (proofreadingResults?.length > 0) {
+        proofreadingResults.forEach(s => handleReplace(s.original, s.change))
+        setProofreadingResults([])
+        message.success(`Applied ${proofreadingResults.length} changes!`)
+      }
+    }
+
+    // Add original index to each suggestion for tracking
+    const suggestionsWithIndex =
+      proofreadingResults?.map((s, i) => ({
+        ...s,
+        originalIndex: i,
+      })) || []
+
     return (
-      <div className="flex items-center">
-        <LoadingScreen message="Running Competitive Analysis" />
+      <div className="flex flex-col h-full">
+        {/* Header */}
+        <div className="p-3 border-b bg-gradient-to-r from-gray-50 to-blue-50">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg">
+                <Lightbulb className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-gray-900">AI Proofreading</h3>
+                  {isPro && (
+                    <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
+                      <Crown className="w-4 h-4" />
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500">Grammar & style suggestions</p>
+              </div>
+            </div>
+            {proofreadingResults?.length > 0 && (
+              <span className="px-2.5 py-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-bold rounded-full">
+                {proofreadingResults.length}
+              </span>
+            )}
+          </div>
+
+          {proofreadingResults?.length > 0 && (
+            <button
+              onClick={handleApplyAll}
+              className="w-full mt-2 px-4 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white text-sm font-semibold rounded-xl hover:shadow-lg hover:scale-[1.01] transition-all flex items-center justify-center gap-2"
+            >
+              <Sparkles className="w-4 h-4" />
+              Apply All {proofreadingResults.length} Changes
+            </button>
+          )}
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
+          {isAnalyzingProofreading ? (
+            <div className="text-center py-16">
+              <div className="relative w-16 h-16 mx-auto mb-4">
+                <div className="absolute inset-0 border-4 border-blue-200 rounded-full" />
+                <div className="absolute inset-0 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+              </div>
+              <p className="text-sm font-medium text-gray-700 mb-1">Analyzing your content...</p>
+              <p className="text-xs text-gray-500">This may take a moment</p>
+            </div>
+          ) : suggestionsWithIndex.length > 0 ? (
+            <AnimatePresence mode="popLayout">
+              {suggestionsWithIndex.map((suggestion, i) => (
+                <ProofreadingSuggestion
+                  key={`${suggestion.original}-${i}`}
+                  suggestion={suggestion}
+                  index={suggestion.originalIndex}
+                  onApply={handleApplySuggestion}
+                  onReject={handleRejectSuggestion}
+                />
+              ))}
+            </AnimatePresence>
+          ) : (
+            <div className="text-center py-16 h-[80vh] flex flex-col items-center justify-center">
+              <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center">
+                <Lightbulb className="w-10 h-10 text-gray-400" />
+              </div>
+              <h4 className="font-semibold text-gray-700 mb-1">No suggestions yet</h4>
+              <p className="text-xs text-gray-500 mb-4 max-w-[200px] mx-auto">
+                Run AI proofreading to get grammar and style suggestions
+              </p>
+              <button
+                onClick={handleProofreading}
+                className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-xl hover:shadow-lg transition-all text-sm"
+              >
+                Run AI Proofreading
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     )
   }
 
-  if (isMinimized) {
-    return (
-      <motion.div
-        initial={{ x: "100%" }}
-        animate={{ x: "calc(100% - 60px)" }}
-        className="fixed top-[14.7rem] right-0 transform -translate-y-1/2 z-50"
-      >
-        <Tooltip title="Maximize Sidebar" placement="left">
-          <Button
-            onClick={() => setIsMinimized(false)}
-            className="h-12 rounded-lg"
-            icon={<Maximize2 className="w-4 h-4" />}
-          />
-        </Tooltip>
-      </motion.div>
-    )
+  const renderPanel = () => {
+    switch (activePanel) {
+      case "overview":
+        return renderOverviewPanel()
+      case "seo":
+        return renderSeoPanel()
+      case "suggestions":
+        return renderSuggestionsPanel()
+      default:
+        return renderOverviewPanel()
+    }
   }
 
-  function countWordsFromHTML(html) {
-    const isHTML = html?.includes("<article")
-    if (!isHTML) return getWordCount(html)
+  // Collapsed state - show only icon bar
+  if (isCollapsed) {
+    return (
+      <div className="w-16 h-screen bg-gradient-to-b from-slate-50 to-gray-100 border-l border-gray-200 flex flex-col items-center py-5 gap-2">
+        {NAV_ITEMS.map(item => {
+          const Icon = item.icon
+          const hasBadge = item.id === "suggestions" && proofreadingResults?.length > 0
+          return (
+            <Tooltip key={item.id} title={item.label} placement="left">
+              <button
+                onClick={() => {
+                  if (item.id === "regenerate") {
+                    // Open the 2-step modal for regenerate
+                    setRegenerateStep(1)
+                    setIsRegenerateModalOpen(true)
+                    setIsCollapsed(false)
+                  } else {
+                    setActivePanel(item.id)
+                    setIsCollapsed(false)
+                  }
+                }}
+                className="w-11 h-11 rounded-2xl flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-white hover:shadow-md transition-all duration-200 relative group"
+              >
+                <Icon className="w-5 h-5 transition-transform group-hover:scale-110" />
+                {hasBadge && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-br from-red-500 to-pink-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold shadow-md animate-pulse">
+                    {proofreadingResults.length}
+                  </span>
+                )}
+              </button>
+            </Tooltip>
+          )
+        })}
+        <div className="mt-auto flex flex-col gap-2">
+          {/* Divider */}
+          <div className="w-8 h-px bg-gray-300 my-2" />
 
-    const $ = cheerio.load(html)
-    const fullText = $("body").text()
-    const cleanedText = fullText.replace(/\s+/g, " ").trim()
-    const words = cleanedText.split(" ")
-
-    // Filter out any empty strings that might result from splitting
-    const filteredWords = words.filter(word => word !== "")
-
-    // Get the word count
-    const wordCount = filteredWords.length
-
-    // const lengthMatrix = {
-    //   headings: ["h1", "h2", "h3", "h4"],
-    //   paragraphs: ["p"],
-    //   lists: ["ul", "ol"],
-    // }
-    return wordCount
+          <Tooltip title="Expand Sidebar" placement="left">
+            <button
+              onClick={() => setIsCollapsed(false)}
+              className="w-11 h-11 rounded-2xl flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-white hover:shadow-md transition-all duration-200 group"
+            >
+              <ChevronLeft className="w-5 h-5 transition-transform group-hover:-translate-x-0.5" />
+            </button>
+          </Tooltip>
+        </div>
+      </div>
+    )
   }
 
   return (
     <>
-      <motion.div
-        initial={{ x: "100%" }}
-        animate={{ x: 0 }}
-        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className="w-full md:w-96 bg-white shadow-xl flex flex-col"
-      >
-        <div className="sticky top-0 z-50 bg-white border-b border-gray-200">
-          <div className="p-4 border border-l-0 bg-gradient-to-r rounded-tr-md from-blue-50 to-purple-50">
-            <div className="flex items-center justify-between mb-2">
-              <div>
-                <h2 className="text-lg font-bold">Content Analysis</h2>
-                <p className="text-xs text-gray-600">Optimize your content performance</p>
-              </div>
-              <div className="flex items-center gap-2">
-                {!["free", "basic"].includes(userPlan?.toLowerCase?.()) && (
-                  <Tooltip title="Export Content" placement="left">
-                    <Dropdown overlay={exportMenu} trigger={["click"]}>
-                      <Button size="small" icon={<Download className="w-4 h-4" />} />
-                    </Dropdown>
-                  </Tooltip>
-                )}
-                <div className="hidden sm:inline">
-                  <Tooltip title="Minimize sidebar" placement="left">
-                    <Button
-                      size="small"
-                      icon={<Minimize2 className="w-4 h-4" />}
-                      onClick={() => setIsMinimized(true)}
-                    />
-                  </Tooltip>
-                </div>
-
-                <Tooltip title="Content settings">
-                  <Button
-                    size="small"
-                    icon={<SlidersHorizontal className="w-4 h-4" />}
-                    onClick={() => setOpen(true)}
-                  />
-                </Tooltip>
-
-                <div className="block md:hidden">
-                  <Button
-                    size="small"
-                    icon={<X className="w-4 h-4" />}
-                    onClick={() => setIsSidebarOpen(false)}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-2 mt-6 px-2">
-              {[
-                { key: "overview", label: "Overview", icon: BarChart3 },
-                { key: "analysis", label: "Analysis", icon: TrendingUp },
-                {
-                  key: "suggestions",
-                  label: "Suggestions",
-                  icon: Lightbulb,
-                },
-              ].map(({ key, label, icon: Icon, badge }) => (
-                <button
-                  key={key}
-                  onClick={() => setActiveSection(key)}
-                  className={`flex items-center justify-center gap-2 px-3 py-2 rounded-full text-sm font-medium transition-all duration-150 flex-shrink-0
-        ${
-          activeSection === key
-            ? "bg-blue-600 text-white shadow-md"
-            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-        }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span className="hidden sm:inline">{label}</span>
-                  {badge > 0 && (
-                    <span className="ml-1 inline-flex items-center justify-center w-5 h-5 text-xs font-semibold text-white bg-red-500 rounded-full">
-                      {badge}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto custom-scroll border-r">
+      <div className="flex h-full">
+        {/* Content Panel */}
+        <div className="flex-1 w-80 bg-white border-l overflow-hidden flex flex-col">
           <AnimatePresence mode="wait">
-            {activeSection === "overview" && (
-              <motion.div
-                key="overview"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="p-4 space-y-6"
-              >
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between mt-2">
-                    <div className="flex items-center gap-2">
-                      <Target className="w-4 h-4 text-blue-600" />
-                      <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                        Keywords
-                      </h3>
-                    </div>
-                    {keywords.length > 0 && (
-                      <button
-                        type="text"
-                        onClick={() => {
-                          if (["free"].includes(userPlan?.toLowerCase?.())) {
-                            openUpgradePopup({ featureName: "Keyword Optimization", navigate })
-                          } else {
-                            handleKeywordRewrite()
-                          }
-                        }}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-opacity-80 transition-colors text-sm font-medium
-                    bg-green-50 text-green-600 border-green-300 border hover:bg-green-100"
-                      >
-                        {["free"].includes(userPlan?.toLowerCase?.()) ? (
-                          <CrownTwoTone className="w-3 h-3" />
-                        ) : (
-                          <Sparkles className="w-3 h-3" />
-                        )}
-                        Optimize
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    <AnimatePresence>
-                      {keywords.map((keyword, index) => (
-                        <motion.div
-                          key={`${keyword}-${index}`}
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.8 }}
-                          className="flex items-center bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full border border-blue-200"
-                        >
-                          <span className="truncate max-w-[120px]">{keyword}</span>
-                          <button
-                            onClick={() => removeKeyword(keyword)}
-                            className="ml-1 text-blue-600 hover:text-blue-800"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </motion.div>
-                      ))}
-                    </AnimatePresence>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={newKeyword}
-                      onChange={e => setNewKeyword(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                      placeholder="Add keywords..."
-                      className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    <Button
-                      size="small"
-                      type="primary"
-                      onClick={addKeywords}
-                      icon={<Plus className="w-4 h-4" />}
-                    />
-                  </div>
-                  {keywords.length === 0 && (
-                    <p className="text-xs text-gray-500 text-center py-2">No keywords added yet</p>
-                  )}
-                </div>
-
-                <div className="space-y-7">
-                  <div className="flex items-center gap-2">
-                    <BarChart3 className="w-4 h-4 text-blue-600" />
-                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                      Performance Metrics
-                    </h3>
-                  </div>
-
-                  <div className="space-y-3">
-                    <ScoreCard title="Content Score" score={blog?.blogScore} icon={FileText} />
-                    <ScoreCard
-                      title="SEO Score"
-                      score={result?.insights?.blogScore || blog?.seoScore}
-                      icon={TrendingUp}
-                    />
-                    <div className="grid grid-cols-2 gap-3">
-                      <StatCard
-                        title="Words"
-                        value={countWordsFromHTML(editorContent) || blog?.userDefinedLength}
-                        icon={FileText}
-                      />
-
-                      <StatCard title="Keywords" value={keywords?.length || 0} icon={Target} />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-6">
-                  <div className="flex items-center gap-2">
-                    <Zap className="w-4 h-4 text-blue-600" />
-                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                      AI Tools
-                    </h3>
-                  </div>
-
-                  <div className="space-y-3">
-                    <FeatureCard
-                      title="Competitive Analysis"
-                      description="Compare with top competitors"
-                      isPro={["free", "basic"].includes(userPlan?.toLowerCase?.())}
-                      isLoading={isAnalyzingCompetitive}
-                      onClick={handleAnalyzing}
-                      buttonText="Run Analysis"
-                      icon={TrendingUp}
-                    />
-                    <FeatureCard
-                      title="AI Proofreading"
-                      description="Grammar and style improvements"
-                      isPro={["free", "basic"].includes(userPlan?.toLowerCase?.())}
-                      isLoading={isAnalyzingProofreading}
-                      onClick={handleProofreadingBlog}
-                      buttonText="Proofread Content"
-                      icon={FileText}
-                    />
-                    <FeatureCard
-                      title="Generate Metadata"
-                      description="Create SEO-friendly title and description"
-                      isPro={["free", "basic"].includes(userPlan?.toLowerCase?.())}
-                      isLoading={false}
-                      onClick={() => {
-                        if (["free", "basic"].includes(userPlan?.toLowerCase?.())) {
-                          navigate("/pricing")
-                        } else {
-                          handlePopup({
-                            title: "Generate Metadata",
-                            description: (
-                              <>
-                                Generate SEO metadata?
-                                <span className="font-bold"> This will cost 2 credits.</span>
-                              </>
-                            ),
-                            confirmText: "Generate",
-                            cancelText: "Cancel",
-                            onConfirm: handleMetadataGeneration,
-                          })
-                        }
-                      }}
-                      buttonText="Generate Metadata"
-                      icon={TagIcon}
-                    />
-                    <div className="space-y-4 p-4 bg-white rounded-lg shadow-sm border border-gray-200">
-                      {metadataHistory.length > 0 && (
-                        <Dropdown
-                          menu={
-                            <Menu
-                              onClick={({ key }) => {
-                                if (key.startsWith("delete-")) {
-                                  const idToDelete = key.replace("delete-", "")
-                                  setMetadataHistory(prev =>
-                                    prev.filter(item => item.id !== idToDelete)
-                                  )
-                                  if (
-                                    metadataHistory.find(item => item.id === idToDelete)?.title ===
-                                      metadata.title &&
-                                    metadataHistory.find(item => item.id === idToDelete)
-                                      ?.description === metadata.description
-                                  ) {
-                                    setMetadata({ title: "", description: "" })
-                                  }
-                                } else {
-                                  const selected = metadataHistory.find(item => item.id === key)
-                                  if (selected) {
-                                    setMetadata({
-                                      title: selected.title,
-                                      description: selected.description,
-                                    })
-                                  }
-                                }
-                              }}
-                            >
-                              {metadataHistory.map((item, index) => (
-                                <Menu.Item key={item.id}>
-                                  <div className="flex justify-between items-center">
-                                    <span>Version {index + 1}</span>
-                                    <Button
-                                      type="link"
-                                      danger
-                                      size="small"
-                                      onClick={e => {
-                                        e.stopPropagation()
-                                        const idToDelete = item.id
-                                        setMetadataHistory(prev =>
-                                          prev.filter(m => m.id !== idToDelete)
-                                        )
-                                        if (
-                                          item.title === metadata.title &&
-                                          item.description === metadata.description
-                                        ) {
-                                          setMetadata({ title: "", description: "" })
-                                        }
-                                      }}
-                                    >
-                                      Delete
-                                    </Button>
-                                  </div>
-                                </Menu.Item>
-                              ))}
-                            </Menu>
-                          }
-                          trigger={["click"]}
-                        >
-                          <Button className="w-full mb-2">
-                            Select Previous Metadata <DownOutlined />
-                          </Button>
-                        </Dropdown>
-                      )}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">
-                          Meta Title
-                        </label>
-                        <Input
-                          value={metadata.title || blog?.seoMetadata?.title || ""}
-                          onChange={e => setMetadata(prev => ({ ...prev, title: e.target.value }))}
-                          placeholder="Enter meta title"
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">
-                          Meta Description
-                        </label>
-                        <TextArea
-                          value={metadata.description || blog?.seoMetadata?.description || ""}
-                          onChange={e =>
-                            setMetadata(prev => ({ ...prev, description: e.target.value }))
-                          }
-                          placeholder="Enter meta description"
-                          rows={4}
-                          className="mt-1 !resize-none"
-                        />
-                      </div>
-                      <Button
-                        type="primary"
-                        onClick={handleMetadataSave}
-                        className="w-full py-2 text-sm px-4 rounded-lg font-medium bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg"
-                      >
-                        Save Metadata
-                      </Button>
-                    </div>
-
-                    <div className="mb-4 bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                      <div className="flex items-start gap-3 mb-3">
-                        <div className="p-2 bg-blue-50 rounded-lg">
-                          <Sparkles className="w-4 h-4 text-blue-600" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-4 mb-1">
-                            <h3 className="font-semibold text-gray-900">Custom Prompt</h3>
-                            {["free", "basic"].includes(userPlan?.toLowerCase?.()) && (
-                              <CrownTwoTone className="text-2xl ml-auto mr-2" />
-                            )}
-                          </div>
-                          <p className="text-sm text-gray-600">
-                            Modify content with a custom AI prompt
-                          </p>
-                        </div>
-                      </div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Custom Prompt
-                      </label>
-                      <textarea
-                        value={customPrompt}
-                        onChange={e => {
-                          setCustomPrompt(e.target.value)
-                        }}
-                        placeholder="e.g., 'Make the tone more professional' or 'Shorten the content'"
-                        rows={6}
-                        aria-label="Custom prompt for AI content modification"
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all !resize-none"
-                      />
-                    </div>
-                  </div>
-                  <Button
-                    onClick={handleCustomPromptBlog}
-                    loading={isHumanizing}
-                    type="primary"
-                    className="w-full py-2 text-sm px-4 rounded-lg font-medium transition-all duration-200 bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:shadow-lg"
-                    ghost={["free", "basic"].includes(userPlan?.toLowerCase?.())}
-                  >
-                    {isHumanizing ? "Processing..." : "Apply Custom Prompt"}
-                  </Button>
-                </div>
-              </motion.div>
-            )}
-
-            {activeSection === "analysis" && (
-              <motion.div
-                key="analysis"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="p-4 space-y-4 h-screen"
-              >
-                {competitiveAnalysisResults || result ? (
-                  <Collapse defaultActiveKey={["1"]} ghost expandIconPosition="end">
-                    {(result?.competitors || blog?.generatedMetadata?.competitors)?.length > 0 && (
-                      <Panel
-                        header={
-                          <div className="flex items-center gap-2">
-                            <Eye className="w-4 h-4 text-blue-600" />
-                            <span className="font-medium">Top Competitors</span>
-                          </div>
-                        }
-                        key="1"
-                      >
-                        <CompetitorsList
-                          competitors={result?.competitors || blog?.generatedMetadata?.competitors}
-                        />
-                      </Panel>
-                    )}
-
-                    {(competitiveAnalysisResults?.insights?.analysis ||
-                      competitiveAnalysisResults?.analysis) && (
-                      <Panel
-                        header={
-                          <div className="flex items-center gap-2">
-                            <Lightbulb className="w-4 h-4 text-orange-500" />
-                            <span className="font-medium">Key Insights</span>
-                          </div>
-                        }
-                        key="2"
-                      >
-                        <AnalysisInsights
-                          insights={
-                            competitiveAnalysisResults?.insights?.analysis ||
-                            competitiveAnalysisResults?.analysis
-                          }
-                        />
-                      </Panel>
-                    )}
-                  </Collapse>
-                ) : (
-                  <div className="text-center py-8 h-screen">
-                    <TrendingUp className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                    <p className="text-sm text-gray-600 mb-2">No analysis results yet</p>
-                    <p className="text-xs text-gray-500">
-                      Run competitive analysis to see insights
-                    </p>
-                  </div>
-                )}
-              </motion.div>
-            )}
-
-            {activeSection === "suggestions" && (
-              <motion.div
-                key="suggestions"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="p-4 space-y-4"
-              >
-                {isAnalyzingProofreading ? (
-                  <div className="text-center py-8">
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                      className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-3"
-                    />
-                    <p className="text-sm text-gray-600">Analyzing content...</p>
-                  </div>
-                ) : proofreadingResults.length > 0 ? (
-                  <>
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-2">
-                        <Lightbulb className="w-4 h-4 text-orange-500" />
-                        <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                          Suggestions
-                        </h3>
-                        <Badge count={proofreadingResults.length} />
-                      </div>
-                      <Button
-                        size="small"
-                        type="primary"
-                        onClick={handleApplyAllSuggestions}
-                        disabled={proofreadingResults.length === 0}
-                        className="text-xs"
-                      >
-                        Apply All
-                      </Button>
-                    </div>
-
-                    <div className="space-y-3 max-h-screen overflow-y-auto">
-                      {proofreadingResults.map((suggestion, index) => (
-                        <ProofreadingSuggestion
-                          key={index}
-                          suggestion={suggestion}
-                          index={index}
-                          onApply={suggestionIndex => {
-                            const newResults = proofreadingResults.filter(
-                              (_, i) => i !== suggestionIndex
-                            )
-                            setProofreadingResults(newResults)
-                          }}
-                        />
-                      ))}
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-center py-8 h-screen">
-                    <FileText className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                    <p className="text-sm text-gray-600 mb-2">No suggestions available</p>
-                    <p className="text-xs text-gray-500">Run AI proofreading to get suggestions</p>
-                  </div>
-                )}
-              </motion.div>
-            )}
+            <motion.div
+              key={activePanel}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.15 }}
+              className="h-full flex flex-col"
+            >
+              {renderPanel()}
+            </motion.div>
           </AnimatePresence>
         </div>
 
-        <div className="sticky bottom-0 z-50 p-4 border-t border-gray-200 bg-gray-50">
-          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-            <Button
-              type="primary"
-              size="large"
-              onClick={handlePostClick}
-              loading={isPosting}
-              disabled={isDisabled}
-              className="w-full h-12 text-base font-semibold bg-gradient-to-r from-green-600 to-emerald-600 border-0 hover:shadow-lg"
-            >
-              {isPosting ? "Posting..." : hasPostings ? "Re-Post" : "Post Blog"}
-            </Button>
-          </motion.div>
-
-          {/* Loading state for postings */}
-          {isLoadingPostings && (
-            <div className="mt-3 flex items-center justify-center gap-2 text-gray-500 text-sm">
-              <Spin size="small" />
-              <span>Loading postings...</span>
-            </div>
-          )}
-
-          {/* Posted Links Display - New Premium UI */}
-          {!isLoadingPostings && postedLinks.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              className="mt-4"
-            >
-              {/* Header */}
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span className="text-sm font-medium text-gray-700">
-                    Published ({postedLinks.length})
-                  </span>
-                </div>
-                {postedLinks.length > 1 && (
-                  <button
-                    onClick={() => setChoosePlatformOpen(true)}
-                    className="text-xs text-blue-600 hover:text-blue-700 font-medium"
-                  >
-                    View All
-                  </button>
-                )}
-              </div>
-
-              {/* Single posting - show inline card */}
-              {postedLinks.length === 1 && (
-                <div
-                  className={`p-3 rounded-lg border ${
-                    postedLinks[0].config?.borderColor || "border-gray-200"
-                  } ${
-                    postedLinks[0].config?.bgColor || "bg-gray-50"
-                  } cursor-pointer hover:shadow-md transition-all`}
-                  onClick={() => window.open(postedLinks[0].link, "_blank")}
+        {/* Icon Navigation Bar - Premium Theme */}
+        <div className="w-16 bg-gradient-to-b from-slate-50 to-gray-100 border-l border-gray-200 flex flex-col items-center py-5 gap-2">
+          {NAV_ITEMS.map(item => {
+            const Icon = item.icon
+            const isActive = activePanel === item.id
+            const hasBadge = item.id === "suggestions" && proofreadingResults?.length > 0
+            return (
+              <Tooltip key={item.id} title={item.label} placement="left">
+                <button
+                  onClick={() => {
+                    if (item.id === "regenerate") {
+                      // Open the 2-step modal for regenerate
+                      setRegenerateStep(1)
+                      setIsRegenerateModalOpen(true)
+                    } else {
+                      setActivePanel(item.id)
+                    }
+                  }}
+                  className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-200 relative group ${
+                    isActive
+                      ? "bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-200"
+                      : "text-gray-400 hover:text-blue-600 hover:bg-white hover:shadow-md"
+                  }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                          postedLinks[0].config?.bgColor || "bg-gray-100"
-                        }`}
-                      >
-                        <Globe
-                          className={`w-4 h-4 ${
-                            postedLinks[0].config?.textColor || "text-gray-600"
-                          }`}
-                        />
-                      </div>
-                      <div>
-                        <p
-                          className={`text-sm font-semibold ${
-                            postedLinks[0].config?.textColor || "text-gray-700"
-                          }`}
-                        >
-                          {postedLinks[0].label}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {postedLinks[0].postedOn
-                            ? dayjs(postedLinks[0].postedOn).fromNow()
-                            : "Recently posted"}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {/* Image CDN Status Badge */}
-                      {postedLinks[0].imageCdnStatus &&
-                        IMAGE_CDN_STATUS_CONFIG[postedLinks[0].imageCdnStatus] && (
-                          <Tooltip
-                            title={IMAGE_CDN_STATUS_CONFIG[postedLinks[0].imageCdnStatus].label}
-                          >
-                            {(() => {
-                              const StatusIcon =
-                                IMAGE_CDN_STATUS_CONFIG[postedLinks[0].imageCdnStatus].icon
-                              return (
-                                <StatusIcon
-                                  className={`w-4 h-4 ${
-                                    IMAGE_CDN_STATUS_CONFIG[postedLinks[0].imageCdnStatus].color
-                                  } ${
-                                    postedLinks[0].imageCdnStatus === "processing"
-                                      ? "animate-spin"
-                                      : ""
-                                  }`}
-                                />
-                              )
-                            })()}
-                          </Tooltip>
-                        )}
-                      <ExternalLink className="w-4 h-4 text-gray-400" />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Multiple postings - show compact list */}
-              {postedLinks.length > 1 && (
-                <div className="space-y-2">
-                  {postedLinks.slice(0, 2).map((posting, index) => (
-                    <div
-                      key={posting._id || posting.platform + index}
-                      className={`p-2 rounded-lg border ${
-                        posting.config?.borderColor || "border-gray-200"
-                      } ${
-                        posting.config?.bgColor || "bg-gray-50"
-                      } cursor-pointer hover:shadow-sm transition-all`}
-                      onClick={() => window.open(posting.link, "_blank")}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Globe
-                            className={`w-3.5 h-3.5 ${
-                              posting.config?.textColor || "text-gray-600"
-                            }`}
-                          />
-                          <span
-                            className={`text-xs font-medium ${
-                              posting.config?.textColor || "text-gray-700"
-                            }`}
-                          >
-                            {posting.label}
-                          </span>
-                          {posting.postedOn && (
-                            <span className="text-xs text-gray-400">
-                              • {dayjs(posting.postedOn).fromNow()}
-                            </span>
-                          )}
-                        </div>
-                        <ExternalLink className="w-3.5 h-3.5 text-gray-400" />
-                      </div>
-                    </div>
-                  ))}
-                  {postedLinks.length > 2 && (
-                    <button
-                      onClick={() => setChoosePlatformOpen(true)}
-                      className="w-full text-center text-xs text-blue-600 hover:text-blue-700 font-medium py-1"
-                    >
-                      +{postedLinks.length - 2} more platforms
-                    </button>
+                  <Icon
+                    className={`w-5 h-5 transition-transform ${
+                      isActive ? "" : "group-hover:scale-110"
+                    }`}
+                  />
+                  {hasBadge && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-br from-red-500 to-pink-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold shadow-md animate-pulse">
+                      {proofreadingResults.length}
+                    </span>
                   )}
-                </div>
-              )}
-            </motion.div>
-          )}
-        </div>
-      </motion.div>
+                </button>
+              </Tooltip>
+            )
+          })}
 
-      <Modal
-        title="Content Enhancement Summary"
-        open={open}
-        onCancel={() => setOpen(false)}
-        footer={null}
-        centered
-        width={480}
-      >
-        <FeatureSettingsModal features={blog?.options || {}} />
-      </Modal>
+          <div className="mt-auto flex flex-col gap-2">
+            {/* Divider */}
+            <div className="w-8 h-px bg-gray-300 my-2" />
+            {/* Collapse Button */}
+            <div className="hidden md:block">
+              <Tooltip title="Collapse Sidebar" placement="left">
+                <button
+                  onClick={() => setIsCollapsed(true)}
+                  className="w-11 h-11 rounded-2xl items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-white hover:shadow-md transition-all duration-200 group flex"
+                >
+                  <ChevronRight className="w-5 h-5 transition-transform group-hover:translate-x-0.5" />
+                </button>
+              </Tooltip>
+            </div>
+            {/* Mobile close */}
+            <div className="md:hidden">
+              <button
+                onClick={() => setIsSidebarOpen(false)}
+                className="w-11 h-11 rounded-2xl flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all duration-200"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Modals */}
       <CategoriesModal
         isCategoryModalOpen={isCategoryModalOpen}
         setIsCategoryModalOpen={setIsCategoryModalOpen}
@@ -1424,7 +1310,6 @@ const TextEditorSidebar = ({
         posted={posted}
       />
 
-      {/* Enhanced Platform Selection Modal */}
       <Modal
         title={
           <div className="flex items-center gap-2">
@@ -1436,139 +1321,462 @@ const TextEditorSidebar = ({
         onCancel={() => setChoosePlatformOpen(false)}
         footer={null}
         centered
-        width={440}
+        width={320}
       >
-        <div className="py-2">
-          <p className="text-sm text-gray-600 mb-4">
-            This blog has been published to {postedLinks.length} platform
-            {postedLinks.length > 1 ? "s" : ""}.
-          </p>
-
-          <div className="space-y-3">
-            {postedLinks.map((posting, index) => {
-              const cdnStatus = posting.imageCdnStatus
-                ? IMAGE_CDN_STATUS_CONFIG[posting.imageCdnStatus]
-                : null
-              const CdnIcon = cdnStatus?.icon
-
-              return (
-                <motion.div
-                  key={posting._id || posting.platform + index}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className={`p-4 rounded-xl border-2 ${
-                    posting.config?.borderColor || "border-gray-200"
-                  } ${
-                    posting.config?.bgColor || "bg-gray-50"
-                  } hover:shadow-lg transition-all cursor-pointer group`}
-                  onClick={() => window.open(posting.link, "_blank")}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-3">
-                      {/* Platform Icon */}
-                      <div
-                        className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                          posting.config?.bgColor || "bg-gray-100"
-                        } border ${posting.config?.borderColor || "border-gray-200"}`}
-                      >
-                        <Globe
-                          className={`w-6 h-6 ${posting.config?.textColor || "text-gray-600"}`}
-                        />
-                      </div>
-
-                      {/* Platform Info */}
-                      <div className="flex-1">
-                        <h4
-                          className={`font-semibold ${
-                            posting.config?.textColor || "text-gray-800"
-                          }`}
-                        >
-                          {posting.label}
-                        </h4>
-
-                        {/* Posting Date */}
-                        <div className="flex items-center gap-1 mt-1">
-                          <Calendar className="w-3 h-3 text-gray-400" />
-                          <span className="text-xs text-gray-500">
-                            {posting.postedOn
-                              ? dayjs(posting.postedOn).format("MMM D, YYYY [at] h:mm A")
-                              : "Recently posted"}
-                          </span>
-                        </div>
-
-                        {/* Image CDN Status */}
-                        {cdnStatus && (
-                          <div className="flex items-center gap-1.5 mt-2">
-                            <ImageIcon className="w-3 h-3 text-gray-400" />
-                            <div className="flex items-center gap-1">
-                              {CdnIcon && (
-                                <CdnIcon
-                                  className={`w-3 h-3 ${cdnStatus.color} ${
-                                    posting.imageCdnStatus === "processing" ? "animate-spin" : ""
-                                  }`}
-                                />
-                              )}
-                              <span className={`text-xs ${cdnStatus.color}`}>
-                                {cdnStatus.label}
-                              </span>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Category if available */}
-                        {posting.category && (
-                          <div className="mt-2">
-                            <Tag color="blue" className="text-xs">
-                              {posting.category}
-                            </Tag>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* External Link Icon */}
-                    <div className="opacity-50 group-hover:opacity-100 transition-opacity">
-                      <ExternalLink className="w-5 h-5 text-gray-400 group-hover:text-blue-500" />
-                    </div>
-                  </div>
-
-                  {/* Link Preview */}
-                  <div className="mt-3 pt-3 border-t border-gray-200/50">
-                    <p className="text-xs text-gray-400 truncate font-mono">{posting.link}</p>
-                  </div>
-                </motion.div>
-              )
-            })}
-          </div>
-
-          {/* Refresh Button */}
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <Button
-              type="text"
-              size="small"
-              icon={<RefreshCw className={`w-4 h-4 ${isLoadingPostings ? "animate-spin" : ""}`} />}
-              onClick={async () => {
-                if (blog?._id) {
-                  setIsLoadingPostings(true)
-                  try {
-                    const postings = await getBlogPostings(blog._id)
-                    setBlogPostings(postings)
-                    message.success("Postings refreshed")
-                  } catch (error) {
-                    message.error("Failed to refresh postings")
-                  } finally {
-                    setIsLoadingPostings(false)
-                  }
-                }
-              }}
-              disabled={isLoadingPostings}
-              className="text-gray-500 hover:text-blue-600"
+        <div className="space-y-2">
+          {postedLinks.map(({ platform, link, label }) => (
+            <button
+              key={platform}
+              onClick={() => window.open(link, "_blank")}
+              className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg text-sm"
             >
-              Refresh Postings
+              {label} <ExternalLink className="w-4 h-4" />
+            </button>
+          ))}
+        </div>
+      </Modal>
+
+      {/* Generated Metadata Accept/Reject Modal */}
+      <Modal
+        title="Generated SEO Metadata"
+        open={generatedMetadataModal}
+        onCancel={handleRejectMetadata}
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button onClick={handleRejectMetadata}>Reject</Button>
+            <Button
+              type="primary"
+              onClick={handleAcceptMetadata}
+              className="bg-gradient-to-r from-green-500 to-emerald-600 border-0"
+            >
+              Accept & Apply
             </Button>
           </div>
+        }
+        centered
+        width={500}
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-500 mb-4">
+            Review the AI-generated metadata below. Accept to apply these changes or reject to keep
+            your current data.
+          </p>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Generated Title</label>
+            <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-sm text-gray-800">
+                {generatedMetadata?.title || generatedMetadata?.metaTitle || "No title generated"}
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">
+              Generated Description
+            </label>
+            <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-sm text-gray-800">
+                {generatedMetadata?.description ||
+                  generatedMetadata?.metaDescription ||
+                  "No description generated"}
+              </p>
+            </div>
+          </div>
+
+          {/* Current values for comparison */}
+          <div className="border-t pt-4 mt-4">
+            <p className="text-xs font-medium text-gray-400 mb-2">
+              Current Values (will be replaced if accepted):
+            </p>
+            <div className="space-y-2">
+              <p className="text-xs text-gray-500">
+                <span className="font-medium">Title:</span> {metadata.title || "Not set"}
+              </p>
+              <p className="text-xs text-gray-500">
+                <span className="font-medium">Description:</span>{" "}
+                {metadata.description || "Not set"}
+              </p>
+            </div>
+          </div>
         </div>
+      </Modal>
+
+      {/* 2-Step Regenerate Modal */}
+      <Modal
+        title={
+          <div className="flex items-center gap-2">
+            <RefreshCw className="w-5 h-5 text-blue-600" />
+            <span>Regenerate Blog - Step {regenerateStep} of 2</span>
+          </div>
+        }
+        open={isRegenerateModalOpen}
+        onCancel={() => {
+          setIsRegenerateModalOpen(false)
+          setRegenerateStep(1)
+        }}
+        footer={
+          <div className="flex justify-between items-center">
+            <div className="text-sm text-gray-500">
+              {regenerateStep === 2 && (
+                <div className="flex items-center gap-1">
+                  <Zap className="w-4 h-4 text-amber-500" />
+                  <span className="font-bold text-blue-600">{calculateRegenCost()} credits</span>
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2">
+              {regenerateStep === 2 && <Button onClick={() => setRegenerateStep(1)}>Back</Button>}
+              <Button
+                onClick={() => {
+                  setIsRegenerateModalOpen(false)
+                  setRegenerateStep(1)
+                }}
+              >
+                Cancel
+              </Button>
+              {regenerateStep === 1 ? (
+                <Button
+                  type="primary"
+                  onClick={() => setRegenerateStep(2)}
+                  className="bg-gradient-to-r from-blue-500 to-indigo-600 border-0"
+                >
+                  Next: Enhancement Options
+                </Button>
+              ) : (
+                <Button
+                  type="primary"
+                  loading={isRegenerating}
+                  onClick={handleRegenerateSubmit}
+                  icon={<RefreshCw className="w-4 h-4" />}
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 border-0"
+                >
+                  Regenerate Blog
+                </Button>
+              )}
+            </div>
+          </div>
+        }
+        centered
+        width={600}
+      >
+        {regenerateStep === 1 ? (
+          // Step 1: Regenerate Blog Settings
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto custom-scroll pr-2">
+            <p className="text-sm text-gray-500 mb-4">
+              Configure your blog regeneration settings. You can modify the topic, keywords, tone,
+              and other options.
+            </p>
+
+            {/* Topic & Title */}
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-gray-700 mb-1 block">Topic</label>
+                <Input
+                  value={regenForm.topic}
+                  onChange={e => updateRegenField("topic", e.target.value)}
+                  placeholder="Blog topic..."
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-700 mb-1 block">Title</label>
+                <Input
+                  value={regenForm.title}
+                  onChange={e => updateRegenField("title", e.target.value)}
+                  placeholder="Blog title..."
+                />
+              </div>
+            </div>
+
+            {/* Focus Keywords */}
+            <div>
+              <label className="text-xs font-medium text-gray-700 mb-1 block">
+                Focus Keywords (max 3)
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  value={focusKeywordInput}
+                  onChange={e => setFocusKeywordInput(e.target.value)}
+                  onKeyDown={e =>
+                    e.key === "Enter" && (e.preventDefault(), addRegenKeyword("focus"))
+                  }
+                  placeholder="Add keyword..."
+                  size="small"
+                />
+                <Button
+                  size="small"
+                  type="primary"
+                  onClick={() => addRegenKeyword("focus")}
+                  icon={<Plus className="w-3 h-3" />}
+                />
+              </div>
+              <div className="flex flex-wrap gap-1 mt-2">
+                {regenForm.focusKeywords.map((kw, i) => (
+                  <span
+                    key={i}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs"
+                  >
+                    {kw}{" "}
+                    <button onClick={() => removeRegenKeyword("focus", i)}>
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Secondary Keywords */}
+            <div>
+              <label className="text-xs font-medium text-gray-700 mb-1 block">
+                Secondary Keywords
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  value={keywordInput}
+                  onChange={e => setKeywordInput(e.target.value)}
+                  onKeyDown={e =>
+                    e.key === "Enter" && (e.preventDefault(), addRegenKeyword("secondary"))
+                  }
+                  placeholder="Add keywords..."
+                  size="small"
+                />
+                <Button
+                  size="small"
+                  type="primary"
+                  onClick={() => addRegenKeyword("secondary")}
+                  icon={<Plus className="w-3 h-3" />}
+                />
+              </div>
+              <div className="flex flex-wrap gap-1 mt-2">
+                {regenForm.keywords.map((kw, i) => (
+                  <span
+                    key={i}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs"
+                  >
+                    {kw}{" "}
+                    <button onClick={() => removeRegenKeyword("secondary", i)}>
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Tone & Length */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-medium text-gray-700 mb-1 block">Tone</label>
+                <Select
+                  value={regenForm.tone}
+                  onChange={val => updateRegenField("tone", val)}
+                  options={TONES.map(t => ({ label: t, value: t }))}
+                  className="w-full"
+                  size="small"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-700 mb-1 block">
+                  Length: {regenForm.userDefinedLength}
+                </label>
+                <Slider
+                  value={regenForm.userDefinedLength}
+                  onChange={val => updateRegenField("userDefinedLength", val)}
+                  min={500}
+                  max={5000}
+                  step={100}
+                />
+              </div>
+            </div>
+
+            {/* AI Model */}
+            <div>
+              <label className="text-xs font-medium text-gray-700 mb-2 block">AI Model</label>
+              <div className="grid grid-cols-3 gap-2">
+                {AI_MODELS.map(model => (
+                  <button
+                    key={model.id}
+                    onClick={() => {
+                      if (model.restrictedPlans.includes(userPlan)) {
+                        openUpgradePopup({ featureName: model.label, navigate })
+                      } else {
+                        updateRegenField("aiModel", model.id)
+                      }
+                    }}
+                    className={`p-2 rounded-lg border text-center text-xs transition-all ${
+                      regenForm.aiModel === model.id
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-gray-200 hover:border-gray-300"
+                    } ${model.restrictedPlans.includes(userPlan) ? "opacity-50" : ""}`}
+                  >
+                    <img src={model.logo} alt={model.label} className="w-5 h-5 mx-auto mb-1" />
+                    {model.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Add Images Section */}
+            <div className="space-y-2 p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-700 font-medium">Add Images</span>
+                <Switch
+                  size="small"
+                  checked={regenForm.isCheckedGeneratedImages}
+                  onChange={val => updateRegenField("isCheckedGeneratedImages", val)}
+                />
+              </div>
+
+              {regenForm.isCheckedGeneratedImages && (
+                <div className="space-y-2 pt-2">
+                  <label className="text-xs font-medium text-gray-500 block">Image Source</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => updateRegenField("imageSource", IMAGE_SOURCE.STOCK)}
+                      className={`p-2 rounded-lg border text-center text-xs transition-all ${
+                        regenForm.imageSource === IMAGE_SOURCE.STOCK
+                          ? "border-blue-500 bg-blue-50 text-blue-700"
+                          : "border-gray-200 hover:border-gray-300 text-gray-700"
+                      }`}
+                    >
+                      <div className="font-medium">Stock Images</div>
+                      <div className="text-[10px] text-gray-500 mt-0.5">Unsplash</div>
+                    </button>
+                    <button
+                      onClick={() => updateRegenField("imageSource", IMAGE_SOURCE.AI)}
+                      className={`p-2 rounded-lg border text-center text-xs transition-all ${
+                        regenForm.imageSource === IMAGE_SOURCE.AI
+                          ? "border-blue-500 bg-blue-50 text-blue-700"
+                          : "border-gray-200 hover:border-gray-300 text-gray-700"
+                      }`}
+                    >
+                      <div className="font-medium">AI Generated</div>
+                      <div className="text-[10px] text-gray-500 mt-0.5">Flux AI</div>
+                    </button>
+                  </div>
+
+                  <div className="pt-1">
+                    <label className="text-xs font-medium text-gray-500 block mb-1">
+                      Number of Images: {regenForm.numberOfImages || 3}
+                    </label>
+                    <InputNumber
+                      size="small"
+                      min={1}
+                      max={10}
+                      value={regenForm.numberOfImages || 3}
+                      onChange={val => updateRegenField("numberOfImages", val)}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Brand Voice */}
+            <BrandVoiceSelector
+              label="Brand Voice"
+              labelClass="text-xs font-medium text-gray-700"
+              value={{
+                isCheckedBrand: regenForm.useBrandVoice,
+                brandId: regenForm.brandId,
+                addCTA: regenForm.addCTA,
+              }}
+              onChange={val => {
+                updateRegenField("useBrandVoice", val.isCheckedBrand)
+                updateRegenField("brandId", val.brandId)
+                updateRegenField("addCTA", val.addCTA)
+              }}
+            />
+          </div>
+        ) : (
+          // Step 2: Content Enhancement Options
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto custom-scroll pr-2">
+            <p className="text-sm text-gray-500 mb-4">
+              Select the content enhancement options you want to include in your regenerated blog.
+            </p>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-2 h-2 rounded-full ${
+                      regenForm.options.includeFaqs ? "bg-green-500" : "bg-gray-400"
+                    }`}
+                  />
+                  <span className="text-sm font-medium text-gray-700">Include FAQs</span>
+                </div>
+                <Switch
+                  size="small"
+                  checked={regenForm.options.includeFaqs}
+                  onChange={val => updateRegenField("options.includeFaqs", val)}
+                />
+              </div>
+
+              <div className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-2 h-2 rounded-full ${
+                      regenForm.options.includeInterlinks ? "bg-green-500" : "bg-gray-400"
+                    }`}
+                  />
+                  <span className="text-sm font-medium text-gray-700">Include Interlinks</span>
+                </div>
+                <Switch
+                  size="small"
+                  checked={regenForm.options.includeInterlinks}
+                  onChange={val => updateRegenField("options.includeInterlinks", val)}
+                />
+              </div>
+
+              <div className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-2 h-2 rounded-full ${
+                      regenForm.options.includeCompetitorResearch ? "bg-green-500" : "bg-gray-400"
+                    }`}
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-gray-700">Competitor Research</span>
+                    <span className="ml-2 text-xs text-amber-600 font-semibold">+10 credits</span>
+                  </div>
+                </div>
+                <Switch
+                  size="small"
+                  checked={regenForm.options.includeCompetitorResearch}
+                  onChange={val => updateRegenField("options.includeCompetitorResearch", val)}
+                />
+              </div>
+
+              <div className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-2 h-2 rounded-full ${
+                      regenForm.options.addOutBoundLinks ? "bg-green-500" : "bg-gray-400"
+                    }`}
+                  />
+                  <span className="text-sm font-medium text-gray-700">Add Outbound Links</span>
+                </div>
+                <Switch
+                  size="small"
+                  checked={regenForm.options.addOutBoundLinks}
+                  onChange={val => updateRegenField("options.addOutBoundLinks", val)}
+                />
+              </div>
+            </div>
+
+            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <Lightbulb className="w-5 h-5 text-blue-600 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-blue-900">Enhancement Summary</p>
+                  <p className="text-xs text-blue-700 mt-1">
+                    These options will enhance your blog content with additional features like FAQs,
+                    internal links, competitor insights, and external references.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </Modal>
     </>
   )

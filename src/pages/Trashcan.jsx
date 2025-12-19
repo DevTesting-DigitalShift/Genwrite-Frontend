@@ -467,7 +467,7 @@ const Trashcan = () => {
                               {title}
                             </h3>
                             <p className="text-xs sm:text-sm text-gray-600 mb-4 line-clamp-3 break-all">
-                              {truncateContent(stripMarkdown(content)) || ""}
+                              {truncateContent(stripMarkdown(blog.content)) || ""}
                             </p>
                           </div>
                         </div>

@@ -1,15 +1,20 @@
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useState, useRef } from "react"
 import { useLocation, useNavigate, useParams } from "react-router-dom"
 import { useDispatch, useSelector } from "react-redux"
 import { motion, AnimatePresence } from "framer-motion"
 import axiosInstance from "../api"
-import { createManualBlog, fetchBlogById, updateBlogById } from "../store/slices/blogSlice"
-import { Loader2, FileText, Eye, Save, RefreshCw, PanelRightOpen, X } from "lucide-react"
+import {
+  createManualBlog,
+  fetchBlogById,
+  updateBlogById,
+  clearSelectedBlog,
+} from "../store/slices/blogSlice"
+import { Loader2, FileText, Eye, Save, RefreshCw, PanelRightOpen, X, Info } from "lucide-react"
 import { Helmet } from "react-helmet"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeRaw from "rehype-raw"
-import { Button, message, Modal, Typography } from "antd"
+import { Button, message, Modal, Typography, Popover } from "antd"
 import { htmlToText } from "html-to-text"
 import { sendRetryLines } from "@api/blogApi"
 import TemplateModal from "@components/generateBlog/TemplateModal"
@@ -24,7 +29,8 @@ const MainEditorPage = () => {
   const dispatch = useDispatch()
   const blog = useSelector(state => state.blog.selectedBlog)
   const { metadata } = useSelector(state => state.wordpress)
-  const [isLoading, setIsLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState("Normal")
+  const [isLoading, setIsLoading] = useState(!!id)
   const [keywords, setKeywords] = useState([])
   const [editorContent, setEditorContent] = useState("")
   const [editorTitle, setEditorTitle] = useState("")
@@ -47,7 +53,6 @@ const MainEditorPage = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const pathDetect = location.pathname === `/blog-editor/${blog?._id}`
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false)
   const [unsavedChanges, setUnsavedChanges] = useState(false)
   const { Title } = Typography
   const [templateFormData, setTemplateFormData] = useState({
@@ -90,11 +95,20 @@ const MainEditorPage = () => {
         .unwrap()
         .catch(() => message.error("Failed to load blog."))
         .finally(() => setIsLoading(false))
+    } else {
+      // Clear selected blog when creating a new blog
+      dispatch(clearSelectedBlog())
+      // Clear editor state to prevent showing previous blog content
+      setEditorContent("")
+      setEditorTitle("")
+      setKeywords([])
+      setIsPosted(null)
+      setFormData({ category: "", includeTableOfContents: false })
     }
   }, [id, dispatch])
 
   useEffect(() => {
-    if (blog) {
+    if (blog && id) {
       setKeywords(blog.keywords || [])
       setEditorTitle(blog.title || "")
       setEditorContent(blog.content ?? "")
@@ -106,21 +120,36 @@ const MainEditorPage = () => {
       })
       setUnsavedChanges(false) // Reset unsavedChanges when blog is loaded
     }
-  }, [blog])
+  }, [blog, id])
 
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [])
 
-  const handleReplace = (original, change) => {
+  // Store the section-aware replace function from TextEditor
+  const sectionReplaceRef = useRef(null)
+  const handleReplaceReady = useCallback(replaceFn => {
+    sectionReplaceRef.current = replaceFn
+  }, [])
+
+  const handleReplace = useCallback((original, change) => {
     if (typeof original !== "string" || typeof change !== "string") {
       message.error("Invalid suggestion format.")
       return
     }
-    const regex = new RegExp(original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g")
-    setEditorContent(prev => prev.replace(regex, change))
+
+    // Use section-aware replace if available (updates both sections and content)
+    if (sectionReplaceRef.current) {
+      sectionReplaceRef.current(original, change)
+    } else {
+      // Fallback to basic content replace
+      const regex = new RegExp(original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g")
+      setEditorContent(prev => prev.replace(regex, change))
+    }
+
+    // Remove suggestion from list
     setProofreadingResults(prev => prev.filter(s => s.original !== original))
-  }
+  }, [])
 
   const handlePostToWordPress = async postData => {
     setIsPosting(true)
@@ -177,7 +206,11 @@ const MainEditorPage = () => {
   }
 
   const getWordCount = text => {
-    return text
+    if (!text) return 0
+    // Strip HTML tags first
+    const strippedText = text.replace(/<[^>]*>/g, " ")
+    // Count words
+    return strippedText
       .trim()
       .split(/\s+/)
       .filter(word => word.length > 0).length
@@ -350,16 +383,6 @@ const MainEditorPage = () => {
     }
   }
 
-  const handlePreview = () => {
-    if (!editorContent.trim()) {
-      message.error("Please write some content to preview.")
-      return
-    }
-    setIsPreviewOpen(true)
-  }
-
-  const handlePreviewClose = () => setIsPreviewOpen(false)
-
   const generatePreviewContent = () => {
     if (!editorContent.trim())
       return `<h1>${editorTitle || "Preview Title"}</h1><p>No content available for preview.</p>`
@@ -456,30 +479,6 @@ const MainEditorPage = () => {
           </div>
         </Modal>
 
-        <Modal
-          title="Blog Preview"
-          open={isPreviewOpen}
-          onCancel={handlePreviewClose}
-          footer={[
-            <button
-              key="close"
-              onClick={handlePreviewClose}
-              className="px-3 sm:px-4 py-2 bg-gray-400 text-white rounded-md hover:bg-gray-500 focus:outline-none focus:bg-gray-500"
-              aria-label="Close preview"
-            >
-              Close
-            </button>,
-          ]}
-          width="100%"
-          className="rounded-lg max-w-[700px] sm:max-w-[800px] md:max-w-[900px]"
-          centered
-        >
-          <div
-            className="prose prose-sm sm:prose-base max-w-none p-4 sm:p-6"
-            dangerouslySetInnerHTML={{ __html: generatePreviewContent() }}
-          />
-        </Modal>
-
         <div className="flex flex-col md:flex-row flex-grow overflow-hidden">
           <div className="flex-1 flex flex-col min-w-0">
             <header className="bg-white shadow-lg border rounded-tl-lg border-gray-200 p-4 sm:p-6">
@@ -502,16 +501,6 @@ const MainEditorPage = () => {
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
-                  {pathDetect && (
-                    <button
-                      onClick={handlePreview}
-                      className="px-3 sm:px-4 py-2 bg-gradient-to-r from-[#1B6FC9] to-[#4C9FE8] text-white rounded-lg hover:from-[#1B6FC9]/90 hover:to-[#4C9FE8]/90 flex items-center text-xs sm:text-sm"
-                      aria-label="Preview blog"
-                    >
-                      <Eye className="w-4 sm:w-5 h-4 sm:h-5 mr-2" />
-                      Preview
-                    </button>
-                  )}
                   <button
                     onClick={() => handleSave({ metadata })}
                     className={`px-3 sm:px-4 py-2 min-w-[130px] rounded-lg font-semibold flex items-center gap-2 justify-center transition-all duration-300 ${
@@ -566,7 +555,7 @@ const MainEditorPage = () => {
                 </div>
               )}
             </header>
-            <div className="flex-grow overflow-auto max-h-[800px]">
+            <div key={activeTab} className="flex-grow overflow-auto max-h-[800px] custom-scroll">
               {isLoading ? (
                 <div className="flex justify-center items-center h-[calc(100vh-120px)]">
                   <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
@@ -593,6 +582,7 @@ const MainEditorPage = () => {
                   unsavedChanges={unsavedChanges}
                   setUnsavedChanges={setUnsavedChanges}
                   wordpressMetadata={metadata}
+                  onReplaceReady={handleReplaceReady}
                 />
               )}
             </div>

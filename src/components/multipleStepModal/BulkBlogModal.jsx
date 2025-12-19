@@ -13,6 +13,7 @@ import { getIntegrationsThunk } from "@store/slices/otherSlice"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
 import { queryClient } from "@utils/queryClient"
+import { IMAGE_SOURCE } from "@/data/blogData"
 
 // Bulk Blog Modal Component - Updated with Outbound Links pricing
 const BulkBlogModal = ({ closeFnc }) => {
@@ -44,7 +45,7 @@ const BulkBlogModal = ({ closeFnc }) => {
     tone: "",
     languageToWrite: "English",
     userDefinedLength: 1000,
-    imageSource: "unsplash",
+    imageSource: IMAGE_SOURCE.STOCK,
     useBrandVoice: false,
     useCompetitors: false,
     includeInterlinks: true,
@@ -93,7 +94,7 @@ const BulkBlogModal = ({ closeFnc }) => {
       setFormData(prev => ({
         ...prev,
         isCheckedGeneratedImages: false,
-        imageSource: "unsplash",
+        imageSource: IMAGE_SOURCE.STOCK,
       }))
       setErrors(prev => ({ ...prev, numberOfImages: false, blogImages: false }))
     }
@@ -221,6 +222,29 @@ const BulkBlogModal = ({ closeFnc }) => {
     })
     let totalCost = formData.numberOfBlogs * blogCost
 
+    handlePopup({
+      title: "Bulk Blog Generation",
+      description: (
+        <>
+          <span>
+            Estimated cost for <b>{formData.numberOfBlogs}</b> blog
+            {formData.numberOfBlogs > 1 ? "s" : ""}: <b>{totalCost} credits</b>
+          </span>
+          <br />
+          <span>Do you want to continue?</span>
+        </>
+      ),
+      onConfirm: () => {
+        // Prepare the final data with proper imageSource handling
+        const finalData = {
+          ...formData,
+          // Set imageSource to "none" if images are disabled
+          imageSource: formData.isCheckedGeneratedImages ? formData.imageSource : IMAGE_SOURCE.NONE,
+        }
+        dispatch(createMultiBlog({ blogData: finalData, user, navigate }))
+        handleClose()
+      },
+    })
     // Apply Cost Cutter discount (25% off)
     if (formData.costCutter) {
       totalCost = Math.round(totalCost * 0.75)

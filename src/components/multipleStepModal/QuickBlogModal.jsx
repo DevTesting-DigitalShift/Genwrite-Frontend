@@ -10,6 +10,7 @@ import { Plus, X, Crown } from "lucide-react" // Added Crown icon
 import Carousel from "./Carousel"
 import { packages } from "@/data/templates"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
+import { IMAGE_SOURCE } from "@/data/blogData"
 import { useQueryClient } from "@tanstack/react-query"
 
 // Quick Blog Modal Component - Updated pricing calculation
@@ -21,7 +22,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     topic: "",
     performKeywordResearch: false,
     addImages: false,
-    imageSource: "unsplash",
+    imageSource: IMAGE_SOURCE.NONE,
     template: null,
     templateIds: [],
     keywords: [],
@@ -161,10 +162,27 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
       ...formData,
       type,
       otherLinks,
+      // Set imageSource to "none" if images are disabled
+      imageSource: formData.addImages ? formData.imageSource : IMAGE_SOURCE.NONE,
     }
 
-    dispatch(createNewQuickBlog({ blogData: finalData, user, navigate, queryClient, type }))
-    handleClose()
+    handlePopup({
+      title: `${type === "quick" ? "Quick" : "Youtube"} Blog Generation`,
+      description: (
+        <>
+          <span>
+            {type === "quick" ? "Quick" : "Youtube"} blog generation will cost you{" "}
+            <b>{getEstimatedCost(`blog.quick`)} credits</b>.
+          </span>
+          <br />
+          <span>Are you sure you want to proceed?</span>
+        </>
+      ),
+      onConfirm: () => {
+        dispatch(createNewQuickBlog({ blogData: finalData, user, navigate, type }))
+        handleClose()
+      },
+    })
   }
 
   // Handle template selection
@@ -375,19 +393,8 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   }
 
   const imageSources = [
-    { id: "unsplash", label: "Stock Images", value: "unsplash" },
-    { id: "ai-generated", label: "AI-Generated Images", value: "ai-generated" },
-  ]
-
-  const languages = [
-    { value: "English", label: "English" },
-    { value: "Spanish", label: "Spanish" },
-    { value: "German", label: "German" },
-    { value: "French", label: "French" },
-    { value: "Italian", label: "Italian" },
-    { value: "Portuguese", label: "Portuguese" },
-    { value: "Dutch", label: "Dutch" },
-    { value: "Japanese", label: "Japanese" },
+    { id: "stock", label: "Stock Images", value: IMAGE_SOURCE.STOCK },
+    { id: "ai", label: "AI-Generated Images", value: IMAGE_SOURCE.AI },
   ]
 
   return (

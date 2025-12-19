@@ -108,3 +108,5 @@ export function computeCost({
 
   return Math.ceil(totalCost)
 }
+
+// Once one step has been run there will be no credits refunded for that step even in failure
