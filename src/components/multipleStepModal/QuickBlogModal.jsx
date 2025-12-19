@@ -10,8 +10,9 @@ import { Plus, X, Crown } from "lucide-react" // Added Crown icon
 import Carousel from "./Carousel"
 import { packages } from "@/data/templates"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
-import { IMAGE_SOURCE } from "@/data/blogData"
+import { IMAGE_SOURCE, LANGUAGES } from "@/data/blogData"
 import { useQueryClient } from "@tanstack/react-query"
+import { getEstimatedCost } from "@utils/getEstimatedCost"
 
 // Quick Blog Modal Component - Updated pricing calculation
 const QuickBlogModal = ({ type = "quick", closeFnc }) => {
@@ -20,6 +21,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
 
   const initialFormData = {
     topic: "",
+    exactTitle: false,
     performKeywordResearch: false,
     addImages: false,
     imageSource: IMAGE_SOURCE.NONE,
@@ -124,7 +126,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
       features,
       aiModel: "gemini",
       includeImages: formData.addImages,
-      imageSource: formData.imageSource === "ai-generated" ? "ai" : "stock",
+      imageSource: formData.imageSource,
       numberOfImages: 0, // AI decides the number
     })
 
@@ -172,14 +174,14 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
         <>
           <span>
             {type === "quick" ? "Quick" : "Youtube"} blog generation will cost you{" "}
-            <b>{getEstimatedCost(`blog.quick`)} credits</b>.
+            <b>{estimatedCost} credits</b>.
           </span>
           <br />
           <span>Are you sure you want to proceed?</span>
         </>
       ),
       onConfirm: () => {
-        dispatch(createNewQuickBlog({ blogData: finalData, user, navigate, type }))
+        // dispatch(createNewQuickBlog({ blogData: finalData, user, navigate, type }))
         handleClose()
       },
     })
@@ -428,7 +430,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                         features,
                         aiModel: "gemini",
                         includeImages: formData.addImages,
-                        imageSource: formData.imageSource === "ai-generated" ? "ai" : "stock",
+                        imageSource: formData.imageSource,
                         numberOfImages: 0,
                       })
                       if (formData.costCutter) {
@@ -469,11 +471,11 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
       maskTransitionName=""
       destroyOnHidden
     >
-      <div className="p-2 space-y-2">
+      <div className="p-2 space-y-2 !max-h-[75vh] overflow-y-auto custom-scroll">
         {currentStep === 0 && (
           <>
             <div
-              className={`!max-h-[75vh] overflow-clip p-4 pt-0 ${
+              className={` overflow-clip p-4 pt-0 ${
                 errors.template ? "border-2 border-red-500 rounded-lg p-2" : ""
               }`}
             >
@@ -505,6 +507,26 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
               />
               {errors.topic && <p className="text-red-500 text-sm mt-1">{errors.topic}</p>}
             </div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Use Topic name as Blog Title
+              </label>
+              <label className="relative inline-block w-11 h-6 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.exactTitle}
+                  onChange={e =>
+                    setFormData(prev => ({
+                      ...prev,
+                      exactTitle: e.target.checked,
+                    }))
+                  }
+                  className="sr-only peer"
+                />
+                <div className="absolute inset-0 bg-gray-200 rounded-full transition-colors duration-200 peer-checked:bg-[#1B6FC9]"></div>
+                <div className="absolute top-[2px] left-[2px] h-5 w-5 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-5"></div>
+              </label>
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Language <span className="text-red-500">*</span>
@@ -516,7 +538,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                 className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#1B6FC9] focus:border-transparent"
                 aria-label="Select language"
               >
-                {languages.map(lang => (
+                {LANGUAGES.map(lang => (
                   <option key={lang.value} value={lang.value}>
                     {lang.label}
                   </option>
@@ -800,7 +822,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                   <span className="text-blue-900/70">Images</span>
                   <span className="font-semibold text-blue-900">
                     {formData.addImages
-                      ? formData.imageSource === "ai-generated"
+                      ? formData.imageSource.includes("ai")
                         ? "AI Generated"
                         : "Stock Images"
                       : "None"}

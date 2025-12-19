@@ -2,9 +2,15 @@ import { objectToFormData } from "@utils/usableFunctions"
 import axiosInstance from "."
 import { message } from "antd"
 
+const formTesting = import.meta.env.PROD && import.meta.env.VITE_FORM_TESTING
+
 export const createQuickBlog = async (blogData, type) => {
   try {
     const endpoint = type === "yt" ? "/blogs/yt" : "/blogs/quick"
+
+    if (formTesting) {
+      console.log("QuickYT Blog Data : ", blogData)
+    }
 
     const response = await axiosInstance.post(endpoint, blogData)
     return response.data.blog
@@ -25,6 +31,9 @@ export const createBlog = async blogData => {
       Object.entries(restData).filter(([_, v]) => v !== null && v !== undefined)
     )
 
+    if (formTesting) {
+      console.log("Advanced Blog Data : ", finalData)
+    }
     // Append normal data
     formData.append("data", JSON.stringify(finalData))
 
@@ -48,6 +57,9 @@ export const createBlog = async blogData => {
 
 export const createBlogMultiple = async blogData => {
   try {
+    if (formTesting) {
+      console.log("Multiple Blog Data : ", blogData)
+    }
     const response = await axiosInstance.post("/blogs/xyz", blogData)
     return response.data.insertedBlogs
   } catch (error) {

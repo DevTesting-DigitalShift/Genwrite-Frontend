@@ -23,6 +23,17 @@ export const TONES = [
   "Witty",
 ]
 
+export const LANGUAGES = [
+  { value: "English", label: "English" },
+  { value: "Spanish", label: "Spanish" },
+  { value: "German", label: "German" },
+  { value: "French", label: "French" },
+  { value: "Italian", label: "Italian" },
+  { value: "Portuguese", label: "Portuguese" },
+  { value: "Dutch", label: "Dutch" },
+  { value: "Japanese", label: "Japanese" },
+]
+
 export const AI_MODELS = [
   {
     id: "gemini",

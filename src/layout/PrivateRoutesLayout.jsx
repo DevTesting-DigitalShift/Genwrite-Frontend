@@ -51,7 +51,7 @@ const PrivateRoutesLayout = () => {
 
         <div className="flex-1 ml-0 md:ml-16 pt-16 sm:pt-20">
           {/* Chatbot Button (hidden on /toolbox/:id) */}
-          {!isToolboxRoute && (
+          {/* {!isToolboxRoute && (
             <>
               <Tooltip
                 title="Chatbot"
@@ -70,9 +70,9 @@ const PrivateRoutesLayout = () => {
                 </div>
               </Tooltip>
 
-              {/* <ChatBox isOpen={chatOpen} onClose={() => setChatOpen(false)} /> */}
+              <ChatBox isOpen={chatOpen} onClose={() => setChatOpen(false)} />
             </>
-          )}
+          )} */}
 
           <main>
             <Outlet />

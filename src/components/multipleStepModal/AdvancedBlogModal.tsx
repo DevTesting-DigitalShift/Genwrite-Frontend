@@ -29,7 +29,7 @@ import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import "./antd.css"
 import { getValueByPath, setValueByPath } from "@utils/ObjectPath"
-import { AI_MODELS, TONES, IMAGE_OPTIONS, IMAGE_SOURCE } from "@/data/blogData"
+import { AI_MODELS, TONES, IMAGE_OPTIONS, IMAGE_SOURCE, LANGUAGES } from "@/data/blogData"
 import BlogImageUpload from "@components/multipleStepModal/BlogImageUpload"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
 import { selectSelectedAnalysisKeywords } from "@store/slices/analysisSlice"
@@ -69,6 +69,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
     languageToWrite: "English" as string,
     costCutter: true as boolean,
     options: {
+      exactTitle: false as boolean,
       performKeywordResearch: false as boolean,
       includeFaqs: false as boolean,
       includeInterlinks: false as boolean,
@@ -99,17 +100,6 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
       key: "options.addOutBoundLinks",
       label: "Show Outbound Links",
     },
-  ]
-
-  const LANGUAGES = [
-    { value: "English", label: "English" },
-    { value: "Spanish", label: "Spanish" },
-    { value: "German", label: "German" },
-    { value: "French", label: "French" },
-    { value: "Italian", label: "Italian" },
-    { value: "Portuguese", label: "Portuguese" },
-    { value: "Dutch", label: "Dutch" },
-    { value: "Japanese", label: "Japanese" },
   ]
 
   type FormError = Partial<Record<keyof typeof initialData, string>>
@@ -185,6 +175,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
 
   const validateFields = useCallback(() => {
     const errors: FormError = {}
+    console.log(formData.imageSource)
     switch (currentStep) {
       case 0:
         if (formData.templateIds.length !== 1) errors.template = "Please select at least 1 template"
@@ -207,7 +198,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
       case 2:
         if (
           formData.isCheckedGeneratedImages &&
-          formData.imageSource === "custom" &&
+          formData.imageSource === IMAGE_OPTIONS.at(-1)?.id &&
           formData.blogImages.length == 0
         )
           errors.blogImages = "Please upload at least 1 image."
@@ -258,7 +249,9 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
         includeImages: formData.isCheckedGeneratedImages,
         imageSource: formData.imageSource,
         numberOfImages:
-          formData.imageSource === "custom" ? formData.blogImages.length : formData.numberOfImages,
+          formData.imageSource === IMAGE_OPTIONS.at(-1)?.id
+            ? formData.blogImages.length
+            : formData.numberOfImages,
       })
 
       // Apply Cost Cutter discount (25% off)
@@ -297,7 +290,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
         data.imageSource = IMAGE_SOURCE.NONE
       }
 
-      if (!formData.isCheckedGeneratedImages || formData.imageSource !== "custom") {
+      if (!formData.isCheckedGeneratedImages || formData.imageSource !== IMAGE_OPTIONS.at(-1)?.id) {
         delete data.blogImages
       }
       if (!formData.isCheckedBrand) {
@@ -540,6 +533,18 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
                 </div>
               )}
             </Flex>
+            <Flex justify="space-between" className="mt-3 form-item-wrapper">
+              <label htmlFor="blog-auto-generate-title-keywords">Use Exact Title for Blog</label>
+              <Switch
+                id="blog-auto-generate-title-keywords"
+                value={formData.options.exactTitle}
+                onChange={checked =>
+                  handleInputChange({
+                    target: { name: "options.exactTitle", value: checked },
+                  })
+                }
+              />
+            </Flex>
             {/* Tones & Word Length */}
             <Space direction="vertical" className="form-item-wrapper">
               <Flex justify="space-around" gap={20}>
@@ -636,6 +641,19 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
                 ))}
               </Radio.Group>
             </Space>
+            {/* Cost Cutter Toggle */}
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 shadow-sm">
+              <Flex justify="space-between" align="center">
+                <div>
+                  <h3 className="text-sm font-semibold text-green-900 mb-1">💰 Cost Cutter</h3>
+                  <p className="text-xs text-green-700">Use AI Flash model for 25% savings</p>
+                </div>
+                <Switch
+                  checked={formData.costCutter}
+                  onChange={checked => updateFormData({ costCutter: checked })}
+                />
+              </Flex>
+            </div>
             {/* Image Settings */}
             <Space direction="vertical" className="form-item-wrapper">
               <Flex justify="space-between">
@@ -667,7 +685,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
                 value={formData.imageSource}
                 onChange={e => {
                   handleInputChange(e)
-                  if (e.target.value != "custom") {
+                  if (e.target.value != IMAGE_OPTIONS.at(-1)?.id) {
                     handleInputChange({ target: { name: "blogImages", value: [] } })
                   }
                 }}
@@ -817,20 +835,6 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
               </Flex>
             ))}
 
-            {/* Cost Cutter Toggle */}
-            <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 shadow-sm">
-              <Flex justify="space-between" align="center">
-                <div>
-                  <h3 className="text-sm font-semibold text-green-900 mb-1">💰 Cost Cutter</h3>
-                  <p className="text-xs text-green-700">Use AI Flash model for 25% savings</p>
-                </div>
-                <Switch
-                  checked={formData.costCutter}
-                  onChange={checked => updateFormData({ costCutter: checked })}
-                />
-              </Flex>
-            </div>
-
             <Space direction="vertical" className="form-item-wrapper">
               <BrandVoiceSelector
                 label="Write with Brand Voice"
@@ -887,7 +891,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
                     includeImages: formData.isCheckedGeneratedImages,
                     imageSource: formData.imageSource,
                     numberOfImages:
-                      formData.imageSource === "custom"
+                      formData.imageSource === IMAGE_OPTIONS.at(-1)?.id
                         ? formData.blogImages.length
                         : formData.numberOfImages,
                   })

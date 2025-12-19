@@ -222,7 +222,7 @@ const AnalyticsPage = () => {
         datasets: [
           {
             data: Object.keys(imageSources).length ? Object.values(imageSources) : [1],
-            backgroundColor: ["#10B981", "#F59E0B", "#EF4444"],
+            backgroundColor: ["#10B981", "#F59E0B", "#EF4444", "#6B7280"],
             hoverOffset: 20,
             borderColor: "#ffffff",
           },
