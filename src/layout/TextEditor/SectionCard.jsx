@@ -19,7 +19,7 @@ import {
   FileCheck,
   MessageSquare,
 } from "lucide-react"
-import { Tooltip, Input, message, Modal, Popover } from "antd"
+import { Tooltip, Input, message, Modal, Button } from "antd"
 import SectionEditor from "./SectionEditor"
 import { useEditorContext } from "./EditorContext"
 import { EmbedCard, parseEmbedsFromHtml } from "./EmbedManager"
@@ -48,11 +48,9 @@ function toPlainText(input = "") {
 
 const SectionCard = ({ section, index }) => {
   const [editingTitle, setEditingTitle] = useState(false)
-  const [imageMenuOpen, setImageMenuOpen] = useState(false)
-  const [editingImageAlt, setEditingImageAlt] = useState(false)
+  const [editModalOpen, setEditModalOpen] = useState(false)
   const [imageAltText, setImageAltText] = useState("")
-  const [replaceImageModalOpen, setReplaceImageModalOpen] = useState(false)
-  const [newImageUrl, setNewImageUrl] = useState("")
+  const [imageUrl, setImageUrl] = useState("")
 
   // Embed state for display
   const [sectionEmbeds, setSectionEmbeds] = useState([])
@@ -148,14 +146,19 @@ const SectionCard = ({ section, index }) => {
     }
   }
 
-  // Handle image alt text update
-  const handleUpdateAlt = () => {
+  // Handle saving image changes
+  const handleSaveImageChanges = () => {
     if (onUpdateSectionImage && sectionImage) {
-      onUpdateSectionImage(section.id, { ...sectionImage, altText: imageAltText })
-      message.success("Alt text updated")
+      const updates = {}
+      if (imageAltText !== sectionImage.altText) updates.altText = imageAltText
+      if (imageUrl !== sectionImage.url) updates.url = imageUrl
+
+      if (Object.keys(updates).length > 0) {
+        onUpdateSectionImage(section.id, { ...sectionImage, ...updates })
+        message.success("Image updated successfully")
+      }
     }
-    setEditingImageAlt(false)
-    setImageMenuOpen(false)
+    setEditModalOpen(false)
   }
 
   // Handle image delete
@@ -164,81 +167,8 @@ const SectionCard = ({ section, index }) => {
       onDeleteSectionImage(section.id)
       message.success("Image removed")
     }
-    setImageMenuOpen(false)
+    setEditModalOpen(false)
   }
-
-  // Handle image replace
-  const handleReplaceImage = () => {
-    if (!newImageUrl) {
-      message.error("Please enter an image URL")
-      return
-    }
-    if (onUpdateSectionImage && sectionImage) {
-      onUpdateSectionImage(section.id, { ...sectionImage, url: newImageUrl })
-      message.success("Image replaced")
-    }
-    setReplaceImageModalOpen(false)
-    setNewImageUrl("")
-    setImageMenuOpen(false)
-  }
-
-  // Image action menu content
-  const imageMenuContent = (
-    <div className="min-w-[150px]">
-      {editingImageAlt ? (
-        <div className="space-y-2">
-          <Input
-            size="small"
-            value={imageAltText}
-            onChange={e => setImageAltText(e.target.value)}
-            placeholder="Enter alt text"
-            autoFocus
-          />
-          <div className="flex gap-2">
-            <button
-              onClick={handleUpdateAlt}
-              className="flex-1 px-2 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600 flex items-center justify-center gap-1"
-            >
-              <Check className="w-3 h-3" /> Save
-            </button>
-            <button
-              onClick={() => setEditingImageAlt(false)}
-              className="flex-1 px-2 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300 flex items-center justify-center gap-1"
-            >
-              <X className="w-3 h-3" /> Cancel
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="space-y-1">
-          <button
-            onClick={() => {
-              setImageAltText(sectionImage?.altText || "")
-              setEditingImageAlt(true)
-            }}
-            className="w-full px-1 py-1 text-left text-sm hover:bg-gray-100 rounded flex items-center gap-2"
-          >
-            <Edit3 className="w-4 h-4" /> Edit Alt Text
-          </button>
-          <button
-            onClick={() => {
-              setNewImageUrl(sectionImage?.url || "")
-              setReplaceImageModalOpen(true)
-            }}
-            className="w-full px-1 py-1 text-left text-sm hover:bg-gray-100 rounded flex items-center gap-2"
-          >
-            <ImageIcon className="w-4 h-4" /> Replace Image
-          </button>
-          <button
-            onClick={handleDeleteImage}
-            className="w-full px-1 py-1 text-left text-sm hover:bg-red-50 text-red-600 rounded flex items-center gap-2"
-          >
-            <Trash2 className="w-4 h-4" /> Delete Image
-          </button>
-        </div>
-      )}
-    </div>
-  )
 
   // Handle AI Operations
   const handleAIOperation = operation => {
@@ -482,31 +412,29 @@ const SectionCard = ({ section, index }) => {
         </div>
       )}
 
-      {/* Section Image - with edit options */}
+      {/* Section Image - with edit modal */}
       {sectionImage && (
         <div className="mb-4 relative group">
-          <Popover
-            content={imageMenuContent}
-            trigger="click"
-            open={imageMenuOpen}
-            onOpenChange={setImageMenuOpen}
-            placement="bottom"
-            className="p-0"
+          <div
+            className="cursor-pointer relative"
+            onClick={() => {
+              setImageAltText(sectionImage?.altText || "")
+              setImageUrl(sectionImage?.url || "")
+              setEditModalOpen(true)
+            }}
           >
-            <div className="cursor-pointer relative">
-              <img
-                src={sectionImage.url}
-                alt={sectionImage.altText || section.title}
-                className="w-full h-full object-cover rounded-lg shadow-sm transition-all group-hover:brightness-95"
-              />
-              {/* Overlay hint on hover */}
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all rounded-lg flex items-center justify-center">
-                <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-700 shadow">
-                  Click to edit image
-                </span>
-              </div>
+            <img
+              src={sectionImage.url}
+              alt={sectionImage.altText || section.title}
+              className="w-full h-full object-cover rounded-lg shadow-sm transition-all group-hover:brightness-95"
+            />
+            {/* Overlay hint on hover */}
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all rounded-lg flex items-center justify-center">
+              <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-700 shadow">
+                Click to edit image
+              </span>
             </div>
-          </Popover>
+          </div>
           {sectionImage.attribution?.name && (
             <p className="text-xs text-gray-500 mt-1 text-center">
               Photo by{" "}
@@ -523,34 +451,91 @@ const SectionCard = ({ section, index }) => {
         </div>
       )}
 
-      {/* Replace Image Modal */}
+      {/* Edit Section Image Modal */}
       <Modal
-        title="Replace Image"
-        open={replaceImageModalOpen}
-        onCancel={() => setReplaceImageModalOpen(false)}
-        onOk={handleReplaceImage}
-        okText="Replace"
+        title={
+          <div className="flex items-center gap-2">
+            <ImageIcon className="w-5 h-5 text-purple-600" />
+            <span>Edit Section Image</span>
+          </div>
+        }
+        open={editModalOpen}
+        onCancel={() => setEditModalOpen(false)}
+        footer={
+          <div className="flex items-center justify-between">
+            {/* Left: Destructive action */}
+            <Button danger icon={<Trash2 className="w-4 h-4" />} onClick={handleDeleteImage}>
+              Delete
+            </Button>
+
+            {/* Right: Actions */}
+            <div className="flex items-center gap-2">
+              <Button onClick={() => setEditModalOpen(false)}>Cancel</Button>
+              <Button
+                type="primary"
+                icon={<Check className="w-4 h-4" />}
+                onClick={handleSaveImageChanges}
+              >
+                Save
+              </Button>
+            </div>
+          </div>
+        }
+        width={800}
+        centered
+        bodyStyle={{ maxHeight: "calc(100vh - 250px)", overflowY: "auto" }}
       >
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">New Image URL</label>
-            <Input
-              value={newImageUrl}
-              onChange={e => setNewImageUrl(e.target.value)}
-              placeholder="https://example.com/image.jpg"
+        <div className="flex gap-4">
+          {/* LEFT: Image Preview */}
+          <div className="w-[420px] shrink-0 border rounded-lg bg-gray-50 p-3 flex items-center justify-center">
+            <img
+              src={imageUrl}
+              alt={imageAltText || "Preview"}
+              className="max-w-full rounded-lg object-contain"
+              onError={e => {
+                e.currentTarget.src = sectionImage?.url
+              }}
             />
           </div>
-          {newImageUrl && (
+
+          {/* RIGHT: Details */}
+          <div className="flex-1 space-y-3">
+            {/* Image URL */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Preview</label>
-              <img
-                src={newImageUrl}
-                alt="Preview"
-                className="max-h-40 rounded-lg"
-                onError={e => (e.target.style.display = "none")}
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Image URL <span className="text-red-500">*</span>
+              </label>
+              <Input
+                value={imageUrl}
+                onChange={e => setImageUrl(e.target.value)}
+                placeholder="https://example.com/image.jpg"
               />
             </div>
-          )}
+
+            {/* Alt Text */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Alt Text <span className="text-red-500">*</span>
+              </label>
+              <Input.TextArea
+                value={imageAltText}
+                onChange={e => setImageAltText(e.target.value)}
+                placeholder="Describe the image for accessibility and SEO"
+                rows={2}
+              />
+              <p className="text-xs text-gray-500 mt-1">Helps with SEO and screen readers.</p>
+            </div>
+
+            {/* Attribution */}
+            {sectionImage?.attribution?.name && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-xs text-gray-600 mb-1">Attribution</p>
+                <p className="text-sm text-blue-700 font-medium">
+                  Photo by {sectionImage.attribution.name}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </Modal>
 

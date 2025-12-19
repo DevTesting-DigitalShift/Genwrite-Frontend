@@ -82,6 +82,10 @@ const SectionEditor = ({
   const [editLinkUrl, setEditLinkUrl] = useState("")
   const [selectedImage, setSelectedImage] = useState(null)
   const [imageEditMode, setImageEditMode] = useState(false)
+  const [imageEditModalOpen, setImageEditModalOpen] = useState(false)
+  const [editImageAlt, setEditImageAlt] = useState("")
+  const [editImageUrl, setEditImageUrl] = useState("")
+  const [linkEditModalOpen, setLinkEditModalOpen] = useState(false)
 
   // Link hover preview state with metadata
   const [hoveredLink, setHoveredLink] = useState(null)
@@ -177,12 +181,16 @@ const SectionEditor = ({
         const link = event.target.closest("a")
         if (link) {
           event.preventDefault()
-          setSelectedLink({
+          const linkData = {
             href: link.href,
             text: link.textContent,
             element: link,
-          })
+          }
+          setSelectedLink(linkData)
           setSelectedImage(null)
+          // Open link edit modal
+          setEditLinkUrl(linkData.href)
+          setLinkEditModalOpen(true)
           return true
         }
 
@@ -190,13 +198,18 @@ const SectionEditor = ({
         const img = event.target.closest("img")
         if (img) {
           event.preventDefault()
-          setSelectedImage({
+          const imageData = {
             src: img.src,
             alt: img.alt || "",
             element: img,
-          })
+          }
+          setSelectedImage(imageData)
           setSelectedLink(null)
           setImageEditMode(false)
+          // Open the image edit modal
+          setEditImageAlt(imageData.alt)
+          setEditImageUrl(imageData.src)
+          setImageEditModalOpen(true)
           return true
         }
 
@@ -310,6 +323,7 @@ const SectionEditor = ({
   const removeLink = () => {
     editor.chain().focus().unsetLink().run()
     setSelectedLink(null)
+    setLinkEditModalOpen(false)
     message.success("Link removed")
   }
 
@@ -383,6 +397,46 @@ const SectionEditor = ({
     }
   }
 
+  // Handle saving image edits from modal
+  const handleSaveImageEdit = () => {
+    if (!selectedImage || !editor) return
+
+    const { state } = editor
+    let imagePos = null
+    let imageNode = null
+
+    // Find the image node
+    state.doc.descendants((node, pos) => {
+      if (node.type.name === "image" && node.attrs.src === selectedImage.src) {
+        imagePos = pos
+        imageNode = node
+        return false
+      }
+    })
+
+    if (imagePos !== null && imageNode) {
+      // Update the image with new attributes
+      editor
+        .chain()
+        .focus()
+        .deleteRange({ from: imagePos, to: imagePos + 1 })
+        .setImage({ src: editImageUrl, alt: editImageAlt })
+        .run()
+
+      // Force content update
+      onChange(editor.getHTML())
+      setImageEditModalOpen(false)
+      setSelectedImage(null)
+      message.success("Image updated successfully")
+    }
+  }
+
+  // Handle deleting image from modal
+  const handleDeleteImageFromModal = () => {
+    deleteSelectedImage()
+    setImageEditModalOpen(false)
+  }
+
   const deleteSelectedImage = () => {
     if (selectedImage && editor) {
       // Find and delete the image node
@@ -409,6 +463,8 @@ const SectionEditor = ({
   }
 
   const replaceImage = () => {
+    // Just close the edit modal and open the add image modal
+    setImageEditModalOpen(false)
     setImageUrl(selectedImage?.src || "")
     setImageAltText(selectedImage?.alt || "")
     setImageModalOpen(true)
@@ -750,81 +806,9 @@ const SectionEditor = ({
         </ToolbarButton>
       </div>
 
-      {/* Link Preview Bar - Edit and Delete options */}
-      {selectedLink && (
-        <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border-b text-sm">
-          <LinkIcon className="w-4 h-4 text-blue-600" />
-          <span className="text-blue-600 truncate flex-1">{selectedLink.href}</span>
-          <Tooltip title="Edit Link">
-            <button onClick={openEditLinkModal} className="p-1 hover:bg-blue-100 rounded">
-              <Edit className="w-4 h-4 text-blue-600" />
-            </button>
-          </Tooltip>
-          <Tooltip title="Delete Link">
-            <button onClick={removeLink} className="p-1 hover:bg-red-100 rounded">
-              <Trash2 className="w-4 h-4 text-red-500" />
-            </button>
-          </Tooltip>
-        </div>
-      )}
+      {/* Link Preview Bar - Removed, now using modal */}
 
-      {/* Image Edit Bar */}
-      {selectedImage && (
-        <div className="flex items-center gap-2 px-3 py-2 bg-purple-50 border-b text-sm">
-          <ImageIcon className="w-4 h-4 text-purple-600" />
-          {imageEditMode ? (
-            <div className="flex items-center gap-2 flex-1">
-              <Input
-                size="small"
-                value={imageAltText}
-                onChange={e => setImageAltText(e.target.value)}
-                placeholder="Alt text"
-                className="flex-1"
-              />
-              <Tooltip title="Save">
-                <button onClick={updateImageAlt} className="p-1 hover:bg-green-100 rounded">
-                  <Check className="w-4 h-4 text-green-600" />
-                </button>
-              </Tooltip>
-              <Tooltip title="Cancel">
-                <button
-                  onClick={() => setImageEditMode(false)}
-                  className="p-1 hover:bg-gray-100 rounded"
-                >
-                  <X className="w-4 h-4 text-gray-500" />
-                </button>
-              </Tooltip>
-            </div>
-          ) : (
-            <>
-              <span className="text-purple-700 truncate flex-1">
-                {selectedImage.alt || "No alt text"}
-              </span>
-              <Tooltip title="Edit Alt Text">
-                <button
-                  onClick={() => {
-                    setImageAltText(selectedImage.alt || "")
-                    setImageEditMode(true)
-                  }}
-                  className="p-1 hover:bg-purple-100 rounded"
-                >
-                  <Edit className="w-4 h-4 text-purple-600" />
-                </button>
-              </Tooltip>
-              <Tooltip title="Replace Image">
-                <button onClick={replaceImage} className="p-1 hover:bg-blue-100 rounded">
-                  <ImageIcon className="w-4 h-4 text-blue-600" />
-                </button>
-              </Tooltip>
-              <Tooltip title="Delete Image">
-                <button onClick={deleteSelectedImage} className="p-1 hover:bg-red-100 rounded">
-                  <Trash2 className="w-4 h-4 text-red-500" />
-                </button>
-              </Tooltip>
-            </>
-          )}
-        </div>
-      )}
+      {/* Image Edit Bar - Removed, now using modal */}
 
       {/* Proofreading Popup - Shows when clicking on highlighted text */}
       {activeProofSpan && (
@@ -1146,29 +1130,80 @@ const SectionEditor = ({
         </div>
       </Modal>
 
-      {/* Edit Link Modal */}
+      {/* Edit Link Modal - Comprehensive version */}
       <Modal
-        title="Edit Link"
-        open={editLinkModalOpen}
-        onCancel={() => setEditLinkModalOpen(false)}
-        footer={
-          <div className="flex justify-end gap-2">
-            <Button onClick={() => setEditLinkModalOpen(false)}>Cancel</Button>
-            <Button type="primary" onClick={confirmEditLink}>
-              Update Link
-            </Button>
+        title={
+          <div className="flex items-center gap-2">
+            <LinkIcon className="w-5 h-5 text-blue-600" />
+            <span>Edit Link</span>
           </div>
         }
+        open={linkEditModalOpen}
+        onCancel={() => {
+          setLinkEditModalOpen(false)
+          setSelectedLink(null)
+        }}
+        footer={
+          <div className="flex items-center justify-between">
+            {/* Left: Destructive action */}
+            <Button danger icon={<Trash2 className="w-4 h-4" />} onClick={removeLink}>
+              Delete Link
+            </Button>
+
+            {/* Right: Actions */}
+            <div className="flex items-center gap-2">
+              <Button
+                icon={<ExternalLink className="w-4 h-4" />}
+                onClick={() => window.open(editLinkUrl, "_blank")}
+              >
+                Open Link
+              </Button>
+              <Button onClick={() => setLinkEditModalOpen(false)}>Cancel</Button>
+              <Button
+                type="primary"
+                icon={<Check className="w-4 h-4" />}
+                onClick={() => {
+                  confirmEditLink()
+                  setLinkEditModalOpen(false)
+                }}
+              >
+                Save
+              </Button>
+            </div>
+          </div>
+        }
+        width={600}
+        centered
       >
         <div className="space-y-4">
+          {/* Current Link Display */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <p className="text-xs text-gray-600 mb-1">Current Link</p>
+            <p className="text-sm text-blue-700 font-medium truncate">{selectedLink?.href}</p>
+          </div>
+
+          {/* Link URL */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Link URL</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Link URL <span className="text-red-500">*</span>
+            </label>
             <Input
               value={editLinkUrl}
               onChange={e => setEditLinkUrl(e.target.value)}
               placeholder="https://example.com"
-              onKeyDown={e => e.key === "Enter" && confirmEditLink()}
             />
+            <p className="text-xs text-gray-500 mt-1">
+              The URL this link should point to. Must start with http:// or https://
+            </p>
+          </div>
+
+          {/* Link Text Display */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Link Text</label>
+            <Input value={selectedLink?.text || ""} disabled />
+            <p className="text-xs text-gray-500 mt-1">
+              The visible text of the link (cannot be changed here)
+            </p>
           </div>
         </div>
       </Modal>
@@ -1247,6 +1282,92 @@ const SectionEditor = ({
             </Button>
           </div>
         )}
+      </Modal>
+
+      {/* Image Edit Modal */}
+      <Modal
+        title={
+          <div className="flex items-center gap-2">
+            <ImageIcon className="w-5 h-5 text-purple-600" />
+            <span>Edit Image</span>
+          </div>
+        }
+        open={imageEditModalOpen}
+        onCancel={() => {
+          setImageEditModalOpen(false)
+          setSelectedImage(null)
+        }}
+        footer={
+          <div className="flex items-center justify-between">
+            {/* Left: Destructive action */}
+            <Button
+              danger
+              icon={<Trash2 className="w-4 h-4" />}
+              onClick={handleDeleteImageFromModal}
+            >
+              Delete Image
+            </Button>
+
+            {/* Right: Actions */}
+            <div className="flex items-center gap-2">
+              <Button icon={<ImageIcon className="w-4 h-4" />} onClick={replaceImage}>
+                Replace
+              </Button>
+              <Button onClick={() => setImageEditModalOpen(false)}>Cancel</Button>
+              <Button
+                type="primary"
+                icon={<Check className="w-4 h-4" />}
+                onClick={handleSaveImageEdit}
+              >
+                Save
+              </Button>
+            </div>
+          </div>
+        }
+        width={800}
+        centered
+        bodyStyle={{ maxHeight: "calc(100vh - 250px)", overflowY: "auto" }}
+      >
+        <div className="flex gap-4">
+          {/* Image Preview (Left) */}
+          <div className="w-[400px] flex-shrink-0 border rounded-lg overflow-hidden bg-gray-50 p-3 flex items-center justify-center">
+            <img
+              src={editImageUrl}
+              alt={editImageAlt || "Preview"}
+              className="max-w-full h-auto rounded-lg object-contain"
+            />
+          </div>
+          {/* Details (Right) */}
+          <div className="flex-1 space-y-3">
+            {/* Image URL */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Image URL <span className="text-red-500">*</span>
+              </label>
+              <Input
+                value={editImageUrl}
+                onChange={e => setEditImageUrl(e.target.value)}
+                placeholder="https://example.com/image.jpg"
+              />
+            </div>
+
+            {/* Alt Text */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Alt Text <span className="text-red-500">*</span>
+              </label>
+              <Input.TextArea
+                value={editImageAlt}
+                onChange={e => setEditImageAlt(e.target.value)}
+                placeholder="Describe the image for accessibility and SEO"
+                rows={2}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Describe what's in the image. This helps with SEO and accessibility.
+              </p>
+            </div>
+          </div>
+        </div>
       </Modal>
     </div>
   )

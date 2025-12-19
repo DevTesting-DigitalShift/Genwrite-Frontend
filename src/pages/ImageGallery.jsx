@@ -307,9 +307,9 @@ const ImageGallery = () => {
           }}
         >
           {previewImage && (
-            <div className="bg-white rounded-3xl overflow-hidden shadow-2xl flex flex-col md:flex-row max-h-[90vh]">
+            <div className="bg-white rounded-xl overflow-hidden shadow-2xl flex flex-col md:flex-row max-h-[90vh]">
               {/* Left: Image Container */}
-              <div className="flex-1 relative group flex items-center justify-center p-4">
+              <div className="flex-1 relative group flex items-center justify-center p-2">
                 <div className="relative max-h-full max-w-full shadow-lg rounded-lg overflow-hidden">
                   <img
                     src={previewImage.url}
@@ -326,7 +326,7 @@ const ImageGallery = () => {
               </div>
 
               {/* Right: Details */}
-              <div className="w-full md:w-[350px] bg-white p-6 md:p-8 flex flex-col overflow-y-auto border-l border-gray-100">
+              <div className="w-full md:w-[350px] bg-white p-6 md:p-4 flex flex-col overflow-y-auto border-l border-gray-100">
                 <h3 className="text-xl font-semibold text-gray-900 leading-snug mb-4">
                   Prompt Details
                 </h3>

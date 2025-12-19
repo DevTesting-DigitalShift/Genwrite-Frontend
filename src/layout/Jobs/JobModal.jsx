@@ -5,6 +5,7 @@ import { closeJobModal, createJobThunk, updateJobThunk } from "@store/slices/job
 import { clearSelectedKeywords } from "@store/slices/analysisSlice"
 import StepContent from "./StepContent"
 import { useQueryClient } from "@tanstack/react-query"
+import { IMAGE_SOURCE } from "@/data/blogData"
 
 const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded }) => {
   const initialJob = {
@@ -17,7 +18,7 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
       templates: [],
       tone: "Professional",
       userDefinedLength: 1000,
-      imageSource: "unsplash",
+      imageSource: IMAGE_SOURCE.STOCK,
       aiModel: "gemini",
       brandId: null,
       useBrandVoice: false,
@@ -202,6 +203,10 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
         keywords: formData.keywords,
         aiModel: formData.aiModel,
         postingType: formData.postingType,
+        // Set imageSource to "none" if images are disabled
+        imageSource: newJob.blogs.isCheckedGeneratedImages
+          ? newJob.blogs.imageSource
+          : IMAGE_SOURCE.NONE,
       },
       options: {
         ...newJob.options,
@@ -242,6 +247,10 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
         keywords: formData.keywords,
         aiModel: formData.aiModel,
         postingType: formData.postingType,
+        // Set imageSource to "none" if images are disabled
+        imageSource: newJob.blogs.isCheckedGeneratedImages
+          ? newJob.blogs.imageSource
+          : IMAGE_SOURCE.NONE,
       },
       options: {
         ...newJob.options,

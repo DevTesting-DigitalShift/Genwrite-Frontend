@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react"
 import { Reorder } from "framer-motion"
 import { Edit3, Trash2, Image as ImageIcon, Check, X, ChevronUp, ChevronDown } from "lucide-react"
-import { Popover, Input, message, Modal } from "antd"
+import { Input, message, Modal, Button } from "antd"
 
 /**
  * Parse all images from HTML content
@@ -129,175 +129,169 @@ export const moveImageInHtml = (html, imageIndex, direction) => {
  * InlineImageCard - Displays a single image with edit controls
  */
 const InlineImageCard = ({ image, imageIndex, totalImages, onUpdate, onDelete, onMove }) => {
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [editingAlt, setEditingAlt] = useState(false)
+  const [editModalOpen, setEditModalOpen] = useState(false)
   const [altText, setAltText] = useState(image.alt || "")
-  const [replaceModalOpen, setReplaceModalOpen] = useState(false)
-  const [newImageUrl, setNewImageUrl] = useState("")
+  const [imageUrl, setImageUrl] = useState(image.src || "")
 
   const isFirst = imageIndex === 0
   const isLast = imageIndex === totalImages - 1
 
-  const handleUpdateAlt = () => {
-    onUpdate(imageIndex, { alt: altText })
-    setEditingAlt(false)
-    setMenuOpen(false)
-    message.success("Alt text updated")
-  }
+  const handleSaveChanges = () => {
+    const updates = {}
+    if (altText !== image.alt) updates.alt = altText
+    if (imageUrl !== image.src) updates.src = imageUrl
 
-  const handleReplaceImage = () => {
-    if (!newImageUrl) {
-      message.error("Please enter an image URL")
-      return
+    if (Object.keys(updates).length > 0) {
+      onUpdate(imageIndex, updates)
+      message.success("Image updated successfully")
     }
-    onUpdate(imageIndex, { src: newImageUrl })
-    setReplaceModalOpen(false)
-    setNewImageUrl("")
-    setMenuOpen(false)
-    message.success("Image replaced")
+    setEditModalOpen(false)
   }
 
   const handleDelete = () => {
     onDelete(imageIndex)
-    setMenuOpen(false)
+    setEditModalOpen(false)
     message.success("Image deleted")
   }
 
-  const menuContent = (
-    <div className="min-w-[180px]">
-      {editingAlt ? (
-        <div className="space-y-2">
-          <Input
-            size="small"
-            value={altText}
-            onChange={e => setAltText(e.target.value)}
-            placeholder="Enter alt text"
-            autoFocus
-          />
-          <div className="flex gap-2">
-            <button
-              onClick={handleUpdateAlt}
-              className="flex-1 px-2 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600 flex items-center justify-center gap-1"
-            >
-              <Check className="w-3 h-3" /> Save
-            </button>
-            <button
-              onClick={() => setEditingAlt(false)}
-              className="flex-1 px-2 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300 flex items-center justify-center gap-1"
-            >
-              <X className="w-3 h-3" /> Cancel
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="space-y-1">
-          <button
-            onClick={() => {
-              setAltText(image.alt || "")
-              setEditingAlt(true)
-            }}
-            className="w-full px-2 py-1.5 text-left text-sm hover:bg-gray-100 rounded flex items-center gap-2"
-          >
-            <Edit3 className="w-4 h-4" /> Edit Alt Text
-          </button>
-          <button
-            onClick={() => {
-              setNewImageUrl(image.src || "")
-              setReplaceModalOpen(true)
-            }}
-            className="w-full px-2 py-1.5 text-left text-sm hover:bg-gray-100 rounded flex items-center gap-2"
-          >
-            <ImageIcon className="w-4 h-4" /> Replace Image
-          </button>
-          <div className="border-t my-1"></div>
-          <button
-            onClick={() => onMove(imageIndex, "up")}
-            disabled={isFirst}
-            className={`w-full px-2 py-1.5 text-left text-sm rounded flex items-center gap-2 ${
-              isFirst ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-100"
-            }`}
-          >
-            <ChevronUp className="w-4 h-4" /> Move Up
-          </button>
-          <button
-            onClick={() => onMove(imageIndex, "down")}
-            disabled={isLast}
-            className={`w-full px-2 py-1.5 text-left text-sm rounded flex items-center gap-2 ${
-              isLast ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-100"
-            }`}
-          >
-            <ChevronDown className="w-4 h-4" /> Move Down
-          </button>
-          <div className="border-t my-1"></div>
-          <button
-            onClick={handleDelete}
-            className="w-full px-2 py-1.5 text-left text-sm hover:bg-red-50 text-red-600 rounded flex items-center gap-2"
-          >
-            <Trash2 className="w-4 h-4" /> Delete Image
-          </button>
-        </div>
-      )}
-    </div>
-  )
+  const handleMoveUp = () => {
+    onMove(imageIndex, "up")
+    setEditModalOpen(false)
+    message.success("Image moved up")
+  }
+
+  const handleMoveDown = () => {
+    onMove(imageIndex, "down")
+    setEditModalOpen(false)
+    message.success("Image moved down")
+  }
 
   return (
     <>
       <div className="relative group mb-4">
-        <Popover
-          content={menuContent}
-          trigger="click"
-          open={menuOpen}
-          onOpenChange={setMenuOpen}
-          placement="bottom"
+        <div
+          className="cursor-pointer relative"
+          onClick={() => {
+            setAltText(image.alt || "")
+            setImageUrl(image.src || "")
+            setEditModalOpen(true)
+          }}
         >
-          <div className="cursor-pointer relative">
-            <img
-              src={image.src}
-              alt={image.alt || "Section image"}
-              className="w-full h-auto object-cover rounded-lg shadow-sm transition-all group-hover:brightness-95"
-            />
-            {/* Overlay hint on hover */}
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all rounded-lg flex items-center justify-center">
-              <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-700 shadow">
-                Click to edit image
-              </span>
-            </div>
-            {/* Image index badge */}
-            <div className="absolute top-2 left-2 bg-black/60 text-white px-2 py-1 rounded text-xs font-medium">
-              Image {imageIndex + 1} of {totalImages}
-            </div>
+          <img
+            src={image.src}
+            alt={image.alt || "Section image"}
+            className="w-full h-auto object-cover rounded-lg shadow-sm transition-all group-hover:brightness-95"
+          />
+          {/* Overlay hint on hover */}
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all rounded-lg flex items-center justify-center">
+            <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-700 shadow">
+              Click to edit image
+            </span>
           </div>
-        </Popover>
+          {/* Image index badge */}
+          <div className="absolute top-2 left-2 bg-black/60 text-white px-2 py-1 rounded text-xs font-medium">
+            Image {imageIndex + 1} of {totalImages}
+          </div>
+        </div>
       </div>
 
-      {/* Replace Image Modal */}
+      {/* Edit Image Modal */}
       <Modal
-        title="Replace Image"
-        open={replaceModalOpen}
-        onCancel={() => setReplaceModalOpen(false)}
-        onOk={handleReplaceImage}
-        okText="Replace"
+        title={
+          <div className="flex items-center gap-2">
+            <ImageIcon className="w-5 h-5 text-purple-600" />
+            <span>Edit Image {imageIndex + 1}</span>
+          </div>
+        }
+        open={editModalOpen}
+        onCancel={() => setEditModalOpen(false)}
+        footer={
+          <div className="flex items-center justify-between">
+            {/* Left: Destructive action */}
+            <Button danger icon={<Trash2 className="w-4 h-4" />} onClick={handleDelete}>
+              Delete
+            </Button>
+
+            {/* Right: Actions */}
+            <div className="flex items-center gap-2">
+              <Button
+                icon={<ChevronUp className="w-4 h-4" />}
+                onClick={handleMoveUp}
+                disabled={isFirst}
+              >
+                Move Up
+              </Button>
+              <Button
+                icon={<ChevronDown className="w-4 h-4" />}
+                onClick={handleMoveDown}
+                disabled={isLast}
+              >
+                Move Down
+              </Button>
+              <Button onClick={() => setEditModalOpen(false)}>Cancel</Button>
+              <Button
+                type="primary"
+                icon={<Check className="w-4 h-4" />}
+                onClick={handleSaveChanges}
+              >
+                Save
+              </Button>
+            </div>
+          </div>
+        }
+        width={700}
+        centered
+        bodyStyle={{ maxHeight: "calc(100vh - 250px)", overflowY: "auto" }}
       >
-        <div className="space-y-4">
+        <div className="space-y-3">
+          {/* Image Preview */}
+          <div className="border rounded-lg overflow-hidden bg-gray-50 p-3 flex items-center justify-center">
+            <img
+              src={imageUrl}
+              alt={altText || "Preview"}
+              className="max-w-full h-auto rounded-lg object-contain"
+              style={{ maxHeight: "200px" }}
+              onError={e => {
+                e.target.src = image.src // Fallback to original if new URL fails
+              }}
+            />
+          </div>
+
+          {/* Image URL */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">New Image URL</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Image URL <span className="text-red-500">*</span>
+            </label>
             <Input
-              value={newImageUrl}
-              onChange={e => setNewImageUrl(e.target.value)}
+              value={imageUrl}
+              onChange={e => setImageUrl(e.target.value)}
               placeholder="https://example.com/image.jpg"
             />
           </div>
-          {newImageUrl && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Preview</label>
-              <img
-                src={newImageUrl}
-                alt="Preview"
-                className="max-h-40 rounded-lg"
-                onError={e => (e.target.style.display = "none")}
-              />
-            </div>
-          )}
+
+          {/* Alt Text */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Alt Text <span className="text-red-500">*</span>
+            </label>
+            <Input.TextArea
+              value={altText}
+              onChange={e => setAltText(e.target.value)}
+              placeholder="Describe the image for accessibility and SEO"
+              rows={2}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Describe what's in the image. This helps with SEO and accessibility.
+            </p>
+          </div>
+
+          {/* Position Info */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <p className="text-xs text-gray-600 mb-1">Position</p>
+            <p className="text-sm text-blue-700 font-medium">
+              Image {imageIndex + 1} of {totalImages} in this section
+            </p>
+          </div>
         </div>
       </Modal>
     </>

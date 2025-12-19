@@ -10,6 +10,7 @@ import { Plus, X, Crown } from "lucide-react" // Added Crown icon
 import Carousel from "./Carousel"
 import { packages } from "@/data/templates"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
+import { IMAGE_SOURCE } from "@/data/blogData"
 
 const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   const [currentStep, setCurrentStep] = useState(0)
@@ -19,7 +20,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     topic: "",
     performKeywordResearch: false,
     addImages: false,
-    imageSource: "unsplash",
+    imageSource: IMAGE_SOURCE.NONE,
     template: null,
     templateIds: [],
     keywords: [],
@@ -125,6 +126,8 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
       ...formData,
       type,
       otherLinks,
+      // Set imageSource to "none" if images are disabled
+      imageSource: formData.addImages ? formData.imageSource : IMAGE_SOURCE.NONE,
     }
 
     handlePopup({
@@ -354,8 +357,8 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   }
 
   const imageSources = [
-    { id: "unsplash", label: "Stock Images", value: "unsplash" },
-    { id: "ai-generated", label: "AI-Generated Images", value: "ai-generated" },
+    { id: "stock", label: "Stock Images", value: IMAGE_SOURCE.STOCK },
+    { id: "ai", label: "AI-Generated Images", value: IMAGE_SOURCE.AI },
   ]
 
   return (

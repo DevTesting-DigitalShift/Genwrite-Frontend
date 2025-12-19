@@ -28,7 +28,7 @@ import { FC, useCallback, useEffect, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import "./antd.css"
 import { getValueByPath, setValueByPath } from "@utils/ObjectPath"
-import { AI_MODELS, TONES, IMAGE_OPTIONS } from "@/data/blogData"
+import { AI_MODELS, TONES, IMAGE_OPTIONS, IMAGE_SOURCE } from "@/data/blogData"
 import BlogImageUpload from "@components/multipleStepModal/BlogImageUpload"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
 import { selectSelectedAnalysisKeywords } from "@store/slices/analysisSlice"
@@ -223,6 +223,12 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
     if (validateFields()) {
       console.debug("Advanced Modal Form Data : ", formData)
       const data = { ...formData, options: { ...formData.options } } as Partial<typeof initialData>
+
+      // Set imageSource to "none" if images are disabled
+      if (!formData.isCheckedGeneratedImages) {
+        data.imageSource = IMAGE_SOURCE.NONE
+      }
+
       if (!formData.isCheckedGeneratedImages || formData.imageSource !== "custom") {
         delete data.blogImages
       }

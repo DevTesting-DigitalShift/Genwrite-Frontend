@@ -77,7 +77,6 @@ const NAV_ITEMS = [
   { id: "overview", icon: BarChart3, label: "Overview" },
   { id: "seo", icon: TrendingUp, label: "SEO" },
   { id: "suggestions", icon: Lightbulb, label: "Suggestions" },
-  { id: "enhancement", icon: SlidersHorizontal, label: "Enhancement" },
   { id: "regenerate", icon: RefreshCw, label: "Regenerate" },
 ]
 
@@ -113,6 +112,10 @@ const TextEditorSidebar = ({
   const [isRegenerating, setIsRegenerating] = useState(false)
   const [keywordInput, setKeywordInput] = useState("")
   const [focusKeywordInput, setFocusKeywordInput] = useState("")
+
+  // 2-step regenerate modal state
+  const [isRegenerateModalOpen, setIsRegenerateModalOpen] = useState(false)
+  const [regenerateStep, setRegenerateStep] = useState(1)
 
   const { data: integrations } = useSelector(state => state.wordpress)
   const [metadata, setMetadata] = useState({
@@ -269,10 +272,19 @@ const TextEditorSidebar = ({
   // Handlers
   const handleRegenerate = async () => {
     if (!blog?._id) return message.error("Blog ID missing")
+
+    // Open the 2-step modal
+    setRegenerateStep(1)
+    setIsRegenerateModalOpen(true)
+  }
+
+  // Handle regenerate modal submission
+  const handleRegenerateSubmit = async () => {
     const cost = calculateRegenCost()
     const credits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
 
     if (credits < cost) {
+      setIsRegenerateModalOpen(false)
       return handlePopup({
         title: "Insufficient Credits",
         description: `Need ${cost} credits, have ${credits}.`,
@@ -281,29 +293,31 @@ const TextEditorSidebar = ({
       })
     }
 
-    handlePopup({
-      title: "Regenerate Blog",
-      description: (
-        <>
-          Regenerate with new settings? <span className="font-bold">Cost: {cost} credits</span>
-        </>
-      ),
-      confirmText: "Regenerate",
-      onConfirm: async () => {
-        setIsRegenerating(true)
-        try {
-          await updateBlog(blog._id, { ...regenForm, isCheckedBrand: regenForm.useBrandVoice })
-          await retryBlogById(blog._id, { createNew: true })
-          queryClient.invalidateQueries({ queryKey: ["blogs"] })
-          message.success("Blog regeneration started!")
-          navigate("/blogs")
-        } catch (error) {
-          message.error(error.message || "Failed to regenerate")
-        } finally {
-          setIsRegenerating(false)
-        }
-      },
-    })
+    setIsRegenerating(true)
+    try {
+      // Prepare the payload with proper imageSource handling
+      const payload = {
+        ...regenForm,
+        isCheckedBrand: regenForm.useBrandVoice,
+        // If images are disabled, set imageSource to "none"
+        imageSource: regenForm.isCheckedGeneratedImages ? regenForm.imageSource : "none",
+      }
+
+      // Update the blog with new settings
+      await updateBlog(blog._id, payload)
+
+      // Call retry API to regenerate the blog
+      await retryBlogById(blog._id, { createNew: true })
+
+      queryClient.invalidateQueries({ queryKey: ["blogs"] })
+      message.success("Blog regeneration started!")
+      setIsRegenerateModalOpen(false)
+      navigate("/blogs")
+    } catch (error) {
+      message.error(error.message || "Failed to regenerate")
+    } finally {
+      setIsRegenerating(false)
+    }
   }
 
   const handleAnalyzing = useCallback(() => {
@@ -719,69 +733,6 @@ const TextEditorSidebar = ({
               {isAnalyzingCompetitive ? "Analyzing..." : "Run SEO Analysis"}
             </button>
           </div>
-
-          {/* Proofreading Card */}
-          <div className="p-3 border rounded-xl shadow-sm bg-white hover:shadow-md transition-all">
-            <div className="flex items-center gap-3 mb-3">
-              <FileText className="w-5 h-5 text-green-600" />
-              <h4 className="text-sm font-semibold text-gray-800">AI Proofreading</h4>
-
-              {!isPro && proofreadingResults?.length > 0 && (
-                <span className="ml-auto text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">
-                  {proofreadingResults.length}
-                </span>
-              )}
-            </div>
-
-            {/* Gradient Button */}
-            <button
-              onClick={handleProofreading}
-              disabled={isAnalyzingProofreading}
-              className={`
-        w-full py-2.5 px-4 rounded-lg text-sm font-semibold transition-all
-        ${
-          isAnalyzingProofreading
-            ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-            : "bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-600 text-white shadow-md hover:shadow-lg hover:from-purple-600 hover:via-indigo-600 hover:to-blue-700"
-        }
-      `}
-            >
-              {isAnalyzingProofreading ? "Checking..." : "Start Proofreading"}
-            </button>
-          </div>
-        </div>
-
-        {/* Custom AI Prompt Card */}
-        <div className="space-y-4 p-3 bg-white border rounded-xl shadow-sm hover:shadow-md transition-all duration-200">
-          {/* Header */}
-          <div className="flex items-center gap-2">
-            <Wand2 className="w-4 h-4 text-purple-600" />
-            <span className="text-sm font-semibold text-gray-900">Custom AI Prompt</span>
-          </div>
-
-          {/* Text Area */}
-          <TextArea
-            value={customPrompt}
-            onChange={e => setCustomPrompt(e.target.value)}
-            placeholder="e.g., Make the tone more professional..."
-            rows={6}
-            className="!resize-none rounded-md"
-          />
-
-          {/* Apply Prompt */}
-          <button
-            onClick={handleCustomPromptBlog}
-            disabled={isHumanizing}
-            className={`
-      w-full py-2 text-sm font-semibold rounded-lg flex items-center justify-center gap-2
-      bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-600
-      text-white shadow hover:shadow-md hover:opacity-90 transition-all
-      ${isHumanizing ? "opacity-60 cursor-not-allowed" : ""}
-    `}
-          >
-            <Sparkles className="w-4 h-4" />
-            {isHumanizing ? "Applying..." : "Apply Prompt"}
-          </button>
         </div>
 
         {/* Posted Links */}
@@ -1199,385 +1150,6 @@ const TextEditorSidebar = ({
     )
   }
 
-  const renderEnhancementPanel = () => (
-    <div className="flex flex-col h-full">
-      <div className="p-3 border-b bg-gradient-to-r from-gray-50 to-blue-50">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg">
-              <SlidersHorizontal className="w-4 h-4 text-white" />
-            </div>
-
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-gray-900">Content Enhancement</h3>
-                {isPro && (
-                  <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
-                    <Crown className="w-4 h-4" />
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-gray-500 font-medium mt-0.5">
-                Toggle options and save your preferences
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-3 space-y-3">
-        {Object.entries(enhancementOptions || {}).length > 0 ? (
-          Object.entries(enhancementOptions).map(([key, value]) => {
-            const isEnabled = Boolean(value)
-            const label = key
-              .replace(/([A-Z])/g, " $1")
-              .replace(/^./, str => str.toUpperCase())
-              .trim()
-            return (
-              <div
-                key={key}
-                className="flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-2 h-2 rounded-full ${isEnabled ? "bg-green-500" : "bg-gray-400"}`}
-                  />
-                  <span className="text-sm font-medium text-gray-700">{label}</span>
-                </div>
-                <Switch
-                  size="small"
-                  checked={isEnabled}
-                  onChange={checked => handleEnhancementToggle(key, checked)}
-                />
-              </div>
-            )
-          })
-        ) : (
-          <div className="text-center py-6">
-            <SlidersHorizontal className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-            <p className="text-sm text-gray-500">No enhancement features configured</p>
-          </div>
-        )}
-      </div>
-
-      {/* Save Button - Always visible */}
-      <div className="p-3 border-t bg-white">
-        <Button
-          type="primary"
-          block
-          size="large"
-          loading={isSavingEnhancement}
-          onClick={handleSaveEnhancement}
-          disabled={!hasEnhancementChanges}
-          className={`h-12 border-0 font-semibold ${
-            hasEnhancementChanges
-              ? "bg-gradient-to-r from-purple-600 to-indigo-600"
-              : "!bg-gray-300 !text-gray-500"
-          }`}
-        >
-          {hasEnhancementChanges ? "Save Enhancement Settings" : "No Changes to Save"}
-        </Button>
-      </div>
-    </div>
-  )
-
-  const renderRegeneratePanel = () => (
-    <div className="flex flex-col h-full">
-      <div className="p-3 border-b bg-gradient-to-r from-gray-50 to-blue-50 mb-5">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg">
-              <RefreshCcw className="w-4 h-4 text-white" />
-            </div>
-
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-gray-900">Regenerate Blog</h3>
-                {isPro && (
-                  <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
-                    <Crown className="w-4 h-4" />
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-gray-500 font-medium mt-0.5">
-                Generate fresh versions of your blog content
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-3 space-y-4 custom-scroll">
-        {/* Topic & Title */}
-        <div className="space-y-3">
-          <div>
-            <label className="text-xs font-medium text-gray-500 mb-1 block">Topic</label>
-            <Input
-              value={regenForm.topic}
-              onChange={e => updateRegenField("topic", e.target.value)}
-              placeholder="Blog topic..."
-            />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-gray-500 mb-1 block">Title</label>
-            <Input
-              value={regenForm.title}
-              onChange={e => updateRegenField("title", e.target.value)}
-              placeholder="Blog title..."
-            />
-          </div>
-        </div>
-
-        {/* Focus Keywords */}
-        <div>
-          <label className="text-xs font-medium text-gray-500 mb-1 block">
-            Focus Keywords (max 3)
-          </label>
-          <div className="flex gap-2">
-            <Input
-              value={focusKeywordInput}
-              onChange={e => setFocusKeywordInput(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addRegenKeyword("focus"))}
-              placeholder="Add keyword..."
-              size="small"
-            />
-            <Button
-              size="small"
-              type="primary"
-              onClick={() => addRegenKeyword("focus")}
-              icon={<Plus className="w-3 h-3" />}
-            />
-          </div>
-          <div className="flex flex-wrap gap-1 mt-2">
-            {regenForm.focusKeywords.map((kw, i) => (
-              <span
-                key={i}
-                className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs"
-              >
-                {kw}{" "}
-                <button onClick={() => removeRegenKeyword("focus", i)}>
-                  <X className="w-3 h-3" />
-                </button>
-              </span>
-            ))}
-          </div>
-        </div>
-
-        {/* Secondary Keywords */}
-        <div>
-          <label className="text-xs font-medium text-gray-500 mb-1 block">Secondary Keywords</label>
-          <div className="flex gap-2">
-            <Input
-              value={keywordInput}
-              onChange={e => setKeywordInput(e.target.value)}
-              onKeyDown={e =>
-                e.key === "Enter" && (e.preventDefault(), addRegenKeyword("secondary"))
-              }
-              placeholder="Add keywords..."
-              size="small"
-            />
-            <Button
-              size="small"
-              type="primary"
-              onClick={() => addRegenKeyword("secondary")}
-              icon={<Plus className="w-3 h-3" />}
-            />
-          </div>
-          <div className="flex flex-wrap gap-1 mt-2">
-            {regenForm.keywords.map((kw, i) => (
-              <span
-                key={i}
-                className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs"
-              >
-                {kw}{" "}
-                <button onClick={() => removeRegenKeyword("secondary", i)}>
-                  <X className="w-3 h-3" />
-                </button>
-              </span>
-            ))}
-          </div>
-        </div>
-
-        {/* Tone & Length */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-xs font-medium text-gray-500 mb-1 block">Tone</label>
-            <Select
-              value={regenForm.tone}
-              onChange={val => updateRegenField("tone", val)}
-              options={TONES.map(t => ({ label: t, value: t }))}
-              className="w-full"
-              size="small"
-            />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-gray-500 mb-1 block">
-              Length: {regenForm.userDefinedLength}
-            </label>
-            <Slider
-              value={regenForm.userDefinedLength}
-              onChange={val => updateRegenField("userDefinedLength", val)}
-              min={500}
-              max={5000}
-              step={100}
-            />
-          </div>
-        </div>
-
-        {/* AI Model */}
-        <div>
-          <label className="text-xs font-medium text-gray-500 mb-2 block">AI Model</label>
-          <div className="grid grid-cols-3 gap-2">
-            {AI_MODELS.map(model => (
-              <button
-                key={model.id}
-                onClick={() => {
-                  if (model.restrictedPlans.includes(userPlan)) {
-                    openUpgradePopup({ featureName: model.label, navigate })
-                  } else {
-                    updateRegenField("aiModel", model.id)
-                  }
-                }}
-                className={`p-2 rounded-lg border text-center text-xs transition-all ${
-                  regenForm.aiModel === model.id
-                    ? "border-blue-500 bg-blue-50"
-                    : "border-gray-200 hover:border-gray-300"
-                } ${model.restrictedPlans.includes(userPlan) ? "opacity-50" : ""}`}
-              >
-                <img src={model.logo} alt={model.label} className="w-5 h-5 mx-auto mb-1" />
-                {model.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Options */}
-        <div className="space-y-2">
-          {/* Add Images Section */}
-          <div className="space-y-2 p-3 bg-gray-50 rounded-lg">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-700 font-medium">Add Images</span>
-              <Switch
-                size="small"
-                checked={regenForm.isCheckedGeneratedImages}
-                onChange={val => updateRegenField("isCheckedGeneratedImages", val)}
-              />
-            </div>
-
-            {/* Image Source Options - Show when images are enabled */}
-            {regenForm.isCheckedGeneratedImages && (
-              <div className="space-y-2 pt-2">
-                <label className="text-xs font-medium text-gray-500 block">Image Source</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => updateRegenField("imageSource", IMAGE_SOURCE.STOCK)}
-                    className={`p-2 rounded-lg border text-center text-xs transition-all ${
-                      regenForm.imageSource === IMAGE_SOURCE.STOCK
-                        ? "border-blue-500 bg-blue-50 text-blue-700"
-                        : "border-gray-200 hover:border-gray-300 text-gray-700"
-                    }`}
-                  >
-                    <div className="font-medium">Stock Images</div>
-                    <div className="text-[10px] text-gray-500 mt-0.5">Unsplash</div>
-                  </button>
-                  <button
-                    onClick={() => updateRegenField("imageSource", IMAGE_SOURCE.AI)}
-                    className={`p-2 rounded-lg border text-center text-xs transition-all ${
-                      regenForm.imageSource === IMAGE_SOURCE.AI
-                        ? "border-blue-500 bg-blue-50 text-blue-700"
-                        : "border-gray-200 hover:border-gray-300 text-gray-700"
-                    }`}
-                  >
-                    <div className="font-medium">AI Generated</div>
-                    <div className="text-[10px] text-gray-500 mt-0.5">Flux AI</div>
-                  </button>
-                </div>
-
-                {/* Number of Images */}
-                <div className="pt-1">
-                  <label className="text-xs font-medium text-gray-500 block mb-1">
-                    Number of Images: {regenForm.numberOfImages || 3}
-                  </label>
-                  <InputNumber
-                    size="small"
-                    min={1}
-                    max={10}
-                    value={regenForm.numberOfImages || 3}
-                    onChange={val => updateRegenField("numberOfImages", val)}
-                    className="w-full"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
-            <span className="text-sm text-gray-700">Include FAQs</span>
-            <Switch
-              size="small"
-              checked={regenForm.options.includeFaqs}
-              onChange={val => updateRegenField("options.includeFaqs", val)}
-            />
-          </div>
-          <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
-            <span className="text-sm text-gray-700">Interlinks</span>
-            <Switch
-              size="small"
-              checked={regenForm.options.includeInterlinks}
-              onChange={val => updateRegenField("options.includeInterlinks", val)}
-            />
-          </div>
-          <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
-            <span className="text-sm text-gray-700">Competitor Research (+10)</span>
-            <Switch
-              size="small"
-              checked={regenForm.options.includeCompetitorResearch}
-              onChange={val => updateRegenField("options.includeCompetitorResearch", val)}
-            />
-          </div>
-        </div>
-
-        {/* Brand Voice */}
-        <BrandVoiceSelector
-          label="Brand Voice"
-          labelClass="text-xs font-medium text-gray-500"
-          value={{
-            isCheckedBrand: regenForm.useBrandVoice,
-            brandId: regenForm.brandId,
-            addCTA: regenForm.addCTA,
-          }}
-          onChange={val => {
-            updateRegenField("useBrandVoice", val.isCheckedBrand)
-            updateRegenField("brandId", val.brandId)
-            updateRegenField("addCTA", val.addCTA)
-          }}
-        />
-      </div>
-
-      {/* Floating Regenerate Button */}
-      <div className="p-3 border-t bg-white space-y-3">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-500">Estimated Cost</span>
-          <div className="flex items-center gap-1">
-            <Zap className="w-4 h-4 text-amber-500" />
-            <span className="font-bold text-blue-600">{calculateRegenCost()} credits</span>
-          </div>
-        </div>
-        <Button
-          type="primary"
-          block
-          size="large"
-          loading={isRegenerating}
-          onClick={handleRegenerate}
-          icon={<RefreshCw className="w-4 h-4" />}
-          className="h-12 bg-gradient-to-r from-blue-600 to-purple-600 border-0 font-semibold"
-        >
-          Regenerate Blog
-        </Button>
-      </div>
-    </div>
-  )
-
   const renderPanel = () => {
     switch (activePanel) {
       case "overview":
@@ -1586,10 +1158,6 @@ const TextEditorSidebar = ({
         return renderSeoPanel()
       case "suggestions":
         return renderSuggestionsPanel()
-      case "enhancement":
-        return renderEnhancementPanel()
-      case "regenerate":
-        return renderRegeneratePanel()
       default:
         return renderOverviewPanel()
     }
@@ -1606,8 +1174,15 @@ const TextEditorSidebar = ({
             <Tooltip key={item.id} title={item.label} placement="left">
               <button
                 onClick={() => {
-                  setActivePanel(item.id)
-                  setIsCollapsed(false)
+                  if (item.id === "regenerate") {
+                    // Open the 2-step modal for regenerate
+                    setRegenerateStep(1)
+                    setIsRegenerateModalOpen(true)
+                    setIsCollapsed(false)
+                  } else {
+                    setActivePanel(item.id)
+                    setIsCollapsed(false)
+                  }
                 }}
                 className="w-11 h-11 rounded-2xl flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-white hover:shadow-md transition-all duration-200 relative group"
               >
@@ -1666,7 +1241,15 @@ const TextEditorSidebar = ({
             return (
               <Tooltip key={item.id} title={item.label} placement="left">
                 <button
-                  onClick={() => setActivePanel(item.id)}
+                  onClick={() => {
+                    if (item.id === "regenerate") {
+                      // Open the 2-step modal for regenerate
+                      setRegenerateStep(1)
+                      setIsRegenerateModalOpen(true)
+                    } else {
+                      setActivePanel(item.id)
+                    }
+                  }}
                   className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-200 relative group ${
                     isActive
                       ? "bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-200"
@@ -1812,6 +1395,383 @@ const TextEditorSidebar = ({
             </div>
           </div>
         </div>
+      </Modal>
+
+      {/* 2-Step Regenerate Modal */}
+      <Modal
+        title={
+          <div className="flex items-center gap-2">
+            <RefreshCw className="w-5 h-5 text-blue-600" />
+            <span>Regenerate Blog - Step {regenerateStep} of 2</span>
+          </div>
+        }
+        open={isRegenerateModalOpen}
+        onCancel={() => {
+          setIsRegenerateModalOpen(false)
+          setRegenerateStep(1)
+        }}
+        footer={
+          <div className="flex justify-between items-center">
+            <div className="text-sm text-gray-500">
+              {regenerateStep === 2 && (
+                <div className="flex items-center gap-1">
+                  <Zap className="w-4 h-4 text-amber-500" />
+                  <span className="font-bold text-blue-600">{calculateRegenCost()} credits</span>
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2">
+              {regenerateStep === 2 && <Button onClick={() => setRegenerateStep(1)}>Back</Button>}
+              <Button
+                onClick={() => {
+                  setIsRegenerateModalOpen(false)
+                  setRegenerateStep(1)
+                }}
+              >
+                Cancel
+              </Button>
+              {regenerateStep === 1 ? (
+                <Button
+                  type="primary"
+                  onClick={() => setRegenerateStep(2)}
+                  className="bg-gradient-to-r from-blue-500 to-indigo-600 border-0"
+                >
+                  Next: Enhancement Options
+                </Button>
+              ) : (
+                <Button
+                  type="primary"
+                  loading={isRegenerating}
+                  onClick={handleRegenerateSubmit}
+                  icon={<RefreshCw className="w-4 h-4" />}
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 border-0"
+                >
+                  Regenerate Blog
+                </Button>
+              )}
+            </div>
+          </div>
+        }
+        centered
+        width={600}
+      >
+        {regenerateStep === 1 ? (
+          // Step 1: Regenerate Blog Settings
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto custom-scroll pr-2">
+            <p className="text-sm text-gray-500 mb-4">
+              Configure your blog regeneration settings. You can modify the topic, keywords, tone,
+              and other options.
+            </p>
+
+            {/* Topic & Title */}
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-gray-700 mb-1 block">Topic</label>
+                <Input
+                  value={regenForm.topic}
+                  onChange={e => updateRegenField("topic", e.target.value)}
+                  placeholder="Blog topic..."
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-700 mb-1 block">Title</label>
+                <Input
+                  value={regenForm.title}
+                  onChange={e => updateRegenField("title", e.target.value)}
+                  placeholder="Blog title..."
+                />
+              </div>
+            </div>
+
+            {/* Focus Keywords */}
+            <div>
+              <label className="text-xs font-medium text-gray-700 mb-1 block">
+                Focus Keywords (max 3)
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  value={focusKeywordInput}
+                  onChange={e => setFocusKeywordInput(e.target.value)}
+                  onKeyDown={e =>
+                    e.key === "Enter" && (e.preventDefault(), addRegenKeyword("focus"))
+                  }
+                  placeholder="Add keyword..."
+                  size="small"
+                />
+                <Button
+                  size="small"
+                  type="primary"
+                  onClick={() => addRegenKeyword("focus")}
+                  icon={<Plus className="w-3 h-3" />}
+                />
+              </div>
+              <div className="flex flex-wrap gap-1 mt-2">
+                {regenForm.focusKeywords.map((kw, i) => (
+                  <span
+                    key={i}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs"
+                  >
+                    {kw}{" "}
+                    <button onClick={() => removeRegenKeyword("focus", i)}>
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Secondary Keywords */}
+            <div>
+              <label className="text-xs font-medium text-gray-700 mb-1 block">
+                Secondary Keywords
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  value={keywordInput}
+                  onChange={e => setKeywordInput(e.target.value)}
+                  onKeyDown={e =>
+                    e.key === "Enter" && (e.preventDefault(), addRegenKeyword("secondary"))
+                  }
+                  placeholder="Add keywords..."
+                  size="small"
+                />
+                <Button
+                  size="small"
+                  type="primary"
+                  onClick={() => addRegenKeyword("secondary")}
+                  icon={<Plus className="w-3 h-3" />}
+                />
+              </div>
+              <div className="flex flex-wrap gap-1 mt-2">
+                {regenForm.keywords.map((kw, i) => (
+                  <span
+                    key={i}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs"
+                  >
+                    {kw}{" "}
+                    <button onClick={() => removeRegenKeyword("secondary", i)}>
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Tone & Length */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-medium text-gray-700 mb-1 block">Tone</label>
+                <Select
+                  value={regenForm.tone}
+                  onChange={val => updateRegenField("tone", val)}
+                  options={TONES.map(t => ({ label: t, value: t }))}
+                  className="w-full"
+                  size="small"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-700 mb-1 block">
+                  Length: {regenForm.userDefinedLength}
+                </label>
+                <Slider
+                  value={regenForm.userDefinedLength}
+                  onChange={val => updateRegenField("userDefinedLength", val)}
+                  min={500}
+                  max={5000}
+                  step={100}
+                />
+              </div>
+            </div>
+
+            {/* AI Model */}
+            <div>
+              <label className="text-xs font-medium text-gray-700 mb-2 block">AI Model</label>
+              <div className="grid grid-cols-3 gap-2">
+                {AI_MODELS.map(model => (
+                  <button
+                    key={model.id}
+                    onClick={() => {
+                      if (model.restrictedPlans.includes(userPlan)) {
+                        openUpgradePopup({ featureName: model.label, navigate })
+                      } else {
+                        updateRegenField("aiModel", model.id)
+                      }
+                    }}
+                    className={`p-2 rounded-lg border text-center text-xs transition-all ${
+                      regenForm.aiModel === model.id
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-gray-200 hover:border-gray-300"
+                    } ${model.restrictedPlans.includes(userPlan) ? "opacity-50" : ""}`}
+                  >
+                    <img src={model.logo} alt={model.label} className="w-5 h-5 mx-auto mb-1" />
+                    {model.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Add Images Section */}
+            <div className="space-y-2 p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-700 font-medium">Add Images</span>
+                <Switch
+                  size="small"
+                  checked={regenForm.isCheckedGeneratedImages}
+                  onChange={val => updateRegenField("isCheckedGeneratedImages", val)}
+                />
+              </div>
+
+              {regenForm.isCheckedGeneratedImages && (
+                <div className="space-y-2 pt-2">
+                  <label className="text-xs font-medium text-gray-500 block">Image Source</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => updateRegenField("imageSource", IMAGE_SOURCE.STOCK)}
+                      className={`p-2 rounded-lg border text-center text-xs transition-all ${
+                        regenForm.imageSource === IMAGE_SOURCE.STOCK
+                          ? "border-blue-500 bg-blue-50 text-blue-700"
+                          : "border-gray-200 hover:border-gray-300 text-gray-700"
+                      }`}
+                    >
+                      <div className="font-medium">Stock Images</div>
+                      <div className="text-[10px] text-gray-500 mt-0.5">Unsplash</div>
+                    </button>
+                    <button
+                      onClick={() => updateRegenField("imageSource", IMAGE_SOURCE.AI)}
+                      className={`p-2 rounded-lg border text-center text-xs transition-all ${
+                        regenForm.imageSource === IMAGE_SOURCE.AI
+                          ? "border-blue-500 bg-blue-50 text-blue-700"
+                          : "border-gray-200 hover:border-gray-300 text-gray-700"
+                      }`}
+                    >
+                      <div className="font-medium">AI Generated</div>
+                      <div className="text-[10px] text-gray-500 mt-0.5">Flux AI</div>
+                    </button>
+                  </div>
+
+                  <div className="pt-1">
+                    <label className="text-xs font-medium text-gray-500 block mb-1">
+                      Number of Images: {regenForm.numberOfImages || 3}
+                    </label>
+                    <InputNumber
+                      size="small"
+                      min={1}
+                      max={10}
+                      value={regenForm.numberOfImages || 3}
+                      onChange={val => updateRegenField("numberOfImages", val)}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Brand Voice */}
+            <BrandVoiceSelector
+              label="Brand Voice"
+              labelClass="text-xs font-medium text-gray-700"
+              value={{
+                isCheckedBrand: regenForm.useBrandVoice,
+                brandId: regenForm.brandId,
+                addCTA: regenForm.addCTA,
+              }}
+              onChange={val => {
+                updateRegenField("useBrandVoice", val.isCheckedBrand)
+                updateRegenField("brandId", val.brandId)
+                updateRegenField("addCTA", val.addCTA)
+              }}
+            />
+          </div>
+        ) : (
+          // Step 2: Content Enhancement Options
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto custom-scroll pr-2">
+            <p className="text-sm text-gray-500 mb-4">
+              Select the content enhancement options you want to include in your regenerated blog.
+            </p>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-2 h-2 rounded-full ${
+                      regenForm.options.includeFaqs ? "bg-green-500" : "bg-gray-400"
+                    }`}
+                  />
+                  <span className="text-sm font-medium text-gray-700">Include FAQs</span>
+                </div>
+                <Switch
+                  size="small"
+                  checked={regenForm.options.includeFaqs}
+                  onChange={val => updateRegenField("options.includeFaqs", val)}
+                />
+              </div>
+
+              <div className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-2 h-2 rounded-full ${
+                      regenForm.options.includeInterlinks ? "bg-green-500" : "bg-gray-400"
+                    }`}
+                  />
+                  <span className="text-sm font-medium text-gray-700">Include Interlinks</span>
+                </div>
+                <Switch
+                  size="small"
+                  checked={regenForm.options.includeInterlinks}
+                  onChange={val => updateRegenField("options.includeInterlinks", val)}
+                />
+              </div>
+
+              <div className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-2 h-2 rounded-full ${
+                      regenForm.options.includeCompetitorResearch ? "bg-green-500" : "bg-gray-400"
+                    }`}
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-gray-700">Competitor Research</span>
+                    <span className="ml-2 text-xs text-amber-600 font-semibold">+10 credits</span>
+                  </div>
+                </div>
+                <Switch
+                  size="small"
+                  checked={regenForm.options.includeCompetitorResearch}
+                  onChange={val => updateRegenField("options.includeCompetitorResearch", val)}
+                />
+              </div>
+
+              <div className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-2 h-2 rounded-full ${
+                      regenForm.options.addOutBoundLinks ? "bg-green-500" : "bg-gray-400"
+                    }`}
+                  />
+                  <span className="text-sm font-medium text-gray-700">Add Outbound Links</span>
+                </div>
+                <Switch
+                  size="small"
+                  checked={regenForm.options.addOutBoundLinks}
+                  onChange={val => updateRegenField("options.addOutBoundLinks", val)}
+                />
+              </div>
+            </div>
+
+            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <Lightbulb className="w-5 h-5 text-blue-600 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-blue-900">Enhancement Summary</p>
+                  <p className="text-xs text-blue-700 mt-1">
+                    These options will enhance your blog content with additional features like FAQs,
+                    internal links, competitor insights, and external references.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </Modal>
     </>
   )

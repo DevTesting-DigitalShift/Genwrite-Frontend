@@ -12,6 +12,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { getIntegrationsThunk } from "@store/slices/otherSlice"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
+import { IMAGE_SOURCE } from "@/data/blogData"
 
 const BulkBlogModal = ({ closeFnc }) => {
   const dispatch = useDispatch()
@@ -41,7 +42,7 @@ const BulkBlogModal = ({ closeFnc }) => {
     performKeywordResearch: true,
     tone: "",
     userDefinedLength: 1000,
-    imageSource: "unsplash",
+    imageSource: IMAGE_SOURCE.STOCK,
     useBrandVoice: false,
     useCompetitors: false,
     includeInterlinks: true,
@@ -89,7 +90,7 @@ const BulkBlogModal = ({ closeFnc }) => {
       setFormData(prev => ({
         ...prev,
         isCheckedGeneratedImages: false,
-        imageSource: "unsplash",
+        imageSource: IMAGE_SOURCE.STOCK,
       }))
       setErrors(prev => ({ ...prev, numberOfImages: false, blogImages: false }))
     }
@@ -209,7 +210,13 @@ const BulkBlogModal = ({ closeFnc }) => {
         </>
       ),
       onConfirm: () => {
-        dispatch(createMultiBlog({ blogData: formData, user, navigate }))
+        // Prepare the final data with proper imageSource handling
+        const finalData = {
+          ...formData,
+          // Set imageSource to "none" if images are disabled
+          imageSource: formData.isCheckedGeneratedImages ? formData.imageSource : IMAGE_SOURCE.NONE,
+        }
+        dispatch(createMultiBlog({ blogData: finalData, user, navigate }))
         handleClose()
       },
     })
