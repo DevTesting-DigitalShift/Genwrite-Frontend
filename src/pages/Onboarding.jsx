@@ -85,6 +85,20 @@ const Onboarding = () => {
       return
     }
 
+    if (!formData.keywords.length) {
+      message.error("Please enter at least one keyword")
+      return
+    }
+
+    if (!formData.persona.trim()) {
+      message.error("Please enter your persona")
+      return
+    }
+
+    if (!formData.sitemap.trim().length) {
+      delete formData.sitemap
+    }
+
     setLoading(true)
     try {
       await createBrandVoice(formData)
@@ -236,11 +250,11 @@ const Onboarding = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-900 mb-2">
-                    Target Audience
+                    Author Persona
                   </label>
                   <TextArea
                     rows={3}
-                    placeholder="Who is your target audience?"
+                    placeholder="What is your Author Persona?"
                     value={formData.persona}
                     onChange={e => setFormData(prev => ({ ...prev, persona: e.target.value }))}
                     className="rounded-lg"
@@ -346,7 +360,7 @@ const Onboarding = () => {
                 {formData.persona && (
                   <div>
                     <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
-                      Target Audience
+                      Author Persona
                     </p>
                     <p className="text-gray-700 text-sm">{formData.persona}</p>
                   </div>
