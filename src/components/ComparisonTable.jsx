@@ -36,6 +36,11 @@ const ComparisonTable = ({ plans }) => {
         {
           name: "AI-generated blogs",
           available: ["basic", "pro", "enterprise", "credits"],
+          details: {
+            basic: "upto 10 Blogs",
+            pro: "upto 45 Blogs",
+            enterprise: "Custom Blogs",
+          },
         },
         {
           name: "AI images with blogs",

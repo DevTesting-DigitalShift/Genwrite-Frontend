@@ -1,5 +1,0 @@
-<<<<<<<< HEAD:dist/assets/LoadingOutlined-UIF7HDph.js
-import{r as o,I as s,dn as i}from"./index-CdvKsoWL.js";function e(){return e=Object.assign?Object.assign.bind():function(t){for(var n=1;n<arguments.length;n++){var r=arguments[n];for(var a in r)Object.prototype.hasOwnProperty.call(r,a)&&(t[a]=r[a])}return t},e.apply(this,arguments)}const c=(t,n)=>o.createElement(s,e({},t,{ref:n,icon:i})),d=o.forwardRef(c);export{d as R};
-========
-import{r as o,I as s,dx as i}from"./index-BefQ4Lql.js";function e(){return e=Object.assign?Object.assign.bind():function(t){for(var n=1;n<arguments.length;n++){var r=arguments[n];for(var a in r)Object.prototype.hasOwnProperty.call(r,a)&&(t[a]=r[a])}return t},e.apply(this,arguments)}const c=(t,n)=>o.createElement(s,e({},t,{ref:n,icon:i})),d=o.forwardRef(c);export{d as R};
->>>>>>>> development:dist/assets/LoadingOutlined-BofP7F6A.js

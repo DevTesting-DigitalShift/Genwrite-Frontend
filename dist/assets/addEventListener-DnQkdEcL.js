@@ -1,1 +1,0 @@
-import{aa as s}from"./index-CdvKsoWL.js";function u(e,n,a,d){var i=s.unstable_batchedUpdates?function(o){s.unstable_batchedUpdates(a,o)}:a;return e!=null&&e.addEventListener&&e.addEventListener(n,i,d),{remove:function(){e!=null&&e.removeEventListener&&e.removeEventListener(n,i,d)}}}export{u as a};

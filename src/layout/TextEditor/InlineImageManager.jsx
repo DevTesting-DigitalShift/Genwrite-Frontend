@@ -274,15 +274,15 @@ const InlineImageCard = ({ image, imageIndex, totalImages, onUpdate, onDelete, o
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Alt Text <span className="text-red-500">*</span>
             </label>
+            <p className="text-xs text-gray-500 mt-1">
+              Describe what's in the image. This helps with SEO and accessibility.
+            </p>
             <Input.TextArea
               value={altText}
               onChange={e => setAltText(e.target.value)}
               placeholder="Describe the image for accessibility and SEO"
-              rows={2}
+              rows={10}
             />
-            <p className="text-xs text-gray-500 mt-1">
-              Describe what's in the image. This helps with SEO and accessibility.
-            </p>
           </div>
 
           {/* Position Info */}

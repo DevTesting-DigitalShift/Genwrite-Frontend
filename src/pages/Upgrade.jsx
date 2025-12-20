@@ -476,6 +476,7 @@ const Upgrade = () => {
         features: [
           billingPeriod === "annual" ? "12,000 annual credits" : "1,000 monthly credits",
           "Blog generation: single, quick, multiple",
+          "upto 10 blog of 1000-words",
           "Keyword research",
           "Performance monitoring",
           "Humanize pasted content",
@@ -503,6 +504,7 @@ const Upgrade = () => {
         features: [
           "Everything in Basic, additionally:",
           billingPeriod === "annual" ? "54,000 annual credits" : "4,500 monthly credits",
+          "upto 45 blog of 1000-words",
           "Competitor analysis",
           "Retry blog",
           "Regenerate content",
@@ -511,11 +513,9 @@ const Upgrade = () => {
           "Jobs scheduling",
           "Priority support",
           "Advanced export options",
-          "Custom templates",
+          "30+ templates",
           "SEO optimization",
           "AI content suggestions",
-          "Automatic Blog Posting",
-          "Custom AI models & workflows",
           "Advanced content insights",
         ],
         cta: "Upgrade to Pro",
