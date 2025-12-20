@@ -1,6 +1,16 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { motion, Reorder } from "framer-motion"
-import { Copy, Eye, Edit3, RefreshCw, Plus, Trash2, Info } from "lucide-react"
+import {
+  Copy,
+  Eye,
+  Edit3,
+  RefreshCw,
+  Plus,
+  Trash2,
+  Info,
+  Check,
+  Image as ImageIcon,
+} from "lucide-react"
 import { useSelector } from "react-redux"
 import { Modal, Tooltip, message, Button, Input, Popover } from "antd"
 
@@ -80,13 +90,22 @@ function cleanMixedContent(content) {
 // Parse HTML article content into sections based on blog HTML class structure
 function parseHtmlIntoSections(htmlString) {
   if (!htmlString)
-    return { title: "", description: "", sections: [], faq: null, cta: null, quickSummary: null }
+    return {
+      title: "",
+      description: "",
+      thumbnail: null,
+      sections: [],
+      faq: null,
+      cta: null,
+      quickSummary: null,
+    }
 
   const parser = new DOMParser()
   const doc = parser.parseFromString(htmlString, "text/html")
 
   let title = ""
   let description = ""
+  let thumbnail = null
   const sections = []
   let faq = null
   let cta = null
@@ -104,11 +123,20 @@ function parseHtmlIntoSections(htmlString) {
     description = cleanMixedContent(descEl.innerHTML || "")
   }
 
-  // Extract Main Image (Figure) usually found after title/desc but outside sections
+  // Extract Main Image (Figure) - DO NOT add to sections, handle separately
   const mainImageEl = doc.querySelector("figure.section-thumbnail, figure.thumbnail-main")
-  let mainImageHtml = ""
   if (mainImageEl) {
-    mainImageHtml = mainImageEl.outerHTML
+    // Extract image data
+    const imgEl = mainImageEl.querySelector("img")
+    if (imgEl) {
+      thumbnail = {
+        url: imgEl.getAttribute("src") || "",
+        alt: imgEl.getAttribute("alt") || "",
+        html: mainImageEl.outerHTML,
+      }
+    }
+    // Remove the thumbnail from the document so it doesn't get parsed into sections
+    mainImageEl.remove()
   }
 
   // Extract content sections (.blog-section but not .faq-section)
@@ -128,23 +156,6 @@ function parseHtmlIntoSections(htmlString) {
       originalContent: sectionContent,
     })
   })
-
-  // If we have a main image, prepend it to the first section's content
-  if (mainImageHtml && sections.length > 0) {
-    // Avoid duplication if it's already in the content
-    if (!sections[0].content.includes('class="section-thumbnail')) {
-      sections[0].content = mainImageHtml + sections[0].content
-      sections[0].originalContent = sections[0].content
-    }
-  } else if (mainImageHtml && sections.length === 0) {
-    // If no sections, create one
-    sections.push({
-      id: generateSectionId(),
-      title: "Introduction",
-      content: mainImageHtml,
-      originalContent: mainImageHtml,
-    })
-  }
 
   // Extract FAQ section (Structured)
   const faqSection = doc.querySelector(".faq-section")
@@ -206,7 +217,7 @@ function parseHtmlIntoSections(htmlString) {
     quickSummary = summaryEl.innerHTML
   }
 
-  return { title, description, sections, faq, cta, quickSummary }
+  return { title, description, thumbnail, sections, faq, cta, quickSummary }
 }
 
 // Parse markdown into sections with proper image handling
@@ -299,6 +310,7 @@ const TextEditor = ({
   const [faq, setFaq] = useState(null)
   const [blogTitle, setBlogTitle] = useState("")
   const [blogDescription, setBlogDescription] = useState("")
+  const [blogThumbnail, setBlogThumbnail] = useState(null)
 
   // Track original values for change detection - use refs to store the snapshot
   const [originalBlogTitle, setOriginalBlogTitle] = useState("")
@@ -314,6 +326,11 @@ const TextEditor = ({
   // Editing states for title/description
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [isEditingDescription, setIsEditingDescription] = useState(false)
+
+  // Thumbnail edit modal state
+  const [thumbnailModalOpen, setThumbnailModalOpen] = useState(false)
+  const [thumbnailUrl, setThumbnailUrl] = useState("")
+  const [thumbnailAlt, setThumbnailAlt] = useState("")
 
   // Section images state
   const [sectionImages, setSectionImages] = useState([])
@@ -515,6 +532,7 @@ const TextEditor = ({
       // Set current state
       setBlogTitle(parsedData.title)
       setBlogDescription(parsedData.description)
+      setBlogThumbnail(parsedData.thumbnail)
       setSections(parsedData.sections)
       setFaq(parsedData.faq)
 
@@ -1118,6 +1136,32 @@ const TextEditor = ({
           )}
         </div>
 
+        {/* Thumbnail Image - Display if exists */}
+        {blogThumbnail && (
+          <div className="mb-8 relative group">
+            <div
+              className="cursor-pointer relative"
+              onClick={() => {
+                setThumbnailUrl(blogThumbnail.url)
+                setThumbnailAlt(blogThumbnail.alt || "")
+                setThumbnailModalOpen(true)
+              }}
+            >
+              <img
+                src={blogThumbnail.url}
+                alt={blogThumbnail.alt || blogTitle}
+                className="w-full max-h-[500px] object-cover rounded-lg shadow-md transition-all group-hover:brightness-95"
+              />
+              {/* Overlay hint on hover */}
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all rounded-lg flex items-center justify-center">
+                <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 px-4 py-2 rounded-lg text-sm font-medium text-gray-700 shadow-lg">
+                  Click to edit thumbnail
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Blog description - editable with rich text bubble menu */}
         <div className="mb-8">
           {isEditingDescription ? (
@@ -1190,6 +1234,105 @@ const TextEditor = ({
           </>
         )}
         {renderFAQ()}
+
+        {/* Thumbnail Edit Modal */}
+        <Modal
+          title={
+            <div className="flex items-center gap-2">
+              <ImageIcon className="w-5 h-5 text-purple-600" />
+              <span>Edit Thumbnail Image</span>
+            </div>
+          }
+          open={thumbnailModalOpen}
+          onCancel={() => setThumbnailModalOpen(false)}
+          footer={
+            <div className="flex items-center justify-between w-full">
+              {/* Left: Destructive action */}
+              <Button
+                danger
+                icon={<Trash2 className="w-4 h-4" />}
+                onClick={() => {
+                  setBlogThumbnail(null)
+                  setThumbnailModalOpen(false)
+                  message.success("Thumbnail removed")
+                }}
+              >
+                Delete Thumbnail
+              </Button>
+
+              {/* Right: Actions */}
+              <div className="flex items-center gap-2">
+                <Button onClick={() => setThumbnailModalOpen(false)}>Cancel</Button>
+                <Button
+                  type="primary"
+                  icon={<Check className="w-4 h-4" />}
+                  onClick={() => {
+                    if (blogThumbnail) {
+                      setBlogThumbnail({
+                        ...blogThumbnail,
+                        url: thumbnailUrl,
+                        alt: thumbnailAlt,
+                      })
+                      message.success("Thumbnail updated")
+                    }
+                    setThumbnailModalOpen(false)
+                  }}
+                >
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          }
+          width={700}
+          centered
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Left: Image Preview */}
+            <div className="border rounded-lg bg-gray-50 p-2 flex items-center justify-center">
+              <img
+                src={thumbnailUrl}
+                alt={thumbnailAlt || "Thumbnail preview"}
+                className="max-w-full rounded-lg object-contain"
+                style={{ maxHeight: "300px" }}
+                onError={e => {
+                  e.currentTarget.src = blogThumbnail?.url
+                }}
+              />
+            </div>
+
+            {/* Right: Image Details */}
+            <div className="space-y-4">
+              {/* Image URL */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Image URL <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  value={thumbnailUrl}
+                  onChange={e => setThumbnailUrl(e.target.value)}
+                  placeholder="https://example.com/image.jpg"
+                />
+                <p className="text-xs text-gray-500 mt-1">Enter a URL to replace the thumbnail</p>
+              </div>
+
+              {/* Alt Text */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Alt Text <span className="text-red-500">*</span>
+                </label>
+                <Input.TextArea
+                  value={thumbnailAlt}
+                  onChange={e => setThumbnailAlt(e.target.value)}
+                  placeholder="Describe the image for accessibility and SEO"
+                  rows={3}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Helps with SEO and screen readers. Be descriptive and specific.
+                </p>
+              </div>
+            </div>
+          </div>
+        </Modal>
       </div>
     )
   }

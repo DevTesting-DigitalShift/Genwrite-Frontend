@@ -59,6 +59,7 @@ const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
             {label}
           </label>
           <Switch
+            // size="small"
             id={`blog-isCheckedBrand`}
             value={state.isCheckedBrand}
             onChange={handleBrandToggle}

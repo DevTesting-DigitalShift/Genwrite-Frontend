@@ -229,13 +229,22 @@ const TextEditorSidebar = ({
 
   const getWordCount = text => {
     if (!text) return 0
-    // Strip HTML tags first
-    const strippedText = text.replace(/<[^>]*>/g, " ")
-    // Count words
-    return strippedText
+
+    // Create a temporary DOM element to properly strip HTML
+    const tempDiv = document.createElement("div")
+    tempDiv.innerHTML = text
+
+    // Get text content (this removes all HTML tags)
+    const strippedText = tempDiv.textContent || tempDiv.innerText || ""
+
+    // Remove extra whitespace and count words
+    const words = strippedText
       .trim()
-      .split(/\s+/)
-      .filter(word => word.length > 0).length
+      .replace(/\s+/g, " ") // Replace multiple spaces with single space
+      .split(" ")
+      .filter(word => word.length > 0)
+
+    return words.length
   }
 
   // Update regen form field
@@ -258,7 +267,7 @@ const TextEditorSidebar = ({
     if (regenForm.options.includeCompetitorResearch) features.push("competitorResearch")
     if (regenForm.options.includeFaqs) features.push("faqGeneration")
     if (regenForm.options.includeInterlinks) features.push("internalLinking")
-    if (regenForm.options.addOutBoundLinks) features.push("outboundLinks")
+    // Note: addOutBoundLinks does not add extra credits
 
     return computeCost({
       wordCount: regenForm.userDefinedLength || 1000,
@@ -885,57 +894,6 @@ const TextEditorSidebar = ({
           </button>
         </div>
 
-        {/* Competitive Analysis Section */}
-        <div className="space-y-3 p-3 bg-white border rounded-xl shadow-sm">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-purple-600" />
-            <span className="text-sm font-semibold text-gray-900">Competitive Analysis</span>
-          </div>
-
-          {result || blog?.generatedMetadata?.competitors ? (
-            <Collapse defaultActiveKey={["1"]} ghost expandIconPosition="end" className="-mx-3">
-              {(result?.competitors || blog?.generatedMetadata?.competitors)?.length > 0 && (
-                <Panel
-                  header={
-                    <div className="flex items-center gap-2">
-                      <Eye className="w-4 h-4 text-blue-600" />
-                      <span className="font-medium text-sm">Top Competitors</span>
-                    </div>
-                  }
-                  key="1"
-                >
-                  <CompetitorsList
-                    competitors={result?.competitors || blog?.generatedMetadata?.competitors}
-                  />
-                </Panel>
-              )}
-              {(result?.insights?.analysis || result?.analysis) && (
-                <Panel
-                  header={
-                    <div className="flex items-center gap-2">
-                      <Lightbulb className="w-4 h-4 text-orange-500" />
-                      <span className="font-medium text-sm">Key Insights</span>
-                    </div>
-                  }
-                  key="2"
-                >
-                  <AnalysisInsights insights={result?.insights?.analysis || result?.analysis} />
-                </Panel>
-              )}
-            </Collapse>
-          ) : (
-            <button
-              onClick={handleAnalyzing}
-              disabled={isAnalyzingCompetitive}
-              className={`w-full py-2.5 rounded-lg text-sm font-semibold transition-all bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow ${
-                isAnalyzingCompetitive ? "opacity-60 cursor-not-allowed" : "hover:shadow-md"
-              }`}
-            >
-              {isAnalyzingCompetitive ? "Analyzing..." : "Run SEO Analysis"}
-            </button>
-          )}
-        </div>
-
         {/* Export Section */}
         <div className="space-y-3 p-3 bg-white border rounded-xl shadow-sm">
           <div className="flex items-center gap-2">
@@ -1140,7 +1098,7 @@ const TextEditorSidebar = ({
   // Collapsed state - show only icon bar
   if (isCollapsed) {
     return (
-      <div className="w-16 h-screen bg-gradient-to-b from-slate-50 to-gray-100 border-l border-gray-200 flex flex-col items-center py-5 gap-2">
+      <div className="w-16 h-screen bg-gradient-to-b from-slate-50 to-gray-100 border-l border-gray-200 flex flex-col items-center gap-2">
         {NAV_ITEMS.map(item => {
           const Icon = item.icon
           return (
@@ -1388,14 +1346,6 @@ const TextEditorSidebar = ({
             </div>
             <div className="flex gap-2">
               {regenerateStep === 2 && <Button onClick={() => setRegenerateStep(1)}>Back</Button>}
-              <Button
-                onClick={() => {
-                  setIsRegenerateModalOpen(false)
-                  setRegenerateStep(1)
-                }}
-              >
-                Cancel
-              </Button>
               {regenerateStep === 1 ? (
                 <Button
                   type="primary"
@@ -1454,7 +1404,7 @@ const TextEditorSidebar = ({
               <label className="text-xs font-medium text-gray-700 mb-1 block">
                 Focus Keywords (max 3)
               </label>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
                 <Input
                   value={focusKeywordInput}
                   onChange={e => setFocusKeywordInput(e.target.value)}
@@ -1463,14 +1413,17 @@ const TextEditorSidebar = ({
                   }
                   placeholder="Add keyword..."
                   size="small"
+                  className="h-8"
                 />
+
                 <Button
-                  size="small"
                   type="primary"
                   onClick={() => addRegenKeyword("focus")}
-                  icon={<Plus className="w-3 h-3" />}
+                  icon={<Plus className="w-4 h-4" />}
+                  className="h-8 flex items-center justify-center"
                 />
               </div>
+
               <div className="flex flex-wrap gap-1 mt-2">
                 {regenForm.focusKeywords.map((kw, i) => (
                   <span
@@ -1488,10 +1441,9 @@ const TextEditorSidebar = ({
 
             {/* Secondary Keywords */}
             <div>
-              <label className="text-xs font-medium text-gray-700 mb-1 block">
-                Secondary Keywords
-              </label>
-              <div className="flex gap-2">
+              <label className="text-xs font-medium text-gray-700 mb-1 block">Keywords</label>
+
+              <div className="flex items-center gap-2">
                 <Input
                   value={keywordInput}
                   onChange={e => setKeywordInput(e.target.value)}
@@ -1500,21 +1452,24 @@ const TextEditorSidebar = ({
                   }
                   placeholder="Add keywords..."
                   size="small"
+                  className="h-8"
                 />
+
                 <Button
-                  size="small"
                   type="primary"
                   onClick={() => addRegenKeyword("secondary")}
-                  icon={<Plus className="w-3 h-3" />}
+                  icon={<Plus className="w-4 h-4" />}
+                  className="h-8 flex items-center justify-center"
                 />
               </div>
+
               <div className="flex flex-wrap gap-1 mt-2">
                 {regenForm.keywords.map((kw, i) => (
                   <span
                     key={i}
                     className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs"
                   >
-                    {kw}{" "}
+                    {kw}
                     <button onClick={() => removeRegenKeyword("secondary", i)}>
                       <X className="w-3 h-3" />
                     </button>
@@ -1536,15 +1491,24 @@ const TextEditorSidebar = ({
                 />
               </div>
               <div>
-                <label className="text-xs font-medium text-gray-700 mb-1 block">
-                  Length: {regenForm.userDefinedLength}
-                </label>
-                <Slider
+                <label className="text-xs font-medium text-gray-700 mb-1 block">Word Count</label>
+                <Select
                   value={regenForm.userDefinedLength}
                   onChange={val => updateRegenField("userDefinedLength", val)}
-                  min={500}
-                  max={5000}
-                  step={100}
+                  options={[
+                    { label: "500 words", value: 500 },
+                    { label: "1,000 words", value: 1000 },
+                    { label: "1,500 words", value: 1500 },
+                    { label: "2,000 words", value: 2000 },
+                    { label: "2,500 words", value: 2500 },
+                    { label: "3,000 words", value: 3000 },
+                    { label: "3,500 words", value: 3500 },
+                    { label: "4,000 words", value: 4000 },
+                    { label: "4,500 words", value: 4500 },
+                    { label: "5,000 words", value: 5000 },
+                  ]}
+                  className="w-full"
+                  size="small"
                 />
               </div>
             </div>
@@ -1600,7 +1564,6 @@ const TextEditorSidebar = ({
                       }`}
                     >
                       <div className="font-medium">Stock Images</div>
-                      <div className="text-[10px] text-gray-500 mt-0.5">Unsplash</div>
                     </button>
                     <button
                       onClick={() => updateRegenField("imageSource", IMAGE_SOURCE.AI)}
@@ -1611,7 +1574,6 @@ const TextEditorSidebar = ({
                       }`}
                     >
                       <div className="font-medium">AI Generated</div>
-                      <div className="text-[10px] text-gray-500 mt-0.5">Flux AI</div>
                     </button>
                   </div>
 

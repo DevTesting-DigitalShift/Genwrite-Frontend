@@ -12,7 +12,7 @@ import { useProAction } from "@/hooks/useProAction"
 dayjs.extend(relativeTime)
 const isValidFunction = o => o && typeof o === "function"
 
-export const DashboardBox = ({ title, content, id, showModal, icon, gradient }) => {
+export const DashboardBox = ({ title, content, id, showModal, icon, gradient, dataTour }) => {
   const user = useSelector(state => state.auth.user)
   const userPlan = user?.plan ?? user?.subscription?.plan
   const navigate = useNavigate()
@@ -43,6 +43,7 @@ export const DashboardBox = ({ title, content, id, showModal, icon, gradient }) 
     <div
       onClick={handleClick}
       className="group relative bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer overflow-hidden"
+      data-tour={dataTour}
     >
       {/* Background hover gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-5 transition-opacity duration-300 from-blue-500 to-purple-500"></div>

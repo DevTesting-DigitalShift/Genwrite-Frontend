@@ -116,7 +116,7 @@ const Auth = ({ path }) => {
           }
 
           if (isSignup) {
-            navigate("/pricing", { replace: true })
+            navigate("/onboarding", { replace: true })
           } else {
             navigate("/dashboard", { replace: true })
           }
@@ -161,7 +161,7 @@ const Auth = ({ path }) => {
 
         // 🔥 Your new redirect rule
         if (isSignup) {
-          navigate("/pricing", { replace: true }) // New user flow
+          navigate("/onboarding", { replace: true }) // New user onboarding flow
         } else {
           navigate("/dashboard", { replace: true }) // Returning user flow
         }

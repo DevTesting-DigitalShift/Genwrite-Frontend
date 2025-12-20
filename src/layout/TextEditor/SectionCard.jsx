@@ -23,7 +23,6 @@ import { Tooltip, Input, message, Modal, Button } from "antd"
 import SectionEditor from "./SectionEditor"
 import { useEditorContext } from "./EditorContext"
 import { EmbedCard, parseEmbedsFromHtml } from "./EmbedManager"
-import { InlineImageManager } from "./InlineImageManager"
 
 // Helper function to strip markdown and HTML from text
 function toPlainText(input = "") {
@@ -412,9 +411,9 @@ const SectionCard = ({ section, index }) => {
         </div>
       )}
 
-      {/* Section Image - with edit modal */}
+      {/* Section Image - with unified edit modal */}
       {sectionImage && (
-        <div className="mb-4 relative group">
+        <div className="my-4 relative group">
           <div
             className="cursor-pointer relative"
             onClick={() => {
@@ -451,7 +450,7 @@ const SectionCard = ({ section, index }) => {
         </div>
       )}
 
-      {/* Edit Section Image Modal */}
+      {/* Unified Image Edit Modal - URL replacement only */}
       <Modal
         title={
           <div className="flex items-center gap-2">
@@ -462,10 +461,10 @@ const SectionCard = ({ section, index }) => {
         open={editModalOpen}
         onCancel={() => setEditModalOpen(false)}
         footer={
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between w-full">
             {/* Left: Destructive action */}
             <Button danger icon={<Trash2 className="w-4 h-4" />} onClick={handleDeleteImage}>
-              Delete
+              Delete Image
             </Button>
 
             {/* Right: Actions */}
@@ -476,30 +475,31 @@ const SectionCard = ({ section, index }) => {
                 icon={<Check className="w-4 h-4" />}
                 onClick={handleSaveImageChanges}
               >
-                Save
+                Save Changes
               </Button>
             </div>
           </div>
         }
-        width={800}
+        width={700}
         centered
         bodyStyle={{ maxHeight: "calc(100vh - 250px)", overflowY: "auto" }}
       >
-        <div className="flex gap-4">
-          {/* LEFT: Image Preview */}
-          <div className="w-[420px] shrink-0 border rounded-lg bg-gray-50 p-3 flex items-center justify-center">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Left: Image Preview */}
+          <div className="border rounded-lg bg-gray-50 p-2 flex items-center justify-center">
             <img
               src={imageUrl}
               alt={imageAltText || "Preview"}
               className="max-w-full rounded-lg object-contain"
+              style={{ maxHeight: "300px" }}
               onError={e => {
                 e.currentTarget.src = sectionImage?.url
               }}
             />
           </div>
 
-          {/* RIGHT: Details */}
-          <div className="flex-1 space-y-3">
+          {/* Right: Image Details */}
+          <div className="space-y-4">
             {/* Image URL */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -510,6 +510,7 @@ const SectionCard = ({ section, index }) => {
                 onChange={e => setImageUrl(e.target.value)}
                 placeholder="https://example.com/image.jpg"
               />
+              <p className="text-xs text-gray-500 mt-1">Enter a URL to replace the image</p>
             </div>
 
             {/* Alt Text */}
@@ -521,20 +522,12 @@ const SectionCard = ({ section, index }) => {
                 value={imageAltText}
                 onChange={e => setImageAltText(e.target.value)}
                 placeholder="Describe the image for accessibility and SEO"
-                rows={2}
+                rows={3}
               />
-              <p className="text-xs text-gray-500 mt-1">Helps with SEO and screen readers.</p>
+              <p className="text-xs text-gray-500 mt-1">
+                Helps with SEO and screen readers. Be descriptive and specific.
+              </p>
             </div>
-
-            {/* Attribution */}
-            {sectionImage?.attribution?.name && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <p className="text-xs text-gray-600 mb-1">Attribution</p>
-                <p className="text-sm text-blue-700 font-medium">
-                  Photo by {sectionImage.attribution.name}
-                </p>
-              </div>
-            )}
           </div>
         </div>
       </Modal>

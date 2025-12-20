@@ -31,6 +31,7 @@ import dayjs from "dayjs"
 import LoadingScreen from "@components/UI/LoadingScreen"
 import { ACTIVE_MODELS } from "@/data/dashModels"
 import { useQueryClient } from "@tanstack/react-query"
+import DashboardTour from "@components/DashboardTour"
 
 // lazy imports
 const QuickBlogModal = lazy(() => import("@components/multipleStepModal/QuickBlogModal"))
@@ -68,6 +69,7 @@ const Dashboard = () => {
   const user = useSelector(selectUser)
   const { handlePopup } = useConfirmPopup()
   const queryClient = useQueryClient()
+  const [runTour, setRunTour] = useState(false)
 
   // Default state
   const [dateRange, setDateRange] = useState([undefined, undefined])
@@ -149,10 +151,17 @@ const Dashboard = () => {
   useEffect(() => {
     const currentUser = user
     const hasSeenGoThrough = sessionStorage.getItem("hasSeenGoThrough") === "true"
+    const hasSeenTour = localStorage.getItem("hasSeenDashboardTour") === "true"
+
     if (currentUser && !currentUser.lastLogin && !hasSeenGoThrough) {
       setShowWhatsNew(true)
     } else {
-      setShowWhatsNew(false) // Explicitly set to false to prevent reappearing
+      setShowWhatsNew(false)
+    }
+
+    // Start tour for new users after GoThrough modal
+    if (currentUser && !currentUser.lastLogin && !hasSeenTour && hasSeenGoThrough) {
+      setTimeout(() => setRunTour(true), 1500)
     }
   }, [user])
 
@@ -300,6 +309,15 @@ const Dashboard = () => {
       </Helmet>
       {showWhatsNew && <GoThrough onClose={handleCloseModal} />}
 
+      <DashboardTour
+        run={runTour}
+        onComplete={() => {
+          setRunTour(false)
+          localStorage.setItem("hasSeenDashboardTour", "true")
+        }}
+        onOpenQuickBlog={() => setActiveModel(ACTIVE_MODELS.Quick_Blog)}
+      />
+
       <InlineAnnouncementBanner />
 
       {activeModel && renderModel()}
@@ -310,12 +328,24 @@ const Dashboard = () => {
         transition={{ duration: 0.5 }}
         className="mt-10 md:mt-5 ml-5 md:ml-10"
       >
-        <h1 className="bg-clip-text bg-gradient-to-r font-bold from-blue-600 md:text-4xl text-3xl text-transparent to-purple-600">
-          Let's Begin <span className="ml-2 text-2xl text-yellow-400">✨</span>
-        </h1>
-        <p className="text-gray-600 text-lg mt-2">
-          Welcome back <b>{user?.name || "User"}</b>! Ready to create something amazing today?
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="bg-clip-text bg-gradient-to-r font-bold from-blue-600 md:text-4xl text-3xl text-transparent to-purple-600">
+              Let's Begin <span className="ml-2 text-2xl text-yellow-400">✨</span>
+            </h1>
+            <p className="text-gray-600 text-lg mt-2">
+              Welcome back <b>{user?.name || "User"}</b>! Ready to create something amazing today?
+            </p>
+          </div>
+
+          {/* TEMPORARY TEST BUTTON - Remove after testing */}
+          <button
+            onClick={() => setRunTour(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium mr-5"
+          >
+            🎯 Test Tour
+          </button>
+        </div>
       </motion.div>
 
       <div className="min-h-screen p-2 md:p-6 relative">
@@ -344,7 +374,7 @@ const Dashboard = () => {
           </div>
         ) : (
           <div className="space-y-8">
-            <div className="grid lg:grid-cols-2 gap-4">
+            <div className="grid lg:grid-cols-2 gap-4" data-tour="quick-actions">
               <AnimatePresence>
                 {loading
                   ? Array.from({ length: 4 }).map((_, idx) => <SkeletonDashboardCard key={idx} />)
@@ -357,12 +387,16 @@ const Dashboard = () => {
                         id={item.id}
                         gradient={item.hoverGradient}
                         showModal={() => setActiveModel(item.modelKey)}
+                        dataTour={index === 0 ? "create-blog" : undefined}
                       />
                     ))}
               </AnimatePresence>
             </div>
 
-            <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
+            <div
+              className="bg-white rounded-lg p-6 shadow-sm border border-gray-100"
+              data-tour="analytics"
+            >
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
                   <Sparkles className="w-4 h-4 text-white" />
@@ -391,8 +425,11 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {recentBlogData.length > 0 && (
-              <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100 mt-6">
+            {recentBlogData.length > 0 && !runTour && (
+              <div
+                className="bg-white rounded-lg p-6 shadow-sm border border-gray-100 mt-6"
+                data-tour="recent-blogs"
+              >
                 <div className="mb-6 flex justify-between items-center">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center">
