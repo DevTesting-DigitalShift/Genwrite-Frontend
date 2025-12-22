@@ -12,7 +12,9 @@ import {
   ImagesIcon,
   LayoutDashboard,
   Megaphone,
+  Menu,
   Plug,
+  Sparkles,
   Trash2,
   TrendingUp,
   UsersRound,
@@ -221,133 +223,121 @@ const SideBar_Header = () => {
       {showWhatsNew && <WhatsNewModal onClose={handleCloseModal} />}
       <div
         ref={sidebarRef}
-        className={`fixed top-0 left-0 h-full z-50 transition-all duration-300 bg-[#3F51B5] from-purple-800 to-blue-600 text-white overflow-hidden p-2 flex flex-col ${
-          sidebarOpen ? "w-56" : "hidden md:w-16 md:block"
+        className={`fixed top-0 left-0 h-full z-50 transition-all duration-300 ease-in-out bg-white border-r border-gray-200 overflow-hidden flex flex-col shadow-sm ${
+          sidebarOpen ? "w-64" : "hidden md:w-20 md:flex"
         }`}
         onMouseEnter={() => setSidebarOpen(true)}
         onMouseLeave={() => {
           if (window.innerWidth >= 768) setSidebarOpen(false)
         }}
       >
-        {/* Logo or menu icon */}
-        <div className="flex justify-center items-center h-14 mb-4">
+        {/* Logo Header */}
+        <div className="flex items-center mt-3 justify-center h-16 border-b border-gray-200 px-4">
           {!sidebarOpen ? (
-            <FiMenu size={24} className="text-white" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+              <Menu className="w-5 h-5 text-white" />
+            </div>
           ) : (
-            <img
-              src="/Images/logo_genwrite_1.png"
-              loading="lazy"
-              alt="Logo"
-              className="w-52 mt-4"
-            />
+            <div className="flex items-center gap-2">
+              <img src="/Images/logo_genwrite_2.png" alt="logo" className="w-full h-12" />
+            </div>
           )}
         </div>
 
         {/* Upgrade Button */}
         {sidebarOpen && (
-          <div className="mb-6 px-2">
+          <div className="p-3">
             <button
               onClick={() => navigate("/pricing")}
-              className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg flex items-center justify-center gap-2 group capitalize"
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 hover:shadow-lg flex items-center justify-center gap-2 group"
             >
               {["pro", "enterprise"].includes(user?.subscription?.plan) ? (
                 <Crown className="w-4 h-4 group-hover:rotate-12 transition-transform duration-300" />
               ) : (
                 <Zap className="w-4 h-4 group-hover:scale-110 transition-transform duration-300" />
               )}
-              <span>{user?.subscription?.plan} Plan</span>
+              <span className="capitalize">{user?.subscription?.plan} Plan</span>
             </button>
           </div>
         )}
 
         {/* Navigation Menu */}
-        <ul className="space-y-3">
-          {Menus.map((Menu, index) => {
-            const isActive = location.pathname.startsWith(Menu.path)
-            const Icon = Menu.icon
-            const isSearchConsole = Menu.title === ""
-            const isContentAgent = Menu.title === ""
-            const isPro = ["pro", "enterprise"].includes(user?.subscription?.plan)
-            const isFreeUser = user?.plan === "free" || user?.subscription?.plan === "free"
+        <nav className="flex-1 py-4 px-3 overflow-y-auto">
+          <ul className="space-y-1">
+            {Menus.map((Menu, index) => {
+              const isActive = location.pathname.startsWith(Menu.path)
+              const Icon = Menu.icon
+              const isPro = ["pro", "enterprise"].includes(user?.subscription?.plan)
+              const isFreeUser = user?.plan === "free" || user?.subscription?.plan === "free"
 
-            return (
-              <li key={index} className="flex items-center gap-2">
-                <NavLink
-                  to={Menu.path}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors duration-200 text-white hover:bg-white/10 flex-1 ${
-                    isActive ? "bg-white/20 font-semibold" : ""
-                  }`}
-                >
-                  <Icon
-                    className="w-5 h-5 transition-all duration-200"
-                    strokeWidth={isActive ? 2 : 1.5}
-                  />
-                  <span className={`${!sidebarOpen ? "hidden" : "block"}`}>{Menu.title}</span>
-                </NavLink>
-
-                {/* Show upgrade icon for Content Agent and free users */}
-                {isContentAgent && isFreeUser && sidebarOpen && (
-                  <button className="p-1 bg-yellow-500 text-white rounded-md transition-all duration-200 hover:scale-105">
-                    <Crown className="w-4 h-4" />
-                  </button>
-                )}
-
-                {/* Show upgrade icon for Blog Performance and non-pro users */}
-                {isSearchConsole && !isPro && sidebarOpen && (
-                  <button className="p-1 bg-yellow-500 text-white rounded-md transition-all duration-200 hover:scale-105">
-                    <Crown className="w-4 h-4" />
-                  </button>
-                )}
-              </li>
-            )
-          })}
-        </ul>
-
-        {/* Responsive Sidebar Items (GoProButton and Introduction Video) */}
-        {sidebarOpen && (
-          <ul className="space-y-3 mt-4 md:hidden">
-            <li>
-              <button
-                onClick={() => navigate("/pricing")}
-                className="flex items-center gap-3 px-3 py-2 rounded-md transition-colors duration-200 text-white hover:bg-white/10 w-full"
-              >
-                <Zap className="w-5 h-5" />
-                <span>Go Pro</span>
-              </button>
-            </li>
-            <li>
-              <button
-                onClick={() => setShowWhatsNew(true)}
-                className="flex items-center gap-3 px-3 py-2 rounded-md transition-colors duration-200 text-white hover:bg-white/10 w-full"
-              >
-                <HelpCircle className="w-5 h-5" />
-                <span>Introduction Video</span>
-              </button>
-            </li>
+              return (
+                <li key={index}>
+                  <NavLink
+                    to={Menu.path}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group ${
+                      isActive
+                        ? "bg-blue-50 text-blue-600 shadow-sm"
+                        : "text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    <Icon
+                      className={`w-5 h-5 flex-shrink-0 transition-transform duration-200 ${
+                        !isActive && "group-hover:scale-110"
+                      }`}
+                    />
+                    {sidebarOpen && (
+                      <span className="text-sm font-medium whitespace-nowrap">{Menu.title}</span>
+                    )}
+                  </NavLink>
+                </li>
+              )
+            })}
           </ul>
+        </nav>
+
+        {/* Responsive Sidebar Items (Mobile Only) */}
+        {sidebarOpen && (
+          <div className="md:hidden p-3 border-t border-gray-200">
+            <ul className="space-y-1">
+              <li>
+                <button
+                  onClick={() => navigate("/pricing")}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors duration-200 text-gray-700 hover:bg-gray-100 w-full"
+                >
+                  <Zap className="w-5 h-5" />
+                  <span className="text-sm font-medium">Go Pro</span>
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => setShowWhatsNew(true)}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors duration-200 text-gray-700 hover:bg-gray-100 w-full"
+                >
+                  <HelpCircle className="w-5 h-5" />
+                  <span className="text-sm font-medium">Introduction Video</span>
+                </button>
+              </li>
+            </ul>
+          </div>
         )}
 
-        {/* Contact Us - Stick to bottom */}
-        <div className="absolute bottom-4 w-full pr-4">
+        {/* Contact Us - Bottom */}
+        <div className="p-3 border-t border-gray-200">
           <NavLink
             to="/contact"
-            className="flex items-center gap-3 px-3 py-2 rounded-md transition-colors duration-200 text-white hover:bg-white/10"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors duration-200 text-gray-700 hover:bg-gray-100"
           >
-            <UsersRound
-              className={`transition-all duration-300 ${
-                sidebarOpen ? "w-5 h-5 opacity-100" : "w-5 h-5 opacity-80"
-              }`}
-            />
-            <span className={`${sidebarOpen ? "block" : "hidden"}`}>Contact Us</span>
+            <UsersRound className="w-5 h-5 flex-shrink-0" />
+            {sidebarOpen && <span className="text-sm font-medium">Contact Us</span>}
           </NavLink>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 md:ml-16">
+      <div className="flex-1 md:ml-20">
         <header
           className="fixed top-0 z-40 p-4 flex items-center justify-between border-b bg-gradient-to-r from-white/60 via-white/30 to-white/60 backdrop-blur-lg
- border-gray-200 w-full md:w-[calc(100%-4rem)]"
+ border-gray-200 w-full md:w-[calc(100%-5rem)]"
         >
           <div className="flex items-center gap-2">
             <button className="md:hidden" onClick={() => setSidebarOpen(!sidebarOpen)}>
@@ -375,6 +365,7 @@ const SideBar_Header = () => {
                   <button
                     onClick={() => setShowWhatsNew(true)}
                     className="flex gap-2 justify-center items-center rounded-full p-2 hover:bg-gray-100 transition"
+                    data-tour="help-icon"
                   >
                     <HelpCircle className="transition-all duration-300 w-7 h-7 text-gray-700" />
                   </button>

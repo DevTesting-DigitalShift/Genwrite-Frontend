@@ -150,7 +150,7 @@ function parseHtmlIntoSections(htmlString) {
     const sectionContent = cleanMixedContent(rawContent)
 
     sections.push({
-      id: secEl.id || generateSectionId(),
+      id: generateSectionId(), // Always generate unique ID to avoid duplicates
       title: sectionTitle,
       content: sectionContent,
       originalContent: sectionContent,

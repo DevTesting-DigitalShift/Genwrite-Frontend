@@ -27,6 +27,9 @@ import {
   FileCode,
   Lock,
   Globe,
+  Info,
+  Calendar,
+  User,
 } from "lucide-react"
 import {
   Button,
@@ -74,6 +77,7 @@ const AI_MODELS = [
 const NAV_ITEMS = [
   { id: "overview", icon: BarChart3, label: "Overview" },
   { id: "seo", icon: TrendingUp, label: "SEO" },
+  { id: "bloginfo", icon: Info, label: "Blog Info" },
   { id: "regenerate", icon: RefreshCw, label: "Regenerate" },
 ]
 
@@ -1086,12 +1090,141 @@ const TextEditorSidebar = ({
     )
   }
 
+  const renderBlogInfoPanel = () => (
+    <div className="flex flex-col h-full">
+      <div className="p-3 border-b bg-gradient-to-r from-gray-50 to-blue-50">
+        <div className="flex items-center gap-2">
+          <div className="p-2 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg">
+            <Info className="w-4 h-4 text-white" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-900">Blog Information</h3>
+            <p className="text-xs text-gray-500 font-medium mt-0.5">
+              Metadata and settings used for this blog
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-3 space-y-4 custom-scroll">
+        {/* Template & Category */}
+        <div className="space-y-3">
+          <div className="p-3 bg-white border rounded-lg">
+            <div className="text-xs text-gray-500 mb-1">Template</div>
+            <div className="font-semibold text-gray-900">{blog?.template || "N/A"}</div>
+          </div>
+          <div className="p-3 bg-white border rounded-lg">
+            <div className="text-xs text-gray-500 mb-1">Category</div>
+            <div className="font-semibold text-gray-900">{blog?.category || "N/A"}</div>
+          </div>
+        </div>
+
+        {/* Tags */}
+        {blog?.tags && blog.tags.length > 0 && (
+          <div className="p-3 bg-white border rounded-lg">
+            <div className="text-xs text-gray-500 mb-2">Tags</div>
+            <div className="flex flex-wrap gap-1.5">
+              {blog.tags.map((tag, i) => (
+                <span
+                  key={i}
+                  className="inline-flex items-center px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium"
+                >
+                  <TagIcon className="w-3 h-3 mr-1" />
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Keywords */}
+        {blog?.keywords && blog.keywords.length > 0 && (
+          <div className="p-3 bg-white border rounded-lg">
+            <div className="text-xs text-gray-500 mb-2">Keywords</div>
+            <div className="flex flex-wrap gap-1.5">
+              {blog.keywords.map((kw, i) => (
+                <span key={i} className="px-2 py-1 bg-purple-50 text-purple-700 rounded text-xs">
+                  {kw}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Focus Keywords */}
+        {blog?.focusKeywords && blog.focusKeywords.length > 0 && (
+          <div className="p-3 bg-white border rounded-lg">
+            <div className="text-xs text-gray-500 mb-2">Focus Keywords</div>
+            <div className="flex flex-wrap gap-1.5">
+              {blog.focusKeywords.map((kw, i) => (
+                <span
+                  key={i}
+                  className="px-2 py-1 bg-green-50 text-green-700 rounded text-xs font-medium"
+                >
+                  {kw}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Tone & Word Count */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="p-3 bg-white border rounded-lg">
+            <div className="text-xs text-gray-500 mb-1">Tone</div>
+            <div className="font-semibold text-gray-900">{blog?.tone || "N/A"}</div>
+          </div>
+          <div className="p-3 bg-white border rounded-lg">
+            <div className="text-xs text-gray-500 mb-1">Target Length</div>
+            <div className="font-semibold text-gray-900">{blog?.userDefinedLength || 0} words</div>
+          </div>
+        </div>
+
+        {/* AI Model & Image Source */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="p-3 bg-white border rounded-lg">
+            <div className="text-xs text-gray-500 mb-1">AI Model</div>
+            <div className="font-semibold text-gray-900 capitalize">{blog?.aiModel || "N/A"}</div>
+          </div>
+          <div className="p-3 bg-white border rounded-lg">
+            <div className="text-xs text-gray-500 mb-1">Image Source</div>
+            <div className="font-semibold text-gray-900 capitalize">
+              {blog?.imageSource || "none"}
+            </div>
+          </div>
+        </div>
+
+        {/* Options/Features */}
+        {blog?.options && (
+          <div className="p-3 bg-white border rounded-lg">
+            <div className="text-xs text-gray-500 mb-2">Features Enabled</div>
+            <div className="space-y-1.5">
+              {Object.entries(blog.options).map(
+                ([key, value]) =>
+                  value && (
+                    <div key={key} className="flex items-center gap-2 text-xs">
+                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+                      <span className="text-gray-700 capitalize">
+                        {key.replace(/([A-Z])/g, " $1").trim()}
+                      </span>
+                    </div>
+                  )
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+
   const renderPanel = () => {
     switch (activePanel) {
       case "overview":
         return renderOverviewPanel()
       case "seo":
         return renderSeoPanel()
+      case "bloginfo":
+        return renderBlogInfoPanel()
       default:
         return renderOverviewPanel()
     }

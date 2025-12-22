@@ -13,54 +13,34 @@ const DashboardTour = ({ run, onComplete, onOpenQuickBlog }) => {
       target: null,
       title: "Welcome to GenWrite! 🎉",
       description:
-        "We're excited to have you here! Let me show you how easy it is to create amazing blog content.",
+        "We're excited to have you here! Let me show you around and help you create your first amazing blog post.",
       placement: "center",
       showNext: true,
     },
     {
-      target: '[data-tour="analytics"]',
-      title: "Quick Tools",
+      target: '[data-tour="lets-begin"]',
+      title: "Let's Begin - Your Starting Point",
       description:
-        "Here you'll find powerful tools for keyword research, performance monitoring, and competitive analysis to help you create better content.",
+        "This section gives you quick access to create different types of blogs. You can create Quick Blogs, YouTube Blogs, Advanced Blogs, and more!",
+      placement: "bottom",
+      showNext: true,
+    },
+    {
+      target: '[data-tour="analytics"]',
+      title: "Quick Tools - Powerful Features",
+      description:
+        "Access advanced tools like Keyword Research, Performance Monitoring, and Competitive Analysis to optimize your content strategy.",
       placement: "bottom",
       showNext: true,
     },
     {
       target: '[data-tour="create-blog"]',
-      title: "Click on Quick Blog",
+      title: "Create Your First Quick Blog",
       description:
-        "Now, let's create your first blog! Click on the 'Quick Blog' card to get started.",
+        "Now you're ready to create your first blog! Click on the 'Quick Blog' card to get started. It's super easy - just choose a template, add your topic and keywords, and submit!",
       placement: "bottom",
-      showNext: false,
-      waitForClick: true,
-      instruction: "👆 Click the Quick Blog card above",
-    },
-    {
-      target: '[data-tour="template-selector"]',
-      title: "Choose a Template",
-      description:
-        "Select a template that matches your content type. Each template is optimized for different purposes. Choose one and click Next.",
-      placement: "right",
-      showNext: false,
-      instruction: "Select a template and click Next",
-    },
-    {
-      target: '[data-tour="blog-topic"]',
-      title: "Fill in the Details",
-      description:
-        "Enter your blog topic and any other details about what you want to write. The more specific you are, the better your blog will be!",
-      placement: "right",
-      showNext: false,
-      instruction: "Fill in your blog details",
-    },
-    {
-      target: '[data-tour="submit-button"]',
-      title: "Generate Your Blog! 🚀",
-      description:
-        "Click the Submit button and watch the magic happen! Your blog will be generated in just a few seconds.",
-      placement: "top",
-      showNext: false,
-      instruction: "Click Submit to generate your blog",
+      showNext: true,
+      isFinalStep: true,
     },
   ]
 
@@ -78,34 +58,12 @@ const DashboardTour = ({ run, onComplete, onOpenQuickBlog }) => {
       window.addEventListener("resize", updateTargetRect)
       window.addEventListener("scroll", updateTargetRect)
 
-      // Listen for clicks on Quick Blog card
-      if (currentStep === 2 && waitingForUserAction) {
-        const quickBlogCard = document.querySelector('[data-tour="create-blog"]')
-        if (quickBlogCard) {
-          const handleClick = () => {
-            if (onOpenQuickBlog) {
-              onOpenQuickBlog()
-            }
-            setTimeout(() => {
-              setCurrentStep(3)
-              setWaitingForUserAction(false)
-            }, 500)
-          }
-          quickBlogCard.addEventListener("click", handleClick)
-          return () => {
-            quickBlogCard.removeEventListener("click", handleClick)
-            window.removeEventListener("resize", updateTargetRect)
-            window.removeEventListener("scroll", updateTargetRect)
-          }
-        }
-      }
-
       return () => {
         window.removeEventListener("resize", updateTargetRect)
         window.removeEventListener("scroll", updateTargetRect)
       }
     }
-  }, [isVisible, currentStep, waitingForUserAction, onOpenQuickBlog])
+  }, [isVisible, currentStep])
 
   const updateTargetRect = () => {
     const step = steps[currentStep]
@@ -131,9 +89,9 @@ const DashboardTour = ({ run, onComplete, onOpenQuickBlog }) => {
   const handleNext = () => {
     const step = steps[currentStep]
 
-    // If this step requires user to click Quick Blog
-    if (step.waitForClick) {
-      setWaitingForUserAction(true)
+    // If this is the final step, complete the tour
+    if (step.isFinalStep) {
+      handleComplete()
       return
     }
 
@@ -145,7 +103,8 @@ const DashboardTour = ({ run, onComplete, onOpenQuickBlog }) => {
   }
 
   const handleBack = () => {
-    if (currentStep > 0 && currentStep !== 3) {
+    // Allow going back through all steps except when on first step
+    if (currentStep > 0) {
       setCurrentStep(currentStep - 1)
       setWaitingForUserAction(false)
     }
@@ -179,32 +138,67 @@ const DashboardTour = ({ run, onComplete, onOpenQuickBlog }) => {
     const step = steps[currentStep]
     const padding = 20
     const tooltipWidth = 400
+    const tooltipHeight = 300 // Approximate height
+    const viewportHeight = window.innerHeight
+    const viewportWidth = window.innerWidth
 
     switch (step.placement) {
-      case "bottom":
-        return {
-          top: `${targetRect.top + targetRect.height + padding}px`,
-          left: `${Math.min(targetRect.left, window.innerWidth - tooltipWidth - 20)}px`,
+      case "bottom": {
+        const topPos = targetRect.top + targetRect.height + padding
+        const leftPos = Math.max(
+          padding,
+          Math.min(targetRect.left, viewportWidth - tooltipWidth - padding)
+        )
+
+        // If tooltip would go below viewport, position it above instead
+        if (topPos + tooltipHeight > viewportHeight - padding) {
+          return {
+            bottom: `${viewportHeight - targetRect.top + padding}px`,
+            left: `${leftPos}px`,
+            maxHeight: `${targetRect.top - padding * 2}px`,
+            overflowY: "auto",
+          }
         }
+
+        return {
+          top: `${Math.min(topPos, viewportHeight - tooltipHeight - padding)}px`,
+          left: `${leftPos}px`,
+        }
+      }
       case "top":
         return {
-          bottom: `${window.innerHeight - targetRect.top + padding}px`,
-          left: `${Math.min(targetRect.left, window.innerWidth - tooltipWidth - 20)}px`,
+          bottom: `${viewportHeight - targetRect.top + padding}px`,
+          left: `${Math.max(
+            padding,
+            Math.min(targetRect.left, viewportWidth - tooltipWidth - padding)
+          )}px`,
         }
       case "left":
         return {
-          top: `${targetRect.top}px`,
-          right: `${window.innerWidth - targetRect.left + padding}px`,
+          top: `${Math.max(
+            padding,
+            Math.min(targetRect.top, viewportHeight - tooltipHeight - padding)
+          )}px`,
+          right: `${viewportWidth - targetRect.left + padding}px`,
         }
       case "right":
         return {
-          top: `${targetRect.top}px`,
+          top: `${Math.max(
+            padding,
+            Math.min(targetRect.top, viewportHeight - tooltipHeight - padding)
+          )}px`,
           left: `${targetRect.left + targetRect.width + padding}px`,
         }
       default:
         return {
-          top: `${targetRect.top + targetRect.height + padding}px`,
-          left: `${targetRect.left}px`,
+          top: `${Math.min(
+            targetRect.top + targetRect.height + padding,
+            viewportHeight - tooltipHeight - padding
+          )}px`,
+          left: `${Math.max(
+            padding,
+            Math.min(targetRect.left, viewportWidth - tooltipWidth - padding)
+          )}px`,
         }
     }
   }
@@ -383,7 +377,7 @@ const DashboardTour = ({ run, onComplete, onOpenQuickBlog }) => {
                 </button>
 
                 <div className="flex items-center gap-2">
-                  {currentStep > 0 && currentStep < 3 && (
+                  {currentStep > 0 && (
                     <button
                       onClick={handleBack}
                       className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-1"

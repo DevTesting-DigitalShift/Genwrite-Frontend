@@ -373,7 +373,7 @@ const SearchConsole = () => {
       </Helmet>
 
       {!!user?.gsc ? (
-        <div className="p-2 md:p-6 bg-gray-50 min-h-screen">
+        <div className="p-2 md:p-6 min-h-screen">
           <div className="bg-white rounded-xl shadow-sm p-2 md:p-6 mb-6 border border-gray-200">
             <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6 mt-6 md:mt-0">
               <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">

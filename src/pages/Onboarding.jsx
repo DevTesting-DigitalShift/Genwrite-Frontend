@@ -93,7 +93,7 @@ const Onboarding = () => {
     if (!formData.persona.trim()) {
       message.error("Please enter your persona")
       return
-    }
+    } 
 
     if (!formData.sitemap.trim().length) {
       delete formData.sitemap
@@ -105,7 +105,7 @@ const Onboarding = () => {
       message.success("Brand voice created successfully!")
 
       setTimeout(() => {
-        navigate("/blogs")
+        navigate("/dashboard")
       }, 1000)
     } catch (error) {
       message.error(error.message || "Failed to create brand voice")

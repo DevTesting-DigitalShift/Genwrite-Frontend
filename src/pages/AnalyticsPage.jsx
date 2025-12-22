@@ -346,7 +346,7 @@ const AnalyticsPage = () => {
   }
 
   return (
-    <div className="min-h-screen transition-colors duration-300 bg-gray-50">
+    <div className="min-h-screen">
       <div className="p-6">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -358,7 +358,7 @@ const AnalyticsPage = () => {
             <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               Blog Analytics
             </h1>
-            <p className="text-sm mt-1 text-gray-600">
+            <p className="text-base mt-1 text-gray-600">
               Track your blog performance and engagement metrics
             </p>
           </div>

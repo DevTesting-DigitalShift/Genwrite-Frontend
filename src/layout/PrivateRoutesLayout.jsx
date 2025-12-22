@@ -44,12 +44,14 @@ const PrivateRoutesLayout = () => {
     }
   }, [user, location.pathname])
 
+  const isToolbarRoute = location.pathname.startsWith("/toolbox/")
+
   return token ? (
     <>
       <div className="flex flex-col min-h-screen">
         <LayoutWithSidebarAndHeader />
 
-        <div className="flex-1 ml-0 md:ml-16 pt-16 sm:pt-20">
+       <div className={`flex-1 ml-0 md:ml-16 pt-16 sm:pt-20 ${isToolbarRoute ? "px-0 pl-2" : " px-3 md:px-6"}`}>
           {/* Chatbot Button (hidden on /toolbox/:id) */}
           {/* {!isToolboxRoute && (
             <>
