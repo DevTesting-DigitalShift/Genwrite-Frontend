@@ -57,8 +57,14 @@ export const languageSchema = z
   .describe("Language in which the blog should be written")
 
 export const scheduleTypeSchema = z
-  .enum([ScheduleType.DAILY, ScheduleType.WEEKLY, ScheduleType.MONTHLY, ScheduleType.CUSTOM])
-  .describe("Type of job schedule: daily, weekly, monthly, or custom dates")
+  .enum([
+    ScheduleType.DAILY,
+    ScheduleType.WEEKLY,
+    ScheduleType.WEEKDAYS,
+    ScheduleType.MONTHDAYS,
+    ScheduleType.CUSTOM,
+  ])
+  .describe("Type of job schedule: daily, weekly, weekdays, monthdays, or custom dates")
 
 export const postingTypeSchema = z
   .enum(["WORDPRESS", "SHOPIFY", "SERVERENDPOINT", "WIX"])
@@ -122,92 +128,103 @@ export type QuickBlogFinalDataSchemaType = z.infer<typeof quickBlogFinalDataSche
 // BULK BLOG FINAL DATA SCHEMA
 // ============================================================================
 
-export const bulkBlogFinalDataSchema = z.object({
-  templates: z
-    .array(z.string())
-    .min(1, "At least one template is required")
-    .describe("Selected blog template names"),
+export const bulkBlogFinalDataSchema = z
+  .object({
+    templates: z
+      .array(z.string())
+      .min(1, "At least one template is required")
+      .describe("Selected blog template names"),
 
-  topics: z
-    .array(z.string())
-    .min(1, "At least one topic is required")
-    .describe("List of blog topics to generate"),
+    topics: z
+      .array(z.string())
+      .min(1, "At least one topic is required")
+      .describe("List of blog topics to generate"),
 
-  keywords: z
-    .array(z.string())
-    .default([])
-    .describe("Keywords for SEO (required if performKeywordResearch is false)"),
+    keywords: z
+      .array(z.string())
+      .default([])
+      .describe("Keywords for SEO (required if performKeywordResearch is false)"),
 
-  performKeywordResearch: z
-    .boolean()
-    .default(true)
-    .describe("Whether to perform AI-powered keyword research"),
+    performKeywordResearch: z
+      .boolean()
+      .default(true)
+      .describe("Whether to perform AI-powered keyword research"),
 
-  tone: toneSchema.describe("Tone of voice for all generated blogs"),
+    tone: toneSchema.describe("Tone of voice for all generated blogs"),
 
-  languageToWrite: languageSchema
-    .default(Language.ENGLISH)
-    .describe("Target language for blog content"),
+    languageToWrite: languageSchema
+      .default(Language.ENGLISH)
+      .describe("Target language for blog content"),
 
-  userDefinedLength: z
-    .number()
-    .min(500)
-    .max(5000)
-    .default(1000)
-    .describe("Target word count for each blog (500-5000)"),
+    userDefinedLength: z
+      .number()
+      .min(500)
+      .max(5000)
+      .default(1000)
+      .describe("Target word count for each blog (500-5000)"),
 
-  imageSource: imageSourceSchema.default(ImageSource.STOCK).describe("Source of images for blogs"),
+    imageSource: imageSourceSchema
+      .default(ImageSource.STOCK)
+      .describe("Source of images for blogs"),
 
-  useBrandVoice: z.boolean().default(false).describe("Whether to use a custom brand voice"),
+    useBrandVoice: z.boolean().default(false).describe("Whether to use a custom brand voice"),
 
-  useCompetitors: z.boolean().default(false).describe("Whether to perform competitor research"),
+    useCompetitors: z.boolean().default(false).describe("Whether to perform competitor research"),
 
-  includeInterlinks: z.boolean().default(true).describe("Whether to include internal links"),
+    includeInterlinks: z.boolean().default(true).describe("Whether to include internal links"),
 
-  includeFaqs: z.boolean().default(true).describe("Whether to include FAQ section"),
+    includeFaqs: z.boolean().default(true).describe("Whether to include FAQ section"),
 
-  numberOfBlogs: z
-    .number()
-    .min(1)
-    .max(10)
-    .default(1)
-    .describe("Number of blogs to generate (1-10)"),
+    numberOfBlogs: z
+      .number()
+      .min(1)
+      .max(10)
+      .default(1)
+      .describe("Number of blogs to generate (1-10)"),
 
-  numberOfImages: z
-    .number()
-    .min(0)
-    .max(20)
-    .default(0)
-    .describe("Number of images per blog (0 = AI decides)"),
+    numberOfImages: z
+      .number()
+      .min(0)
+      .max(20)
+      .default(0)
+      .describe("Number of images per blog (0 = AI decides)"),
 
-  wordpressPostStatus: z.boolean().default(false).describe("Whether to enable automatic posting"),
+    wordpressPostStatus: z.boolean().default(false).describe("Whether to enable automatic posting"),
 
-  postFrequency: z.number().default(600).describe("Post frequency in seconds"),
+    postFrequency: z.number().default(600).describe("Post frequency in seconds"),
 
-  aiModel: aiModelSchema.default(AiModel.GEMINI).describe("AI model for content generation"),
+    aiModel: aiModelSchema.default(AiModel.GEMINI).describe("AI model for content generation"),
 
-  includeTableOfContents: z
-    .boolean()
-    .default(false)
-    .describe("Whether to include table of contents"),
+    includeTableOfContents: z
+      .boolean()
+      .default(false)
+      .describe("Whether to include table of contents"),
 
-  isCheckedGeneratedImages: z
-    .boolean()
-    .default(true)
-    .describe("Whether images should be generated/included"),
+    isCheckedGeneratedImages: z
+      .boolean()
+      .default(true)
+      .describe("Whether images should be generated/included"),
 
-  addOutBoundLinks: z.boolean().default(false).describe("Whether to include outbound links"),
+    addOutBoundLinks: z.boolean().default(false).describe("Whether to include outbound links"),
 
-  blogImages: z.array(z.any()).optional().describe("Custom uploaded images (File objects)"),
+    blogImages: z.array(z.any()).optional().describe("Custom uploaded images (File objects)"),
 
-  postingType: postingTypeSchema.optional().describe("Publishing platform for automatic posting"),
+    postingType: postingTypeSchema.optional().describe("Publishing platform for automatic posting"),
 
-  brandId: z.string().nullable().optional().describe("Brand voice ID when useBrandVoice is true"),
+    brandId: z.string().nullable().optional().describe("Brand voice ID when useBrandVoice is true"),
 
-  addCTA: z.boolean().default(false).describe("Whether to add call-to-action"),
+    addCTA: z.boolean().default(false).describe("Whether to add call-to-action"),
 
-  costCutter: z.boolean().default(true).describe("Use AI Flash model for 25% credit savings"),
-})
+    costCutter: z.boolean().default(true).describe("Use AI Flash model for 25% credit savings"),
+  })
+  .transform(data => {
+    // Strip irrelevant UI state fields
+    const { topicInput, keywordInput, isDragging, templateIds, ...cleanData } = data as Record<
+      string,
+      unknown
+    >
+    return cleanData
+  })
 
 export type BulkBlogFinalDataSchemaType = z.infer<typeof bulkBlogFinalDataSchema>
 
@@ -293,22 +310,25 @@ export const jobOptionsSchema = z.object({
   brandId: z.string().nullable().optional().describe("Brand voice ID for job"),
 })
 
-export const jobFinalDataSchema = z.object({
-  name: z.string().min(1, "Job name is required").describe("Name of the job"),
+export const jobFinalDataSchema = z
+  .object({
+    name: z.string().min(1, "Job name is required").describe("Name of the job"),
 
-  schedule: jobScheduleSchema.describe("Job schedule configuration"),
+    schedule: jobScheduleSchema.describe("Job schedule configuration"),
 
-  blogs: jobBlogConfigSchema.describe("Blog generation configuration"),
+    blogs: jobBlogConfigSchema.describe("Blog generation configuration"),
 
-  options: jobOptionsSchema.describe("Additional job options"),
+    options: jobOptionsSchema.describe("Additional job options"),
 
-  status: z
-    .enum(["active", "paused", "completed"])
-    .default("active")
-    .describe("Current job status"),
+    status: z.enum(["active", "stop"]).default("stop").describe("Current job status"),
 
-  templateIds: z.array(z.number()).default([]).describe("Selected template IDs"),
-})
+    templateIds: z.array(z.number()).default([]).describe("Selected template IDs"),
+  })
+  .transform(data => {
+    // Strip irrelevant UI state fields
+    const { templateIds, ...cleanData } = data as Record<string, unknown>
+    return cleanData
+  })
 
 export type JobFinalDataSchemaType = z.infer<typeof jobFinalDataSchema>
 
@@ -332,69 +352,77 @@ export const advancedBlogOptionsSchema = z.object({
   addCTA: z.boolean().default(false).describe("Add call-to-action"),
 })
 
-export const advancedBlogFinalDataSchema = z.object({
-  templateIds: z
-    .array(z.number())
-    .length(1, "Exactly one template is required")
-    .describe("Selected template ID (single selection)"),
+export const advancedBlogFinalDataSchema = z
+  .object({
+    templateIds: z
+      .array(z.number())
+      .length(1, "Exactly one template is required")
+      .describe("Selected template ID (single selection)"),
 
-  template: z.string().min(1, "Template is required").describe("Selected template name"),
+    template: z.string().min(1, "Template is required").describe("Selected template name"),
 
-  topic: z.string().min(1, "Topic is required").describe("Blog topic/subject"),
+    topic: z.string().min(1, "Topic is required").describe("Blog topic/subject"),
 
-  focusKeywords: z
-    .array(z.string())
-    .max(3)
-    .optional()
-    .describe("Focus keywords (max 3, optional if performKeywordResearch)"),
+    focusKeywords: z
+      .array(z.string())
+      .max(3)
+      .optional()
+      .describe("Focus keywords (max 3, optional if performKeywordResearch)"),
 
-  keywords: z
-    .array(z.string())
-    .optional()
-    .describe("Secondary keywords (optional if performKeywordResearch)"),
+    keywords: z
+      .array(z.string())
+      .optional()
+      .describe("Secondary keywords (optional if performKeywordResearch)"),
 
-  title: z.string().optional().describe("Blog title (optional if performKeywordResearch)"),
+    title: z.string().optional().describe("Blog title (optional if performKeywordResearch)"),
 
-  tone: toneSchema.describe("Tone of voice for content"),
+    tone: toneSchema.describe("Tone of voice for content"),
 
-  userDefinedLength: z
-    .number()
-    .min(500)
-    .max(5000)
-    .default(1000)
-    .describe("Target word count (500-5000)"),
+    userDefinedLength: z
+      .number()
+      .min(500)
+      .max(5000)
+      .default(1000)
+      .describe("Target word count (500-5000)"),
 
-  brief: z.string().default("").describe("Brief section or special instructions"),
+    brief: z.string().default("").describe("Brief section or special instructions"),
 
-  aiModel: aiModelSchema.default(AiModel.GEMINI).describe("AI model for content generation"),
+    aiModel: aiModelSchema.default(AiModel.GEMINI).describe("AI model for content generation"),
 
-  isCheckedGeneratedImages: z.boolean().default(false).describe("Enable image generation"),
+    isCheckedGeneratedImages: z.boolean().default(false).describe("Enable image generation"),
 
-  imageSource: imageSourceSchema.default(ImageSource.STOCK).describe("Image source type"),
+    imageSource: imageSourceSchema.default(ImageSource.STOCK).describe("Image source type"),
 
-  numberOfImages: z
-    .number()
-    .min(0)
-    .max(15)
-    .default(0)
-    .describe("Number of images (0 = AI decides)"),
+    numberOfImages: z
+      .number()
+      .min(0)
+      .max(15)
+      .default(0)
+      .describe("Number of images (0 = AI decides)"),
 
-  blogImages: z.array(z.any()).optional().describe("Custom uploaded images"),
+    blogImages: z.array(z.any()).optional().describe("Custom uploaded images"),
 
-  referenceLinks: z.array(z.string().url()).max(3).default([]).describe("Reference URLs (max 3)"),
+    referenceLinks: z.array(z.string().url()).max(3).default([]).describe("Reference URLs (max 3)"),
 
-  isCheckedQuick: z.boolean().default(false).describe("Add quick summary section"),
+    isCheckedQuick: z.boolean().default(false).describe("Add quick summary section"),
 
-  isCheckedBrand: z.boolean().default(false).describe("Use custom brand voice"),
+    isCheckedBrand: z.boolean().default(false).describe("Use custom brand voice"),
 
-  brandId: z.string().optional().describe("Brand voice ID (required if isCheckedBrand)"),
+    brandId: z.string().optional().describe("Brand voice ID (required if isCheckedBrand)"),
 
-  languageToWrite: languageSchema.default(Language.ENGLISH).describe("Target language for content"),
+    languageToWrite: languageSchema
+      .default(Language.ENGLISH)
+      .describe("Target language for content"),
 
-  costCutter: z.boolean().default(true).describe("Use AI Flash model for 25% savings"),
+    costCutter: z.boolean().default(true).describe("Use AI Flash model for 25% savings"),
 
-  options: advancedBlogOptionsSchema.describe("Advanced blog options"),
-})
+    options: advancedBlogOptionsSchema.describe("Advanced blog options"),
+  })
+  .transform(data => {
+    // Strip irrelevant UI state fields - templateIds is only used in frontend
+    const { templateIds, ...cleanData } = data as Record<string, unknown>
+    return cleanData
+  })
 
 export type AdvancedBlogFinalDataSchemaType = z.infer<typeof advancedBlogFinalDataSchema>
 
@@ -461,3 +489,47 @@ export const validateJobData = (data: unknown) =>
 
 export const validateAdvancedBlogData = (data: unknown) =>
   validateFormData("AdvancedBlogFinalData", advancedBlogFinalDataSchema, data)
+
+// ============================================================================
+// REGENERATE BLOG SCHEMA
+// ============================================================================
+
+export const regenerateBlogOptionsSchema = z.object({
+  includeFaqs: z.boolean().default(false).describe("Include FAQ section"),
+  includeInterlinks: z.boolean().default(false).describe("Include internal links"),
+  includeCompetitorResearch: z.boolean().default(false).describe("Perform competitor research"),
+  addOutBoundLinks: z.boolean().default(false).describe("Include outbound links"),
+})
+
+export const regenerateBlogSchema = z
+  .object({
+    createNew: z.boolean().describe("Whether to create new content from scratch"),
+
+    topic: z.string().min(1, "Topic cannot be empty").optional(),
+    title: z.string().optional(),
+    focusKeywords: z.array(z.string()).max(3).optional(),
+    keywords: z.array(z.string()).optional(),
+    tone: z.string().optional(),
+    userDefinedLength: z.number().min(500).max(5000).optional(),
+    aiModel: aiModelSchema.optional(),
+    isCheckedGeneratedImages: z.boolean().optional(),
+    imageSource: imageSourceSchema.optional(),
+    numberOfImages: z.number().min(0).max(15).default(0),
+    isCheckedBrand: z.boolean().optional(),
+    brandId: z.string().optional(),
+    addCTA: z.boolean().optional(),
+    options: regenerateBlogOptionsSchema.optional(),
+  })
+  .transform(data => {
+    // Map useBrandVoice to isCheckedBrand if present
+    const { useBrandVoice, ...cleanData } = data as Record<string, unknown>
+    if (useBrandVoice !== undefined && cleanData.isCheckedBrand === undefined) {
+      cleanData.isCheckedBrand = useBrandVoice
+    }
+    return cleanData
+  })
+
+export type RegenerateBlogSchemaType = z.infer<typeof regenerateBlogSchema>
+
+export const validateRegenerateBlogData = (data: unknown) =>
+  validateFormData("RegenerateBlogData", regenerateBlogSchema, data)

@@ -51,7 +51,8 @@ import { openUpgradePopup } from "@utils/UpgardePopUp"
 import { Modal } from "antd"
 import CategoriesModal from "../Editor/CategoriesModal"
 import { TONES } from "@/data/blogData"
-import { updateBlog, retryBlogById, exportBlogAsPdf } from "@api/blogApi"
+import { retryBlogById, exportBlogAsPdf } from "@api/blogApi"
+import { validateRegenerateBlogData } from "@/types/forms.schemas"
 import { useQueryClient } from "@tanstack/react-query"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
 import { ScoreCard, StatCard, CompetitorsList, AnalysisInsights } from "./FeatureComponents"
@@ -306,19 +307,20 @@ const TextEditorSidebar = ({
 
     setIsRegenerating(true)
     try {
-      // Prepare the payload with proper imageSource handling
+      // Prepare the payload with createNew: true and blog data
       const payload = {
+        createNew: true,
         ...regenForm,
         isCheckedBrand: regenForm.useBrandVoice,
         // If images are disabled, set imageSource to "none"
         imageSource: regenForm.isCheckedGeneratedImages ? regenForm.imageSource : "none",
       }
 
-      // Update the blog with new settings
-      await updateBlog(blog._id, payload)
+      // Validate and transform the payload
+      const validatedPayload = validateRegenerateBlogData(payload)
 
-      // Call retry API to regenerate the blog
-      await retryBlogById(blog._id, { createNew: true })
+      // Call retry API with blog data - backend will update and regenerate
+      await retryBlogById(blog._id, validatedPayload)
 
       queryClient.invalidateQueries({ queryKey: ["blogs"] })
       message.success("Blog regeneration started!")

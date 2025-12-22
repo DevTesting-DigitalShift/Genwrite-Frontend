@@ -68,7 +68,8 @@ export type LanguageType = (typeof Language)[keyof typeof Language]
 export const ScheduleType = {
   DAILY: "daily",
   WEEKLY: "weekly",
-  MONTHLY: "monthly",
+  WEEKDAYS: "weekdays",
+  MONTHDAYS: "monthdays",
   CUSTOM: "custom",
 } as const
 
