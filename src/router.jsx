@@ -11,11 +11,10 @@ const PrivateRoutesLayout = lazy(() => import("./layout/PrivateRoutesLayout"))
 const Dashboard = lazy(() => import("@pages/Dashboard"))
 const ToolBox = lazy(() => import("@pages/MainEditorPage"))
 const ToolboxSettings = lazy(() => import("@pages/ToolboxPage"))
-const MyProjects = lazy(() => import("@pages/MyProjects"))
+const BlogsPage = lazy(() => import("@pages/BlogsPage"))
 const PluginsMain = lazy(() => import("@pages/PluginsMain"))
 const BrandVoice = lazy(() => import("@pages/BrandVoice"))
 const jobs = lazy(() => import("@pages/Jobs"))
-const trashcan = lazy(() => import("@pages/Trashcan"))
 const pricing = lazy(() => import("@pages/Upgrade"))
 const Profile = lazy(() => import("@pages/Profile"))
 const Login = lazy(() => import("@pages/auth/Login"))
@@ -98,10 +97,10 @@ const router = createBrowserRouter([
           { path: "toolbox", element: withSuspense(ToolboxSettings) },
           { path: "editor", element: withSuspense(ToolBox) },
           { path: "toolbox/:id", element: withSuspense(ToolBox) },
-          { path: "blogs", element: withSuspense(MyProjects) },
+          { path: "blogs", element: withSuspense(BlogsPage) },
           { path: "integrations", element: withSuspense(PluginsMain) },
           { path: "jobs", element: withSuspense(jobs) },
-          { path: "trashcan", element: withSuspense(trashcan) },
+          { path: "trashcan", element: withSuspense(BlogsPage) },
           { path: "pricing", element: withSuspense(pricing) },
           { path: "profile", element: withSuspense(Profile) },
           { path: "brand-voice", element: withSuspense(BrandVoice) },
