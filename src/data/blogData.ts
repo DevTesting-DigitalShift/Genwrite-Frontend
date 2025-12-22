@@ -41,7 +41,7 @@ export const AI_MODELS = [
     logo: "/Images/gemini.png",
   },
   {
-    id: "chatgpt",
+    id: "openai",
     label: "ChatGPT",
     logo: "/Images/chatgpt.png",
   },

@@ -13,6 +13,7 @@ import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 import { IMAGE_SOURCE, LANGUAGES } from "@/data/blogData"
 import { useQueryClient } from "@tanstack/react-query"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
+import { validateQuickBlogData } from "@/types/forms.schemas"
 
 // Quick Blog Modal Component - Updated pricing calculation
 const QuickBlogModal = ({ type = "quick", closeFnc }) => {
@@ -181,7 +182,9 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
         </>
       ),
       onConfirm: () => {
-        dispatch(createNewQuickBlog({ blogData: finalData, user, navigate, type }))
+        // Validate with Zod schema (logs to console when VITE_VALIDATE_FORMS=true)
+        const validatedData = validateQuickBlogData(finalData)
+        dispatch(createNewQuickBlog({ blogData: validatedData, user, navigate, type }))
         handleClose()
       },
     })

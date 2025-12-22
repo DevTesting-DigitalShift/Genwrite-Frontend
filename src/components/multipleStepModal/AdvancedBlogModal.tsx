@@ -35,6 +35,7 @@ import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector
 import { selectSelectedAnalysisKeywords } from "@store/slices/analysisSlice"
 import { computeCost } from "@/data/pricingConfig"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import { validateAdvancedBlogData } from "@/types/forms.schemas"
 
 const { Text } = Typography
 
@@ -301,7 +302,9 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
         delete data.keywords
         delete data.focusKeywords
       }
-      onSubmit?.(data)
+      // Validate with Zod schema (logs to console when VITE_VALIDATE_FORMS=true)
+      const validatedData = validateAdvancedBlogData(data)
+      onSubmit?.(validatedData)
     }
   }
 

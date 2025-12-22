@@ -14,6 +14,7 @@ import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
 import { queryClient } from "@utils/queryClient"
 import { IMAGE_SOURCE } from "@/data/blogData"
+import { validateBulkBlogData } from "@/types/forms.schemas"
 
 // Bulk Blog Modal Component - Updated with Outbound Links pricing
 const BulkBlogModal = ({ closeFnc }) => {
@@ -241,7 +242,9 @@ const BulkBlogModal = ({ closeFnc }) => {
           // Set imageSource to "none" if images are disabled
           imageSource: formData.isCheckedGeneratedImages ? formData.imageSource : IMAGE_SOURCE.NONE,
         }
-        dispatch(createMultiBlog({ blogData: finalData, user, navigate }))
+        // Validate with Zod schema (logs to console when VITE_VALIDATE_FORMS=true)
+        const validatedData = validateBulkBlogData(finalData)
+        dispatch(createMultiBlog({ blogData: validatedData, user, navigate }))
         handleClose()
       },
     })
@@ -278,8 +281,13 @@ const BulkBlogModal = ({ closeFnc }) => {
       })
       return
     }
-
-    dispatch(createMultiBlog({ blogData: formData, user, navigate, queryClient }))
+    // Validate with Zod schema (logs to console when VITE_VALIDATE_FORMS=true)
+    const finalData = {
+      ...formData,
+      imageSource: formData.isCheckedGeneratedImages ? formData.imageSource : IMAGE_SOURCE.NONE,
+    }
+    const validatedData = validateBulkBlogData(finalData)
+    dispatch(createMultiBlog({ blogData: validatedData, user, navigate, queryClient }))
     handleClose()
   }
 
@@ -1116,7 +1124,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                     restricted: false,
                   },
                   {
-                    id: "chatgpt",
+                    id: "openai",
                     label: "ChatGPT",
                     logo: "/Images/chatgpt.png",
                     restricted: userPlan === "free",

@@ -108,7 +108,7 @@ const StepContent = ({
       restricted: false,
     },
     {
-      id: "chatgpt",
+      id: "openai",
       label: "ChatGPT (Open AI)",
       value: "openai",
       logo: "/Images/chatgpt.png",
@@ -1199,7 +1199,7 @@ const StepContent = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
               {[
                 { id: "gemini", label: "Gemini", logo: "/Images/gemini.png", restricted: false },
-                { id: "chatgpt", label: "ChatGPT", logo: "/Images/chatgpt.png" },
+                { id: "openai", label: "ChatGPT", logo: "/Images/chatgpt.png" },
                 { id: "claude", label: "Claude", logo: "/Images/claude.png" },
               ].map(model => (
                 <label
