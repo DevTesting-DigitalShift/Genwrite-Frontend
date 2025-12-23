@@ -17,93 +17,52 @@ const { Title, Text, Paragraph } = Typography
 const ShopifyVerification = () => {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false) // Set to false since useEffect is commented
-  const [verified, setVerified] = useState(true) // Set to true to show the table
+  const [verified, setVerified] = useState(false) // Set to true to show the table
   const [error, setError] = useState(null)
 
   // Removed duplicate blog data - keeping only unique entries
-  const [blogData, setBlogData] = useState([
-    {
-      _id: "69259f8a72d8f225868aa259",
-      blogId: {
-        _id: "690971d3d35110208690bcf6",
-        title: "Health is wealth",
-      },
-      link: "https://genwrite-dev-test.myshopify.com/blogs/lifestyle/health-is-wealth",
-      postedOn: "2025-11-19T12:10:59.196Z",
-    },
-    {
-      _id: "69259f8a72d8f225868aa258",
-      blogId: {
-        _id: "6900bd4a5762ffc32e9edcb3",
-        title: "Marriage vs Casual Relation",
-      },
-      link: "https://genwrite-dev-test.myshopify.com/blogs/lifestyle/marriage-vs-casual-relation",
-      postedOn: "2025-11-19T08:00:26.763Z",
-    },
-    {
-      _id: "69259f8a72d8f225868aa24e",
-      blogId: {
-        _id: "68c2a326d78cd53945e1d492",
-        title: "What are answer engines and how can they impact your search strategy?",
-      },
-      link: "https://genwrite-dev-test.myshopify.com/blogs/other/what-are-answer-engines-and-how-can-they-impact-your-search-strategy",
-      postedOn: "2025-11-19T04:33:44.774Z",
-    },
-    {
-      _id: "69259f8a72d8f225868aa256",
-      blogId: {
-        _id: "68ca24eb9b526b1587aff470",
-        title: "Unlock unparalleled website traffic with these advanced SEO strategies",
-      },
-      link: "https://genwrite-dev-test.myshopify.com/blogs/blogging/unlock-unparalleled-website-traffic-with-these-advanced-seo-strategies",
-      postedOn: "2025-11-17T04:13:42.725Z",
-    },
-    {
-      _id: "69259f8a72d8f225868aa250",
-      blogId: {
-        _id: "68c422842e1306bee7c02f4a",
-        title: "Digital marketing: Is SEO worth the effort?",
-      },
-      link: "https://genwrite-dev-test.myshopify.com/blogs/digital-marketing/digital-marketing-is-seo-worth-the-effort",
-      postedOn: "2025-11-17T04:02:28.971Z",
-    },
-    {
-      _id: "69259f8a72d8f225868aa252",
-      blogId: {
-        _id: "68c8d974803d693d688c39c4",
-        title: "Mastering local SEO to bring customers to your doorstep",
-      },
-      link: "https://genwrite-dev-test.myshopify.com/blogs/local-seo/mastering-local-seo-to-bring-customers-to-your-doorstep",
-      postedOn: "2025-11-17T03:37:18.310Z",
-    },
-    {
-      _id: "69259f8a72d8f225868aa24d",
-      blogId: {
-        _id: "68b83fd6563afbcbbe534d8d",
-        title: "Is laser waxing truly the future of hair removal",
-      },
-      link: "https://genwrite-dev-test.myshopify.com/blogs/digital-marketing/is-laser-waxing-truly-the-future-of-hair-removal",
-      postedOn: "2025-11-14T09:08:40.673Z",
-    },
-    {
-      _id: "69259f8a72d8f225868aa24f",
-      blogId: {
-        _id: "68c421a02e1306bee7c02ef1",
-        title: "Navigate the evolving digital marketing landscape with confidence",
-      },
-      link: "https://genwrite-dev-test.myshopify.com/blogs/digital-marketing/navigate-the-evolving-digital-marketing-landscape-with-confidence",
-      postedOn: "2025-11-14T08:35:46.053Z",
-    },
-    {
-      _id: "69259f8a72d8f225868aa24c",
-      blogId: {
-        _id: "68afc05e0e81b8829cddd257",
-        title: "Can genAI tools really make your life easier?",
-      },
-      link: "https://genwrite-dev-test.myshopify.com/blogs/news/can-genai-tools-really-make-your-life-easier",
-      postedOn: "2025-11-14T08:33:38.135Z",
-    },
-  ])
+  const [blogData, setBlogData] = useState([])
+
+  useEffect(() => {
+    async function init() {
+      try {
+        // 1. Get the token directly from the global v4 object
+        // This handles the generation and refreshing automatically.
+        // @ts-ignore
+        const token = await window.shopify.idToken()
+
+        // 2. Call your backend with the token
+        console.log(token)
+        const res = await axiosInstance.post("/callbacks/verify", {
+          type: "SHOPIFY",
+          token,
+        })
+        if (res.status == 200) {
+          console.log(res.data)
+          setVerified(true)
+          setError(null)
+          setBlogData(res.data.blogs)
+        } else {
+          console.error("Auth failed")
+        }
+      } catch (err) {
+        console.error("Error fetching token or data:", err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    // Wait for the script to be ready if it loads slowly
+    if (window?.shopify) {
+      init()
+    } else {
+      window.addEventListener("shopify.loaded", init)
+    }
+
+    return () => window.removeEventListener("shopify.loaded", init)
+  }, [])
+
+  // Table columns configuration
 
   const columns = [
     {
