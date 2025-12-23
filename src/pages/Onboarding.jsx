@@ -1,18 +1,56 @@
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { Input, Button, message } from "antd"
-import { Building2, Globe, Target, ArrowRight, ArrowLeft, Check, Loader2 } from "lucide-react"
+import { useSelector, useDispatch } from "react-redux"
+import { Input, Button, message, Select } from "antd"
+import {
+  Building2,
+  Globe,
+  Target,
+  ArrowRight,
+  ArrowLeft,
+  Check,
+  Loader2,
+  Globe2,
+} from "lucide-react"
 import { createBrandVoice, getSiteInfo } from "@/api/brandApi"
 import { motion, AnimatePresence } from "framer-motion"
+import { loadAuthenticatedUser } from "@store/slices/authSlice"
 
 const { TextArea } = Input
 
 const Onboarding = () => {
   const navigate = useNavigate()
+  const dispatch = useDispatch()
+  const user = useSelector(state => state.auth.user)
   const [currentStep, setCurrentStep] = useState(0)
   const [loading, setLoading] = useState(false)
   const [fetchingInfo, setFetchingInfo] = useState(false)
 
+  // Load authenticated user on mount
+  useEffect(() => {
+    const token = localStorage.getItem("token")
+    if (!token) {
+      navigate("/login", { replace: true })
+      return
+    }
+
+    // Load user data
+    dispatch(loadAuthenticatedUser())
+  }, [dispatch, navigate])
+
+  // Prevent users who've already completed onboarding from accessing this page
+  useEffect(() => {
+    if (!user) return
+
+    const hasCompletedOnboarding = localStorage.getItem("hasCompletedOnboarding") === "true"
+
+    // If user has lastLogin OR has completed onboarding, redirect to dashboard
+    if (user.lastLogin || hasCompletedOnboarding) {
+      navigate("/dashboard", { replace: true })
+    }
+  }, [user, navigate])
+
+  const [protocol, setProtocol] = useState("https://")
   const [formData, setFormData] = useState({
     nameOfVoice: "",
     postLink: "",
@@ -32,7 +70,8 @@ const Onboarding = () => {
 
     setFetchingInfo(true)
     try {
-      const siteInfo = await getSiteInfo(formData.postLink)
+      const fullUrl = `${protocol}${formData.postLink.replace(/^https?:\/\//, "")}`
+      const siteInfo = await getSiteInfo(fullUrl)
 
       setFormData(prev => ({
         ...prev,
@@ -46,7 +85,13 @@ const Onboarding = () => {
       message.success("Company information fetched successfully!")
       setCurrentStep(1)
     } catch (error) {
-      message.error(error.message || "Failed to fetch company information")
+      // Show error but still allow user to proceed to manually enter information
+      message.warning(
+        error.message ||
+          "Couldn't fetch company information automatically. Please enter details manually."
+      )
+      // Proceed to next step anyway
+      setCurrentStep(1)
     } finally {
       setFetchingInfo(false)
     }
@@ -93,7 +138,7 @@ const Onboarding = () => {
     if (!formData.persona.trim()) {
       message.error("Please enter your persona")
       return
-    } 
+    }
 
     if (!formData.sitemap.trim().length) {
       delete formData.sitemap
@@ -101,8 +146,16 @@ const Onboarding = () => {
 
     setLoading(true)
     try {
-      await createBrandVoice(formData)
+      const submissionData = {
+        ...formData,
+        postLink: `${protocol}${formData.postLink.replace(/^https?:\/\//, "")}`,
+      }
+      await createBrandVoice(submissionData)
       message.success("Brand voice created successfully!")
+
+      // Mark that user has completed onboarding
+      localStorage.setItem("hasCompletedOnboarding", "true")
+      sessionStorage.setItem("justCompletedOnboarding", "true")
 
       setTimeout(() => {
         navigate("/dashboard")
@@ -180,12 +233,24 @@ const Onboarding = () => {
                   <label className="block text-sm font-medium text-gray-900 mb-2">
                     Website URL
                   </label>
+
                   <Input
                     size="large"
-                    placeholder="https://www.example.com"
+                    placeholder="www.example.com"
+                    addonBefore={
+                      <Select
+                        value={protocol}
+                        onChange={setProtocol}
+                        dropdownMatchSelectWidth={false}
+                        className="protocol-select"
+                      >
+                        <Select.Option value="https://">https://</Select.Option>
+                        <Select.Option value="http://">http://</Select.Option>
+                      </Select>
+                    }
                     value={formData.postLink}
                     onChange={e => setFormData(prev => ({ ...prev, postLink: e.target.value }))}
-                    className="rounded-lg"
+                    className="url-input"
                   />
                 </div>
 
@@ -343,7 +408,10 @@ const Onboarding = () => {
                   <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
                     Website
                   </p>
-                  <p className="text-gray-900">{formData.postLink || "Not provided"}</p>
+                  <p className="text-gray-900">
+                    {protocol}
+                    {formData.postLink || "Not provided"}
+                  </p>
                 </div>
 
                 {formData.describeBrand && (

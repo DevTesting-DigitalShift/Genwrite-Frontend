@@ -637,7 +637,7 @@ const Upgrade = () => {
   const showTrialMessage = !user?.subscription?.trialOpted
 
   return (
-    <div className="pb-10 pt-5 px-4 sm:px-6 lg:px-8 mt-10">
+    <div className="pb-10 pt-5 px-3 sm:px-6 lg:px-8 mt-10">
       <Helmet>
         <title>Subscription | GenWrite</title>
       </Helmet>
@@ -805,7 +805,7 @@ const Upgrade = () => {
         </div>
 
         {/* Cards */}
-        <div className="mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 px-4">
+        <div className="mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 px-0 md:px-4">
           <AnimatePresence>
             {loading
               ? Array.from({ length: 4 }).map((_, idx) => <SkeletonCard key={idx} />)
@@ -835,7 +835,7 @@ const Upgrade = () => {
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.3 }}
-              className="mt-12 sm:mt-16 lg:mt-20 px-4 sm:px-0"
+              className="mt-12 sm:mt-16 lg:mt-20"
             >
               <ComparisonTable plans={plans} billingPeriod={billingPeriod} />
             </motion.div>

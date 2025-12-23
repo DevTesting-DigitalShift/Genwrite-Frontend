@@ -153,7 +153,7 @@ const Jobs = () => {
       <Helmet>
         <title>Content Agent | GenWrite</title>
       </Helmet>
-      <div className="min-h-screen p-6 lg:p-8">
+      <div className="min-h-screen p-4 lg:p-8">
         <div>
           <div className="flex justify-between mt-5 md:mt-0">
             <div className="mb-8">

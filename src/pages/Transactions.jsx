@@ -175,7 +175,7 @@ const Transactions = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.1 }}
-        className="p-3 md:p-6 bg-white mb-10 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100"
+        className="p-3 md:p-6 bg-white mb-10 rounded-xl shadow-sm transition-all duration-300 border border-gray-100"
       >
         {/* Header */}
         <div className="flex items-center space-x-3 mb-6">
@@ -281,7 +281,7 @@ const Transactions = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
-          className="p-3 md:p-6 bg-white mb-10 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100"
+          className="p-3 md:p-6 bg-white mb-10 rounded-xl shadow-sm transition-all duration-300 border border-gray-100"
         >
           {/* Header */}
           <div className="flex items-center space-x-3 mb-6">
@@ -342,7 +342,7 @@ const Transactions = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.3 }}
-        className="bg-white rounded-xl shadow-lg overflow-hidden"
+        className="bg-white rounded-xl shadow overflow-hidden"
       >
         <div className="flex flex-row justify-between items-center p-6 border-b">
           <div className="flex items-center space-x-3">

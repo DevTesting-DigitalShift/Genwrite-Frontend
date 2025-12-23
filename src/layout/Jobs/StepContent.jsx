@@ -76,7 +76,7 @@ const StepContent = ({
         blogs: {
           ...prev.blogs,
           isCheckedGeneratedImages: false,
-          imageSource: "unsplash",
+          imageSource: "stock",
         },
       }))
     }
@@ -84,15 +84,15 @@ const StepContent = ({
 
   const imageSources = [
     {
-      id: "unsplash",
+      id: "stock",
       label: "Stock Images",
-      value: "unsplash",
+      value: "stock",
       restricted: false,
     },
     {
-      id: "ai-generated",
+      id: "ai",
       label: "AI-Generated Images",
-      value: "ai-generated",
+      value: "ai",
       restricted: userPlan === "free",
       featureName: "AI-Generated Images",
       isAiImagesLimitReached,
@@ -372,7 +372,7 @@ const StepContent = ({
       blogs: {
         ...prev.blogs,
         imageSource: source,
-        isUnsplashActive: source === "unsplash",
+        isstockActive: source === "stock",
       },
     }))
     setErrors(prev => ({ ...prev, imageSource: false })) // Clear error
@@ -1012,7 +1012,7 @@ const StepContent = ({
                       blogs: {
                         ...prev.blogs,
                         isCheckedGeneratedImages: checked,
-                        imageSource: checked ? prev.blogs.imageSource : "unsplash",
+                        imageSource: checked ? prev.blogs.imageSource : "stock",
                       },
                     }))
                   }}

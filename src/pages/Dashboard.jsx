@@ -33,6 +33,7 @@ import { ACTIVE_MODELS } from "@/data/dashModels"
 import { useQueryClient, useQuery } from "@tanstack/react-query"
 import DashboardTour from "@components/DashboardTour"
 import { getBlogStatus } from "@/api/analysisApi"
+import WinterSaleBanner from "../components/WinterSaleBanner"
 
 // lazy imports
 const QuickBlogModal = lazy(() => import("@components/multipleStepModal/QuickBlogModal"))
@@ -177,27 +178,34 @@ const Dashboard = () => {
     fetchBlogsQuery()
   }, [fetchBlogsQuery])
 
-  // Consolidated useEffect for GoThrough modal logic
+  // Show walkthrough only for first-time users
   useEffect(() => {
-    const currentUser = user
-    const hasSeenGoThrough = sessionStorage.getItem("hasSeenGoThrough") === "true"
+    if (!user) return
+
     const hasSeenTour = localStorage.getItem("hasSeenDashboardTour") === "true"
+    const hasCompletedOnboarding = localStorage.getItem("hasCompletedOnboarding") === "true"
+    const justCompletedOnboarding = sessionStorage.getItem("justCompletedOnboarding") === "true"
 
-    if (currentUser && !currentUser.lastLogin && !hasSeenGoThrough) {
-      setShowWhatsNew(true)
-    } else {
-      setShowWhatsNew(false)
-    }
+    console.log("Dashboard Flow Check:", {
+      hasSeenTour,
+      hasCompletedOnboarding,
+      justCompletedOnboarding,
+      userLastLogin: user.lastLogin,
+    })
 
-    // Start tour for new users after GoThrough modal
-    if (currentUser && !currentUser.lastLogin && !hasSeenTour && hasSeenGoThrough) {
-      setTimeout(() => setRunTour(true), 1500)
+    // Show tour for first-time users who just completed onboarding
+    // Check both lastLogin and localStorage (localStorage is fallback for immediate check)
+    if (!user.lastLogin && hasCompletedOnboarding && !hasSeenTour && justCompletedOnboarding) {
+      console.log("Starting tour for first-time user after onboarding...")
+      sessionStorage.removeItem("justCompletedOnboarding") // Clean up flag
+      setTimeout(() => setRunTour(true), 1000)
     }
   }, [user])
 
   const handleCloseModal = () => {
     setShowWhatsNew(false)
     sessionStorage.setItem("hasSeenGoThrough", "true")
+    sessionStorage.removeItem("showIntroVideo") // Clean up flag
   }
 
   const openSecondStepJobModal = () => {
@@ -348,6 +356,8 @@ const Dashboard = () => {
         onOpenQuickBlog={() => setActiveModel(ACTIVE_MODELS.Quick_Blog)}
       />
 
+      <WinterSaleBanner />
+
       <InlineAnnouncementBanner />
 
       {activeModel && renderModel()}
@@ -357,7 +367,7 @@ const Dashboard = () => {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="mt-5 ml-5 md:ml-10 mr-5 md:mr-10 mb-6"
+        className="mt-10 md:mt-5 ml-4 md:ml-10 mr-4 md:mr-10 mb-6"
       >
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -370,15 +380,6 @@ const Dashboard = () => {
               Let's create something amazing today
             </p>
           </div>
-
-          {/* Walkthrough Button */}
-          <button
-            onClick={() => setRunTour(true)}
-            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg font-medium transition-all shadow-sm hover:shadow-md flex items-center gap-2"
-          >
-            <Sparkles className="w-4 h-4" />
-            <span className="hidden sm:inline">Start Tour</span>
-          </button>
         </div>
 
         {/* Analytics Cards - Only show if there's data */}
@@ -468,7 +469,7 @@ const Dashboard = () => {
         )}
       </motion.div>
 
-      <div className="min-h-screen p-2 md:p-6 relative">
+      <div className="min-h-screen p-3 md:p-6 relative">
         {loading ? (
           <div className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -493,7 +494,7 @@ const Dashboard = () => {
             </div>
           </div>
         ) : (
-          <div className="space-y-10 p-6 pt-0">
+          <div className="space-y-10 p-0 md:p-6 pt-0">
             {/* Let's Begin Section */}
             <div data-tour="lets-begin">
               <div className="flex items-center gap-3 mb-6">

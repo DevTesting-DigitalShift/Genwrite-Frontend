@@ -36,20 +36,20 @@ export const letsBegin = [
     modelKey: ACTIVE_MODELS.Quick_Blog,
   },
   {
-    id: "B",
-    title: "Generate YouTube Blog",
-    icon: <FaYoutube className="w-6 h-6" />,
-    content: "Transform YouTube videos into SEO-friendly blogs automatically.",
-    hoverGradient: "from-red-500 to-pink-600",
-    modelKey: ACTIVE_MODELS.YouTube_Blog,
-  },
-  {
     id: "C",
     title: "Generate Advanced Blog",
     icon: <PenTool className="w-6 h-6" />,
     content: "Fine-tune every detail — from tone to structure — for premium, pro-level blogs.",
     hoverGradient: "from-blue-500 to-sky-400",
     modelKey: ACTIVE_MODELS.Advanced_Blog,
+  },
+  {
+    id: "B",
+    title: "Generate YouTube Blog",
+    icon: <FaYoutube className="w-6 h-6" />,
+    content: "Transform YouTube videos into SEO-friendly blogs automatically.",
+    hoverGradient: "from-red-500 to-pink-600",
+    modelKey: ACTIVE_MODELS.YouTube_Blog,
   },
   {
     id: "D",

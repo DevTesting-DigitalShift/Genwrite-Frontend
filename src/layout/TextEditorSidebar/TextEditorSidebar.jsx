@@ -608,147 +608,93 @@ const TextEditorSidebar = ({
 
   const renderOverviewPanel = () => (
     <div className="flex flex-col h-full">
-      <div className="p-3 border-b bg-gradient-to-r from-gray-50 to-blue-50">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg">
-              <BarChart3 className="w-4 h-4 text-white" />
+      <div className="p-4 border-b bg-white sticky top-0 z-10">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-blue-600 rounded-xl shadow-lg shadow-blue-100">
+              <BarChart3 className="w-5 h-5 text-white" />
             </div>
-
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-gray-900">Overview</h3>
+                <h3 className="font-bold text-gray-900">Analysis</h3>
                 {isPro && (
-                  <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
-                    <Crown className="w-4 h-4" />
+                  <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-lg font-bold">
+                    PRO
                   </span>
                 )}
               </div>
-              <p className="text-xs text-gray-500 font-medium mt-0.5">
-                Summary of your content’s SEO performance
+              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
+                Real-time Statistics
               </p>
             </div>
           </div>
+          {setIsSidebarOpen && (
+            <button
+              onClick={() => setIsSidebarOpen(false)}
+              className="md:hidden p-2 hover:bg-gray-100 rounded-lg"
+            >
+              <X className="w-5 h-5 text-gray-400" />
+            </button>
+          )}
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3 space-y-5 custom-scroll">
-        {/* Stats */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scroll">
+        {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="p-3 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl text-center">
-            <div className="text-2xl font-bold text-blue-600">{getWordCount(editorContent)}</div>
-            <div className="text-xs text-blue-600/70">Words</div>
+          <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex flex-col items-center justify-center text-center group hover:bg-white hover:shadow-md transition-all">
+            <div className="text-2xl font-black text-gray-900 group-hover:text-blue-600 transition-colors">
+              {getWordCount(editorContent)}
+            </div>
+            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+              Word Count
+            </div>
           </div>
-          <div className="p-3 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl text-center">
-            <div className="text-2xl font-bold text-purple-600">{keywords?.length || 0}</div>
-            <div className="text-xs text-purple-600/70">Keywords</div>
+          <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex flex-col items-center justify-center text-center group hover:bg-white hover:shadow-md transition-all">
+            <div className="text-2xl font-black text-gray-900 group-hover:text-purple-600 transition-colors">
+              {keywords?.length || 0}
+            </div>
+            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+              Keywords
+            </div>
           </div>
         </div>
 
         {/* Scores */}
         <div className="space-y-3">
-          <ScoreCard title="Content Score" score={contentScore} icon={FileText} />
-          <ScoreCard title="SEO Score" score={seoScore} icon={TrendingUp} />
+          <ScoreCard title="Quality Score" score={contentScore} icon={FileText} />
+          <ScoreCard title="SEO Potential" score={seoScore} icon={TrendingUp} />
         </div>
 
-        {/* Keywords */}
-        {/* <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Target className="w-4 h-4 text-blue-600" />
-              <span className="font-medium text-gray-900">Keywords</span>
-            </div>
-            {keywords?.length > 0 && (
-              <button
-                onClick={handleKeywordRewrite}
-                className="text-xs text-green-600 flex items-center gap-1 hover:underline"
-              >
-                <Sparkles className="w-3 h-3" /> Optimize
-              </button>
-            )}
+        {/* Optimization Card */}
+        <div className="p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all">
+          <div className="flex items-center gap-3 mb-4">
+            <Sparkles className="w-5 h-5 text-indigo-500" />
+            <h4 className="text-sm font-bold text-gray-900">Boost SEO Score</h4>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {keywords?.map((kw, i) => (
-              <span
-                key={i}
-                className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs"
-              >
-                {kw}
-                <button onClick={() => removeKeyword(kw)} className="hover:text-blue-900">
-                  <X className="w-3 h-3" />
-                </button>
-              </span>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <Input
-              value={newKeyword}
-              onChange={e => setNewKeyword(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && addKeyword()}
-              placeholder="Add keyword..."
-              size="small"
-            />
-            <Button
-              size="small"
-              type="primary"
-              onClick={addKeyword}
-              icon={<Plus className="w-3 h-3" />}
-            />
-          </div>
-        </div> */}
-
-        {/* Quick Actions */}
-        <div className="space-y-4">
-          <span className="text-sm font-semibold text-gray-900">Quick Actions</span>
-
-          {/* SEO Analysis Card */}
-          <div className="p-3 border rounded-xl shadow-sm bg-white hover:shadow-md transition-all">
-            <div className="flex items-center gap-3 mb-3">
-              <TrendingUp className="w-5 h-5 text-blue-600" />
-              <h4 className="text-sm font-semibold text-gray-800">Competitive Analysis</h4>
-            </div>
-
-            {/* Gradient Button */}
-            <button
-              onClick={handleAnalyzing}
-              disabled={isAnalyzingCompetitive}
-              className={`
-        w-full py-2.5 px-4 rounded-lg text-sm font-semibold transition-all
-        ${
-          isAnalyzingCompetitive
-            ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-            : "bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-600 text-white shadow-md hover:shadow-lg hover:from-purple-600 hover:via-indigo-600 hover:to-blue-700"
-        }
-      `}
-            >
-              {isAnalyzingCompetitive ? "Analyzing..." : "Run SEO Analysis"}
-            </button>
-          </div>
+          <p className="text-xs text-gray-500 mb-4 font-medium leading-relaxed">
+            Run our advanced competitive analysis to uncover keyword opportunities and improve
+            rankings.
+          </p>
+          <button
+            onClick={handleAnalyzing}
+            disabled={isAnalyzingCompetitive}
+            className={`
+              w-full py-3 px-4 rounded-xl text-xs font-bold transition-all shadow-sm
+              ${
+                isAnalyzingCompetitive
+                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:shadow-lg active:scale-[0.98]"
+              }
+            `}
+          >
+            {isAnalyzingCompetitive ? "Analyzing Content..." : "Run Analysis (10 Credits)"}
+          </button>
         </div>
-
-        {/* Posted Links */}
-        {postedLinks.length > 0 && (
-          <div className="space-y-2">
-            <span className="text-sm font-medium text-gray-700">Published</span>
-            {postedLinks.map(({ platform, link, label }) => (
-              <a
-                key={platform}
-                href={link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between p-3 bg-green-50 rounded-lg hover:bg-green-100 text-sm"
-              >
-                <span className="text-green-700">{label}</span>
-                <ExternalLink className="w-4 h-4 text-green-600" />
-              </a>
-            ))}
-          </div>
-        )}
       </div>
 
-      {/* Floating Post Button */}
-      <div className="p-3 border-t bg-white">
-        {/* Post Button */}
+      {/* Action Footer */}
+      <div className="p-4 bg-white border-t border-gray-50">
         <Button
           type="primary"
           size="large"
@@ -756,22 +702,25 @@ const TextEditorSidebar = ({
           onClick={handlePostClick}
           loading={isPosting}
           disabled={isDisabled || userPlan === "free"}
-          className={`h-12 font-semibold border-0 hover:shadow-lg ${
+          className={`h-14 font-bold rounded-2xl border-none shadow-xl transition-all active:scale-[0.98] ${
             userPlan === "free"
-              ? "!bg-gray-400 cursor-not-allowed"
-              : "bg-gradient-to-r from-green-500 to-emerald-600"
+              ? "!bg-gray-200 !text-gray-400"
+              : "bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-green-100"
           }`}
         >
           {userPlan === "free" ? (
-            <span className="flex items-center gap-2">
-              <Lock className="w-4 h-4" /> Upgrade to Post
-            </span>
+            <div className="flex items-center justify-center gap-2">
+              <Lock className="w-4 h-4" /> <span>Upgrade to Publish</span>
+            </div>
           ) : isPosting ? (
-            "Posting..."
-          ) : posted && Object.keys(posted).length > 0 ? (
-            "Re-Post Blog"
+            "Publishing..."
           ) : (
-            "Post Blog"
+            <div className="flex items-center justify-center gap-2">
+              <Globe className="w-4 h-4" />
+              <span>
+                {posted && Object.keys(posted).length > 0 ? "Update Post" : "Publish to Web"}
+              </span>
+            </div>
           )}
         </Button>
       </div>
@@ -912,52 +861,103 @@ const TextEditorSidebar = ({
             )}
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div
+            className="
+    grid gap-3
+    grid-cols-1
+    sm:grid-cols-2
+    lg:grid-cols-3
+  "
+          >
+            {/* Markdown */}
             <button
               onClick={handleExportMarkdown}
               disabled={userPlan === "free"}
-              className={`group flex flex-col items-center justify-center gap-2 py-4 px-3 rounded-xl text-sm font-semibold border-2 transition-all duration-300 ${
-                userPlan === "free"
-                  ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
-                  : "bg-gradient-to-br from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 text-blue-700 border-blue-200 hover:border-blue-300 hover:shadow-lg hover:scale-105"
-              }`}
+              className={`
+      group flex flex-col items-center justify-center gap-2
+      py-4 px-3
+      rounded-xl text-sm font-semibold
+      border-2 transition-all duration-300
+      ${
+        userPlan === "free"
+          ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
+          : `
+            bg-gradient-to-br from-blue-50 to-indigo-50
+            hover:from-blue-100 hover:to-indigo-100
+            text-blue-700 border-blue-200
+            hover:border-blue-300 hover:shadow-lg
+            active:scale-[0.98] sm:hover:scale-105
+          `
+      }
+    `}
             >
               <FileText
-                className={`w-6 h-6 ${
-                  userPlan !== "free" && "group-hover:scale-110 transition-transform"
-                }`}
+                className={`
+        w-6 h-6
+        ${userPlan !== "free" && "sm:group-hover:scale-110 transition-transform"}
+      `}
               />
               <span>Markdown</span>
             </button>
+
+            {/* HTML */}
             <button
               onClick={handleExportHTML}
               disabled={userPlan === "free"}
-              className={`group flex flex-col items-center justify-center gap-2 py-4 px-3 rounded-xl text-sm font-semibold border-2 transition-all duration-300 ${
-                userPlan === "free"
-                  ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
-                  : "bg-gradient-to-br from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100 text-purple-700 border-purple-200 hover:border-purple-300 hover:shadow-lg hover:scale-105"
-              }`}
+              className={`
+      group flex flex-col items-center justify-center gap-2
+      py-4 px-3
+      rounded-xl text-sm font-semibold
+      border-2 transition-all duration-300
+      ${
+        userPlan === "free"
+          ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
+          : `
+            bg-gradient-to-br from-purple-50 to-pink-50
+            hover:from-purple-100 hover:to-pink-100
+            text-purple-700 border-purple-200
+            hover:border-purple-300 hover:shadow-lg
+            active:scale-[0.98] sm:hover:scale-105
+          `
+      }
+    `}
             >
               <FileCode
-                className={`w-6 h-6 ${
-                  userPlan !== "free" && "group-hover:scale-110 transition-transform"
-                }`}
+                className={`
+        w-6 h-6
+        ${userPlan !== "free" && "sm:group-hover:scale-110 transition-transform"}
+      `}
               />
               <span>HTML</span>
             </button>
+
+            {/* PDF */}
             <button
               onClick={handlePdfExport}
               disabled={userPlan === "free"}
-              className={`group flex flex-col items-center justify-center gap-2 py-4 px-3 rounded-xl text-sm font-semibold border-2 transition-all duration-300 ${
-                userPlan === "free"
-                  ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
-                  : "bg-gradient-to-br from-green-50 to-emerald-50 hover:from-green-100 hover:to-emerald-100 text-green-700 border-green-200 hover:border-green-300 hover:shadow-lg hover:scale-105"
-              }`}
+              className={`
+      group flex flex-col items-center justify-center gap-2
+      py-4 px-3
+      rounded-xl text-sm font-semibold
+      border-2 transition-all duration-300
+      ${
+        userPlan === "free"
+          ? "bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed"
+          : `
+            bg-gradient-to-br from-green-50 to-emerald-50
+            hover:from-green-100 hover:to-emerald-100
+            text-green-700 border-green-200
+            hover:border-green-300 hover:shadow-lg
+            active:scale-[0.98] sm:hover:scale-105
+          `
+      }
+    `}
             >
               <Download
-                className={`w-6 h-6 ${
-                  userPlan !== "free" && "group-hover:scale-110 transition-transform"
-                }`}
+                className={`
+        w-6 h-6
+        ${userPlan !== "free" && "sm:group-hover:scale-110 transition-transform"}
+      `}
               />
               <span>PDF</span>
             </button>

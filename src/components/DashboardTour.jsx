@@ -34,6 +34,14 @@ const DashboardTour = ({ run, onComplete, onOpenQuickBlog }) => {
       showNext: true,
     },
     {
+      target: '[data-tour="help-icon"]',
+      title: "Need Help? Watch Our Video Guide",
+      description:
+        "Click this question mark icon anytime to watch our introduction video and learn how GenWrite works. It's a quick guide to help you get the most out of the platform!",
+      placement: "bottom",
+      showNext: true,
+    },
+    {
       target: '[data-tour="create-blog"]',
       title: "Create Your First Quick Blog",
       description:

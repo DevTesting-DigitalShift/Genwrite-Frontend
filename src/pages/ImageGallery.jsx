@@ -190,15 +190,15 @@ const ImageGallery = () => {
         <title>Image Gallery | GenWrite</title>
       </Helmet>
 
-      <div className="min-h-screen p-4 md:p-6 lg:p-8">
+      <div className="min-h-screen p-3 md:p-6 lg:p-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          className="mb-8 mt-5 md:mt-0"
         >
           <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
-            <div className="text-center md:text-left">
+            <div className="text-left">
               <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 Explore Creations
               </h1>

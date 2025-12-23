@@ -6,17 +6,21 @@ import { FiMenu } from "react-icons/fi"
 import {
   Box,
   Briefcase,
+  CreditCard,
   Crown,
   FileText,
   HelpCircle,
+  History,
   ImagesIcon,
   LayoutDashboard,
+  LogOut,
   Megaphone,
   Menu,
   Plug,
   Sparkles,
   Trash2,
   TrendingUp,
+  User,
   UsersRound,
   Zap,
 } from "lucide-react"
@@ -29,7 +33,7 @@ import {
   updateUserPartial,
 } from "../store/slices/authSlice"
 import { Tooltip, Dropdown, Avatar } from "antd"
-import { RiCoinsFill } from "react-icons/ri"
+import { RiCashFill, RiCoinsFill } from "react-icons/ri"
 import NotificationDropdown from "@components/NotificationDropdown"
 import GoProButton from "@components/GoProButton"
 import { getSocket } from "@utils/socket"
@@ -177,31 +181,51 @@ const SideBar_Header = () => {
       if (key === "logout") handleLogout()
       else navigate(`/${key}`)
     },
-    rootClassName: "!px-4 !py-2 rounded-lg shadow-md max-w-[20ch] text-lg !bg-gray-50 gap-4",
+    rootClassName: "rounded-xl shadow-xl min-w-[220px] !bg-white border border-gray-100",
     items: [
       {
-        key: "name",
+        key: "user-info",
         label: (
-          <Tooltip
-            title={user?.name}
-            className="block font-medium text-gray-900 text-center text-lg w-[15ch] whitespace-nowrap overflow-hidden text-ellipsis"
-          >
-            {user?.name}
-          </Tooltip>
+          <div className="py-3 flex flex-col items-center border-b border-gray-200 mb-1">
+            <p className="font-semibold text-gray-900 text-xl truncate leading-tight">
+              {user?.name}
+            </p>
+          </div>
         ),
         disabled: true,
       },
-      { type: "divider" },
-      { key: "profile", label: "Profile", className: "!py-1.5 hover:bg-gray-100" },
+      {
+        key: "profile",
+        label: "Profile",
+        icon: <User className="w-4 h-4 text-blue-500" />,
+        className: "!py-2 !px-3 hover:!bg-blue-50 !rounded-lg text-sm font-medium",
+      },
       {
         key: "transactions",
         label: "Subscription & Transactions",
-        className: "!py-1.5 hover:bg-gray-100",
+        icon: <RiCashFill className="w-4 h-4 text-purple-500" />,
+        className: "!py-2 !px-3 hover:!bg-purple-50 !rounded-lg text-sm font-medium",
       },
-      { key: "credit-logs", label: "Credit Logs", className: "!py-1.5 hover:bg-gray-100" },
-      { key: "pricing", label: "Upgrade", className: "!py-1.5 hover:bg-gray-100" },
-      { type: "divider" },
-      { key: "logout", danger: true, label: "Logout", className: "!py-2 hover:bg-gray-100" },
+      {
+        key: "credit-logs",
+        label: "Credit History",
+        icon: <History className="w-4 h-4 text-orange-500" />,
+        className: "!py-2 !px-3 hover:!bg-orange-50 !rounded-lg text-sm font-medium",
+      },
+      {
+        key: "pricing",
+        label: "Upgrade Plan",
+        icon: <Sparkles className="w-4 h-4 text-amber-500" />,
+        className: "!py-2 !px-3 hover:!bg-amber-50 !rounded-lg text-sm font-bold text-amber-600",
+      },
+      { type: "divider", className: "!my-2" },
+      {
+        key: "logout",
+        danger: true,
+        label: "Sign Out",
+        icon: <LogOut className="w-4 h-4" />,
+        className: "!py-2 !px-3 !rounded-lg text-sm font-bold",
+      },
     ],
   }
 

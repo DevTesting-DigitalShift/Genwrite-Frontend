@@ -35,6 +35,19 @@ const PrivateRoutesLayout = () => {
     }
   }, [])
 
+  // Onboarding redirect check - redirect first-time users to onboarding
+  useEffect(() => {
+    if (!user) return
+
+    const hasCompletedOnboarding = localStorage.getItem("hasCompletedOnboarding") === "true"
+
+    // Only redirect if user has no lastLogin AND hasn't completed onboarding
+    // Use localStorage as fallback since backend might not update lastLogin immediately
+    if (!user.lastLogin && !hasCompletedOnboarding) {
+      navigate("/onboarding", { replace: true })
+    }
+  }, [user, navigate])
+
   // Email verification check
   useEffect(() => {
     if (!user) return
@@ -51,7 +64,11 @@ const PrivateRoutesLayout = () => {
       <div className="flex flex-col min-h-screen">
         <LayoutWithSidebarAndHeader />
 
-       <div className={`flex-1 ml-0 md:ml-16 pt-16 sm:pt-20 ${isToolbarRoute ? "px-0 pl-2" : " px-3 md:px-6"}`}>
+        <div
+          className={`flex-1 ml-0 md:ml-16 pt-16 sm:pt-20 ${
+            isToolbarRoute ? "px-0 pl-2" : " px-3 md:px-6"
+          }`}
+        >
           {/* Chatbot Button (hidden on /toolbox/:id) */}
           {/* {!isToolboxRoute && (
             <>

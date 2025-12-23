@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import {
   CreditCardIcon,
@@ -51,7 +51,6 @@ const STATUS_COLORS = {
 }
 
 const Profile = () => {
-  const fileInputRef = useRef(null)
   const [profileData, setProfileData] = useState(DEMO_PROFILE)
   const { user } = useSelector(state => state.auth)
   const dispatch = useDispatch()
@@ -103,17 +102,6 @@ const Profile = () => {
       message.success("Profile updated successfully!")
     } catch (err) {
       message.error("Error updating profile, try again")
-    }
-  }
-
-  const handleImageUpload = e => {
-    const file = e.target.files[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onload = e => {
-        setProfileData(prev => ({ ...prev, profilePicture: e.target.result }))
-      }
-      reader.readAsDataURL(file)
     }
   }
 
@@ -174,10 +162,7 @@ const Profile = () => {
           >
             <div className="flex flex-col sm:flex-row items-center gap-6">
               {/* Profile Picture */}
-              <div
-                className="relative group cursor-pointer flex-shrink-0"
-                onClick={() => fileInputRef.current.click()}
-              >
+              <div className="flex-shrink-0">
                 {profileData?.profilePicture ? (
                   <img
                     src={profileData.profilePicture}
@@ -191,16 +176,6 @@ const Profile = () => {
                       : "NA"}
                   </div>
                 )}
-                <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <span className="text-white text-sm font-medium">Change Photo</span>
-                </div>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleImageUpload}
-                  className="hidden"
-                  accept="image/*"
-                />
               </div>
 
               {/* User Info */}
@@ -211,7 +186,7 @@ const Profile = () => {
                   </h1>
                   {profileData.emailVerified && (
                     <Tooltip title="Email Verified">
-                      <ShieldCheckIcon className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500" />
+                      <ShieldCheckIcon className="w-5 h-5 mt-2 sm:w-6 sm:h-6 text-blue-500" />
                     </Tooltip>
                   )}
                 </div>
