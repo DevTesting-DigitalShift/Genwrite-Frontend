@@ -324,23 +324,23 @@ const PricingCard = ({
                   <div className="mt-2">
                     <span className="text-sm font-se text-gray-500">
                       Billed{" "}
-                      {currency === "INR"
-                        ? `₹${Math.round(
-                            plan[
-                              billingPeriod === "annual" ? "priceAnnualINR" : "priceMonthlyINR"
-                            ] *
-                              (billingPeriod === "annual" ? 12 : 1) *
-                              0.5 +
-                              (billingPeriod === "annual" && 7)
-                          )}`
-                        : `$${(
-                            Math.round(
-                              displayPrice * (billingPeriod === "annual" ? 12 : 1) * 0.5 * 100
-                            ) /
-                              100 +
-                            (billingPeriod === "annual" && 0.05)
-                          ).toFixed(2)}`}{" "}
-                      {billingPeriod === "annual" ? "annually" : "monthly"}
+                    {currency === "INR"
+  ? `₹${Math.round(
+      plan[billingPeriod === "annual" ? "priceAnnualINR" : "priceMonthlyINR"] *
+        (billingPeriod === "annual" ? 12 : 1) *
+        0.5 +
+        (billingPeriod === "annual" ? 6 : 0) // ✅ INR annual only
+    )}`
+  : `$${(
+      Math.round(
+        displayPrice *
+          (billingPeriod === "annual" ? 12 : 1) *
+          0.5 *
+          100
+      ) / 100
+    ).toFixed(2)}`}
+{billingPeriod === "annual" ? " annually" : " monthly"}
+
                     </span>
                   </div>
                 </>

@@ -185,6 +185,16 @@ const Auth = ({ path }) => {
     setRecaptchaValue(null)
   }, [path])
 
+  // Pre-fill email from URL parameter
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const emailParam = urlParams.get("email")
+
+    if (emailParam) {
+      setFormData(prev => ({ ...prev, email: decodeURIComponent(emailParam) }))
+    }
+  }, [])
+
   const trialFeatures = [
     { icon: <PenTool className="w-4 h-4" />, text: "Advanced AI-generated blogs" },
     { icon: <Crown className="w-4 h-4" />, text: "Access to all 30+ premium templates" },
