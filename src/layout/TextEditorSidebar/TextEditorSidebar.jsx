@@ -223,7 +223,7 @@ const TextEditorSidebar = ({
         imageSource: blog.imageSource || DEFAULT_IMAGE_SOURCE,
         numberOfImages: blog.numberOfImages || 0,
         useBrandVoice: blog.isCheckedBrand || false,
-        brandId: blog.brandId || "",
+        brandId: typeof blog.brandId === "object" ? blog.brandId?._id || "" : blog.brandId || "",
         addCTA: blog.options?.addCTA || false,
         options: {
           includeFaqs: blog.options?.includeFaqs || false,

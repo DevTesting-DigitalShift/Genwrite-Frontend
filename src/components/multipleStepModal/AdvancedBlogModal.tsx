@@ -846,6 +846,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
                   brandId: formData.brandId,
                   addCTA: formData.options.addCTA,
                 }}
+                size="default"
                 onChange={val => {
                   const opts = formData.options
                   updateFormData({

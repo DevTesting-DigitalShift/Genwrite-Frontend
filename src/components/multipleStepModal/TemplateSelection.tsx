@@ -112,10 +112,17 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
 
   return (
     <div className={`relative ${className}`}>
-      <Flex justify="space-around" align="center" className="sticky top-0 pb-4 bg-white z-30">
+      {/* Header Section - Responsive */}
+      <Flex
+        // vertical={{ base: true, sm: false }}
+        justify="space-around"
+        align="center"
+        gap="middle"
+        className="sticky top-0 pb-4 bg-white z-30"
+      >
         <Input.Search
           size="large"
-          className="w-1/2 !h-full text-center "
+          className="w-full sm:w-2/3 md:w-1/2 !h-full text-center"
           placeholder="search template by name"
           onSearch={(value, event, info) => {
             setTemplates(packages.filter(p => p.name.toLowerCase().includes(value.toLowerCase())))
@@ -123,9 +130,12 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
           enterButton={<Search />}
           allowClear
         />
-        <Flex justify="space-around" gap="middle">
-          <label htmlFor="show-template" className="text-base font-normal tracking-wide">
-            Show Selected :{" "}
+        <Flex justify="space-around" gap="small" align="center" className="w-full sm:w-auto">
+          <label
+            htmlFor="show-template"
+            className="text-sm sm:text-base font-normal tracking-wide whitespace-nowrap"
+          >
+            Show Selected:{" "}
           </label>
           <Switch
             id="show-template"
@@ -138,27 +148,24 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
         </Flex>
       </Flex>
 
-      <Flex
-        wrap
-        gap={"middle"}
-        justify="space-around"
-        className="py-2 max-h-[60vh] overflow-y-auto"
-      >
+      {/* Templates Grid - Responsive */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4 py-2 max-h-[60vh] overflow-y-auto">
         {templates.length ? (
           templates.map(pkg => {
             return (
               <div
                 key={pkg.id}
-                className={`relative cursor-pointer transition-all rounded-lg duration-200 w-[30%] py-2 border-2 hover:border-blue-700 ${clsx(
+                className={clsx(
+                  "relative cursor-pointer transition-all rounded-lg duration-200 py-2 border-2 hover:border-blue-700",
                   selectedIds.includes(pkg.id) && "border-blue-500"
-                )}`}
+                )}
                 onClick={() => handlePackageSelect(pkg.id)}
                 onKeyDown={e => e.key === "Enter" && handlePackageSelect(pkg.id)}
                 role="button"
                 tabIndex={0}
                 aria-label={`Select ${pkg.name} template`}
               >
-                <div className="bg-white rounded-md overflow-hidden shadow-sm">
+                <div className="bg-white rounded-md overflow-hidden shadow-sm h-full">
                   <div className="relative">
                     <img
                       src={pkg.imgSrc || "/placeholder.svg"}
@@ -181,9 +188,11 @@ const TemplateSelection: FC<TemplateSelectionProps> = ({
             )
           })
         ) : (
-          <Empty />
+          <div className="col-span-full">
+            <Empty />
+          </div>
         )}
-      </Flex>
+      </div>
       <style>{`
       .ant-input, .ant-input:focus, .ant-input-search .ant-input{
         border:none !important;

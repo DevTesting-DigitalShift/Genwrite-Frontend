@@ -14,6 +14,7 @@ interface BrandVoiceSelectorProps {
   }
   onChange?: (updated: { isCheckedBrand: boolean; brandId: string; addCTA: boolean }) => void
   errorText?: string
+  size?: "small" | "default"
 }
 
 const { Text, Paragraph } = Typography
@@ -24,6 +25,7 @@ const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
   value = { isCheckedBrand: false, brandId: "", addCTA: false },
   onChange,
   errorText,
+  size = "small",
 }) => {
   const [state, setState] = useState(value)
   const formError = useMemo(() => errorText, [errorText])
@@ -64,7 +66,7 @@ const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
             {label}
           </label>
           <Switch
-            size="small"
+            size={size}
             id={`blog-isCheckedBrand`}
             checked={state.isCheckedBrand}
             onChange={handleBrandToggle}
@@ -129,7 +131,7 @@ const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
             Add CTA at the End
           </label>
           <Switch
-            size="small"
+            size={size}
             id="blog-brand-add-cta"
             checked={state.addCTA}
             onChange={checked => handleUpdate({ addCTA: checked })}
