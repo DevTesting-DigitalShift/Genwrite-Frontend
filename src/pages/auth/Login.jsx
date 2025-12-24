@@ -278,7 +278,7 @@ const Auth = ({ path }) => {
             <CountdownTimer
               startDate="2025-12-01T00:00:00"
               endDate="2026-01-01T23:59:59"
-              discount="30%"
+              discount="50%"
             />
           </motion.div>
 
@@ -292,7 +292,7 @@ const Auth = ({ path }) => {
             <CountdownTimer
               startDate="2025-12-01T00:00:00"
               endDate="2026-01-01T23:59:59"
-              discount="30%"
+              discount="50%"
             />
 
             <motion.div
@@ -362,7 +362,7 @@ const Auth = ({ path }) => {
                 <div className="mt-5 pt-4 border-t border-purple-200">
                   <p className="text-xs text-gray-600 leading-relaxed">
                     Start right after signup and enjoy complete access for 3 days. Only pay if you
-                    love it. Plus, get 30% OFF with our Christmas special! 🎄
+                    love it. Plus, get 50% OFF with our Christmas special! 🎄
                   </p>
                 </div>
               </div>
@@ -717,7 +717,7 @@ const Auth = ({ path }) => {
                   {isSignup && (
                     <div className="flex items-center gap-1">
                       <FiGift className="w-3 h-3 text-purple-500" />
-                      <span>30% Off Sale</span>
+                      <span>50% Off Sale</span>
                     </div>
                   )}
                 </div>

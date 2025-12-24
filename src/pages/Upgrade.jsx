@@ -251,11 +251,11 @@ const PricingCard = ({
             {plan.description}
           </p>
 
-          {/* 30% OFF Badge */}
+          {/* 50% OFF Badge */}
           {plan.type !== "credit_purchase" && typeof displayPrice === "number" && (
             <div className="mt-4">
               <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-red-200 text-red-600">
-                30% OFF {billingPeriod === "monthly" ? "FIRST MONTH" : "FIRST TIME"}
+                50% OFF {billingPeriod === "monthly" ? "FIRST MONTH" : "FIRST TIME"}
               </span>
             </div>
           )}
@@ -306,16 +306,16 @@ const PricingCard = ({
                     <span className="text-gray-400 text-sm">/month</span>
                   </div>
 
-                  {/* Discounted Price (30% off) */}
+                  {/* Discounted Price (50% off) */}
                   <div className="flex items-baseline gap-1">
                     <span className={`text-4xl font-bold ${styles.price}`}>
                       {currency === "INR"
                         ? `₹${(
                             plan[
                               billingPeriod === "annual" ? "priceAnnualINR" : "priceMonthlyINR"
-                            ] * 0.7
+                            ] * 0.5
                           ).toFixed(0)}`
-                        : `$${(displayPrice * 0.7).toFixed(2)}`}
+                        : `$${(displayPrice * 0.5).toFixed(2)}`}
                     </span>
                     <span className="text-gray-600 text-sm">/month</span>
                   </div>
@@ -330,12 +330,12 @@ const PricingCard = ({
                               billingPeriod === "annual" ? "priceAnnualINR" : "priceMonthlyINR"
                             ] *
                               (billingPeriod === "annual" ? 12 : 1) *
-                              0.7 +
+                              0.5 +
                               (billingPeriod === "annual" && 7)
                           )}`
                         : `$${(
                             Math.round(
-                              displayPrice * (billingPeriod === "annual" ? 12 : 1) * 0.7 * 100
+                              displayPrice * (billingPeriod === "annual" ? 12 : 1) * 0.5 * 100
                             ) /
                               100 +
                             (billingPeriod === "annual" && 0.05)
@@ -666,7 +666,7 @@ const Upgrade = () => {
           <CountdownTimer
             startDate="2025-12-01T00:00:00"
             endDate="2026-01-01T23:59:59"
-            discount="30%"
+            discount="50%"
           />
           {/* Important Sale Terms Notice */}
           <motion.div
@@ -685,7 +685,7 @@ const Upgrade = () => {
                   <p className="flex items-start gap-2">
                     <span className="text-lg leading-none">•</span>
                     <span>
-                      <strong className="font-bold">First-Time Subscribers Only:</strong> This 30%
+                      <strong className="font-bold">First-Time Subscribers Only:</strong> This 50%
                       discount is exclusively available for new customers who have never subscribed
                       to GenWrite before.
                     </span>
@@ -693,7 +693,7 @@ const Upgrade = () => {
                   <p className="flex items-start gap-2">
                     <span className="text-lg leading-none">•</span>
                     <span>
-                      <strong className="font-bold">First Month Only:</strong> The 30% discount
+                      <strong className="font-bold">First Month Only:</strong> The 50% discount
                       applies to your{" "}
                       <strong className="underline">first month of subscription only</strong>.
                       Starting from the second month, you will be charged the regular subscription
