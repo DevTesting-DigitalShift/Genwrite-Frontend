@@ -20,7 +20,7 @@ import { sendRetryLines } from "@api/blogApi"
 import TemplateModal from "@components/generateBlog/TemplateModal"
 import { OpenAIFilled } from "@ant-design/icons"
 import TextEditorSidebar from "@/layout/TextEditorSidebar/TextEditorSidebar"
-import TextEditor from "@/layout/TextEditor/TextEditor"
+import EditorVersionWrapper from "@/layout/TextEditor/EditorVersionWrapper"
 import "../layout/TextEditor/editor.css"
 import LoadingScreen from "@components/UI/LoadingScreen"
 
@@ -561,7 +561,8 @@ const MainEditorPage = () => {
                   <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
                 </div>
               ) : (
-                <TextEditor
+                <EditorVersionWrapper
+                  textVersion={blog?.textVersion || 2}
                   keywords={keywords}
                   setKeywords={setKeywords}
                   blog={blog}
