@@ -62,6 +62,7 @@ import { ScoreCard, StatCard, CompetitorsList, AnalysisInsights } from "./Featur
 
 import { IMAGE_SOURCE, DEFAULT_IMAGE_SOURCE } from "@/data/blogData"
 import { computeCost } from "@/data/pricingConfig"
+import * as Cheerio from "cheerio"
 
 const { TextArea } = Input
 const { Panel } = Collapse
@@ -250,21 +251,24 @@ const TextEditorSidebar = ({
   const getWordCount = text => {
     if (!text) return 0
 
-    // Create a temporary DOM element to properly strip HTML
-    const tempDiv = document.createElement("div")
-    tempDiv.innerHTML = text
+    // Plain text case
+    if (!/<article/i.test(text)) {
+      return text.trim().replace(/\s+/g, " ").split(" ").filter(Boolean).length
+    }
 
-    // Get text content (this removes all HTML tags)
-    const strippedText = tempDiv.textContent || tempDiv.innerText || ""
+    const $ = Cheerio.load(text)
 
-    // Remove extra whitespace and count words
-    const words = strippedText
-      .trim()
-      .replace(/\s+/g, " ") // Replace multiple spaces with single space
-      .split(" ")
-      .filter(word => word.length > 0)
+    // Remove non-visible / non-content elements
+    $(
+      "script, style, iframe, svg, video, audio, noscript, figure, img, table, ul, ol, li, figcaption, hr, br"
+    ).remove()
 
-    return words.length
+    // If article exists, scope to it; otherwise use body/root
+    const content = $("article").length ? $("article") : $.root()
+
+    const strippedText = content.text()
+
+    return strippedText.trim().replace(/\s+/g, " ").split(" ").filter(Boolean).length
   }
 
   // Update regen form field

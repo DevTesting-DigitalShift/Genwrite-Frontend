@@ -12,7 +12,6 @@ export const pricingConfig = {
     internalLinking: { label: "Internal Linking", cost: 10 },
     faqGeneration: { label: "FAQ Generation", cost: 10 },
     automaticPosting: { label: "Automatic Posting", cost: 10 },
-    quickSummary: { label: "Quick Summary", cost: 10 },
   },
   images: { stock: { featureFee: 10 }, ai: { featureFee: 20 }, upload: { perImageFee: 5 } },
   aiModels: {
@@ -77,12 +76,6 @@ export function computeCost({
   }
   if (options.automaticPosting || features.includes("automaticPosting")) {
     totalCost += pricingConfig.features.automaticPosting.cost
-  }
-  if (options.isCheckedQuick || features.includes("quickSummary")) {
-    totalCost += pricingConfig.features.quickSummary.cost
-  }
-  if (options.addOutBoundLinks || features.includes("outboundLinks")) {
-    totalCost += pricingConfig.features.outboundLinks.cost
   }
 
   // 4. Image Costs
