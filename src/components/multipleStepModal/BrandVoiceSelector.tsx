@@ -30,6 +30,11 @@ const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
   /** ✅ Fetch brand voices from API */
   const { data: brands = [], isLoading, error } = brandsQuery.useList()
 
+  // Sync state when value prop changes from parent
+  useEffect(() => {
+    setState(value)
+  }, [value])
+
   const handleUpdate = (updates: Partial<typeof state>) => {
     const newState = { ...state, ...updates }
     setState(newState)
@@ -59,9 +64,9 @@ const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
             {label}
           </label>
           <Switch
-            // size="small"
+            size="small"
             id={`blog-isCheckedBrand`}
-            value={state.isCheckedBrand}
+            checked={state.isCheckedBrand}
             onChange={handleBrandToggle}
             disabled={isLoading || !brands || brands.length === 0}
           />
@@ -124,6 +129,7 @@ const BrandVoiceSelector: FC<BrandVoiceSelectorProps> = ({
             Add CTA at the End
           </label>
           <Switch
+            size="small"
             id="blog-brand-add-cta"
             checked={state.addCTA}
             onChange={checked => handleUpdate({ addCTA: checked })}

@@ -176,7 +176,20 @@ const TextEditorSidebar = ({
     SERVERENDPOINT: "Server",
     WIX: "Wix",
   }
-  const postedLinks = posted
+
+  // Extract integration links from integrations API data
+  const integrationLinks = integrations?.integrations
+    ? Object.entries(integrations.integrations)
+        .filter(([_, data]) => data?.url || data?.frontend)
+        .map(([platform, data]) => ({
+          platform,
+          link: platform === "SERVERENDPOINT" ? data.frontend || data.url : data.url,
+          label: PLATFORM_LABELS[platform] || platform,
+        }))
+    : []
+
+  // Extract published blog links from posted object
+  const publishedLinks = posted
     ? Object.entries(posted)
         .filter(([_, data]) => data?.link)
         .map(([platform, data]) => ({
@@ -185,6 +198,8 @@ const TextEditorSidebar = ({
           label: PLATFORM_LABELS[platform] || platform,
         }))
     : []
+
+  const hasPublishedLinks = publishedLinks.length > 0
 
   // Initialize data
   useEffect(() => {
@@ -695,6 +710,36 @@ const TextEditorSidebar = ({
 
       {/* Action Footer */}
       <div className="p-4 bg-white border-t border-gray-50">
+        {/* Published Links Section */}
+        {hasPublishedLinks && (
+          <div className="mb-4 p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Globe className="w-4 h-4 text-green-600" />
+                <span className="text-xs font-bold text-green-900 uppercase tracking-wider">
+                  Published On
+                </span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              {publishedLinks.map(({ platform, link, label }) => (
+                <a
+                  key={platform}
+                  href={link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between p-2 bg-white rounded-lg hover:bg-green-50 transition-all group"
+                >
+                  <span className="text-sm font-medium text-gray-700 group-hover:text-green-700">
+                    {label}
+                  </span>
+                  <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-green-600" />
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
         <Button
           type="primary"
           size="large"
@@ -702,10 +747,10 @@ const TextEditorSidebar = ({
           onClick={handlePostClick}
           loading={isPosting}
           disabled={isDisabled || userPlan === "free"}
-          className={`h-14 font-bold rounded-2xl border-none shadow-xl transition-all active:scale-[0.98] ${
+          className={`h-14 font-semibold rounded-2xl border-none shadow transition-all active:scale-[0.98] ${
             userPlan === "free"
               ? "!bg-gray-200 !text-gray-400"
-              : "bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-green-100"
+              : "bg-gradient-to-r from-emerald-500 to-green-600 text-white"
           }`}
         >
           {userPlan === "free" ? (
@@ -716,10 +761,7 @@ const TextEditorSidebar = ({
             "Publishing..."
           ) : (
             <div className="flex items-center justify-center gap-2">
-              <Globe className="w-4 h-4" />
-              <span>
-                {posted && Object.keys(posted).length > 0 ? "Update Post" : "Publish to Web"}
-              </span>
+              <span>{posted && Object.keys(posted).length > 0 ? "Re-Post Blog" : "Post Blog"}</span>
             </div>
           )}
         </Button>
@@ -1379,7 +1421,7 @@ const TextEditorSidebar = ({
         width={320}
       >
         <div className="space-y-2">
-          {postedLinks.map(({ platform, link, label }) => (
+          {integrationLinks.map(({ platform, link, label }) => (
             <button
               key={platform}
               onClick={() => window.open(link, "_blank")}

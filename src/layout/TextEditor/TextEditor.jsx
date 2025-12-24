@@ -95,6 +95,7 @@ function parseHtmlIntoSections(htmlString) {
       description: "",
       thumbnail: null,
       sections: [],
+      sectionImages: [],
       faq: null,
       cta: null,
       quickSummary: null,
@@ -107,6 +108,7 @@ function parseHtmlIntoSections(htmlString) {
   let description = ""
   let thumbnail = null
   const sections = []
+  const sectionImages = []
   let faq = null
   let cta = null
   let quickSummary = null
@@ -149,8 +151,33 @@ function parseHtmlIntoSections(htmlString) {
     const rawContent = secEl.querySelector(".section-content")?.innerHTML || ""
     const sectionContent = cleanMixedContent(rawContent)
 
+    const sectionId = generateSectionId()
+
+    // Extract section images from .section-images-wrapper
+    const imagesWrapper = secEl.querySelector(".section-images-wrapper")
+    if (imagesWrapper) {
+      const imageElements = imagesWrapper.querySelectorAll(".section-image img")
+      imageElements.forEach(imgEl => {
+        const figcaption = imgEl.closest("figure")?.querySelector("figcaption")
+        const attributionLink = figcaption?.querySelector("a")
+
+        sectionImages.push({
+          sectionId: sectionId,
+          role: "section",
+          url: imgEl.getAttribute("src") || "",
+          altText: imgEl.getAttribute("alt") || "",
+          attribution: attributionLink
+            ? {
+                name: attributionLink.textContent?.trim() || "",
+                profile: attributionLink.getAttribute("href") || "",
+              }
+            : null,
+        })
+      })
+    }
+
     sections.push({
-      id: generateSectionId(), // Always generate unique ID to avoid duplicates
+      id: sectionId,
       title: sectionTitle,
       content: sectionContent,
       originalContent: sectionContent,
@@ -217,7 +244,7 @@ function parseHtmlIntoSections(htmlString) {
     quickSummary = summaryEl.innerHTML
   }
 
-  return { title, description, thumbnail, sections, faq, cta, quickSummary }
+  return { title, description, thumbnail, sections, sectionImages, faq, cta, quickSummary }
 }
 
 // Parse markdown into sections with proper image handling
@@ -536,6 +563,16 @@ const TextEditor = ({
       setSections(parsedData.sections)
       setFaq(parsedData.faq)
 
+      // Merge section images from parsed HTML with existing blog images
+      if (parsedData.sectionImages && parsedData.sectionImages.length > 0) {
+        setSectionImages(prev => {
+          // Keep existing images that are not section images, or are for different sections
+          const nonSectionImages = prev.filter(img => img.role !== "section")
+          // Combine with newly parsed section images
+          return [...nonSectionImages, ...parsedData.sectionImages]
+        })
+      }
+
       // Initialize originals ONLY if not already initialized for this blog
       if (!originalsInitialized.current) {
         // Use setTimeout to ensure state has settled
@@ -592,6 +629,28 @@ const TextEditor = ({
     sections.forEach(sec => {
       html += `  <section class="blog-section" id="${sec.id}">\n`
       html += `    <h2 class="section-title">${sec.title}</h2>\n`
+
+      // Add section images if they exist
+      const secImages = sectionImages.filter(
+        img => img.sectionId === sec.id && img.role === "section"
+      )
+      if (secImages.length > 0) {
+        html += `    <div class="section-images-wrapper">\n`
+        secImages.forEach((img, idx) => {
+          html += `      <figure class="section-image image-${idx}">\n`
+          html += `        <img src="${img.url}" alt="${
+            img.altText || ""
+          }" class="content-image" loading="lazy" />\n`
+          if (img.attribution && img.attribution.name) {
+            html += `        <figcaption class="image-attribution">\n`
+            html += `          <p>Photo by <a href="${img.attribution.profile}">${img.attribution.name}</a></p>\n`
+            html += `        </figcaption>\n`
+          }
+          html += `      </figure>\n`
+        })
+        html += `    </div>\n`
+      }
+
       html += `    <div class="section-content">${sec.content}</div>\n`
       html += `  </section>\n`
     })
@@ -611,7 +670,7 @@ const TextEditor = ({
 
     html += "</article>"
     return html
-  }, [sections, faq, blogTitle, blogDescription])
+  }, [sections, faq, blogTitle, blogDescription, sectionImages])
 
   // Update parent content when sections change
   useEffect(() => {

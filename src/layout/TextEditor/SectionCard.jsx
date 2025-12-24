@@ -146,7 +146,7 @@ const SectionCard = ({ section, index }) => {
   }
 
   // Handle saving image changes
-  const handleSaveImageChanges = () => {
+  const handleSaveImageChanges = async () => {
     if (onUpdateSectionImage && sectionImage) {
       const updates = {}
       if (imageAltText !== sectionImage.altText) updates.altText = imageAltText
@@ -154,7 +154,21 @@ const SectionCard = ({ section, index }) => {
 
       if (Object.keys(updates).length > 0) {
         onUpdateSectionImage(section.id, { ...sectionImage, ...updates })
-        message.success("Image updated successfully")
+
+        // Save changes to the database immediately
+        if (blogId) {
+          try {
+            await axiosInstance.put(`/blogs/${blogId}`, {
+              images: true, // Flag to indicate we're updating images
+            })
+            message.success("Image updated and saved successfully")
+          } catch (error) {
+            console.error("Error saving image changes:", error)
+            message.error("Image updated but failed to save to database")
+          }
+        } else {
+          message.success("Image updated successfully")
+        }
       }
     }
     setEditModalOpen(false)
