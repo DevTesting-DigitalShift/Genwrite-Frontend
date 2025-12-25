@@ -1534,6 +1534,7 @@ const StepContent = ({
               label="Write with Brand Voice"
               labelClass="text-sm font-medium text-gray-700"
               errorText={errors.brandId}
+              size="large"
               value={{
                 isCheckedBrand: newJob.blogs.useBrandVoice,
                 brandId: newJob.blogs.brandId,

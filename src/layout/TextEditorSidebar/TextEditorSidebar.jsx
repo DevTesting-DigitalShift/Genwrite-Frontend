@@ -59,6 +59,7 @@ import { validateRegenerateBlogData } from "@/types/forms.schemas"
 import { useQueryClient } from "@tanstack/react-query"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
 import { ScoreCard, StatCard, CompetitorsList, AnalysisInsights } from "./FeatureComponents"
+import RegenerateModal from "@components/RegenerateModal"
 
 import { IMAGE_SOURCE, DEFAULT_IMAGE_SOURCE } from "@/data/blogData"
 import { computeCost } from "@/data/pricingConfig"
@@ -110,12 +111,9 @@ const TextEditorSidebar = ({
   const [customPrompt, setCustomPrompt] = useState("")
   const [newKeyword, setNewKeyword] = useState("")
   const [isRegenerating, setIsRegenerating] = useState(false)
-  const [keywordInput, setKeywordInput] = useState("")
-  const [focusKeywordInput, setFocusKeywordInput] = useState("")
 
   // 2-step regenerate modal state
   const [isRegenerateModalOpen, setIsRegenerateModalOpen] = useState(false)
-  const [regenerateStep, setRegenerateStep] = useState(1)
 
   const { data: integrations } = useSelector(state => state.wordpress)
   const [metadata, setMetadata] = useState({
@@ -148,6 +146,7 @@ const TextEditorSidebar = ({
     useBrandVoice: false,
     brandId: "",
     addCTA: false,
+    costCutter: false,
     options: {
       includeFaqs: false,
       includeInterlinks: false,
@@ -212,6 +211,10 @@ const TextEditorSidebar = ({
 
   useEffect(() => {
     if (blog) {
+      // Determine if images are enabled based on imageSource
+      const imageSource = blog.imageSource || DEFAULT_IMAGE_SOURCE
+      const isImagesEnabled = imageSource !== IMAGE_SOURCE.NONE && imageSource !== "none"
+
       setRegenForm({
         topic: blog.topic || "",
         title: blog.title || "",
@@ -220,12 +223,13 @@ const TextEditorSidebar = ({
         tone: blog.tone || "Professional",
         userDefinedLength: blog.userDefinedLength || 1000,
         aiModel: blog.aiModel || "gemini",
-        isCheckedGeneratedImages: blog.isCheckedGeneratedImages || false,
-        imageSource: blog.imageSource || DEFAULT_IMAGE_SOURCE,
-        numberOfImages: blog.numberOfImages || 0,
+        isCheckedGeneratedImages: isImagesEnabled,
+        imageSource: imageSource,
+        numberOfImages: blog.numberOfImages || 3,
         useBrandVoice: blog.isCheckedBrand || false,
         brandId: typeof blog.brandId === "object" ? blog.brandId?._id || "" : blog.brandId || "",
         addCTA: blog.options?.addCTA || false,
+        costCutter: blog.costCutter || false,
         options: {
           includeFaqs: blog.options?.includeFaqs || false,
           includeInterlinks: blog.options?.includeInterlinks || false,
@@ -308,8 +312,7 @@ const TextEditorSidebar = ({
   const handleRegenerate = async () => {
     if (!blog?._id) return message.error("Blog ID missing")
 
-    // Open the 2-step modal
-    setRegenerateStep(1)
+    // Open the regenerate modal
     setIsRegenerateModalOpen(true)
   }
 
@@ -577,30 +580,6 @@ const TextEditorSidebar = ({
     },
     [formData, onPost]
   )
-
-  const addRegenKeyword = type => {
-    const input = type === "focus" ? focusKeywordInput : keywordInput
-    const field = type === "focus" ? "focusKeywords" : "keywords"
-    if (!input.trim()) return
-    const existing = regenForm[field].map(k => k.toLowerCase())
-    const newKws = input
-      .split(",")
-      .map(k => k.trim().toLowerCase())
-      .filter(k => k && !existing.includes(k))
-    if (type === "focus" && regenForm.focusKeywords.length + newKws.length > 3) {
-      return message.warning("Max 3 focus keywords")
-    }
-    if (newKws.length > 0) updateRegenField(field, [...regenForm[field], ...newKws])
-    type === "focus" ? setFocusKeywordInput("") : setKeywordInput("")
-  }
-
-  const removeRegenKeyword = (type, index) => {
-    const field = type === "focus" ? "focusKeywords" : "keywords"
-    updateRegenField(
-      field,
-      regenForm[field].filter((_, i) => i !== index)
-    )
-  }
 
   const addKeyword = useCallback(() => {
     if (newKeyword.trim()) {
@@ -1287,8 +1266,7 @@ const TextEditorSidebar = ({
               <button
                 onClick={() => {
                   if (item.id === "regenerate") {
-                    // Open the 2-step modal for regenerate
-                    setRegenerateStep(1)
+                    // Open the regenerate modal
                     setIsRegenerateModalOpen(true)
                     setIsCollapsed(false)
                   } else {
@@ -1349,8 +1327,7 @@ const TextEditorSidebar = ({
                 <button
                   onClick={() => {
                     if (item.id === "regenerate") {
-                      // Open the 2-step modal for regenerate
-                      setRegenerateStep(1)
+                      // Open the regenerate modal
                       setIsRegenerateModalOpen(true)
                     } else {
                       setActivePanel(item.id)
@@ -1503,385 +1480,16 @@ const TextEditorSidebar = ({
         </div>
       </Modal>
 
-      {/* 2-Step Regenerate Modal */}
-      <Modal
-        title={
-          <div className="flex items-center gap-2">
-            <RefreshCw className="w-5 h-5 text-blue-600" />
-            <span>Regenerate Blog - Step {regenerateStep} of 2</span>
-          </div>
-        }
-        open={isRegenerateModalOpen}
-        onCancel={() => {
-          setIsRegenerateModalOpen(false)
-          setRegenerateStep(1)
-        }}
-        footer={
-          <div className="flex justify-between items-center">
-            <div className="text-sm text-gray-500">
-              <div className="flex items-center gap-1">
-                <Zap className="w-4 h-4 text-amber-500" />
-                <span className="text-xs text-gray-600">Estimated Cost:</span>
-                <span className="font-bold text-blue-600">{calculateRegenCost()} credits</span>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              {regenerateStep === 2 && <Button onClick={() => setRegenerateStep(1)}>Back</Button>}
-              {regenerateStep === 1 ? (
-                <Button
-                  type="primary"
-                  onClick={() => setRegenerateStep(2)}
-                  className="bg-gradient-to-r from-blue-500 to-indigo-600 border-0"
-                >
-                  Next: Enhancement Options
-                </Button>
-              ) : (
-                <Button
-                  type="primary"
-                  loading={isRegenerating}
-                  onClick={handleRegenerateSubmit}
-                  icon={<RefreshCw className="w-4 h-4" />}
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 border-0"
-                >
-                  Regenerate Blog
-                </Button>
-              )}
-            </div>
-          </div>
-        }
-        centered
-        width={600}
-      >
-        {regenerateStep === 1 ? (
-          // Step 1: Regenerate Blog Settings
-          <div className="space-y-4 max-h-[60vh] overflow-y-auto custom-scroll pr-2">
-            <p className="text-sm text-gray-500 mb-4">
-              Configure your blog regeneration settings. You can modify the topic, keywords, tone,
-              and other options.
-            </p>
-
-            {/* Topic & Title */}
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs font-medium text-gray-700 mb-1 block">Topic</label>
-                <Input
-                  value={regenForm.topic}
-                  onChange={e => updateRegenField("topic", e.target.value)}
-                  placeholder="Blog topic..."
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-gray-700 mb-1 block">Title</label>
-                <Input
-                  value={regenForm.title}
-                  onChange={e => updateRegenField("title", e.target.value)}
-                  placeholder="Blog title..."
-                />
-              </div>
-            </div>
-
-            {/* Focus Keywords */}
-            <div>
-              <label className="text-xs font-medium text-gray-700 mb-1 block">
-                Focus Keywords (max 3)
-              </label>
-              <div className="flex items-center gap-2">
-                <Input
-                  value={focusKeywordInput}
-                  onChange={e => setFocusKeywordInput(e.target.value)}
-                  onKeyDown={e =>
-                    e.key === "Enter" && (e.preventDefault(), addRegenKeyword("focus"))
-                  }
-                  placeholder="Add keyword..."
-                  size="small"
-                  className="h-8"
-                />
-
-                <Button
-                  type="primary"
-                  onClick={() => addRegenKeyword("focus")}
-                  icon={<Plus className="w-4 h-4" />}
-                  className="h-8 flex items-center justify-center"
-                />
-              </div>
-
-              <div className="flex flex-wrap gap-1 mt-2">
-                {regenForm.focusKeywords.map((kw, i) => (
-                  <span
-                    key={i}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs"
-                  >
-                    {kw}{" "}
-                    <button onClick={() => removeRegenKeyword("focus", i)}>
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Secondary Keywords */}
-            <div>
-              <label className="text-xs font-medium text-gray-700 mb-1 block">Keywords</label>
-
-              <div className="flex items-center gap-2">
-                <Input
-                  value={keywordInput}
-                  onChange={e => setKeywordInput(e.target.value)}
-                  onKeyDown={e =>
-                    e.key === "Enter" && (e.preventDefault(), addRegenKeyword("secondary"))
-                  }
-                  placeholder="Add keywords..."
-                  size="small"
-                  className="h-8"
-                />
-
-                <Button
-                  type="primary"
-                  onClick={() => addRegenKeyword("secondary")}
-                  icon={<Plus className="w-4 h-4" />}
-                  className="h-8 flex items-center justify-center"
-                />
-              </div>
-
-              <div className="flex flex-wrap gap-1 mt-2">
-                {regenForm.keywords.map((kw, i) => (
-                  <span
-                    key={i}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs"
-                  >
-                    {kw}
-                    <button onClick={() => removeRegenKeyword("secondary", i)}>
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Tone & Length */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-medium text-gray-700 mb-1 block">Tone</label>
-                <Select
-                  value={regenForm.tone}
-                  onChange={val => updateRegenField("tone", val)}
-                  options={TONES.map(t => ({ label: t, value: t }))}
-                  className="w-full"
-                  size="small"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-gray-700 mb-1 block">Word Count</label>
-                <Select
-                  value={regenForm.userDefinedLength}
-                  onChange={val => updateRegenField("userDefinedLength", val)}
-                  options={[
-                    { label: "500 words", value: 500 },
-                    { label: "1,000 words", value: 1000 },
-                    { label: "1,500 words", value: 1500 },
-                    { label: "2,000 words", value: 2000 },
-                    { label: "2,500 words", value: 2500 },
-                    { label: "3,000 words", value: 3000 },
-                    { label: "3,500 words", value: 3500 },
-                    { label: "4,000 words", value: 4000 },
-                    { label: "4,500 words", value: 4500 },
-                    { label: "5,000 words", value: 5000 },
-                  ]}
-                  className="w-full"
-                  size="small"
-                />
-              </div>
-            </div>
-
-            {/* AI Model */}
-            <div>
-              <label className="text-xs font-medium text-gray-700 mb-2 block">AI Model</label>
-              <div className="grid grid-cols-3 gap-2">
-                {AI_MODELS.map(model => (
-                  <button
-                    key={model.id}
-                    onClick={() => {
-                      if (model.restrictedPlans.includes(userPlan)) {
-                        openUpgradePopup({ featureName: model.label, navigate })
-                      } else {
-                        updateRegenField("aiModel", model.id)
-                      }
-                    }}
-                    className={`p-2 rounded-lg border text-center text-xs transition-all ${
-                      regenForm.aiModel === model.id
-                        ? "border-blue-500 bg-blue-50"
-                        : "border-gray-200 hover:border-gray-300"
-                    } ${model.restrictedPlans.includes(userPlan) ? "opacity-50" : ""}`}
-                  >
-                    <img src={model.logo} alt={model.label} className="w-5 h-5 mx-auto mb-1" />
-                    {model.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Add Images Section */}
-            <div className="space-y-2 p-3 bg-gray-50 rounded-lg">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-700 font-medium">Add Images</span>
-                <Switch
-                  size="small"
-                  checked={regenForm.isCheckedGeneratedImages}
-                  onChange={val => updateRegenField("isCheckedGeneratedImages", val)}
-                />
-              </div>
-
-              {regenForm.isCheckedGeneratedImages && (
-                <div className="space-y-2 pt-2">
-                  <label className="text-xs font-medium text-gray-500 block">Image Source</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => updateRegenField("imageSource", IMAGE_SOURCE.STOCK)}
-                      className={`p-2 rounded-lg border text-center text-xs transition-all ${
-                        regenForm.imageSource === IMAGE_SOURCE.STOCK
-                          ? "border-blue-500 bg-blue-50 text-blue-700"
-                          : "border-gray-200 hover:border-gray-300 text-gray-700"
-                      }`}
-                    >
-                      <div className="font-medium">Stock Images</div>
-                    </button>
-                    <button
-                      onClick={() => updateRegenField("imageSource", IMAGE_SOURCE.AI)}
-                      className={`p-2 rounded-lg border text-center text-xs transition-all ${
-                        regenForm.imageSource === IMAGE_SOURCE.AI
-                          ? "border-blue-500 bg-blue-50 text-blue-700"
-                          : "border-gray-200 hover:border-gray-300 text-gray-700"
-                      }`}
-                    >
-                      <div className="font-medium">AI Generated</div>
-                    </button>
-                  </div>
-
-                  <div className="pt-1">
-                    <label className="text-xs font-medium text-gray-500 block mb-1">
-                      Number of Images: {regenForm.numberOfImages || 3}
-                    </label>
-                    <InputNumber
-                      size="small"
-                      min={1}
-                      max={10}
-                      value={regenForm.numberOfImages || 3}
-                      onChange={val => updateRegenField("numberOfImages", val)}
-                      className="w-full"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Brand Voice */}
-            <BrandVoiceSelector
-              label="Brand Voice"
-              labelClass="text-xs font-medium text-gray-700"
-              value={{
-                isCheckedBrand: regenForm.useBrandVoice,
-                brandId: regenForm.brandId,
-                addCTA: regenForm.addCTA,
-              }}
-              onChange={val => {
-                updateRegenField("useBrandVoice", val.isCheckedBrand)
-                updateRegenField("brandId", val.brandId)
-                updateRegenField("addCTA", val.addCTA)
-              }}
-            />
-          </div>
-        ) : (
-          // Step 2: Content Enhancement Options
-          <div className="space-y-4 max-h-[60vh] overflow-y-auto custom-scroll pr-2">
-            <p className="text-sm text-gray-500 mb-4">
-              Select the content enhancement options you want to include in your regenerated blog.
-            </p>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-2 h-2 rounded-full ${
-                      regenForm.options.includeFaqs ? "bg-green-500" : "bg-gray-400"
-                    }`}
-                  />
-                  <span className="text-sm font-medium text-gray-700">Include FAQs</span>
-                </div>
-                <Switch
-                  size="small"
-                  checked={regenForm.options.includeFaqs}
-                  onChange={val => updateRegenField("options.includeFaqs", val)}
-                />
-              </div>
-
-              <div className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-2 h-2 rounded-full ${
-                      regenForm.options.includeInterlinks ? "bg-green-500" : "bg-gray-400"
-                    }`}
-                  />
-                  <span className="text-sm font-medium text-gray-700">Include Interlinks</span>
-                </div>
-                <Switch
-                  size="small"
-                  checked={regenForm.options.includeInterlinks}
-                  onChange={val => updateRegenField("options.includeInterlinks", val)}
-                />
-              </div>
-
-              <div className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-2 h-2 rounded-full ${
-                      regenForm.options.includeCompetitorResearch ? "bg-green-500" : "bg-gray-400"
-                    }`}
-                  />
-                  <div>
-                    <span className="text-sm font-medium text-gray-700">Competitor Research</span>
-                    <span className="ml-2 text-xs text-amber-600 font-semibold">+10 credits</span>
-                  </div>
-                </div>
-                <Switch
-                  size="small"
-                  checked={regenForm.options.includeCompetitorResearch}
-                  onChange={val => updateRegenField("options.includeCompetitorResearch", val)}
-                />
-              </div>
-
-              <div className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-2 h-2 rounded-full ${
-                      regenForm.options.addOutBoundLinks ? "bg-green-500" : "bg-gray-400"
-                    }`}
-                  />
-                  <span className="text-sm font-medium text-gray-700">Add Outbound Links</span>
-                </div>
-                <Switch
-                  size="small"
-                  checked={regenForm.options.addOutBoundLinks}
-                  onChange={val => updateRegenField("options.addOutBoundLinks", val)}
-                />
-              </div>
-            </div>
-
-            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-start gap-2">
-                <Lightbulb className="w-5 h-5 text-blue-600 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-blue-900">Enhancement Summary</p>
-                  <p className="text-xs text-blue-700 mt-1">
-                    These options will enhance your blog content with additional features like FAQs,
-                    internal links, competitor insights, and external references.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </Modal>
+      {/* Regenerate Modal */}
+      <RegenerateModal
+        isOpen={isRegenerateModalOpen}
+        onClose={() => setIsRegenerateModalOpen(false)}
+        onSubmit={handleRegenerateSubmit}
+        isRegenerating={isRegenerating}
+        regenForm={regenForm}
+        updateRegenField={updateRegenField}
+        userPlan={userPlan}
+      />
     </>
   )
 }

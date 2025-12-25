@@ -42,6 +42,7 @@ import { useProofreadingUI } from "@/layout/Editor/useProofreadingUI"
 import ContentDiffViewer from "../Editor/ContentDiffViewer"
 import "./editor.css"
 import { VideoEmbed } from "@/extensions/VideoEmbed"
+import { Iframe } from "@/extensions/IframeExtension"
 import LoadingScreen from "@components/UI/LoadingScreen"
 import { computeCost } from "@/data/pricingConfig"
 import { Table } from "@tiptap/extension-table"
@@ -131,6 +132,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
           HTMLAttributes: { class: "text-center font-medium border align-middle border-gray-400" },
         }),
         VideoEmbed,
+        Iframe,
       ],
       content: "<p></p>",
       editorProps: {

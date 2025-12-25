@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import { createNewQuickBlog } from "../../store/slices/blogSlice"
@@ -56,6 +56,32 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
 
   // Check if user has a pro subscription
   const isProUser = user?.subscription?.plan === "pro"
+
+  // Memoized estimated cost calculation
+  const estimatedCost = useMemo(() => {
+    const features = []
+    if (formData.performKeywordResearch) features.push("keywordResearch")
+
+    let cost = computeCost({
+      wordCount: 1500,
+      features,
+      aiModel: "gemini",
+      includeImages: formData.addImages,
+      imageSource: formData.imageSource,
+      numberOfImages: 0,
+    })
+
+    if (formData.costCutter) {
+      cost = Math.round(cost * 0.75)
+    }
+
+    return cost
+  }, [
+    formData.performKeywordResearch,
+    formData.addImages,
+    formData.imageSource,
+    formData.costCutter,
+  ])
 
   // Handle navigation to the next step
   const handleNext = () => {
@@ -119,23 +145,6 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     }
 
     // Check if user has sufficient credits
-    const features = []
-    if (formData.performKeywordResearch) features.push("keywordResearch")
-
-    let estimatedCost = computeCost({
-      wordCount: 1500,
-      features,
-      aiModel: "gemini",
-      includeImages: formData.addImages,
-      imageSource: formData.imageSource,
-      numberOfImages: 0, // AI decides the number
-    })
-
-    // Apply Cost Cutter discount (25% off)
-    if (formData.costCutter) {
-      estimatedCost = Math.round(estimatedCost * 0.75)
-    }
-
     const userCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
 
     if (userCredits < estimatedCost) {
@@ -423,26 +432,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
               <div key="footer-content" className="flex items-center justify-between w-full">
                 <div className="flex items-center gap-2 text-sm">
                   <span className="text-gray-600">Estimated Cost:</span>
-                  <span className="font-bold text-blue-600">
-                    {(() => {
-                      const features = []
-                      if (formData.performKeywordResearch) features.push("keywordResearch")
-
-                      let cost = computeCost({
-                        wordCount: 1500,
-                        features,
-                        aiModel: "gemini",
-                        includeImages: formData.addImages,
-                        imageSource: formData.imageSource,
-                        numberOfImages: 0,
-                      })
-                      if (formData.costCutter) {
-                        cost = Math.round(cost * 0.75)
-                      }
-                      return cost
-                    })()}{" "}
-                    credits
-                  </span>
+                  <span className="font-bold text-blue-600">{estimatedCost} credits</span>
                   {formData.costCutter && (
                     <span className="text-xs text-green-600 font-medium">(-25% off)</span>
                   )}

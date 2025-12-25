@@ -308,7 +308,6 @@ const BlogsPage = () => {
         await dispatch(restoreTrashedBlog(id)).unwrap()
         queryClient.invalidateQueries({ queryKey: ["trashedBlogs"], exact: false })
         queryClient.invalidateQueries({ queryKey: ["blogs"], exact: false })
-        message.success("Blog restored successfully")
       } catch (err) {
         message.error("Failed to restore blog")
       }

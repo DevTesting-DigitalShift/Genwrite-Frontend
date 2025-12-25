@@ -117,9 +117,9 @@ const WinterSaleBanner = () => {
               {/* Close Button */}
               <button
                 onClick={() => setIsOpen(false)}
-                className="absolute right-2 top-2 sm:right-4 sm:top-2 text-white/40 hover:text-white transition-colors p-2"
+                className="absolute right-2 top-2 sm:right-4 sm:top-2 text-red-700 bg-white/80 rounded-full  transition-colors p-2"
               >
-                <X className="w-4 h-4 sm:w-5 sm:h-5" />
+                <X className="w-4 h-4 sm:w-5 sm:h-5" stroke="green" strokeWidth="3" />
               </button>
 
               {/* Countdown Timer - Responsive spacing and sizing */}

@@ -581,25 +581,6 @@ const SectionCard = ({ section, index }) => {
         </div>
       )}
 
-      {/* Embeds Section - Show YouTube/Website embeds from content */}
-      {sectionEmbeds.length > 0 && (
-        <div className="mt-4 border-t border-gray-100 pt-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Film className="w-4 h-4 text-purple-600" />
-              <span className="text-sm font-medium text-gray-700">
-                Embedded Content ({sectionEmbeds.length})
-              </span>
-            </div>
-          </div>
-          <div className="space-y-3">
-            {sectionEmbeds.map(embed => (
-              <EmbedCard key={embed.id} embed={embed} editable={false} />
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Add Section Below - appears on hover, but not on last section */}
       {!locked && !isLast && (
         <div className="absolute -bottom-3 left-1/2 transform -translate-x-1/2 opacity-0 hover:opacity-100 group-hover:opacity-100 transition-opacity">

@@ -44,7 +44,7 @@ export const DashboardBox = ({ title, content, id, showModal, icon, gradient, da
     <motion.button
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
+      transition={{ duration: 0.7 }}
       whileTap={{ scale: 0.98 }}
       onClick={handleClick}
       data-tour={dataTour}

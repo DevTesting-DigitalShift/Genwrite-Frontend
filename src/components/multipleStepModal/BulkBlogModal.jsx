@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react"
+import { useEffect, useState, useRef, useCallback, useMemo } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import Carousel from "./Carousel"
@@ -47,7 +47,7 @@ const BulkBlogModal = ({ closeFnc }) => {
     languageToWrite: "English",
     userDefinedLength: 1000,
     imageSource: IMAGE_SOURCE.STOCK,
-    useBrandVoice: false,
+    isCheckedBrand: false,
     useCompetitors: false,
     includeInterlinks: true,
     includeFaqs: true,
@@ -100,6 +100,53 @@ const BulkBlogModal = ({ closeFnc }) => {
       setErrors(prev => ({ ...prev, numberOfImages: false, blogImages: false }))
     }
   }, [isAiImagesLimitReached])
+
+  // Memoized estimated cost calculation
+  const estimatedCost = useMemo(() => {
+    const features = []
+    if (formData.isCheckedBrand) features.push("brandVoice")
+    if (formData.useCompetitors) features.push("competitorResearch")
+    if (formData.performKeywordResearch) features.push("keywordResearch")
+    if (formData.includeInterlinks) features.push("internalLinking")
+    if (formData.includeFaqs) features.push("faqGeneration")
+    if (formData.wordpressPostStatus) features.push("automaticPosting")
+    if (formData.addOutBoundLinks) features.push("outboundLinks")
+
+    const blogCost = computeCost({
+      wordCount: formData.userDefinedLength,
+      features,
+      aiModel: formData.aiModel || "gemini",
+      includeImages: formData.isCheckedGeneratedImages,
+      imageSource: formData.imageSource,
+      numberOfImages:
+        formData.imageSource === "customImage"
+          ? formData.blogImages.length
+          : formData.numberOfImages,
+    })
+
+    let totalCost = formData.numberOfBlogs * blogCost
+    if (formData.costCutter) {
+      totalCost = Math.round(totalCost * 0.75)
+    }
+
+    return totalCost
+  }, [
+    formData.isCheckedBrand,
+    formData.useCompetitors,
+    formData.performKeywordResearch,
+    formData.includeInterlinks,
+    formData.includeFaqs,
+    formData.wordpressPostStatus,
+    formData.addOutBoundLinks,
+    formData.userDefinedLength,
+    formData.aiModel,
+    formData.isCheckedGeneratedImages,
+    formData.imageSource,
+    formData.numberOfImages,
+    formData.blogImages.length,
+    formData.numberOfBlogs,
+    formData.costCutter,
+  ])
 
   const handleNext = () => {
     if (currentStep === 0) {
@@ -182,7 +229,7 @@ const BulkBlogModal = ({ closeFnc }) => {
         formData.blogImages.length === 0
           ? "Please upload at least one custom image."
           : "",
-      brandId: formData.useBrandVoice && !formData.brandId ? "Please select a brand voice." : "",
+      brandId: formData.isCheckedBrand && !formData.brandId ? "Please select a brand voice." : "",
     }
 
     setErrors(prev => ({ ...prev, ...newErrors }))
@@ -200,58 +247,8 @@ const BulkBlogModal = ({ closeFnc }) => {
 
     const model = formData.aiModel || "gemini"
 
-    // Prepare features array based on selected options
-    const features = []
-    if (formData.useBrandVoice) features.push("brandVoice")
-    if (formData.useCompetitors) features.push("competitorResearch")
-    if (formData.performKeywordResearch) features.push("keywordResearch")
-    if (formData.includeInterlinks) features.push("internalLinking")
-    if (formData.includeFaqs) features.push("faqGeneration")
-    if (formData.wordpressPostStatus) features.push("automaticPosting")
-    if (formData.addOutBoundLinks) features.push("outboundLinks")
-
-    const blogCost = computeCost({
-      wordCount: formData.userDefinedLength,
-      features,
-      aiModel: model,
-      includeImages: formData.isCheckedGeneratedImages,
-      imageSource: formData.imageSource,
-      numberOfImages:
-        formData.imageSource === "customImage"
-          ? formData.blogImages.length
-          : formData.numberOfImages,
-    })
-    let totalCost = formData.numberOfBlogs * blogCost
-
-    handlePopup({
-      title: "Bulk Blog Generation",
-      description: (
-        <>
-          <span>
-            Estimated cost for <b>{formData.numberOfBlogs}</b> blog
-            {formData.numberOfBlogs > 1 ? "s" : ""}: <b>{totalCost} credits</b>
-          </span>
-          <br />
-          <span>Do you want to continue?</span>
-        </>
-      ),
-      onConfirm: () => {
-        // Prepare the final data with proper imageSource handling
-        const finalData = {
-          ...formData,
-          // Set imageSource to "none" if images are disabled
-          imageSource: formData.isCheckedGeneratedImages ? formData.imageSource : IMAGE_SOURCE.NONE,
-        }
-        // Validate with Zod schema (logs to console when VITE_VALIDATE_FORMS=true)
-        const validatedData = validateBulkBlogData(finalData)
-        dispatch(createMultiBlog({ blogData: validatedData, user, navigate }))
-        handleClose()
-      },
-    })
-    // Apply Cost Cutter discount (25% off)
-    if (formData.costCutter) {
-      totalCost = Math.round(totalCost * 0.75)
-    }
+    // Use memoized estimated cost
+    const totalCost = estimatedCost
 
     const userCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
 
@@ -754,38 +751,7 @@ const BulkBlogModal = ({ closeFnc }) => {
           {currentStep === 2 && (
             <div className="flex items-center gap-2 text-sm">
               <span className="text-gray-600">Estimated Cost:</span>
-              <span className="font-bold text-blue-600">
-                {(() => {
-                  const features = []
-                  if (formData.useBrandVoice) features.push("brandVoice")
-                  if (formData.useCompetitors) features.push("competitorResearch")
-                  if (formData.performKeywordResearch) features.push("keywordResearch")
-                  if (formData.includeInterlinks) features.push("internalLinking")
-                  if (formData.includeFaqs) features.push("faqGeneration")
-                  if (formData.wordpressPostStatus) features.push("automaticPosting")
-                  if (formData.addOutBoundLinks) features.push("outboundLinks")
-
-                  const blogCost = computeCost({
-                    wordCount: formData.userDefinedLength,
-                    features,
-                    aiModel: formData.aiModel || "gemini",
-                    includeImages: formData.isCheckedGeneratedImages,
-                    imageSource: formData.imageSource,
-                    numberOfImages:
-                      formData.imageSource === "customImage"
-                        ? formData.blogImages.length
-                        : formData.numberOfImages,
-                  })
-
-                  let totalCost = formData.numberOfBlogs * blogCost
-                  if (formData.costCutter) {
-                    totalCost = Math.round(totalCost * 0.75)
-                  }
-
-                  return totalCost
-                })()}{" "}
-                credits
-              </span>
+              <span className="font-bold text-blue-600">{estimatedCost} credits</span>
               {formData.costCutter && (
                 <span className="text-xs text-green-600 font-medium">(-25% off)</span>
               )}
@@ -1366,16 +1332,17 @@ const BulkBlogModal = ({ closeFnc }) => {
             <div className="space-y-4 pt-4 border-t border-gray-200">
               <BrandVoiceSelector
                 label="Write with Brand Voice"
+                size="large"
                 labelClass="text-sm font-medium text-gray-700"
                 value={{
-                  isCheckedBrand: formData.useBrandVoice,
+                  isCheckedBrand: formData.isCheckedBrand,
                   brandId: formData.brandId,
                   addCTA: formData.addCTA,
                 }}
                 onChange={val => {
                   setFormData(prev => ({
                     ...prev,
-                    useBrandVoice: val.isCheckedBrand,
+                    isCheckedBrand: val.isCheckedBrand,
                     brandId: val.brandId,
                     addCTA: val.addCTA,
                   }))

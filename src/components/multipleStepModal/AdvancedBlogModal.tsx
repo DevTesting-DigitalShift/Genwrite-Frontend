@@ -24,7 +24,7 @@ import {
 } from "antd"
 import clsx from "clsx"
 import { Crown, Sparkles, TriangleAlert } from "lucide-react"
-import { FC, useCallback, useEffect, useState } from "react"
+import { FC, useCallback, useEffect, useMemo, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import "./antd.css"
@@ -166,6 +166,51 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
     }
   }, [selectedKeywords])
 
+  // Memoized estimated cost calculation
+  const estimatedCost = useMemo(() => {
+    const features = []
+    if (formData.isCheckedBrand) features.push("brandVoice")
+    if (formData.options.includeCompetitorResearch) features.push("competitorResearch")
+    if (formData.options.performKeywordResearch) features.push("keywordResearch")
+    if (formData.options.includeInterlinks) features.push("internalLinking")
+    if (formData.options.includeFaqs) features.push("faqGeneration")
+    if (formData.isCheckedQuick) features.push("quickSummary")
+    if (formData.options.addOutBoundLinks) features.push("outboundLinks")
+
+    let cost = computeCost({
+      wordCount: formData.userDefinedLength,
+      features,
+      aiModel: formData.aiModel || "gemini",
+      includeImages: formData.isCheckedGeneratedImages,
+      imageSource: formData.imageSource,
+      numberOfImages:
+        formData.imageSource === IMAGE_OPTIONS.at(-1)?.id
+          ? formData.blogImages.length
+          : formData.numberOfImages,
+    })
+
+    if (formData.costCutter) {
+      cost = Math.round(cost * 0.75)
+    }
+
+    return cost
+  }, [
+    formData.isCheckedBrand,
+    formData.options.includeCompetitorResearch,
+    formData.options.performKeywordResearch,
+    formData.options.includeInterlinks,
+    formData.options.includeFaqs,
+    formData.isCheckedQuick,
+    formData.options.addOutBoundLinks,
+    formData.userDefinedLength,
+    formData.aiModel,
+    formData.isCheckedGeneratedImages,
+    formData.imageSource,
+    formData.numberOfImages,
+    formData.blogImages.length,
+    formData.costCutter,
+  ])
+
   const updateFormData = useCallback((newData: Partial<typeof initialData>) => {
     setFormData(prev => ({ ...prev, ...newData }))
   }, [])
@@ -233,30 +278,8 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
   const handleSubmit = () => {
     if (validateFields()) {
       // Check if user has sufficient credits
-      // Prepare features array based on selected options
-      const features = []
-      if (formData.isCheckedBrand) features.push("brandVoice")
-      if (formData.options.includeCompetitorResearch) features.push("competitorResearch")
-      if (formData.options.performKeywordResearch) features.push("keywordResearch")
-      if (formData.options.includeInterlinks) features.push("internalLinking")
-      if (formData.options.includeFaqs) features.push("faqGeneration")
-      if (formData.isCheckedQuick) features.push("quickSummary")
-      if (formData.options.addOutBoundLinks) features.push("outboundLinks")
-
-      const estimatedCost = computeCost({
-        wordCount: formData.userDefinedLength,
-        features,
-        aiModel: formData.aiModel || "gemini",
-        includeImages: formData.isCheckedGeneratedImages,
-        imageSource: formData.imageSource,
-        numberOfImages:
-          formData.imageSource === IMAGE_OPTIONS.at(-1)?.id
-            ? formData.blogImages.length
-            : formData.numberOfImages,
-      })
-
-      // Apply Cost Cutter discount (25% off)
-      const finalCost = formData.costCutter ? Math.round(estimatedCost * 0.75) : estimatedCost
+      // Use memoized estimated cost
+      const finalCost = estimatedCost
 
       const userCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
 
@@ -876,38 +899,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
           {(currentStep === 2 || currentStep === 3) && (
             <div className="flex items-center gap-2 text-sm">
               <span className="text-gray-600">Estimated Cost:</span>
-              <span className="font-bold text-blue-600">
-                {(() => {
-                  const features = []
-                  if (formData.isCheckedBrand) features.push("brandVoice")
-                  if (formData.options.includeCompetitorResearch)
-                    features.push("competitorResearch")
-                  if (formData.options.performKeywordResearch) features.push("keywordResearch")
-                  if (formData.options.includeInterlinks) features.push("internalLinking")
-                  if (formData.options.includeFaqs) features.push("faqGeneration")
-                  if (formData.isCheckedQuick) features.push("quickSummary")
-                  if (formData.options.addOutBoundLinks) features.push("outboundLinks")
-
-                  let cost = computeCost({
-                    wordCount: formData.userDefinedLength,
-                    features,
-                    aiModel: formData.aiModel || "gemini",
-                    includeImages: formData.isCheckedGeneratedImages,
-                    imageSource: formData.imageSource,
-                    numberOfImages:
-                      formData.imageSource === IMAGE_OPTIONS.at(-1)?.id
-                        ? formData.blogImages.length
-                        : formData.numberOfImages,
-                  })
-
-                  if (formData.costCutter) {
-                    cost = Math.round(cost * 0.75)
-                  }
-
-                  return cost
-                })()}{" "}
-                credits
-              </span>
+              <span className="font-bold text-blue-600">{estimatedCost} credits</span>
               {formData.costCutter && (
                 <span className="text-xs text-green-600 font-medium">(-25% off)</span>
               )}

@@ -178,9 +178,12 @@ const Dashboard = () => {
     fetchBlogsQuery()
   }, [fetchBlogsQuery])
 
-  // Show walkthrough only for first-time users
+  // Show walkthrough only for first-time users on desktop
   useEffect(() => {
     if (!user) return
+
+    // Check if device is mobile (width < 768px)
+    const isMobile = window.innerWidth < 768
 
     const hasSeenTour = localStorage.getItem("hasSeenDashboardTour") === "true"
     const hasCompletedOnboarding = localStorage.getItem("hasCompletedOnboarding") === "true"
@@ -191,11 +194,18 @@ const Dashboard = () => {
       hasCompletedOnboarding,
       justCompletedOnboarding,
       userLastLogin: user.lastLogin,
+      isMobile,
     })
 
-    // Show tour for first-time users who just completed onboarding
+    // Show tour for first-time users who just completed onboarding (desktop only)
     // Check both lastLogin and localStorage (localStorage is fallback for immediate check)
-    if (!user.lastLogin && hasCompletedOnboarding && !hasSeenTour && justCompletedOnboarding) {
+    if (
+      !user.lastLogin &&
+      hasCompletedOnboarding &&
+      !hasSeenTour &&
+      justCompletedOnboarding &&
+      !isMobile
+    ) {
       console.log("Starting tour for first-time user after onboarding...")
       sessionStorage.removeItem("justCompletedOnboarding") // Clean up flag
       setTimeout(() => setRunTour(true), 1000)
@@ -366,7 +376,7 @@ const Dashboard = () => {
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.8 }}
         className="mt-10 md:mt-5 ml-4 md:ml-10 mr-4 md:mr-10 mb-6"
       >
         <div className="flex items-center justify-between mb-6">
