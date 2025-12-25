@@ -15,6 +15,7 @@ import {
   Heading1,
   Heading2,
   Heading3,
+  Heading4,
   AlignLeft,
   AlignCenter,
   AlignRight,
@@ -26,7 +27,7 @@ import {
   Trash2,
 } from "lucide-react"
 import { useDispatch, useSelector } from "react-redux"
-import { Input, Modal, Tooltip, message, Select, Button } from "antd"
+import { Input, Modal, Tooltip, message, Select, Button, Flex } from "antd"
 import { marked } from "marked"
 import TurndownService from "turndown"
 import { useBlocker, useLocation, useNavigate } from "react-router-dom"
@@ -94,7 +95,16 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
     )
     return DOMPurify.sanitize(rawHtml, {
       ADD_TAGS: ["iframe", "div", "table", "th", "td", "tr"],
-      ADD_ATTR: ["allow", "allowfullscreen", "frameborder", "scrolling", "src", "style", "title"],
+      ADD_ATTR: [
+        "allow",
+        "allowfullscreen",
+        "frameborder",
+        "scrolling",
+        "src",
+        "style",
+        "title",
+        "class",
+      ],
     })
   }, [])
 
@@ -112,7 +122,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
     {
       extensions: [
         StarterKit.configure({
-          heading: { levels: [1, 2, 3] },
+          heading: { levels: [1, 2, 3, 4] },
         }),
         Image.configure({
           HTMLAttributes: { class: "rounded-lg mx-auto w-3/4 h-auto object-contain" },
@@ -132,7 +142,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
           HTMLAttributes: { class: "text-center font-medium border align-middle border-gray-400" },
         }),
         VideoEmbed,
-        Iframe,
+        // Iframe,
       ],
       content: "<p></p>",
       editorProps: {
@@ -321,9 +331,8 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
 
   const renderToolbar = () => (
     <div className="bg-white border-x border-gray-200 shadow-sm px-2 sm:px-4 py-2 flex flex-wrap items-center justify-start gap-y-2 overflow-x-auto">
-      {/* Headings */}
       <div className="flex gap-1 flex-shrink-0">
-        {[1, 2, 3].map(level => (
+        {[1, 2, 3, 4].map(level => (
           <Tooltip key={level} title={`Heading ${level}`}>
             <button
               onClick={() =>
@@ -339,6 +348,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
               {level === 1 && <Heading1 className="w-4 h-4" />}
               {level === 2 && <Heading2 className="w-4 h-4" />}
               {level === 3 && <Heading3 className="w-4 h-4" />}
+              {level === 4 && <Heading4 className="w-4 h-4" />}
             </button>
           </Tooltip>
         ))}
@@ -594,22 +604,24 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
           setEditImageModalOpen(false)
           setSelectedImage(null)
         }}
-        footer={[
-          <Button
-            key="delete"
-            danger
-            icon={<Trash2 className="w-4 h-4" />}
-            onClick={handleDeleteImage}
-          >
-            Delete
-          </Button>,
-          <Button key="cancel" onClick={() => setEditImageModalOpen(false)}>
-            Cancel
-          </Button>,
-          <Button key="ok" type="primary" onClick={handleConfirmEditImage}>
-            Update
-          </Button>,
-        ]}
+        footer={
+          <Flex justify="end" gap={16}>
+            <Button
+              key="delete"
+              danger
+              icon={<Trash2 className="w-4 h-4" />}
+              onClick={handleDeleteImage}
+            >
+              Delete
+            </Button>
+            <Button key="cancel" onClick={() => setEditImageModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button key="ok" type="primary" onClick={handleConfirmEditImage}>
+              Update
+            </Button>
+          </Flex>
+        }
         centered
       >
         <Input

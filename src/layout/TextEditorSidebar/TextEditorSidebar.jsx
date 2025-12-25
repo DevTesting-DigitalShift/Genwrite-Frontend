@@ -72,7 +72,12 @@ const { Panel } = Collapse
 const AI_MODELS = [
   { id: "gemini", label: "Gemini", logo: "/Images/gemini.webp", restrictedPlans: [] },
   { id: "openai", label: "ChatGPT", logo: "/Images/chatgpt.webp", restrictedPlans: ["free"] },
-  { id: "claude", label: "Claude", logo: "/Images/claude.webp", restrictedPlans: ["free", "basic"] },
+  {
+    id: "claude",
+    label: "Claude",
+    logo: "/Images/claude.webp",
+    restrictedPlans: ["free", "basic"],
+  },
 ]
 
 // Sidebar navigation items
@@ -1258,7 +1263,20 @@ const TextEditorSidebar = ({
   // Collapsed state - show only icon bar
   if (isCollapsed) {
     return (
-      <div className="w-16 h-screen bg-gradient-to-b from-slate-50 to-gray-100 border-l border-gray-200 flex flex-col items-center gap-2">
+      <div className="w-16 bg-gradient-to-b from-slate-50 to-gray-100 border-l border-gray-200 flex flex-col items-center gap-2">
+        <div className="flex flex-col gap-2">
+          <Tooltip title="Expand Sidebar" placement="left">
+            <button
+              onClick={() => setIsCollapsed(false)}
+              className="w-11 h-11 rounded-2xl flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-white hover:shadow-md transition-all duration-200 group"
+            >
+              <ChevronLeft className="w-5 h-5 transition-transform group-hover:-translate-x-0.5" />
+            </button>
+          </Tooltip>
+          {/* Divider */}
+          <div className="w-8 h-px bg-gray-300 my-2" />
+        </div>
+
         {NAV_ITEMS.map(item => {
           const Icon = item.icon
           return (
@@ -1281,19 +1299,6 @@ const TextEditorSidebar = ({
             </Tooltip>
           )
         })}
-        <div className="mt-auto flex flex-col gap-2">
-          {/* Divider */}
-          <div className="w-8 h-px bg-gray-300 my-2" />
-
-          <Tooltip title="Expand Sidebar" placement="left">
-            <button
-              onClick={() => setIsCollapsed(false)}
-              className="w-11 h-11 rounded-2xl flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-white hover:shadow-md transition-all duration-200 group"
-            >
-              <ChevronLeft className="w-5 h-5 transition-transform group-hover:-translate-x-0.5" />
-            </button>
-          </Tooltip>
-        </div>
       </div>
     )
   }
@@ -1318,7 +1323,31 @@ const TextEditorSidebar = ({
         </div>
 
         {/* Icon Navigation Bar - Premium Theme */}
-        <div className="w-16 bg-gradient-to-b from-slate-50 to-gray-100 border-l border-gray-200 flex flex-col items-center py-5 gap-2">
+        <div className="w-16  bg-gradient-to-b from-slate-50 to-gray-100 border-l border-gray-200 flex flex-col items-center py-5 gap-2">
+          <div className="flex flex-col gap-2">
+            {/* Collapse Button */}
+            <div className="hidden md:block">
+              <Tooltip title="Collapse Sidebar" placement="left">
+                <button
+                  onClick={() => setIsCollapsed(true)}
+                  className="w-11 h-11 rounded-2xl items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-white hover:shadow-md transition-all duration-200 group flex"
+                >
+                  <ChevronRight className="w-5 h-5 transition-transform group-hover:translate-x-0.5" />
+                </button>
+              </Tooltip>
+            </div>
+            {/* Mobile close */}
+            <div className="md:hidden">
+              <button
+                onClick={() => setIsSidebarOpen(false)}
+                className="w-11 h-11 rounded-2xl flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all duration-200"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            {/* Divider */}
+            <div className="w-full h-px bg-gray-300 my-2" />
+          </div>
           {NAV_ITEMS.map(item => {
             const Icon = item.icon
             const isActive = activePanel === item.id
@@ -1348,31 +1377,6 @@ const TextEditorSidebar = ({
               </Tooltip>
             )
           })}
-
-          <div className="mt-auto flex flex-col gap-2">
-            {/* Divider */}
-            <div className="w-8 h-px bg-gray-300 my-2" />
-            {/* Collapse Button */}
-            <div className="hidden md:block">
-              <Tooltip title="Collapse Sidebar" placement="left">
-                <button
-                  onClick={() => setIsCollapsed(true)}
-                  className="w-11 h-11 rounded-2xl items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-white hover:shadow-md transition-all duration-200 group flex"
-                >
-                  <ChevronRight className="w-5 h-5 transition-transform group-hover:translate-x-0.5" />
-                </button>
-              </Tooltip>
-            </div>
-            {/* Mobile close */}
-            <div className="md:hidden">
-              <button
-                onClick={() => setIsSidebarOpen(false)}
-                className="w-11 h-11 rounded-2xl flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all duration-200"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
         </div>
       </div>
 
