@@ -1086,19 +1086,19 @@ const BulkBlogModal = ({ closeFnc }) => {
                   {
                     id: "gemini",
                     label: "Gemini",
-                    logo: "/Images/gemini.png",
+                    logo: "/Images/gemini.webp",
                     restricted: false,
                   },
                   {
                     id: "openai",
                     label: "ChatGPT",
-                    logo: "/Images/chatgpt.png",
+                    logo: "/Images/chatgpt.webp",
                     restricted: userPlan === "free",
                   },
                   {
                     id: "claude",
                     label: "Claude",
-                    logo: "/Images/claude.png",
+                    logo: "/Images/claude.webp",
                     restricted: userPlan === "free" || userPlan === "basic",
                   },
                 ].map(model => (

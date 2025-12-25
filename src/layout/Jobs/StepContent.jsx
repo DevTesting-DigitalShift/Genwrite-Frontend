@@ -104,21 +104,21 @@ const StepContent = ({
       id: "gemini",
       label: "Gemini",
       value: "gemini",
-      logo: "/Images/gemini.png",
+      logo: "/Images/gemini.webp",
       restricted: false,
     },
     {
       id: "openai",
       label: "ChatGPT (Open AI)",
       value: "openai",
-      logo: "/Images/chatgpt.png",
+      logo: "/Images/chatgpt.webp",
       featureName: "ChatGPT (Open AI)",
     },
     {
       id: "claude",
       label: "Claude",
       value: "claude",
-      logo: "/Images/claude.png",
+      logo: "/Images/claude.webp",
       featureName: "Claude",
     },
   ]
@@ -1198,9 +1198,9 @@ const StepContent = ({
             {/* Responsive grid: 1 col (mobile), 2 cols (tablet), 3 cols (desktop) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
               {[
-                { id: "gemini", label: "Gemini", logo: "/Images/gemini.png", restricted: false },
-                { id: "openai", label: "ChatGPT", logo: "/Images/chatgpt.png" },
-                { id: "claude", label: "Claude", logo: "/Images/claude.png" },
+                { id: "gemini", label: "Gemini", logo: "/Images/gemini.webp", restricted: false },
+                { id: "openai", label: "ChatGPT", logo: "/Images/chatgpt.webp" },
+                { id: "claude", label: "Claude", logo: "/Images/claude.webp" },
               ].map(model => (
                 <label
                   key={model.id}

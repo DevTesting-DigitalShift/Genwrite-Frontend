@@ -100,7 +100,7 @@ const BlogCard: React.FC<BlogCardProps> = ({
               <img
                 src={`./Images/${
                   isGemini ? "gemini" : aiModel === "claude" ? "claude" : "chatgpt"
-                }.png`}
+                }.webp`}
                 alt={isGemini ? "Gemini" : aiModel === "claude" ? "Claude" : "ChatGPT"}
                 width={14}
                 height={14}

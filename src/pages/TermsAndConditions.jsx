@@ -120,7 +120,7 @@ const TermsAndConditions = () => {
       <header className="border-b border-gray-200 sticky top-0 bg-white">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <img src="/Images/logo_genwrite_2.png" alt="GenWrite Logo" class="w-40 h-auto" />
+            <img src="/Images/logo_genwrite_2.webp" alt="GenWrite Logo" class="w-40 h-auto" />
           </div>
         </div>
       </header>

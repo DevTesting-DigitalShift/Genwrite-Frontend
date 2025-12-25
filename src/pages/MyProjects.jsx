@@ -512,7 +512,7 @@ const MyProjects = () => {
             className="flex flex-col justify-center items-center"
             style={{ minHeight: "calc(100vh - 270px)" }}
           >
-            <img src="Images/no-blog.png" alt="No blogs" className="w-20 sm:w-24" />
+            <img src="Images/no-blog.webp" alt="No blogs" className="w-20 sm:w-24" />
             <p className="text-lg sm:text-xl mt-5">No blogs available.</p>
           </div>
         ) : (

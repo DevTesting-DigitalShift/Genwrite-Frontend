@@ -640,7 +640,7 @@ const BlogsPage = () => {
             className="flex flex-col justify-center items-center py-24 bg-white rounded-3xl border-2 border-dashed border-slate-200"
           >
             <img
-              src={isTrashcan ? "/Images/trash-can.png" : "/Images/no-blog.png"}
+              src={isTrashcan ? "/Images/trash-can.webp" : "/Images/no-blog.webp"}
               alt="Empty"
               className="w-32 opacity-40 grayscale mb-6"
             />

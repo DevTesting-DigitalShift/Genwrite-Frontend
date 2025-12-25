@@ -271,7 +271,7 @@ const Auth = ({ path }) => {
         className="absolute top-4 md:top-8 left-1/2 transform -translate-x-1/2 z-20"
       >
         <img
-          src="/Images/logo_genwrite_2.png"
+          src="/Images/logo_genwrite_2.webp"
           alt="GenWrite Logo"
           className="w-32 md:w-40 h-auto"
         />

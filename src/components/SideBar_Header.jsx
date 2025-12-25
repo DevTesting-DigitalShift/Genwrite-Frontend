@@ -263,7 +263,7 @@ const SideBar_Header = () => {
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <img src="/Images/logo_genwrite_2.png" alt="logo" className="w-full h-12" />
+              <img src="/Images/logo_genwrite_2.webp" alt="logo" className="w-full h-12" />
             </div>
           )}
         </div>
@@ -367,7 +367,7 @@ const SideBar_Header = () => {
             <button className="md:hidden" onClick={() => setSidebarOpen(!sidebarOpen)}>
               <FiMenu size={24} className="text-gray-700" />
             </button>
-            <img src="/Images/logo_genwrite_2.png" loading="lazy" alt="Logo" className="w-36" />
+            <img src="/Images/logo_genwrite_2.webp" loading="lazy" alt="Logo" className="w-36" />
           </div>
           <div className="flex items-center space-x-4">
             {user?.subscription?.plan !== "enterprise" && <GoProButton />}

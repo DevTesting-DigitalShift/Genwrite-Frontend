@@ -106,7 +106,7 @@ const ForgotPassword = () => {
           transition={{ duration: 0.6 }}
           className="absolute top-8 left-1/2 transform -translate-x-1/2 z-10"
         >
-          <img src="/Images/logo_genwrite_2.png" alt="GenWrite Logo" className="w-40 h-auto" />
+          <img src="/Images/logo_genwrite_2.webp" alt="GenWrite Logo" className="w-40 h-auto" />
         </motion.div>
 
         <div className="flex items-center justify-center min-h-screen px-4 pt-20 pb-8">
@@ -229,7 +229,7 @@ const ForgotPassword = () => {
         transition={{ duration: 0.6 }}
         className="absolute top-8 left-1/2 transform -translate-x-1/2 z-10"
       >
-        <img src="/Images/logo_genwrite_2.png" alt="GenWrite Logo" className="w-40 h-auto" />
+        <img src="/Images/logo_genwrite_2.webp" alt="GenWrite Logo" className="w-40 h-auto" />
       </motion.div>
 
       <div className="flex items-center justify-center min-h-screen px-4 pt-20 pb-8">

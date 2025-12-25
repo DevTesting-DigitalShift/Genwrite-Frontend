@@ -70,9 +70,9 @@ const { Panel } = Collapse
 
 // AI Models config
 const AI_MODELS = [
-  { id: "gemini", label: "Gemini", logo: "/Images/gemini.png", restrictedPlans: [] },
-  { id: "openai", label: "ChatGPT", logo: "/Images/chatgpt.png", restrictedPlans: ["free"] },
-  { id: "claude", label: "Claude", logo: "/Images/claude.png", restrictedPlans: ["free", "basic"] },
+  { id: "gemini", label: "Gemini", logo: "/Images/gemini.webp", restrictedPlans: [] },
+  { id: "openai", label: "ChatGPT", logo: "/Images/chatgpt.webp", restrictedPlans: ["free"] },
+  { id: "claude", label: "Claude", logo: "/Images/claude.webp", restrictedPlans: ["free", "basic"] },
 ]
 
 // Sidebar navigation items
