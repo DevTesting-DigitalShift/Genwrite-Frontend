@@ -107,12 +107,42 @@ const BlogsPage = () => {
   const [isFunnelMenuOpen, setFunnelMenuOpen] = useState(false)
   const [isDetailedFilterOpen, setDetailedFilterOpen] = useState(false)
 
+  // Temporary state for GSC filters (immediate input values)
+  const [tempGscClicks, setTempGscClicks] = useState(blogFilters.gscClicks)
+  const [tempGscImpressions, setTempGscImpressions] = useState(blogFilters.gscImpressions)
+
+  // Debounce effect for GSC Clicks - waits 5 seconds after user stops typing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (tempGscClicks !== blogFilters.gscClicks) {
+        updateBlogFilters({ gscClicks: tempGscClicks })
+      }
+    }, 3000) // 5 second delay
+
+    return () => clearTimeout(timer)
+  }, [tempGscClicks])
+
+  // Debounce effect for GSC Impressions - waits 5 seconds after user stops typing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (tempGscImpressions !== blogFilters.gscImpressions) {
+        updateBlogFilters({ gscImpressions: tempGscImpressions })
+      }
+    }, 5000) // 5 second delay
+
+    return () => clearTimeout(timer)
+  }, [tempGscImpressions])
+
   useEffect(() => {
     const field = sessionStorage.getItem(
       `user_${user?._id}_blog_filters_${isTrashcan ? "trash" : "active"}`
     )
     if (field) {
-      setBlogFilters(prev => ({ ...prev, ...JSON.parse(field) } || {}))
+      const parsedFilters = JSON.parse(field)
+      setBlogFilters(prev => ({ ...prev, ...parsedFilters } || {}))
+      // Sync temp values with loaded filters
+      setTempGscClicks(parsedFilters.gscClicks ?? null)
+      setTempGscImpressions(parsedFilters.gscImpressions ?? null)
     } else {
       setBlogFilters(prev => ({ ...prev, start: user?.createdAt }))
     }
@@ -216,6 +246,8 @@ const BlogsPage = () => {
 
   const resetFilters = useCallback(() => {
     setBlogFilters({ ...initialBlogFilter, start: user?.createdAt })
+    setTempGscClicks(null)
+    setTempGscImpressions(null)
     if (inputRef?.current) inputRef.current.input.value = ""
     sessionStorage.removeItem(`user_${userId}_blog_filters_${isTrashcan ? "trash" : "active"}`)
     setCurrentPage(1)
@@ -545,8 +577,8 @@ const BlogsPage = () => {
                       <InputNumber
                         min={0}
                         placeholder="e.g. 50"
-                        value={blogFilters.gscClicks}
-                        onChange={val => updateBlogFilters({ gscClicks: val })}
+                        value={tempGscClicks}
+                        onChange={val => setTempGscClicks(val)}
                         className="w-full h-10 rounded-lg bg-slate-50 border-slate-200"
                         controls={false}
                       />
@@ -559,8 +591,8 @@ const BlogsPage = () => {
                       <InputNumber
                         min={0}
                         placeholder="e.g. 1000"
-                        value={blogFilters.gscImpressions}
-                        onChange={val => updateBlogFilters({ gscImpressions: val })}
+                        value={tempGscImpressions}
+                        onChange={val => setTempGscImpressions(val)}
                         className="w-full h-10 rounded-lg bg-slate-50 border-slate-200"
                         controls={false}
                       />

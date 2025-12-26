@@ -48,15 +48,6 @@ const PrivateRoutesLayout = () => {
     }
   }, [user, navigate])
 
-  // Email verification check
-  useEffect(() => {
-    if (!user) return
-
-    if (user.emailVerified === false) {
-      navigate(`/email-verify/${user.email}`, { replace: true })
-    }
-  }, [user, location.pathname])
-
   const isToolbarRoute = location.pathname.startsWith("/toolbox/")
 
   return token ? (

@@ -150,11 +150,11 @@ export default function EmailVerification() {
           </Space>
         </Form>
 
-        {/* Back to Login Link */}
+        {/* Back to pricing */}
         <div className="text-center mt-4">
-          <Link to="/login">
+          <Link to="/pricing">
             <Text type="secondary" className="hover:text-blue-600 transition-colors">
-              ← Back to Login
+              Back
             </Text>
           </Link>
         </div>

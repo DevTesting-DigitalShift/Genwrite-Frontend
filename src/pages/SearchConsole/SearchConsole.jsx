@@ -43,6 +43,18 @@ const SearchConsole = () => {
   const queryClient = useQueryClient()
   const user = useSelector(selectUser)
 
+  // Debounced search query - waits 5 seconds after user stops typing
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("")
+
+  // Debounce effect for search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery)
+    }, 5000) // 5 second delay
+
+    return () => clearTimeout(timer)
+  }, [searchQuery])
+
   // Check if filters are applied for Reset Filters button styling
   const isFilterApplied = useMemo(() => {
     return (
@@ -266,12 +278,12 @@ const SearchConsole = () => {
     if (activeTab === "country") {
       result = aggregateData(result)
     }
-    if (searchQuery && filterType === "search") {
+    if (debouncedSearchQuery && filterType === "search") {
       const fuse = new Fuse(result, fuseOptions)
-      result = fuse.search(searchQuery).map(({ item }) => item)
+      result = fuse.search(debouncedSearchQuery).map(({ item }) => item)
     }
     return result
-  }, [blogData, filterType, blogUrlFilter, blogTitleFilter, searchQuery, activeTab])
+  }, [blogData, filterType, blogUrlFilter, blogTitleFilter, debouncedSearchQuery, activeTab])
 
   // Paginate filtered data
   const paginatedData = useMemo(() => {

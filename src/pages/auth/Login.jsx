@@ -110,11 +110,6 @@ const Auth = ({ path }) => {
 
           const user = data.user || data?.data?.user || data
 
-          if (!user.emailVerified) {
-            navigate(`/email-verify/${user.email}`, { replace: true })
-            return
-          }
-
           if (isSignup) {
             navigate("/onboarding", { replace: true })
           } else {
@@ -152,12 +147,6 @@ const Auth = ({ path }) => {
         const { user } = await dispatch(action).unwrap()
 
         message.success(isSignup ? "Signup successful!" : "Login successful!")
-
-        // ❗ If email not verified → block everything
-        if (!user.emailVerified) {
-          navigate(`/email-verify/${user.email}`, { replace: true })
-          return
-        }
 
         // 🔥 Your new redirect rule
         if (isSignup) {
