@@ -25,6 +25,7 @@ const PrivateRoutesLayout = () => {
       try {
         await dispatch(loadAuthenticatedUser()).unwrap()
       } catch {
+        localStorage.removeItem("token")
         navigate("/login")
       }
     }

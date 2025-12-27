@@ -50,6 +50,7 @@ import { Table } from "@tiptap/extension-table"
 import TableRow from "@tiptap/extension-table-row"
 import TableCell from "@tiptap/extension-table-cell"
 import TableHeader from "@tiptap/extension-table-header"
+import Heading from "@tiptap/extension-heading"
 
 const FONT_OPTIONS = [
   { label: "Arial", value: "font-arial" },
@@ -122,7 +123,10 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
     {
       extensions: [
         StarterKit.configure({
-          heading: { levels: [1, 2, 3, 4] },
+          heading: false,
+        }),
+        Heading.configure({
+          levels: [1, 2, 3, 4],
         }),
         Image.configure({
           HTMLAttributes: { class: "rounded-lg mx-auto w-3/4 h-auto object-contain" },

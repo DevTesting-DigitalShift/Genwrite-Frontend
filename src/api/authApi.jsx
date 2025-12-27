@@ -49,7 +49,7 @@ export const loadUser = async navigate => {
 
   try {
     // Retry the API call up to 3 times with exponential backoff
-    const response = await retry(() => axiosInstance.get(`/auth/me`), 3, 1000)
+    const response = await retry(() => axiosInstance.get(`/auth/me`), 2, 250)
     return response.data
   } catch (error) {
     const status = error?.response?.status

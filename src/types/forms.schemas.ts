@@ -444,18 +444,6 @@ export function validateFormData<T extends z.ZodSchema>(
   schema: T,
   data: unknown
 ): z.infer<T> | unknown {
-  // Check if validation is enabled via env variable
-  // Works with both Vite (import.meta.env) and Node (process.env)
-  const shouldValidate =
-    (typeof import.meta !== "undefined" &&
-      (import.meta as unknown as { env: Record<string, string> })?.env?.VITE_VALIDATE_FORMS ===
-        "true") ||
-    (typeof process !== "undefined" && process.env?.VITE_VALIDATE_FORMS === "true")
-
-  if (!shouldValidate) {
-    return data
-  }
-
   console.group(`🔍 [Zod Validation] ${schemaName}`)
   console.log("📥 Input Data:", data)
 
@@ -501,33 +489,24 @@ export const regenerateBlogOptionsSchema = z.object({
   addOutBoundLinks: z.boolean().default(false).describe("Include outbound links"),
 })
 
-export const regenerateBlogSchema = z
-  .object({
-    createNew: z.boolean().describe("Whether to create new content from scratch"),
+export const regenerateBlogSchema = z.object({
+  createNew: z.boolean().describe("Whether to create new content from scratch"),
 
-    topic: z.string().min(1, "Topic cannot be empty").optional(),
-    title: z.string().optional(),
-    focusKeywords: z.array(z.string()).max(3).optional(),
-    keywords: z.array(z.string()).optional(),
-    tone: z.string().optional(),
-    userDefinedLength: z.number().min(500).max(5000).optional(),
-    aiModel: aiModelSchema.optional(),
-    isCheckedGeneratedImages: z.boolean().optional(),
-    imageSource: imageSourceSchema.optional(),
-    numberOfImages: z.number().min(0).max(15).default(0),
-    isCheckedBrand: z.boolean().optional(),
-    brandId: z.string().optional(),
-    addCTA: z.boolean().optional(),
-    options: regenerateBlogOptionsSchema.optional(),
-  })
-  .transform(data => {
-    // Map useBrandVoice to isCheckedBrand if present
-    const { useBrandVoice, ...cleanData } = data as Record<string, unknown>
-    if (useBrandVoice !== undefined && cleanData.isCheckedBrand === undefined) {
-      cleanData.isCheckedBrand = useBrandVoice
-    }
-    return cleanData
-  })
+  topic: z.string().min(1, "Topic cannot be empty").optional(),
+  title: z.string().optional(),
+  focusKeywords: z.array(z.string()).max(3).optional(),
+  keywords: z.array(z.string()).optional(),
+  tone: z.string().optional(),
+  userDefinedLength: z.number().min(500).max(5000).optional(),
+  aiModel: aiModelSchema.optional(),
+  isCheckedGeneratedImages: z.boolean().optional(),
+  imageSource: imageSourceSchema.optional(),
+  numberOfImages: z.number().min(0).max(15).default(0),
+  isCheckedBrand: z.boolean().optional(),
+  brandId: z.string().optional(),
+  addCTA: z.boolean().optional(),
+  options: regenerateBlogOptionsSchema,
+})
 
 export type RegenerateBlogSchemaType = z.infer<typeof regenerateBlogSchema>
 
