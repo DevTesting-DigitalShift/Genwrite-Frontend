@@ -200,7 +200,7 @@ const Auth = ({ path }) => {
   return (
     <div className="min-h-screen relative  bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50">
       {/* Ice Animation */}
-      <IceAnimation density={30} />
+      {/* <IceAnimation density={30} /> */}
 
       <Helmet>
         <title>{isSignup ? "Sign Up" : "Sign In"} | GenWrite</title>
@@ -231,25 +231,6 @@ const Auth = ({ path }) => {
           transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
           className="hidden lg:block absolute bottom-1/3 left-1/3 w-32 h-32 bg-blue-500/5 rounded-full"
         />
-
-        {/* Christmas decorations with purple/blue tint - smaller and repositioned on mobile */}
-        <div
-          className="absolute top-20 left-4 md:left-10 text-3xl md:text-6xl opacity-10 md:opacity-15"
-          style={{ filter: "hue-rotate(240deg)" }}
-        >
-          🎄
-        </div>
-        <div
-          className="absolute top-1/3 right-4 md:right-20 text-2xl md:text-5xl opacity-8 md:opacity-10"
-          style={{ filter: "hue-rotate(240deg)" }}
-        >
-          🎁
-        </div>
-        <div className="hidden md:block absolute bottom-1/4 left-1/4 text-5xl opacity-12">⭐</div>
-        <div className="hidden md:block absolute top-2/3 right-1/3 text-4xl opacity-15">🔔</div>
-        <div className="absolute bottom-40 right-4 md:right-10 text-3xl md:text-6xl opacity-15 md:opacity-20 text-blue-300">
-          ❄️
-        </div>
       </div>
 
       {/* Logo */}
@@ -361,7 +342,7 @@ const Auth = ({ path }) => {
                 <div className="mt-5 pt-4 border-t border-purple-200">
                   <p className="text-xs text-gray-600 leading-relaxed">
                     Start right after signup and enjoy complete access for 3 days. Only pay if you
-                    love it. Plus, get 50% OFF with our Christmas special! 🎄
+                    love it. Plus, get 50% OFF with our winter sale! ❄️
                   </p>
                 </div>
               </div>

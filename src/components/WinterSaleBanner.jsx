@@ -134,7 +134,7 @@ const WinterSaleBanner = () => {
               <h2 className="text-lg sm:text-xl md:text-2xl font-black text-white text-center leading-[1.2] mb-6 sm:mb-8 px-2">
                 50% OFF ON ALL PLANS
                 <br />
-                <span className="text-white">CHRISTMAS & NEW YEAR SPECIAL</span>
+                <span className="text-white">WINTER SALE SPECIAL ❄️</span>
               </h2>
             </div>
           </motion.div>

@@ -12,7 +12,12 @@ import { computeCost } from "@/data/pricingConfig"
 const AI_MODELS = [
   { id: "gemini", label: "Gemini", logo: "/Images/gemini.webp", restrictedPlans: [] },
   { id: "openai", label: "ChatGPT", logo: "/Images/chatgpt.webp", restrictedPlans: ["free"] },
-  { id: "claude", label: "Claude", logo: "/Images/claude.webp", restrictedPlans: ["free", "basic"] },
+  {
+    id: "claude",
+    label: "Claude",
+    logo: "/Images/claude.webp",
+    restrictedPlans: ["free", "basic"],
+  },
 ]
 
 const RegenerateModal = ({
@@ -23,6 +28,7 @@ const RegenerateModal = ({
   regenForm,
   updateRegenField,
   userPlan,
+  integrations,
 }) => {
   const navigate = useNavigate()
   const [regenerateStep, setRegenerateStep] = useState(1)
@@ -38,6 +44,8 @@ const RegenerateModal = ({
     if (regenForm.options.includeCompetitorResearch) features.push("competitorResearch")
     if (regenForm.options.includeFaqs) features.push("faqGeneration")
     if (regenForm.options.includeInterlinks) features.push("internalLinking")
+    if (regenForm.isCheckedQuick) features.push("quickSummary")
+    if (regenForm.wordpressPostStatus) features.push("automaticPosting")
 
     let cost = computeCost({
       wordCount: regenForm.userDefinedLength || 1000,
@@ -96,7 +104,7 @@ const RegenerateModal = ({
       title={
         <div className="flex items-center gap-2">
           <RefreshCw className="w-5 h-5 text-blue-600" />
-          <span className="text-base font-semibold">
+          <span className="text-sm font-semibold">
             Regenerate Blog - Step {regenerateStep} of 2
           </span>
         </div>
@@ -109,7 +117,7 @@ const RegenerateModal = ({
             <div className="flex items-center gap-1">
               <Zap className="w-4 h-4 text-amber-500" />
               <span className="text-sm text-gray-600 font-medium">Estimated Cost:</span>
-              <span className="font-bold text-blue-600 text-base">
+              <span className="font-bold text-blue-600 text-sm">
                 {calculateRegenCost()} credits
               </span>
             </div>
@@ -365,14 +373,14 @@ const RegenerateModal = ({
             {regenForm.isCheckedGeneratedImages && (
               <div className="pt-2">
                 <label className="text-sm font-medium text-gray-700 block mb-2">
-                  Number of Images: {regenForm.numberOfImages || 3}
+                  Number of Images: {regenForm.numberOfImages ?? 0}
                 </label>
                 <InputNumber
                   size="large"
-                  min={1}
-                  max={10}
-                  value={regenForm.numberOfImages || 3}
-                  onChange={val => updateRegenField("numberOfImages", val)}
+                  min={0}
+                  max={20}
+                  value={regenForm.numberOfImages ?? 0}
+                  onChange={val => updateRegenField("numberOfImages", val ?? 0)}
                   className="w-full"
                 />
               </div>
@@ -381,18 +389,15 @@ const RegenerateModal = ({
         </div>
       ) : (
         // Step 2: Content Enhancement Options + Brand Voice
-        <div className="space-y-5 max-h-[60vh] overflow-y-auto custom-scroll pr-2">
-          <p className="text-sm text-gray-500 mb-4">
-            Select the content enhancement options and brand voice settings for your regenerated
-            blog.
-          </p>
+        <div className="space-y-5 max-h-[60vh] overflow-y-auto custom-scroll pr-2 p-4">
+          <h4 className="text-sm font-semibold text-gray-700 mb-4">Content Enhancement Options</h4>
 
           {/* Brand Voice - Moved to Step 2 */}
           <div className="p-4 bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg border border-purple-200">
             <BrandVoiceSelector
               label="Brand Voice"
               size="default"
-              labelClass="text-base font-semibold text-gray-700"
+              labelClass="text-sm font-semibold text-gray-700"
               value={{
                 isCheckedBrand: regenForm.useBrandVoice,
                 brandId: regenForm.brandId,
@@ -408,18 +413,9 @@ const RegenerateModal = ({
 
           {/* Enhancement Options */}
           <div className="space-y-3">
-            <h4 className="text-sm font-semibold text-gray-700 mb-3">
-              Content Enhancement Options
-            </h4>
-
-            <div className="flex items-center justify-between py-4 px-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200">
-              <div className="flex items-center gap-3">
-                <div
-                  className={`w-3 h-3 rounded-full ${
-                    regenForm.options.includeFaqs ? "bg-green-500" : "bg-gray-400"
-                  }`}
-                />
-                <span className="text-base font-medium text-gray-700">Include FAQs</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3 mt-3">
+                <span className="text-sm font-medium text-gray-700">Include FAQs</span>
               </div>
               <Switch
                 checked={regenForm.options.includeFaqs}
@@ -427,14 +423,9 @@ const RegenerateModal = ({
               />
             </div>
 
-            <div className="flex items-center justify-between py-4 px-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200">
-              <div className="flex items-center gap-3">
-                <div
-                  className={`w-3 h-3 rounded-full ${
-                    regenForm.options.includeInterlinks ? "bg-green-500" : "bg-gray-400"
-                  }`}
-                />
-                <span className="text-base font-medium text-gray-700">Include Interlinks</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3 mt-3">
+                <span className="text-sm font-medium text-gray-700">Include Interlinks</span>
               </div>
               <Switch
                 checked={regenForm.options.includeInterlinks}
@@ -442,15 +433,10 @@ const RegenerateModal = ({
               />
             </div>
 
-            <div className="flex items-center justify-between py-4 px-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200">
-              <div className="flex items-center gap-3">
-                <div
-                  className={`w-3 h-3 rounded-full ${
-                    regenForm.options.includeCompetitorResearch ? "bg-green-500" : "bg-gray-400"
-                  }`}
-                />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3 mt-3">
                 <div>
-                  <span className="text-base font-medium text-gray-700">Competitor Research</span>
+                  <span className="text-sm font-medium text-gray-700">Competitor Research</span>
                   <span className="ml-2 text-sm text-amber-600 font-semibold">+10 credits</span>
                 </div>
               </div>
@@ -460,14 +446,9 @@ const RegenerateModal = ({
               />
             </div>
 
-            <div className="flex items-center justify-between py-4 px-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200">
-              <div className="flex items-center gap-3">
-                <div
-                  className={`w-3 h-3 rounded-full ${
-                    regenForm.options.addOutBoundLinks ? "bg-green-500" : "bg-gray-400"
-                  }`}
-                />
-                <span className="text-base font-medium text-gray-700">Add Outbound Links</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3 mt-3">
+                <span className="text-sm font-medium text-gray-700">Add Outbound Links</span>
               </div>
               <Switch
                 checked={regenForm.options.addOutBoundLinks}
@@ -475,16 +456,61 @@ const RegenerateModal = ({
               />
             </div>
 
-            {/* Cost Cutter */}
-            <div className="flex items-center justify-between py-4 px-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg hover:from-green-100 hover:to-emerald-100 transition-colors border-2 border-green-200">
-              <div className="flex items-center gap-3">
-                <div
-                  className={`w-3 h-3 rounded-full ${
-                    regenForm.costCutter ? "bg-green-500" : "bg-gray-400"
-                  }`}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3 mt-3">
+                <span className="text-sm font-medium text-gray-700">Add a Quick Summary</span>
+              </div>
+              <Switch
+                checked={regenForm.isCheckedQuick}
+                onChange={val => updateRegenField("isCheckedQuick", val)}
+              />
+            </div>
+
+            {/* Automate Posting */}
+            <div className="">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3 mt-3">
+                  <span className="text-sm font-medium text-gray-700">Enable Automate Posting</span>
+                </div>
+                <Switch
+                  checked={regenForm.wordpressPostStatus}
+                  onChange={val => updateRegenField("wordpressPostStatus", val)}
                 />
+              </div>
+
+              {regenForm.wordpressPostStatus && (
+                <div className="mt-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">Show Table of Content</span>
+                    <Switch
+                      checked={regenForm.includeTableOfContents}
+                      onChange={val => updateRegenField("includeTableOfContents", val)}
+                    />
+                  </div>
+
+                  <label className="text-sm font-medium text-gray-600 block my-2 mt-4">
+                    Choose Platform
+                  </label>
+                  <Select
+                    className="w-full mb-3"
+                    placeholder="Select Platform"
+                    value={regenForm.postingType}
+                    onChange={val => updateRegenField("postingType", val)}
+                    options={[
+                      { label: "WORDPRESS", value: "WORDPRESS" },
+                      { label: "SERVERENDPOINT", value: "SERVERENDPOINT" },
+                      { label: "SHOPIFY", value: "SHOPIFY" },
+                    ]}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Cost Cutter */}
+            <div className="flex items-center justify-between py-4 px-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg hover:from-green-100 hover:to-emerald-100 trans mt-3ition-colors border-2 border-green-200">
+              <div className="flex items-center gap-3">
                 <div>
-                  <span className="text-base font-medium text-gray-700">Cost Cutter</span>
+                  <span className="text-sm font-medium text-gray-700">Cost Cutter</span>
                   <span className="ml-2 text-sm text-green-600 font-semibold">Save 25%</span>
                   <p className="text-xs text-gray-500 mt-0.5">
                     Reduce credits by 25% with optimized generation

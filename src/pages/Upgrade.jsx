@@ -666,7 +666,7 @@ const Upgrade = () => {
       </motion.div>
 
       <div className="mx-auto">
-        {/* Christmas Sale Countdown Timer Banner */}
+        {/* Winter Sale Countdown Timer Banner */}
         <div className="max-w-6xl mx-auto mb-6 sm:mb-8 grid grid-cols-1 lg:grid-cols-2 place-content-center place-items-center gap-4 sm:gap-6">
           <CountdownTimer
             startDate="2025-12-01T00:00:00"
@@ -684,7 +684,7 @@ const Upgrade = () => {
               <div className="text-2xl">⚠️</div>
               <div className="flex-1 flex-col justify-around">
                 <h4 className="text-base sm:text-lg font-bold text-amber-900 mb-2 flex items-center gap-2">
-                  🎅 Christmas Sale - Important Terms
+                  ❄️ Winter Sale - Important Terms
                 </h4>
                 <div className="space-y-1.5 text-xs sm:text-sm text-amber-800">
                   <p className="flex items-start gap-2">
@@ -708,9 +708,9 @@ const Upgrade = () => {
                   <p className="flex items-start gap-2">
                     <span className="text-lg leading-none">•</span>
                     <span>
-                      <strong className="font-bold">Limited Time:</strong> This special Christmas &
-                      New Year offer is valid only during the promotional period shown in the
-                      countdown timer above.
+                      <strong className="font-bold">Limited Time:</strong> This special winter sale
+                      offer is valid only during the promotional period shown in the countdown timer
+                      above.
                     </span>
                   </p>
                 </div>

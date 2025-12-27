@@ -130,14 +130,6 @@ const CountdownTimer = ({ startDate, endDate, discount = "50%" }) => {
       transition={{ duration: 0.5 }}
       className="relative bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 border-2 border-purple-200/50 shadow-xl overflow-hidden backdrop-blur-sm bg-white/80"
     >
-      {/* Decorative Christmas elements */}
-      <div className="absolute top-0 right-0 text-3xl sm:text-5xl md:text-6xl opacity-10 -rotate-12 filter hue-rotate-[240deg]">
-        🎄
-      </div>
-      <div className="absolute bottom-0 left-0 text-2xl sm:text-4xl md:text-5xl opacity-10 rotate-12">
-        🎁
-      </div>
-
       <div className="relative z-10">
         {/* Header */}
         <div className="text-center mb-3 sm:mb-4 md:mb-5">
@@ -147,8 +139,8 @@ const CountdownTimer = ({ startDate, endDate, discount = "50%" }) => {
             className="inline-flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white px-3 py-1.5 sm:px-4 sm:py-2 md:px-5 md:py-2.5 rounded-full text-xs sm:text-sm font-bold shadow-lg mb-2 sm:mb-3"
           >
             <FiGift className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
-            <span className="hidden sm:inline">🎅 CHRISTMAS & NEW YEAR SPECIAL ❄️</span>
-            <span className="sm:hidden">🎅 SPECIAL OFFER ❄️</span>
+            <span className="hidden sm:inline">❄️ WINTER SALE SPECIAL ❄️</span>
+            <span className="sm:hidden">❄️ SPECIAL OFFER ❄️</span>
           </motion.div>
 
           <h3 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-1">

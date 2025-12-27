@@ -158,6 +158,10 @@ const TextEditorSidebar = ({
       includeCompetitorResearch: false,
       addOutBoundLinks: false,
     },
+    isCheckedQuick: false,
+    wordpressPostStatus: false,
+    postingType: null,
+    includeTableOfContents: false,
   })
 
   const user = useSelector(state => state.auth.user)
@@ -230,7 +234,7 @@ const TextEditorSidebar = ({
         aiModel: blog.aiModel || "gemini",
         isCheckedGeneratedImages: isImagesEnabled,
         imageSource: imageSource,
-        numberOfImages: blog.numberOfImages || 3,
+        numberOfImages: blog.numberOfImages,
         useBrandVoice: blog.isCheckedBrand || false,
         brandId: typeof blog.brandId === "object" ? blog.brandId?._id || "" : blog.brandId || "",
         addCTA: blog.options?.addCTA || false,
@@ -241,6 +245,10 @@ const TextEditorSidebar = ({
           includeCompetitorResearch: blog.options?.includeCompetitorResearch || false,
           addOutBoundLinks: blog.options?.addOutBoundLinks || false,
         },
+        isCheckedQuick: blog.isCheckedQuick || false,
+        wordpressPostStatus: blog.wordpressPostStatus || false,
+        postingType: blog.postingType || null,
+        includeTableOfContents: blog.includeTableOfContents || false,
       })
     }
   }, [blog])
@@ -300,6 +308,8 @@ const TextEditorSidebar = ({
     if (regenForm.options.includeCompetitorResearch) features.push("competitorResearch")
     if (regenForm.options.includeFaqs) features.push("faqGeneration")
     if (regenForm.options.includeInterlinks) features.push("internalLinking")
+    if (regenForm.isCheckedQuick) features.push("quickSummary")
+    if (regenForm.wordpressPostStatus) features.push("automaticPosting")
     // Note: addOutBoundLinks does not add extra credits
 
     return computeCost({
@@ -1493,6 +1503,7 @@ const TextEditorSidebar = ({
         regenForm={regenForm}
         updateRegenField={updateRegenField}
         userPlan={userPlan}
+        integrations={integrations}
       />
     </>
   )

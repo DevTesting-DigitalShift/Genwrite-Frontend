@@ -7,6 +7,7 @@ import { Tooltip } from "antd"
 import { useDispatch, useSelector } from "react-redux"
 import { loadAuthenticatedUser } from "@store/slices/authSlice"
 import { connectSocket } from "@utils/socket"
+import LoadingScreen from "@components/UI/LoadingScreen"
 
 const PrivateRoutesLayout = () => {
   const token = localStorage.getItem("token")
@@ -14,7 +15,7 @@ const PrivateRoutesLayout = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const dispatch = useDispatch()
-  const { user } = useSelector(state => state.auth)
+  const { user, loading } = useSelector(state => state.auth)
 
   // Hide chatbot on toolbox routes
   const isToolboxRoute = location.pathname.startsWith("/toolbox/")
@@ -50,6 +51,11 @@ const PrivateRoutesLayout = () => {
   }, [user, navigate])
 
   const isToolbarRoute = location.pathname.startsWith("/toolbox/")
+
+  // Show loading screen while authenticating
+  if (loading && !user) {
+    return <LoadingScreen />
+  }
 
   return token ? (
     <>
