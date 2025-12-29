@@ -119,11 +119,11 @@ const WinterSaleBanner = () => {
                 onClick={() => setIsOpen(false)}
                 className="absolute right-2 top-2 sm:right-4 sm:top-2 text-red-700 bg-white/80 rounded-full  transition-colors p-2"
               >
-                <X className="w-4 h-4 sm:w-5 sm:h-5" stroke="green" strokeWidth="3" />
+                <X className="w-4 h-4 sm:w-5 sm:h-5" stroke="blue" strokeWidth="3" />
               </button>
 
               {/* Countdown Timer - Responsive spacing and sizing */}
-              <div className="flex gap-1.5 sm:gap-2 md:gap-2.5 mb-6 sm:mb-8 mt-8 sm:mt-10 md:mt-12">
+              <div className="flex gap-1.5 sm:gap-2 md:gap-2.5 mb-6 sm:mb-8 mt-8 sm:mt-10 md:mt-20">
                 <TimeBlock value={timeLeft.days} label="DAYS" />
                 <TimeBlock value={timeLeft.hrs} label="HRS" />
                 <TimeBlock value={timeLeft.min} label="MIN" />
@@ -131,10 +131,10 @@ const WinterSaleBanner = () => {
               </div>
 
               {/* Promo Text - Responsive font sizes */}
-              <h2 className="text-lg sm:text-xl md:text-2xl font-black text-white text-center leading-[1.2] mb-6 sm:mb-8 px-2">
+              <h2 className="text-lg sm:text-xl md:text-2xl font-black text-white text-center leading-[1.2] mb-6 sm:mb-8 px-2 mt-10">
                 50% OFF ON ALL PLANS
                 <br />
-                <span className="text-white">NEW YEAR SALE SPECIAL ❄️</span>
+                <span className="text-white">NEW YEAR SALE SPECIAL</span>
               </h2>
             </div>
           </motion.div>
