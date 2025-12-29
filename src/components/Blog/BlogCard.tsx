@@ -141,7 +141,6 @@ const BlogCard: React.FC<BlogCardProps> = ({
             ? "border-yellow-500"
             : "border-green-500"
         } border-2`}
-        title={title}
       >
         {/* Date Badge */}
         <div className="text-[10px] sm:text-xs font-semibold text-gray-400 mb-1.5 sm:mb-2 -mt-1 sm:-mt-2">
