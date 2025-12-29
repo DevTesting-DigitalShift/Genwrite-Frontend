@@ -43,20 +43,20 @@ export const VideoEmbed = Node.create({
       "div",
       {
         class: "section-iframe-wrapper",
-        style: "padding:8px; margin:8px; display:flex; align-items:center; justify-content:center;",
+        style: "padding:8px; margin:8px; display:flex; align-items:center; justify-content:center; aspectRatio:video !important",
       },
       [
         "div",
         {
           style:
-            "position:relative; width:100%; max-width:560px; max-height:315px; aspect-ratio:16/9; padding:8px;",
+            "position:relative; width:100%; aspect-ratio:16/9; padding:8px;",
         },
         [
           "iframe",
           mergeAttributes(HTMLAttributes, {
             frameborder: "0",
             allowfullscreen: "true",
-            style: "position:absolute; top:0; left:0; width:100%; height:100%; border-radius:8px;",
+            style: "width:100%; height:100%;",
           }),
         ],
       ],

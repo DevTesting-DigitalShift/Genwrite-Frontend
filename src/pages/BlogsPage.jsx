@@ -296,7 +296,7 @@ const BlogsPage = () => {
 
   const handleBlogClick = useCallback(
     blog => {
-      navigate(`/toolbox/${blog._id}`)
+      navigate(`/blog/${blog._id}`)
     },
     [navigate]
   )

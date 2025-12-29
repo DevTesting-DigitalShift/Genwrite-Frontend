@@ -54,7 +54,7 @@ import { openUpgradePopup } from "@utils/UpgardePopUp"
 import { Modal } from "antd"
 import CategoriesModal from "../Editor/CategoriesModal"
 import { TONES } from "@/data/blogData"
-import { retryBlogById, exportBlogAsPdf } from "@api/blogApi"
+import { retryBlogById, exportBlogAsPdf, getBlogPostings } from "@api/blogApi"
 import { validateRegenerateBlogData } from "@/types/forms.schemas"
 import { useQueryClient } from "@tanstack/react-query"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
@@ -119,6 +119,10 @@ const TextEditorSidebar = ({
 
   // 2-step regenerate modal state
   const [isRegenerateModalOpen, setIsRegenerateModalOpen] = useState(false)
+
+  // Blog postings state
+  const [blogPostings, setBlogPostings] = useState([])
+  const [isLoadingPostings, setIsLoadingPostings] = useState(false)
 
   const { data: integrations } = useSelector(state => state.wordpress)
   const [metadata, setMetadata] = useState({
@@ -197,18 +201,28 @@ const TextEditorSidebar = ({
         }))
     : []
 
-  // Extract published blog links from posted object
-  const publishedLinks = posted
-    ? Object.entries(posted)
-        .filter(([_, data]) => data?.link)
-        .map(([platform, data]) => ({
-          platform,
-          link: data.link,
-          label: PLATFORM_LABELS[platform] || platform,
-        }))
-    : []
+  // Use blog postings from API instead of posted object
+  const hasPublishedLinks = blogPostings.length > 0
 
-  const hasPublishedLinks = publishedLinks.length > 0
+  // Fetch blog postings when blog changes
+  useEffect(() => {
+    const fetchPostings = async () => {
+      if (!blog?._id) return
+
+      setIsLoadingPostings(true)
+      try {
+        const postings = await getBlogPostings(blog._id)
+        setBlogPostings(postings)
+      } catch (error) {
+        console.error("Failed to fetch blog postings:", error)
+        // Don't show error message to user, just log it
+      } finally {
+        setIsLoadingPostings(false)
+      }
+    }
+
+    fetchPostings()
+  }, [blog?._id, posted]) // Re-fetch when blog changes or when new post is made
 
   // Initialize data
   useEffect(() => {
@@ -348,13 +362,60 @@ const TextEditorSidebar = ({
 
     setIsRegenerating(true)
     try {
-      // Prepare the payload with createNew: true and blog data
+      // Build clean payload - only include fields that are enabled/selected
       const payload = {
         createNew: true,
-        ...regenForm,
-        isCheckedBrand: regenForm.useBrandVoice,
-        // If images are disabled, set imageSource to "none"
-        imageSource: regenForm.isCheckedGeneratedImages ? regenForm.imageSource : "none",
+        topic: regenForm.topic,
+        title: regenForm.title,
+        focusKeywords: regenForm.focusKeywords,
+        keywords: regenForm.keywords,
+        tone: regenForm.tone,
+        userDefinedLength: regenForm.userDefinedLength,
+        aiModel: regenForm.aiModel,
+        options: {
+          includeFaqs: regenForm.options.includeFaqs,
+          includeInterlinks: regenForm.options.includeInterlinks,
+          includeCompetitorResearch: regenForm.options.includeCompetitorResearch,
+          addOutBoundLinks: regenForm.options.addOutBoundLinks,
+        },
+      }
+
+      // Only add image-related fields if images are enabled
+      if (regenForm.isCheckedGeneratedImages) {
+        payload.isCheckedGeneratedImages = true
+        payload.imageSource = regenForm.imageSource
+        payload.numberOfImages = regenForm.numberOfImages || 0
+      } else {
+        payload.isCheckedGeneratedImages = false
+        payload.imageSource = "none"
+      }
+
+      // Only add brand voice fields if enabled
+      if (regenForm.useBrandVoice && regenForm.brandId) {
+        payload.isCheckedBrand = true
+        payload.brandId = regenForm.brandId
+        if (regenForm.addCTA) {
+          payload.addCTA = true
+        }
+      }
+
+      // Only add quick summary if enabled
+      if (regenForm.isCheckedQuick) {
+        payload.isCheckedQuick = true
+      }
+
+      // Only add posting fields if enabled
+      if (regenForm.wordpressPostStatus && regenForm.postingType) {
+        payload.wordpressPostStatus = true
+        payload.postingType = regenForm.postingType
+        if (regenForm.includeTableOfContents) {
+          payload.includeTableOfContents = true
+        }
+      }
+
+      // Only add cost cutter if enabled
+      if (regenForm.costCutter) {
+        payload.costCutter = true
       }
 
       // Validate and transform the payload
@@ -708,35 +769,77 @@ const TextEditorSidebar = ({
 
       {/* Action Footer */}
       <div className="p-4 bg-white border-t border-gray-50">
-        {/* Published Links Section */}
-        {hasPublishedLinks && (
+        {/* Published Links Section - From API */}
+        {isLoadingPostings ? (
+          <div className="mb-4 p-3 bg-gray-50 rounded-xl border border-gray-200">
+            <div className="flex items-center justify-center gap-2 text-gray-500">
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              <span className="text-xs">Loading postings...</span>
+            </div>
+          </div>
+        ) : hasPublishedLinks ? (
           <div className="mb-4 p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Globe className="w-4 h-4 text-green-600" />
                 <span className="text-xs font-bold text-green-900 uppercase tracking-wider">
-                  Published On
+                  Publishing History
                 </span>
               </div>
+              <span className="text-xs font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
+                {blogPostings.length}
+              </span>
             </div>
-            <div className="space-y-2">
-              {publishedLinks.map(({ platform, link, label }) => (
-                <a
-                  key={platform}
-                  href={link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-between p-2 bg-white rounded-lg hover:bg-green-50 transition-all group"
+            <div className="space-y-2 max-h-64 overflow-y-auto custom-scroll">
+              {blogPostings.map((posting, index) => (
+                <div
+                  key={posting._id || index}
+                  className="p-2.5 bg-white rounded-lg border border-green-100 hover:border-green-300 transition-all group"
                 >
-                  <span className="text-sm font-medium text-gray-700 group-hover:text-green-700">
-                    {label}
-                  </span>
-                  <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-green-600" />
-                </a>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-semibold text-gray-800 capitalize">
+                          {PLATFORM_LABELS[posting.platform] || posting.platform}
+                        </span>
+                        {posting.status && (
+                          <span
+                            className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                              posting.status === "published"
+                                ? "bg-green-100 text-green-700"
+                                : posting.status === "failed"
+                                ? "bg-red-100 text-red-700"
+                                : "bg-yellow-100 text-yellow-700"
+                            }`}
+                          >
+                            {posting.status}
+                          </span>
+                        )}
+                      </div>
+                      {posting.link && (
+                        <a
+                          href={posting.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1 truncate"
+                        >
+                          <span className="truncate">{posting.link}</span>
+                          <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                        </a>
+                      )}
+                      {posting.publishedAt && (
+                        <div className="flex items-center gap-1 mt-1 text-[10px] text-gray-500">
+                          <Calendar className="w-3 h-3" />
+                          <span>{new Date(posting.publishedAt).toLocaleString()}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
-        )}
+        ) : null}
 
         <Button
           type="primary"

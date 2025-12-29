@@ -39,9 +39,11 @@ const PrivateRoutesLayout = () => {
 
   // Onboarding redirect check - redirect first-time users to onboarding
   useEffect(() => {
-    if (!user) return
+    if (!user || !user._id) return
 
-    const hasCompletedOnboarding = localStorage.getItem("hasCompletedOnboarding") === "true"
+    // Use user-specific localStorage key to track onboarding completion
+    const hasCompletedOnboarding =
+      localStorage.getItem(`hasCompletedOnboarding_${user._id}`) === "true"
 
     // Only redirect if user has no lastLogin AND hasn't completed onboarding
     // Use localStorage as fallback since backend might not update lastLogin immediately

@@ -491,7 +491,6 @@ export const regenerateBlogOptionsSchema = z.object({
 
 export const regenerateBlogSchema = z.object({
   createNew: z.boolean().describe("Whether to create new content from scratch"),
-
   topic: z.string().min(1, "Topic cannot be empty").optional(),
   title: z.string().optional(),
   focusKeywords: z.array(z.string()).max(3).optional(),

@@ -395,7 +395,7 @@ const RegenerateModal = ({
           {/* Brand Voice - Moved to Step 2 */}
           <div className="p-4 bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg border border-purple-200">
             <BrandVoiceSelector
-              label="Brand Voice"
+              label="Write with Brand Voice"
               size="default"
               labelClass="text-sm font-semibold text-gray-700"
               value={{
@@ -415,7 +415,7 @@ const RegenerateModal = ({
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3 mt-3">
-                <span className="text-sm font-medium text-gray-700">Include FAQs</span>
+                <span className="text-sm font-medium text-gray-700">Add FAQs (Frequently Asked Questions)</span>
               </div>
               <Switch
                 checked={regenForm.options.includeFaqs}
@@ -436,8 +436,7 @@ const RegenerateModal = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3 mt-3">
                 <div>
-                  <span className="text-sm font-medium text-gray-700">Competitor Research</span>
-                  <span className="ml-2 text-sm text-amber-600 font-semibold">+10 credits</span>
+                  <span className="text-sm font-medium text-gray-700">Perform Competitive Research</span>
                 </div>
               </div>
               <Switch
@@ -448,7 +447,7 @@ const RegenerateModal = ({
 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3 mt-3">
-                <span className="text-sm font-medium text-gray-700">Add Outbound Links</span>
+                <span className="text-sm font-medium text-gray-700">Show Outbound Links</span>
               </div>
               <Switch
                 checked={regenForm.options.addOutBoundLinks}
@@ -479,7 +478,7 @@ const RegenerateModal = ({
               </div>
 
               {regenForm.wordpressPostStatus && (
-                <div className="mt-4">
+                <div className="mt-6">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-700">Show Table of Content</span>
                     <Switch
@@ -488,7 +487,7 @@ const RegenerateModal = ({
                     />
                   </div>
 
-                  <label className="text-sm font-medium text-gray-600 block my-2 mt-4">
+                  <label className="text-sm font-medium text-gray-600 block my-2 mt-6">
                     Choose Platform
                   </label>
                   <Select

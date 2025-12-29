@@ -40,9 +40,11 @@ const Onboarding = () => {
 
   // Prevent users who've already completed onboarding from accessing this page
   useEffect(() => {
-    if (!user) return
+    if (!user || !user._id) return
 
-    const hasCompletedOnboarding = localStorage.getItem("hasCompletedOnboarding") === "true"
+    // Use user-specific localStorage key
+    const hasCompletedOnboarding =
+      localStorage.getItem(`hasCompletedOnboarding_${user._id}`) === "true"
 
     // If user has lastLogin OR has completed onboarding, redirect to dashboard
     if (user.lastLogin || hasCompletedOnboarding) {
@@ -153,8 +155,10 @@ const Onboarding = () => {
       await createBrandVoice(submissionData)
       message.success("Brand voice created successfully!")
 
-      // Mark that user has completed onboarding
-      localStorage.setItem("hasCompletedOnboarding", "true")
+      // Mark that user has completed onboarding (user-specific)
+      if (user?._id) {
+        localStorage.setItem(`hasCompletedOnboarding_${user._id}`, "true")
+      }
       sessionStorage.setItem("justCompletedOnboarding", "true")
 
       setTimeout(() => {

@@ -289,7 +289,10 @@ const SideBar_Header = () => {
         <nav className="flex-1 py-4 px-3 overflow-y-auto">
           <ul className="space-y-1">
             {Menus.map((Menu, index) => {
-              const isActive = location.pathname.startsWith(Menu.path)
+              // Special case: highlight /blogs when on /blog/:id (blog editor)
+              const isActive =
+                location.pathname.startsWith(Menu.path) ||
+                (Menu.path === "/blogs" && location.pathname.startsWith("/blog/"))
               const Icon = Menu.icon
               const isPro = ["pro", "enterprise"].includes(user?.subscription?.plan)
               const isFreeUser = user?.plan === "free" || user?.subscription?.plan === "free"

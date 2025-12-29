@@ -469,3 +469,13 @@ input[type="number"] {
   border: none !important;
   border-radius: 12px 0 0 12px !important;
 }
+
+.section-iframe-wrapper {
+  margin-bottom: 20px;
+}
+
+.section-iframe-wrapper > div {
+  max-width: 100% !important;
+  max-height: 100% !important;
+  aspect-ratio: video !important;
+}

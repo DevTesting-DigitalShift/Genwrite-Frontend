@@ -117,7 +117,7 @@ export default function GSCAnalyticsTabs({
                         key: "edit",
                         label: (
                           <a
-                            href={`${import.meta.env.VITE_FRONTEND_URL}/toolbox/${record.blogId}`}
+                            href={`${import.meta.env.VITE_FRONTEND_URL}/blog/${record.blogId}`}
                             target="_blank"
                             className="flex items-center"
                           >

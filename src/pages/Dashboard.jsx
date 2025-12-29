@@ -180,13 +180,15 @@ const Dashboard = () => {
 
   // Show walkthrough only for first-time users on desktop
   useEffect(() => {
-    if (!user) return
+    if (!user || !user._id) return
 
     // Check if device is mobile (width < 768px)
     const isMobile = window.innerWidth < 768
 
-    const hasSeenTour = localStorage.getItem("hasSeenDashboardTour") === "true"
-    const hasCompletedOnboarding = localStorage.getItem("hasCompletedOnboarding") === "true"
+    // Use user-specific localStorage keys
+    const hasSeenTour = localStorage.getItem(`hasSeenDashboardTour_${user._id}`) === "true"
+    const hasCompletedOnboarding =
+      localStorage.getItem(`hasCompletedOnboarding_${user._id}`) === "true"
     const justCompletedOnboarding = sessionStorage.getItem("justCompletedOnboarding") === "true"
 
     console.log("Dashboard Flow Check:", {
@@ -361,7 +363,10 @@ const Dashboard = () => {
         run={runTour}
         onComplete={() => {
           setRunTour(false)
-          localStorage.setItem("hasSeenDashboardTour", "true")
+          // Use user-specific localStorage key
+          if (user?._id) {
+            localStorage.setItem(`hasSeenDashboardTour_${user._id}`, "true")
+          }
         }}
         onOpenQuickBlog={() => setActiveModel(ACTIVE_MODELS.Quick_Blog)}
       />

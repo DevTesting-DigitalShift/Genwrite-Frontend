@@ -97,7 +97,7 @@ const ShopifyVerification = () => {
           <Button
             type="link"
             icon={<EyeOutlined />}
-            onClick={() => window.open(`/toolbox/${record.blogId._id}`, "_blank")}
+            onClick={() => window.open(`/blog/${record.blogId._id}`, "_blank")}
           >
             View in Editor
           </Button>

@@ -27,7 +27,7 @@ import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 export default function ToolboxPage() {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState("content")
-  const [keywords, setKeywords] = useState([])  
+  const [keywords, setKeywords] = useState([])
   const [newKeyword, setNewKeyword] = useState("")
   const [competitiveAnalysisModalOpen, setCompetitiveAnalysisModalOpen] = useState(false)
   const [pageSize, setPageSize] = useState(10)
@@ -251,7 +251,7 @@ export default function ToolboxPage() {
         "Transform AI-generated text into natural, human-sounding content while preserving intent and clarity.",
       action: () => navigate("/humanize-content"),
       actionText: "Let's Convert",
-      credits: "10",
+      credits: "5",
       creditType: "tools.humanize",
       color: "from-blue-500 to-indigo-600",
     },
@@ -285,7 +285,7 @@ export default function ToolboxPage() {
       description: "Turn content into SEO-friendly metadata",
       action: () => navigate("/generate-metadata"),
       actionText: "Boost SEO",
-      credits: "5",
+      credits: "2",
       creditType: "tools.metadata",
       color: "from-rose-500 to-pink-600",
     },
@@ -296,7 +296,7 @@ export default function ToolboxPage() {
       description: "Transform your content into SEO-optimized metadata in seconds",
       action: () => navigate("/prompt-content"),
       actionText: "Boost SEO",
-      credits: "10",
+      credits: "5",
       creditType: "tools.boost",
       color: "from-rose-500 to-pink-600",
     },

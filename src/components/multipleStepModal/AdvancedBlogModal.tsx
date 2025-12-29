@@ -36,9 +36,9 @@ import { selectSelectedAnalysisKeywords } from "@store/slices/analysisSlice"
 import { computeCost } from "@/data/pricingConfig"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { validateAdvancedBlogData } from "@/types/forms.schemas"
+import LoadingScreen from "@components/UI/LoadingScreen"
 
 const { Text } = Typography
-
 interface AdvancedBlogModalProps {
   onSubmit: Function
   closeFnc: Function
@@ -117,6 +117,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
   // For Generating Titles
   const [generatedTitles, setGeneratedTitles] = useState<string[]>([])
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleGenerateTitles = async () => {
     try {
@@ -327,6 +328,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
       }
       // Validate with Zod schema (logs to console when VITE_VALIDATE_FORMS=true)
       const validatedData = validateAdvancedBlogData(data)
+      setIsSubmitting(true)
       onSubmit?.(validatedData)
     }
   }
@@ -890,57 +892,60 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
   }
 
   return (
-    <Modal
-      title={`Generate Advanced Blog | Step ${currentStep + 1} : ${STEP_TITLES[currentStep]}`}
-      open={true}
-      onCancel={handleClose}
-      footer={
-        <Flex justify="space-between" align="center" gap={12} className="mt-2">
-          {(currentStep === 2 || currentStep === 3) && (
-            <div className="flex items-center gap-2 text-sm">
-              <span className="text-gray-600">Estimated Cost:</span>
-              <span className="font-bold text-blue-600">{estimatedCost} credits</span>
-              {formData.costCutter && (
-                <span className="text-xs text-green-600 font-medium">(-25% off)</span>
-              )}
-            </div>
-          )}
-          <Flex justify="end" gap={12} className={currentStep < 2 ? "w-full" : ""}>
-            {currentStep > 0 && (
-              <Button
-                onClick={handlePrev}
-                type="default"
-                className="h-10 px-6 text-[length:1rem] font-medium !text-gray-700 bg-white border border-gray-300 rounded-md hover:!bg-gray-50"
-              >
-                Previous
-              </Button>
+    <>
+      {isSubmitting && <LoadingScreen />}
+      <Modal
+        title={`Generate Advanced Blog | Step ${currentStep + 1} : ${STEP_TITLES[currentStep]}`}
+        open={true}
+        onCancel={handleClose}
+        footer={
+          <Flex justify="space-between" align="center" gap={12} className="mt-2">
+            {(currentStep === 2 || currentStep === 3) && (
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-gray-600">Estimated Cost:</span>
+                <span className="font-bold text-blue-600">{estimatedCost} credits</span>
+                {formData.costCutter && (
+                  <span className="text-xs text-green-600 font-medium">(-25% off)</span>
+                )}
+              </div>
             )}
-            <Button
-              onClick={currentStep === 3 ? handleSubmit : handleNext}
-              type="default"
-              className="h-10 px-6 text-[length:1rem] font-medium !text-white bg-[#1B6FC9] rounded-md hover:!bg-[#1B6FC9]/90"
-            >
-              {currentStep === 3 ? "Generate Blog" : "Next"}
-            </Button>
+            <Flex justify="end" gap={12} className={currentStep < 2 ? "w-full" : ""}>
+              {currentStep > 0 && (
+                <Button
+                  onClick={handlePrev}
+                  type="default"
+                  className="h-10 px-6 text-[length:1rem] font-medium !text-gray-700 bg-white border border-gray-300 rounded-md hover:!bg-gray-50"
+                >
+                  Previous
+                </Button>
+              )}
+              <Button
+                onClick={currentStep === 3 ? handleSubmit : handleNext}
+                type="default"
+                className="h-10 px-6 text-[length:1rem] font-medium !text-white bg-[#1B6FC9] rounded-md hover:!bg-[#1B6FC9]/90"
+              >
+                {currentStep === 3 ? "Generate Blog" : "Next"}
+              </Button>
+            </Flex>
           </Flex>
-        </Flex>
-      }
-      width={700}
-      centered
-      transitionName=""
-      maskTransitionName=""
-      destroyOnHidden
-      className="m-2"
-    >
-      <div
-        className="h-full !max-h-[80vh] overflow-auto"
-        style={{
-          scrollbarWidth: "none",
-        }}
+        }
+        width={700}
+        centered
+        transitionName=""
+        maskTransitionName=""
+        destroyOnHidden
+        className="m-2"
       >
-        {renderSteps()}
-      </div>
-    </Modal>
+        <div
+          className="h-full !max-h-[80vh] overflow-auto"
+          style={{
+            scrollbarWidth: "none",
+          }}
+        >
+          {renderSteps()}
+        </div>
+      </Modal>
+    </>
   )
 }
 

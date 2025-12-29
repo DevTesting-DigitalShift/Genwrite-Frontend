@@ -151,7 +151,9 @@ function parseHtmlIntoSections(htmlString) {
     const rawContent = secEl.querySelector(".section-content")?.innerHTML || ""
     const sectionContent = cleanMixedContent(rawContent)
 
-    const sectionId = generateSectionId()
+    // PRESERVE existing section ID from HTML, only generate new ID if not present
+    const existingId = secEl.getAttribute("id")
+    const sectionId = existingId || generateSectionId()
 
     // Extract section images from .section-images-wrapper
     const imagesWrapper = secEl.querySelector(".section-images-wrapper")

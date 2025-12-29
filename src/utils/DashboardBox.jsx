@@ -182,7 +182,7 @@ export const Blogs = ({ title, content, tags, item, time }) => {
 
   const handleBlogClick = () => {
     if (item && item._id) {
-      navigate(`/toolbox/${item._id}`, { state: { blog: item } })
+      navigate(`/blog/${item._id}`, { state: { blog: item } })
     }
   }
 
