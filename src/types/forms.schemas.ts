@@ -487,6 +487,9 @@ export const regenerateBlogOptionsSchema = z.object({
   includeInterlinks: z.boolean().default(false).describe("Include internal links"),
   includeCompetitorResearch: z.boolean().default(false).describe("Perform competitor research"),
   addOutBoundLinks: z.boolean().default(false).describe("Include outbound links"),
+  addCTA: z.boolean().default(false).describe("Add call-to-action"),
+  automaticPosting: z.boolean().default(false).describe("Enable automatic posting"),
+  includeTableOfContents: z.boolean().default(false).describe("Include table of contents"),
 })
 
 export const regenerateBlogSchema = z.object({
@@ -500,10 +503,15 @@ export const regenerateBlogSchema = z.object({
   aiModel: aiModelSchema.optional(),
   isCheckedGeneratedImages: z.boolean().optional(),
   imageSource: imageSourceSchema.optional(),
-  numberOfImages: z.number().min(0).max(15).default(0),
+  numberOfImages: z.number().min(0).max(20).default(0),
   isCheckedBrand: z.boolean().optional(),
   brandId: z.string().optional(),
   addCTA: z.boolean().optional(),
+  costCutter: z.boolean().default(true).describe("Use AI Flash model for 25% credit savings"),
+  isCheckedQuick: z.boolean().default(false).describe("Add quick summary section"),
+  postingDefaultType: postingTypeSchema
+    .optional()
+    .describe("Publishing platform for automatic posting"),
   options: regenerateBlogOptionsSchema,
 })
 

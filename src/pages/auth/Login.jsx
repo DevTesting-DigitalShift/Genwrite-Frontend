@@ -342,7 +342,7 @@ const Auth = ({ path }) => {
                 <div className="mt-5 pt-4 border-t border-purple-200">
                   <p className="text-xs text-gray-600 leading-relaxed">
                     Start right after signup and enjoy complete access for 3 days. Only pay if you
-                    love it. Plus, get 50% OFF with our winter sale! ❄️
+                    love it. Plus, get 50% OFF with our new year sale! ❄️
                   </p>
                 </div>
               </div>

@@ -260,9 +260,9 @@ const TextEditorSidebar = ({
           addOutBoundLinks: blog.options?.addOutBoundLinks || false,
         },
         isCheckedQuick: blog.isCheckedQuick || false,
-        wordpressPostStatus: blog.wordpressPostStatus || false,
-        postingType: blog.postingType || null,
-        includeTableOfContents: blog.includeTableOfContents || false,
+        wordpressPostStatus: blog.options?.automaticPosting || false,
+        postingType: blog.postingDefaultType || null,
+        includeTableOfContents: blog.options?.includeTableOfContents || false,
       })
     }
   }, [blog])
@@ -372,6 +372,7 @@ const TextEditorSidebar = ({
         tone: regenForm.tone,
         userDefinedLength: regenForm.userDefinedLength,
         aiModel: regenForm.aiModel,
+        costCutter: regenForm.costCutter,
         options: {
           includeFaqs: regenForm.options.includeFaqs,
           includeInterlinks: regenForm.options.includeInterlinks,
@@ -382,11 +383,9 @@ const TextEditorSidebar = ({
 
       // Only add image-related fields if images are enabled
       if (regenForm.isCheckedGeneratedImages) {
-        payload.isCheckedGeneratedImages = true
         payload.imageSource = regenForm.imageSource
         payload.numberOfImages = regenForm.numberOfImages || 0
       } else {
-        payload.isCheckedGeneratedImages = false
         payload.imageSource = "none"
       }
 
@@ -394,8 +393,9 @@ const TextEditorSidebar = ({
       if (regenForm.useBrandVoice && regenForm.brandId) {
         payload.isCheckedBrand = true
         payload.brandId = regenForm.brandId
+        // Add CTA to options if enabled
         if (regenForm.addCTA) {
-          payload.addCTA = true
+          payload.options.addCTA = true
         }
       }
 
@@ -406,16 +406,12 @@ const TextEditorSidebar = ({
 
       // Only add posting fields if enabled
       if (regenForm.wordpressPostStatus && regenForm.postingType) {
-        payload.wordpressPostStatus = true
-        payload.postingType = regenForm.postingType
+        payload.options.automaticPosting = true
+        payload.postingDefaultType = regenForm.postingType
+        // Add table of contents to options if enabled
         if (regenForm.includeTableOfContents) {
-          payload.includeTableOfContents = true
+          payload.options.includeTableOfContents = true
         }
-      }
-
-      // Only add cost cutter if enabled
-      if (regenForm.costCutter) {
-        payload.costCutter = true
       }
 
       // Validate and transform the payload
@@ -1436,7 +1432,7 @@ const TextEditorSidebar = ({
         </div>
 
         {/* Icon Navigation Bar - Premium Theme */}
-        <div className="w-16  bg-gradient-to-b from-slate-50 to-gray-100 border-l border-gray-200 flex flex-col items-center py-5 gap-2">
+        <div className="w-16 border-l border-gray-200 flex flex-col items-center py-5 gap-2">
           <div className="flex flex-col gap-2">
             {/* Collapse Button */}
             <div className="hidden md:block">

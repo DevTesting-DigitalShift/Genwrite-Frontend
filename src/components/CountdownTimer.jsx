@@ -139,7 +139,7 @@ const CountdownTimer = ({ startDate, endDate, discount = "50%" }) => {
             className="inline-flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white px-3 py-1.5 sm:px-4 sm:py-2 md:px-5 md:py-2.5 rounded-full text-xs sm:text-sm font-bold shadow-lg mb-2 sm:mb-3"
           >
             <FiGift className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5" />
-            <span className="hidden sm:inline">❄️ WINTER SALE SPECIAL ❄️</span>
+            <span className="hidden sm:inline">❄️ NEW YEAR SALE SPECIAL ❄️</span>
             <span className="sm:hidden">❄️ SPECIAL OFFER ❄️</span>
           </motion.div>
 

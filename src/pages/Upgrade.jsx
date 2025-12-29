@@ -684,7 +684,7 @@ const Upgrade = () => {
               <div className="text-2xl">⚠️</div>
               <div className="flex-1 flex-col justify-around">
                 <h4 className="text-base sm:text-lg font-bold text-amber-900 mb-2 flex items-center gap-2">
-                  ❄️ Winter Sale - Important Terms
+                  ❄️ New Year Sale - Important Terms
                 </h4>
                 <div className="space-y-1.5 text-xs sm:text-sm text-amber-800">
                   <p className="flex items-start gap-2">
@@ -708,7 +708,7 @@ const Upgrade = () => {
                   <p className="flex items-start gap-2">
                     <span className="text-lg leading-none">•</span>
                     <span>
-                      <strong className="font-bold">Limited Time:</strong> This special winter sale
+                      <strong className="font-bold">Limited Time:</strong> This special new year sale
                       offer is valid only during the promotional period shown in the countdown timer
                       above.
                     </span>

@@ -415,7 +415,9 @@ const RegenerateModal = ({
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3 mt-3">
-                <span className="text-sm font-medium text-gray-700">Add FAQs (Frequently Asked Questions)</span>
+                <span className="text-sm font-medium text-gray-700">
+                  Add FAQs (Frequently Asked Questions)
+                </span>
               </div>
               <Switch
                 checked={regenForm.options.includeFaqs}
@@ -436,7 +438,9 @@ const RegenerateModal = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3 mt-3">
                 <div>
-                  <span className="text-sm font-medium text-gray-700">Perform Competitive Research</span>
+                  <span className="text-sm font-medium text-gray-700">
+                    Perform Competitive Research
+                  </span>
                 </div>
               </div>
               <Switch
