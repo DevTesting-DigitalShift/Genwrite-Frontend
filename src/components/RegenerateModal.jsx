@@ -39,9 +39,12 @@ const RegenerateModal = ({
   const calculateRegenCost = useCallback(() => {
     const features = []
 
+    console.log(features)
+
     // Add features based on selections
     if (regenForm.useBrandVoice) features.push("brandVoice")
     if (regenForm.options.includeCompetitorResearch) features.push("competitorResearch")
+    if (regenForm.options.performKeywordResearch) features.push("keywordResearch")
     if (regenForm.options.includeFaqs) features.push("faqGeneration")
     if (regenForm.options.includeInterlinks) features.push("internalLinking")
     if (regenForm.isCheckedQuick) features.push("quickSummary")
@@ -56,7 +59,7 @@ const RegenerateModal = ({
       numberOfImages: regenForm.numberOfImages || 3,
       isCheckedBrand: regenForm.useBrandVoice,
     })
-
+    console.log(cost)
     // Apply Cost Cutter discount (25% off)
     if (regenForm.costCutter) {
       cost = Math.round(cost * 0.75)
@@ -446,6 +449,20 @@ const RegenerateModal = ({
               <Switch
                 checked={regenForm.options.includeCompetitorResearch}
                 onChange={val => updateRegenField("options.includeCompetitorResearch", val)}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3 mt-3">
+                <div>
+                  <span className="text-sm font-medium text-gray-700">
+                    Perform Keyword Research
+                  </span>
+                </div>
+              </div>
+              <Switch
+                checked={regenForm.options.performKeywordResearch}
+                onChange={val => updateRegenField("options.performKeywordResearch", val)}
               />
             </div>
 
