@@ -261,18 +261,20 @@ const Transactions = () => {
             <ArrowRight className="w-4 h-4" />
           </button>
 
-          <button
-            disabled={showTrialMessage}
-            onClick={() => navigate("/cancel-subscription")}
-            className={`flex-1 px-4 py-2 font-semibold rounded-lg shadow-sm transition duration-150 
+          {user?.subscription?.status !== "trialing" && (
+            <button
+              disabled={showTrialMessage}
+              onClick={() => navigate("/cancel-subscription")}
+              className={`flex-1 px-4 py-2 font-semibold rounded-lg shadow-sm transition duration-150 
     ${
       showTrialMessage
         ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
         : "bg-white text-gray-600 border border-gray-300 hover:bg-gray-50"
     }`}
-          >
-            Cancel Subscription
-          </button>
+            >
+              Cancel Subscription
+            </button>
+          )}
         </div>
       </motion.div>
 

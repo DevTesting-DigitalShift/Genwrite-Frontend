@@ -708,9 +708,9 @@ const Upgrade = () => {
                   <p className="flex items-start gap-2">
                     <span className="text-lg leading-none">•</span>
                     <span>
-                      <strong className="font-bold">Limited Time:</strong> This special new year sale
-                      offer is valid only during the promotional period shown in the countdown timer
-                      above.
+                      <strong className="font-bold">Limited Time:</strong> This special new year
+                      sale offer is valid only during the promotional period shown in the countdown
+                      timer above.
                     </span>
                   </p>
                 </div>
@@ -849,14 +849,14 @@ const Upgrade = () => {
       </div>
 
       {/* Cancel link (unchanged) */}
-      {user?.subscription?.plan !== "free" && (
+      {user?.subscription?.plan !== "free" && user?.subscription?.status !== "trialing" && (
         <div className="flex justify-center sm:justify-end mt-4 sm:mt-6 px-4 sm:mr-8 lg:mr-20">
           <a
             href="/cancel-subscription"
             className="text-sm font-medium text-white transition-colors 
-               bg-gradient-to-r from-blue-600 to-purple-600 
-               rounded-lg px-4 py-2 shadow-sm 
-               hover:from-blue-700 hover:to-purple-700"
+        bg-gradient-to-r from-blue-600 to-purple-600 
+        rounded-lg px-4 py-2 shadow-sm 
+        hover:from-blue-700 hover:to-purple-700"
           >
             Thinking of leaving GenWrite?
           </a>

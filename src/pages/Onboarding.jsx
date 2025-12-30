@@ -171,6 +171,14 @@ const Onboarding = () => {
     }
   }
 
+  const handleSkip = () => {
+    if (user?._id) {
+      localStorage.setItem(`hasCompletedOnboarding_${user._id}`, "true")
+    }
+    sessionStorage.setItem("justCompletedOnboarding", "true")
+    navigate("/dashboard")
+  }
+
   const steps = [
     { title: "Company Info", icon: Building2 },
     { title: "Brand Details", icon: Target },
@@ -178,7 +186,15 @@ const Onboarding = () => {
   ]
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-6">
+    <div className="min-h-screen bg-white flex items-center justify-center p-6 relative">
+      <Button
+        type="text"
+        onClick={handleSkip}
+        disabled={!user?._id}
+        className="absolute top-6 right-6 text-gray-500 hover:text-gray-900"
+      >
+        Skip
+      </Button>
       <div className="w-full max-w-xl">
         {/* Logo */}
         <div className="text-center mb-16">

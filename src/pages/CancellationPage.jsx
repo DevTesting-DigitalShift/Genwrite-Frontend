@@ -25,6 +25,7 @@ const CancellationPage = () => {
     if (
       user?.subscription?.plan === "free" ||
       ["unpaid", "cancelled"].includes(user?.subscription?.status) ||
+      user?.subscription?.status === "trialing" ||
       user?.subscription?.cancelAt
     ) {
       navigate("/dashboard", { replace: true })
