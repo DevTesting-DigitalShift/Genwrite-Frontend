@@ -177,86 +177,110 @@ const RegenerateModal = ({
                 placeholder="Blog topic..."
               />
             </div>
+
+            {/* Perform Keyword Research Toggle - below Topic */}
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-sm font-medium text-gray-700">Perform Keyword Research</span>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  AI will auto-generate title and keywords based on your topic
+                </p>
+              </div>
+              <Switch
+                checked={regenForm.options.performKeywordResearch}
+                onChange={val => updateRegenField("options.performKeywordResearch", val)}
+              />
+            </div>
+
+            {/* Only show Title input if performKeywordResearch is OFF */}
+            {!regenForm.options.performKeywordResearch && (
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">Title</label>
+                <Input
+                  size="large"
+                  value={regenForm.title}
+                  onChange={e => updateRegenField("title", e.target.value)}
+                  placeholder="Blog title..."
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Focus Keywords - Only show if performKeywordResearch is OFF */}
+          {!regenForm.options.performKeywordResearch && (
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-2 block">Title</label>
-              <Input
-                size="large"
-                value={regenForm.title}
-                onChange={e => updateRegenField("title", e.target.value)}
-                placeholder="Blog title..."
-              />
+              <label className="text-sm font-medium text-gray-700 mb-2 block">
+                Focus Keywords (max 3)
+              </label>
+              <div className="flex items-center gap-2">
+                <Input
+                  size="large"
+                  value={focusKeywordInput}
+                  onChange={e => setFocusKeywordInput(e.target.value)}
+                  onKeyDown={e =>
+                    e.key === "Enter" && (e.preventDefault(), addRegenKeyword("focus"))
+                  }
+                  placeholder="Add keyword..."
+                />
+                <Button
+                  type="primary"
+                  size="large"
+                  onClick={() => addRegenKeyword("focus")}
+                  icon={<Plus className="w-4 h-4" />}
+                />
+              </div>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {regenForm.focusKeywords.map((kw, i) => (
+                  <span
+                    key={i}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full text-sm font-medium"
+                  >
+                    {kw}
+                    <button onClick={() => removeRegenKeyword("focus", i)}>
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </span>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Focus Keywords */}
-          <div>
-            <label className="text-sm font-medium text-gray-700 mb-2 block">
-              Focus Keywords (max 3)
-            </label>
-            <div className="flex items-center gap-2">
-              <Input
-                size="large"
-                value={focusKeywordInput}
-                onChange={e => setFocusKeywordInput(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addRegenKeyword("focus"))}
-                placeholder="Add keyword..."
-              />
-              <Button
-                type="primary"
-                size="large"
-                onClick={() => addRegenKeyword("focus")}
-                icon={<Plus className="w-4 h-4" />}
-              />
+          {/* Secondary Keywords - Only show if performKeywordResearch is OFF */}
+          {!regenForm.options.performKeywordResearch && (
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">Keywords</label>
+              <div className="flex items-center gap-2">
+                <Input
+                  size="large"
+                  value={keywordInput}
+                  onChange={e => setKeywordInput(e.target.value)}
+                  onKeyDown={e =>
+                    e.key === "Enter" && (e.preventDefault(), addRegenKeyword("secondary"))
+                  }
+                  placeholder="Add keywords..."
+                />
+                <Button
+                  type="primary"
+                  size="large"
+                  onClick={() => addRegenKeyword("secondary")}
+                  icon={<Plus className="w-4 h-4" />}
+                />
+              </div>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {regenForm.keywords.map((kw, i) => (
+                  <span
+                    key={i}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-gray-600 rounded-full text-sm font-medium"
+                  >
+                    {kw}
+                    <button onClick={() => removeRegenKeyword("secondary", i)}>
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </span>
+                ))}
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {regenForm.focusKeywords.map((kw, i) => (
-                <span
-                  key={i}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full text-sm font-medium"
-                >
-                  {kw}
-                  <button onClick={() => removeRegenKeyword("focus", i)}>
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Secondary Keywords */}
-          <div>
-            <label className="text-sm font-medium text-gray-700 mb-2 block">Keywords</label>
-            <div className="flex items-center gap-2">
-              <Input
-                size="large"
-                value={keywordInput}
-                onChange={e => setKeywordInput(e.target.value)}
-                onKeyDown={e =>
-                  e.key === "Enter" && (e.preventDefault(), addRegenKeyword("secondary"))
-                }
-                placeholder="Add keywords..."
-              />
-              <Button
-                type="primary"
-                size="large"
-                onClick={() => addRegenKeyword("secondary")}
-                icon={<Plus className="w-4 h-4" />}
-              />
-            </div>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {regenForm.keywords.map((kw, i) => (
-                <span
-                  key={i}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-gray-600 rounded-full text-sm font-medium"
-                >
-                  {kw}
-                  <button onClick={() => removeRegenKeyword("secondary", i)}>
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </span>
-              ))}
-            </div>
-          </div>
+          )}
 
           {/* Tone & Length */}
           <div className="grid grid-cols-2 gap-4">
@@ -449,20 +473,6 @@ const RegenerateModal = ({
               <Switch
                 checked={regenForm.options.includeCompetitorResearch}
                 onChange={val => updateRegenField("options.includeCompetitorResearch", val)}
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3 mt-3">
-                <div>
-                  <span className="text-sm font-medium text-gray-700">
-                    Perform Keyword Research
-                  </span>
-                </div>
-              </div>
-              <Switch
-                checked={regenForm.options.performKeywordResearch}
-                onChange={val => updateRegenField("options.performKeywordResearch", val)}
               />
             </div>
 

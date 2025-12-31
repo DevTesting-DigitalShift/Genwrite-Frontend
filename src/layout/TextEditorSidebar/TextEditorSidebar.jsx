@@ -161,6 +161,7 @@ const TextEditorSidebar = ({
       includeInterlinks: false,
       includeCompetitorResearch: false,
       addOutBoundLinks: false,
+      performKeywordResearch: false,
     },
     isCheckedQuick: false,
     wordpressPostStatus: false,
@@ -258,6 +259,7 @@ const TextEditorSidebar = ({
           includeInterlinks: blog.options?.includeInterlinks || false,
           includeCompetitorResearch: blog.options?.includeCompetitorResearch || false,
           addOutBoundLinks: blog.options?.addOutBoundLinks || false,
+          performKeywordResearch: blog.options?.performKeywordResearch || false,
         },
         isCheckedQuick: blog.isCheckedQuick || false,
         wordpressPostStatus: blog.options?.automaticPosting || false,
@@ -366,9 +368,6 @@ const TextEditorSidebar = ({
       const payload = {
         createNew: true,
         topic: regenForm.topic,
-        title: regenForm.title,
-        focusKeywords: regenForm.focusKeywords,
-        keywords: regenForm.keywords,
         tone: regenForm.tone,
         userDefinedLength: regenForm.userDefinedLength,
         aiModel: regenForm.aiModel,
@@ -378,8 +377,19 @@ const TextEditorSidebar = ({
           includeInterlinks: regenForm.options.includeInterlinks,
           includeCompetitorResearch: regenForm.options.includeCompetitorResearch,
           addOutBoundLinks: regenForm.options.addOutBoundLinks,
+          performKeywordResearch: regenForm.options.performKeywordResearch,
         },
       }
+
+      // Only include title, focusKeywords, keywords if performKeywordResearch is OFF
+      // When keyword research is ON, AI will auto-generate these based on topic
+      if (!regenForm.options.performKeywordResearch) {
+        payload.title = regenForm.title
+        payload.focusKeywords = regenForm.focusKeywords
+        payload.keywords = regenForm.keywords
+      }
+
+      console.log(payload)
 
       // Only add image-related fields if images are enabled
       if (regenForm.isCheckedGeneratedImages) {
@@ -389,9 +399,11 @@ const TextEditorSidebar = ({
         payload.imageSource = "none"
       }
 
-      // Only add brand voice fields if enabled
+      // Always send isCheckedBrand based on useBrandVoice state
+      payload.isCheckedBrand = regenForm.useBrandVoice
+
+      // Only add brand voice related fields if enabled
       if (regenForm.useBrandVoice && regenForm.brandId) {
-        payload.isCheckedBrand = true
         payload.brandId = regenForm.brandId
         // Add CTA to options if enabled
         if (regenForm.addCTA) {
