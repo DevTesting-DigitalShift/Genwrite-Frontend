@@ -1,0 +1,38 @@
+User-agent: *
+Disallow: /api/
+Disallow: /private/
+Disallow: /admin/
+Disallow: /dashboard/
+Disallow: /*.json$
+Disallow: /*.ts$
+Disallow: /*.tsx$
+Disallow: /*.js$
+Disallow: /*.env$
+
+# Allow Google, Bing, etc., to index main pages
+User-agent: Googlebot
+Disallow:
+
+User-agent: Bingbot
+Disallow:
+
+# Block common scrapers and bots
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+User-agent: BLEXBot
+Disallow: /
+
+User-agent: Yandex
+Disallow: /
+
+Sitemap: https://yourdomain.com/sitemap.txt
