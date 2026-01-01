@@ -12,14 +12,11 @@ export const pricingConfig = {
     internalLinking: { label: "Internal Linking", cost: 10 },
     faqGeneration: { label: "FAQ Generation", cost: 10 },
     automaticPosting: { label: "Automatic Posting", cost: 10 },
-    quickSummary: { label: "Quick Summary", cost: 10 },
-    outboundLinks: { label: "Outbound Links", cost: 10 },
   },
   images: { stock: { featureFee: 10 }, ai: { featureFee: 20 }, upload: { perImageFee: 5 } },
   aiModels: {
     gemini: { label: "Gemini", costMultiplier: 1 },
-    chatgpt: { label: "ChatGPT", costMultiplier: 1.5 },
-    claude: { label: "Claude", costMultiplier: 2 },
+    openai: { label: "ChatGPT", costMultiplier: 1.5 },
     chatgpt: { label: "ChatGPT", costMultiplier: 1.5 },
     claude: { label: "Claude", costMultiplier: 2 },
   },
@@ -80,12 +77,6 @@ export function computeCost({
   if (options.automaticPosting || features.includes("automaticPosting")) {
     totalCost += pricingConfig.features.automaticPosting.cost
   }
-  if (options.isCheckedQuick || features.includes("quickSummary")) {
-    totalCost += pricingConfig.features.quickSummary.cost
-  }
-  if (options.addOutBoundLinks || features.includes("outboundLinks")) {
-    totalCost += pricingConfig.features.outboundLinks.cost
-  }
 
   // 4. Image Costs
   if (includeImages) {
@@ -108,3 +99,5 @@ export function computeCost({
 
   return Math.ceil(totalCost)
 }
+
+// Once one step has been run there will be no credits refunded for that step even in failure

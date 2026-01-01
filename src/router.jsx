@@ -11,11 +11,10 @@ const PrivateRoutesLayout = lazy(() => import("./layout/PrivateRoutesLayout"))
 const Dashboard = lazy(() => import("@pages/Dashboard"))
 const ToolBox = lazy(() => import("@pages/MainEditorPage"))
 const ToolboxSettings = lazy(() => import("@pages/ToolboxPage"))
-const MyProjects = lazy(() => import("@pages/MyProjects"))
+const BlogsPage = lazy(() => import("@pages/BlogsPage"))
 const PluginsMain = lazy(() => import("@pages/PluginsMain"))
 const BrandVoice = lazy(() => import("@pages/BrandVoice"))
 const jobs = lazy(() => import("@pages/Jobs"))
-const trashcan = lazy(() => import("@pages/Trashcan"))
 const pricing = lazy(() => import("@pages/Upgrade"))
 const Profile = lazy(() => import("@pages/Profile"))
 const Login = lazy(() => import("@pages/auth/Login"))
@@ -38,6 +37,8 @@ const UnsubscribeEmail = lazy(() => import("@pages/UnsubscribeEmail"))
 const EmailVerification = lazy(() => import("@pages/EmailVerification"))
 const ShopifyVerification = lazy(() => import("@pages/ShopifyVerification"))
 const PricingCalculator = lazy(() => import("@pages/PricingCalculator"))
+const ImageGallery = lazy(() => import("@pages/ImageGallery"))
+const Onboarding = lazy(() => import("@pages/Onboarding"))
 
 /**
  * Wraps a component in React.Suspense with fallback support.
@@ -83,6 +84,7 @@ const router = createBrowserRouter([
           },
           { path: "shopify-verify", element: withSuspense(ShopifyVerification) },
           { path: "pricing-calculator", element: withSuspense(PricingCalculator) },
+          { path: "onboarding", element: withSuspense(Onboarding) },
           { path: "*", element: withSuspense(ErrorPage) },
         ],
       },
@@ -94,11 +96,11 @@ const router = createBrowserRouter([
           { path: "dashboard", element: withSuspense(Dashboard) },
           { path: "toolbox", element: withSuspense(ToolboxSettings) },
           { path: "editor", element: withSuspense(ToolBox) },
-          { path: "toolbox/:id", element: withSuspense(ToolBox) },
-          { path: "blogs", element: withSuspense(MyProjects) },
+          { path: "blog/:id", element: withSuspense(ToolBox) },
+          { path: "blogs", element: withSuspense(BlogsPage) },
           { path: "integrations", element: withSuspense(PluginsMain) },
           { path: "jobs", element: withSuspense(jobs) },
-          { path: "trashcan", element: withSuspense(trashcan) },
+          { path: "trashcan", element: withSuspense(BlogsPage) },
           { path: "pricing", element: withSuspense(pricing) },
           { path: "profile", element: withSuspense(Profile) },
           { path: "brand-voice", element: withSuspense(BrandVoice) },
@@ -114,6 +116,7 @@ const router = createBrowserRouter([
           { path: "analytics", element: withSuspense(AnalyticsPage) },
           { path: "generate-metadata", element: withSuspense(GenerateMetaData) },
           { path: "prompt-content", element: withSuspense(PromptContent) },
+          { path: "image-gallery", element: withSuspense(ImageGallery) },
         ],
       },
     ],

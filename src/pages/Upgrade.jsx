@@ -10,7 +10,6 @@ import { sendStripeGTMEvent } from "@utils/stripeGTMEvents"
 import { useSelector } from "react-redux"
 import ComparisonTable from "@components/ComparisonTable"
 import { useNavigate } from "react-router-dom"
-import CountdownTimer from "@components/CountdownTimer"
 
 const PricingCard = ({
   plan,
@@ -250,15 +249,6 @@ const PricingCard = ({
           <p className="text-gray-600 text-sm leading-relaxed h-[48px] font-medium">
             {plan.description}
           </p>
-
-          {/* 30% OFF Badge */}
-          {plan.type !== "credit_purchase" && typeof displayPrice === "number" && (
-            <div className="mt-4">
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-red-200 text-red-600">
-                30% OFF {billingPeriod === "monthly" ? "FIRST MONTH" : "FIRST TIME"}
-              </span>
-            </div>
-          )}
         </div>
 
         {/* Price Section */}
@@ -294,53 +284,30 @@ const PricingCard = ({
             <div className="space-y-1">
               {typeof displayPrice === "number" && (
                 <>
-                  {/* Original Price with Strike-through */}
+                  {/* Main Price */}
                   <div className="flex items-baseline justify-center gap-1">
-                    <span className="text-2xl font-semibold text-gray-400 line-through">
+                    <span className={`text-4xl font-bold ${styles.price}`}>
                       {currency === "INR"
                         ? `₹${
                             plan[billingPeriod === "annual" ? "priceAnnualINR" : "priceMonthlyINR"]
                           }`
                         : `$${displayPrice}`}
                     </span>
-                    <span className="text-gray-400 text-sm">/month</span>
-                  </div>
-
-                  {/* Discounted Price (30% off) */}
-                  <div className="flex items-baseline gap-1">
-                    <span className={`text-4xl font-bold ${styles.price}`}>
-                      {currency === "INR"
-                        ? `₹${(
-                            plan[
-                              billingPeriod === "annual" ? "priceAnnualINR" : "priceMonthlyINR"
-                            ] * 0.7
-                          ).toFixed(0)}`
-                        : `$${(displayPrice * 0.7).toFixed(2)}`}
-                    </span>
                     <span className="text-gray-600 text-sm">/month</span>
                   </div>
 
                   {/* Billed Amount */}
-                  <div className="mt-2">
+                  <div className="mt-2 text-center">
                     <span className="text-sm font-se text-gray-500">
                       Billed{" "}
                       {currency === "INR"
                         ? `₹${Math.round(
                             plan[
                               billingPeriod === "annual" ? "priceAnnualINR" : "priceMonthlyINR"
-                            ] *
-                              (billingPeriod === "annual" ? 12 : 1) *
-                              0.7 +
-                              (billingPeriod === "annual" && 7)
+                            ] * (billingPeriod === "annual" ? 12 : 1)
                           )}`
-                        : `$${(
-                            Math.round(
-                              displayPrice * (billingPeriod === "annual" ? 12 : 1) * 0.7 * 100
-                            ) /
-                              100 +
-                            (billingPeriod === "annual" && 0.05)
-                          ).toFixed(2)}`}{" "}
-                      {billingPeriod === "annual" ? "annually" : "monthly"}
+                        : `$${(displayPrice * (billingPeriod === "annual" ? 12 : 1)).toFixed(2)}`}
+                      {billingPeriod === "annual" ? " annually" : " monthly"}
                     </span>
                   </div>
                 </>
@@ -476,6 +443,7 @@ const Upgrade = () => {
         features: [
           billingPeriod === "annual" ? "12,000 annual credits" : "1,000 monthly credits",
           "Blog generation: single, quick, multiple",
+          "upto 10 blog of 1000-words",
           "Keyword research",
           "Performance monitoring",
           "Humanize pasted content",
@@ -503,6 +471,7 @@ const Upgrade = () => {
         features: [
           "Everything in Basic, additionally:",
           billingPeriod === "annual" ? "54,000 annual credits" : "4,500 monthly credits",
+          "upto 45 blog of 1000-words",
           "Competitor analysis",
           "Retry blog",
           "Regenerate content",
@@ -511,11 +480,9 @@ const Upgrade = () => {
           "Jobs scheduling",
           "Priority support",
           "Advanced export options",
-          "Custom templates",
+          "30+ templates",
           "SEO optimization",
           "AI content suggestions",
-          "Automatic Blog Posting",
-          "Custom AI models & workflows",
           "Advanced content insights",
         ],
         cta: "Upgrade to Pro",
@@ -594,6 +561,13 @@ const Upgrade = () => {
   const countryToSend = countryMapping[currency] || "US"
 
   const handleBuy = async (plan, credits, billingPeriod) => {
+    // Check if user's email is verified before allowing purchase
+    if (user?.emailVerified === false) {
+      message.warning("Please verify your email before purchasing a plan.")
+      navigate(`/email-verify/${user.email}`, { replace: true })
+      return
+    }
+
     const stripe = await loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
     if (!stripe) {
       console.error("Stripe.js failed to load.")
@@ -637,7 +611,7 @@ const Upgrade = () => {
   const showTrialMessage = !user?.subscription?.trialOpted
 
   return (
-    <div className="pb-10 pt-5 px-4 sm:px-6 lg:px-8 mt-10">
+    <div className="pb-10 pt-5 px-3 sm:px-6 lg:px-8 mt-10">
       <Helmet>
         <title>Subscription | GenWrite</title>
       </Helmet>
@@ -661,59 +635,6 @@ const Upgrade = () => {
       </motion.div>
 
       <div className="mx-auto">
-        {/* Christmas Sale Countdown Timer Banner */}
-        <div className="max-w-6xl mx-auto mb-6 sm:mb-8 grid grid-cols-1 lg:grid-cols-2 place-content-center place-items-center gap-4 sm:gap-6">
-          <CountdownTimer
-            startDate="2025-12-01T00:00:00"
-            endDate="2026-01-01T23:59:59"
-            discount="30%"
-          />
-          {/* Important Sale Terms Notice */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-xl p-4 sm:p-5 shadow-md w-full"
-          >
-            <div className="flex items-start gap-3">
-              <div className="text-2xl">⚠️</div>
-              <div className="flex-1 flex-col justify-around">
-                <h4 className="text-base sm:text-lg font-bold text-amber-900 mb-2 flex items-center gap-2">
-                  🎅 Christmas Sale - Important Terms
-                </h4>
-                <div className="space-y-1.5 text-xs sm:text-sm text-amber-800">
-                  <p className="flex items-start gap-2">
-                    <span className="text-lg leading-none">•</span>
-                    <span>
-                      <strong className="font-bold">First-Time Subscribers Only:</strong> This 30%
-                      discount is exclusively available for new customers who have never subscribed
-                      to GenWrite before.
-                    </span>
-                  </p>
-                  <p className="flex items-start gap-2">
-                    <span className="text-lg leading-none">•</span>
-                    <span>
-                      <strong className="font-bold">First Month Only:</strong> The 30% discount
-                      applies to your{" "}
-                      <strong className="underline">first month of subscription only</strong>.
-                      Starting from the second month, you will be charged the regular subscription
-                      price.
-                    </span>
-                  </p>
-                  <p className="flex items-start gap-2">
-                    <span className="text-lg leading-none">•</span>
-                    <span>
-                      <strong className="font-bold">Limited Time:</strong> This special Christmas &
-                      New Year offer is valid only during the promotional period shown in the
-                      countdown timer above.
-                    </span>
-                  </p>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-
         {/* Global trial banner (unchanged) */}
         {/* {showTrialMessage && (
           <motion.div
@@ -805,7 +726,7 @@ const Upgrade = () => {
         </div>
 
         {/* Cards */}
-        <div className="mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 px-4">
+        <div className="mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 px-0 md:px-4">
           <AnimatePresence>
             {loading
               ? Array.from({ length: 4 }).map((_, idx) => <SkeletonCard key={idx} />)
@@ -835,7 +756,7 @@ const Upgrade = () => {
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.3 }}
-              className="mt-12 sm:mt-16 lg:mt-20 px-4 sm:px-0"
+              className="mt-12 sm:mt-16 lg:mt-20"
             >
               <ComparisonTable plans={plans} billingPeriod={billingPeriod} />
             </motion.div>
@@ -844,14 +765,14 @@ const Upgrade = () => {
       </div>
 
       {/* Cancel link (unchanged) */}
-      {user?.subscription?.plan !== "free" && (
+      {user?.subscription?.plan !== "free" && user?.subscription?.status !== "trialing" && (
         <div className="flex justify-center sm:justify-end mt-4 sm:mt-6 px-4 sm:mr-8 lg:mr-20">
           <a
             href="/cancel-subscription"
             className="text-sm font-medium text-white transition-colors 
-               bg-gradient-to-r from-blue-600 to-purple-600 
-               rounded-lg px-4 py-2 shadow-sm 
-               hover:from-blue-700 hover:to-purple-700"
+        bg-gradient-to-r from-blue-600 to-purple-600 
+        rounded-lg px-4 py-2 shadow-sm 
+        hover:from-blue-700 hover:to-purple-700"
           >
             Thinking of leaving GenWrite?
           </a>

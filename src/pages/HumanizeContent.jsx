@@ -213,10 +213,17 @@ const HumanizeContent = () => {
               {/* Original Content Panel */}
               <div className="flex flex-col border-r border-gray-200">
                 <div className="flex items-center justify-between p-4 bg-gray-50 border-b border-gray-200">
-                  <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-gray-600" />
-                    Original Content
-                  </h3>
+                  <div className="flex items-center gap-3">
+                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-gray-600" />
+                      Original Content
+                    </h3>
+                    {outputContent?.originalHumanizationScore && (
+                      <span className="px-2.5 py-1 bg-red-100 text-red-700 text-xs font-bold rounded-full border border-red-200">
+                        Score: {outputContent.originalHumanizationScore}
+                      </span>
+                    )}
+                  </div>
                   <button
                     onClick={() => handleCopy(inputContent, "original")}
                     className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
@@ -233,22 +240,31 @@ const HumanizeContent = () => {
               {/* Processed Content Panel */}
               <div className="flex flex-col">
                 <div className="flex items-center justify-between p-4 bg-blue-50 border-b border-gray-200">
-                  <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-blue-600" />
-                    Processed Content
-                  </h3>
+                  <div className="flex items-center gap-3">
+                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-blue-600" />
+                      Processed Content
+                    </h3>
+                    {outputContent?.rewrittenHumanizationScore && (
+                      <span className="px-2.5 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full border border-green-200">
+                        Score: {outputContent.rewrittenHumanizationScore}
+                      </span>
+                    )}
+                  </div>
                   <div className="flex gap-2">
                     <button
-                      onClick={() => handleCopy(outputContent, "processed")}
-                      disabled={!outputContent}
+                      onClick={() => handleCopy(outputContent?.rewrittenContent, "processed")}
+                      disabled={!outputContent?.rewrittenContent}
                       className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       title="Copy processed content"
                     >
                       <Copy className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => handleDownload(outputContent, "processed-content.txt")}
-                      disabled={!outputContent}
+                      onClick={() =>
+                        handleDownload(outputContent?.rewrittenContent, "processed-content.txt")
+                      }
+                      disabled={!outputContent?.rewrittenContent}
                       className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       title="Download processed content"
                     >
@@ -266,7 +282,7 @@ const HumanizeContent = () => {
                       </div>
                     </div>
                   ) : (
-                    outputContent
+                    outputContent?.rewrittenContent
                   )}
                 </div>
               </div>

@@ -21,7 +21,6 @@ import { Helmet } from "react-helmet"
 import { message } from "antd"
 import { FiGift } from "react-icons/fi"
 import Footer from "@components/Footer"
-import CountdownTimer from "@components/CountdownTimer"
 import IceAnimation from "@components/IceAnimation"
 
 const Auth = ({ path }) => {
@@ -110,13 +109,8 @@ const Auth = ({ path }) => {
 
           const user = data.user || data?.data?.user || data
 
-          if (!user.emailVerified) {
-            navigate(`/email-verify/${user.email}`, { replace: true })
-            return
-          }
-
           if (isSignup) {
-            navigate("/pricing", { replace: true })
+            navigate("/onboarding", { replace: true })
           } else {
             navigate("/dashboard", { replace: true })
           }
@@ -153,15 +147,9 @@ const Auth = ({ path }) => {
 
         message.success(isSignup ? "Signup successful!" : "Login successful!")
 
-        // ❗ If email not verified → block everything
-        if (!user.emailVerified) {
-          navigate(`/email-verify/${user.email}`, { replace: true })
-          return
-        }
-
         // 🔥 Your new redirect rule
         if (isSignup) {
-          navigate("/pricing", { replace: true }) // New user flow
+          navigate("/onboarding", { replace: true }) // New user onboarding flow
         } else {
           navigate("/dashboard", { replace: true }) // Returning user flow
         }
@@ -185,6 +173,16 @@ const Auth = ({ path }) => {
     setRecaptchaValue(null)
   }, [path])
 
+  // Pre-fill email from URL parameter
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const emailParam = urlParams.get("email")
+
+    if (emailParam) {
+      setFormData(prev => ({ ...prev, email: decodeURIComponent(emailParam) }))
+    }
+  }, [])
+
   const trialFeatures = [
     { icon: <PenTool className="w-4 h-4" />, text: "Advanced AI-generated blogs" },
     { icon: <Crown className="w-4 h-4" />, text: "Access to all 30+ premium templates" },
@@ -201,7 +199,7 @@ const Auth = ({ path }) => {
   return (
     <div className="min-h-screen relative  bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50">
       {/* Ice Animation */}
-      <IceAnimation density={30} />
+      {/* <IceAnimation density={30} /> */}
 
       <Helmet>
         <title>{isSignup ? "Sign Up" : "Sign In"} | GenWrite</title>
@@ -232,25 +230,6 @@ const Auth = ({ path }) => {
           transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
           className="hidden lg:block absolute bottom-1/3 left-1/3 w-32 h-32 bg-blue-500/5 rounded-full"
         />
-
-        {/* Christmas decorations with purple/blue tint - smaller and repositioned on mobile */}
-        <div
-          className="absolute top-20 left-4 md:left-10 text-3xl md:text-6xl opacity-10 md:opacity-15"
-          style={{ filter: "hue-rotate(240deg)" }}
-        >
-          🎄
-        </div>
-        <div
-          className="absolute top-1/3 right-4 md:right-20 text-2xl md:text-5xl opacity-8 md:opacity-10"
-          style={{ filter: "hue-rotate(240deg)" }}
-        >
-          🎁
-        </div>
-        <div className="hidden md:block absolute bottom-1/4 left-1/4 text-5xl opacity-12">⭐</div>
-        <div className="hidden md:block absolute top-2/3 right-1/3 text-4xl opacity-15">🔔</div>
-        <div className="absolute bottom-40 right-4 md:right-10 text-3xl md:text-6xl opacity-15 md:opacity-20 text-blue-300">
-          ❄️
-        </div>
       </div>
 
       {/* Logo */}
@@ -261,7 +240,7 @@ const Auth = ({ path }) => {
         className="absolute top-4 md:top-8 left-1/2 transform -translate-x-1/2 z-20"
       >
         <img
-          src="/Images/logo_genwrite_2.png"
+          src="/Images/logo_genwrite_2.webp"
           alt="GenWrite Logo"
           className="w-32 md:w-40 h-auto"
         />
@@ -269,101 +248,106 @@ const Auth = ({ path }) => {
 
       <div className="flex items-center justify-center min-h-screen px-4 pt-20 md:pt-28 pb-8">
         <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-6 lg:gap-12 items-start">
-          {/* Left Side - Countdown + Subscription Features */}
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="lg:hidden mb-6" /* mobile-only */
-          >
-            <CountdownTimer
-              startDate="2025-12-01T00:00:00"
-              endDate="2026-01-01T23:59:59"
-              discount="30%"
-            />
-          </motion.div>
-
           {/* Desktop-only left section */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
-            className="hidden lg:block space-y-6"
+            className="hidden lg:block space-y-8"
           >
-            <CountdownTimer
-              startDate="2025-12-01T00:00:00"
-              endDate="2026-01-01T23:59:59"
-              discount="30%"
-            />
+            {/* Main Hero Message */}
+            <div className="space-y-4">
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.2 }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-100 text-purple-700 text-sm font-semibold border border-purple-200"
+              >
+                <Sparkles className="w-4 h-4 fill-purple-700" />
+                <span>The Future of Content Creation</span>
+              </motion.div>
+              <h1 className="text-5xl font-extrabold text-gray-900 leading-[1.1]">
+                Scale your SEO with <br />
+                <span className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                  Agentic AI Intelligence
+                </span>
+              </h1>
+              <p className="text-lg text-gray-600 max-w-lg leading-relaxed">
+                Generate high-quality, human-like blog posts that rank. Join thousands of creators
+                automating their content workflow.
+              </p>
+            </div>
 
+            {/* Why GenWrite Feature Grid */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.4 }}
-              className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl p-5 shadow-lg backdrop-blur-sm bg-opacity-95"
+              className="grid grid-cols-2 gap-4"
             >
-              <h3 className="text-white font-bold text-lg mb-3 flex items-center gap-2">
-                <Sparkles className="w-5 h-5" />
-                Why GenWrite?
-              </h3>
-              <div className="grid grid-cols-3 gap-3">
-                {quickFeatures.map((feature, index) => (
-                  <motion.div
-                    key={index}
-                    whileHover={{ scale: 1.05, y: -2 }}
-                    className="bg-white/15 backdrop-blur-sm rounded-xl p-3 text-center"
-                  >
-                    <div className="w-8 h-8 bg-white/25 rounded-lg flex items-center justify-center text-white mx-auto mb-2">
-                      {feature.icon}
-                    </div>
-                    <p className="text-white text-xs font-medium leading-tight">{feature.text}</p>
-                  </motion.div>
-                ))}
-              </div>
+              {quickFeatures.map((feature, index) => (
+                <motion.div
+                  key={index}
+                  whileHover={{ scale: 1.02, y: -4 }}
+                  className="bg-white/60 backdrop-blur-md rounded-2xl p-5 border border-white shadow-sm hover:shadow-md transition-all duration-300"
+                >
+                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-xl flex items-center justify-center text-purple-600 mb-3 border border-purple-100">
+                    {feature.icon}
+                  </div>
+                  <h4 className="font-bold text-gray-900 mb-1">{feature.text}</h4>
+                  <p className="text-xs text-gray-500 leading-relaxed">
+                    Designed for maximum performance and readability.
+                  </p>
+                </motion.div>
+              ))}
+              {/* Extra Feature for Grid Balance */}
+              <motion.div
+                whileHover={{ scale: 1.02, y: -4 }}
+                className="bg-white/60 backdrop-blur-md rounded-2xl p-5 border border-white shadow-sm hover:shadow-md transition-all duration-300"
+              >
+                <div className="w-10 h-10 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 rounded-xl flex items-center justify-center text-emerald-600 mb-3 border border-emerald-100">
+                  <FaShieldAlt className="w-5 h-5" />
+                </div>
+                <h4 className="font-bold text-gray-900 mb-1">Secure & Reliable</h4>
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  Enterprise-grade security for your brand's content.
+                </p>
+              </motion.div>
             </motion.div>
-            {/* 7-day trial card */}
+
+            {/* 3-day trial card */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="relative bg-white/85 backdrop-blur-lg rounded-2xl p-6 border-2 border-purple-200/50 shadow-lg "
+              transition={{ duration: 0.5, delay: 0.6 }}
+              className="relative bg-gradient-to-br from-purple-600 to-indigo-700 rounded-3xl p-8 border border-white/20 shadow-2xl overflow-hidden group"
             >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-300/15 to-blue-300/15 rounded-full blur-2xl -translate-y-8 translate-x-8" />
+              {/* Abstract Patterns */}
+              <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-3xl -translate-y-12 translate-x-12 group-hover:bg-white/20 transition-all duration-500" />
+              <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-400/20 rounded-full blur-2xl translate-y-8 -translate-x-8" />
 
               <div className="relative z-10">
-                <div className="flex items-start gap-4 mb-4">
-                  <div className="w-14 h-14 bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg">
-                    <FiGift className="w-7 h-7 text-white" />
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-14 h-14 bg-white/20 backdrop-blur-lg rounded-2xl flex items-center justify-center border border-white/30 shadow-inner">
+                    <FiGift className="w-8 h-8 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-1">
-                      Try Premium Plan FREE for 3 Days
-                    </h3>
-                    <p className="text-sm text-purple-700 font-semibold">
-                      No credit card • Cancel anytime • Full access
+                    <h3 className="text-2xl font-bold text-white mb-0.5">Start 3-Day Free Trial</h3>
+                    <p className="text-purple-100 text-sm font-medium opacity-90">
+                      No credit card required • Immediate access
                     </p>
                   </div>
                 </div>
-                <div className="space-y-2.5">
+
+                <div className="grid grid-cols-2 gap-y-4 gap-x-6">
                   {trialFeatures.map((feature, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.3, delay: 0.3 + index * 0.05 }}
-                      className="flex items-center gap-2 text-sm text-gray-700"
-                    >
-                      <div className="w-6 h-6 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center text-white flex-shrink-0">
-                        {feature.icon}
+                    <div key={index} className="flex items-center gap-3 text-sm text-white/90">
+                      <div className="w-5 h-5 bg-white/20 rounded-md flex items-center justify-center text-white/90">
+                        <CheckCircle className="w-3.5 h-3.5" />
                       </div>
-                      <span>{feature.text}</span>
-                    </motion.div>
+                      <span className="font-medium">{feature.text}</span>
+                    </div>
                   ))}
-                </div>
-                <div className="mt-5 pt-4 border-t border-purple-200">
-                  <p className="text-xs text-gray-600 leading-relaxed">
-                    Start right after signup and enjoy complete access for 3 days. Only pay if you
-                    love it. Plus, get 30% OFF with our Christmas special! 🎄
-                  </p>
                 </div>
               </div>
             </motion.div>
@@ -714,12 +698,6 @@ const Auth = ({ path }) => {
                     <CheckCircle className="w-3 h-3 text-green-500" />
                     <span>3-Day Trial</span>
                   </div>
-                  {isSignup && (
-                    <div className="flex items-center gap-1">
-                      <FiGift className="w-3 h-3 text-purple-500" />
-                      <span>30% Off Sale</span>
-                    </div>
-                  )}
                 </div>
               </motion.div>
             </div>

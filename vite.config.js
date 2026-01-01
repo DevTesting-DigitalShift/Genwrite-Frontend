@@ -16,10 +16,11 @@ export default defineConfig({
     host: true,
     port: 5174,
     // Optimize dev server
-    hmr: {
-      host: "distinguishingly-postpeduncular-annalisa.ngrok-free.dev",
-      protocol: "wss",
-    },
+    hmr: true,
+    // hmr: {
+    //   host: "distinguishingly-postpeduncular-annalisa.ngrok-free.dev",
+    //   protocol: "wss",
+    // },
   },
   resolve: {
     alias: {
@@ -67,8 +68,6 @@ export default defineConfig({
       "marked",
       "dompurify",
     ],
-    exclude: [
-      // Exclude these from pre-bundling if they cause issues
-    ],
+    exclude: ["lexical", "lexical-react"],
   },
 })

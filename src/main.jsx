@@ -24,15 +24,22 @@ async function cleanupIOSServiceWorkers() {
   }
 }
 
-if (import.meta.env.PROD && "serviceWorker" in navigator) {
-  if (isIOS) {
-    // HARD STOP: iOS cleanup only
-    cleanupIOSServiceWorkers()
-  } else {
-    // Desktop + Android only
-    window.addEventListener("load", () => {
-      navigator.serviceWorker.register("/sw.js")
+// if (import.meta.env.PROD && "serviceWorker" in navigator) {
+//   navigator.serviceWorker.register("/sw.js")
+// }
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.getRegistrations().then(registrations => {
+    for (const registration of registrations) {
+      registration.unregister()
+    }
+  })
+
+  if ("caches" in window) {
+    caches.keys().then(keys => {
+      keys.forEach(key => caches.delete(key))
     })
+    // window.location.reload(true)
   }
 }
 

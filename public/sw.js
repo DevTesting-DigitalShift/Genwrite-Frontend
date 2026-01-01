@@ -1,72 +1,96 @@
-// =======================================
-// SAFARI-SAFE STATIC SERVICE WORKER
-// =======================================
+// ==================================================
+// HARD RESET PRODUCTION SERVICE WORKER (Vite / React)
+// ==================================================
 
-const CACHE_NAME = "static-assets-v1"
+// Unique cache per deployment (scope changes on redeploy)
+const CACHE_NAME = `app-static-${self.registration.scope}`
 
+// Immutable assets only (hashed by Vite)
 const IMMUTABLE_EXTENSIONS = [".js", ".css", ".woff2", ".png", ".jpg", ".jpeg", ".svg", ".webp"]
 
-// --------------------
-// INSTALL
-// --------------------
+// --------------------------------------------------
+// INSTALL: Activate immediately
+// --------------------------------------------------
 self.addEventListener("install", () => {
-  // Do NOT call skipWaiting on Safari-sensitive SWs
+  self.skipWaiting()
 })
 
-// --------------------
-// ACTIVATE
-// --------------------
-self.addEventListener("activate", event => {
-  event.waitUntil(
-    (async () => {
-      const names = await caches.keys()
-      await Promise.all(names.filter(name => name !== CACHE_NAME).map(name => caches.delete(name)))
+// --------------------------------------------------
+// ACTIVATE: FULL PURGE of old data
+// --------------------------------------------------
 
-      // Claim without forcing reloads
-      await self.clients.claim()
-    })()
-  )
+self.addEventListener("activate", async () => {
+  const keys = await caches.keys()
+  await Promise.all(keys.map(k => caches.delete(k)))
+  await self.clients.claim()
 })
 
-// --------------------
-// FETCH
-// --------------------
-self.addEventListener("fetch", event => {
-  const { request } = event
+// self.addEventListener("activate", event => {
+//   event.waitUntil(
+//     (async () => {
+//       // 1. Delete ALL existing caches
+//       const cacheNames = await caches.keys()
+//       await Promise.all(cacheNames.map(name => caches.delete(name)))
 
-  // Never touch non-GET
-  if (request.method !== "GET") return
+//       // 2. Take control of all open clients immediately
+//       await self.clients.claim()
 
-  // Never touch HTML / navigation
-  if (request.destination === "document") return
+//       // 3. Force all tabs to reload latest version
+//       const clients = await self.clients.matchAll({ type: "window" })
+//       clients.forEach(client => {
+//         client.navigate(client.url)
+//       })
+//     })()
+//   )
+// })
 
-  // Never touch API / auth
-  const url = new URL(request.url)
-  if (url.pathname.startsWith("/api") || url.origin !== self.location.origin) {
-    return
-  }
+// --------------------------------------------------
+// FETCH HANDLER
+// --------------------------------------------------
+// self.addEventListener("fetch", event => {
+//   const { request } = event
+//   const url = new URL(request.url)
 
-  // Static assets only
-  if (
-    ["script", "style", "font", "image"].includes(request.destination) &&
-    IMMUTABLE_EXTENSIONS.some(ext => url.pathname.endsWith(ext))
-  ) {
-    event.respondWith(cacheFirst(request))
-  }
-})
+//   // ---- NEVER INTERCEPT NON-GET ----
+//   if (request.method !== "GET") return
 
-// --------------------
-// CACHE-FIRST
-// --------------------
-async function cacheFirst(request) {
-  const cache = await caches.open(CACHE_NAME)
-  const cached = await cache.match(request)
-  if (cached) return cached
+//   // ---- NEVER CACHE HTML ----
+//   if (request.destination === "document") {
+//     event.respondWith(fetch(request, { cache: "no-store" }))
+//     return
+//   }
 
-  const response = await fetch(request)
-  if (response && response.ok && response.type === "basic") {
-    cache.put(request, response.clone())
-  }
+//   // ---- NEVER CACHE API / AUTH ----
+//   if (url.pathname.startsWith("/api") || url.origin.includes("api.")) {
+//     return
+//   }
 
-  return response
-}
+//   // ---- CACHE IMMUTABLE STATIC ASSETS ----
+//   if (
+//     request.destination === "script" ||
+//     request.destination === "style" ||
+//     request.destination === "font" ||
+//     request.destination === "image"
+//   ) {
+//     if (IMMUTABLE_EXTENSIONS.some(ext => url.pathname.endsWith(ext))) {
+//       event.respondWith(cacheFirst(request))
+//     }
+//   }
+// })
+
+// --------------------------------------------------
+// CACHE-FIRST STRATEGY
+// --------------------------------------------------
+// async function cacheFirst(request) {
+//   const cache = await caches.open(CACHE_NAME)
+//   const cached = await cache.match(request)
+
+//   if (cached) return cached
+
+//   const response = await fetch(request)
+//   if (response && response.status === 200) {
+//     cache.put(request, response.clone())
+//   }
+
+//   return response
+// }

@@ -1,0 +1,41 @@
+# =============================================================================
+# GenWrite Frontend - Docker Compose (Development)
+# =============================================================================
+# Development configuration with hot reload
+# Usage: docker compose -f docker-compose.dev.yml up
+# =============================================================================
+
+services:
+  frontend-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: genwrite-frontend-dev
+    ports:
+      - "5174:5174"
+    volumes:
+      # Mount source code for hot reload
+      - ./src:/app/src:ro
+      - ./public:/app/public:ro
+      - ./index.html:/app/index.html:ro
+      - ./vite.config.js:/app/vite.config.js:ro
+      - ./tailwind.config.js:/app/tailwind.config.js:ro
+      - ./postcss.config.js:/app/postcss.config.js:ro
+      - ./tsconfig.json:/app/tsconfig.json:ro
+      - ./jsconfig.json:/app/jsconfig.json:ro
+    env_file:
+      - .env
+    # Keep stdin open for interactive mode
+    stdin_open: true
+    tty: true
+    # Restart policy
+    restart: unless-stopped
+    # Development-specific environment
+    environment:
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true # Needed for file watching in Docker
+
+networks:
+  default:
+    name: genwrite-dev-network
+    driver: bridge

@@ -5,7 +5,6 @@ import { message } from "antd"
 export const createQuickBlog = async (blogData, type) => {
   try {
     const endpoint = type === "yt" ? "/blogs/yt" : "/blogs/quick"
-
     const response = await axiosInstance.post(endpoint, blogData)
     return response.data.blog
   } catch (error) {
@@ -24,7 +23,6 @@ export const createBlog = async blogData => {
     const finalData = Object.fromEntries(
       Object.entries(restData).filter(([_, v]) => v !== null && v !== undefined)
     )
-
     // Append normal data
     formData.append("data", JSON.stringify(finalData))
 
@@ -221,5 +219,18 @@ export const getBlogPostings = async blogId => {
     return response.data.postings || []
   } catch (error) {
     throw new Error(error.response?.data?.message || "Failed to fetch blog postings")
+  }
+}
+
+export const exportBlogAsPdf = async id => {
+  try {
+    const response = await axiosInstance.get(`/blogs/${id}/export`, {
+      params: { type: "pdf" },
+      responseType: "blob", // ✅ correct
+    })
+
+    return response.data
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to export PDF")
   }
 }

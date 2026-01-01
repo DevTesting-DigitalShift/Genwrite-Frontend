@@ -7,7 +7,7 @@ import { useDispatch, useSelector } from "react-redux"
 import { retryBlog } from "@store/slices/blogSlice"
 
 import ImageGenerationModal from "../generateBlog/Editor/ImageGenerationModal"
-import ChatBox from "../generateBlog/ChatBox"
+// import ChatBox from "../generateBlog/ChatBox"
 
 const SmallBottomBox = ({ id }) => {
   const [isModalOpen, setModalOpen] = useState(false)
@@ -15,7 +15,7 @@ const SmallBottomBox = ({ id }) => {
   const { handlePopup } = useConfirmPopup()
   const navigate = useNavigate()
   const dispatch = useDispatch()
-  const user = useSelector((state) => state.auth.user)
+  const user = useSelector(state => state.auth.user)
   const userPlan = user?.plan ?? user?.subscription?.plan
 
   const closeModal = () => setModalOpen(false)
@@ -83,7 +83,7 @@ const SmallBottomBox = ({ id }) => {
 
       {/* Modals */}
       {isModalOpen && <ImageGenerationModal onClose={closeModal} />}
-      <ChatBox isOpen={isChatOpen} onClose={closeChat} />
+      {/* <ChatBox isOpen={isChatOpen} onClose={closeChat} /> */}
     </>
   )
 }

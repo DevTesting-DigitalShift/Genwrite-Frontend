@@ -76,7 +76,7 @@ const StepContent = ({
         blogs: {
           ...prev.blogs,
           isCheckedGeneratedImages: false,
-          imageSource: "unsplash",
+          imageSource: "stock",
         },
       }))
     }
@@ -84,15 +84,15 @@ const StepContent = ({
 
   const imageSources = [
     {
-      id: "unsplash",
+      id: "stock",
       label: "Stock Images",
-      value: "unsplash",
+      value: "stock",
       restricted: false,
     },
     {
-      id: "ai-generated",
+      id: "ai",
       label: "AI-Generated Images",
-      value: "ai-generated",
+      value: "ai",
       restricted: userPlan === "free",
       featureName: "AI-Generated Images",
       isAiImagesLimitReached,
@@ -104,21 +104,21 @@ const StepContent = ({
       id: "gemini",
       label: "Gemini",
       value: "gemini",
-      logo: "/Images/gemini.png",
+      logo: "/Images/gemini.webp",
       restricted: false,
     },
     {
-      id: "chatgpt",
+      id: "openai",
       label: "ChatGPT (Open AI)",
       value: "openai",
-      logo: "/Images/chatgpt.png",
+      logo: "/Images/chatgpt.webp",
       featureName: "ChatGPT (Open AI)",
     },
     {
       id: "claude",
       label: "Claude",
       value: "claude",
-      logo: "/Images/claude.png",
+      logo: "/Images/claude.webp",
       featureName: "Claude",
     },
   ]
@@ -372,7 +372,7 @@ const StepContent = ({
       blogs: {
         ...prev.blogs,
         imageSource: source,
-        isUnsplashActive: source === "unsplash",
+        isstockActive: source === "stock",
       },
     }))
     setErrors(prev => ({ ...prev, imageSource: false })) // Clear error
@@ -1012,7 +1012,7 @@ const StepContent = ({
                       blogs: {
                         ...prev.blogs,
                         isCheckedGeneratedImages: checked,
-                        imageSource: checked ? prev.blogs.imageSource : "unsplash",
+                        imageSource: checked ? prev.blogs.imageSource : "stock",
                       },
                     }))
                   }}
@@ -1198,9 +1198,9 @@ const StepContent = ({
             {/* Responsive grid: 1 col (mobile), 2 cols (tablet), 3 cols (desktop) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
               {[
-                { id: "gemini", label: "Gemini", logo: "/Images/gemini.png", restricted: false },
-                { id: "chatgpt", label: "ChatGPT", logo: "/Images/chatgpt.png" },
-                { id: "claude", label: "Claude", logo: "/Images/claude.png" },
+                { id: "gemini", label: "Gemini", logo: "/Images/gemini.webp", restricted: false },
+                { id: "openai", label: "ChatGPT", logo: "/Images/chatgpt.webp" },
+                { id: "claude", label: "Claude", logo: "/Images/claude.webp" },
               ].map(model => (
                 <label
                   key={model.id}
@@ -1534,6 +1534,7 @@ const StepContent = ({
               label="Write with Brand Voice"
               labelClass="text-sm font-medium text-gray-700"
               errorText={errors.brandId}
+              size="large"
               value={{
                 isCheckedBrand: newJob.blogs.useBrandVoice,
                 brandId: newJob.blogs.brandId,

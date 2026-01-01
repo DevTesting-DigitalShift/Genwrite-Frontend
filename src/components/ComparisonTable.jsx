@@ -36,6 +36,11 @@ const ComparisonTable = ({ plans }) => {
         {
           name: "AI-generated blogs",
           available: ["basic", "pro", "enterprise", "credits"],
+          details: {
+            basic: "upto 10 Blogs",
+            pro: "upto 45 Blogs",
+            enterprise: "Custom Blogs",
+          },
         },
         {
           name: "AI images with blogs",
@@ -121,7 +126,7 @@ const ComparisonTable = ({ plans }) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="mx-auto py-8 sm:py-10 md:py-12 px-4 sm:px-6 md:px-8 rounded-2xl"
+      className="mx-auto pt-0 md:py-8 sm:py-10 lg:py-12 px-0 sm:px-6 md:px-8 rounded-2xl"
     >
       <div className="rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">

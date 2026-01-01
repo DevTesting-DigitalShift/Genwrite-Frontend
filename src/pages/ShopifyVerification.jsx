@@ -30,9 +30,6 @@ const ShopifyVerification = () => {
         // This handles the generation and refreshing automatically.
         // @ts-ignore
         const token = await window.shopify.idToken()
-
-        // 2. Call your backend with the token
-        console.log(token)
         const res = await axiosInstance.post("/callbacks/verify", {
           type: "SHOPIFY",
           token,
@@ -40,8 +37,8 @@ const ShopifyVerification = () => {
         if (res.status == 200) {
           console.log(res.data)
           setVerified(true)
-          setError(null)
           setBlogData(res.data.blogs)
+          setError(null)
         } else {
           console.error("Auth failed")
         }
@@ -61,8 +58,6 @@ const ShopifyVerification = () => {
 
     return () => window.removeEventListener("shopify.loaded", init)
   }, [])
-
-  // Table columns configuration
 
   const columns = [
     {
@@ -102,7 +97,7 @@ const ShopifyVerification = () => {
           <Button
             type="link"
             icon={<EyeOutlined />}
-            onClick={() => window.open(`/toolbox/${record.blogId._id}`, "_blank")}
+            onClick={() => window.open(`/blog/${record.blogId._id}`, "_blank")}
           >
             View in Editor
           </Button>

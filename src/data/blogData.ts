@@ -1,3 +1,15 @@
+// Image Source Types must be defined before usage
+export const IMAGE_SOURCE = Object.freeze({
+  NONE: "none",
+  STOCK: "stock",
+  AI: "ai",
+  UPLOAD: "upload",
+})
+
+export const IMAGE_SOURCE_VALUES = Object.freeze(Object.values(IMAGE_SOURCE))
+
+export const DEFAULT_IMAGE_SOURCE = IMAGE_SOURCE.NONE
+
 export const TONES = [
   "Casual",
   "Conversational",
@@ -11,38 +23,49 @@ export const TONES = [
   "Witty",
 ]
 
+export const LANGUAGES = [
+  { value: "English", label: "English" },
+  { value: "Spanish", label: "Spanish" },
+  { value: "German", label: "German" },
+  { value: "French", label: "French" },
+  { value: "Italian", label: "Italian" },
+  { value: "Portuguese", label: "Portuguese" },
+  { value: "Dutch", label: "Dutch" },
+  { value: "Japanese", label: "Japanese" },
+]
+
 export const AI_MODELS = [
   {
     id: "gemini",
     label: "Gemini",
-    logo: "/Images/gemini.png",
+    logo: "/Images/gemini.webp",
   },
   {
-    id: "chatgpt",
+    id: "openai",
     label: "ChatGPT",
-    logo: "/Images/chatgpt.png",
+    logo: "/Images/chatgpt.webp",
   },
   {
     id: "claude",
     label: "Claude",
-    logo: "/Images/claude.png",
+    logo: "/Images/claude.webp",
   },
 ]
 
 export const IMAGE_OPTIONS = [
   {
-    id: "unsplash",
+    id: IMAGE_SOURCE.STOCK,
     label: "Stock Images",
     restrict: false,
   },
   {
-    id: "ai-generated",
+    id: IMAGE_SOURCE.AI,
     label: "AI-Generated Images",
     restrict: true,
   },
   {
-    id: "custom",
-    label: "Custom Images",
+    id: IMAGE_SOURCE.UPLOAD,
+    label: "Upload Images",
     restrict: true,
   },
 ]

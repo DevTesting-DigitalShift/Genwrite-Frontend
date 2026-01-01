@@ -231,7 +231,7 @@ const Trashcan = () => {
 
   const handleBlogClick = useCallback(
     blog => {
-      navigate(`/toolbox/${blog._id}`)
+      navigate(`/blog/${blog._id}`)
     },
     [navigate]
   )
@@ -370,7 +370,7 @@ const Trashcan = () => {
             className="flex flex-col justify-center items-center"
             style={{ minHeight: "calc(100vh - 250px)" }}
           >
-            <img src="Images/trash-can.png" alt="Trash" className="w-20 sm:w-24" />
+            <img src="Images/trash-can.webp" alt="Trash" className="w-20 sm:w-24" />
             <p className="text-lg sm:text-xl mt-5 text-gray-600">No trashed blogs available.</p>
           </motion.div>
         ) : (
@@ -407,7 +407,7 @@ const Trashcan = () => {
                             <img
                               src={`./Images/${
                                 isGemini ? "gemini" : aiModel === "claude" ? "claude" : "chatgpt"
-                              }.png`}
+                              }.webp`}
                               alt={
                                 isGemini ? "Gemini" : aiModel === "claude" ? "Claude" : "ChatGPT"
                               }
@@ -467,7 +467,7 @@ const Trashcan = () => {
                               {title}
                             </h3>
                             <p className="text-xs sm:text-sm text-gray-600 mb-4 line-clamp-3 break-all">
-                              {truncateContent(stripMarkdown(content)) || ""}
+                              {truncateContent(stripMarkdown(blog.content)) || ""}
                             </p>
                           </div>
                         </div>

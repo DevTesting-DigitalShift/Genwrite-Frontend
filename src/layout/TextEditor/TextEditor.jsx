@@ -1,65 +1,324 @@
-import React, { useState, useEffect, useRef, useLayoutEffect, useMemo, useCallback } from "react"
-import { useEditor, EditorContent } from "@tiptap/react"
-import { BubbleMenu } from "@tiptap/react/menus"
-import StarterKit from "@tiptap/starter-kit"
-import Image from "@tiptap/extension-image"
-import TextAlign from "@tiptap/extension-text-align"
-import { motion } from "framer-motion"
-import DOMPurify from "dompurify"
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
+import { motion, Reorder } from "framer-motion"
 import {
-  Bold,
-  Italic,
-  Underline as IconUnderline,
-  List,
-  ListOrdered,
-  Heading1,
-  Heading2,
-  Heading3,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
-  Link as LinkIcon,
-  Image as ImageIcon,
-  Undo2,
-  Redo2,
-  RotateCcw,
   Copy,
+  Eye,
+  Edit3,
+  RefreshCw,
+  Plus,
   Trash2,
+  Info,
+  Check,
+  Image as ImageIcon,
 } from "lucide-react"
-import { useDispatch, useSelector } from "react-redux"
-import { Input, Modal, Tooltip, message, Select, Button } from "antd"
-import { marked } from "marked"
+import { useSelector } from "react-redux"
+import { Modal, Tooltip, message, Button, Input, Popover } from "antd"
+
+const { TextArea } = Input
 import TurndownService from "turndown"
 import { useBlocker, useLocation, useNavigate } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
-import { ProofreadingDecoration } from "@/extensions/ProofreadingDecoration"
-import { ReloadOutlined } from "@ant-design/icons"
-import { sendRetryLines } from "@api/blogApi"
-import { retryBlog } from "@store/slices/blogSlice"
-import { createPortal } from "react-dom"
-import { getLinkPreview } from "link-preview-js"
-import { useQueryClient } from "@tanstack/react-query"
-import { useProofreadingUI } from "@/layout/Editor/useProofreadingUI"
-import ContentDiffViewer from "../Editor/ContentDiffViewer"
 import "./editor.css"
-import { VideoEmbed } from "@/extensions/VideoEmbed"
 import LoadingScreen from "@components/UI/LoadingScreen"
-import { computeCost } from "@/data/pricingConfig"
+import showdown from "showdown"
+import SectionCard from "./SectionCard"
+import { EditorProvider } from "./EditorContext"
+import InlineEditor from "./InlineEditor"
 
-import { Table } from "@tiptap/extension-table"
-import TableRow from "@tiptap/extension-table-row"
-import TableCell from "@tiptap/extension-table-cell"
-import TableHeader from "@tiptap/extension-table-header"
+// Configure showdown for better image handling
+showdown.setOption("tables", true)
+showdown.setOption("tasklists", true)
+showdown.setOption("simpleLineBreaks", true)
+showdown.setOption("openLinksInNewWindow", true)
+showdown.setOption("emoji", true)
 
-const FONT_OPTIONS = [
-  { label: "Arial", value: "font-arial" },
-  { label: "Georgia", value: "font-georgia" },
-  { label: "Mono", value: "font-mono" },
-  { label: "Comic Sans", value: "font-comic" },
-]
+// Generate unique custom ID for sections
+function generateSectionId() {
+  const timestamp = Date.now().toString(36)
+  const randomStr = Math.random().toString(36).substring(2, 8)
+  return `sec-${timestamp}-${randomStr}`
+}
+
+// Convert HTML → Markdown for saving
+function htmlToMarkdownSection(html) {
+  if (!html) return ""
+  const turndownService = new TurndownService({
+    headingStyle: "atx",
+    bulletListMarker: "-",
+  })
+  turndownService.keep(["p", "div", "iframe", "table", "tr", "th", "td", "img"])
+  return turndownService.turndown(html)
+}
+
+// Strip HTML tags from text for clean display
+function stripHtml(html) {
+  if (!html) return ""
+  const doc = new DOMParser().parseFromString(html, "text/html")
+  return doc.body.textContent || ""
+}
+
+// Helper function to convert markdown to HTML
+function convertMarkdownToHtml(text) {
+  if (!text) return text
+
+  const converter = new showdown.Converter({
+    tables: true,
+    tasklists: true,
+    simpleLineBreaks: true,
+    openLinksInNewWindow: true,
+    emoji: true,
+  })
+
+  return converter.makeHtml(text)
+}
+
+// Helper function to clean mixed markdown/HTML content
+function cleanMixedContent(content) {
+  if (!content) return content
+
+  // Check if content has markdown syntax (**, !, [], etc.)
+  const hasMarkdown = /\*\*|__|\!\[|\]\(|^\s*#{1,6}\s/m.test(content)
+
+  if (hasMarkdown) {
+    // Convert markdown to HTML
+    return convertMarkdownToHtml(content)
+  }
+
+  return content
+}
+
+// Parse HTML article content into sections based on blog HTML class structure
+function parseHtmlIntoSections(htmlString) {
+  if (!htmlString)
+    return {
+      title: "",
+      description: "",
+      thumbnail: null,
+      sections: [],
+      sectionImages: [],
+      faq: null,
+      cta: null,
+      quickSummary: null,
+    }
+
+  const parser = new DOMParser()
+  const doc = parser.parseFromString(htmlString, "text/html")
+
+  let title = ""
+  let description = ""
+  let thumbnail = null
+  const sections = []
+  const sectionImages = []
+  let faq = null
+  let cta = null
+  let quickSummary = null
+
+  // Extract title from .blog-title or h1.heading-1
+  const titleEl = doc.querySelector(".blog-title, h1.heading-1")
+  if (titleEl) {
+    title = titleEl.textContent?.trim() || ""
+  }
+
+  // Extract description from .blog-description or .meta-description
+  const descEl = doc.querySelector(".blog-description, .meta-description")
+  if (descEl) {
+    description = cleanMixedContent(descEl.innerHTML || "")
+  }
+
+  // Extract Main Image (Figure) - DO NOT add to sections, handle separately
+  const mainImageEl = doc.querySelector("figure.section-thumbnail, figure.thumbnail-main")
+  if (mainImageEl) {
+    // Extract image data
+    const imgEl = mainImageEl.querySelector("img")
+    if (imgEl) {
+      thumbnail = {
+        url: imgEl.getAttribute("src") || "",
+        alt: imgEl.getAttribute("alt") || "",
+        html: mainImageEl.outerHTML,
+      }
+    }
+    // Remove the thumbnail from the document so it doesn't get parsed into sections
+    mainImageEl.remove()
+  }
+
+  // Extract content sections (.blog-section but not .faq-section)
+  const sectionEls = doc.querySelectorAll(".blog-section:not(.faq-section)")
+  sectionEls.forEach((secEl, index) => {
+    // Get section title from h2.section-title or h3.section-title
+    const sectionTitle =
+      secEl.querySelector(".section-title")?.textContent?.trim() || `Section ${index + 1}`
+    // Get section content from .section-content
+    const rawContent = secEl.querySelector(".section-content")?.innerHTML || ""
+    const sectionContent = cleanMixedContent(rawContent)
+
+    // PRESERVE existing section ID from HTML, only generate new ID if not present
+    const existingId = secEl.getAttribute("id")
+    const sectionId = existingId || generateSectionId()
+
+    // Extract section images from .section-images-wrapper
+    const imagesWrapper = secEl.querySelector(".section-images-wrapper")
+    if (imagesWrapper) {
+      const imageElements = imagesWrapper.querySelectorAll(".section-image img")
+      imageElements.forEach(imgEl => {
+        const figcaption = imgEl.closest("figure")?.querySelector("figcaption")
+        const attributionLink = figcaption?.querySelector("a")
+
+        sectionImages.push({
+          sectionId: sectionId,
+          role: "section",
+          url: imgEl.getAttribute("src") || "",
+          altText: imgEl.getAttribute("alt") || "",
+          attribution: attributionLink
+            ? {
+                name: attributionLink.textContent?.trim() || "",
+                profile: attributionLink.getAttribute("href") || "",
+              }
+            : null,
+        })
+      })
+    }
+
+    sections.push({
+      id: sectionId,
+      title: sectionTitle,
+      content: sectionContent,
+      originalContent: sectionContent,
+    })
+  })
+
+  // Extract FAQ section (Structured)
+  const faqSection = doc.querySelector(".faq-section")
+  if (faqSection) {
+    const faqHeading = faqSection.querySelector(".faq-heading")?.textContent?.trim() || "FAQ"
+    const faqPairs = faqSection.querySelectorAll(".faq-qa-pair")
+    const qa = []
+    faqPairs.forEach(pair => {
+      const question = pair.querySelector(".faq-question")?.textContent?.trim() || ""
+      const answerEl = pair.querySelector(".faq-answer")
+      const answer = answerEl?.textContent?.trim() || ""
+      if (question) {
+        qa.push({ question, answer })
+      }
+    })
+    if (qa.length > 0) {
+      faq = { heading: faqHeading, qa }
+    }
+  }
+
+  // Fallback: Check if FAQ is embedded in the last section (common AI issue)
+  if (!faq && sections.length > 0) {
+    const lastSec = sections[sections.length - 1]
+    // Check for FAQ header
+    const faqMatch = lastSec.content.match(
+      /(<h[2-4][^>]*>\s*(?:FAQ|Frequently Asked Questions)\s*<\/h[2-4]>)/i
+    )
+
+    if (faqMatch) {
+      const splitIndex = faqMatch.index
+      const contentBefore = lastSec.content.substring(0, splitIndex)
+      const faqContentRaw = lastSec.content.substring(splitIndex)
+
+      // Update last section to remove FAQ part
+      lastSec.content = contentBefore
+      lastSec.originalContent = contentBefore // Assume this is "correcting" the parse
+
+      // Try to structure it, or just add as a new section
+      // For simplicity and robustness, add as a new Text Section for now, so user can edit it separate
+      // The structured FAQ editor requires parsing QA pairs which might fail on raw HTML
+      sections.push({
+        id: generateSectionId(),
+        title: "FAQ",
+        content: faqContentRaw,
+        originalContent: faqContentRaw,
+      })
+    }
+  }
+
+  // Extract CTA
+  const ctaEl = doc.querySelector(".blog-brand-cta, .cta-wrapper")
+  if (ctaEl) {
+    const contentEl = ctaEl.querySelector(".cta-content")
+    cta = contentEl ? contentEl.innerHTML : ctaEl.innerHTML
+  }
+
+  // Extract Quick Summary
+  const summaryEl = doc.querySelector(".blog-quick-summary, .summary-wrapper")
+  if (summaryEl) {
+    const headingEl = summaryEl.querySelector(".quick-summary-heading")
+    const contentEl = summaryEl.querySelector(".summary-content")
+    quickSummary = {
+      heading: headingEl?.innerHTML || "Quick Summary",
+      content: contentEl?.innerHTML || summaryEl.innerHTML,
+    }
+  }
+
+  return { title, description, thumbnail, sections, sectionImages, faq, cta, quickSummary }
+}
+
+// Parse markdown into sections with proper image handling
+function parseMarkdownIntoSections(markdown) {
+  if (!markdown) return []
+
+  const converter = new showdown.Converter({
+    tables: true,
+    tasklists: true,
+    simpleLineBreaks: true,
+    openLinksInNewWindow: true,
+  })
+
+  const headingRegex = /^##\s+(.+)$/gm
+  let match
+  let introContent = ""
+
+  const matches = []
+  while ((match = headingRegex.exec(markdown)) !== null) {
+    matches.push({
+      title: match[1].trim(),
+      index: match.index,
+      fullMatch: match[0],
+    })
+  }
+
+  if (matches.length === 0) {
+    const htmlContent = converter.makeHtml(markdown)
+    return [
+      {
+        id: generateSectionId(),
+        title: "Content",
+        content: htmlContent,
+        originalContent: htmlContent,
+      },
+    ]
+  }
+
+  if (matches[0].index > 0) {
+    introContent = markdown.substring(0, matches[0].index).trim()
+  }
+
+  const sections = matches.map((m, i) => {
+    const startPos = m.index + m.fullMatch.length
+    const endPos = i < matches.length - 1 ? matches[i + 1].index : markdown.length
+    const sectionContent = markdown.substring(startPos, endPos).trim()
+
+    const fullContent =
+      i === 0 && introContent ? introContent + "\n\n" + sectionContent : sectionContent
+    const htmlContent = converter.makeHtml(fullContent)
+
+    return {
+      id: generateSectionId(),
+      title: m.title,
+      content: htmlContent,
+      originalContent: htmlContent,
+    }
+  })
+
+  return sections
+}
 
 const TextEditor = ({
   blog,
+  activeTab,
+  setActiveTab,
   content,
   setContent,
   title,
@@ -75,23 +334,49 @@ const TextEditor = ({
   setUnsavedChanges,
   wordpressMetadata,
   handleSubmit,
+  onReplaceReady, // New: callback to expose handleReplaceWithSections to parent
 }) => {
   const [isEditorLoading, setIsEditorLoading] = useState(true)
-  const [selectedFont, setSelectedFont] = useState(FONT_OPTIONS[0].value)
-  const [linkModalOpen, setLinkModalOpen] = useState(false)
-  const [imageModalOpen, setImageModalOpen] = useState(false)
-  const [linkUrl, setLinkUrl] = useState("")
-  const [imageUrl, setImageUrl] = useState("")
-  const [imageAlt, setImageAlt] = useState("")
-  const [editorReady, setEditorReady] = useState(false)
-  const [selectionPosition, setSelectionPosition] = useState(null)
-  const [isRetrying, setIsRetrying] = useState(false)
-  const [retryContent, setRetryContent] = useState(null)
-  const [originalContent, setOriginalContent] = useState(null)
-  const [selectionRange, setSelectionRange] = useState({ from: 0, to: 0 })
-  const [retryModalOpen, setRetryModalOpen] = useState(false)
-  const dropdownRef = useRef(null)
-  const [bubblePos, setBubblePos] = useState({ top: 0, left: 0 })
+  const [openPreview, setOpenPreview] = useState(false)
+  const [editingIndex, setEditingIndex] = useState(null)
+
+  // Sections state
+  const [sections, setSections] = useState([])
+  const [faq, setFaq] = useState(null)
+  const [blogTitle, setBlogTitle] = useState("")
+  const [blogDescription, setBlogDescription] = useState("")
+  const [blogThumbnail, setBlogThumbnail] = useState(null)
+  const [cta, setCta] = useState(null)
+  const [quickSummary, setQuickSummary] = useState(null)
+
+  // Track original values for change detection - use refs to store the snapshot
+  const [originalBlogTitle, setOriginalBlogTitle] = useState("")
+  const [originalBlogDescription, setOriginalBlogDescription] = useState("")
+  const [originalSections, setOriginalSections] = useState([])
+  const [originalCta, setOriginalCta] = useState(null)
+  const [originalQuickSummary, setOriginalQuickSummary] = useState(null)
+
+  // Track if originals have been initialized
+  const originalsInitialized = useRef(false)
+
+  // Track the blog ID to detect when we're loading a different blog
+  const lastBlogIdRef = useRef(null)
+
+  // Editing states for title/description
+  const [isEditingTitle, setIsEditingTitle] = useState(false)
+  const [isEditingDescription, setIsEditingDescription] = useState(false)
+
+  // Thumbnail edit modal state
+  const [thumbnailModalOpen, setThumbnailModalOpen] = useState(false)
+  const [thumbnailUrl, setThumbnailUrl] = useState("")
+  const [thumbnailAlt, setThumbnailAlt] = useState("")
+
+  // Section images state
+  const [sectionImages, setSectionImages] = useState([])
+
+  // Table of contents toggle - initialized from blog options
+  const [showTableOfContents, setShowTableOfContents] = useState(false)
+
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
   const user = useSelector(state => state.auth.user)
@@ -99,702 +384,541 @@ const TextEditor = ({
   const hasShownToast = useRef(false)
   const location = useLocation()
   const pathDetect = location.pathname === `/blog-editor/${blog?._id}`
-  const [editImageModalOpen, setEditImageModalOpen] = useState(false)
-  const [selectedImage, setSelectedImage] = useState(null)
-  const dispatch = useDispatch()
-  const [linkPreview, setLinkPreview] = useState(null)
-  const [linkPreviewPos, setLinkPreviewPos] = useState(null)
-  const [linkPreviewUrl, setLinkPreviewUrl] = useState(null)
-  const [linkPreviewElement, setLinkPreviewElement] = useState(null)
-  const hideTimeout = useRef(null)
-  const queryClient = useQueryClient()
-  const [lastSavedContent, setLastSavedContent] = useState("")
 
-  const normalizeContent = useCallback(str => str.replace(/\s+/g, " ").trim(), [])
+  // Initialize section images from blog
+  useEffect(() => {
+    if (blog?.images && Array.isArray(blog.images)) {
+      setSectionImages(blog.images)
+    }
+  }, [blog?.images])
 
-  const safeContent = content ?? blog?.content ?? ""
+  // Initialize table of contents toggle from blog options
+  useEffect(() => {
+    if (blog?.options?.includeTableOfContents !== undefined) {
+      setShowTableOfContents(blog.options.includeTableOfContents)
+    }
+  }, [blog?.options?.includeTableOfContents])
 
-  const markdownToHtml = useCallback(markdown => {
-    if (!markdown) return "<p></p>"
-    const rawHtml = marked.parse(
-      markdown
-        .replace(/!\[\s*["']?(.*?)["']?\s*\]\((.*?)\)/g, (_, alt, url) => `![${alt}](${url})`) // remove quotes from alt
-        .replace(/'/g, "'"),
-      {
-        gfm: true,
-        breaks: true,
-      }
-    )
-    const cleanHtml = DOMPurify.sanitize(rawHtml, {
-      ADD_TAGS: ["iframe", "div", "table", "th", "td", "tr"],
-      ADD_ATTR: ["allow", "allowfullscreen", "frameborder", "scrolling", "src", "style", "title"],
-    })
-    return cleanHtml
-
-    // const result = unified()
-    //   // Take Markdown as input and turn it into MD syntax tree
-    //   .use(remarkParse)
-    //   // Add support for frontmatter in Markdown
-    //   .use(remarkFrontmatter, ["yaml"])
-    //   // Prase and validate Markdown frontmatter (YAML)
-    //   .use(remarkParseFrontmatter)
-    //   // Switch from MD syntax tree to HTML syntax tree (remakr -> rehype)
-    //   .use(remarkRehype, {
-    //     // Necessary for support HTML embeds (see next plugin)
-    //     allowDangerousHtml: true,
-    //   })
-    //   // Support HTML embedded inside markdown
-    //   .use(rehypeRaw)
-    //   // Improve code highlighting
-    //   // .use(rehypeHighlight)
-    //   // Serialize syntax tree to HTML
-    //   .use(rehypeStringify)
-    //   // And finally, process the input
-    //   .processSync(markdown)
-    // return result.toString()
-  }, [])
-
-  const htmlToMarkdown = useCallback(html => {
-    if (!html) return ""
-    const turndownService = new TurndownService({
-      headingStyle: "atx",
-      bulletListMarker: "-",
-    })
-    turndownService.keep(["p", "div", "iframe", "table", "tr", "th", "td"])
-    return turndownService.turndown(html)
-  }, [])
-
-  const initialContent = useMemo(() => {
-    if (!safeContent) return "<p></p>"
-    return markdownToHtml(safeContent)
-  }, [safeContent])
-
-  const lastNormalizedSavedContent = useRef(normalizeContent(lastSavedContent ?? ""))
-
-  const normalEditor = useEditor(
-    {
-      extensions: [
-        StarterKit.configure({
-          heading: { levels: [1, 2, 3] },
-          bold: { HTMLAttributes: { class: "font-bold" } },
-          italic: { HTMLAttributes: { class: "italic" } },
-          underline: { HTMLAttributes: { class: "underline" } },
-          link: { HTMLAttributes: { class: "text-blue-600 underline" } },
-        }),
-        Image.configure({
-          HTMLAttributes: { class: "rounded-lg mx-auto w-3/4 h-auto object-contain" },
-        }),
-        TextAlign.configure({ types: ["heading", "paragraph", "right"] }),
-        Table.configure({
-          resizable: false,
-          HTMLAttributes: {
-            class: "border-2 w-full border-collpase p-2 border-gray-800",
-          },
-        }),
-        TableHeader.configure({
-          HTMLAttributes: { class: "text-center font-bold border align-middle border-gray-400" },
-        }),
-        TableRow.configure({
-          HTMLAttributes: { class: "text-center font-medium border align-middle border-gray-400" },
-        }),
-        TableCell.configure({
-          HTMLAttributes: { class: "text-center font-medium border align-middle border-gray-400" },
-        }),
-        ProofreadingDecoration.configure({ suggestions: proofreadingResults }),
-        VideoEmbed,
-      ],
-      content: "<p></p>",
-      editorProps: {
-        attributes: {
-          class: `prose max-w-none focus:outline-none p-4 min-h-[400px] ${selectedFont} blog-content editor-container`,
-        },
-      },
-
-      onUpdate: ({ editor }) => {
-        const html = editor.getHTML()
-        const markdown = htmlToMarkdown(html)
-
-        setContent(markdown)
-
-        const normCurrent = normalizeContent(markdown)
-        const unsaved = normCurrent !== lastNormalizedSavedContent.current
-        setUnsavedChanges(unsaved)
-      },
+  // Get section image by sectionId
+  const getSectionImage = useCallback(
+    sectionId => {
+      if (!sectionImages || !Array.isArray(sectionImages)) return null
+      return sectionImages.find(img => img.sectionId === sectionId && img.role === "section")
     },
-    [selectedFont, proofreadingResults, htmlToMarkdown, setContent, setUnsavedChanges]
+    [sectionImages]
   )
 
-  const { activeSpan, bubbleRef, applyChange, rejectChange } = useProofreadingUI(normalEditor)
-
-  const showUpgradePopup = () => {
-    handlePopup({
-      title: "Upgrade Required",
-      description: (
-        <>
-          <span>Editing blogs is only available for Pro and Enterprise users.</span>
-          <br />
-          <span>Upgrade your plan to unlock this feature.</span>
-        </>
-      ),
-      confirmText: "Buy Now",
-      cancelText: "Cancel",
-      onConfirm: () => navigate("/pricing"),
-    })
-  }
-
-  const safeEditorAction = useCallback(
-    action => {
-      if (userPlan === "free" || userPlan === "basic") {
-        navigate("/pricing")
-        return
-      }
-      action()
-    },
-    [userPlan, navigate]
-  )
-
-  const handleAddLink = useCallback(() => {
-    if (!normalEditor || normalEditor.state.selection.empty) {
-      message.error("Select text to link.")
-      return
-    }
-    safeEditorAction(() => {
-      setLinkUrl("")
-      setLinkModalOpen(true)
-    })
-  }, [normalEditor, safeEditorAction])
-
-  const handleAddImage = useCallback(() => {
-    safeEditorAction(() => {
-      setImageUrl("")
-      setImageAlt("")
-      setImageModalOpen(true)
-    })
-  }, [safeEditorAction])
-
-  const handleReGenerate = async () => {
-    if (!blog?._id) {
-      message.error("Blog ID is missing.")
-      return
-    }
-
-    const proceedWithRegenerate = async () => {
-      const payload = {
-        createNew: true,
-      }
-      try {
-        await dispatch(retryBlog({ id: blog._id, payload }))
-        queryClient.invalidateQueries({ queryKey: ["blogs"] })
-        queryClient.invalidateQueries({ queryKey: ["blog", blog._id] })
-        setUnsavedChanges(false)
-        navigate("/blogs")
-      } catch (error) {
-        console.error("Retry failed:", error)
-        message.error(error.message || "Retry failed.")
-      }
-    }
-
-    await proceedWithRegenerate()
-  }
-
-  const handleRegenerate = async () => {
-    if (userPlan === "free" || userPlan === "basic") {
-      navigate("/pricing")
-      return
-    }
-
-    const proceedWithRegenerate = async () => {
-      // Build features array based on blog options
-      const features = []
-      if (blog?.options?.performKeywordResearch) features.push("keywordResearch")
-      if (blog?.options?.includeCompetitorResearch) features.push("competitorResearch")
-      if (blog?.options?.includeInterlinks) features.push("internalLinking")
-      if (blog?.options?.includeFaqs) features.push("faqGeneration")
-      if (blog?.options?.automaticPosting) features.push("automaticPosting")
-      if (blog?.isCheckedQuick) features.push("quickSummary")
-      if (blog?.options?.addOutBoundLinks) features.push("outboundLinks")
-      if (blog?.isCheckedBrand || blog?.brandId) features.push("brandVoice")
-
-      // Calculate cost using computeCost
-      let estimatedCost = computeCost({
-        wordCount: blog?.userDefinedLength || 1000,
-        features,
-        aiModel: blog?.aiModel || "gemini",
-        includeImages: blog?.isCheckedGeneratedImages || false,
-        imageSource: blog?.imageSource || "stock",
-        numberOfImages: blog?.numberOfImages || 0,
-      })
-
-      // Apply Cost Cutter discount if enabled
-      if (blog?.costCutter) {
-        estimatedCost = Math.round(estimatedCost * 0.75)
-      }
-
-      // Check if user has sufficient credits
-      const userCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
-
-      if (userCredits < estimatedCost) {
-        handlePopup({
-          title: "Insufficient Credits",
-          description: (
-            <div>
-              <p>You don't have enough credits to regenerate this blog.</p>
-              <p className="mt-2">
-                <strong>Required:</strong> {estimatedCost} credits
-              </p>
-              <p>
-                <strong>Available:</strong> {userCredits} credits
-              </p>
-            </div>
-          ),
-          okText: "Buy Credits",
-          onConfirm: () => {
-            navigate("/pricing")
-          },
-        })
-        return
-      }
-
-      handlePopup({
-        title: "Regenerate Blog",
-        description: (
-          <>
-            Are you sure you want to retry generating this blog?{" "}
-            <span className="font-bold">This will cost {estimatedCost} credits</span>
-            {blog?.costCutter && (
-              <span className="text-green-600 text-sm block mt-1">
-                (Cost Cutter applied: -25% off)
-              </span>
-            )}
-          </>
-        ),
-        onConfirm: handleReGenerate,
-      })
-    }
-
-    await proceedWithRegenerate()
-  }
-
-  const handleConfirmLink = useCallback(() => {
-    if (!linkUrl || !/https?:\/\//i.test(linkUrl)) {
-      message.error("Enter a valid URL.")
-      return
-    }
-
-    const safeUrl = decodeURIComponent(linkUrl) // clean it
-
-    if (normalEditor) {
-      const { from, to } = normalEditor.state.selection
-      normalEditor
-        .chain()
-        .focus()
-        .setLink({ href: safeUrl, target: "_blank", rel: "noopener noreferrer" })
-        .setTextSelection({ from, to })
-        .run()
-      setLinkModalOpen(false)
-      message.success("Link added.")
-    }
-  }, [linkUrl, normalEditor])
-
-  const handleConfirmImage = useCallback(() => {
-    if (!imageUrl || !/https?:\/\//i.test(imageUrl)) {
-      message.error("Enter a valid image URL.")
-      return
-    }
-    if (imageUrl.includes("<script") || imageUrl.includes("</script")) {
-      message.error("Script tags are not allowed in image URLs.")
-      return
-    }
-    if (normalEditor) {
-      const { from } = normalEditor.state.selection
-      normalEditor
-        .chain()
-        .focus()
-        .setImage({ src: imageUrl, alt: imageAlt })
-        .setTextSelection(from)
-        .run()
-      setImageModalOpen(false)
-      message.success("Image added.")
-    }
-  }, [imageUrl, imageAlt, normalEditor])
-
-  const handleImageClick = useCallback(event => {
-    if (event.target.tagName === "IMG") {
-      const { src, alt } = event.target
-      setSelectedImage({ src, alt: alt || "" })
-      setImageAlt(alt || "")
-      setEditImageModalOpen(true)
-    }
-  }, [])
-
-  const handleConfirmEditImage = useCallback(() => {
-    if (!selectedImage || !imageAlt) {
-      message.error("Alt text is required.")
-      return
-    }
-    if (normalEditor) {
-      let updated = false
-      normalEditor.state.doc.descendants((node, pos) => {
-        if (node.type.name === "image" && node.attrs.src === selectedImage.src) {
-          normalEditor
-            .chain()
-            .focus()
-            .setNodeSelection(pos)
-            .setImage({ src: selectedImage.src, alt: imageAlt })
-            .run()
-          updated = true
-        }
-      })
-      if (updated) {
-        message.success("Image alt text updated.")
-        setEditImageModalOpen(false)
-        setSelectedImage(null)
-        setImageAlt("")
-      } else {
-        message.error("Failed to update image alt text.")
-      }
-    }
-  }, [selectedImage, imageAlt, normalEditor])
-
-  const escapeRegExp = string => {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-  }
-
-  const hasScriptTag = content => {
-    const parser = new DOMParser()
-    const doc = parser.parseFromString(content, "text/html")
-    return !!doc.querySelector("script")
-  }
-
-  const handleRemoveLink = () => {
-    if (!linkPreviewElement || !normalEditor) return
-
-    const pos = normalEditor.view.posAtDOM(linkPreviewElement, 0)
-    const end = pos + (linkPreviewElement.textContent?.length || 0)
-    normalEditor.chain().focus().setTextSelection({ from: pos, to: end }).unsetLink().run()
-
-    setLinkPreview(null)
-    setLinkPreviewPos(null)
-    setLinkPreviewUrl(null)
-    setLinkPreviewElement(null)
-  }
-
-  const handleRetry = async () => {
-    if (!blog?._id) {
-      message.error("Blog ID is missing.")
-      return
-    }
-    if (!normalEditor) {
-      message.error("Editor is not initialized.")
-      return
-    }
-    const selection = normalEditor.state.selection
-    const from = selection.from
-    const to = selection.to
-    if (from === to) {
-      message.error("Please select some text to retry.")
-      return
-    }
-    const selectedText = normalEditor.state.doc.textBetween(from, to, "\n")
-    setOriginalContent(selectedText)
-    setSelectionRange({ from, to })
-    const payload = {
-      contentPart: selectedText.trim(),
-    }
-
-    const proceedWithRetry = async () => {
-      if (normalEditor) {
-        normalEditor.commands.blur()
-      }
-      try {
-        setIsRetrying(true)
-        const res = await sendRetryLines(blog._id, payload)
-        if (res.data) {
-          setRetryContent(res.data)
-          setRetryModalOpen(true)
-        } else {
-          message.error("No content received from retry.")
-        }
-      } catch (error) {
-        console.error("Retry failed:", error)
-        message.error(error.message || "Retry failed.")
-      } finally {
-        setIsRetrying(false)
-      }
-    }
-
-    await proceedWithRetry()
-  }
-
-  const handleAcceptRetry = () => {
-    if (!retryContent) return
-    if (normalEditor) {
-      const parsedContent = markdownToHtml(retryContent)
-      normalEditor
-        .chain()
-        .focus()
-        .deleteRange({ from: selectionRange.from, to: selectionRange.to })
-        .insertContentAt(selectionRange.from, parsedContent)
-        .setTextSelection({
-          from: selectionRange.from,
-          to: selectionRange.from + parsedContent.length,
-        })
-        .run()
-    }
-    message.success("Selected lines replaced successfully!")
-    setRetryModalOpen(false)
-    setRetryContent(null)
-    setOriginalContent(null)
-    setSelectionRange({ from: 0, to: 0 })
-  }
-
-  const handleRejectRetry = () => {
-    setRetryModalOpen(false)
-    setRetryContent(null)
-    setOriginalContent(null)
-    setSelectionRange({ from: 0, to: 0 })
-    message.info("Retry content discarded.")
-  }
-
-  const handleRewrite = () => {
-    // Check plan
-    if (userPlan === "free" || userPlan === "basic") {
-      navigate("/pricing")
-      return
-    }
-
-    // Show the rewrite confirmation popup directly
-    handlePopup({
-      title: "Rewrite Selected Lines",
-      description: (
-        <>
-          Do you want to rewrite the selected lines?{" "}
-          <span className="font-bold">You can rewrite only 3 times.</span>
-        </>
-      ),
-      confirmText: "Yes, Rewrite",
-      cancelText: "Cancel",
-      onConfirm: handleRetry,
-    })
-  }
-
-  const handleAcceptHumanizedContentModified = useCallback(() => {
-    if (humanizedContent) {
-      setContent(humanizedContent)
-      if (normalEditor && !normalEditor.isDestroyed) {
-        const htmlContent = markdownToHtml(humanizedContent)
-        normalEditor.commands.setContent(htmlContent, false)
-      }
-      handleAcceptHumanizedContent()
-    }
-  }, [humanizedContent, setContent, normalEditor, markdownToHtml, handleAcceptHumanizedContent])
-
-  const handleDeleteImage = useCallback(() => {
-    if (!selectedImage) return
-    if (normalEditor) {
-      let deleted = false
-      normalEditor.state.doc.descendants((node, pos) => {
-        if (node.type.name === "image" && node.attrs.src === selectedImage.src) {
-          normalEditor
-            .chain()
-            .focus()
-            .deleteRange({ from: pos, to: pos + 1 })
-            .run()
-          deleted = true
-        }
-      })
-      if (deleted) {
-        setEditImageModalOpen(false)
-        setSelectedImage(null)
-        setImageAlt("")
-      } else {
-        message.error("Failed to delete image.")
-      }
-    }
-  }, [selectedImage, normalEditor])
-
-  function useNavigationBlocker(when) {
-    const blocker = useBlocker(
-      ({ currentLocation, nextLocation }) =>
-        when && currentLocation.pathname !== nextLocation.pathname
-    )
-    return blocker
-  }
-
-  const blocker = useNavigationBlocker(unsavedChanges)
-
-  useEffect(() => {
-    if (normalEditor && blog?.content) {
-      const html = markdownToHtml(blog.content)
-      normalEditor.commands.setContent(html, false)
-      setContent(blog.content)
-      setLastSavedContent(blog.content)
-
-      requestAnimationFrame(() => {
-        if (normalEditor.view.dom) {
-          normalEditor.view.dom.scrollTop = 0
-          normalEditor.commands.setTextSelection(0) // put caret at start
-        }
-      })
-    }
-  }, [normalEditor, blog, markdownToHtml])
-
-  useEffect(() => {
-    setIsEditorLoading(true)
-    const timer = setTimeout(() => {
-      setIsEditorLoading(false)
-      if (normalEditor) {
-        normalEditor.commands.focus()
-      }
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [normalEditor])
-
-  useEffect(() => {
-    if (blog?.status === "failed" && !hasShownToast.current) {
-      message.error("Your blog generation failed. You can write blog manually.")
-      hasShownToast.current = true
-    }
-  }, [blog?.status])
-
-  useEffect(() => {
-    const normCurrent = normalizeContent(content ?? "")
-    const normSaved = normalizeContent(lastSavedContent ?? "")
-    setUnsavedChanges(normCurrent !== normSaved)
-  }, [content, lastSavedContent, normalizeContent, setUnsavedChanges])
-
-  useEffect(() => {
-    if (normalEditor) {
-      const ext = normalEditor.extensionManager.extensions.find(
-        e => e.name === "proofreadingDecoration"
+  // Update section image
+  const handleUpdateSectionImage = useCallback((sectionId, updatedImage) => {
+    setSectionImages(prev =>
+      prev.map(img =>
+        img.sectionId === sectionId && img.role === "section" ? { ...img, ...updatedImage } : img
       )
-      if (ext) {
-        ext.options.suggestions = proofreadingResults
-        normalEditor.view.dispatch(normalEditor.view.state.tr)
-      }
-    }
-  }, [proofreadingResults, normalEditor])
-
-  useEffect(() => {
-    if (normalEditor) {
-      setEditorReady(true)
-      return () => {
-        if (!normalEditor.isDestroyed) {
-          normalEditor.destroy()
-        }
-      }
-    }
-  }, [normalEditor])
-
-  useEffect(() => {
-    const handleClickOutside = event => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setShowModelDropdown(false)
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
+    )
   }, [])
 
-  useLayoutEffect(() => {
-    if (activeSpan instanceof HTMLElement && bubbleRef.current) {
-      const spanRect = activeSpan.getBoundingClientRect()
-      const bubbleHeight = bubbleRef.current.offsetHeight
-      const top = spanRect.top + window.scrollY - bubbleHeight - 8
-      const left = spanRect.left + window.scrollX
-      setBubblePos({ top, left })
-    }
-  }, [activeSpan])
+  // Delete section image
+  const handleDeleteSectionImage = useCallback(sectionId => {
+    setSectionImages(prev =>
+      prev.filter(img => !(img.sectionId === sectionId && img.role === "section"))
+    )
+  }, [])
 
-  useEffect(() => {
-    if (blog?.content && (content == null || content === "")) {
-      setContent(blog.content)
-    }
-  }, [blog, content, setContent])
+  // Helper to normalize content for comparison (strip formatting, whitespace)
+  const normalizeContent = useCallback(content => {
+    if (!content) return ""
+    // Strip HTML tags and normalize whitespace
+    const text = content
+      .replace(/<[^>]*>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase()
+    return text
+  }, [])
 
+  // Check if there are actual content changes
+  const hasContentChanges = useMemo(() => {
+    // Don't check for changes until originals are initialized
+    if (!originalsInitialized.current) {
+      return false
+    }
+
+    // Compare titles (normalize for comparison)
+    const currentTitle = normalizeContent(blogTitle)
+    const originalTitle = normalizeContent(originalBlogTitle)
+    if (currentTitle !== originalTitle) {
+      return true
+    }
+
+    // Compare descriptions
+    const currentDesc = normalizeContent(blogDescription)
+    const originalDesc = normalizeContent(originalBlogDescription)
+    if (currentDesc !== originalDesc) {
+      return true
+    }
+
+    // Compare number of sections
+    if (sections.length !== originalSections.length) {
+      return true
+    }
+
+    // Compare each section's content
+    for (let i = 0; i < sections.length; i++) {
+      const current = sections[i]
+      const original = originalSections.find(s => s.id === current.id)
+
+      if (!original) {
+        // New section added
+        return true
+      }
+
+      // Compare section titles
+      const currentSectionTitle = normalizeContent(current.title)
+      const originalSectionTitle = normalizeContent(original.title)
+      if (currentSectionTitle !== originalSectionTitle) {
+        return true
+      }
+
+      // Compare section content (this is the key part)
+      const currentContent = normalizeContent(current.content)
+      const originalContent = normalizeContent(original.originalContent)
+
+      if (currentContent !== originalContent) {
+        return true
+      }
+    }
+
+    // Compare CTA
+    if (normalizeContent(cta) !== normalizeContent(originalCta)) {
+      return true
+    }
+
+    // Compare Quick Summary
+    if (
+      normalizeContent(quickSummary?.heading) !== normalizeContent(originalQuickSummary?.heading) ||
+      normalizeContent(quickSummary?.content) !== normalizeContent(originalQuickSummary?.content)
+    ) {
+      return true
+    }
+
+    return false
+  }, [
+    blogTitle,
+    blogDescription,
+    sections,
+    originalBlogTitle,
+    originalBlogDescription,
+    originalSections,
+    normalizeContent,
+  ])
+
+  // Update unsaved changes based on actual content changes
   useEffect(() => {
-    if (blog?.images?.length > 0) {
-      let updatedContent = safeContent
-      const imagePlaceholders = safeContent.match(/{Image:.*?}/g) || []
-      imagePlaceholders.forEach((placeholder, index) => {
-        const imageData = blog.images[index]
-        if (imageData?.url) {
-          updatedContent = updatedContent.replace(
-            placeholder,
-            `![${imageData.alt || "Image"}](${imageData.url})`
+    setUnsavedChanges(hasContentChanges)
+  }, [hasContentChanges, setUnsavedChanges])
+
+  // Parse blog content into sections - PRIORITIZE content field over contentJSON
+  useEffect(() => {
+    if (blog) {
+      // Check if we're loading a different blog
+      if (lastBlogIdRef.current !== blog._id) {
+        // Reset initialization flag for new blog
+        originalsInitialized.current = false
+        lastBlogIdRef.current = blog._id
+      }
+
+      let parsedData = {
+        title: "",
+        description: "",
+        sections: [],
+        faq: null,
+        cta: null,
+        quickSummary: null,
+      }
+
+      // PRIORITY 1: Use content field - check if content is HTML (article structure with classes)
+      if (
+        blog.content &&
+        (blog.content.includes("<article") ||
+          blog.content.includes("<section") ||
+          blog.content.includes("blog-section") ||
+          blog.content.includes("section-content"))
+      ) {
+        parsedData = parseHtmlIntoSections(blog.content)
+        // Use blog.title as fallback
+        if (!parsedData.title && blog.title) {
+          parsedData.title = blog.title
+        }
+      }
+      // PRIORITY 2: Content field with markdown (starts with ## or has markdown syntax)
+      else if (blog.content && (blog.content.includes("## ") || blog.content.includes("**"))) {
+        parsedData.title = blog.title || ""
+        parsedData.sections = parseMarkdownIntoSections(blog.content)
+      }
+      // PRIORITY 3: Plain content - treat as single section
+      else if (blog.content) {
+        const converter = new showdown.Converter({
+          tables: true,
+          tasklists: true,
+          simpleLineBreaks: true,
+        })
+        const htmlContent = blog.content.includes("<")
+          ? blog.content
+          : converter.makeHtml(blog.content)
+        parsedData.title = blog.title || ""
+        parsedData.sections = [
+          {
+            id: generateSectionId(),
+            title: "Content",
+            content: htmlContent,
+            originalContent: htmlContent,
+          },
+        ]
+      }
+      // FALLBACK: Empty blog, create default structure
+      else {
+        parsedData.title = blog.title || "Untitled Blog"
+        parsedData.sections = []
+      }
+
+      // Set current state
+      setBlogTitle(parsedData.title)
+      setBlogDescription(parsedData.description)
+      setBlogThumbnail(parsedData.thumbnail)
+      setSections(parsedData.sections)
+      setFaq(parsedData.faq)
+      setCta(parsedData.cta)
+      setQuickSummary(parsedData.quickSummary)
+
+      // Merge section images from parsed HTML with existing blog images
+      if (parsedData.sectionImages && parsedData.sectionImages.length > 0) {
+        setSectionImages(prev => {
+          // Keep existing images that are not section images, or are for different sections
+          const nonSectionImages = prev.filter(img => img.role !== "section")
+          // Combine with newly parsed section images
+          return [...nonSectionImages, ...parsedData.sectionImages]
+        })
+      }
+
+      // Initialize originals ONLY if not already initialized for this blog
+      if (!originalsInitialized.current) {
+        // Use setTimeout to ensure state has settled
+        setTimeout(() => {
+          setOriginalBlogTitle(parsedData.title)
+          setOriginalBlogDescription(parsedData.description)
+          // Deep copy sections with originalContent preserved
+          setOriginalSections(
+            parsedData.sections.map(s => ({
+              id: s.id,
+              title: s.title,
+              content: s.content,
+              originalContent: s.originalContent || s.content,
+            }))
           )
-        }
-      })
-      setContent(updatedContent)
-      // setLastSavedContent(updatedContent)
+          setOriginalCta(parsedData.cta)
+          setOriginalQuickSummary(parsedData.quickSummary)
+          originalsInitialized.current = true
+        }, 150)
+      }
     }
-  }, [blog, safeContent, setContent])
+  }, [blog])
 
+  // Reset original values when blog is saved (updatedAt changes)
   useEffect(() => {
-    if (normalEditor && normalEditor?.view?.dom) {
-      const editorElement = normalEditor.view.dom
-      editorElement.addEventListener("click", handleImageClick)
-      return () => {
-        if (editorElement) {
-          editorElement.removeEventListener("click", handleImageClick)
-        }
-      }
+    if (blog?.updatedAt && originalsInitialized.current) {
+      // Update originals to current state to clear "unsaved changes" after save
+      setOriginalBlogTitle(blogTitle)
+      setOriginalBlogDescription(blogDescription)
+      setOriginalSections(
+        sections.map(s => ({
+          id: s.id,
+          title: s.title,
+          content: s.content,
+          originalContent: s.content, // Set originalContent to current content after save
+        }))
+      )
+      setOriginalCta(cta)
+      setOriginalQuickSummary(quickSummary)
     }
-  }, [normalEditor, handleImageClick])
+  }, [blog?.updatedAt])
 
-  useEffect(() => {
-    const editorDom = normalEditor.view.dom
+  // Sync sections to HTML content for saving (with proper blog structure and classes)
+  const syncSectionsToHTML = useCallback(() => {
+    let html = '<article class="blog-article" id="blog-article">\n'
 
-    const handleMouseOver = async e => {
-      const link = e.target.closest("a")
-      if (!link) return
+    // Add Title & Description wrapper
+    html += '  <section class="blog-base-meta blog-section-0" id="blog-meta">\n'
+    html += '    <div class="meta-wrapper">\n'
 
-      // 🛠 Fix encoding
-      const rawUrl = link.href
-      const decodedUrl = decodeURIComponent(rawUrl)
+    // Add title
+    if (blogTitle) {
+      html += `      <h1 class="blog-title heading heading-1">${blogTitle}</h1>\n`
+    }
 
-      const rect = link.getBoundingClientRect()
-      const scrollY = window.scrollY || window.pageYOffset
-      const scrollX = window.scrollX || window.pageXOffset
+    // Add Main Image (Thumbnail)
+    if (blogThumbnail) {
+      html += '      <figure class="section-thumbnail thumbnail-main">\n'
+      html += `        <img src="${blogThumbnail.url}" alt="${
+        blogThumbnail.alt || blogTitle
+      }" class="thumbnail-image" />\n`
+      if (blogThumbnail.attribution) {
+        html += '        <figcaption class="thumbnail-attribution">\n'
+        html += `          <p style="font-size: 12px; text-align: right;">Photo by <a href="${blogThumbnail.attribution.profile}">${blogThumbnail.attribution.name}</a> on <a href="https://www.pexels.com/">Pexels</a></p>\n`
+        html += "        </figcaption>\n"
+      }
+      html += "      </figure>\n"
+    }
 
-      setLinkPreviewPos({
-        top: rect.bottom + scrollY + 8,
-        left: rect.left + scrollX,
+    // Add description
+    if (blogDescription) {
+      html += `      <p class="blog-description meta-description">${blogDescription}</p>\n`
+    }
+
+    html += "    </div>\n"
+    html += "  </section>\n\n"
+
+    // Sections Wrapper
+    html += '  <div class="blog-sections-wrapper" id="sections-wrapper">\n'
+
+    // Add sections
+    sections.forEach((sec, index) => {
+      html += `    <section class="blog-section blog-section-${index + 1}" id="${
+        sec.id
+      }" data-section-index="${index}">\n`
+      html += '      <div class="section-wrapper">\n'
+      html += `        <h2 class="section-title heading heading-2 section-title-${index}">${sec.title}</h2>\n`
+
+      // Add section images if they exist
+      const secImages = sectionImages.filter(
+        img => img.sectionId === sec.id && img.role === "section"
+      )
+      if (secImages.length > 0) {
+        html += '        <div class="section-images-wrapper">\n'
+        secImages.forEach((img, idx) => {
+          html += `          <figure class="section-image image-${idx}">\n`
+          html += `            <img src="${img.url}" alt="${
+            img.altText || ""
+          }" class="content-image" loading="lazy" />\n`
+          if (img.attribution && img.attribution.name) {
+            html += '            <figcaption class="image-attribution">\n'
+            html += `              <p>Photo by <a href="${img.attribution.profile}">${img.attribution.name}</a> on <a href="https://www.pexels.com/">Pexels</a></p>\n`
+            html += "            </figcaption>\n"
+          }
+          html += "          </figure>\n"
+        })
+        html += "        </div>\n"
+      }
+
+      html += `        <div class="section-content section-content-${index}">${sec.content}</div>\n`
+      html += "      </div>\n"
+      html += "    </section>\n\n"
+    })
+
+    html += "  </div>\n\n"
+
+    // Add CTA if exists
+    if (cta) {
+      html += '  <div class="blog-brand-cta cta-wrapper" id="blog-cta">\n'
+      html += '    <div class="cta-content">\n'
+      html += `      ${cta}\n`
+      html += "    </div>\n"
+      html += "  </div>\n\n"
+    }
+
+    // Add Quick Summary if exists
+    if (quickSummary) {
+      html += '  <div id="quick-summary-section" class="blog-quick-summary summary-wrapper">\n'
+      html += `    <h2 class="quick-summary-heading heading heading-2">${quickSummary.heading}</h2>\n`
+      html += '    <div class="summary-content">\n'
+      html += `      ${quickSummary.content}\n`
+      html += "    </div>\n"
+      html += "  </div>\n\n"
+    }
+
+    // Add FAQ if exists
+    if (faq && faq.qa && faq.qa.length > 0) {
+      html += '  <section class="blog-section faq-section" id="faq-section">\n'
+      html += '    <div id="faq-section" class="faq-wrapper">\n'
+      html += `      <h2 class="faq-heading heading heading-2">${faq.heading}</h2>\n`
+      html += '      <div class="faq-qa-pairs-wrapper">\n'
+      faq.qa.forEach((item, idx) => {
+        html += `        <div class="faq-qa-pair faq-pair-${idx}" id="faq-${idx}" data-faq-index="${idx}">\n`
+        html += `          <h3 id="faq-question-${idx}" class="faq-question question question-${idx} heading heading-3">${item.question}</h3>\n`
+        html += `          <div id="faq-answer-${idx}" class="faq-answer answer answer-${idx}">\n`
+        html += `            <p>${item.answer}</p>\n`
+        html += "          </div>\n"
+        html += "        </div>\n\n"
       })
-      setLinkPreviewUrl(decodedUrl)
-      setLinkPreviewElement(link)
-
-      try {
-        const data = await getLinkPreview(decodedUrl) // use clean version
-        setLinkPreview(data || { title: decodedUrl, description: "" })
-      } catch (err) {
-        console.error("Failed to fetch link preview:", err)
-        setLinkPreview({ title: decodedUrl, description: "" })
-      }
+      html += "      </div>\n"
+      html += "    </div>\n"
+      html += "  </section>\n\n"
     }
 
-    const handleMouseOut = e => {
-      if (e.target.closest("a")) {
-        if (hideTimeout.current) clearTimeout(hideTimeout.current)
-        hideTimeout.current = setTimeout(() => {
-          setLinkPreview(null)
-          setLinkPreviewPos(null)
-          setLinkPreviewUrl(null)
-          setLinkPreviewElement(null)
-        }, 200)
-      }
+    html += "</article>"
+    return html
+  }, [sections, faq, blogTitle, blogDescription, sectionImages, blogThumbnail, cta, quickSummary])
+
+  // Update parent content when sections change
+  useEffect(() => {
+    const newContent = syncSectionsToHTML()
+    if (setContent) {
+      setContent(newContent)
+    }
+  }, [sections, syncSectionsToHTML, setContent, cta, quickSummary])
+
+  // Handle delete section
+  const handleDelete = index => {
+    handlePopup({
+      title: "Delete Section",
+      description: "Are you sure you want to delete this section? This action cannot be undone.",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      onConfirm: () => {
+        setSections(prev => prev.filter((_, i) => i !== index))
+        message.success("Section deleted")
+      },
+    })
+  }
+
+  // Handle section content change
+  const handleSectionChange = (index, updatedSection) => {
+    setSections(prev =>
+      prev.map((s, i) => {
+        if (i === index) {
+          // Preserve originalContent when updating section
+          return {
+            ...s,
+            ...updatedSection,
+            originalContent: s.originalContent, // Keep the original reference
+          }
+        }
+        return s
+      })
+    )
+  }
+
+  // Handle section title change
+  const handleSectionTitleChange = (index, newTitle) => {
+    setSections(prev =>
+      prev.map((s, i) =>
+        i === index
+          ? {
+              ...s,
+              title: newTitle,
+              originalContent: s.originalContent, // Preserve original
+            }
+          : s
+      )
+    )
+  }
+
+  // Handle add section below
+  const handleAddSection = afterIndex => {
+    const newSection = {
+      id: generateSectionId(),
+      title: "New Section",
+      content: "<p>Start writing here...</p>",
+      originalContent: "",
+    }
+    setSections(prev => {
+      const newSections = [...prev]
+      newSections.splice(afterIndex + 1, 0, newSection)
+      return newSections
+    })
+    message.success("New section added")
+  }
+
+  // Handle add first section when sections are empty
+  const handleAddFirstSection = () => {
+    const newSection = {
+      id: generateSectionId(),
+      title: "New Section",
+      content: "<p>Start writing here...</p>",
+      originalContent: "",
+    }
+    setSections([newSection])
+    message.success("Section added")
+  }
+
+  // Handle move section up or down
+  const handleMoveSection = (index, direction) => {
+    setSections(prev => {
+      const newSections = [...prev]
+      const targetIndex = direction === "up" ? index - 1 : index + 1
+
+      if (targetIndex < 0 || targetIndex >= newSections.length) return prev
+
+      // Swap sections
+      const temp = newSections[index]
+      newSections[index] = newSections[targetIndex]
+      newSections[targetIndex] = temp
+
+      return newSections
+    })
+  }
+
+  // Handle find and replace text in sections (for proofreading)
+  const handleReplaceInSections = useCallback((original, change) => {
+    if (!original || !change) return
+
+    const regex = new RegExp(original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g")
+
+    setSections(prev =>
+      prev.map(section => {
+        if (section.content && section.content.includes(original)) {
+          return {
+            ...section,
+            content: section.content.replace(regex, change),
+          }
+        }
+        return section
+      })
+    )
+  }, [])
+
+  // Sync sections to Markdown for export/copy (kept for export functionality)
+  const syncSectionsToMarkdown = useCallback(() => {
+    let markdown = ""
+
+    sections.forEach(sec => {
+      markdown += `## ${sec.title}\n\n`
+      markdown += htmlToMarkdownSection(sec.content) + "\n\n"
+    })
+
+    if (cta) {
+      markdown += `## Brand CTA\n\n${htmlToMarkdownSection(cta)}\n\n`
     }
 
-    // Use event delegation to handle dynamic content
-    editorDom.addEventListener("mouseover", handleMouseOver, true)
-    editorDom.addEventListener("mouseout", handleMouseOut, true)
-
-    return () => {
-      editorDom.removeEventListener("mouseover", handleMouseOver, true)
-      editorDom.removeEventListener("mouseout", handleMouseOut, true)
-      if (hideTimeout.current) clearTimeout(hideTimeout.current)
+    if (quickSummary) {
+      markdown += `## ${quickSummary.heading}\n\n${htmlToMarkdownSection(quickSummary.content)}\n\n`
     }
-  }, [normalEditor])
+
+    if (faq) {
+      markdown += `## ${faq.heading}\n\n`
+      faq.qa.forEach(item => {
+        markdown += `### ${item.question}\n\n${item.answer}\n\n`
+      })
+    }
+
+    return markdown.trim()
+  }, [sections, faq])
+
+  // Copy all content as Markdown
+  const copyContent = async () => {
+    try {
+      const markdown = syncSectionsToMarkdown()
+      await navigator.clipboard.writeText(markdown)
+      message.success("Content copied to clipboard!")
+    } catch (err) {
+      message.error("Failed to copy content.")
+    }
+  }
+
+  // Navigation blocker
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      hasContentChanges && currentLocation.pathname !== nextLocation.pathname
+  )
 
   useEffect(() => {
     if (blocker.state === "blocked") {
@@ -807,441 +931,660 @@ const TextEditor = ({
   }, [blocker])
 
   useEffect(() => {
-    const normCurrent = normalizeContent(content ?? "")
-    const normSaved = normalizeContent(lastSavedContent ?? "")
-    setUnsavedChanges(normCurrent !== normSaved)
-  }, [content, lastSavedContent, normalizeContent])
+    setIsEditorLoading(true)
+    const timer = setTimeout(() => setIsEditorLoading(false), 300)
+    return () => clearTimeout(timer)
+  }, [])
 
   useEffect(() => {
-    if (!normalEditor || normalEditor.isDestroyed) return
-
-    const html = markdownToHtml(content)
-    if (normalEditor.getHTML() !== html) {
-      const editorDom = normalEditor.view.dom
-
-      const selection = normalEditor.state.selection
-      normalEditor.commands.setContent(html, false)
-      normalEditor.commands.setTextSelection({ from: selection.from, to: selection.to })
+    if (blog?.status === "failed" && !hasShownToast.current) {
+      message.error("Your blog generation failed. You can write blog manually.")
+      hasShownToast.current = true
     }
-  }, [content, normalEditor, markdownToHtml])
+  }, [blog?.status])
 
-  const renderToolbar = () => (
-    <div className="bg-white border-x border-gray-200 shadow-sm px-2 sm:px-4 py-2 flex flex-wrap items-center justify-start gap-y-2 overflow-x-auto">
-      {/* Headings */}
-      <div className="flex gap-1 flex-shrink-0">
-        {[1, 2, 3].map(level => (
-          <Tooltip key={level} title={`Heading ${level}`}>
-            <button
-              onClick={() =>
-                safeEditorAction(() => {
-                  normalEditor.chain().focus().toggleHeading({ level }).run()
-                })
-              }
-              className={`p-2 rounded-md transition-colors duration-150 flex items-center justify-center ${
-                normalEditor?.isActive("heading", { level })
-                  ? "bg-blue-100 text-blue-600"
-                  : "hover:bg-gray-100"
-              }`}
-              aria-label={`Heading ${level}`}
-              type="button"
-            >
-              {level === 1 && <Heading1 className="w-4 h-4" />}
-              {level === 2 && <Heading2 className="w-4 h-4" />}
-              {level === 3 && <Heading3 className="w-4 h-4" />}
-            </button>
-          </Tooltip>
-        ))}
-      </div>
+  // Wrapped handleReplace that updates both content and local sections
+  const handleReplaceWithSections = useCallback(
+    (original, change) => {
+      if (!original || !change) return
 
-      <div className="w-px h-6 bg-gray-200 mx-1 sm:mx-2 flex-shrink-0" />
+      const regex = new RegExp(original.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g")
 
-      {/* Text styles */}
-      <div className="flex gap-1 flex-shrink-0">
-        <Tooltip title="Bold">
-          <button
-            onClick={() =>
-              safeEditorAction(() => {
-                normalEditor.chain().focus().toggleBold().run()
-              })
-            }
-            className={`p-2 rounded-md transition-colors duration-150 flex items-center justify-center ${
-              normalEditor?.isActive("bold") ? "bg-blue-100 text-blue-600" : "hover:bg-gray-100"
-            }`}
-            aria-label="Bold"
-            type="button"
-          >
-            <Bold className="w-4 h-4" />
-          </button>
-        </Tooltip>
-        <Tooltip title="Italic">
-          <button
-            onClick={() =>
-              safeEditorAction(() => {
-                normalEditor.chain().focus().toggleItalic().run()
-              })
-            }
-            className={`p-2 rounded-md transition-colors duration-150 flex items-center justify-center ${
-              normalEditor?.isActive("italic") ? "bg-blue-100 text-blue-600" : "hover:bg-gray-100"
-            }`}
-            aria-label="Italic"
-            type="button"
-          >
-            <Italic className="w-4 h-4" />
-          </button>
-        </Tooltip>
-        <Tooltip title="Underline">
-          <button
-            onClick={() =>
-              safeEditorAction(() => {
-                normalEditor.chain().focus().toggleUnderline().run()
-              })
-            }
-            className={`p-2 rounded-md transition-colors duration-150 flex items-center justify-center ${
-              normalEditor?.isActive("underline")
-                ? "bg-blue-100 text-blue-600"
-                : "hover:bg-gray-100"
-            }`}
-            aria-label="Underline"
-            type="button"
-          >
-            <IconUnderline className="w-4 h-4" />
-          </button>
-        </Tooltip>
-      </div>
+      // Update sections locally
+      handleReplaceInSections(original, change)
 
-      <div className="w-px h-6 bg-gray-200 mx-1 sm:mx-2 flex-shrink-0" />
+      // Update parent content directly (don't call handleReplace to avoid circular loop)
+      if (setContent) {
+        setContent(prev => prev.replace(regex, change))
+      }
+    },
+    [handleReplaceInSections, setContent]
+  )
 
-      {/* Alignment */}
-      <div className="flex gap-1 flex-shrink-0">
-        {["left", "center", "right"].map(align => (
-          <Tooltip key={align} title={`Align ${align}`}>
-            <button
-              onClick={() =>
-                safeEditorAction(() => {
-                  normalEditor.chain().focus().setTextAlign(align).run()
-                })
-              }
-              className={`p-2 rounded-md transition-colors duration-150 flex items-center justify-center ${
-                normalEditor?.isActive({ textAlign: align })
-                  ? "bg-blue-100 text-blue-600"
-                  : "hover:bg-gray-100"
-              }`}
-              aria-label={`Align ${align}`}
-              type="button"
-            >
-              {align === "left" && <AlignLeft className="w-4 h-4" />}
-              {align === "center" && <AlignCenter className="w-4 h-4" />}
-              {align === "right" && <AlignRight className="w-4 h-4" />}
-            </button>
-          </Tooltip>
-        ))}
-      </div>
+  // Editor context value for child components
+  const editorContextValue = useMemo(
+    () => ({
+      blogId: blog?._id,
+      userPlan,
+      editingIndex,
+      setEditingIndex,
+      handleDelete,
+      handleSectionChange,
+      handleSectionTitleChange,
+      handleAddSection,
+      handleMoveSection,
+      sectionsCount: sections.length,
+      navigateToPricing: () => navigate("/pricing"),
+      getSectionImage,
+      proofreadingResults: proofreadingResults || [],
+      handleReplace: handleReplaceWithSections, // Use wrapped version that updates sections
+      onUpdateSectionImage: handleUpdateSectionImage,
+      onDeleteSectionImage: handleDeleteSectionImage,
+    }),
+    [
+      blog?._id,
+      userPlan,
+      editingIndex,
+      handleDelete,
+      handleSectionChange,
+      handleSectionTitleChange,
+      handleAddSection,
+      handleMoveSection,
+      sections.length,
+      navigate,
+      getSectionImage,
+      proofreadingResults,
+      handleReplaceWithSections,
+      handleUpdateSectionImage,
+      handleDeleteSectionImage,
+    ]
+  )
 
-      <div className="w-px h-6 bg-gray-200 mx-2 flex-shrink-0" />
+  // Handle FAQ edit
+  const handleFaqEdit = (index, field, value) => {
+    setFaq(prev => {
+      if (!prev) return prev
+      const newQa = [...prev.qa]
+      newQa[index] = { ...newQa[index], [field]: value }
+      return { ...prev, qa: newQa }
+    })
+  }
 
-      {/* Lists */}
-      <div className="flex gap-1 flex-shrink-0">
-        <Tooltip title="Bullet List">
-          <button
-            onClick={() =>
-              safeEditorAction(() => {
-                normalEditor.chain().focus().toggleBulletList().run()
-              })
-            }
-            className={`p-2 rounded-md transition-colors duration-150 flex items-center justify-center ${
-              normalEditor?.isActive("bulletList")
-                ? "bg-blue-100 text-blue-600"
-                : "hover:bg-gray-100"
-            }`}
-            aria-label="Bullet List"
-            type="button"
-          >
-            <List className="w-4 h-4" />
-          </button>
-        </Tooltip>
-        <Tooltip title="Ordered List">
-          <button
-            onClick={() =>
-              safeEditorAction(() => {
-                normalEditor.chain().focus().toggleOrderedList().run()
-              })
-            }
-            className={`p-2 rounded-md transition-colors duration-150 flex items-center justify-center ${
-              normalEditor?.isActive("orderedList")
-                ? "bg-blue-100 text-blue-600"
-                : "hover:bg-gray-100"
-            }`}
-            aria-label="Ordered List"
-            type="button"
-          >
-            <ListOrdered className="w-4 h-4" />
-          </button>
-        </Tooltip>
-      </div>
+  // Handle FAQ heading edit
+  const handleFaqHeadingEdit = value => {
+    setFaq(prev => (prev ? { ...prev, heading: value } : prev))
+  }
 
-      <div className="w-px h-6 bg-gray-200 mx-2 flex-shrink-0" />
+  // Handle add FAQ item
+  const handleAddFaqItem = () => {
+    setFaq(prev => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        qa: [...prev.qa, { question: "New Question", answer: "New Answer" }],
+      }
+    })
+  }
 
-      {/* Media & Undo/Redo & Rewrite/Copy/Regenerate/Import */}
-      <div className="flex gap-1 flex-nowrap overflow-x-auto">
-        <Tooltip title="Link">
-          <button
-            onClick={handleAddLink}
-            className="p-2 rounded-md hover:bg-gray-100 flex-shrink-0 flex items-center justify-center"
-            aria-label="Link"
-            type="button"
-          >
-            <LinkIcon className="w-4 h-4" />
-          </button>
-        </Tooltip>
-        <Tooltip title="Image">
-          <button
-            onClick={handleAddImage}
-            className="p-2 rounded-md hover:bg-gray-100 flex-shrink-0 flex items-center justify-center"
-            aria-label="Image"
-            type="button"
-          >
-            <ImageIcon className="w-4 h-4" />
-          </button>
-        </Tooltip>
-        <Tooltip title="Undo">
-          <button
-            onClick={() => safeEditorAction(() => normalEditor?.chain().focus().undo().run())}
-            className="p-2 rounded-md hover:bg-gray-100 flex-shrink-0 flex items-center justify-center"
-            aria-label="Undo"
-            type="button"
-          >
-            <Undo2 className="w-4 h-4" />
-          </button>
-        </Tooltip>
+  // Handle delete FAQ item
+  const handleDeleteFaqItem = index => {
+    setFaq(prev => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        qa: prev.qa.filter((_, i) => i !== index),
+      }
+    })
+  }
 
-        <Tooltip title="Redo">
-          <button
-            onClick={() => safeEditorAction(() => normalEditor?.chain().focus().redo().run())}
-            className="p-2 rounded-md hover:bg-gray-100 flex-shrink-0 flex items-center justify-center"
-            aria-label="Redo"
-            type="button"
-          >
-            <Redo2 className="w-4 h-4" />
-          </button>
-        </Tooltip>
+  function toPlainText(input = "") {
+    return (
+      input
+        // remove everything from markdown image start till end
+        .replace(/!\[[^\]]*\]\([^)]+\)/g, "")
+        // remove HTML tags (even broken ones)
+        .replace(/<[^>]*>/g, " ")
+        // remove markdown links but keep text
+        .replace(/\[([^\]]+)\]\((.*?)\)/g, "$1")
+        // remove markdown bold / italic
+        .replace(/\*\*(.*?)\*\*/g, "$1")
+        .replace(/\*(.*?)\*/g, "$1")
+        .replace(/__(.*?)__/g, "$1")
+        .replace(/_(.*?)_/g, "$1")
+        // normalize spaces
+        .replace(/\s+/g, " ")
+        .trim()
+    )
+  }
 
-        {!pathDetect && (
-          <Tooltip title="Rewrite">
-            <button
-              onClick={handleRewrite}
-              className="p-2 rounded-md hover:bg-gray-100 flex-shrink-0 flex items-center justify-center"
-              aria-label="Rewrite"
-              type="button"
-            >
-              <RotateCcw className="w-4 h-4" />
-            </button>
-          </Tooltip>
-        )}
-        {!pathDetect && (
-          <Tooltip title="Regenerate Content">
-            <button
-              onClick={handleRegenerate}
-              className="p-2 rounded-md hover:bg-gray-100 flex-shrink-0 flex items-center justify-center"
-              aria-label="Regenerate"
-              type="button"
-            >
-              <ReloadOutlined className="w-4 h-4" />
-            </button>
-          </Tooltip>
-        )}
-      </div>
+  // Render FAQ section - editable
+  const [editingFaqIndex, setEditingFaqIndex] = useState(null)
+  const [editingFaqHeading, setEditingFaqHeading] = useState(false)
 
-      {/* Divider */}
-      <div className="w-px h-6 bg-gray-200 mx-2 flex-shrink-0" />
+  // Extra Sections Editing State
+  const [isEditingCta, setIsEditingCta] = useState(false)
+  const [isEditingSummaryHeading, setIsEditingSummaryHeading] = useState(false)
+  const [isEditingSummaryContent, setIsEditingSummaryContent] = useState(false)
 
-      {/* Font Select */}
-      <Select
-        value={selectedFont}
-        onChange={value => safeEditorAction(() => setSelectedFont(value))}
-        className="w-32 flex-shrink-0"
-        aria-label="Font"
+  const renderCTA = () => {
+    if (!cta) return null
+
+    return (
+      <motion.div
+        className="border rounded-xl p-5 mt-5 hover:shadow-md"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
       >
-        {FONT_OPTIONS.map(font => (
-          <Select.Option key={font.value} value={font.value}>
-            {font.label}
-          </Select.Option>
-        ))}
-      </Select>
+        <div className="flex items-center gap-2 mb-3">
+          <h3 className="font-bold text-xl">Brand CTA Section</h3>
+        </div>
+
+        {isEditingCta ? (
+          <InlineEditor
+            value={cta}
+            onChange={setCta}
+            placeholder="Enter CTA content..."
+            onBlur={() => setIsEditingCta(false)}
+            autoFocus
+            editorClassName="text-indigo-800"
+          />
+        ) : (
+          <div className="cursor-pointer group relative" onClick={() => setIsEditingCta(true)}>
+            <div dangerouslySetInnerHTML={{ __html: cta }} />
+            <div className="mt-2 text-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <span className="text-sm text-gray-500">Click to edit</span>
+            </div>
+          </div>
+        )}
+      </motion.div>
+    )
+  }
+
+  const renderQuickSummary = () => {
+    if (!quickSummary) return null
+
+    return (
+      <motion.div
+        className="border rounded-xl p-5 shadow-sm bg-white my-6 border-blue-100"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <div className="flex items-center gap-2 mb-4">
+          {isEditingSummaryHeading ? (
+            <InlineEditor
+              value={quickSummary.heading}
+              onChange={val => setQuickSummary(prev => ({ ...prev, heading: val }))}
+              placeholder="Summary Heading..."
+              onBlur={() => setIsEditingSummaryHeading(false)}
+              autoFocus
+              singleLine
+              editorClassName="text-xl font-bold text-blue-900"
+            />
+          ) : (
+            <div
+              className="flex items-center gap-2 group cursor-pointer"
+              onClick={() => setIsEditingSummaryHeading(true)}
+            >
+              <h3 className="text-xl font-bold">{quickSummary.heading}</h3>
+              <Edit3 className="w-4 h-4 text-blue-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
+          )}
+        </div>
+
+        {isEditingSummaryContent ? (
+          <SectionEditor
+            initialContent={quickSummary.content}
+            onChange={val => setQuickSummary(prev => ({ ...prev, content: val }))}
+            onBlur={() => setIsEditingSummaryContent(false)}
+          />
+        ) : (
+          <div
+            className="cursor-pointer group relative"
+            onClick={() => setIsEditingSummaryContent(true)}
+          >
+            <div
+              className="text-gray-700 prose prose-sm max-w-none"
+              dangerouslySetInnerHTML={{ __html: quickSummary.content }}
+            />
+            <div className="mt-2 text-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <span className="text-sm text-gray-500">Click to edit</span>
+            </div>
+            <Edit3 className="absolute top-2 right-2 w-4 h-4 text-blue-200 opacity-0 group-hover:opacity-100 transition-opacity" />
+          </div>
+        )}
+      </motion.div>
+    )
+  }
+
+  const renderFAQ = () => {
+    if (!faq) return null
+
+    return (
+      <motion.div
+        className="border rounded-xl p-5 shadow-sm bg-white my-6"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        {/* Editable Heading - using InlineEditor */}
+        <div className="flex items-center justify-between mb-4">
+          {editingFaqHeading ? (
+            <InlineEditor
+              value={faq.heading}
+              onChange={handleFaqHeadingEdit}
+              placeholder="FAQ Heading..."
+              onBlur={() => setEditingFaqHeading(false)}
+              autoFocus
+              singleLine
+              editorClassName="text-2xl font-bold"
+            />
+          ) : (
+            <div
+              className="flex items-center gap-2 group cursor-pointer"
+              onClick={() => setEditingFaqHeading(true)}
+            >
+              <h2 className="text-2xl font-bold">{faq.heading}</h2>
+              <Edit3 className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
+          )}
+          <button
+            onClick={handleAddFaqItem}
+            className="flex items-center gap-1 px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 rounded-lg"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">Add FAQ</span>
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          {faq.qa.map((item, i) => (
+            <div
+              key={i}
+              className="relative group p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              {/* Delete button */}
+              <button
+                onClick={() => handleDeleteFaqItem(i)}
+                className="absolute top-2 right-2 p-1.5 text-red-500 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+
+              {/* Question - editable with InlineEditor */}
+              {editingFaqIndex === `q-${i}` ? (
+                <div className="mb-2">
+                  <InlineEditor
+                    value={item.question}
+                    onChange={val => handleFaqEdit(i, "question", val)}
+                    placeholder="Enter question..."
+                    onBlur={() => setEditingFaqIndex(null)}
+                    autoFocus
+                    singleLine
+                    editorClassName="font-semibold text-lg"
+                  />
+                </div>
+              ) : (
+                <div
+                  className="flex items-center gap-2 cursor-pointer mb-2"
+                  onClick={() => setEditingFaqIndex(`q-${i}`)}
+                >
+                  <h3 className="font-semibold text-lg">{item.question}</h3>
+                  <Edit3 className="w-3 h-3 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+              )}
+
+              {/* Answer - editable with InlineEditor */}
+              {editingFaqIndex === `a-${i}` ? (
+                <InlineEditor
+                  value={item.answer}
+                  onChange={val => handleFaqEdit(i, "answer", val)}
+                  placeholder="Enter answer..."
+                  onBlur={() => setEditingFaqIndex(null)}
+                  autoFocus
+                  editorClassName="text-gray-600"
+                />
+              ) : (
+                <div className="cursor-pointer" onClick={() => setEditingFaqIndex(`a-${i}`)}>
+                  <p className="text-gray-600">{item.answer}</p>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </motion.div>
+    )
+  }
+
+  // Render toolbar
+  const renderToolbar = () => (
+    <div className="bg-white border-b border-gray-200 shadow-sm px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+      <div className="flex items-center gap-4">
+        <span className="text-gray-600 text-sm">
+          <span className="font-semibold">{sections.length}</span> sections
+        </span>
+        {hasContentChanges && (
+          <span className="text-orange-600 text-sm font-medium flex items-center gap-1">
+            <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
+            Unsaved changes
+          </span>
+        )}
+      </div>
+
+      <div className="flex gap-2">
+        <Popover
+          content={
+            <div className="max-w-md">
+              <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <Info className="w-5 h-5 text-blue-600" />
+                Editor Guidelines
+              </h3>
+              <div className="space-y-3 text-sm text-gray-700">
+                <div>
+                  <p className="font-medium text-gray-900 mb-1">📝 Heading Structure:</p>
+                  <ul className="list-disc list-inside space-y-1 ml-2">
+                    <li>
+                      <strong>H1:</strong> Blog title only (automatically set)
+                    </li>
+                    <li>
+                      <strong>H2:</strong> Section titles (automatically set)
+                    </li>
+                    <li>
+                      <strong>H3:</strong> Use for major subsections within content
+                    </li>
+                    <li>
+                      <strong>H4:</strong> Use for minor subsections and details
+                    </li>
+                  </ul>
+                </div>
+
+                <div>
+                  <p className="font-medium text-gray-900 mb-1">✨ Content Tips:</p>
+                  <ul className="list-disc list-inside space-y-1 ml-2">
+                    <li>
+                      Use <strong>H3</strong> for main points in your section
+                    </li>
+                    <li>
+                      Use <strong>H4</strong> for supporting details
+                    </li>
+                    <li>Add lists for better readability</li>
+                    <li>Insert tables for structured data</li>
+                    <li>Embed YouTube videos for rich content</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <p className="font-medium text-gray-900 mb-1">🎯 Best Practices:</p>
+                  <ul className="list-disc list-inside space-y-1 ml-2">
+                    <li>Keep heading hierarchy logical (H3 → H4)</li>
+                    <li>Don't skip heading levels</li>
+                    <li>Use formatting (bold, italic) for emphasis</li>
+                    <li>Add alt text to images for SEO</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          }
+          title={null}
+          trigger="click"
+          placement="bottomRight"
+        >
+          <button
+            className="px-3 sm:px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center text-xs sm:text-sm"
+            aria-label="Editor Guidelines"
+          >
+            <Info className="w-4 sm:w-5 h-4 sm:h-5" />
+          </button>
+        </Popover>
+        <Tooltip title="Preview">
+          <button
+            onClick={() => setOpenPreview(true)}
+            className="px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 flex items-center gap-2 text-sm"
+          >
+            <Eye className="w-4 h-4" />
+            <span className="hidden sm:inline">Preview</span>
+          </button>
+        </Tooltip>
+      </div>
     </div>
   )
 
-  function computeLineDiff(original, updated) {
-    if (!original || !updated) {
-      console.warn("computeLineDiff: Empty or invalid input", { original, updated })
-      return [{ lineNumber: 1, oldLine: "", newLine: "", type: "unchanged" }]
-    }
-
-    try {
-      const originalLines = original.split("\n")
-      const updatedLines = updated.split("\n")
-      const maxLength = Math.max(originalLines.length, updatedLines.length)
-      const result = []
-      let lineNumber = 1
-
-      for (let i = 0; i < maxLength; i++) {
-        const originalLine = i < originalLines.length ? originalLines[i] : ""
-        const updatedLine = i < updatedLines.length ? updatedLines[i] : ""
-
-        if (originalLine === updatedLine) {
-          result.push({
-            lineNumber: lineNumber++,
-            oldLine: originalLine,
-            newLine: updatedLine,
-            type: "unchanged",
-          })
-        } else {
-          if (originalLine) {
-            result.push({
-              lineNumber: lineNumber++,
-              oldLine: originalLine,
-              newLine: "",
-              type: "removed",
-            })
-          }
-          if (updatedLine) {
-            result.push({
-              lineNumber: lineNumber++,
-              oldLine: "",
-              newLine: updatedLine,
-              type: "added",
-            })
-          }
-        }
-      }
-
-      return result.length > 0
-        ? result
-        : [{ lineNumber: 1, oldLine: "", newLine: "", type: "unchanged" }]
-    } catch (error) {
-      console.error("computeLineDiff error:", error)
-      return [{ lineNumber: 1, oldLine: "", newLine: "", type: "unchanged" }]
-    }
-  }
-
+  // Render content area
   const renderContentArea = () => {
-    if (isEditorLoading || !editorReady || blog?.status === "pending") {
+    if (isEditorLoading || blog?.status === "pending") {
       return (
-        <div className="flex items-center justify-center h-[calc(100vh-300px)] bg-white border rounded-lg">
+        <div className="flex items-center justify-center h-[calc(100vh-300px)] bg-white">
           <LoadingScreen />
         </div>
       )
     }
 
-    if (humanizedContent && showDiff) {
-      if (!editorContent && !humanizedContent) {
-        return (
-          <div className="p-4 bg-white h-screen overflow-auto">
-            <p className="text-gray-500">No content to compare.</p>
-          </div>
-        )
-      }
-
-      return (
-        <ContentDiffViewer
-          oldMarkdown={editorContent}
-          newMarkdown={humanizedContent}
-          onAccept={handleAcceptHumanizedContentModified}
-          onReject={handleAcceptOriginalContent}
-        />
-      )
-    }
-
     return (
-      <div className="overflow-auto custom-scroll">
-        {normalEditor && (
-          <BubbleMenu
-            editor={normalEditor}
-            className="flex gap-2 bg-white shadow-lg p-2 rounded-lg border border-gray-200"
-          >
-            <Tooltip title="Bold" placement="top">
-              <button
-                className="p-2 rounded hover:bg-gray-200 text-gray-600"
-                onClick={() => {
-                  safeEditorAction(() => {
-                    normalEditor.chain().focus().toggleBold().run()
-                  })
-                }}
-              >
-                <Bold className="w-5 h-5" />
-              </button>
-            </Tooltip>
-            <Tooltip title="Italic" placement="top">
-              <button
-                className="p-2 rounded hover:bg-gray-200 text-gray-600"
-                onClick={() => {
-                  safeEditorAction(() => {
-                    normalEditor.chain().focus().toggleItalic().run()
-                  })
-                }}
-              >
-                <Italic className="w-5 h-5" />
-              </button>
-            </Tooltip>
-            <Tooltip title="Heading" placement="top">
-              <button
-                className="p-2 rounded hover:bg-gray-200 text-gray-600"
-                onClick={() => {
-                  safeEditorAction(() => {
-                    normalEditor.chain().focus().toggleHeading({ level: 2 }).run()
-                  })
-                }}
-              >
-                <Heading2 className="w-5 h-5" />
-              </button>
-            </Tooltip>
-            <Tooltip title="Link" placement="top">
-              <button
-                className="p-2 rounded hover:bg-gray-200 text-gray-600"
-                onClick={handleAddLink}
-              >
-                <LinkIcon className="w-5 h-5" />
-              </button>
-            </Tooltip>
-            <Tooltip title="Image" placement="top">
-              <button
-                className="p-2 rounded hover:bg-gray-200 text-gray-600"
-                onClick={handleAddImage}
-              >
-                <ImageIcon className="w-5 h-5" />
-              </button>
-            </Tooltip>
-            {!pathDetect && (
-              <Tooltip title="Rewrite" placement="top">
-                <button
-                  className="p-2 rounded hover:bg-gray-200 text-gray-600"
-                  onClick={handleRewrite}
-                >
-                  <RotateCcw className="w-4 h-4" />
-                </button>
-              </Tooltip>
-            )}
-          </BubbleMenu>
-        )}
-        <EditorContent editor={normalEditor} />
-        {activeSpan instanceof HTMLElement && (
-          <div
-            className="proof-ui-bubble"
-            ref={bubbleRef}
-            style={{
-              position: "absolute",
-              top: bubblePos.top,
-              left: bubblePos.left,
-            }}
-          >
-            <div style={{ marginBottom: 4 }}>
-              Replace with: <strong>{activeSpan.dataset.suggestion}</strong>
+      <div className="p-4 sm:p-6 bg-white min-h-screen">
+        {/* Blog title - editable with rich text bubble menu */}
+        <div className="mb-4">
+          {isEditingTitle ? (
+            <InlineEditor
+              value={blogTitle}
+              onChange={setBlogTitle}
+              placeholder="Enter blog title..."
+              onBlur={() => setIsEditingTitle(false)}
+              autoFocus
+              singleLine
+              editorClassName="text-3xl font-bold text-gray-900"
+            />
+          ) : (
+            <div
+              className="flex items-center gap-2 group cursor-pointer"
+              onClick={() => setIsEditingTitle(true)}
+            >
+              <div
+                className="text-3xl font-bold text-gray-900"
+                dangerouslySetInnerHTML={{ __html: blogTitle || "Untitled Blog" }}
+              />
+              <Edit3 className="w-5 h-5 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
-            <button onClick={applyChange}>✅ Accept</button>
-            <button onClick={rejectChange} style={{ marginLeft: 6 }}>
-              ❌ Reject
+          )}
+        </div>
+
+        {/* Thumbnail Image - Display if exists */}
+        {blogThumbnail && (
+          <div className="mb-8 relative group">
+            <div
+              className="cursor-pointer relative"
+              onClick={() => {
+                setThumbnailUrl(blogThumbnail.url)
+                setThumbnailAlt(blogThumbnail.alt || "")
+                setThumbnailModalOpen(true)
+              }}
+            >
+              <img
+                src={blogThumbnail.url}
+                alt={blogThumbnail.alt || blogTitle}
+                className="w-full max-h-[500px] object-cover rounded-lg shadow-md transition-all group-hover:brightness-95"
+              />
+              {/* Overlay hint on hover */}
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all rounded-lg flex items-center justify-center">
+                <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 px-4 py-2 rounded-lg text-sm font-medium text-gray-700 shadow-lg">
+                  Click to edit thumbnail
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Blog description - editable with rich text bubble menu */}
+        <div className="mb-8">
+          {isEditingDescription ? (
+            <InlineEditor
+              value={blogDescription}
+              onChange={setBlogDescription}
+              placeholder="Enter blog description..."
+              onBlur={() => setIsEditingDescription(false)}
+              autoFocus
+              editorClassName="text-gray-600"
+            />
+          ) : (
+            <div
+              className="flex items-start gap-2 group cursor-pointer"
+              onClick={() => setIsEditingDescription(true)}
+            >
+              <div className="text-gray-600 flex-1">
+                {toPlainText(blogDescription || "Click to add description...")}
+              </div>
+
+              <Edit3 className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity mt-1" />
+            </div>
+          )}
+        </div>
+
+        {/* Sections - Drag and Drop enabled */}
+        {sections.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 px-4 bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl">
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mb-4">
+              <Plus className="w-8 h-8 text-blue-600" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-700 mb-2">Start Building Your Blog</h3>
+            <p className="text-gray-500 text-center mb-6 max-w-md">
+              Add your first section to begin writing. Each section can have its own title and
+              content.
+            </p>
+            <button
+              onClick={handleAddFirstSection}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold hover:shadow-lg hover:scale-105 transition-all duration-300"
+            >
+              <Plus className="w-5 h-5" />
+              Add Section
             </button>
           </div>
+        ) : (
+          <>
+            <EditorProvider value={editorContextValue}>
+              <Reorder.Group
+                axis="y"
+                values={sections}
+                onReorder={setSections}
+                className="space-y-6"
+              >
+                {sections.map((section, index) => (
+                  <SectionCard key={section.id || index} section={section} index={index} />
+                ))}
+              </Reorder.Group>
+            </EditorProvider>
+
+            {/* Add Section button at bottom */}
+            <div className="flex justify-center mt-6">
+              <button
+                onClick={() => handleAddSection(sections.length - 1)}
+                className="flex items-center gap-2 px-5 py-2.5 bg-white border-2 border-dashed border-gray-300 text-gray-600 rounded-xl hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200"
+              >
+                <Plus className="w-5 h-5" />
+                Add Section
+              </button>
+            </div>
+          </>
         )}
+
+        {renderCTA()}
+        {renderQuickSummary()}
+        {renderFAQ()}
+
+        {/* Thumbnail Edit Modal */}
+        <Modal
+          title={
+            <div className="flex items-center gap-2">
+              <ImageIcon className="w-5 h-5 text-purple-600" />
+              <span>Edit Thumbnail Image</span>
+            </div>
+          }
+          open={thumbnailModalOpen}
+          onCancel={() => setThumbnailModalOpen(false)}
+          footer={
+            <div className="flex items-center justify-between w-full">
+              {/* Left: Destructive action */}
+              <Button
+                danger
+                icon={<Trash2 className="w-4 h-4" />}
+                onClick={() => {
+                  setBlogThumbnail(null)
+                  setThumbnailModalOpen(false)
+                  message.success("Thumbnail removed")
+                }}
+              >
+                Delete Thumbnail
+              </Button>
+
+              {/* Right: Actions */}
+              <div className="flex items-center gap-2">
+                <Button onClick={() => setThumbnailModalOpen(false)}>Cancel</Button>
+                <Button
+                  type="primary"
+                  icon={<Check className="w-4 h-4" />}
+                  onClick={() => {
+                    if (blogThumbnail) {
+                      setBlogThumbnail({
+                        ...blogThumbnail,
+                        url: thumbnailUrl,
+                        alt: thumbnailAlt,
+                      })
+                      message.success("Thumbnail updated")
+                    }
+                    setThumbnailModalOpen(false)
+                  }}
+                >
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          }
+          width={700}
+          centered
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Left: Image Preview */}
+            <div className="border rounded-lg bg-gray-50 p-2 flex items-center justify-center">
+              <img
+                src={thumbnailUrl}
+                alt={thumbnailAlt || "Thumbnail preview"}
+                className="max-w-full rounded-lg object-contain"
+                style={{ maxHeight: "300px" }}
+                onError={e => {
+                  e.currentTarget.src = blogThumbnail?.url
+                }}
+              />
+            </div>
+
+            {/* Right: Image Details */}
+            <div className="space-y-4">
+              {/* Image URL */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Image URL <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  value={thumbnailUrl}
+                  onChange={e => setThumbnailUrl(e.target.value)}
+                  placeholder="https://example.com/image.jpg"
+                />
+                <p className="text-xs text-gray-500 mt-1">Enter a URL to replace the thumbnail</p>
+              </div>
+
+              {/* Alt Text */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Alt Text <span className="text-red-500">*</span>
+                </label>
+                <Input.TextArea
+                  value={thumbnailAlt}
+                  onChange={e => setThumbnailAlt(e.target.value)}
+                  placeholder="Describe the image for accessibility and SEO"
+                  rows={3}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Helps with SEO and screen readers. Be descriptive and specific.
+                </p>
+              </div>
+            </div>
+          </div>
+        </Modal>
       </div>
     )
   }
@@ -1253,306 +1596,244 @@ const TextEditor = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
     >
-      {(isRetrying || isSavingKeyword) && (
-        <div className="bg-white flex items-center justify-center z-50">
+      {isSavingKeyword && (
+        <div className="fixed inset-0 bg-white/80 flex items-center justify-center z-50">
           <LoadingScreen />
         </div>
       )}
-      {retryModalOpen && (
-        <motion.div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-        >
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-            <h3 className="text-lg font-semibold mb-4">Generated Content</h3>
-            <div className="space-y-4">
-              <div>
-                <h4 className="text-sm font-medium text-gray-700">Original Text</h4>
-                <div className="p-4 bg-gray-100 rounded-md">
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    rehypePlugins={[rehypeRaw]}
-                    className="prose"
-                    components={{
-                      a: ({ href, children }) => (
-                        <Tooltip title={href} placement="top">
-                          <a
-                            href={href}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline"
-                          >
-                            {children}
-                          </a>
-                        </Tooltip>
-                      ),
-                      strong: ({ children }) => <strong className="font-bold">{children}</strong>,
-                    }}
-                  >
-                    {originalContent || "No text selected"}
-                  </ReactMarkdown>
-                </div>
-              </div>
-              <div>
-                <h4 className="text-sm font-medium text-gray-700">Improved Text</h4>
-                <div className="p-4 bg-gray-50 rounded-md">
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    rehypePlugins={[rehypeRaw]}
-                    className="prose"
-                    components={{
-                      a: ({ href, children }) => (
-                        <Tooltip title={href} placement="top">
-                          <a
-                            href={href}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline"
-                          >
-                            {children}
-                          </a>
-                        </Tooltip>
-                      ),
-                      strong: ({ children }) => <strong className="font-bold">{children}</strong>,
-                    }}
-                  >
-                    {retryContent}
-                  </ReactMarkdown>
-                </div>
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 mt-4">
-              <button
-                onClick={handleRejectRetry}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+
+      {/* Preview Modal */}
+      <Modal
+        open={openPreview}
+        onCancel={() => setOpenPreview(false)}
+        footer={null}
+        width={950}
+        centered
+        title={
+          <div className="flex justify-between items-center w-full pr-4">
+            <span className="text-lg font-semibold text-gray-800">Blog Preview</span>
+            <div className="flex items-center gap-3">
+              {/* Table of Contents Toggle */}
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showTableOfContents}
+                  onChange={e => setShowTableOfContents(e.target.checked)}
+                  className="w-4 h-4 rounded border-gray-300"
+                />
+                <span className="text-sm text-gray-600">Table of Contents</span>
+              </label>
+              <Button
+                type="primary"
+                onClick={copyContent}
+                className="!bg-gradient-to-r !from-indigo-500 !to-purple-600 !shadow-sm hover:!shadow-md mr-5"
               >
-                Reject
-              </button>
-              <button
-                onClick={handleAcceptRetry}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-              >
-                Accept
-              </button>
+                Copy All
+              </Button>
             </div>
           </div>
-        </motion.div>
-      )}
-      <div className="flex flex-col h-full">
-        {/* Sticky header: Toolbar */}
-        <div className="sticky top-0 z-50 bg-white shadow-sm">{renderToolbar()}</div>
+        }
+      >
+        <div className="max-h-[70vh] overflow-y-auto px-4 pb-6 custom-scroll">
+          {/* Blog Title - H1 */}
+          <h1 className="text-2xl font-semibold mb-4 text-gray-900">{toPlainText(blogTitle)}</h1>
 
-        {/* Scrollable content area */}
+          {/* Featured Image - First section image or main thumbnail */}
+          {(() => {
+            const mainImage = sectionImages?.find(
+              img => img.role === "thumbnail" || img.role === "main"
+            )
+            const firstSectionImage = sections.length > 0 ? getSectionImage(sections[0]?.id) : null
+            const featuredImage = mainImage || firstSectionImage
+            if (featuredImage) {
+              return (
+                <div className="mb-6">
+                  <img
+                    src={featuredImage.url}
+                    alt={featuredImage.altText || blogTitle}
+                    className="w-full max-h-[400px] object-cover"
+                  />
+                  {featuredImage.attribution?.name && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      Photo by{" "}
+                      <a
+                        href={featuredImage.attribution.profile}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline"
+                      >
+                        {featuredImage.attribution.name}
+                      </a>
+                    </p>
+                  )}
+                </div>
+              )
+            }
+            return null
+          })()}
+
+          {/* Description */}
+          {blogDescription && (
+            <div
+              className="text-gray-600 mb-6 leading-relaxed"
+              dangerouslySetInnerHTML={{ __html: blogDescription }}
+            />
+          )}
+
+          {/* Table of Contents - shown when toggle is on */}
+          {showTableOfContents && sections.length > 0 && (
+            <nav className="mb-8 p-4 bg-gray-50 border border-gray-200">
+              <h2 className="text-lg font-semibold mb-3 text-gray-800">Table of Contents</h2>
+              <ul className="space-y-2">
+                {sections.map((sec, i) => (
+                  <li key={i}>
+                    <a
+                      href={`#preview-section-${i}`}
+                      className="text-blue-600 hover:underline"
+                      onClick={e => {
+                        e.preventDefault()
+                        document
+                          .getElementById(`preview-section-${i}`)
+                          ?.scrollIntoView({ behavior: "smooth" })
+                      }}
+                    >
+                      {toPlainText(sec.title)}
+                    </a>
+                  </li>
+                ))}
+                {faq && (
+                  <li>
+                    <a
+                      href="#preview-cta"
+                      className="text-blue-600 hover:underline"
+                      onClick={e => {
+                        e.preventDefault()
+                        document
+                          .getElementById("preview-cta")
+                          ?.scrollIntoView({ behavior: "smooth" })
+                      }}
+                    >
+                      Brand CTA
+                    </a>
+                  </li>
+                )}
+                {quickSummary && (
+                  <li>
+                    <a
+                      href="#preview-summary"
+                      className="text-blue-600 hover:underline"
+                      onClick={e => {
+                        e.preventDefault()
+                        document
+                          .getElementById("preview-summary")
+                          ?.scrollIntoView({ behavior: "smooth" })
+                      }}
+                    >
+                      {quickSummary.heading}
+                    </a>
+                  </li>
+                )}
+                {faq && (
+                  <li>
+                    <a
+                      href="#preview-faq"
+                      className="text-blue-600 hover:underline"
+                      onClick={e => {
+                        e.preventDefault()
+                        document
+                          .getElementById("preview-faq")
+                          ?.scrollIntoView({ behavior: "smooth" })
+                      }}
+                    >
+                      {faq.heading}
+                    </a>
+                  </li>
+                )}
+              </ul>
+            </nav>
+          )}
+
+          {/* Blog Sections - Clean layout */}
+          {sections.map((sec, i) => {
+            const sectionImg = getSectionImage(sec.id)
+            return (
+              <div key={i} id={`preview-section-${i}`} className="mb-8">
+                {/* Section Heading - H2 */}
+                <h2 className="text-xl font-semibold text-gray-900">{toPlainText(sec.title)}</h2>
+
+                {/* Section Image - only show if not the featured image */}
+                {sectionImg && i > 0 && (
+                  <div className="mb-4">
+                    <img
+                      src={sectionImg.url}
+                      alt={sectionImg.altText || sec.title}
+                      className="w-full max-h-[350px] object-cover"
+                    />
+                    {sectionImg.attribution?.name && (
+                      <p className="text-xs text-gray-500 mt-2">
+                        Photo by{" "}
+                        <a
+                          href={sectionImg.attribution.profile}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline"
+                        >
+                          {sectionImg.attribution.name}
+                        </a>
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Section Content - No additional styling, uses blog-content class */}
+                <div className="blog-content" dangerouslySetInnerHTML={{ __html: sec.content }} />
+              </div>
+            )
+          })}
+
+          {/* CTA Preview */}
+          {cta && (
+            <div id="preview-cta" className="mt-8 pt-6 border-t bg-indigo-50/30 p-4 rounded-lg">
+              <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: cta }} />
+            </div>
+          )}
+
+          {/* Quick Summary Preview */}
+          {quickSummary && (
+            <div id="preview-summary" className="mt-8 pt-6 border-t">
+              <h2 className="text-xl font-bold mb-4 text-blue-900">{quickSummary.heading}</h2>
+              <div
+                className="prose max-w-none text-gray-700"
+                dangerouslySetInnerHTML={{ __html: quickSummary.content }}
+              />
+            </div>
+          )}
+
+          {/* FAQ Section */}
+          {faq && (
+            <div id="preview-faq" className="mt-8 pt-6 border-t">
+              <h2 className="text-xl font-semibold mb-4 text-gray-900">{faq.heading}</h2>
+              <div className="space-y-4">
+                {faq.qa.map((item, i) => (
+                  <div key={i}>
+                    <h3 className="font-medium text-gray-900">{item.question}</h3>
+                    <p className="text-gray-600 mt-1">{item.answer}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {!sections.length && (
+            <div className="text-center py-12 text-gray-500">No sections available.</div>
+          )}
+        </div>
+      </Modal>
+
+      <div className="flex flex-col h-full">
+        <div className="sticky top-0 bg-white shadow-sm z-10">{renderToolbar()}</div>
         <div className="flex-1 overflow-auto">{renderContentArea()}</div>
       </div>
-
-      {linkPreviewPos &&
-        createPortal(
-          <div
-            style={{
-              position: "absolute",
-              top: linkPreviewPos.top,
-              left: linkPreviewPos.left,
-              background: "white",
-              border: "1px solid #e5e7eb",
-              borderRadius: "0.5rem",
-              padding: "0.75rem",
-              boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-              zIndex: 1000,
-              maxWidth: "300px",
-              minWidth: "200px",
-              display: "block",
-            }}
-            onMouseEnter={() => {
-              if (hideTimeout.current) clearTimeout(hideTimeout.current)
-            }}
-            onMouseLeave={() => {
-              if (hideTimeout.current) clearTimeout(hideTimeout.current)
-              hideTimeout.current = setTimeout(() => {
-                setLinkPreview(null)
-                setLinkPreviewPos(null)
-                setLinkPreviewUrl(null)
-                setLinkPreviewElement(null)
-              }, 200)
-            }}
-          >
-            {linkPreview ? (
-              <>
-                <h4 className="text-sm font-semibold truncate">
-                  {linkPreview.title || "No title"}
-                </h4>
-                <p className="text-xs text-gray-600 truncate">{linkPreview.description}</p>
-                {linkPreview.images && linkPreview.images[0] && (
-                  <img
-                    src={linkPreview.images[0]}
-                    alt="preview"
-                    style={{ width: "100%", height: "auto", marginTop: "8px", borderRadius: "4px" }}
-                  />
-                )}
-                <div className="flex gap-2 mt-2">
-                  <Button
-                    onClick={() => {
-                      handleRemoveLink()
-                    }}
-                    size="small"
-                    danger
-                    style={{
-                      flex: 1,
-                      display: "block",
-                    }}
-                  >
-                    Remove Link
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      const pos = normalEditor.view.posAtDOM(linkPreviewElement, 0)
-                      const end = pos + (linkPreviewElement.textContent?.length || 0)
-                      normalEditor.chain().focus().setTextSelection({ from: pos, to: end }).run()
-                      setLinkUrl(linkPreviewUrl)
-                      setLinkModalOpen(true)
-                      setLinkPreview(null)
-                      setLinkPreviewPos(null)
-                      setLinkPreviewUrl(null)
-                      setLinkPreviewElement(null)
-                    }}
-                    size="small"
-                    style={{
-                      flex: 1,
-                      display: "block",
-                    }}
-                  >
-                    Edit Link
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <p className="text-xs">Loading preview...</p>
-            )}
-          </div>,
-          document.body
-        )}
-      <Modal
-        title="Insert Link"
-        open={linkModalOpen}
-        onOk={handleConfirmLink}
-        onCancel={() => setLinkModalOpen(false)}
-        footer={
-          <div className="flex justify-end gap-2">
-            <Button onClick={() => setLinkModalOpen(false)} className="rounded-lg">
-              Cancel
-            </Button>
-            <Button type="primary" onClick={handleConfirmLink} className="rounded-lg">
-              Insert Link
-            </Button>
-          </div>
-        }
-        centered
-      >
-        <Input
-          bordered={false} // removes AntD’s default border completely
-          value={linkUrl}
-          onChange={e => setLinkUrl(e.target.value)}
-          placeholder="https://example.com"
-          className="w-full mt-4 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-        />
-
-        <p className="mt-2 text-xs text-gray-500">Include http:// or https://</p>
-      </Modal>
-
-      <Modal
-        title="Edit Image Alt Text"
-        open={editImageModalOpen}
-        onOk={handleConfirmEditImage}
-        onCancel={() => {
-          setEditImageModalOpen(false)
-          setSelectedImage(null)
-          setImageAlt("")
-        }}
-        okText="Update Alt Text"
-        cancelText="Cancel"
-        footer={[
-          <div className="flex justify-end gap-2">
-            <Button
-              key="delete"
-              onClick={handleDeleteImage}
-              danger
-              icon={<Trash2 className="w-4 h-4" />}
-              className="rounded-lg"
-            >
-              Delete Image
-            </Button>
-            <Button
-              key="cancel"
-              onClick={() => {
-                setEditImageModalOpen(false)
-                setSelectedImage(null)
-                setImageAlt("")
-              }}
-              className="rounded-lg"
-            >
-              Cancel
-            </Button>
-            <Button key="ok" type="primary" onClick={handleConfirmEditImage} className="rounded-lg">
-              Update Alt Text
-            </Button>
-          </div>,
-        ]}
-        centered
-      >
-        <Input
-          value={imageAlt}
-          onChange={e => setImageAlt(e.target.value)}
-          placeholder="Image description"
-          className="w-full mt-4"
-          // prefix={<ImageIcon className="w-4 h-4 text-gray-400" />}
-        />
-        <p className="mt-2 text-xs text-gray-500">Provide alt text for accessibility</p>
-        {selectedImage && (
-          <div className="mt-4">
-            <img
-              src={selectedImage.src}
-              alt={imageAlt || selectedImage.alt}
-              className="max-w-full h-auto rounded-lg"
-            />
-          </div>
-        )}
-      </Modal>
-
-      <Modal
-        title="Insert Image"
-        open={imageModalOpen}
-        onCancel={() => setImageModalOpen(false)}
-        footer={
-          <div className="flex justify-end gap-2">
-            <Button onClick={() => setImageModalOpen(false)} className="rounded-lg">
-              Cancel
-            </Button>
-            <Button type="primary" onClick={handleConfirmImage} className="rounded-lg">
-              Insert Image
-            </Button>
-          </div>
-        }
-        centered
-      >
-        <Input
-          value={imageUrl}
-          onChange={e => setImageUrl(e.target.value)}
-          placeholder="https://example.com/image.jpg"
-          className="w-full mt-4"
-          // prefix={<ImageIcon className="w-4 h-4 text-gray-400" />}
-        />
-        <p className="mt-2 text-xs text-gray-500">Include http:// or https://</p>
-        <Input
-          value={imageAlt}
-          onChange={e => setImageAlt(e.target.value)}
-          placeholder="Image description"
-          className="w-full mt-4"
-          // prefix={<ImageIcon className="w-4 h-4 text-gray-400" />}
-        />
-        <p className="mt-2 text-xs text-gray-500">Provide alt text for accessibility</p>
-      </Modal>
     </motion.div>
   )
 }

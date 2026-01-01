@@ -1,7 +1,7 @@
 // BACKEND-SYNCED MULTIPLIERS
 const GEMINI_MULTIPLIER = 1
-const CHATGPT_MULTIPLIER = 1.75
-const CLAUDE_MULTIPLIER = 2.5
+const OPENAI_MULTIPLIER = 1.5
+const CLAUDE_MULTIPLIER = 2
 
 export const creditCostsWithGemini = Object.freeze({
   analysis: {
@@ -38,8 +38,9 @@ export function getEstimatedCost(type, aiModel = "gemini") {
   if (!cost) throw new Error("Unknown Operation: No cost available")
 
   switch (aiModel.toLowerCase()) {
+    case "openai":
     case "chatgpt":
-      cost = Math.ceil(CHATGPT_MULTIPLIER * cost)
+      cost = Math.ceil(OPENAI_MULTIPLIER * cost)
       break
     case "claude":
       cost = Math.ceil(CLAUDE_MULTIPLIER * cost)

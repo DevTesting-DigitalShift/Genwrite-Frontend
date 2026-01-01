@@ -7,7 +7,7 @@ import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { computeCost } from "@/data/pricingConfig"
 import { AnimatePresence, motion } from "framer-motion"
 import { loadAuthenticatedUser, selectUser } from "@store/slices/authSlice"
-import { Clock, Sparkles } from "lucide-react"
+import { Clock, Sparkles, FileText, UploadCloud, Archive, BadgePercent } from "lucide-react"
 import { Helmet } from "react-helmet"
 import { SkeletonDashboardCard, SkeletonGridCard } from "../components/UI/SkeletonLoader"
 import { openJobModal } from "@store/slices/jobSlice"
@@ -30,7 +30,9 @@ import InlineAnnouncementBanner from "@/layout/InlineAnnouncementBanner"
 import dayjs from "dayjs"
 import LoadingScreen from "@components/UI/LoadingScreen"
 import { ACTIVE_MODELS } from "@/data/dashModels"
-import { useQueryClient } from "@tanstack/react-query"
+import { useQueryClient, useQuery } from "@tanstack/react-query"
+import DashboardTour from "@components/DashboardTour"
+import { getBlogStatus } from "@/api/analysisApi"
 
 // lazy imports
 const QuickBlogModal = lazy(() => import("@components/multipleStepModal/QuickBlogModal"))
@@ -68,9 +70,39 @@ const Dashboard = () => {
   const user = useSelector(selectUser)
   const { handlePopup } = useConfirmPopup()
   const queryClient = useQueryClient()
+  const [runTour, setRunTour] = useState(false)
 
   // Default state
   const [dateRange, setDateRange] = useState([undefined, undefined])
+
+  // Fetch blog status for analytics cards
+  const { data: blogStatus } = useQuery({
+    queryKey: ["blogStatus"],
+    queryFn: () => {
+      const endDate = dayjs().endOf("day").toISOString()
+      const params = {
+        start: new Date(user?.createdAt || Date.now()).toISOString(),
+        end: endDate,
+      }
+      return getBlogStatus(params)
+    },
+    enabled: !!user,
+  })
+
+  const stats = blogStatus?.stats || {}
+  const { totalBlogs = 0, postedBlogs = 0, archivedBlogs = 0, brandedBlogs = 0 } = stats
+
+  // Check if we should show analytics cards (only if there's data)
+  const hasAnalyticsData =
+    totalBlogs > 0 || postedBlogs > 0 || archivedBlogs > 0 || brandedBlogs > 0
+
+  // Get time-based greeting
+  const getGreeting = () => {
+    const hour = new Date().getHours()
+    if (hour < 12) return "Good morning"
+    if (hour < 18) return "Good afternoon"
+    return "Good evening"
+  }
 
   let limit = 5
   let sort = "updatedAt:desc"
@@ -145,20 +177,46 @@ const Dashboard = () => {
     fetchBlogsQuery()
   }, [fetchBlogsQuery])
 
-  // Consolidated useEffect for GoThrough modal logic
+  // Show walkthrough only for first-time users on desktop
   useEffect(() => {
-    const currentUser = user
-    const hasSeenGoThrough = sessionStorage.getItem("hasSeenGoThrough") === "true"
-    if (currentUser && !currentUser.lastLogin && !hasSeenGoThrough) {
-      setShowWhatsNew(true)
-    } else {
-      setShowWhatsNew(false) // Explicitly set to false to prevent reappearing
+    if (!user || !user._id) return
+
+    // Check if device is mobile (width < 768px)
+    const isMobile = window.innerWidth < 768
+
+    // Use user-specific localStorage keys
+    const hasSeenTour = localStorage.getItem(`hasSeenDashboardTour_${user._id}`) === "true"
+    const hasCompletedOnboarding =
+      localStorage.getItem(`hasCompletedOnboarding_${user._id}`) === "true"
+    const justCompletedOnboarding = sessionStorage.getItem("justCompletedOnboarding") === "true"
+
+    console.log("Dashboard Flow Check:", {
+      hasSeenTour,
+      hasCompletedOnboarding,
+      justCompletedOnboarding,
+      userLastLogin: user.lastLogin,
+      isMobile,
+    })
+
+    // Show tour for first-time users who just completed onboarding (desktop only)
+    // Check both lastLogin and localStorage (localStorage is fallback for immediate check)
+    if (
+      !user.lastLogin &&
+      hasCompletedOnboarding &&
+      !hasSeenTour &&
+      justCompletedOnboarding &&
+      !isMobile
+    ) {
+      console.log("Starting tour for first-time user after onboarding...")
+      sessionStorage.removeItem("justCompletedOnboarding") // Clean up flag
+      setTimeout(() => setRunTour(true), 1000)
     }
   }, [user])
 
   const handleCloseModal = () => {
     setShowWhatsNew(false)
     sessionStorage.setItem("hasSeenGoThrough", "true")
+    sessionStorage.removeItem("showIntroVideo") // Clean up flag
   }
 
   const openSecondStepJobModal = () => {
@@ -300,25 +358,128 @@ const Dashboard = () => {
       </Helmet>
       {showWhatsNew && <GoThrough onClose={handleCloseModal} />}
 
-      <InlineAnnouncementBanner />
+      <DashboardTour
+        run={runTour}
+        onComplete={() => {
+          setRunTour(false)
+          // Use user-specific localStorage key
+          if (user?._id) {
+            localStorage.setItem(`hasSeenDashboardTour_${user._id}`, "true")
+          }
+        }}
+        onOpenQuickBlog={() => setActiveModel(ACTIVE_MODELS.Quick_Blog)}
+      />
 
       {activeModel && renderModel()}
 
+      {/* Header Section */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="mt-10 md:mt-5 ml-5 md:ml-10"
+        transition={{ duration: 0.8 }}
+        className="mt-10 md:mt-5 ml-4 md:ml-10 mr-4 md:mr-10 mb-6"
       >
-        <h1 className="bg-clip-text bg-gradient-to-r font-bold from-blue-600 md:text-4xl text-3xl text-transparent to-purple-600">
-          Let's Begin <span className="ml-2 text-2xl text-yellow-400">✨</span>
-        </h1>
-        <p className="text-gray-600 text-lg mt-2">
-          Welcome back <b>{user?.name || "User"}</b>! Ready to create something amazing today?
-        </p>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              {getGreeting()},{" "}
+              <span className="text-transparent">{user?.name?.split(" ")[0] || "there"}</span>
+            </h1>
+
+            <p className="text-gray-600 mt-1 text-base font-medium">
+              Let's create something amazing today
+            </p>
+          </div>
+        </div>
+
+        {/* Analytics Cards - Only show if there's data */}
+        {hasAnalyticsData && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            {/* Total Blogs */}
+            <motion.div
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              className="group relative overflow-hidden rounded-2xl bg-white p-5
+               border border-gray-100 shadow-sm"
+            >
+              {/* Hover gradient */}
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-500 opacity-0 group-hover:opacity-[0.06] transition-opacity" />
+
+              <div className="relative z-10 flex items-start justify-between">
+                <div>
+                  <p className="text-sm text-gray-500 font-medium">Total Blogs</p>
+                  <p className="text-3xl font-bold text-gray-900 mt-1">{totalBlogs}</p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-blue-500/10 text-blue-600">
+                  <FileText className="w-5 h-5" />
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Posted */}
+            <motion.div
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              className="group relative overflow-hidden rounded-2xl bg-white p-5
+               border border-gray-100 shadow-sm"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-green-400 to-emerald-600 opacity-0 group-hover:opacity-[0.06] transition-opacity" />
+
+              <div className="relative z-10 flex items-start justify-between">
+                <div>
+                  <p className="text-sm text-gray-500 font-medium">Posted</p>
+                  <p className="text-3xl font-bold text-green-600 mt-1">{postedBlogs}</p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-green-500/10 text-green-600">
+                  <UploadCloud className="w-5 h-5" />
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Archived */}
+            <motion.div
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              className="group relative overflow-hidden rounded-2xl bg-white p-5
+               border border-gray-100 shadow-sm"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-yellow-400 to-orange-500 opacity-0 group-hover:opacity-[0.06] transition-opacity" />
+
+              <div className="relative z-10 flex items-start justify-between">
+                <div>
+                  <p className="text-sm text-gray-500 font-medium">Archived</p>
+                  <p className="text-3xl font-bold text-orange-600 mt-1">{archivedBlogs}</p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-orange-500/10 text-orange-600">
+                  <Archive className="w-5 h-5" />
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Branded */}
+            <motion.div
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              className="group relative overflow-hidden rounded-2xl bg-white p-5
+               border border-gray-100 shadow-sm"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-pink-500 to-purple-600 opacity-0 group-hover:opacity-[0.06] transition-opacity" />
+
+              <div className="relative z-10 flex items-start justify-between">
+                <div>
+                  <p className="text-sm text-gray-500 font-medium">Branded</p>
+                  <p className="text-3xl font-bold text-purple-600 mt-1">{brandedBlogs}</p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-purple-500/10 text-purple-600">
+                  <BadgePercent className="w-5 h-5" />
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
       </motion.div>
 
-      <div className="min-h-screen p-2 md:p-6 relative">
+      <div className="min-h-screen p-3 md:p-6 relative">
         {loading ? (
           <div className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -343,31 +504,43 @@ const Dashboard = () => {
             </div>
           </div>
         ) : (
-          <div className="space-y-8">
-            <div className="grid lg:grid-cols-2 gap-4">
-              <AnimatePresence>
-                {loading
-                  ? Array.from({ length: 4 }).map((_, idx) => <SkeletonDashboardCard key={idx} />)
-                  : letsBegin.map((item, index) => (
-                      <DashboardBox
-                        key={index}
-                        icon={item.icon}
-                        title={item.title}
-                        content={item.content}
-                        id={item.id}
-                        gradient={item.hoverGradient}
-                        showModal={() => setActiveModel(item.modelKey)}
-                      />
-                    ))}
-              </AnimatePresence>
+          <div className="space-y-10 p-0 md:p-6 pt-0">
+            {/* Let's Begin Section */}
+            <div data-tour="lets-begin">
+              <div className="flex items-center gap-3 mb-6">
+                <h2 className="text-2xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  Let's Begin
+                </h2>
+              </div>
+              <div
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
+                data-tour="quick-actions"
+              >
+                <AnimatePresence>
+                  {loading
+                    ? Array.from({ length: 4 }).map((_, idx) => <SkeletonDashboardCard key={idx} />)
+                    : letsBegin.map((item, index) => (
+                        <DashboardBox
+                          key={index}
+                          icon={item.icon}
+                          title={item.title}
+                          content={item.content}
+                          id={item.id}
+                          gradient={item.hoverGradient}
+                          showModal={() => setActiveModel(item.modelKey)}
+                          dataTour={index === 0 ? "create-blog" : undefined}
+                        />
+                      ))}
+                </AnimatePresence>
+              </div>
             </div>
 
-            <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
+            {/* Quick Tools Section */}
+            <div data-tour="analytics">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
-                  <Sparkles className="w-4 h-4 text-white" />
-                </div>
-                <h2 className="text-xl font-semibold text-gray-900">Quick Tools</h2>
+                <h2 className="text-2xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  Quick Tools
+                </h2>
               </div>
               <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
                 <AnimatePresence>
@@ -391,40 +564,36 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {recentBlogData.length > 0 && (
-              <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100 mt-6">
-                <div className="mb-6 flex justify-between items-center">
+            {/* Recent Projects Section */}
+            {recentBlogData.length > 0 && !runTour && (
+              <div>
+                <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center">
-                      <Clock className="w-4 h-4 text-white" />
-                    </div>
-                    <h2 className="text-xl font-semibold text-gray-900">Recent Projects</h2>
+                    <h2 className="text-2xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                      Recent Projects
+                    </h2>
                   </div>
+                  <button
+                    onClick={() => navigate("/blogs")}
+                    className="text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors"
+                  >
+                    View All →
+                  </button>
                 </div>
-                <div>
-                  <AnimatePresence>
-                    {loading
-                      ? Array.from({ length: 3 }).map((_, idx) => <SkeletonGridCard key={idx} />)
-                      : recentBlogData.map((item, index) => (
-                          <Blogs
-                            key={index}
-                            title={item.title}
-                            content={item.shortContent}
-                            tags={item.focusKeywords}
-                            item={item}
-                            time={item.updatedAt}
-                          />
-                        ))}
-                  </AnimatePresence>
-                  <div className="mt-6 text-center">
-                    <button
-                      className="px-6 py-2 text-blue-600 hover:text-blue-700 font-medium hover:bg-blue-50 rounded-lg transition-colors"
-                      onClick={() => navigate("/blogs")}
-                    >
-                      View All Projects
-                    </button>
-                  </div>
-                </div>
+                <AnimatePresence>
+                  {loading
+                    ? Array.from({ length: 3 }).map((_, idx) => <SkeletonGridCard key={idx} />)
+                    : recentBlogData.map((item, index) => (
+                        <Blogs
+                          key={index}
+                          title={item.title}
+                          content={item.shortContent}
+                          tags={item.focusKeywords}
+                          item={item}
+                          time={item.updatedAt}
+                        />
+                      ))}
+                </AnimatePresence>
               </div>
             )}
           </div>

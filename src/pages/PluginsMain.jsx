@@ -898,7 +898,7 @@ const PluginsMain = () => {
         <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
           Plugin Center
         </h1>
-        <p className="text-gray-500 text-sm mt-2 max-w-md">
+        <p className="text-gray-500 text-base mt-2 max-w-md">
           Discover and integrate powerful tools to supercharge your workflow
         </p>
       </div>
@@ -908,7 +908,7 @@ const PluginsMain = () => {
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
-          className="h-full bg-white rounded-xl shadow-lg overflow-hidden"
+          className="h-full bg-white rounded-xl shadow-sm border border-gray-200 border-t-0 overflow-hidden"
         >
           <Tabs
             activeKey={activeTab}

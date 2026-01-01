@@ -5,6 +5,8 @@ import { closeJobModal, createJobThunk, updateJobThunk } from "@store/slices/job
 import { clearSelectedKeywords } from "@store/slices/analysisSlice"
 import StepContent from "./StepContent"
 import { useQueryClient } from "@tanstack/react-query"
+import { IMAGE_SOURCE } from "@/data/blogData"
+import { validateJobData } from "@/types/forms.schemas"
 
 const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded }) => {
   const initialJob = {
@@ -17,7 +19,7 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
       templates: [],
       tone: "Professional",
       userDefinedLength: 1000,
-      imageSource: "unsplash",
+      imageSource: IMAGE_SOURCE.STOCK,
       aiModel: "gemini",
       brandId: null,
       useBrandVoice: false,
@@ -204,6 +206,10 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
         keywords: formData.keywords,
         aiModel: formData.aiModel,
         postingType: formData.postingType,
+        // Set imageSource to "none" if images are disabled
+        imageSource: newJob.blogs.isCheckedGeneratedImages
+          ? newJob.blogs.imageSource
+          : IMAGE_SOURCE.NONE,
       },
       options: {
         ...newJob.options,
@@ -212,7 +218,11 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
       },
     }
     try {
-      const newJobData = await dispatch(createJobThunk({ jobPayload, user })).unwrap()
+      // Validate with Zod schema (logs to console when VITE_VALIDATE_FORMS=true)
+      const validatedPayload = validateJobData(jobPayload)
+      const newJobData = await dispatch(
+        createJobThunk({ jobPayload: validatedPayload, user })
+      ).unwrap()
       queryClient.setQueryData(["jobs", user.id], (old = []) => [newJobData, ...old])
       dispatch(closeJobModal())
       setNewJob(initialJob)
@@ -244,6 +254,10 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
         keywords: formData.keywords,
         aiModel: formData.aiModel,
         postingType: formData.postingType,
+        // Set imageSource to "none" if images are disabled
+        imageSource: newJob.blogs.isCheckedGeneratedImages
+          ? newJob.blogs.imageSource
+          : IMAGE_SOURCE.NONE,
       },
       options: {
         ...newJob.options,
@@ -252,7 +266,11 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
       },
     }
     try {
-      const updatedJobData = await dispatch(updateJobThunk({ jobId, jobPayload })).unwrap()
+      // Validate with Zod schema (logs to console when VITE_VALIDATE_FORMS=true)
+      const validatedPayload = validateJobData(jobPayload)
+      const updatedJobData = await dispatch(
+        updateJobThunk({ jobId, jobPayload: validatedPayload })
+      ).unwrap()
       queryClient.setQueryData(["jobs", user.id], (old = []) =>
         old.map(job => (job._id === jobId ? { ...job, ...updatedJobData } : job))
       )

@@ -9,10 +9,6 @@ const FeatureSettingsModal = ({ features }) => {
       transition={{ duration: 0.3 }}
       className="space-y-3"
     >
-      <div className="text-sm text-gray-600 mb-4">
-        Here are the content enhancement features currently applied to your blog:
-      </div>
-
       <div className="grid grid-cols-1 gap-3">
         {Object.entries(features || {}).length > 0 ? (
           Object.entries(features).map(([key, value]) => {
@@ -21,7 +17,7 @@ const FeatureSettingsModal = ({ features }) => {
               <motion.div
                 key={key}
                 whileHover={{ backgroundColor: "#f8fafc" }}
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100 transition-colors duration-150"
+                className="flex items-center justify-between p-3 bg-gray-50 border border-gray-100 transition-colors duration-150"
               >
                 <div className="flex items-center gap-3">
                   <div

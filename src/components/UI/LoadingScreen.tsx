@@ -1,11 +1,7 @@
 import { useEffect } from "react"
 import "./LoadingScreen.css"
 
-interface LoadingScreenProps {
-  message?: string
-}
-
-const LoadingScreen = ({ message = "Loading..." }: LoadingScreenProps) => {
+const LoadingScreen = () => {
   useEffect(() => {
     const originalOverflow = document.body.style.overflow
     document.body.style.overflow = "hidden"
