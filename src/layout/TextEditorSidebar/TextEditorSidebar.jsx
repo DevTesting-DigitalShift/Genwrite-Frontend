@@ -752,9 +752,9 @@ const TextEditorSidebar = ({
         <div className="p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all">
           <div className="flex items-center gap-3 mb-4">
             <Sparkles className="w-5 h-5 text-indigo-500" />
-            <h4 className="text-sm font-bold text-gray-900">Boost SEO Score</h4>
+            <h4 className="text-base font-bold text-gray-900">Boost SEO Score</h4>
           </div>
-          <p className="text-xs text-gray-500 mb-4 font-medium leading-relaxed">
+          <p className="text-sm text-gray-500 mb-4 font-medium leading-relaxed">
             Run our advanced competitive analysis to uncover keyword opportunities and improve
             rankings.
           </p>
@@ -910,7 +910,7 @@ const TextEditorSidebar = ({
       })
     }
 
-    const htmlContent = blog?.content || editorContent || ""
+    const htmlContent = editorContent || blog?.content || ""
     const fullHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>

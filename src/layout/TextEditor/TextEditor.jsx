@@ -237,13 +237,19 @@ function parseHtmlIntoSections(htmlString) {
   // Extract CTA
   const ctaEl = doc.querySelector(".blog-brand-cta, .cta-wrapper")
   if (ctaEl) {
-    cta = ctaEl.innerHTML
+    const contentEl = ctaEl.querySelector(".cta-content")
+    cta = contentEl ? contentEl.innerHTML : ctaEl.innerHTML
   }
 
   // Extract Quick Summary
   const summaryEl = doc.querySelector(".blog-quick-summary, .summary-wrapper")
   if (summaryEl) {
-    quickSummary = summaryEl.innerHTML
+    const headingEl = summaryEl.querySelector(".quick-summary-heading")
+    const contentEl = summaryEl.querySelector(".summary-content")
+    quickSummary = {
+      heading: headingEl?.innerHTML || "Quick Summary",
+      content: contentEl?.innerHTML || summaryEl.innerHTML,
+    }
   }
 
   return { title, description, thumbnail, sections, sectionImages, faq, cta, quickSummary }
@@ -340,11 +346,15 @@ const TextEditor = ({
   const [blogTitle, setBlogTitle] = useState("")
   const [blogDescription, setBlogDescription] = useState("")
   const [blogThumbnail, setBlogThumbnail] = useState(null)
+  const [cta, setCta] = useState(null)
+  const [quickSummary, setQuickSummary] = useState(null)
 
   // Track original values for change detection - use refs to store the snapshot
   const [originalBlogTitle, setOriginalBlogTitle] = useState("")
   const [originalBlogDescription, setOriginalBlogDescription] = useState("")
   const [originalSections, setOriginalSections] = useState([])
+  const [originalCta, setOriginalCta] = useState(null)
+  const [originalQuickSummary, setOriginalQuickSummary] = useState(null)
 
   // Track if originals have been initialized
   const originalsInitialized = useRef(false)
@@ -478,6 +488,19 @@ const TextEditor = ({
       }
     }
 
+    // Compare CTA
+    if (normalizeContent(cta) !== normalizeContent(originalCta)) {
+      return true
+    }
+
+    // Compare Quick Summary
+    if (
+      normalizeContent(quickSummary?.heading) !== normalizeContent(originalQuickSummary?.heading) ||
+      normalizeContent(quickSummary?.content) !== normalizeContent(originalQuickSummary?.content)
+    ) {
+      return true
+    }
+
     return false
   }, [
     blogTitle,
@@ -564,6 +587,8 @@ const TextEditor = ({
       setBlogThumbnail(parsedData.thumbnail)
       setSections(parsedData.sections)
       setFaq(parsedData.faq)
+      setCta(parsedData.cta)
+      setQuickSummary(parsedData.quickSummary)
 
       // Merge section images from parsed HTML with existing blog images
       if (parsedData.sectionImages && parsedData.sectionImages.length > 0) {
@@ -590,6 +615,8 @@ const TextEditor = ({
               originalContent: s.originalContent || s.content,
             }))
           )
+          setOriginalCta(parsedData.cta)
+          setOriginalQuickSummary(parsedData.quickSummary)
           originalsInitialized.current = true
         }, 150)
       }
@@ -610,69 +637,126 @@ const TextEditor = ({
           originalContent: s.content, // Set originalContent to current content after save
         }))
       )
+      setOriginalCta(cta)
+      setOriginalQuickSummary(quickSummary)
     }
   }, [blog?.updatedAt])
 
   // Sync sections to HTML content for saving (with proper blog structure and classes)
   const syncSectionsToHTML = useCallback(() => {
-    let html = '<article class="blog-article">\n'
+    let html = '<article class="blog-article" id="blog-article">\n'
+
+    // Add Title & Description wrapper
+    html += '  <section class="blog-base-meta blog-section-0" id="blog-meta">\n'
+    html += '    <div class="meta-wrapper">\n'
 
     // Add title
     if (blogTitle) {
-      html += `  <h1 class="blog-title heading-1">${blogTitle}</h1>\n`
+      html += `      <h1 class="blog-title heading heading-1">${blogTitle}</h1>\n`
+    }
+
+    // Add Main Image (Thumbnail)
+    if (blogThumbnail) {
+      html += '      <figure class="section-thumbnail thumbnail-main">\n'
+      html += `        <img src="${blogThumbnail.url}" alt="${
+        blogThumbnail.alt || blogTitle
+      }" class="thumbnail-image" />\n`
+      if (blogThumbnail.attribution) {
+        html += '        <figcaption class="thumbnail-attribution">\n'
+        html += `          <p style="font-size: 12px; text-align: right;">Photo by <a href="${blogThumbnail.attribution.profile}">${blogThumbnail.attribution.name}</a> on <a href="https://www.pexels.com/">Pexels</a></p>\n`
+        html += "        </figcaption>\n"
+      }
+      html += "      </figure>\n"
     }
 
     // Add description
     if (blogDescription) {
-      html += `  <div class="blog-description meta-description">${blogDescription}</div>\n`
+      html += `      <p class="blog-description meta-description">${blogDescription}</p>\n`
     }
 
+    html += "    </div>\n"
+    html += "  </section>\n\n"
+
+    // Sections Wrapper
+    html += '  <div class="blog-sections-wrapper" id="sections-wrapper">\n'
+
     // Add sections
-    sections.forEach(sec => {
-      html += `  <section class="blog-section" id="${sec.id}">\n`
-      html += `    <h2 class="section-title">${sec.title}</h2>\n`
+    sections.forEach((sec, index) => {
+      html += `    <section class="blog-section blog-section-${index + 1}" id="${
+        sec.id
+      }" data-section-index="${index}">\n`
+      html += '      <div class="section-wrapper">\n'
+      html += `        <h2 class="section-title heading heading-2 section-title-${index}">${sec.title}</h2>\n`
 
       // Add section images if they exist
       const secImages = sectionImages.filter(
         img => img.sectionId === sec.id && img.role === "section"
       )
       if (secImages.length > 0) {
-        html += `    <div class="section-images-wrapper">\n`
+        html += '        <div class="section-images-wrapper">\n'
         secImages.forEach((img, idx) => {
-          html += `      <figure class="section-image image-${idx}">\n`
-          html += `        <img src="${img.url}" alt="${
+          html += `          <figure class="section-image image-${idx}">\n`
+          html += `            <img src="${img.url}" alt="${
             img.altText || ""
           }" class="content-image" loading="lazy" />\n`
           if (img.attribution && img.attribution.name) {
-            html += `        <figcaption class="image-attribution">\n`
-            html += `          <p>Photo by <a href="${img.attribution.profile}">${img.attribution.name}</a></p>\n`
-            html += `        </figcaption>\n`
+            html += '            <figcaption class="image-attribution">\n'
+            html += `              <p>Photo by <a href="${img.attribution.profile}">${img.attribution.name}</a> on <a href="https://www.pexels.com/">Pexels</a></p>\n`
+            html += "            </figcaption>\n"
           }
-          html += `      </figure>\n`
+          html += "          </figure>\n"
         })
-        html += `    </div>\n`
+        html += "        </div>\n"
       }
 
-      html += `    <div class="section-content">${sec.content}</div>\n`
-      html += `  </section>\n`
+      html += `        <div class="section-content section-content-${index}">${sec.content}</div>\n`
+      html += "      </div>\n"
+      html += "    </section>\n\n"
     })
+
+    html += "  </div>\n\n"
+
+    // Add CTA if exists
+    if (cta) {
+      html += '  <div class="blog-brand-cta cta-wrapper" id="blog-cta">\n'
+      html += '    <div class="cta-content">\n'
+      html += `      ${cta}\n`
+      html += "    </div>\n"
+      html += "  </div>\n\n"
+    }
+
+    // Add Quick Summary if exists
+    if (quickSummary) {
+      html += '  <div id="quick-summary-section" class="blog-quick-summary summary-wrapper">\n'
+      html += `    <h2 class="quick-summary-heading heading heading-2">${quickSummary.heading}</h2>\n`
+      html += '    <div class="summary-content">\n'
+      html += `      ${quickSummary.content}\n`
+      html += "    </div>\n"
+      html += "  </div>\n\n"
+    }
 
     // Add FAQ if exists
     if (faq && faq.qa && faq.qa.length > 0) {
-      html += `  <section class="blog-section faq-section">\n`
-      html += `    <h2 class="faq-heading">${faq.heading}</h2>\n`
-      faq.qa.forEach(item => {
-        html += `    <div class="faq-qa-pair">\n`
-        html += `      <h3 class="faq-question">${item.question}</h3>\n`
-        html += `      <p class="faq-answer">${item.answer}</p>\n`
-        html += `    </div>\n`
+      html += '  <section class="blog-section faq-section" id="faq-section">\n'
+      html += '    <div id="faq-section" class="faq-wrapper">\n'
+      html += `      <h2 class="faq-heading heading heading-2">${faq.heading}</h2>\n`
+      html += '      <div class="faq-qa-pairs-wrapper">\n'
+      faq.qa.forEach((item, idx) => {
+        html += `        <div class="faq-qa-pair faq-pair-${idx}" id="faq-${idx}" data-faq-index="${idx}">\n`
+        html += `          <h3 id="faq-question-${idx}" class="faq-question question question-${idx} heading heading-3">${item.question}</h3>\n`
+        html += `          <div id="faq-answer-${idx}" class="faq-answer answer answer-${idx}">\n`
+        html += `            <p>${item.answer}</p>\n`
+        html += "          </div>\n"
+        html += "        </div>\n\n"
       })
-      html += `  </section>\n`
+      html += "      </div>\n"
+      html += "    </div>\n"
+      html += "  </section>\n\n"
     }
 
     html += "</article>"
     return html
-  }, [sections, faq, blogTitle, blogDescription, sectionImages])
+  }, [sections, faq, blogTitle, blogDescription, sectionImages, blogThumbnail, cta, quickSummary])
 
   // Update parent content when sections change
   useEffect(() => {
@@ -680,7 +764,7 @@ const TextEditor = ({
     if (setContent) {
       setContent(newContent)
     }
-  }, [sections, syncSectionsToHTML, setContent])
+  }, [sections, syncSectionsToHTML, setContent, cta, quickSummary])
 
   // Handle delete section
   const handleDelete = index => {
@@ -800,6 +884,14 @@ const TextEditor = ({
       markdown += `## ${sec.title}\n\n`
       markdown += htmlToMarkdownSection(sec.content) + "\n\n"
     })
+
+    if (cta) {
+      markdown += `## Brand CTA\n\n${htmlToMarkdownSection(cta)}\n\n`
+    }
+
+    if (quickSummary) {
+      markdown += `## ${quickSummary.heading}\n\n${htmlToMarkdownSection(quickSummary.content)}\n\n`
+    }
 
     if (faq) {
       markdown += `## ${faq.heading}\n\n`
@@ -969,6 +1061,101 @@ const TextEditor = ({
   const [editingFaqIndex, setEditingFaqIndex] = useState(null)
   const [editingFaqHeading, setEditingFaqHeading] = useState(false)
 
+  // Extra Sections Editing State
+  const [isEditingCta, setIsEditingCta] = useState(false)
+  const [isEditingSummaryHeading, setIsEditingSummaryHeading] = useState(false)
+  const [isEditingSummaryContent, setIsEditingSummaryContent] = useState(false)
+
+  const renderCTA = () => {
+    if (!cta) return null
+
+    return (
+      <motion.div
+        className="border rounded-xl p-5 mt-5 hover:shadow-md"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <div className="flex items-center gap-2 mb-3">
+          <h3 className="font-bold text-xl">Brand CTA Section</h3>
+        </div>
+
+        {isEditingCta ? (
+          <InlineEditor
+            value={cta}
+            onChange={setCta}
+            placeholder="Enter CTA content..."
+            onBlur={() => setIsEditingCta(false)}
+            autoFocus
+            editorClassName="text-indigo-800"
+          />
+        ) : (
+          <div className="cursor-pointer group relative" onClick={() => setIsEditingCta(true)}>
+            <div dangerouslySetInnerHTML={{ __html: cta }} />
+            <div className="mt-2 text-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <span className="text-sm text-gray-500">Click to edit</span>
+            </div>
+          </div>
+        )}
+      </motion.div>
+    )
+  }
+
+  const renderQuickSummary = () => {
+    if (!quickSummary) return null
+
+    return (
+      <motion.div
+        className="border rounded-xl p-5 shadow-sm bg-white my-6 border-blue-100"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <div className="flex items-center gap-2 mb-4">
+          {isEditingSummaryHeading ? (
+            <InlineEditor
+              value={quickSummary.heading}
+              onChange={val => setQuickSummary(prev => ({ ...prev, heading: val }))}
+              placeholder="Summary Heading..."
+              onBlur={() => setIsEditingSummaryHeading(false)}
+              autoFocus
+              singleLine
+              editorClassName="text-xl font-bold text-blue-900"
+            />
+          ) : (
+            <div
+              className="flex items-center gap-2 group cursor-pointer"
+              onClick={() => setIsEditingSummaryHeading(true)}
+            >
+              <h3 className="text-xl font-bold">{quickSummary.heading}</h3>
+              <Edit3 className="w-4 h-4 text-blue-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
+          )}
+        </div>
+
+        {isEditingSummaryContent ? (
+          <SectionEditor
+            initialContent={quickSummary.content}
+            onChange={val => setQuickSummary(prev => ({ ...prev, content: val }))}
+            onBlur={() => setIsEditingSummaryContent(false)}
+          />
+        ) : (
+          <div
+            className="cursor-pointer group relative"
+            onClick={() => setIsEditingSummaryContent(true)}
+          >
+            <div
+              className="text-gray-700 prose prose-sm max-w-none"
+              dangerouslySetInnerHTML={{ __html: quickSummary.content }}
+            />
+            <div className="mt-2 text-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <span className="text-sm text-gray-500">Click to edit</span>
+            </div>
+            <Edit3 className="absolute top-2 right-2 w-4 h-4 text-blue-200 opacity-0 group-hover:opacity-100 transition-opacity" />
+          </div>
+        )}
+      </motion.div>
+    )
+  }
+
   const renderFAQ = () => {
     if (!faq) return null
 
@@ -1003,7 +1190,8 @@ const TextEditor = ({
             onClick={handleAddFaqItem}
             className="flex items-center gap-1 px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 rounded-lg"
           >
-            <Plus className="w-4 h-4" /> Add FAQ
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">Add FAQ</span>
           </button>
         </div>
 
@@ -1294,6 +1482,9 @@ const TextEditor = ({
             </div>
           </>
         )}
+
+        {renderCTA()}
+        {renderQuickSummary()}
         {renderFAQ()}
 
         {/* Thumbnail Edit Modal */}
@@ -1513,6 +1704,38 @@ const TextEditor = ({
                 {faq && (
                   <li>
                     <a
+                      href="#preview-cta"
+                      className="text-blue-600 hover:underline"
+                      onClick={e => {
+                        e.preventDefault()
+                        document
+                          .getElementById("preview-cta")
+                          ?.scrollIntoView({ behavior: "smooth" })
+                      }}
+                    >
+                      Brand CTA
+                    </a>
+                  </li>
+                )}
+                {quickSummary && (
+                  <li>
+                    <a
+                      href="#preview-summary"
+                      className="text-blue-600 hover:underline"
+                      onClick={e => {
+                        e.preventDefault()
+                        document
+                          .getElementById("preview-summary")
+                          ?.scrollIntoView({ behavior: "smooth" })
+                      }}
+                    >
+                      {quickSummary.heading}
+                    </a>
+                  </li>
+                )}
+                {faq && (
+                  <li>
+                    <a
                       href="#preview-faq"
                       className="text-blue-600 hover:underline"
                       onClick={e => {
@@ -1567,6 +1790,24 @@ const TextEditor = ({
               </div>
             )
           })}
+
+          {/* CTA Preview */}
+          {cta && (
+            <div id="preview-cta" className="mt-8 pt-6 border-t bg-indigo-50/30 p-4 rounded-lg">
+              <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: cta }} />
+            </div>
+          )}
+
+          {/* Quick Summary Preview */}
+          {quickSummary && (
+            <div id="preview-summary" className="mt-8 pt-6 border-t">
+              <h2 className="text-xl font-bold mb-4 text-blue-900">{quickSummary.heading}</h2>
+              <div
+                className="prose max-w-none text-gray-700"
+                dangerouslySetInnerHTML={{ __html: quickSummary.content }}
+              />
+            </div>
+          )}
 
           {/* FAQ Section */}
           {faq && (
