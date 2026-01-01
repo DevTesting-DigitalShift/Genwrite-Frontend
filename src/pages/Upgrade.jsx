@@ -10,7 +10,6 @@ import { sendStripeGTMEvent } from "@utils/stripeGTMEvents"
 import { useSelector } from "react-redux"
 import ComparisonTable from "@components/ComparisonTable"
 import { useNavigate } from "react-router-dom"
-import CountdownTimer from "@components/CountdownTimer"
 
 const PricingCard = ({
   plan,
@@ -250,15 +249,6 @@ const PricingCard = ({
           <p className="text-gray-600 text-sm leading-relaxed h-[48px] font-medium">
             {plan.description}
           </p>
-
-          {/* 50% OFF Badge */}
-          {plan.type !== "credit_purchase" && typeof displayPrice === "number" && (
-            <div className="mt-4">
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-red-200 text-red-600">
-                50% OFF {billingPeriod === "monthly" ? "FIRST MONTH" : "FIRST TIME"}
-              </span>
-            </div>
-          )}
         </div>
 
         {/* Price Section */}
@@ -294,50 +284,29 @@ const PricingCard = ({
             <div className="space-y-1">
               {typeof displayPrice === "number" && (
                 <>
-                  {/* Original Price with Strike-through */}
+                  {/* Main Price */}
                   <div className="flex items-baseline justify-center gap-1">
-                    <span className="text-2xl font-semibold text-gray-400 line-through">
+                    <span className={`text-4xl font-bold ${styles.price}`}>
                       {currency === "INR"
                         ? `₹${
                             plan[billingPeriod === "annual" ? "priceAnnualINR" : "priceMonthlyINR"]
                           }`
                         : `$${displayPrice}`}
                     </span>
-                    <span className="text-gray-400 text-sm">/month</span>
-                  </div>
-
-                  {/* Discounted Price (50% off) */}
-                  <div className="flex items-baseline gap-1">
-                    <span className={`text-4xl font-bold ${styles.price}`}>
-                      {currency === "INR"
-                        ? `₹${(
-                            plan[
-                              billingPeriod === "annual" ? "priceAnnualINR" : "priceMonthlyINR"
-                            ] * 0.5
-                          ).toFixed(0)}`
-                        : `$${(displayPrice * 0.5).toFixed(2)}`}
-                    </span>
                     <span className="text-gray-600 text-sm">/month</span>
                   </div>
 
                   {/* Billed Amount */}
-                  <div className="mt-2">
+                  <div className="mt-2 text-center">
                     <span className="text-sm font-se text-gray-500">
                       Billed{" "}
                       {currency === "INR"
                         ? `₹${Math.round(
                             plan[
                               billingPeriod === "annual" ? "priceAnnualINR" : "priceMonthlyINR"
-                            ] *
-                              (billingPeriod === "annual" ? 12 : 1) *
-                              0.5 +
-                              (billingPeriod === "annual" ? 6 : 0) // ✅ INR annual only
+                            ] * (billingPeriod === "annual" ? 12 : 1)
                           )}`
-                        : `$${(
-                            Math.round(
-                              displayPrice * (billingPeriod === "annual" ? 12 : 1) * 0.5 * 100
-                            ) / 100
-                          ).toFixed(2)}`}
+                        : `$${(displayPrice * (billingPeriod === "annual" ? 12 : 1)).toFixed(2)}`}
                       {billingPeriod === "annual" ? " annually" : " monthly"}
                     </span>
                   </div>
@@ -666,59 +635,6 @@ const Upgrade = () => {
       </motion.div>
 
       <div className="mx-auto">
-        {/* Winter Sale Countdown Timer Banner */}
-        <div className="max-w-6xl mx-auto mb-6 sm:mb-8 grid grid-cols-1 lg:grid-cols-2 place-content-center place-items-center gap-4 sm:gap-6">
-          <CountdownTimer
-            startDate="2025-12-01T00:00:00"
-            endDate="2026-01-01T23:59:59"
-            discount="50%"
-          />
-          {/* Important Sale Terms Notice */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-xl p-4 sm:p-5 shadow-md w-full"
-          >
-            <div className="flex items-start gap-3">
-              <div className="text-2xl">⚠️</div>
-              <div className="flex-1 flex-col justify-around">
-                <h4 className="text-base sm:text-lg font-bold text-amber-900 mb-2 flex items-center gap-2">
-                  ❄️ New Year Sale - Important Terms
-                </h4>
-                <div className="space-y-1.5 text-xs sm:text-sm text-amber-800">
-                  <p className="flex items-start gap-2">
-                    <span className="text-lg leading-none">•</span>
-                    <span>
-                      <strong className="font-bold">First-Time Subscribers Only:</strong> This 50%
-                      discount is exclusively available for new customers who have never subscribed
-                      to GenWrite before.
-                    </span>
-                  </p>
-                  <p className="flex items-start gap-2">
-                    <span className="text-lg leading-none">•</span>
-                    <span>
-                      <strong className="font-bold">First Month Only:</strong> The 50% discount
-                      applies to your{" "}
-                      <strong className="underline">first month of subscription only</strong>.
-                      Starting from the second month, you will be charged the regular subscription
-                      price.
-                    </span>
-                  </p>
-                  <p className="flex items-start gap-2">
-                    <span className="text-lg leading-none">•</span>
-                    <span>
-                      <strong className="font-bold">Limited Time:</strong> This special new year
-                      sale offer is valid only during the promotional period shown in the countdown
-                      timer above.
-                    </span>
-                  </p>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-
         {/* Global trial banner (unchanged) */}
         {/* {showTrialMessage && (
           <motion.div

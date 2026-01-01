@@ -33,7 +33,6 @@ import { ACTIVE_MODELS } from "@/data/dashModels"
 import { useQueryClient, useQuery } from "@tanstack/react-query"
 import DashboardTour from "@components/DashboardTour"
 import { getBlogStatus } from "@/api/analysisApi"
-import WinterSaleBanner from "../components/WinterSaleBanner"
 
 // lazy imports
 const QuickBlogModal = lazy(() => import("@components/multipleStepModal/QuickBlogModal"))
@@ -370,10 +369,6 @@ const Dashboard = () => {
         }}
         onOpenQuickBlog={() => setActiveModel(ACTIVE_MODELS.Quick_Blog)}
       />
-
-      <WinterSaleBanner />
-
-      <InlineAnnouncementBanner />
 
       {activeModel && renderModel()}
 
