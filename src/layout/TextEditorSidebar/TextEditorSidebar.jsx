@@ -889,7 +889,7 @@ const TextEditorSidebar = ({
       })
     }
 
-    const markdown = editorContent || ""
+    const markdown = blog?.content.startsWith("<article") ? blog?.content : editorContent || ""
     const blob = new Blob([markdown], { type: "text/markdown" })
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
@@ -910,7 +910,7 @@ const TextEditorSidebar = ({
       })
     }
 
-    const htmlContent = editorContent || blog?.content || ""
+    const htmlContent = blog?.content.startsWith("<article") ? blog?.content : editorContent || ""
     const fullHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -920,10 +920,7 @@ const TextEditorSidebar = ({
   <meta name="description" content="${metadata.description || ""}">
 </head>
 <body>
-  <article>
-    <h1>${blog?.title || ""}</h1>
     ${htmlContent}
-  </article>
 </body>
 </html>`
     const blob = new Blob([fullHtml], { type: "text/html" })
