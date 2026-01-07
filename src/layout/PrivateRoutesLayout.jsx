@@ -8,6 +8,7 @@ import { useDispatch, useSelector } from "react-redux"
 import { loadAuthenticatedUser } from "@store/slices/authSlice"
 import { connectSocket } from "@utils/socket"
 import LoadingScreen from "@components/UI/LoadingScreen"
+import WhatsAppFloatButton from "@components/WhatsAppFloatBtn"
 
 const PrivateRoutesLayout = () => {
   const token = localStorage.getItem("token")
@@ -97,6 +98,16 @@ const PrivateRoutesLayout = () => {
             <Outlet />
           </main>
         </div>
+
+        {/* WhatsApp Floating Button - responsive, visible on all private screens */}
+        <WhatsAppFloatButton
+          phoneNumber="917530003383" // TODO: Replace with your actual WhatsApp number
+          message="Hi! I'm interested in learning more about GenWrite."
+          tooltipText="Chat with us on WhatsApp"
+          position="bottom-right"
+          size="medium"
+          showPulse={true}
+        />
       </div>
 
       {/* Tooltip Styling */}

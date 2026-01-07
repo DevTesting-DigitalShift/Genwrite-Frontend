@@ -38,6 +38,8 @@ import NotificationDropdown from "@components/NotificationDropdown"
 import GoProButton from "@components/GoProButton"
 import { getSocket } from "@utils/socket"
 import WhatsNewModal from "./dashboardModals/HowToModel"
+import ScheduleDemoButton from "@components/ScheduleDemoBtn"
+import useViewport from "@/hooks/useViewport"
 
 const SideBar_Header = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -48,6 +50,7 @@ const SideBar_Header = () => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const sidebarRef = useRef(null)
+  const { isDesktop } = useViewport()
 
   const fetchCurrentUser = useCallback(async () => {
     try {
@@ -325,7 +328,19 @@ const SideBar_Header = () => {
         {/* Responsive Sidebar Items (Mobile Only) */}
         {sidebarOpen && (
           <div className="md:hidden p-3 border-t border-gray-200">
-            <ul className="space-y-1">
+            <ul className="space-y-2">
+              {/* Schedule Demo - Mobile Only */}
+              <li>
+                <ScheduleDemoButton
+                  calLink="genwrite/30min"
+                  buttonText="Schedule Demo"
+                  variant="gradient"
+                  size="middle"
+                  tooltipText=""
+                  showIcon={true}
+                  className="!w-full !justify-center"
+                />
+              </li>
               <li>
                 <button
                   onClick={() => navigate("/pricing")}
@@ -373,6 +388,16 @@ const SideBar_Header = () => {
             <img src="/Images/logo_genwrite_2.webp" loading="lazy" alt="Logo" className="w-36" />
           </div>
           <div className="flex items-center space-x-4">
+            {/* Schedule Demo - Hidden on mobile, shown on tablet/desktop */}
+            <ScheduleDemoButton
+              calLink="genwrite/30min"
+              buttonText={isDesktop ? "Schedule a Demo" : "Demo"}
+              variant="gradient"
+              size="large"
+              tooltipText="Schedule a free consultation"
+              showIcon={isDesktop}
+              hideOnMobile={true}
+            />
             {user?.subscription?.plan !== "enterprise" && <GoProButton />}
             {isUserLoaded ? (
               <>

@@ -278,43 +278,6 @@ const Auth = ({ path }) => {
               </p>
             </div>
 
-            {/* Why GenWrite Feature Grid */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-              className="grid grid-cols-2 gap-4"
-            >
-              {quickFeatures.map((feature, index) => (
-                <motion.div
-                  key={index}
-                  whileHover={{ scale: 1.02, y: -4 }}
-                  className="bg-white/60 backdrop-blur-md rounded-2xl p-5 border border-white shadow-sm hover:shadow-md transition-all duration-300"
-                >
-                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-xl flex items-center justify-center text-purple-600 mb-3 border border-purple-100">
-                    {feature.icon}
-                  </div>
-                  <h4 className="font-bold text-gray-900 mb-1">{feature.text}</h4>
-                  <p className="text-xs text-gray-500 leading-relaxed">
-                    Designed for maximum performance and readability.
-                  </p>
-                </motion.div>
-              ))}
-              {/* Extra Feature for Grid Balance */}
-              <motion.div
-                whileHover={{ scale: 1.02, y: -4 }}
-                className="bg-white/60 backdrop-blur-md rounded-2xl p-5 border border-white shadow-sm hover:shadow-md transition-all duration-300"
-              >
-                <div className="w-10 h-10 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 rounded-xl flex items-center justify-center text-emerald-600 mb-3 border border-emerald-100">
-                  <FaShieldAlt className="w-5 h-5" />
-                </div>
-                <h4 className="font-bold text-gray-900 mb-1">Secure & Reliable</h4>
-                <p className="text-xs text-gray-500 leading-relaxed">
-                  Enterprise-grade security for your brand's content.
-                </p>
-              </motion.div>
-            </motion.div>
-
             {/* 3-day trial card */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -350,6 +313,43 @@ const Auth = ({ path }) => {
                   ))}
                 </div>
               </div>
+            </motion.div>
+
+            {/* Why GenWrite Feature Grid */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+              className="grid grid-cols-2 gap-4"
+            >
+              {quickFeatures.map((feature, index) => (
+                <motion.div
+                  key={index}
+                  whileHover={{ scale: 1.02, y: -4 }}
+                  className="bg-white/60 backdrop-blur-md rounded-2xl p-5 border border-white shadow-sm hover:shadow-md transition-all duration-300"
+                >
+                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-xl flex items-center justify-center text-purple-600 mb-3 border border-purple-100">
+                    {feature.icon}
+                  </div>
+                  <h4 className="font-bold text-gray-900 mb-1">{feature.text}</h4>
+                  <p className="text-xs text-gray-500 leading-relaxed">
+                    Designed for maximum performance and readability.
+                  </p>
+                </motion.div>
+              ))}
+              {/* Extra Feature for Grid Balance */}
+              <motion.div
+                whileHover={{ scale: 1.02, y: -4 }}
+                className="bg-white/60 backdrop-blur-md rounded-2xl p-5 border border-white shadow-sm hover:shadow-md transition-all duration-300"
+              >
+                <div className="w-10 h-10 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 rounded-xl flex items-center justify-center text-emerald-600 mb-3 border border-emerald-100">
+                  <FaShieldAlt className="w-5 h-5" />
+                </div>
+                <h4 className="font-bold text-gray-900 mb-1">Secure & Reliable</h4>
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  Enterprise-grade security for your brand's content.
+                </p>
+              </motion.div>
             </motion.div>
           </motion.div>
 
