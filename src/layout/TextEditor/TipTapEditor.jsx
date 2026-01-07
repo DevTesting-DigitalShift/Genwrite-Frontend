@@ -569,6 +569,16 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
         open={linkModalOpen}
         onOk={handleConfirmLink}
         onCancel={() => setLinkModalOpen(false)}
+        footer={
+          <Flex justify="end" gap={16}>
+            <Button key="cancel" onClick={() => setLinkModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button key="ok" type="primary" onClick={handleConfirmLink}>
+              Ok
+            </Button>
+          </Flex>
+        }
         centered
       >
         <Input
@@ -584,6 +594,16 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
         open={imageModalOpen}
         onOk={handleConfirmImage}
         onCancel={() => setImageModalOpen(false)}
+        footer={
+          <Flex justify="end" gap={16}>
+            <Button key="cancel" onClick={() => setImageModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button key="ok" type="primary" onClick={handleConfirmImage}>
+              Ok
+            </Button>
+          </Flex>
+        }
         centered
       >
         <Input
