@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Button, Modal, Select, message } from "antd"
 import { useDispatch, useSelector } from "react-redux"
 import { Plus, X } from "lucide-react"
-import { getCategoriesThunk } from "@store/slices/otherSlice"
+import { getCategoriesThunk, resetCategories } from "@store/slices/otherSlice"
 
 // Popular WordPress categories (limited to 15 for relevance)
 const POPULAR_CATEGORIES = [
@@ -224,13 +224,27 @@ const CategoriesModal = ({
     setErrors(prev => ({ ...prev, category: "" }))
   }, [])
 
+  // Cleanup effect - reset everything when modal closes
   useEffect(() => {
     if (!isCategoryModalOpen) {
-      // Reset state when modal closes to prevent auto-fill on next open
-      return () => {
-        // Cleanup will happen when modal is closed
-      }
+      // Reset all state when modal is closed
+      setSelectedCategory("")
+      setSelectedIntegration(null)
+      setIncludeTableOfContents(initialIncludeTableOfContents)
+      setCustomCategory("")
+      setCategoryError(false)
+      setPlatformError(false)
+      setErrors({ category: "", platform: "" })
+      setIsCategoryLocked(false)
+
+      // Reset categories in Redux store
+      dispatch(resetCategories())
     }
+  }, [isCategoryModalOpen, initialIncludeTableOfContents, dispatch])
+
+  // Auto-select platform based on posting history (only when modal opens)
+  useEffect(() => {
+    if (!isCategoryModalOpen) return
 
     const shopify = posted?.SHOPIFY
 
