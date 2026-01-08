@@ -445,13 +445,10 @@ export function validateFormData<T extends z.ZodSchema>(
   data: unknown
 ): z.infer<T> | unknown {
   console.group(`🔍 [Zod Validation] ${schemaName}`)
-  console.log("📥 Input Data:", data)
 
   const result = schema.safeParse(data)
 
   if (result.success) {
-    console.log("✅ Validation PASSED")
-    console.log("📤 Parsed Output:", result.data)
     console.groupEnd()
     return result.data
   } else {

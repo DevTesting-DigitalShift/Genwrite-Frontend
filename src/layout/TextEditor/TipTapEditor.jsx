@@ -25,9 +25,15 @@ import {
   Redo2,
   RotateCcw,
   Trash2,
+  Table as TableIcon,
+  TableProperties,
+  Columns,
+  Rows,
+  Plus,
+  Minus,
 } from "lucide-react"
 import { useDispatch, useSelector } from "react-redux"
-import { Input, Modal, Tooltip, message, Select, Button, Flex } from "antd"
+import { Input, Modal, Tooltip, message, Select, Button, Flex, Popover } from "antd"
 import { marked } from "marked"
 import TurndownService from "turndown"
 import { useBlocker, useLocation, useNavigate } from "react-router-dom"
@@ -64,6 +70,9 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
   const [selectedFont, setSelectedFont] = useState(FONT_OPTIONS[0].value)
   const [linkModalOpen, setLinkModalOpen] = useState(false)
   const [imageModalOpen, setImageModalOpen] = useState(false)
+  const [tableDropdownOpen, setTableDropdownOpen] = useState(false)
+  const [hoveredCell, setHoveredCell] = useState({ row: 0, col: 0 })
+  const tableButtonRef = useRef(null)
   const [linkUrl, setLinkUrl] = useState("")
   const [imageUrl, setImageUrl] = useState("")
   const [imageAlt, setImageAlt] = useState("")
@@ -134,7 +143,8 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
         TextAlign.configure({ types: ["heading", "paragraph"] }),
         Table.configure({
           resizable: false,
-          HTMLAttributes: { class: "border-2 w-full border-collapse p-2 border-gray-800" },
+          allowTableNodeSelection: true,
+          HTMLAttributes: { class: "border-2 w-full border-collapse p-2" },
         }),
         TableHeader.configure({
           HTMLAttributes: { class: "text-center font-bold border align-middle border-gray-400" },
@@ -289,6 +299,46 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
       message.success("Image deleted.")
     }
   }, [selectedImage, normalEditor])
+
+  const handleAddTable = useCallback(() => {
+    safeEditorAction(() => {
+      setTableDropdownOpen(prev => !prev)
+    })
+  }, [safeEditorAction])
+
+  const handleTableSelect = useCallback(
+    (rows, cols) => {
+      if (normalEditor) {
+        // First close the dropdown
+        setTableDropdownOpen(false)
+        setHoveredCell({ row: 0, col: 0 })
+
+        // Then insert table at current cursor position with a slight delay
+        setTimeout(() => {
+          normalEditor.chain().focus().insertTable({ rows, cols, withHeaderRow: true }).run()
+          message.success(`Table ${rows}x${cols} added.`)
+        }, 100)
+      }
+    },
+    [normalEditor]
+  )
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = event => {
+      if (
+        tableDropdownOpen &&
+        tableButtonRef.current &&
+        !tableButtonRef.current.contains(event.target) &&
+        !event.target.closest(".fixed.bg-white") // Don't close if clicking inside the dropdown
+      ) {
+        setTableDropdownOpen(false)
+        setHoveredCell({ row: 0, col: 0 })
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [tableDropdownOpen])
 
   useEffect(() => {
     if (normalEditor && blog?.content) {
@@ -471,6 +521,164 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
             <ImageIcon className="w-4 h-4" />
           </button>
         </Tooltip>
+        <div className="relative" ref={tableButtonRef}>
+          <Tooltip title="Table">
+            <button
+              onClick={handleAddTable}
+              className={`p-2 rounded-md hover:bg-gray-100 flex-shrink-0 ${
+                tableDropdownOpen ? "bg-blue-100 text-blue-600" : ""
+              }`}
+              type="button"
+            >
+              <TableIcon className="w-4 h-4" />
+            </button>
+          </Tooltip>
+        </div>
+
+        {tableDropdownOpen &&
+          tableButtonRef.current &&
+          createPortal(
+            <div
+              className="fixed bg-white border border-gray-300 rounded-lg shadow-lg p-3 z-[9999]"
+              style={{
+                top: `${tableButtonRef.current.getBoundingClientRect().bottom + 8}px`,
+                left: `${tableButtonRef.current.getBoundingClientRect().left}px`,
+              }}
+            >
+              <div className="mb-2 text-xs text-gray-600 text-center">
+                {hoveredCell.row > 0 && hoveredCell.col > 0
+                  ? `${hoveredCell.row} x ${hoveredCell.col}`
+                  : "Select table size"}
+              </div>
+              <div className="grid gap-1" style={{ gridTemplateColumns: "repeat(10, 1fr)" }}>
+                {Array.from({ length: 10 }, (_, rowIndex) =>
+                  Array.from({ length: 10 }, (_, colIndex) => (
+                    <div
+                      key={`${rowIndex}-${colIndex}`}
+                      className={`w-5 h-5 border border-gray-300 cursor-pointer transition-colors ${
+                        rowIndex < hoveredCell.row && colIndex < hoveredCell.col
+                          ? "bg-blue-500 border-blue-600"
+                          : "bg-white hover:bg-blue-100"
+                      }`}
+                      onMouseEnter={() => setHoveredCell({ row: rowIndex + 1, col: colIndex + 1 })}
+                      onClick={() => handleTableSelect(rowIndex + 1, colIndex + 1)}
+                    />
+                  ))
+                )}
+              </div>
+            </div>,
+            document.body
+          )}
+
+        {/* Table Manipulation Menu - Only show when inside a table */}
+        {normalEditor?.isActive("table") && (
+          <Popover
+            content={
+              <div className="flex flex-col gap-1 min-w-[180px]">
+                <Button
+                  size="small"
+                  icon={<Plus className="w-3 h-3" />}
+                  onClick={() => {
+                    normalEditor.chain().focus().addRowBefore().run()
+                    message.success("Row added")
+                  }}
+                  disabled={!normalEditor.can().addRowBefore()}
+                  className="justify-start"
+                >
+                  Add Row Before
+                </Button>
+                <Button
+                  size="small"
+                  icon={<Plus className="w-3 h-3" />}
+                  onClick={() => {
+                    normalEditor.chain().focus().addRowAfter().run()
+                    message.success("Row added")
+                  }}
+                  disabled={!normalEditor.can().addRowAfter()}
+                  className="justify-start"
+                >
+                  Add Row After
+                </Button>
+                <Button
+                  size="small"
+                  icon={<Minus className="w-3 h-3" />}
+                  onClick={() => {
+                    normalEditor.chain().focus().deleteRow().run()
+                    message.success("Row deleted")
+                  }}
+                  disabled={!normalEditor.can().deleteRow()}
+                  danger
+                  className="justify-start"
+                >
+                  Delete Row
+                </Button>
+                <div className="border-t my-1" />
+                <Button
+                  size="small"
+                  icon={<Plus className="w-3 h-3" />}
+                  onClick={() => {
+                    normalEditor.chain().focus().addColumnBefore().run()
+                    message.success("Column added")
+                  }}
+                  disabled={!normalEditor.can().addColumnBefore()}
+                  className="justify-start"
+                >
+                  Add Column Before
+                </Button>
+                <Button
+                  size="small"
+                  icon={<Plus className="w-3 h-3" />}
+                  onClick={() => {
+                    normalEditor.chain().focus().addColumnAfter().run()
+                  }}
+                  disabled={!normalEditor.can().addColumnAfter()}
+                  className="justify-start"
+                >
+                  Add Column After
+                </Button>
+                <Button
+                  size="small"
+                  icon={<Minus className="w-3 h-3" />}
+                  onClick={() => {
+                    normalEditor.chain().focus().deleteColumn().run()
+                  }}
+                  disabled={!normalEditor.can().deleteColumn()}
+                  danger
+                  className="justify-start"
+                >
+                  Delete Column
+                </Button>
+                <div className="border-t my-1" />
+                <Button
+                  size="small"
+                  icon={<Trash2 className="w-3 h-3" />}
+                  onClick={() => {
+                    normalEditor.chain().focus().deleteTable().run()
+                  }}
+                  disabled={!normalEditor.can().deleteTable()}
+                  danger
+                  className="justify-start"
+                >
+                  Delete Table
+                </Button>
+              </div>
+            }
+            trigger="click"
+            placement="bottomLeft"
+          >
+            <Tooltip title="Table Options">
+              <button
+                className={`p-2 rounded-md transition-colors flex-shrink-0 ${
+                  normalEditor.isActive("table") ? "bg-blue-100 text-blue-600" : "hover:bg-gray-100"
+                }`}
+                type="button"
+              >
+                <TableProperties className="w-4 h-4" />
+              </button>
+            </Tooltip>
+          </Popover>
+        )}
+
         <Tooltip title="Undo">
           <button
             onClick={() => safeEditorAction(() => normalEditor?.chain().focus().undo().run())}

@@ -389,8 +389,6 @@ const TextEditorSidebar = ({
         payload.keywords = regenForm.keywords
       }
 
-      console.log(payload)
-
       // Only add image-related fields if images are enabled
       if (regenForm.isCheckedGeneratedImages) {
         payload.imageSource = regenForm.imageSource
@@ -870,7 +868,7 @@ const TextEditorSidebar = ({
             "Publishing..."
           ) : (
             <div className="flex items-center justify-center gap-2">
-              <span>{posted && Object.keys(posted).length > 0 ? "Re-Post Blog" : "Post Blog"}</span>
+              <span>{blogPostings.length > 0 ? "Re-Post Blog" : "Post Blog"}</span>
             </div>
           )}
         </Button>

@@ -222,7 +222,6 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
 
   const validateFields = useCallback(() => {
     const errors: FormError = {}
-    console.log(formData.imageSource)
     switch (currentStep) {
       case 0:
         if (formData.templateIds.length !== 1) errors.template = "Please select at least 1 template"

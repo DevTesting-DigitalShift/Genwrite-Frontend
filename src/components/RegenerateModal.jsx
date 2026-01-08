@@ -39,8 +39,6 @@ const RegenerateModal = ({
   const calculateRegenCost = useCallback(() => {
     const features = []
 
-    console.log(features)
-
     // Add features based on selections
     if (regenForm.useBrandVoice) features.push("brandVoice")
     if (regenForm.options.includeCompetitorResearch) features.push("competitorResearch")
@@ -59,7 +57,7 @@ const RegenerateModal = ({
       numberOfImages: regenForm.numberOfImages || 3,
       isCheckedBrand: regenForm.useBrandVoice,
     })
-    console.log(cost)
+
     // Apply Cost Cutter discount (25% off)
     if (regenForm.costCutter) {
       cost = Math.round(cost * 0.75)

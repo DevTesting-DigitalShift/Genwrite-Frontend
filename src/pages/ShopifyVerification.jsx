@@ -35,7 +35,6 @@ const ShopifyVerification = () => {
           token,
         })
         if (res.status == 200) {
-          console.log(res.data)
           setVerified(true)
           setBlogData(res.data.blogs)
           setError(null)

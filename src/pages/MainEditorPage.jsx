@@ -192,7 +192,7 @@ const MainEditorPage = () => {
         : await axiosInstance.post("/integrations/post", requestData)
 
       const postedData = response?.data?.posting?.items?.[postData.type.platform] || null
-      setIsPosted(prev => ({ ...prev, [postData.type.platform]: postedData }))
+      setIsPosted(prev => ({ ...(prev || {}), [postData.type.platform]: postedData }))
       message.success(
         `Blog ${isPosted?.[postData.type.platform] ? "updated" : "posted"} successfully!`
       )

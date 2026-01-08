@@ -38,12 +38,14 @@ import {
   Check,
   Loader2,
   Table as TableIcon,
+  TableProperties,
   Plus,
   Minus,
   Youtube,
   Info,
 } from "lucide-react"
 import { Tooltip, message, Modal, Input, Button, Dropdown, Popover } from "antd"
+import { createPortal } from "react-dom"
 
 const ToolbarButton = ({ active, onClick, disabled, children, title }) => (
   <Tooltip title={title}>
@@ -106,6 +108,11 @@ const SectionEditor = ({
   const [youtubeTitle, setYoutubeTitle] = useState("")
   const [youtubeError, setYoutubeError] = useState("")
 
+  // Table grid selector state
+  const [tableDropdownOpen, setTableDropdownOpen] = useState(false)
+  const [hoveredCell, setHoveredCell] = useState({ row: 0, col: 0 })
+  const tableButtonRef = useRef(null)
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -121,6 +128,7 @@ const SectionEditor = ({
       Underline,
       Table.configure({
         resizable: true,
+        allowTableNodeSelection: true,
         HTMLAttributes: {
           class: "border-collapse border border-gray-300 w-full my-4",
         },
@@ -573,6 +581,42 @@ const SectionEditor = ({
     setEmbedModalOpen(false)
   }
 
+  // Table handlers
+  const handleAddTable = () => {
+    setTableDropdownOpen(prev => !prev)
+  }
+
+  const handleTableSelect = (rows, cols) => {
+    if (editor) {
+      // First close the dropdown
+      setTableDropdownOpen(false)
+      setHoveredCell({ row: 0, col: 0 })
+
+      // Then insert table at current cursor position with a slight delay
+      setTimeout(() => {
+        editor.chain().focus().insertTable({ rows, cols, withHeaderRow: true }).run()
+        message.success(`Table ${rows}x${cols} added.`)
+      }, 100)
+    }
+  }
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = event => {
+      if (
+        tableDropdownOpen &&
+        tableButtonRef.current &&
+        !tableButtonRef.current.contains(event.target) &&
+        !event.target.closest(".fixed.bg-white") // Don't close if clicking inside the dropdown
+      ) {
+        setTableDropdownOpen(false)
+        setHoveredCell({ row: 0, col: 0 })
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [tableDropdownOpen])
+
   return (
     <div className="border rounded-lg bg-white shadow-sm">
       {/* Toolbar */}
@@ -676,116 +720,155 @@ const SectionEditor = ({
           <Youtube className="w-4 h-4" />
         </ToolbarButton>
 
-        {/* Table Dropdown */}
-        <Dropdown
-          menu={{
-            items: [
-              {
-                key: "insert",
-                label: (
-                  <div className="flex items-center gap-2">
-                    <TableIcon className="w-4 h-4" />
-                    <span>Insert 3×3 Table</span>
-                  </div>
-                ),
-                onClick: () =>
-                  editor
-                    .chain()
-                    .focus()
-                    .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
-                    .run(),
-              },
-              { type: "divider" },
-              {
-                key: "addRowBefore",
-                label: (
-                  <div className="flex items-center gap-2">
-                    <Plus className="w-4 h-4" />
-                    <span>Add Row Before</span>
-                  </div>
-                ),
-                onClick: () => editor.chain().focus().addRowBefore().run(),
-                disabled: !editor.can().addRowBefore(),
-              },
-              {
-                key: "addRowAfter",
-                label: (
-                  <div className="flex items-center gap-2">
-                    <Plus className="w-4 h-4" />
-                    <span>Add Row After</span>
-                  </div>
-                ),
-                onClick: () => editor.chain().focus().addRowAfter().run(),
-                disabled: !editor.can().addRowAfter(),
-              },
-              {
-                key: "deleteRow",
-                label: (
-                  <div className="flex items-center gap-2 text-red-500">
-                    <Minus className="w-4 h-4" />
-                    <span>Delete Row</span>
-                  </div>
-                ),
-                onClick: () => editor.chain().focus().deleteRow().run(),
-                disabled: !editor.can().deleteRow(),
-              },
-              { type: "divider" },
-              {
-                key: "addColBefore",
-                label: (
-                  <div className="flex items-center gap-2">
-                    <Plus className="w-4 h-4" />
-                    <span>Add Column Before</span>
-                  </div>
-                ),
-                onClick: () => editor.chain().focus().addColumnBefore().run(),
-                disabled: !editor.can().addColumnBefore(),
-              },
-              {
-                key: "addColAfter",
-                label: (
-                  <div className="flex items-center gap-2">
-                    <Plus className="w-4 h-4" />
-                    <span>Add Column After</span>
-                  </div>
-                ),
-                onClick: () => editor.chain().focus().addColumnAfter().run(),
-                disabled: !editor.can().addColumnAfter(),
-              },
-              {
-                key: "deleteCol",
-                label: (
-                  <div className="flex items-center gap-2 text-red-500">
-                    <Minus className="w-4 h-4" />
-                    <span>Delete Column</span>
-                  </div>
-                ),
-                onClick: () => editor.chain().focus().deleteColumn().run(),
-                disabled: !editor.can().deleteColumn(),
-              },
-              { type: "divider" },
-              {
-                key: "deleteTable",
-                label: (
-                  <div className="flex items-center gap-2 text-red-500">
-                    <Trash2 className="w-4 h-4" />
-                    <span>Delete Table</span>
-                  </div>
-                ),
-                onClick: () => editor.chain().focus().deleteTable().run(),
-                disabled: !editor.can().deleteTable(),
-              },
-            ],
-          }}
-          trigger={["click"]}
-          placement="bottomLeft"
-        >
-          <div>
-            <ToolbarButton title="Table" active={editor.isActive("table")}>
-              <TableIcon className="w-4 h-4" />
-            </ToolbarButton>
-          </div>
-        </Dropdown>
+        {/* Table Grid Selector */}
+        <div className="relative inline-block" ref={tableButtonRef}>
+          <ToolbarButton
+            title="Table"
+            active={editor.isActive("table") || tableDropdownOpen}
+            onClick={handleAddTable}
+          >
+            <TableIcon className="w-4 h-4" />
+          </ToolbarButton>
+        </div>
+
+        {tableDropdownOpen &&
+          tableButtonRef.current &&
+          createPortal(
+            <div
+              className="fixed bg-white border border-gray-300 rounded-lg shadow-lg p-3 z-[9999]"
+              style={{
+                top: `${tableButtonRef.current.getBoundingClientRect().bottom + 8}px`,
+                left: `${tableButtonRef.current.getBoundingClientRect().left}px`,
+              }}
+            >
+              <div className="mb-2 text-xs text-gray-600 text-center">
+                {hoveredCell.row > 0 && hoveredCell.col > 0
+                  ? `${hoveredCell.row} x ${hoveredCell.col}`
+                  : "Select table size"}
+              </div>
+              <div className="grid gap-1" style={{ gridTemplateColumns: "repeat(10, 1fr)" }}>
+                {Array.from({ length: 10 }, (_, rowIndex) =>
+                  Array.from({ length: 10 }, (_, colIndex) => (
+                    <div
+                      key={`${rowIndex}-${colIndex}`}
+                      className={`w-5 h-5 border border-gray-300 cursor-pointer transition-colors ${
+                        rowIndex < hoveredCell.row && colIndex < hoveredCell.col
+                          ? "bg-blue-500 border-blue-600"
+                          : "bg-white hover:bg-blue-100"
+                      }`}
+                      onMouseEnter={() => setHoveredCell({ row: rowIndex + 1, col: colIndex + 1 })}
+                      onClick={() => handleTableSelect(rowIndex + 1, colIndex + 1)}
+                    />
+                  ))
+                )}
+              </div>
+            </div>,
+            document.body
+          )}
+
+        {/* Table Manipulation Menu - Only show when inside a table */}
+        {editor?.isActive("table") && (
+          <Popover
+            content={
+              <div className="flex flex-col gap-1 min-w-[180px]">
+                <Button
+                  size="small"
+                  icon={<Plus className="w-3 h-3" />}
+                  onClick={() => {
+                    editor.chain().focus().addRowBefore().run()
+                    message.success("Row added")
+                  }}
+                  disabled={!editor.can().addRowBefore()}
+                  className="justify-start"
+                >
+                  Add Row Before
+                </Button>
+                <Button
+                  size="small"
+                  icon={<Plus className="w-3 h-3" />}
+                  onClick={() => {
+                    editor.chain().focus().addRowAfter().run()
+                    message.success("Row added")
+                  }}
+                  disabled={!editor.can().addRowAfter()}
+                  className="justify-start"
+                >
+                  Add Row After
+                </Button>
+                <Button
+                  size="small"
+                  icon={<Minus className="w-3 h-3" />}
+                  onClick={() => {
+                    editor.chain().focus().deleteRow().run()
+                    message.success("Row deleted")
+                  }}
+                  disabled={!editor.can().deleteRow()}
+                  danger
+                  className="justify-start"
+                >
+                  Delete Row
+                </Button>
+                <div className="border-t my-1" />
+                <Button
+                  size="small"
+                  icon={<Plus className="w-3 h-3" />}
+                  onClick={() => {
+                    editor.chain().focus().addColumnBefore().run()
+                    message.success("Column added")
+                  }}
+                  disabled={!editor.can().addColumnBefore()}
+                  className="justify-start"
+                >
+                  Add Column Before
+                </Button>
+                <Button
+                  size="small"
+                  icon={<Plus className="w-3 h-3" />}
+                  onClick={() => {
+                    editor.chain().focus().addColumnAfter().run()
+                  }}
+                  disabled={!editor.can().addColumnAfter()}
+                  className="justify-start"
+                >
+                  Add Column After
+                </Button>
+                <Button
+                  size="small"
+                  icon={<Minus className="w-3 h-3" />}
+                  onClick={() => {
+                    editor.chain().focus().deleteColumn().run()
+                  }}
+                  disabled={!editor.can().deleteColumn()}
+                  danger
+                  className="justify-start"
+                >
+                  Delete Column
+                </Button>
+                <div className="border-t my-1" />
+                <Button
+                  size="small"
+                  icon={<Trash2 className="w-3 h-3" />}
+                  onClick={() => {
+                    editor.chain().focus().deleteTable().run()
+                  }}
+                  disabled={!editor.can().deleteTable()}
+                  danger
+                  className="justify-start"
+                >
+                  Delete Table
+                </Button>
+              </div>
+            }
+            trigger="click"
+            placement="bottomLeft"
+          >
+            <div>
+              <ToolbarButton title="Table Options" active={editor.isActive("table")}>
+                <TableProperties className="w-4 h-4" />
+              </ToolbarButton>
+            </div>
+          </Popover>
+        )}
 
         <div className="w-px h-6 bg-gray-300 mx-1" />
 
@@ -906,11 +989,12 @@ const SectionEditor = ({
               if (previewCacheRef.current[linkHref]) {
                 setLinkPreviewData(previewCacheRef.current[linkHref])
               } else {
-                // Fetch link preview using getLinkPreview
+                // Fetch link preview using getLinkPreview with CORS proxy
                 setIsLoadingPreview(true)
                 setLinkPreviewData(null)
                 try {
                   const preview = await getLinkPreview(linkHref, {
+                    proxyUrl: "https://api.allorigins.win/raw?url=",
                     timeout: 5000,
                     followRedirects: "follow",
                     headers: {
@@ -928,7 +1012,6 @@ const SectionEditor = ({
                   previewCacheRef.current[linkHref] = previewData
                   setLinkPreviewData(previewData)
                 } catch (error) {
-                  console.log("Link preview failed:", error.message)
                   // Fallback: just show the URL
                   const fallbackData = {
                     title: "",

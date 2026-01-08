@@ -39,6 +39,11 @@ const CategoriesModal = ({
     initialIncludeTableOfContents
   )
   const [categoryError, setCategoryError] = useState(false)
+  const [platformError, setPlatformError] = useState(false)
+  const [errors, setErrors] = useState({
+    category: "",
+    platform: "",
+  })
   const { categories, error: wordpressError } = useSelector(state => state.wordpress)
   const [selectedIntegration, setSelectedIntegration] = useState(null)
   const [isCategoryLocked, setIsCategoryLocked] = useState(false)
@@ -60,6 +65,10 @@ const CategoriesModal = ({
       url,
     })
 
+    // Clear platform error when platform is selected
+    setPlatformError(false)
+    setErrors(prev => ({ ...prev, platform: "" }))
+
     if (platform === "SHOPIFY") {
       if (hasShopifyPosted) {
         setIsCategoryLocked(true)
@@ -80,6 +89,7 @@ const CategoriesModal = ({
       }
       setSelectedCategory(category)
       setCategoryError(false)
+      setErrors(prev => ({ ...prev, category: "" }))
     },
     [selectedCategory]
   )
@@ -88,6 +98,7 @@ const CategoriesModal = ({
   const handleCategoryRemove = useCallback(() => {
     setSelectedCategory("")
     setCategoryError(false)
+    setErrors(prev => ({ ...prev, category: "" }))
   }, [])
 
   // Handle adding a custom category
@@ -108,16 +119,64 @@ const CategoriesModal = ({
     setIncludeTableOfContents(e.target.checked)
   }, [])
 
+  // Validation function
+  const validateForm = useCallback(() => {
+    const newErrors = {
+      category: "",
+      platform: "",
+    }
+    let isValid = true
+
+    // Check if integrations exist and platform is selected
+    if (integrations?.integrations && Object.keys(integrations.integrations).length > 0) {
+      if (!selectedIntegration) {
+        newErrors.platform = "Please select a publishing platform"
+        setPlatformError(true)
+        isValid = false
+      } else {
+        setPlatformError(false)
+      }
+    }
+
+    // Check if category is selected
+    if (!selectedCategory || selectedCategory.trim() === "") {
+      newErrors.category = "Please select or enter a category"
+      setCategoryError(true)
+      isValid = false
+    } else {
+      // Validate category length
+      if (selectedCategory.length > 50) {
+        newErrors.category = "Category name must be less than 50 characters"
+        setCategoryError(true)
+        isValid = false
+      } else if (selectedCategory.length < 2) {
+        newErrors.category = "Category name must be at least 2 characters"
+        setCategoryError(true)
+        isValid = false
+      } else {
+        setCategoryError(false)
+      }
+    }
+
+    setErrors(newErrors)
+    return isValid
+  }, [selectedCategory, selectedIntegration, integrations])
+
   // Handle modal submission
   const handleSubmit = useCallback(() => {
-    if (!selectedCategory) {
-      setCategoryError(true)
-      message.error("Please select a category.")
+    // Validate form
+    if (!validateForm()) {
+      // Show error message for the first error found
+      if (errors.platform) {
+        message.error(errors.platform)
+      } else if (errors.category) {
+        message.error(errors.category)
+      }
       return
     }
 
     onSubmit({
-      category: selectedCategory,
+      category: selectedCategory.trim(),
       includeTableOfContents,
       type: {
         platform: selectedIntegration?.rawPlatform, // SEND UPPERCASE
@@ -125,12 +184,17 @@ const CategoriesModal = ({
       },
     })
 
+    // Reset form
     setIsCategoryModalOpen(false)
     setSelectedCategory("")
     setIncludeTableOfContents(false)
     setCustomCategory("")
     setCategoryError(false)
+    setPlatformError(false)
+    setErrors({ category: "", platform: "" })
   }, [
+    validateForm,
+    errors,
     selectedCategory,
     includeTableOfContents,
     selectedIntegration,
@@ -145,6 +209,8 @@ const CategoriesModal = ({
     setIncludeTableOfContents(false)
     setCustomCategory("")
     setCategoryError(false)
+    setPlatformError(false)
+    setErrors({ category: "", platform: "" })
   }, [setIsCategoryModalOpen])
 
   const handleCategoryChange = useCallback(value => {
@@ -155,10 +221,16 @@ const CategoriesModal = ({
     const newCategory = value.length > 0 ? value[0] : ""
     setSelectedCategory(newCategory)
     setCategoryError(false)
+    setErrors(prev => ({ ...prev, category: "" }))
   }, [])
 
   useEffect(() => {
-    if (!isCategoryModalOpen) return
+    if (!isCategoryModalOpen) {
+      // Reset state when modal closes to prevent auto-fill on next open
+      return () => {
+        // Cleanup will happen when modal is closed
+      }
+    }
 
     const shopify = posted?.SHOPIFY
 
@@ -179,6 +251,8 @@ const CategoriesModal = ({
     // CASE 2: Shopify connected but NOT posted yet → first time posting
     if (shopify && !shopify.link) {
       setIsCategoryLocked(false)
+      // Don't auto-select category for new posts
+      setSelectedCategory("")
 
       setSelectedIntegration({
         platform: "shopify",
@@ -199,6 +273,8 @@ const CategoriesModal = ({
 
       // platform auto-select only (NO category lock)
       setIsCategoryLocked(false)
+      // Don't auto-select category for new posts
+      setSelectedCategory("")
 
       setSelectedIntegration({
         platform: platformKey.toLowerCase(),
@@ -253,13 +329,14 @@ const CategoriesModal = ({
             </span>
 
             <Select
-              className="w-full mt-2"
+              className={`w-full mt-2 ${platformError ? "border-red-500" : ""}`}
               placeholder="Select platform"
               value={selectedIntegration?.rawPlatform || undefined}
               onChange={platform => {
                 const details = integrations.integrations[platform]
                 handleIntegrationChange(platform, details?.url)
               }}
+              status={platformError ? "error" : ""}
             >
               {Object.entries(integrations.integrations).map(([platform, details]) => (
                 <Option key={platform} value={platform}>
@@ -267,6 +344,15 @@ const CategoriesModal = ({
                 </Option>
               ))}
             </Select>
+            {platformError && errors.platform && (
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="mt-2 text-sm text-red-500"
+              >
+                {errors.platform}
+              </motion.p>
+            )}
           </div>
         )}
         {/* Selected Category Display */}
@@ -343,6 +429,7 @@ const CategoriesModal = ({
             className="w-full"
             allowClear
             showSearch
+            status={categoryError ? "error" : ""}
             filterOption={(input, option) =>
               option.label.toLowerCase().includes(input.toLowerCase())
             }
@@ -351,17 +438,15 @@ const CategoriesModal = ({
               label: category,
             }))}
             styles={{ popup: { root: { borderRadius: "8px" } } }}
-            // dropdownStyle={{ borderRadius: "8px" }}
-            // popupClassName="rounded-lg"
             aria-label="Select or add a category"
           />
-          {categoryError && !selectedCategory && (
+          {categoryError && errors.category && (
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="mt-2 text-sm text-red-500"
             >
-              Please select a category
+              {errors.category}
             </motion.p>
           )}
         </div>

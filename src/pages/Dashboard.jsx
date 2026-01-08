@@ -190,14 +190,6 @@ const Dashboard = () => {
       localStorage.getItem(`hasCompletedOnboarding_${user._id}`) === "true"
     const justCompletedOnboarding = sessionStorage.getItem("justCompletedOnboarding") === "true"
 
-    console.log("Dashboard Flow Check:", {
-      hasSeenTour,
-      hasCompletedOnboarding,
-      justCompletedOnboarding,
-      userLastLogin: user.lastLogin,
-      isMobile,
-    })
-
     // Show tour for first-time users who just completed onboarding (desktop only)
     // Check both lastLogin and localStorage (localStorage is fallback for immediate check)
     if (
@@ -207,7 +199,6 @@ const Dashboard = () => {
       justCompletedOnboarding &&
       !isMobile
     ) {
-      console.log("Starting tour for first-time user after onboarding...")
       sessionStorage.removeItem("justCompletedOnboarding") // Clean up flag
       setTimeout(() => setRunTour(true), 1000)
     }

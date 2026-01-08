@@ -68,7 +68,6 @@ const DEFAULT_BREAKPOINTS: BreakpointConfig = {
  * @example
  * // Using viewport dimensions
  * const { width, height } = useViewport()
- * console.log(`Viewport: ${width}x${height}`)
  */
 const useViewport = (customBreakpoints?: Partial<BreakpointConfig>): UseViewportReturn => {
   const breakpoints = { ...DEFAULT_BREAKPOINTS, ...customBreakpoints }
