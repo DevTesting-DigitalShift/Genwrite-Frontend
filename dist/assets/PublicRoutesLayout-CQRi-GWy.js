@@ -1,1 +1,0 @@
-import{d as o,j as t,N as a,O as n}from"./index-DGyKukHS.js";const r=()=>{const e=localStorage.getItem("token"),s=o();return e&&["/login","/signup"].includes(s.pathname)?t.jsx(a,{to:"/dashboard",replace:!0}):t.jsx("div",{children:t.jsx("main",{className:"flex-1",children:t.jsx(n,{})})})};export{r as default};
