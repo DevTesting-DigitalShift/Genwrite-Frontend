@@ -5,6 +5,7 @@ import {
   BanknotesIcon,
   CheckIcon,
   ShieldCheckIcon,
+  LockClosedIcon,
   UserGroupIcon,
 } from "@heroicons/react/24/solid"
 import { useSelector, useDispatch } from "react-redux"
@@ -13,6 +14,7 @@ import { DatePicker, message, Select, Tag, Tooltip } from "antd"
 import dayjs from "dayjs"
 import { Helmet } from "react-helmet"
 import { updateProfile } from "@store/slices/userSlice"
+import PasswordModal from "@components/PasswordModal"
 
 const DEMO_PROFILE = {
   profilePicture: "",
@@ -54,6 +56,7 @@ const Profile = () => {
   const [profileData, setProfileData] = useState(DEMO_PROFILE)
   const { user } = useSelector(state => state.auth)
   const dispatch = useDispatch()
+  const [passwordModalVisible, setPasswordModalVisible] = useState(false)
 
   useEffect(() => {
     dispatch(loadAuthenticatedUser())
@@ -140,6 +143,40 @@ const Profile = () => {
         interests: selectedInterests,
       },
     }))
+  }
+
+  const handlePasswordSubmit = async values => {
+    try {
+      const endpoint = user?.hasPassword ? "/api/auth/change-password" : "/api/auth/set-password"
+      const payload = user?.hasPassword
+        ? {
+            oldPassword: values.oldPassword,
+            newPassword: values.newPassword,
+          }
+        : {
+            newPassword: values.newPassword,
+          }
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL}${endpoint}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to update password")
+      }
+
+      // Reload user data to update hasPassword status
+      dispatch(loadAuthenticatedUser())
+    } catch (error) {
+      throw error
+    }
   }
 
   return (
@@ -229,13 +266,22 @@ const Profile = () => {
                 <UserGroupIcon className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500" />
                 Personal Details
               </h2>
-              <button
-                onClick={handleSave}
-                className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
-              >
-                <CheckIcon className="w-4 h-4 sm:w-5 sm:h-5" />
-                Save Changes
-              </button>
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                <button
+                  onClick={() => setPasswordModalVisible(true)}
+                  className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-2.5 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
+                >
+                  <LockClosedIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                  {user?.hasPassword ? "Change Password" : "Set Password"}
+                </button>
+                <button
+                  onClick={handleSave}
+                  className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
+                >
+                  <CheckIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                  Save Changes
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
@@ -339,6 +385,13 @@ const Profile = () => {
           </motion.div>
         </div>
       </motion.div>
+
+      <PasswordModal
+        visible={passwordModalVisible}
+        onClose={() => setPasswordModalVisible(false)}
+        hasPassword={user?.hasPassword || false}
+        onSubmit={handlePasswordSubmit}
+      />
     </>
   )
 }
