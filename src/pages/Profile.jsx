@@ -15,6 +15,7 @@ import dayjs from "dayjs"
 import { Helmet } from "react-helmet"
 import { updateProfile } from "@store/slices/userSlice"
 import PasswordModal from "@components/PasswordModal"
+import { updatePasswordAPI } from "@api/userApi"
 
 const DEMO_PROFILE = {
   profilePicture: "",
@@ -147,7 +148,6 @@ const Profile = () => {
 
   const handlePasswordSubmit = async values => {
     try {
-      const endpoint = user?.hasPassword ? "/api/auth/change-password" : "/api/auth/set-password"
       const payload = user?.hasPassword
         ? {
             oldPassword: values.oldPassword,
@@ -157,19 +157,10 @@ const Profile = () => {
             newPassword: values.newPassword,
           }
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL}${endpoint}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify(payload),
-      })
+      const response = await updatePasswordAPI(payload)
 
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to update password")
+      if (!response.success) {
+        throw new Error(response.message || "Failed to update password")
       }
 
       // Reload user data to update hasPassword status

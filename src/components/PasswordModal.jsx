@@ -147,6 +147,15 @@ const PasswordModal = ({ visible, onClose, hasPassword, onSubmit }) => {
       }
     >
       <div className="mt-4 space-y-4">
+        <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+          <p className="text-xs text-blue-800 font-medium mb-1">Password Requirements:</p>
+          <ul className="text-xs text-blue-700 space-y-0.5 list-disc list-inside">
+            <li>At least 8 characters long</li>
+            <li>Contains uppercase and lowercase letters</li>
+            <li>Contains at least one number</li>
+            <li>Contains at least one special character (@$!%*?&#)</li>
+          </ul>
+        </div>
         {hasPassword && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Old Password</label>
@@ -157,6 +166,7 @@ const PasswordModal = ({ visible, onClose, hasPassword, onSubmit }) => {
                 value={formData.oldPassword}
                 onChange={handleInputChange}
                 placeholder="Enter your old password"
+                autoComplete="current-password"
                 className={`w-full px-4 py-2 pr-10 border ${
                   errors.oldPassword ? "border-red-500" : "border-gray-300"
                 } rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all`}
@@ -188,6 +198,7 @@ const PasswordModal = ({ visible, onClose, hasPassword, onSubmit }) => {
               value={formData.newPassword}
               onChange={handleInputChange}
               placeholder="Enter your new password"
+              autoComplete="new-password"
               className={`w-full px-4 py-2 pr-10 border ${
                 errors.newPassword ? "border-red-500" : "border-gray-300"
               } rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all`}
@@ -222,6 +233,7 @@ const PasswordModal = ({ visible, onClose, hasPassword, onSubmit }) => {
               value={formData.confirmPassword}
               onChange={handleInputChange}
               placeholder="Confirm your new password"
+              autoComplete="new-password"
               className={`w-full px-4 py-2 pr-10 border ${
                 errors.confirmPassword ? "border-red-500" : "border-gray-300"
               } rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all`}
@@ -242,16 +254,6 @@ const PasswordModal = ({ visible, onClose, hasPassword, onSubmit }) => {
             <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
           )}
         </div>
-      </div>
-
-      <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-        <p className="text-xs text-blue-800 font-medium mb-1">Password Requirements:</p>
-        <ul className="text-xs text-blue-700 space-y-0.5 list-disc list-inside">
-          <li>At least 8 characters long</li>
-          <li>Contains uppercase and lowercase letters</li>
-          <li>Contains at least one number</li>
-          <li>Contains at least one special character (@$!%*?&#)</li>
-        </ul>
       </div>
     </Modal>
   )

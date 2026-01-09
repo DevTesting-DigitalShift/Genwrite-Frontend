@@ -15,7 +15,12 @@ export const getTransactions = async () => {
   return response.data
 }
 
-export const updateUserProfile = async (payload) => {
+export const updateUserProfile = async payload => {
   const response = await axiosInstance.put("/user/profile", payload)
+  return response.data
+}
+
+export const updatePasswordAPI = async payload => {
+  const response = await axiosInstance.post("/user/update-password", payload)
   return response.data
 }

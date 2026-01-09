@@ -51,6 +51,9 @@ const PrivateRoutesLayout = () => {
     if (!user.lastLogin && !hasCompletedOnboarding) {
       navigate("/onboarding", { replace: true })
     }
+    if (user.emailVerified === false) {
+      navigate(`/email-verify/${user.email}`, { replace: true })
+    }
   }, [user, navigate])
 
   const isToolbarRoute = location.pathname.startsWith("/toolbox/")

@@ -48,7 +48,11 @@ const Onboarding = () => {
 
     // If user has lastLogin OR has completed onboarding, redirect to dashboard
     if (user.lastLogin || hasCompletedOnboarding) {
-      navigate("/dashboard", { replace: true })
+      if (user.emailVerified === false) {
+        navigate(`/email-verify/${user.email}`, { replace: true })
+      } else {
+        navigate("/dashboard", { replace: true })
+      }
     }
   }, [user, navigate])
 
