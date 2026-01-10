@@ -60,6 +60,8 @@ export const Language = {
   PORTUGUESE: "Portuguese",
   DUTCH: "Dutch",
   JAPANESE: "Japanese",
+  HINDI: "Hindi",
+  CHINESE: "Chinese",
 } as const
 
 export type LanguageType = (typeof Language)[keyof typeof Language]

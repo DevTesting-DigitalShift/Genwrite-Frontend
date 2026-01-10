@@ -14,13 +14,11 @@ import { IMAGE_SOURCE, LANGUAGES } from "@/data/blogData"
 import { useQueryClient } from "@tanstack/react-query"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { validateQuickBlogData } from "@/types/forms.schemas"
-import LoadingScreen from "@components/UI/LoadingScreen"
 
 // Quick Blog Modal Component - Updated pricing calculation
 const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   const [currentStep, setCurrentStep] = useState(0)
   const [otherLinks, setOtherLinks] = useState([])
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const initialFormData = {
     topic: "",
@@ -195,7 +193,6 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
       onConfirm: () => {
         // Validate with Zod schema (logs to console when VITE_VALIDATE_FORMS=true)
         const validatedData = validateQuickBlogData(finalData)
-        setIsSubmitting(true)
         dispatch(createNewQuickBlog({ blogData: validatedData, user, navigate, type }))
         handleClose()
       },
@@ -415,9 +412,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   ]
 
   return (
-    <>
-      {isSubmitting && <LoadingScreen />}
-      <Modal
+    <>      <Modal
         title={`Generate ${type === "quick" ? "Quick" : "Youtube"} Blog`}
         open={true}
         onCancel={handleClose}

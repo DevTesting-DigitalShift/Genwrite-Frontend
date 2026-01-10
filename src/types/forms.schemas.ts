@@ -53,6 +53,8 @@ export const languageSchema = z
     Language.PORTUGUESE,
     Language.DUTCH,
     Language.JAPANESE,
+    Language.HINDI,
+    Language.CHINESE,
   ])
   .describe("Language in which the blog should be written")
 

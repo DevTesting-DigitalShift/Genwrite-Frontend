@@ -32,6 +32,8 @@ export const LANGUAGES = [
   { value: "Portuguese", label: "Portuguese" },
   { value: "Dutch", label: "Dutch" },
   { value: "Japanese", label: "Japanese" },
+  { value: "Hindi", label: "Hindi" },
+  { value: "Chinese", label: "Chinese" },
 ]
 
 export const AI_MODELS = [

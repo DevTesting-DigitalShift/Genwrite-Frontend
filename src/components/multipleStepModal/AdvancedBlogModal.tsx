@@ -36,7 +36,6 @@ import { selectSelectedAnalysisKeywords } from "@store/slices/analysisSlice"
 import { computeCost } from "@/data/pricingConfig"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { validateAdvancedBlogData } from "@/types/forms.schemas"
-import LoadingScreen from "@components/UI/LoadingScreen"
 
 const { Text } = Typography
 interface AdvancedBlogModalProps {
@@ -117,8 +116,6 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
   // For Generating Titles
   const [generatedTitles, setGeneratedTitles] = useState<string[]>([])
   const [isGenerating, setIsGenerating] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-
   const handleGenerateTitles = async () => {
     try {
       setIsGenerating(true)
@@ -327,7 +324,6 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
       }
       // Validate with Zod schema (logs to console when VITE_VALIDATE_FORMS=true)
       const validatedData = validateAdvancedBlogData(data)
-      setIsSubmitting(true)
       onSubmit?.(validatedData)
     }
   }
@@ -892,7 +888,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
 
   return (
     <>
-      {isSubmitting && <LoadingScreen />}
+      {" "}
       <Modal
         title={`Generate Advanced Blog | Step ${currentStep + 1} : ${STEP_TITLES[currentStep]}`}
         open={true}
