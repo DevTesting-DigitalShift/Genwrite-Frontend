@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react"
 import { Pagination, Spin, Modal, message } from "antd"
-import { Search, Image as ImageIcon, X, Download } from "lucide-react"
+import { Search, Image as ImageIcon, X, Download, Copy } from "lucide-react"
 import { Helmet } from "react-helmet"
 import { getImages, searchImages } from "@api/imageGalleryApi"
 import { debounce } from "lodash"
@@ -149,6 +149,17 @@ const ImageGallery = () => {
     }
   }
 
+  const handleCopyLink = async (image, e) => {
+    if (e) e.stopPropagation()
+    try {
+      await navigator.clipboard.writeText(image.url)
+      message.success("Image link copied to clipboard!")
+    } catch (error) {
+      console.error(error)
+      message.error("Failed to copy link")
+    }
+  }
+
   const clearFilters = () => {
     setSearchQuery("")
     setSelectedTags([])
@@ -212,12 +223,22 @@ const ImageGallery = () => {
                     <p className="text-white text-sm line-clamp-2 font-medium mr-2">
                       {image.description}
                     </p>
-                    <button
-                      onClick={e => handleDownload(image, e)}
-                      className="p-2 bg-white text-gray-900 rounded-full hover:bg-gray-100 transition-colors duration-200 shadow-lg flex-shrink-0"
-                    >
-                      <Download className="w-4 h-4" />
-                    </button>
+                    <div className="flex gap-2 flex-shrink-0">
+                      <button
+                        onClick={e => handleCopyLink(image, e)}
+                        className="p-2 bg-white text-gray-900 rounded-full hover:bg-blue-50 hover:text-blue-600 transition-colors duration-200 shadow-lg"
+                        title="Copy Link"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={e => handleDownload(image, e)}
+                        className="p-2 bg-white text-gray-900 rounded-full hover:bg-gray-100 transition-colors duration-200 shadow-lg"
+                        title="Download"
+                      >
+                        <Download className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -321,6 +342,13 @@ const ImageGallery = () => {
 
                 {/* Actions */}
                 <div className="mt-0 md:mt-6 pt-0 md:pt-6 border-t border-gray-100 space-y-3">
+                  <button
+                    onClick={() => handleCopyLink(previewImage)}
+                    className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-100 flex items-center justify-center gap-2"
+                  >
+                    <Copy className="w-5 h-5" />
+                    Copy Image Link
+                  </button>
                   <button
                     onClick={() => handleDownload(previewImage)}
                     className="w-full py-4 bg-gray-900 hover:bg-black text-white rounded-xl font-bold transition-all shadow-lg shadow-gray-200 flex items-center justify-center gap-2"
