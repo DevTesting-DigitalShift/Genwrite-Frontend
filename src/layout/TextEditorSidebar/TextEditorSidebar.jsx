@@ -64,6 +64,7 @@ import RegenerateModal from "@components/RegenerateModal"
 import { IMAGE_SOURCE, DEFAULT_IMAGE_SOURCE } from "@/data/blogData"
 import { computeCost } from "@/data/pricingConfig"
 import * as Cheerio from "cheerio"
+import TurndownService from "turndown"
 
 const { TextArea } = Input
 const { Panel } = Collapse
@@ -887,15 +888,37 @@ const TextEditorSidebar = ({
       })
     }
 
-    const markdown = blog?.content.startsWith("<article") ? blog?.content : editorContent || ""
-    const blob = new Blob([markdown], { type: "text/markdown" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `${blog?.title || "blog"}.md`
-    a.click()
-    URL.revokeObjectURL(url)
-    message.success("Exported as Markdown!")
+    try {
+      // Get HTML content
+      const htmlContent = blog?.content.startsWith("<article") ? blog?.content : editorContent || ""
+
+      if (!htmlContent.trim()) {
+        return message.error("No content to export")
+      }
+
+      // Initialize Turndown service for HTML to Markdown conversion
+      const turndownService = new TurndownService({
+        headingStyle: "atx",
+        codeBlockStyle: "fenced",
+        bulletListMarker: "-",
+      })
+
+      // Convert HTML to Markdown
+      const markdown = turndownService.turndown(htmlContent)
+
+      // Create and download the file
+      const blob = new Blob([markdown], { type: "text/markdown" })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `${blog?.title || "blog"}.md`
+      a.click()
+      URL.revokeObjectURL(url)
+      message.success("Exported as Markdown!")
+    } catch (error) {
+      console.error("Markdown export error:", error)
+      message.error("Failed to export as Markdown")
+    }
   }
 
   const handleExportHTML = () => {

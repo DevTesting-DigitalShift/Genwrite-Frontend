@@ -76,7 +76,7 @@ export default function EmailVerification() {
         message.success("Email Verified 🎉")
         setTimeout(() => navigate("/dashboard"), 1200)
       } else {
-        setError("Invalid verification code. Try: 123456")
+        setError("Invalid verification code.")
       }
     } catch (err) {
       setError("Verification failed.")
@@ -117,7 +117,7 @@ export default function EmailVerification() {
             {/* STEP 1 — SEND CODE SCREEN */}
             {!showOTP && (
               <Button type="primary" size="large" loading={loading} block onClick={handleSendCode}>
-                Send Code
+                Send Link
               </Button>
             )}
 

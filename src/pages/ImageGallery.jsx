@@ -1,13 +1,9 @@
 import { useState, useEffect, useCallback } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { Input, Select, Slider, Spin, Empty, Tag, Modal, message, Button } from "antd"
-import { Search, Image as ImageIcon, X, Download, Filter, Sparkles } from "lucide-react"
+import { Pagination, Spin, Modal, message } from "antd"
+import { Search, Image as ImageIcon, X, Download } from "lucide-react"
 import { Helmet } from "react-helmet"
 import { getImages, searchImages } from "@api/imageGalleryApi"
 import { debounce } from "lodash"
-import { useInView } from "react-intersection-observer"
-
-const { Option } = Select
 
 // Skeleton Loader Component
 const ImageSkeleton = () => {
@@ -50,12 +46,6 @@ const ImageGallery = () => {
   const [minScore, setMinScore] = useState(0)
   const [selectedTags, setSelectedTags] = useState([])
   const [previewImage, setPreviewImage] = useState(null)
-  const [hasMore, setHasMore] = useState(true)
-
-  const { ref: loadMoreRef, inView } = useInView({
-    threshold: 0,
-    rootMargin: "200px",
-  })
 
   // Available tags (you can make this dynamic by fetching from backend)
   const availableTags = [
@@ -71,17 +61,16 @@ const ImageGallery = () => {
     "animals",
   ]
 
+  // Calculate total pages
+  const totalPages = Math.ceil(totalImages / pageSize)
+
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1)
-    setHasMore(true)
-    setImages([]) // Clear images to show loading state or fresh results
   }, [searchQuery, minScore, selectedTags])
 
   // Fetch images
   const fetchImages = useCallback(async () => {
-    if (!hasMore && currentPage > 1) return
-
     setLoading(true)
     try {
       const params = {
@@ -102,35 +91,19 @@ const ImageGallery = () => {
       const total = response.pagination?.total || 0
 
       setTotalImages(total)
-
-      setImages(prev => {
-        if (currentPage === 1) return newImages
-        // Filter out duplicates just in case
-        const existingIds = new Set(prev.map(img => img._id))
-        const uniqueNewImages = newImages.filter(img => !existingIds.has(img._id))
-        return [...prev, ...uniqueNewImages]
-      })
-
-      setHasMore(newImages.length === pageSize) // If we got full page, maybe more exists
+      setImages(newImages)
     } catch (error) {
       console.error("Error fetching images:", error)
       message.error("Failed to load images")
     } finally {
       setLoading(false)
     }
-  }, [currentPage, pageSize, minScore, selectedTags, searchQuery, hasMore])
+  }, [currentPage, pageSize, minScore, selectedTags, searchQuery])
 
-  // Initial fetch and pagination trigger
+  // Fetch images when page or filters change
   useEffect(() => {
     fetchImages()
   }, [fetchImages])
-
-  // Load more when scrolling to bottom
-  useEffect(() => {
-    if (inView && hasMore && !loading) {
-      setCurrentPage(prev => prev + 1)
-    }
-  }, [inView, hasMore, loading])
 
   // Debounced search
   const debouncedSearch = useCallback(
@@ -192,11 +165,7 @@ const ImageGallery = () => {
 
       <div className="min-h-screen p-3 md:p-6 lg:p-8">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8 mt-5 md:mt-0"
-        >
+        <div className="mb-8 mt-5 md:mt-0">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
             <div className="text-left">
               <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
@@ -220,52 +189,40 @@ const ImageGallery = () => {
               />
             </div>
           </div>
-        </motion.div>
+        </div>
 
         <div>
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={`${searchQuery}-${selectedTags.join(",")}-${minScore}`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4"
-            >
-              {images.map((image, index) => (
-                <motion.div
-                  key={image._id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.02 }}
-                  className="break-inside-avoid relative group rounded-xl overflow-hidden cursor-pointer bg-gray-100"
-                  onClick={() => handleImageClick(image)}
-                >
-                  <img
-                    src={image.url}
-                    alt={image.description}
-                    className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
-                    loading="lazy"
-                  />
+          <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4">
+            {images.map((image, index) => (
+              <div
+                key={image._id}
+                className="break-inside-avoid relative group rounded-xl overflow-hidden cursor-pointer bg-gray-100"
+                onClick={() => handleImageClick(image)}
+              >
+                <img
+                  src={image.url}
+                  alt={image.description}
+                  className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
+                  loading="lazy"
+                />
 
-                  {/* Hover Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
-                    <div className="flex items-center justify-between">
-                      <p className="text-white text-sm line-clamp-2 font-medium mr-2">
-                        {image.description}
-                      </p>
-                      <button
-                        onClick={e => handleDownload(image, e)}
-                        className="p-2 bg-white text-gray-900 rounded-full hover:bg-gray-100 transition-colors duration-200 shadow-lg flex-shrink-0"
-                      >
-                        <Download className="w-4 h-4" />
-                      </button>
-                    </div>
+                {/* Hover Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-white text-sm line-clamp-2 font-medium mr-2">
+                      {image.description}
+                    </p>
+                    <button
+                      onClick={e => handleDownload(image, e)}
+                      className="p-2 bg-white text-gray-900 rounded-full hover:bg-gray-100 transition-colors duration-200 shadow-lg flex-shrink-0"
+                    >
+                      <Download className="w-4 h-4" />
+                    </button>
                   </div>
-                </motion.div>
-              ))}
-            </motion.div>
-          </AnimatePresence>
+                </div>
+              </div>
+            ))}
+          </div>
 
           {/* Loading State - Skeleton */}
           {loading && images.length === 0 && <SkeletonGrid count={12} />}
@@ -279,10 +236,17 @@ const ImageGallery = () => {
             </div>
           )}
 
-          {/* Infinite Scroll Loader */}
-          {hasMore && images.length > 0 && (
-            <div ref={loadMoreRef} className="py-12 flex justify-center w-full">
-              {loading && <Spin size="large" />}
+          {/* Pagination Controls */}
+          {!loading && images.length > 0 && totalImages > 0 && (
+            <div className="mt-12 flex justify-center">
+              <Pagination
+                current={currentPage}
+                total={totalImages}
+                pageSize={pageSize}
+                onChange={page => setCurrentPage(page)}
+                showSizeChanger={false}
+                showTotal={(total, range) => `${range[0]}-${range[1]} of ${total} images`}
+              />
             </div>
           )}
         </div>

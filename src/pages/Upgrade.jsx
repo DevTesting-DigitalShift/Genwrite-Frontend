@@ -629,7 +629,7 @@ const Upgrade = () => {
           transition={{ delay: 0.3 }}
         />
 
-        <p className="text-gray-600 text-sm sm:text-base md:text-lg max-w-2xl mx-auto text-center px-4">
+        <p className="text-gray-600 text-sm sm:text-base md:text-lg max-  w-2xl mx-auto text-center px-4">
           Choose the perfect plan for your team. Scale seamlessly as your needs grow.
         </p>
       </motion.div>
@@ -705,7 +705,7 @@ const Upgrade = () => {
         </motion.div>
 
         {/* Currency Toggle - Top Right Above Cards */}
-        <div className="mx-auto px-4 mb-10">
+        {/* <div className="mx-auto px-4 mb-10">
           <div className="flex justify-end">
             <div className="inline-flex items-center bg-white rounded-lg p-0.5 border border-gray-200 shadow-sm">
               {["USD", "INR"].map(curr => (
@@ -723,10 +723,10 @@ const Upgrade = () => {
               ))}
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* Cards */}
-        <div className="mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 px-0 md:px-4">
+        <div className="mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 px-0 md:px-4 mt-20">
           <AnimatePresence>
             {loading
               ? Array.from({ length: 4 }).map((_, idx) => <SkeletonCard key={idx} />)
