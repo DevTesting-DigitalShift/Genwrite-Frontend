@@ -31,7 +31,8 @@ const BulkBlogModal = ({ closeFnc }) => {
 
   const [currentStep, setCurrentStep] = useState(0)
   const [recentlyUploadedTopicsCount, setRecentlyUploadedTopicsCount] = useState(null)
-  const [recentlyUploadedKeywordsCount, setRecentlyUploadedKeywordsCount] = useState(null)  const { Option } = Select
+  const [recentlyUploadedKeywordsCount, setRecentlyUploadedKeywordsCount] = useState(null)
+  const { Option } = Select
 
   // Initial Form Data
   const initialFormData = {
@@ -282,7 +283,8 @@ const BulkBlogModal = ({ closeFnc }) => {
       ...formData,
       imageSource: formData.isCheckedGeneratedImages ? formData.imageSource : IMAGE_SOURCE.NONE,
     }
-    const validatedData = validateBulkBlogData(finalData)    dispatch(createMultiBlog({ blogData: validatedData, user, navigate, queryClient }))
+    const validatedData = validateBulkBlogData(finalData)
+    dispatch(createMultiBlog({ blogData: validatedData, user, navigate, queryClient }))
     handleClose()
   }
 
@@ -740,7 +742,9 @@ const BulkBlogModal = ({ closeFnc }) => {
   const steps = ["Select Templates", "Add Details", "Blog Options"]
 
   return (
-    <>      <Modal
+    <>
+      {" "}
+      <Modal
         title={`Step ${currentStep + 1}: ${steps[currentStep]}`}
         open={true}
         onCancel={handleClose}

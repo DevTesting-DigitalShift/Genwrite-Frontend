@@ -30,6 +30,7 @@ import {
   Info,
   Calendar,
   User,
+  ImageIcon,
 } from "lucide-react"
 import {
   Button,
@@ -54,7 +55,7 @@ import { openUpgradePopup } from "@utils/UpgardePopUp"
 import { Modal } from "antd"
 import CategoriesModal from "../Editor/CategoriesModal"
 import { TONES } from "@/data/blogData"
-import { retryBlogById, exportBlogAsPdf, getBlogPostings } from "@api/blogApi"
+import { retryBlogById, exportBlogAsPdf, getBlogPostings, exportBlog } from "@api/blogApi"
 import { validateRegenerateBlogData } from "@/types/forms.schemas"
 import { useQueryClient } from "@tanstack/react-query"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
@@ -134,6 +135,9 @@ const TextEditorSidebar = ({
   // Generated metadata accept/reject modal state
   const [generatedMetadataModal, setGeneratedMetadataModal] = useState(false)
   const [generatedMetadata, setGeneratedMetadata] = useState(null)
+
+  // Export with images toggle
+  const [includeImagesInExport, setIncludeImagesInExport] = useState(false)
   const [isGeneratingMetadata, setIsGeneratingMetadata] = useState(false)
 
   // Content enhancement editable options state
@@ -596,30 +600,39 @@ const TextEditorSidebar = ({
     if (!editorContent?.trim()) return message.error("No content to export")
 
     try {
-      message.loading({ content: "Generating PDF...", key: "pdf-export" })
+      message.loading({
+        content: includeImagesInExport ? "Preparing PDF with images..." : "Generating PDF...",
+        key: "pdf-export",
+      })
 
-      // Use the API function which uses axiosInstance with correct backend URL
-      const pdfBlob = await exportBlogAsPdf(blog._id, {
-        title: blog.title,
-        content: editorContent,
+      const { data: blob, filename } = await exportBlog(blog._id, {
+        type: "pdf",
+        withImages: includeImagesInExport,
       })
 
       // Create download link
-      const url = window.URL.createObjectURL(pdfBlob)
+      const url = window.URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = `${blog.title || "blog"}.pdf`
+      // Use .zip extension if images included, otherwise .pdf
+      const downloadName = includeImagesInExport
+        ? `${blog.title || "blog"}.zip`
+        : `${blog.title || "blog"}.pdf`
+      a.download = downloadName
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
 
-      message.success({ content: "PDF downloaded successfully!", key: "pdf-export" })
+      const successMsg = includeImagesInExport
+        ? "PDF with images downloaded as ZIP!"
+        : "PDF downloaded successfully!"
+      message.success({ content: successMsg, key: "pdf-export" })
     } catch (error) {
       console.error("PDF Export Error:", error)
       message.error({ content: error.message || "Failed to export PDF", key: "pdf-export" })
     }
-  }, [blog, editorContent])
+  }, [blog, editorContent, includeImagesInExport])
 
   const handleKeywordRewrite = useCallback(() => {
     handlePopup({
@@ -878,7 +891,7 @@ const TextEditorSidebar = ({
   )
 
   // Export handlers
-  const handleExportMarkdown = () => {
+  const handleExportMarkdown = async () => {
     if (userPlan === "free") {
       return handlePopup({
         title: "Export Unavailable",
@@ -888,40 +901,47 @@ const TextEditorSidebar = ({
       })
     }
 
+    if (!blog?._id) return message.error("Blog ID missing")
+    if (!editorContent?.trim()) return message.error("No content to export")
+
     try {
-      // Get HTML content
-      const htmlContent = blog?.content.startsWith("<article") ? blog?.content : editorContent || ""
-
-      if (!htmlContent.trim()) {
-        return message.error("No content to export")
-      }
-
-      // Initialize Turndown service for HTML to Markdown conversion
-      const turndownService = new TurndownService({
-        headingStyle: "atx",
-        codeBlockStyle: "fenced",
-        bulletListMarker: "-",
+      message.loading({
+        content: includeImagesInExport
+          ? "Preparing Markdown with images..."
+          : "Generating Markdown...",
+        key: "md-export",
       })
 
-      // Convert HTML to Markdown
-      const markdown = turndownService.turndown(htmlContent)
+      const { data: blob, filename } = await exportBlog(blog._id, {
+        type: "markdown",
+        withImages: includeImagesInExport,
+      })
 
-      // Create and download the file
-      const blob = new Blob([markdown], { type: "text/markdown" })
-      const url = URL.createObjectURL(blob)
+      // Create download link
+      const url = window.URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = `${blog?.title || "blog"}.md`
+      // Use .zip extension if images included, otherwise .md
+      const downloadName = includeImagesInExport
+        ? `${blog.title || "blog"}.zip`
+        : `${blog.title || "blog"}.md`
+      a.download = downloadName
+      document.body.appendChild(a)
       a.click()
-      URL.revokeObjectURL(url)
-      message.success("Exported as Markdown!")
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+
+      const successMsg = includeImagesInExport
+        ? "Markdown with images downloaded as ZIP!"
+        : "Markdown downloaded successfully!"
+      message.success({ content: successMsg, key: "md-export" })
     } catch (error) {
       console.error("Markdown export error:", error)
-      message.error("Failed to export as Markdown")
+      message.error({ content: error.message || "Failed to export Markdown", key: "md-export" })
     }
   }
 
-  const handleExportHTML = () => {
+  const handleExportHTML = async () => {
     if (userPlan === "free") {
       return handlePopup({
         title: "Export Unavailable",
@@ -931,27 +951,42 @@ const TextEditorSidebar = ({
       })
     }
 
-    const htmlContent = blog?.content.startsWith("<article") ? blog?.content : editorContent || ""
-    const fullHtml = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${blog?.title || "Blog"}</title>
-  <meta name="description" content="${metadata.description || ""}">
-</head>
-<body>
-    ${htmlContent}
-</body>
-</html>`
-    const blob = new Blob([fullHtml], { type: "text/html" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `${blog?.title || "blog"}.html`
-    a.click()
-    URL.revokeObjectURL(url)
-    message.success("Exported as HTML!")
+    if (!blog?._id) return message.error("Blog ID missing")
+    if (!editorContent?.trim()) return message.error("No content to export")
+
+    try {
+      message.loading({
+        content: includeImagesInExport ? "Preparing HTML with images..." : "Generating HTML...",
+        key: "html-export",
+      })
+
+      const { data: blob, filename } = await exportBlog(blog._id, {
+        type: "html",
+        withImages: includeImagesInExport,
+      })
+
+      // Create download link
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      // Use .zip extension if images included, otherwise .html
+      const downloadName = includeImagesInExport
+        ? `${blog.title || "blog"}.zip`
+        : `${blog.title || "blog"}.html`
+      a.download = downloadName
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+
+      const successMsg = includeImagesInExport
+        ? "HTML with images downloaded as ZIP!"
+        : "HTML downloaded successfully!"
+      message.success({ content: successMsg, key: "html-export" })
+    } catch (error) {
+      console.error("HTML export error:", error)
+      message.error({ content: error.message || "Failed to export HTML", key: "html-export" })
+    }
   }
 
   const renderSeoPanel = () => (
@@ -1029,6 +1064,42 @@ const TextEditorSidebar = ({
               </span>
             )}
           </div>
+
+          {/* Include Images Toggle */}
+          <div
+            className={`flex items-center justify-between p-2.5 rounded-lg border transition-all ${
+              includeImagesInExport ? "bg-blue-50 border-blue-200" : "bg-gray-50 border-gray-200"
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <ImageIcon
+                className={`w-4 h-4 transition-colors ${
+                  includeImagesInExport ? "text-blue-600" : "text-gray-500"
+                }`}
+              />
+              <span
+                className={`text-sm font-medium transition-colors ${
+                  includeImagesInExport ? "text-blue-900" : "text-gray-700"
+                }`}
+              >
+                Include Images
+              </span>
+            </div>
+            <Switch
+              checked={includeImagesInExport}
+              onChange={setIncludeImagesInExport}
+              disabled={userPlan === "free"}
+              size="small"
+            />
+          </div>
+          {includeImagesInExport && userPlan !== "free" && (
+            <div className="px-2 py-1.5 bg-blue-50 border border-blue-100 rounded-lg">
+              <p className="text-xs text-blue-700 flex items-center gap-1">
+                <Info className="w-3 h-3" />
+                Downloads as ZIP with images included
+              </p>
+            </div>
+          )}
 
           <div
             className="

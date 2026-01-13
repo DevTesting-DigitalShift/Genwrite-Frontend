@@ -57,6 +57,7 @@ import TableRow from "@tiptap/extension-table-row"
 import TableCell from "@tiptap/extension-table-cell"
 import TableHeader from "@tiptap/extension-table-header"
 import Heading from "@tiptap/extension-heading"
+import ImageGalleryPicker from "@components/ImageGalleryPicker"
 
 const FONT_OPTIONS = [
   { label: "Arial", value: "font-arial" },
@@ -70,6 +71,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
   const [selectedFont, setSelectedFont] = useState(FONT_OPTIONS[0].value)
   const [linkModalOpen, setLinkModalOpen] = useState(false)
   const [imageModalOpen, setImageModalOpen] = useState(false)
+  const [showGalleryPicker, setShowGalleryPicker] = useState(false)
   const [tableDropdownOpen, setTableDropdownOpen] = useState(false)
   const [hoveredCell, setHoveredCell] = useState({ row: 0, col: 0 })
   const tableButtonRef = useRef(null)
@@ -212,6 +214,12 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
       setImageModalOpen(true)
     })
   }, [safeEditorAction])
+
+  const handleSelectFromGallery = useCallback((url, alt) => {
+    setImageUrl(url)
+    setImageAlt(alt)
+    setShowGalleryPicker(false)
+  }, [])
 
   const handleConfirmLink = useCallback(() => {
     if (!linkUrl || !/https?:\/\//i.test(linkUrl)) {
@@ -798,34 +806,104 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
       </Modal>
 
       <Modal
-        title="Insert Image"
+        title={
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pr-6 sm:pr-10">
+            <div className="flex items-center gap-2">
+              <ImageIcon className="w-5 h-5 text-purple-600" />
+              <span>Add Image</span>
+            </div>
+            <Button
+              size="small"
+              type={showGalleryPicker ? "primary" : "default"}
+              onClick={() => setShowGalleryPicker(prev => !prev)}
+              className="text-xs w-full sm:w-auto"
+              icon={<ImageIcon className="w-3 h-3" />}
+            >
+              {showGalleryPicker ? "Manual Entry" : "Browse Gallery"}
+            </Button>
+          </div>
+        }
         open={imageModalOpen}
-        onOk={handleConfirmImage}
-        onCancel={() => setImageModalOpen(false)}
+        onCancel={() => {
+          setImageModalOpen(false)
+          setShowGalleryPicker(false)
+        }}
         footer={
-          <Flex justify="end" gap={16}>
-            <Button key="cancel" onClick={() => setImageModalOpen(false)}>
+          <div className="flex justify-end gap-2">
+            <Button
+              onClick={() => {
+                setImageModalOpen(false)
+                setShowGalleryPicker(false)
+              }}
+            >
               Cancel
             </Button>
-            <Button key="ok" type="primary" onClick={handleConfirmImage}>
-              Ok
+            <Button type="primary" onClick={handleConfirmImage}>
+              Add Image
             </Button>
-          </Flex>
+          </div>
         }
+        width="100%"
+        style={{
+          maxWidth: showGalleryPicker ? "1200px" : "600px",
+          top: 20,
+          paddingBottom: 0,
+        }}
         centered
+        bodyStyle={{ padding: 0, maxHeight: "85vh", overflow: "hidden" }}
+        className="responsive-image-modal"
       >
-        <Input
-          value={imageUrl}
-          onChange={e => setImageUrl(e.target.value)}
-          placeholder="https://example.com/image.jpg"
-          className="mt-4"
-        />
-        <Input
-          value={imageAlt}
-          onChange={e => setImageAlt(e.target.value)}
-          placeholder="Image description"
-          className="mt-4"
-        />
+        <div
+          className={`flex flex-col ${showGalleryPicker ? "md:flex-row h-[85vh] md:h-[80vh]" : ""}`}
+        >
+          {/* Main Form - Top on Mobile, Left on Desktop */}
+          <div
+            className={`${
+              showGalleryPicker
+                ? "w-full md:w-[400px] border-b md:border-b-0 md:border-r"
+                : "w-full"
+            } p-4 sm:p-6 space-y-4 flex-shrink-0 ${showGalleryPicker ? "overflow-y-auto" : ""}`}
+          >
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
+              <Input
+                value={imageUrl}
+                onChange={e => setImageUrl(e.target.value)}
+                placeholder="https://example.com/image.jpg"
+                size="large"
+              />
+              {imageUrl && (
+                <div className="mt-3 border rounded-lg overflow-hidden bg-gray-50 p-2">
+                  <img
+                    src={imageUrl}
+                    alt="Preview"
+                    className="w-full h-auto max-h-48 object-contain rounded"
+                    onError={e => (e.target.style.display = "none")}
+                  />
+                </div>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Alt Text (optional)
+              </label>
+              <Input
+                value={imageAlt}
+                onChange={e => setImageAlt(e.target.value)}
+                placeholder="Description of the image"
+                size="large"
+              />
+              <p className="text-xs text-gray-500 mt-1">Helps with SEO and accessibility</p>
+            </div>
+          </div>
+
+          {/* Gallery Picker - Bottom on Mobile, Right on Desktop */}
+          {showGalleryPicker && (
+            <div className="flex-1 p-4 sm:p-6 bg-gray-50 overflow-hidden min-h-[400px] md:min-h-0">
+              <ImageGalleryPicker onSelect={handleSelectFromGallery} selectedImageUrl={imageUrl} />
+            </div>
+          )}
+        </div>
       </Modal>
 
       <Modal

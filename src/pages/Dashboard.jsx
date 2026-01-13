@@ -104,7 +104,7 @@ const Dashboard = () => {
     return "Good evening"
   }
 
-  let limit = 5
+  let limit = 20
   let sort = "updatedAt:desc"
   // Fetch function
   const fetchBlogsQuery = useCallback(async () => {
@@ -125,7 +125,9 @@ const Dashboard = () => {
     try {
       const response = await dispatch(fetchAllBlogs(queryParams)).unwrap()
 
-      const activeBlogs = (response.data || []).filter(b => !b.isArchived)
+      const activeBlogs = (response.data || []).filter(
+        b => !b.isArchived && b.status === "complete"
+      )
 
       // Sort only if `sort` is provided
       let sortedBlogs = activeBlogs
@@ -161,7 +163,7 @@ const Dashboard = () => {
       return
     }
 
-    const activeBlogs = blogs.data.filter(b => !b.isArchived)
+    const activeBlogs = blogs.data.filter(b => !b.isArchived && b.status === "complete")
 
     // Sort DESC → newest first
     const sortedBlogs = activeBlogs.sort(

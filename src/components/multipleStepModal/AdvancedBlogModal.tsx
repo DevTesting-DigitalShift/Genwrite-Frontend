@@ -556,10 +556,14 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
                 </div>
               )}
             </Flex>
-            <Flex justify="space-between" className="mt-3 form-item-wrapper">
-              <label htmlFor="blog-auto-generate-title-keywords">Use Exact Title for Blog</label>
+            <Flex
+              justify="space-between"
+              className="mt-3 form-item-wrapper"
+              hidden={formData.options.performKeywordResearch}
+            >
+              <label htmlFor="blog-use-exact-title">Use Exact Title for Blog</label>
               <Switch
-                id="blog-auto-generate-title-keywords"
+                id="blog-use-exact-title"
                 value={formData.options.exactTitle}
                 onChange={checked =>
                   handleInputChange({

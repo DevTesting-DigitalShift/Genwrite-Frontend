@@ -222,15 +222,35 @@ export const getBlogPostings = async blogId => {
   }
 }
 
-export const exportBlogAsPdf = async id => {
+export const exportBlog = async (id, { type = "pdf", withImages = false } = {}) => {
   try {
     const response = await axiosInstance.get(`/blogs/${id}/export`, {
-      params: { type: "pdf" },
-      responseType: "blob", // ✅ correct
+      params: {
+        type,
+        withImages: withImages ? "true" : "false",
+      },
+      responseType: "blob",
     })
 
-    return response.data
+    // Extract filename from Content-Disposition header if available
+    const contentDisposition = response.headers["content-disposition"]
+    let filename = `blog.${type}`
+
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename="?(.+)"?/)
+      if (filenameMatch) {
+        filename = filenameMatch[1]
+      }
+    }
+
+    return { data: response.data, filename }
   } catch (error) {
-    throw new Error(error.response?.data?.message || "Failed to export PDF")
+    throw new Error(error.response?.data?.message || `Failed to export ${type.toUpperCase()}`)
   }
+}
+
+// Legacy function for backward compatibility
+export const exportBlogAsPdf = async id => {
+  const result = await exportBlog(id, { type: "pdf", withImages: false })
+  return result.data
 }
