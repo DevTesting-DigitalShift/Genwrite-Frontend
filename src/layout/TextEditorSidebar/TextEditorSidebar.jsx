@@ -467,7 +467,6 @@ const TextEditorSidebar = ({
             })
           ).unwrap()
           setActivePanel("seo")
-          message.success("Analysis complete!")
         } catch {
           message.error("Analysis failed")
         }
@@ -1211,6 +1210,91 @@ const TextEditorSidebar = ({
             </div>
           )}
         </div>
+
+        {result && (
+          <div className="space-y-4">
+            {/* Detailed Analysis Breakdown */}
+            {result.insights?.analysis && (
+              <div className="space-y-3 p-3 bg-white border rounded-xl shadow-sm">
+                <div className="flex items-center gap-2 mb-2">
+                  <BarChart className="w-4 h-4 text-purple-600" />
+                  <span className="text-sm font-semibold text-gray-900">Detailed Analysis</span>
+                </div>
+                <Collapse
+                  ghost
+                  className="bg-transparent"
+                  items={Object.entries(result.insights.analysis).map(([category, data]) => ({
+                    key: category,
+                    label: (
+                      <div className="flex items-center justify-between w-full pr-2">
+                        <span className="font-medium text-gray-800 text-sm">
+                          {category.replace(/([A-Z])/g, " $1").trim()}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-indigo-600">
+                            {data.score}/{data.maxScore}
+                          </span>
+                        </div>
+                      </div>
+                    ),
+                    children: (
+                      <div className="">
+                        <p className="text-xs text-gray-600 leading-relaxed bg-gray-50 p-3 rounded-lg border border-gray-100">
+                          {data.feedback}
+                        </p>
+                      </div>
+                    ),
+                  }))}
+                />
+              </div>
+            )}
+
+            {/* Actionable Suggestions */}
+            {result.insights?.suggestions && result.insights.suggestions.length > 0 && (
+              <div className="space-y-3 p-3 bg-white border rounded-xl shadow-sm">
+                <div className="flex items-center gap-2 mb-2">
+                  <Lightbulb className="w-4 h-4 text-amber-600" />
+                  <span className="text-sm font-semibold text-gray-900">
+                    Actionable Suggestions
+                  </span>
+                  <span className="ml-auto text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
+                    {result.insights.suggestions.length}
+                  </span>
+                </div>
+                <div className="space-y-2 max-h-64 overflow-y-auto custom-scroll">
+                  {result.insights.suggestions.map((suggestion, idx) => (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: idx * 0.05 }}
+                      className="flex items-start gap-2 p-2.5 bg-amber-50 rounded-lg border border-amber-100"
+                    >
+                      <div className="w-5 h-5 bg-amber-200 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-xs font-bold text-amber-700">{idx + 1}</span>
+                      </div>
+                      <p className="text-xs text-amber-900 leading-relaxed flex-1">{suggestion}</p>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Competitors Analysis */}
+            {result.competitors && result.competitors.length > 0 && (
+              <div className="space-y-3 p-3 bg-white border rounded-xl shadow-sm">
+                <div className="flex items-center gap-2 mb-2">
+                  <Target className="w-4 h-4 text-blue-600" />
+                  <span className="text-sm font-semibold text-gray-900">Top Competitors</span>
+                  <span className="ml-auto text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                    {result.competitors.length}
+                  </span>
+                </div>
+                <CompetitorsList competitors={result.competitors} />
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
