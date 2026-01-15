@@ -291,7 +291,7 @@ const OutlineEditor = () => {
 
   return (
     <>
-      {isSubmitting && <LoadingScreen />}
+      {isSubmitting && <LoadingScreen message="Generating your outline..." />}
       <div className="px-4 sm:px-6 lg:px-8">
         <Modal
           title={

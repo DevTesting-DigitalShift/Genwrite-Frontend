@@ -128,7 +128,7 @@ const HumanizeContent = () => {
   if (isLoading) {
     return (
       <div className="h-[calc(100vh-200px)] p-4 flex items-center justify-center">
-        <LoadingScreen />
+        <LoadingScreen message="Humanizing your content..." />
       </div>
     )
   }

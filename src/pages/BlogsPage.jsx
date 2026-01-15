@@ -191,6 +191,13 @@ const BlogsPage = () => {
     staleTime: Infinity,
     gcTime: Infinity,
     refetchOnWindowFocus: false,
+    // Refetch every 10 seconds if we have pending blogs
+    refetchInterval: data => {
+      const hasPending = data?.pages?.some(page =>
+        page.data?.some(blog => blog.status === "pending")
+      )
+      return hasPending ? 10000 : false // Poll every 10s if pending blogs exist
+    },
   })
 
   // For trashed blogs - regular query with pagination
@@ -281,16 +288,25 @@ const BlogsPage = () => {
       })
     }
 
+    // When a new blog is created, invalidate cache to fetch it
+    const handleBlogCreated = data => {
+      if (!isTrashcan) {
+        queryClient.invalidateQueries({ queryKey: ["blogs"] })
+      }
+    }
+
     socket.on("blog:statusChanged", handleStatusChange)
     socket.on("blog:archived", handleStatusChange)
     socket.on("blog:restored", handleStatusChange)
     socket.on("blog:deleted", handleStatusChange)
+    socket.on("blog:created", handleBlogCreated)
 
     return () => {
       socket.off("blog:statusChanged", handleStatusChange)
       socket.off("blog:archived", handleStatusChange)
       socket.off("blog:restored", handleStatusChange)
       socket.off("blog:deleted", handleStatusChange)
+      socket.off("blog:created", handleBlogCreated)
     }
   }, [user, userId, queryClient, isTrashcan])
 

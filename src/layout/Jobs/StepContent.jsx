@@ -959,6 +959,8 @@ const StepContent = ({
                   <Option value="Portuguese">Portuguese</Option>
                   <Option value="Dutch">Dutch</Option>
                   <Option value="Japanese">Japanese</Option>
+                  <Option value="Hindi">Hindi</Option>
+                  <Option value="Chinese">Chinese</Option>
                 </Select>
               </div>
               <div>

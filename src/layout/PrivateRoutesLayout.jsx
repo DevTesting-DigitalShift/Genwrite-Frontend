@@ -57,7 +57,7 @@ const PrivateRoutesLayout = () => {
 
   // Show loading screen while authenticating
   if (loading && !user) {
-    return <LoadingScreen />
+    return <LoadingScreen message="Authenticating..." />
   }
 
   return token ? (

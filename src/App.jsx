@@ -4,6 +4,7 @@ import { Helmet } from "react-helmet"
 import LoadingScreen from "@components/UI/LoadingScreen"
 import { message } from "antd"
 import { ConfirmPopupProvider } from "@/context/ConfirmPopupContext"
+import { LoadingProvider } from "@/context/LoadingContext"
 import { useSelector } from "react-redux"
 
 const App = () => {
@@ -20,18 +21,20 @@ const App = () => {
   }, [])
 
   return (
-    <ConfirmPopupProvider>
-      <Suspense fallback={<LoadingScreen />}>
-        <Helmet>
-          <title>GenWrite</title>
-        </Helmet>
+    <LoadingProvider>
+      <ConfirmPopupProvider>
+        <Suspense fallback={<LoadingScreen />}>
+          <Helmet>
+            <title>GenWrite</title>
+          </Helmet>
 
-        {/* Show loading screen when blog is being created */}
-        {blogLoading && <LoadingScreen />}
+          {/* Show loading screen when blog is being created */}
+          {blogLoading && <LoadingScreen message="Creating your blog..." />}
 
-        <Outlet />
-      </Suspense>
-    </ConfirmPopupProvider>
+          <Outlet />
+        </Suspense>
+      </ConfirmPopupProvider>
+    </LoadingProvider>
   )
 }
 

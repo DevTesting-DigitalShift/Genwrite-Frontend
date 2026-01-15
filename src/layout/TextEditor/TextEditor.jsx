@@ -1352,7 +1352,7 @@ const TextEditor = ({
     if (isEditorLoading || blog?.status === "pending") {
       return (
         <div className="flex items-center justify-center h-[calc(100vh-300px)] bg-white">
-          <LoadingScreen />
+          <LoadingScreen message="Loading editor..." />
         </div>
       )
     }
@@ -1598,7 +1598,7 @@ const TextEditor = ({
     >
       {isSavingKeyword && (
         <div className="fixed inset-0 bg-white/80 flex items-center justify-center z-50">
-          <LoadingScreen />
+          <LoadingScreen message="Saving keywords..." />
         </div>
       )}
 
