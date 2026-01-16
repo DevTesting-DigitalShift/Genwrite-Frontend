@@ -194,7 +194,7 @@ const BulkBlogModal = ({ closeFnc }) => {
     closeFnc()
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const newErrors = {
       templates: formData.templates.length === 0 ? "Please select at least one template." : "",
       topics:
@@ -286,12 +286,16 @@ const BulkBlogModal = ({ closeFnc }) => {
       imageSource: formData.isCheckedGeneratedImages ? formData.imageSource : IMAGE_SOURCE.NONE,
     }
     const validatedData = validateBulkBlogData(finalData)
-    
-    const loadingId = showLoading(`Creating ${formData.numberOfBlogs} blog${formData.numberOfBlogs > 1 ? 's' : ''}...`)
-    
+
+    const loadingId = showLoading(
+      `Creating ${formData.numberOfBlogs} blog${formData.numberOfBlogs > 1 ? "s" : ""}...`
+    )
+
     try {
-      await dispatch(createMultiBlog({ blogData: validatedData, user, navigate, queryClient })).unwrap()
-      handleClose()  // ✅ Only close on success
+      await dispatch(
+        createMultiBlog({ blogData: validatedData, user, navigate, queryClient })
+      ).unwrap()
+      handleClose() // ✅ Only close on success
     } catch (error) {
       message.error(error?.message || "Failed to create blogs. Please try again.")
     } finally {
