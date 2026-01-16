@@ -61,7 +61,7 @@ const LoadingScreen = ({
 
   // Performance monitoring in development
   useEffect(() => {
-    if (process.env.NODE_ENV === "development") {
+    if (import.meta.env.NODE_ENV === "development") {
       const startTime = performance.now()
 
       return () => {

@@ -23,6 +23,12 @@ export const store = configureStore({
     gsc: gscReducer,
     humanize: humanizeReducer,
     creditLogs: creditLogsReducer,
-    integration: integrationReducer
+    integration: integrationReducer,
   },
 })
+
+/**
+ * TypeScript types for Redux store
+ * @typedef {ReturnType<typeof store.getState>} RootState
+ * @typedef {typeof store.dispatch} AppDispatch
+ */

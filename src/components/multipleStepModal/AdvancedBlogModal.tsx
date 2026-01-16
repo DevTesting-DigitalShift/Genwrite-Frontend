@@ -1,7 +1,8 @@
-import type { BlogTemplate } from "@components/multipleStepModal/TemplateSelection"
+import { BlogTemplate } from "@components/multipleStepModal/TemplateSelection"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 import { selectUser } from "@store/slices/authSlice"
-import { fetchGeneratedTitles } from "@store/slices/blogSlice"
+import { fetchGeneratedTitles, createNewBlog } from "@store/slices/blogSlice"
+import { store } from "@store/index"
 import {
   Badge,
   Button,
@@ -35,9 +36,12 @@ import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector
 import { selectSelectedAnalysisKeywords } from "@store/slices/analysisSlice"
 import { computeCost } from "@/data/pricingConfig"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import { useLoading } from "@/context/LoadingContext"
 import { validateAdvancedBlogData } from "@/types/forms.schemas"
+import { useQueryClient } from "@tanstack/react-query"
 
 const { Text } = Typography
+
 interface AdvancedBlogModalProps {
   onSubmit: Function
   closeFnc: Function
@@ -103,11 +107,14 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
   ]
 
   type FormError = Partial<Record<keyof typeof initialData, string>>
+  type AppDispatch = typeof store.dispatch
 
-  const dispatch = useDispatch()
+  const dispatch = useDispatch<AppDispatch>()
   const user = useSelector(selectUser)
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { handlePopup } = useConfirmPopup()
+  const { showLoading, hideLoading } = useLoading()
 
   const [currentStep, setCurrentStep] = useState<number>(0)
   const [formData, setFormData] = useState<typeof initialData>(initialData)
@@ -272,7 +279,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
     closeFnc?.()
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (validateFields()) {
       // Check if user has sufficient credits
       // Use memoized estimated cost
@@ -324,7 +331,28 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
       }
       // Validate with Zod schema (logs to console when VITE_VALIDATE_FORMS=true)
       const validatedData = validateAdvancedBlogData(data)
-      onSubmit?.(validatedData)
+
+      const loadingId = showLoading("Creating your blog...")
+
+      try {
+        // Type assertion needed because thunk is defined in JSX file
+        await dispatch(
+          createNewBlog({
+            blogData: validatedData,
+            user,
+            navigate,
+            queryClient,
+          } as any)
+        ).unwrap()
+
+        // ✅ Only close modal on success
+        handleClose()
+      } catch (error: any) {
+        // ❌ Don't close modal - let user retry
+        message.error(error?.message || "Failed to create blog. Please try again.")
+      } finally {
+        hideLoading(loadingId)
+      }
     }
   }
 

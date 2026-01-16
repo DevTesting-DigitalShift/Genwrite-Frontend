@@ -5,6 +5,7 @@ import Carousel from "./Carousel"
 import { Info, TriangleAlert, Upload, X } from "lucide-react"
 import { packages } from "@/data/templates"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import { useLoading } from "@/context/LoadingContext"
 import { createMultiBlog } from "@store/slices/blogSlice"
 import { computeCost } from "@/data/pricingConfig"
 import { message, Modal, Select, Tooltip } from "antd"
@@ -21,6 +22,7 @@ const BulkBlogModal = ({ closeFnc }) => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
+  const { showLoading, hideLoading } = useLoading()
   const user = useSelector(state => state.auth.user)
   const { data: integrations } = useSelector(state => state.wordpress)
   const userPlan = user?.subscription?.plan || user?.plan
@@ -284,8 +286,17 @@ const BulkBlogModal = ({ closeFnc }) => {
       imageSource: formData.isCheckedGeneratedImages ? formData.imageSource : IMAGE_SOURCE.NONE,
     }
     const validatedData = validateBulkBlogData(finalData)
-    dispatch(createMultiBlog({ blogData: validatedData, user, navigate, queryClient }))
-    handleClose()
+    
+    const loadingId = showLoading(`Creating ${formData.numberOfBlogs} blog${formData.numberOfBlogs > 1 ? 's' : ''}...`)
+    
+    try {
+      await dispatch(createMultiBlog({ blogData: validatedData, user, navigate, queryClient })).unwrap()
+      handleClose()  // ✅ Only close on success
+    } catch (error) {
+      message.error(error?.message || "Failed to create blogs. Please try again.")
+    } finally {
+      hideLoading(loadingId)
+    }
   }
 
   const handlePackageSelect = useCallback(templates => {

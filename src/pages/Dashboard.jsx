@@ -312,7 +312,7 @@ const Dashboard = () => {
       case ACTIVE_MODELS.YouTube_Blog:
         return <QuickBlogModal type="yt" closeFnc={handleCloseActiveModal} />
       case ACTIVE_MODELS.Advanced_Blog:
-        return <AdvancedBlogModal closeFnc={handleCloseActiveModal} onSubmit={handleSubmit} />
+        return <AdvancedBlogModal closeFnc={handleCloseActiveModal} queryClient={queryClient} />
       case ACTIVE_MODELS.Bulk_Blog:
         return <BulkBlogModal closeFnc={handleCloseActiveModal} />
       case ACTIVE_MODELS.Keyword_Research:

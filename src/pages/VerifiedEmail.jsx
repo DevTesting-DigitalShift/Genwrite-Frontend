@@ -33,7 +33,19 @@ const VerifiedEmail = () => {
 
     const verifyEmail = async () => {
       try {
-        const res = await axiosInstance.post("/auth/verify-email", { token })
+        // Create abort controller for timeout
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+
+        const res = await axiosInstance.post(
+          "/auth/verify-email",
+          { token },
+          {
+            signal: controller.signal,
+          }
+        )
+
+        clearTimeout(timeoutId)
 
         console.log("Verification response:", res)
 
@@ -46,6 +58,21 @@ const VerifiedEmail = () => {
         }
       } catch (err) {
         console.error("Verification error:", err)
+
+        // Handle timeout
+        if (err.name === "AbortError" || err.code === "ECONNABORTED") {
+          setStatus("error")
+          setErrorMessage("Request timed out. Please check your connection and try again.")
+          return
+        }
+
+        // Handle network errors
+        if (err.code === "ERR_NETWORK" || !err.response) {
+          setStatus("error")
+          setErrorMessage("Network error. Please check your internet connection.")
+          return
+        }
+
         setStatus("error")
         setErrorMessage(err.response?.data?.message || "Invalid or expired token")
       }
@@ -72,7 +99,7 @@ const VerifiedEmail = () => {
         {/* ✅ SUCCESS STATE */}
         {status === "success" && (
           <Result
-          className="p-0"
+            className="p-0"
             status="success"
             title="Email Verified Successfully 🎉"
             subTitle="You're all set. You can now access your dashboard."

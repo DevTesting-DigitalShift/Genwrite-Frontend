@@ -4,12 +4,10 @@ import { Helmet } from "react-helmet"
 import LoadingScreen from "@components/UI/LoadingScreen"
 import { message } from "antd"
 import { ConfirmPopupProvider } from "@/context/ConfirmPopupContext"
-import { LoadingProvider } from "@/context/LoadingContext"
-import { useSelector } from "react-redux"
+import { LoadingProvider, useLoading } from "@/context/LoadingContext"
 
-const App = () => {
-  // Get blog loading state from Redux
-  const blogLoading = useSelector(state => state.blog?.loading)
+const AppContent = () => {
+  const { isLoading, loadingMessage } = useLoading()
 
   // Show desktop warning on mobile devices
   useEffect(() => {
@@ -21,18 +19,24 @@ const App = () => {
   }, [])
 
   return (
+    <Suspense fallback={<LoadingScreen />}>
+      <Helmet>
+        <title>GenWrite</title>
+      </Helmet>
+
+      {/* Show loading screen from LoadingContext */}
+      {isLoading && <LoadingScreen message={loadingMessage} />}
+
+      <Outlet />
+    </Suspense>
+  )
+}
+
+const App = () => {
+  return (
     <LoadingProvider>
       <ConfirmPopupProvider>
-        <Suspense fallback={<LoadingScreen />}>
-          <Helmet>
-            <title>GenWrite</title>
-          </Helmet>
-
-          {/* Show loading screen when blog is being created */}
-          {blogLoading && <LoadingScreen message="Creating your blog..." />}
-
-          <Outlet />
-        </Suspense>
+        <AppContent />
       </ConfirmPopupProvider>
     </LoadingProvider>
   )

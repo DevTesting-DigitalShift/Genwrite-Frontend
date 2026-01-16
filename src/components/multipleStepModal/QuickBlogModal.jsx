@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom"
 import { createNewQuickBlog } from "../../store/slices/blogSlice"
 import { selectUser } from "@store/slices/authSlice"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import { useLoading } from "@/context/LoadingContext"
 import { computeCost } from "@/data/pricingConfig"
 import { message, Modal, Tooltip } from "antd"
 import { Plus, X, Crown } from "lucide-react" // Added Crown icon
@@ -51,6 +52,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
+  const { showLoading, hideLoading } = useLoading()
   const user = useSelector(selectUser)
   const queryClient = useQueryClient()
 
@@ -190,11 +192,32 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
           <span>Are you sure you want to proceed?</span>
         </>
       ),
-      onConfirm: () => {
-        // Validate with Zod schema (logs to console when VITE_VALIDATE_FORMS=true)
-        const validatedData = validateQuickBlogData(finalData)
-        dispatch(createNewQuickBlog({ blogData: validatedData, user, navigate, type }))
-        handleClose()
+      onConfirm: async () => {
+        const loadingId = showLoading(`Creating ${type === "quick" ? "quick" : "YouTube"} blog...`)
+
+        try {
+          // Validate with Zod schema (logs to console when VITE_VALIDATE_FORMS=true)
+          const validatedData = validateQuickBlogData(finalData)
+
+          // Dispatch and await the result
+          await dispatch(
+            createNewQuickBlog({
+              blogData: validatedData,
+              user,
+              navigate,
+              type,
+              queryClient,
+            })
+          ).unwrap()
+
+          // ✅ Only close modal on success
+          handleClose()
+        } catch (error) {
+          // ❌ Don't close modal - let user retry
+          message.error(error?.message || "Failed to create blog. Please try again.")
+        } finally {
+          hideLoading(loadingId)
+        }
       },
     })
   }
@@ -412,7 +435,9 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   ]
 
   return (
-    <>      <Modal
+    <>
+      {" "}
+      <Modal
         title={`Generate ${type === "quick" ? "Quick" : "Youtube"} Blog`}
         open={true}
         onCancel={handleClose}
