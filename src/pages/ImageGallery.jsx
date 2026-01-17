@@ -3,7 +3,7 @@ import { Pagination, Spin, Modal, message } from "antd"
 import { Search, Image as ImageIcon, X, Download, Copy } from "lucide-react"
 import { Helmet } from "react-helmet"
 import { getImages, searchImages } from "@api/imageGalleryApi"
-import { debounce } from "lodash"
+import DebouncedSearchInput from "@components/UI/DebouncedSearchInput"
 
 // Skeleton Loader Component
 const ImageSkeleton = () => {
@@ -105,18 +105,6 @@ const ImageGallery = () => {
     fetchImages()
   }, [fetchImages])
 
-  // Debounced search
-  const debouncedSearch = useCallback(
-    debounce(value => {
-      setSearchQuery(value)
-    }, 500),
-    []
-  )
-
-  const handleSearchChange = e => {
-    debouncedSearch(e.target.value)
-  }
-
   const handleTagToggle = tag => {
     setSelectedTags(prev => (prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]))
   }
@@ -190,15 +178,12 @@ const ImageGallery = () => {
 
           {/* Search and Filters Bar */}
           <div className="mb-6">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search..."
-                onChange={handleSearchChange}
-                className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400"
-              />
-            </div>
+            <DebouncedSearchInput
+              onSearch={setSearchQuery}
+              placeholder="Search..."
+              debounceTime={500}
+              className="focus:ring-1 focus:ring-gray-400 focus:border-gray-400"
+            />
           </div>
         </div>
 

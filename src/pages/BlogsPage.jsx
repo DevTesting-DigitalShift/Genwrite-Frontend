@@ -50,7 +50,7 @@ import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tansta
 import { getSocket } from "@utils/socket"
 import isBetween from "dayjs/plugin/isBetween"
 import clsx from "clsx"
-import { debounce } from "lodash"
+import DebouncedSearchInput from "@components/UI/DebouncedSearchInput"
 import DateRangePicker from "@components/UI/DateRangePicker"
 import { useProAction } from "@/hooks/useProAction"
 import { archiveBlogById, getAllBlogs, retryBlogById } from "@api/blogApi"
@@ -90,19 +90,18 @@ const BlogsPage = () => {
       gscClicks: null,
       gscImpressions: null,
     }),
-    []
+    [],
   )
 
   const [blogFilters, setBlogFilters] = useState(() => {
     const item = sessionStorage.getItem(
-      `user_${user?._id}_blog_filters_${isTrashcan ? "trash" : "active"}`
+      `user_${user?._id}_blog_filters_${isTrashcan ? "trash" : "active"}`,
     )
     return item ? JSON.parse(item) : initialBlogFilter
   })
 
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(15)
-  const inputRef = useRef(null)
   const [isMenuOpen, setMenuOpen] = useState(false)
   const [isFunnelMenuOpen, setFunnelMenuOpen] = useState(false)
   const [isDetailedFilterOpen, setDetailedFilterOpen] = useState(false)
@@ -135,11 +134,11 @@ const BlogsPage = () => {
 
   useEffect(() => {
     const field = sessionStorage.getItem(
-      `user_${user?._id}_blog_filters_${isTrashcan ? "trash" : "active"}`
+      `user_${user?._id}_blog_filters_${isTrashcan ? "trash" : "active"}`,
     )
     if (field) {
       const parsedFilters = JSON.parse(field)
-      setBlogFilters(prev => ({ ...prev, ...parsedFilters } || {}))
+      setBlogFilters(prev => ({ ...prev, ...parsedFilters }) || {})
       // Sync temp values with loaded filters
       setTempGscClicks(parsedFilters.gscClicks ?? null)
       setTempGscImpressions(parsedFilters.gscImpressions ?? null)
@@ -173,7 +172,7 @@ const BlogsPage = () => {
         gscImpressions: blogFilters.gscImpressions || undefined,
       }
       params = Object.fromEntries(
-        Object.entries(params).filter(([_, v]) => v !== undefined && v !== null && v !== "")
+        Object.entries(params).filter(([_, v]) => v !== undefined && v !== null && v !== ""),
       )
       const res = await getAllBlogs(params)
       return {
@@ -194,7 +193,7 @@ const BlogsPage = () => {
     // Refetch every 10 seconds if we have pending blogs
     refetchInterval: data => {
       const hasPending = data?.pages?.some(page =>
-        page.data?.some(blog => blog.status === "pending")
+        page.data?.some(blog => blog.status === "pending"),
       )
       return hasPending ? 10000 : false // Poll every 10s if pending blogs exist
     },
@@ -216,10 +215,7 @@ const BlogsPage = () => {
         limit: pageSize,
       }
       const response = await getAllBlogs(queryParams)
-      return {
-        trashedBlogs: response.data || [],
-        totalBlogs: response.totalItems || 0,
-      }
+      return { trashedBlogs: response.data || [], totalBlogs: response.totalItems || 0 }
     },
     enabled: !!user && isTrashcan,
   })
@@ -232,7 +228,9 @@ const BlogsPage = () => {
     return activeData?.pages.flatMap(p => p.data) ?? []
   }, [isTrashcan, trashData, activeData])
 
-  const totalItems = isTrashcan ? trashData?.totalBlogs || 0 : activeData?.pages[0]?.totalItems ?? 0
+  const totalItems = isTrashcan
+    ? trashData?.totalBlogs || 0
+    : (activeData?.pages[0]?.totalItems ?? 0)
 
   const isLoading = isTrashcan ? isLoadingTrash : isLoadingActive
   const isRefetching = isTrashcan ? false : isRefetchingActive
@@ -243,19 +241,19 @@ const BlogsPage = () => {
         const newValue = { ...prev, ...updates }
         sessionStorage.setItem(
           `user_${userId}_blog_filters_${isTrashcan ? "trash" : "active"}`,
-          JSON.stringify(newValue)
+          JSON.stringify(newValue),
         )
         return newValue
       })
     },
-    [userId, isTrashcan]
+    [userId, isTrashcan],
   )
 
   const resetFilters = useCallback(() => {
     setBlogFilters({ ...initialBlogFilter, start: user?.createdAt })
     setTempGscClicks(null)
     setTempGscImpressions(null)
-    if (inputRef?.current) inputRef.current.input.value = ""
+    setTempGscImpressions(null)
     sessionStorage.removeItem(`user_${userId}_blog_filters_${isTrashcan ? "trash" : "active"}`)
     setCurrentPage(1)
   }, [user, isTrashcan, userId, initialBlogFilter])
@@ -314,14 +312,14 @@ const BlogsPage = () => {
     blog => {
       navigate(`/blog/${blog._id}`)
     },
-    [navigate]
+    [navigate],
   )
 
   const handleManualBlogClick = useCallback(
     blog => {
       navigate(`/blog-editor/${blog._id}`)
     },
-    [navigate]
+    [navigate],
   )
 
   const handleRetry = useCallback(
@@ -334,7 +332,7 @@ const BlogsPage = () => {
         message.error("Failed to retry blog")
       }
     },
-    [isTrashcan, queryClient, refetchActive]
+    [isTrashcan, queryClient, refetchActive],
   )
 
   const handleArchive = useCallback(
@@ -347,7 +345,7 @@ const BlogsPage = () => {
         message.error("Failed to archive")
       }
     },
-    [refetchActive]
+    [refetchActive],
   )
 
   const handleRestore = useCallback(
@@ -360,7 +358,7 @@ const BlogsPage = () => {
         message.error("Failed to restore blog")
       }
     },
-    [dispatch, queryClient]
+    [dispatch, queryClient],
   )
 
   const handleBulkDelete = useCallback(async () => {
@@ -382,7 +380,7 @@ const BlogsPage = () => {
           updateBlogFilters({ sort: opt.value })
         },
       })),
-    [updateBlogFilters]
+    [updateBlogFilters],
   )
 
   const funnelMenuOptions = useMemo(
@@ -393,7 +391,7 @@ const BlogsPage = () => {
           updateBlogFilters({ status: opt.value })
         },
       })),
-    [updateBlogFilters]
+    [updateBlogFilters],
   )
 
   const truncateContent = useCallback((content, length = TRUNCATE_LENGTH) => {
@@ -481,16 +479,14 @@ const BlogsPage = () => {
       <div className="bg-white rounded-2xl border-slate-100 mb-8">
         <Flex justify="between" align="center" gap="small" wrap="wrap">
           {/* Search Box */}
-          <div className="relative flex-1 min-w-[280px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <Input
-              ref={inputRef}
-              placeholder="Search by title or keywords..."
-              defaultValue={blogFilters.q}
-              onChange={e => updateBlogFilters({ q: e.target.value })}
-              className="h-11 pl-10 pr-4 bg-slate-50 border-none hover:bg-slate-100 focus:bg-white focus:ring-2 focus:ring-blue-100 rounded-xl transition-all"
-            />
-          </div>
+          <DebouncedSearchInput
+            initialValue={blogFilters.q}
+            onSearch={val => updateBlogFilters({ q: val })}
+            placeholder="Search by title or keywords..."
+            containerClassName="relative flex-1 min-w-[280px]"
+            className="h-11 pl-10 pr-4 bg-slate-50 border-none hover:bg-slate-100 focus:bg-white focus:ring-2 focus:ring-blue-100 rounded-xl transition-all"
+            bordered={false}
+          />
 
           <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-hide">
             {/* Basic Filters (Visible on Desktop) */}
@@ -644,7 +640,7 @@ const BlogsPage = () => {
                   "h-11 rounded-xl flex items-center gap-2 font-semibold transition-all shadow-sm",
                   hasActiveFilters || blogFilters.gscClicks || blogFilters.gscImpressions
                     ? "bg-blue-50 text-blue-600 border-blue-200"
-                    : "bg-white text-slate-600 border-slate-200"
+                    : "bg-white text-slate-600 border-slate-200",
                 )}
               >
                 <Filter size={18} />

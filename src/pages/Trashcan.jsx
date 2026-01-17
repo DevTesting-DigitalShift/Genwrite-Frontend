@@ -10,7 +10,7 @@ import SkeletonLoader from "@components/UI/SkeletonLoader"
 import { getAllBlogs } from "@api/blogApi"
 import { deleteAllUserBlogs, restoreTrashedBlog } from "@store/slices/blogSlice"
 import { selectUser } from "@store/slices/authSlice"
-import { debounce } from "lodash"
+import DebouncedSearchInput from "@components/UI/DebouncedSearchInput"
 import dayjs from "dayjs"
 import { useNavigate } from "react-router-dom"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
@@ -42,18 +42,6 @@ const Trashcan = () => {
 
   const { handlePopup } = useConfirmPopup()
 
-  const debouncedSearch = useCallback(
-    debounce(
-      value => {
-        setSearchTerm(value)
-        setCurrentPage(1)
-      },
-      500,
-      { leading: false, trailing: true, maxWait: 1000 }
-    ),
-    []
-  )
-
   // TanStack Query for fetching trashed blogs
   const { data, isLoading } = useQuery({
     queryKey: [
@@ -77,10 +65,7 @@ const Trashcan = () => {
         limit: pageSize,
       }
       const response = await getAllBlogs(queryParams)
-      return {
-        trashedBlogs: response.data || [],
-        totalBlogs: response.totalItems || 0,
-      }
+      return { trashedBlogs: response.data || [], totalBlogs: response.totalItems || 0 }
     },
   })
 
@@ -233,14 +218,14 @@ const Trashcan = () => {
     blog => {
       navigate(`/blog/${blog._id}`)
     },
-    [navigate]
+    [navigate],
   )
 
   const handleManualBlogClick = useCallback(
     blog => {
       navigate(`/blog-editor/${blog._id}`)
     },
-    [navigate]
+    [navigate],
   )
 
   return (
@@ -302,9 +287,7 @@ const Trashcan = () => {
                         type: "text",
                         className: "border-red-500 hover:bg-red-500 bg-red-100 text-red-600",
                       },
-                      cancelProps: {
-                        danger: false,
-                      },
+                      cancelProps: { danger: false },
                     })
                   }
                   disabled={isLoading}
@@ -326,14 +309,17 @@ const Trashcan = () => {
         >
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative w-full">
-              <input
+              <DebouncedSearchInput
+                initialValue={searchTerm}
+                onSearch={val => {
+                  setSearchTerm(val)
+                  setCurrentPage(1)
+                }}
                 placeholder="Search by title or keywords..."
-                onChange={e => debouncedSearch(e.target.value)}
-                prefix={<Search className="w-4 sm:w-5 h-4 sm:h-5 text-gray-400 mr-2 sm:mr-3" />}
-                className="w-full rounded-lg border border-gray-300 px-10 py-[5px] text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
                 disabled={isLoading}
+                debounceTime={500}
+                className="px-10 py-[5px] focus:ring-2 focus:ring-blue-300"
               />
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
             </div>
             <Select
               value={statusFilter}
@@ -419,8 +405,8 @@ const Trashcan = () => {
                             {isGemini
                               ? "Gemini 2.0 flash"
                               : aiModel === "claude"
-                              ? "Claude 4 sonnet"
-                              : "Gpt 4.1 nano"}
+                                ? "Claude 4 sonnet"
+                                : "Gpt 4.1 nano"}
                           </>
                         )}
                       </span>
@@ -430,10 +416,10 @@ const Trashcan = () => {
                       isManualEditor
                         ? "#9CA3AF"
                         : isGemini
-                        ? "#4796E3"
-                        : aiModel === "claude"
-                        ? "#9368F8"
-                        : "#74AA9C"
+                          ? "#4796E3"
+                          : aiModel === "claude"
+                            ? "#9368F8"
+                            : "#74AA9C"
                     }
                   >
                     <div
@@ -441,17 +427,15 @@ const Trashcan = () => {
                         isManualEditor
                           ? "border-gray-500"
                           : status === "failed"
-                          ? "border-red-500"
-                          : status === "pending" || status === "in-progress"
-                          ? "border-yellow-500"
-                          : "border-green-500"
+                            ? "border-red-500"
+                            : status === "pending" || status === "in-progress"
+                              ? "border-yellow-500"
+                              : "border-green-500"
                       } border-2`}
                       title={title}
                     >
                       <div className="text-xs font-semibold text-gray-400 mb-2 -mt-2">
-                        {new Date(createdAt).toLocaleDateString("en-US", {
-                          dateStyle: "medium",
-                        })}
+                        {new Date(createdAt).toLocaleDateString("en-US", { dateStyle: "medium" })}
                       </div>
                       {isManualEditor ? (
                         <div
@@ -477,25 +461,25 @@ const Trashcan = () => {
                             status === "complete"
                               ? title
                               : status === "failed"
-                              ? "Blog generation failed"
-                              : status === "pending"
-                              ? `Pending Blog will be generated ${
-                                  agendaJob?.nextRunAt
-                                    ? "at " +
-                                      new Date(agendaJob.nextRunAt).toLocaleString("en-IN", {
-                                        dateStyle: "medium",
-                                        timeStyle: "short",
-                                      })
-                                    : "shortly"
-                                }`
-                              : `Blog generation is ${status}`
+                                ? "Blog generation failed"
+                                : status === "pending"
+                                  ? `Pending Blog will be generated ${
+                                      agendaJob?.nextRunAt
+                                        ? "at " +
+                                          new Date(agendaJob.nextRunAt).toLocaleString("en-IN", {
+                                            dateStyle: "medium",
+                                            timeStyle: "short",
+                                          })
+                                        : "shortly"
+                                    }`
+                                  : `Blog generation is ${status}`
                           }
                           color={
                             status === "complete"
                               ? "green"
                               : status === "failed"
-                              ? "red"
-                              : "#eab308"
+                                ? "red"
+                                : "#eab308"
                           }
                         >
                           <div
@@ -555,9 +539,7 @@ const Trashcan = () => {
                                 type: "text",
                                 className: "border-green-500 bg-green-50 text-green-600",
                               },
-                              cancelProps: {
-                                danger: false,
-                              },
+                              cancelProps: { danger: false },
                             })
                           }
                         >
