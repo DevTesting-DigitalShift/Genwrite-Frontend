@@ -200,6 +200,9 @@ const SectionCard = ({ section, index }) => {
       return
     }
 
+    console.log("🚀 Starting AI Operation:", operation)
+    console.log("📝 Section ID:", section.id)
+
     setIsProcessingAI(true)
     try {
       const response = await axiosInstance.post(`/blogs/${blogId}/sectionTask`, {
@@ -208,16 +211,23 @@ const SectionCard = ({ section, index }) => {
         userInstructions: userInstructions,
       })
 
+      console.log("✅ Response received:", response.data)
+
       // Store original and new content for comparison
       if (response.data?.content) {
+        console.log("📄 Setting modal content...")
         setOriginalContent(section.content)
         setNewContent(response.data.content)
         setCurrentOperation(operation)
         setAiResultModalOpen(true)
         message.success(`${operation} completed! Review the changes.`)
+      } else {
+        console.error("❌ No content in response")
+        message.error("No content received from AI")
       }
     } catch (error) {
-      console.error("AI Operation Error:", error)
+      console.error("❌ AI Operation Error:", error)
+      console.error("Error details:", error.response?.data)
       const errorMessage =
         error.response?.data?.message ||
         error.message ||
@@ -555,6 +565,7 @@ const SectionCard = ({ section, index }) => {
             onBlur={() => setEditingIndex(null)}
             proofreadingResults={sectionSuggestions}
             onAcceptSuggestion={handleAcceptSuggestion}
+            sectionId={section.id}
           />
         </div>
       ) : (
@@ -705,10 +716,7 @@ const SectionCard = ({ section, index }) => {
                     wordRemovedBackground: "#ffc1c0",
                   },
                 },
-                line: {
-                  fontSize: "14px",
-                  lineHeight: "1.6",
-                },
+                line: { fontSize: "14px", lineHeight: "1.6" },
               }}
             />
           </div>

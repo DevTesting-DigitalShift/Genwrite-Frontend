@@ -23,8 +23,8 @@ const Jobs = () => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { showJobModal } = useSelector((state) => state.jobs)
-  const { selectedKeywords } = useSelector((state) => state.analysis)
+  const { showJobModal } = useSelector(state => state.jobs)
+  const { selectedKeywords } = useSelector(state => state.analysis)
   const user = useSelector(selectUser)
   const userPlan = (user?.plan || user?.subscription?.plan || "free").toLowerCase()
   const [currentPage, setCurrentPage] = useState(1)
@@ -62,14 +62,12 @@ const Jobs = () => {
       const queryKey = ["jobs", user.id]
 
       if (eventType === "job:deleted") {
-        queryClient.setQueryData(queryKey, (old = []) =>
-          old.filter((job) => job._id !== data.jobId)
-        )
+        queryClient.setQueryData(queryKey, (old = []) => old.filter(job => job._id !== data.jobId))
         queryClient.removeQueries({ queryKey: ["job", data.jobId] })
       } else {
         // Handle create, update, statusChanged uniformly: update if exists, add if not
         queryClient.setQueryData(queryKey, (old = []) => {
-          const index = old.findIndex((job) => job._id === data.jobId || job._id === data._id)
+          const index = old.findIndex(job => job._id === data.jobId || job._id === data._id)
           if (index > -1) {
             old[index] = { ...old[index], ...data }
             return [...old]
@@ -77,14 +75,14 @@ const Jobs = () => {
             return [data, ...old] // Add new job instantly for "job:created"
           }
         })
-        queryClient.setQueryData(["job", data.jobId || data._id], (old) => ({ ...old, ...data }))
+        queryClient.setQueryData(["job", data.jobId || data._id], old => ({ ...old, ...data }))
       }
     }
 
-    socket.on("job:statusChanged", (data) => handleJobChange(data, "job:statusChanged"))
-    socket.on("job:updated", (data) => handleJobChange(data, "job:updated"))
-    socket.on("job:created", (data) => handleJobChange(data, "job:created"))
-    socket.on("job:deleted", (data) => handleJobChange(data, "job:deleted"))
+    socket.on("job:statusChanged", data => handleJobChange(data, "job:statusChanged"))
+    socket.on("job:updated", data => handleJobChange(data, "job:updated"))
+    socket.on("job:created", data => handleJobChange(data, "job:created"))
+    socket.on("job:deleted", data => handleJobChange(data, "job:deleted"))
 
     // Test connection
     socket.on("connect", () => console.debug("Socket connected"))
@@ -115,10 +113,7 @@ const Jobs = () => {
 
   const checkJobLimit = useCallback(() => {
     if (usage >= usageLimit) {
-      openUpgradePopup({
-        featureName: "Additional Jobs",
-        navigate,
-      })
+      openUpgradePopup({ featureName: "Additional Jobs", navigate })
       return false
     }
     return true
@@ -147,7 +142,7 @@ const Jobs = () => {
   if (userPlan === "free") {
     return <UpgradeModal featureName="Content Agent" />
   }
-//asd
+  //asd
   return (
     <>
       <Helmet>
@@ -169,7 +164,7 @@ const Jobs = () => {
             <div className="flex gap-2">
               {usage >= usageLimit && (
                 <button
-                  onClick={() => setShowWarning((prev) => !prev)}
+                  onClick={() => setShowWarning(prev => !prev)}
                   className="text-yellow-500 hover:text-yellow-600 transition"
                   title="View usage warning"
                 >
@@ -247,7 +242,7 @@ const Jobs = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {" "}
               {/* No transition class to avoid animations */}
-              {paginatedJobs.map((job) => (
+              {paginatedJobs.map(job => (
                 <JobCard
                   key={job._id}
                   job={job}
@@ -263,7 +258,7 @@ const Jobs = () => {
                 current={currentPage}
                 pageSize={PAGE_SIZE}
                 total={queryJobs.length}
-                onChange={(page) => setCurrentPage(page)}
+                onChange={page => setCurrentPage(page)}
                 showSizeChanger={false}
                 responsive
               />

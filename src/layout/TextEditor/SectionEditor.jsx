@@ -47,6 +47,8 @@ import {
 import { Tooltip, message, Modal, Input, Button, Dropdown, Popover } from "antd"
 import { createPortal } from "react-dom"
 import ImageGalleryPicker from "@components/ImageGalleryPicker"
+import { AIBubbleMenu } from "./AIBubbleMenu"
+import { useEditorContext } from "./EditorContext"
 
 const ToolbarButton = ({ active, onClick, disabled, children, title }) => (
   <Tooltip title={title}>
@@ -58,8 +60,8 @@ const ToolbarButton = ({ active, onClick, disabled, children, title }) => (
         disabled
           ? "opacity-50 cursor-not-allowed"
           : active
-          ? "bg-blue-100 text-blue-600"
-          : "hover:bg-gray-100"
+            ? "bg-blue-100 text-blue-600"
+            : "hover:bg-gray-100"
       }`}
     >
       {children}
@@ -73,6 +75,7 @@ const SectionEditor = ({
   onBlur,
   proofreadingResults = [],
   onAcceptSuggestion,
+  sectionId,
 }) => {
   const [linkModalOpen, setLinkModalOpen] = useState(false)
   const [linkUrl, setLinkUrl] = useState("")
@@ -115,6 +118,9 @@ const SectionEditor = ({
   const [hoveredCell, setHoveredCell] = useState({ row: 0, col: 0 })
   const tableButtonRef = useRef(null)
 
+  // Get editor context for AI operations
+  const { blogId } = useEditorContext()
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -131,33 +137,19 @@ const SectionEditor = ({
       Table.configure({
         resizable: true,
         allowTableNodeSelection: true,
-        HTMLAttributes: {
-          class: "border-collapse border border-gray-300 w-full my-4",
-        },
+        HTMLAttributes: { class: "border-collapse border border-gray-300 w-full my-4" },
       }),
-      TableRow.configure({
-        HTMLAttributes: {
-          class: "border border-gray-300",
-        },
-      }),
+      TableRow.configure({ HTMLAttributes: { class: "border border-gray-300" } }),
       TableHeader.configure({
-        HTMLAttributes: {
-          class: "border border-gray-300 bg-gray-100 p-2 font-semibold text-left",
-        },
+        HTMLAttributes: { class: "border border-gray-300 bg-gray-100 p-2 font-semibold text-left" },
       }),
-      TableCell.configure({
-        HTMLAttributes: {
-          class: "border border-gray-300 p-2",
-        },
-      }),
+      TableCell.configure({ HTMLAttributes: { class: "border border-gray-300 p-2" } }),
       Image.configure({
         HTMLAttributes: {
           class: "rounded-lg max-w-full h-auto object-contain my-4 cursor-pointer",
         },
       }),
-      TextAlign.configure({
-        types: ["heading", "paragraph"],
-      }),
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
@@ -167,9 +159,7 @@ const SectionEditor = ({
         },
       }),
       Iframe,
-      ProofreadingDecoration.configure({
-        suggestions: proofreadingResults,
-      }),
+      ProofreadingDecoration.configure({ suggestions: proofreadingResults }),
     ],
     content: initialContent,
     onUpdate: ({ editor }) => {
@@ -191,11 +181,7 @@ const SectionEditor = ({
         const link = event.target.closest("a")
         if (link) {
           event.preventDefault()
-          const linkData = {
-            href: link.href,
-            text: link.textContent,
-            element: link,
-          }
+          const linkData = { href: link.href, text: link.textContent, element: link }
           setSelectedLink(linkData)
           setSelectedImage(null)
           // Open link edit modal
@@ -208,11 +194,7 @@ const SectionEditor = ({
         const img = event.target.closest("img")
         if (img) {
           event.preventDefault()
-          const imageData = {
-            src: img.src,
-            alt: img.alt || "",
-            element: img,
-          }
+          const imageData = { src: img.src, alt: img.alt || "", element: img }
           setSelectedImage(imageData)
           setSelectedLink(null)
           setImageEditMode(false)
@@ -225,7 +207,7 @@ const SectionEditor = ({
 
         // Check if clicked on proofreading mark (original or suggestion)
         const proofMark = event.target.closest(
-          ".proofreading-original, .proofreading-suggestion, .proofreading-mark"
+          ".proofreading-original, .proofreading-suggestion, .proofreading-mark",
         )
         if (proofMark && (proofMark.dataset.suggestion || proofMark.dataset.original)) {
           event.preventDefault()
@@ -245,7 +227,7 @@ const SectionEditor = ({
   useEffect(() => {
     if (editor) {
       const proofExt = editor.extensionManager.extensions.find(
-        ext => ext.name === "proofreadingDecoration"
+        ext => ext.name === "proofreadingDecoration",
       )
       if (proofExt) {
         proofExt.options.suggestions = proofreadingResults || []
@@ -565,14 +547,7 @@ const SectionEditor = ({
     }
 
     // Insert YouTube iframe using the extension
-    editor
-      .chain()
-      .focus()
-      .setIframe({
-        src: result.embedUrl,
-        title: youtubeTitle.trim(),
-      })
-      .run()
+    editor.chain().focus().setIframe({ src: result.embedUrl, title: youtubeTitle.trim() }).run()
 
     // Reset form
     setYoutubeUrl("")
@@ -768,11 +743,11 @@ const SectionEditor = ({
                       onMouseEnter={() => setHoveredCell({ row: rowIndex + 1, col: colIndex + 1 })}
                       onClick={() => handleTableSelect(rowIndex + 1, colIndex + 1)}
                     />
-                  ))
+                  )),
                 )}
               </div>
             </div>,
-            document.body
+            document.body,
           )}
 
         {/* Table Manipulation Menu - Only show when inside a table */}
@@ -989,10 +964,7 @@ const SectionEditor = ({
               }
 
               const linkHref = link.href
-              setHoveredLink({
-                href: linkHref,
-                text: link.textContent,
-              })
+              setHoveredLink({ href: linkHref, text: link.textContent })
 
               // Check cache first
               if (previewCacheRef.current[linkHref]) {
@@ -1006,9 +978,7 @@ const SectionEditor = ({
                     proxyUrl: "https://api.allorigins.win/raw?url=",
                     timeout: 5000,
                     followRedirects: "follow",
-                    headers: {
-                      "user-agent": "googlebot",
-                    },
+                    headers: { "user-agent": "googlebot" },
                   })
 
                   const previewData = {
@@ -1053,6 +1023,16 @@ const SectionEditor = ({
         }}
       >
         <EditorContent editor={editor} />
+
+        {/* AI Bubble Menu for selected text */}
+        {editor && blogId && sectionId && (
+          <AIBubbleMenu
+            editor={editor}
+            blogId={blogId}
+            sectionId={sectionId}
+            onContentUpdate={onChange}
+          />
+        )}
 
         {/* Link Hover Preview Tooltip with Rich Preview */}
         {hoveredLink && !selectedLink && (
@@ -1226,11 +1206,7 @@ const SectionEditor = ({
           </div>
         }
         width="100%"
-        style={{
-          maxWidth: showGalleryPicker ? "1200px" : "600px",
-          top: 20,
-          paddingBottom: 0,
-        }}
+        style={{ maxWidth: showGalleryPicker ? "1200px" : "600px", top: 20, paddingBottom: 0 }}
         centered
         bodyStyle={{ padding: 0, maxHeight: "85vh", overflow: "hidden" }}
         className="responsive-image-modal"

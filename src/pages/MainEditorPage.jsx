@@ -194,11 +194,11 @@ const MainEditorPage = () => {
       const postedData = response?.data?.posting?.items?.[postData.type.platform] || null
       setIsPosted(prev => ({ ...(prev || {}), [postData.type.platform]: postedData }))
       message.success(
-        `Blog ${isPosted?.[postData.type.platform] ? "updated" : "posted"} successfully!`
+        `Blog ${isPosted?.[postData.type.platform] ? "updated" : "posted"} successfully!`,
       )
     } catch (error) {
       message.error(
-        error.response?.data?.message || `Failed to ${isPosted ? "update" : "post to"} WordPress.`
+        error.response?.data?.message || `Failed to ${isPosted ? "update" : "post to"} WordPress.`,
       )
     } finally {
       setIsPosting(false)
@@ -240,7 +240,7 @@ const MainEditorPage = () => {
           seoMetadata: metadata
             ? { title: metadata.title, description: metadata.description }
             : blog?.seoMetadata || { title: "", description: "" },
-        })
+        }),
       ).unwrap()
 
       message.success("Blog updated successfully")
@@ -276,7 +276,7 @@ const MainEditorPage = () => {
           seoMetadata: metadata
             ? { title: metadata.title, description: metadata.description }
             : blog?.seoMetadata || { title: "", description: "" },
-        })
+        }),
       ).unwrap()
       const res = await sendRetryLines(blog._id)
       if (res.data) {
@@ -310,10 +310,7 @@ const MainEditorPage = () => {
     message.info("Changes discarded.")
   }
 
-  const tabVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 },
-  }
+  const tabVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }
 
   const handleTemplateModalClose = () => {
     const isEmpty =

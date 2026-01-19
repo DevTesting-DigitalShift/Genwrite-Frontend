@@ -42,10 +42,7 @@ function generateSectionId() {
 // Convert HTML → Markdown for saving
 function htmlToMarkdownSection(html) {
   if (!html) return ""
-  const turndownService = new TurndownService({
-    headingStyle: "atx",
-    bulletListMarker: "-",
-  })
+  const turndownService = new TurndownService({ headingStyle: "atx", bulletListMarker: "-" })
   turndownService.keep(["p", "div", "iframe", "table", "tr", "th", "td", "img"])
   return turndownService.turndown(html)
 }
@@ -210,7 +207,7 @@ function parseHtmlIntoSections(htmlString) {
     const lastSec = sections[sections.length - 1]
     // Check for FAQ header
     const faqMatch = lastSec.content.match(
-      /(<h[2-4][^>]*>\s*(?:FAQ|Frequently Asked Questions)\s*<\/h[2-4]>)/i
+      /(<h[2-4][^>]*>\s*(?:FAQ|Frequently Asked Questions)\s*<\/h[2-4]>)/i,
     )
 
     if (faqMatch) {
@@ -272,11 +269,7 @@ function parseMarkdownIntoSections(markdown) {
 
   const matches = []
   while ((match = headingRegex.exec(markdown)) !== null) {
-    matches.push({
-      title: match[1].trim(),
-      index: match.index,
-      fullMatch: match[0],
-    })
+    matches.push({ title: match[1].trim(), index: match.index, fullMatch: match[0] })
   }
 
   if (matches.length === 0) {
@@ -405,22 +398,22 @@ const TextEditor = ({
       if (!sectionImages || !Array.isArray(sectionImages)) return null
       return sectionImages.find(img => img.sectionId === sectionId && img.role === "section")
     },
-    [sectionImages]
+    [sectionImages],
   )
 
   // Update section image
   const handleUpdateSectionImage = useCallback((sectionId, updatedImage) => {
     setSectionImages(prev =>
       prev.map(img =>
-        img.sectionId === sectionId && img.role === "section" ? { ...img, ...updatedImage } : img
-      )
+        img.sectionId === sectionId && img.role === "section" ? { ...img, ...updatedImage } : img,
+      ),
     )
   }, [])
 
   // Delete section image
   const handleDeleteSectionImage = useCallback(sectionId => {
     setSectionImages(prev =>
-      prev.filter(img => !(img.sectionId === sectionId && img.role === "section"))
+      prev.filter(img => !(img.sectionId === sectionId && img.role === "section")),
     )
   }, [])
 
@@ -613,7 +606,7 @@ const TextEditor = ({
               title: s.title,
               content: s.content,
               originalContent: s.originalContent || s.content,
-            }))
+            })),
           )
           setOriginalCta(parsedData.cta)
           setOriginalQuickSummary(parsedData.quickSummary)
@@ -635,7 +628,7 @@ const TextEditor = ({
           title: s.title,
           content: s.content,
           originalContent: s.content, // Set originalContent to current content after save
-        }))
+        })),
       )
       setOriginalCta(cta)
       setOriginalQuickSummary(quickSummary)
@@ -690,7 +683,7 @@ const TextEditor = ({
 
       // Add section images if they exist
       const secImages = sectionImages.filter(
-        img => img.sectionId === sec.id && img.role === "section"
+        img => img.sectionId === sec.id && img.role === "section",
       )
       if (secImages.length > 0) {
         html += '        <div class="section-images-wrapper">\n'
@@ -793,7 +786,7 @@ const TextEditor = ({
           }
         }
         return s
-      })
+      }),
     )
   }
 
@@ -807,8 +800,8 @@ const TextEditor = ({
               title: newTitle,
               originalContent: s.originalContent, // Preserve original
             }
-          : s
-      )
+          : s,
+      ),
     )
   }
 
@@ -866,13 +859,10 @@ const TextEditor = ({
     setSections(prev =>
       prev.map(section => {
         if (section.content && section.content.includes(original)) {
-          return {
-            ...section,
-            content: section.content.replace(regex, change),
-          }
+          return { ...section, content: section.content.replace(regex, change) }
         }
         return section
-      })
+      }),
     )
   }, [])
 
@@ -917,7 +907,7 @@ const TextEditor = ({
   // Navigation blocker
   const blocker = useBlocker(
     ({ currentLocation, nextLocation }) =>
-      hasContentChanges && currentLocation.pathname !== nextLocation.pathname
+      hasContentChanges && currentLocation.pathname !== nextLocation.pathname,
   )
 
   useEffect(() => {
@@ -958,7 +948,7 @@ const TextEditor = ({
         setContent(prev => prev.replace(regex, change))
       }
     },
-    [handleReplaceInSections, setContent]
+    [handleReplaceInSections, setContent],
   )
 
   // Editor context value for child components
@@ -997,7 +987,7 @@ const TextEditor = ({
       handleReplaceWithSections,
       handleUpdateSectionImage,
       handleDeleteSectionImage,
-    ]
+    ],
   )
 
   // Handle FAQ edit
@@ -1019,10 +1009,7 @@ const TextEditor = ({
   const handleAddFaqItem = () => {
     setFaq(prev => {
       if (!prev) return prev
-      return {
-        ...prev,
-        qa: [...prev.qa, { question: "New Question", answer: "New Answer" }],
-      }
+      return { ...prev, qa: [...prev.qa, { question: "New Question", answer: "New Answer" }] }
     })
   }
 
@@ -1030,10 +1017,7 @@ const TextEditor = ({
   const handleDeleteFaqItem = index => {
     setFaq(prev => {
       if (!prev) return prev
-      return {
-        ...prev,
-        qa: prev.qa.filter((_, i) => i !== index),
-      }
+      return { ...prev, qa: prev.qa.filter((_, i) => i !== index) }
     })
   }
 
@@ -1520,11 +1504,7 @@ const TextEditor = ({
                   icon={<Check className="w-4 h-4" />}
                   onClick={() => {
                     if (blogThumbnail) {
-                      setBlogThumbnail({
-                        ...blogThumbnail,
-                        url: thumbnailUrl,
-                        alt: thumbnailAlt,
-                      })
+                      setBlogThumbnail({ ...blogThumbnail, url: thumbnailUrl, alt: thumbnailAlt })
                       message.success("Thumbnail updated")
                     }
                     setThumbnailModalOpen(false)
@@ -1641,7 +1621,7 @@ const TextEditor = ({
           {/* Featured Image - First section image or main thumbnail */}
           {(() => {
             const mainImage = sectionImages?.find(
-              img => img.role === "thumbnail" || img.role === "main"
+              img => img.role === "thumbnail" || img.role === "main",
             )
             const firstSectionImage = sections.length > 0 ? getSectionImage(sections[0]?.id) : null
             const featuredImage = mainImage || firstSectionImage
