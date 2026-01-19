@@ -37,7 +37,7 @@ import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tansta
 import { getSocket } from "@utils/socket"
 import isBetween from "dayjs/plugin/isBetween"
 import clsx from "clsx"
-import { debounce } from "lodash"
+import DebouncedSearchInput from "@components/UI/DebouncedSearchInput"
 import DateRangePicker from "@components/UI/DateRangePicker"
 import { useProAction } from "@/hooks/useProAction"
 import { archiveBlogById, getAllBlogs, retryBlogById } from "@api/blogApi"
@@ -77,7 +77,7 @@ const MyProjects = () => {
   useEffect(() => {
     const field = sessionStorage.getItem(`user_${user?._id}_blog_filters`)
     if (field) {
-      setBlogFilters(prev => ({ ...prev, ...JSON.parse(field) } || {}))
+      setBlogFilters(prev => ({ ...prev, ...JSON.parse(field) }) || {})
     } else {
       setBlogFilters(prev => ({ ...prev, start: user?.createdAt }))
     }
@@ -173,10 +173,7 @@ const MyProjects = () => {
 
     const handleStatusChange = data => {
       queryClient
-        .refetchQueries({
-          queryKey: ["blogs"],
-          type: "active",
-        })
+        .refetchQueries({ queryKey: ["blogs"], type: "active" })
         .then(() => {
           console.debug("Blogs refetched successfully after socket event")
         })
@@ -196,14 +193,14 @@ const MyProjects = () => {
     blog => {
       navigate(`/blog/${blog._id}`)
     },
-    [navigate]
+    [navigate],
   )
 
   const handleManualBlogClick = useCallback(
     blog => {
       navigate(`/blog-editor/${blog._id}`)
     },
-    [navigate]
+    [navigate],
   )
 
   const handleRetry = useCallback(async id => {
@@ -235,7 +232,7 @@ const MyProjects = () => {
           updateBlogFilters({ sort: opt.value })
         },
       })),
-    []
+    [],
   )
 
   // Funnel menu options
@@ -247,7 +244,7 @@ const MyProjects = () => {
           updateBlogFilters({ status: opt.value })
         },
       })),
-    []
+    [],
   )
 
   const updateBlogFilters = useCallback(
@@ -258,7 +255,7 @@ const MyProjects = () => {
         return newValue
       })
     },
-    [blogFilters, userId]
+    [blogFilters, userId],
   )
 
   // -------------------------------------------------
@@ -381,21 +378,14 @@ const MyProjects = () => {
         wrap={window?.innerWidth <= 1024}
         className="flex-col sm:flex-row p-4 sm:p-6 rounded-lg mb-4"
       >
-        <Input.Search
-          ref={inputRef}
-          size="middle"
-          className="min-w-[300px] w-1/3 text-center "
-          placeholder="search blogs..."
+        <DebouncedSearchInput
+          initialValue={blogFilters.q}
           onSearch={value => {
             updateBlogFilters({ q: value })
           }}
-          enterButton={<Search />}
-          allowClear
-          styles={{
-            input: {
-              border: "none !important",
-            },
-          }}
+          placeholder="search blogs..."
+          className="min-w-[300px] w-full text-center border mr-2"
+          containerClassName="w-1/3"
         />
 
         {/* Sort */}

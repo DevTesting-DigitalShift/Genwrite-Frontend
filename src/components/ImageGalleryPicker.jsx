@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react"
 import { Spin, message, Button } from "antd"
 import { Search, Image as ImageIcon, Check } from "lucide-react"
 import { getImages, searchImages } from "@api/imageGalleryApi"
-import { debounce } from "lodash"
+import DebouncedSearchInput from "@components/UI/DebouncedSearchInput"
 
 // Skeleton Loader Component
 const ImageSkeleton = () => {
@@ -54,10 +54,7 @@ const ImageGalleryPicker = ({ onSelect, selectedImageUrl }) => {
       }
 
       try {
-        const params = {
-          page,
-          limit: pageSize,
-        }
+        const params = { page, limit: pageSize }
 
         let response
         if (searchQuery.trim()) {
@@ -85,7 +82,7 @@ const ImageGalleryPicker = ({ onSelect, selectedImageUrl }) => {
         setLoadingMore(false)
       }
     },
-    [pageSize, searchQuery]
+    [pageSize, searchQuery],
   )
 
   // Reset and fetch when search changes
@@ -94,18 +91,6 @@ const ImageGalleryPicker = ({ onSelect, selectedImageUrl }) => {
     setImages([])
     fetchImages(1, false)
   }, [searchQuery])
-
-  // Debounced search
-  const debouncedSearch = useCallback(
-    debounce(value => {
-      setSearchQuery(value)
-    }, 500),
-    []
-  )
-
-  const handleSearchChange = e => {
-    debouncedSearch(e.target.value)
-  }
 
   const handleImageClick = image => {
     if (onSelect) {
@@ -140,15 +125,12 @@ const ImageGalleryPicker = ({ onSelect, selectedImageUrl }) => {
       <div className="flex flex-col h-full">
         {/* Search Bar */}
         <div className="mb-4 flex-shrink-0">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search images..."
-              onChange={handleSearchChange}
-              className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
+          <DebouncedSearchInput
+            onSearch={setSearchQuery}
+            placeholder="Search images..."
+            debounceTime={500}
+            className="focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
         </div>
 
         {/* Images Grid - Scrollable */}
