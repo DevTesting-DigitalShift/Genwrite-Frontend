@@ -90,12 +90,12 @@ const BlogsPage = () => {
       gscClicks: null,
       gscImpressions: null,
     }),
-    [],
+    []
   )
 
   const [blogFilters, setBlogFilters] = useState(() => {
     const item = sessionStorage.getItem(
-      `user_${user?._id}_blog_filters_${isTrashcan ? "trash" : "active"}`,
+      `user_${user?._id}_blog_filters_${isTrashcan ? "trash" : "active"}`
     )
     return item ? JSON.parse(item) : initialBlogFilter
   })
@@ -134,7 +134,7 @@ const BlogsPage = () => {
 
   useEffect(() => {
     const field = sessionStorage.getItem(
-      `user_${user?._id}_blog_filters_${isTrashcan ? "trash" : "active"}`,
+      `user_${user?._id}_blog_filters_${isTrashcan ? "trash" : "active"}`
     )
     if (field) {
       const parsedFilters = JSON.parse(field)
@@ -172,7 +172,7 @@ const BlogsPage = () => {
         gscImpressions: blogFilters.gscImpressions || undefined,
       }
       params = Object.fromEntries(
-        Object.entries(params).filter(([_, v]) => v !== undefined && v !== null && v !== ""),
+        Object.entries(params).filter(([_, v]) => v !== undefined && v !== null && v !== "")
       )
       const res = await getAllBlogs(params)
       return {
@@ -193,7 +193,7 @@ const BlogsPage = () => {
     // Refetch every 10 seconds if we have pending blogs
     refetchInterval: data => {
       const hasPending = data?.pages?.some(page =>
-        page.data?.some(blog => blog.status === "pending"),
+        page.data?.some(blog => blog.status === "pending")
       )
       return hasPending ? 10000 : false // Poll every 10s if pending blogs exist
     },
@@ -241,12 +241,12 @@ const BlogsPage = () => {
         const newValue = { ...prev, ...updates }
         sessionStorage.setItem(
           `user_${userId}_blog_filters_${isTrashcan ? "trash" : "active"}`,
-          JSON.stringify(newValue),
+          JSON.stringify(newValue)
         )
         return newValue
       })
     },
-    [userId, isTrashcan],
+    [userId, isTrashcan]
   )
 
   const resetFilters = useCallback(() => {
@@ -280,6 +280,37 @@ const BlogsPage = () => {
     if (!socket || !user) return
 
     const handleStatusChange = data => {
+      // Check if blog failed due to insufficient credits
+      if (data?.newStatus === "failed") {
+        // Check recent notifications for insufficient credits
+        const recentNotification = user?.notifications?.[0]
+        if (recentNotification?.type === "INSUFFICIENT_CREDITS") {
+          message.error({
+            content: (
+              <div>
+                <strong>Insufficient Credits</strong>
+                <p className="mt-1">
+                  {recentNotification.message ||
+                    "You don't have enough credits to complete this operation."}
+                </p>
+                <a
+                  href="/pricing"
+                  className="text-blue-600 hover:text-blue-700 font-semibold underline"
+                  onClick={e => {
+                    e.preventDefault()
+                    navigate("/pricing")
+                  }}
+                >
+                  Add Credits →
+                </a>
+              </div>
+            ),
+            duration: 8,
+            className: "insufficient-credits-notification",
+          })
+        }
+      }
+
       queryClient.refetchQueries({
         queryKey: isTrashcan ? ["trashedBlogs"] : ["blogs"],
         type: "active",
@@ -306,20 +337,20 @@ const BlogsPage = () => {
       socket.off("blog:deleted", handleStatusChange)
       socket.off("blog:created", handleBlogCreated)
     }
-  }, [user, userId, queryClient, isTrashcan])
+  }, [user, userId, queryClient, isTrashcan, navigate])
 
   const handleBlogClick = useCallback(
     blog => {
       navigate(`/blog/${blog._id}`)
     },
-    [navigate],
+    [navigate]
   )
 
   const handleManualBlogClick = useCallback(
     blog => {
       navigate(`/blog-editor/${blog._id}`)
     },
-    [navigate],
+    [navigate]
   )
 
   const handleRetry = useCallback(
@@ -332,7 +363,7 @@ const BlogsPage = () => {
         message.error("Failed to retry blog")
       }
     },
-    [isTrashcan, queryClient, refetchActive],
+    [isTrashcan, queryClient, refetchActive]
   )
 
   const handleArchive = useCallback(
@@ -345,7 +376,7 @@ const BlogsPage = () => {
         message.error("Failed to archive")
       }
     },
-    [refetchActive],
+    [refetchActive]
   )
 
   const handleRestore = useCallback(
@@ -358,7 +389,7 @@ const BlogsPage = () => {
         message.error("Failed to restore blog")
       }
     },
-    [dispatch, queryClient],
+    [dispatch, queryClient]
   )
 
   const handleBulkDelete = useCallback(async () => {
@@ -380,7 +411,7 @@ const BlogsPage = () => {
           updateBlogFilters({ sort: opt.value })
         },
       })),
-    [updateBlogFilters],
+    [updateBlogFilters]
   )
 
   const funnelMenuOptions = useMemo(
@@ -391,7 +422,7 @@ const BlogsPage = () => {
           updateBlogFilters({ status: opt.value })
         },
       })),
-    [updateBlogFilters],
+    [updateBlogFilters]
   )
 
   const truncateContent = useCallback((content, length = TRUNCATE_LENGTH) => {
@@ -640,7 +671,7 @@ const BlogsPage = () => {
                   "h-11 rounded-xl flex items-center gap-2 font-semibold transition-all shadow-sm",
                   hasActiveFilters || blogFilters.gscClicks || blogFilters.gscImpressions
                     ? "bg-blue-50 text-blue-600 border-blue-200"
-                    : "bg-white text-slate-600 border-slate-200",
+                    : "bg-white text-slate-600 border-slate-200"
                 )}
               >
                 <Filter size={18} />

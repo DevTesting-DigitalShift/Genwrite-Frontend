@@ -3,7 +3,7 @@ import { motion } from "framer-motion"
 import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import { Helmet } from "react-helmet"
-import { Pagination, Button } from "antd"
+import { Pagination, Button, message } from "antd"
 import { FiPlus } from "react-icons/fi"
 import { RefreshCcw } from "lucide-react"
 import { fetchJobs, openJobModal } from "@store/slices/jobSlice"
@@ -59,30 +59,80 @@ const Jobs = () => {
 
     const handleJobChange = (data, eventType) => {
       console.debug(`Received ${eventType}:`, data)
+
+      // Check if job stopped due to insufficient credits
+      if (
+        (data?.status === "stop" || data?.status === "stopped") &&
+        data?.reason?.toLowerCase().includes("insufficient credits")
+      ) {
+        message.error({
+          content: (
+            <div>
+              <strong>Job Stopped: Insufficient Credits</strong>
+              <p className="mt-1">
+                {data.reason || "This job was stopped because you don't have enough credits."}
+              </p>
+              <a
+                href="/pricing"
+                className="text-blue-600 hover:text-blue-700 font-semibold underline"
+                onClick={e => {
+                  e.preventDefault()
+                  navigate("/pricing")
+                }}
+              >
+                Add Credits →
+              </a>
+            </div>
+          ),
+          duration: 8,
+          className: "insufficient-credits-notification",
+        })
+      }
+
       const queryKey = ["jobs", user.id]
 
       if (eventType === "job:deleted") {
-        queryClient.setQueryData(queryKey, (old = []) => old.filter(job => job._id !== data.jobId))
-        queryClient.removeQueries({ queryKey: ["job", data.jobId] })
+        queryClient.setQueryData(queryKey, (old = []) =>
+          old.filter(job => job._id !== (data._id || data.jobId))
+        )
+        queryClient.removeQueries({ queryKey: ["job", data._id || data.jobId] })
       } else {
         // Handle create, update, statusChanged uniformly: update if exists, add if not
         queryClient.setQueryData(queryKey, (old = []) => {
-          const index = old.findIndex(job => job._id === data.jobId || job._id === data._id)
+          const jobIdToFind = data._id || data.jobId
+          const index = old.findIndex(job => job._id === jobIdToFind)
+
           if (index > -1) {
-            old[index] = { ...old[index], ...data }
-            return [...old]
+            // Create a new array with the updated job (immutable update)
+            const newJobs = [...old]
+            newJobs[index] = { ...old[index], ...data, _id: jobIdToFind }
+            console.debug(`Updated job at index ${index}:`, newJobs[index])
+            return newJobs
           } else {
-            return [data, ...old] // Add new job instantly for "job:created"
+            // Add new job at the beginning (for job:created)
+            console.debug(`Adding new job:`, data)
+            return [{ ...data, _id: jobIdToFind }, ...old]
           }
         })
-        queryClient.setQueryData(["job", data.jobId || data._id], old => ({ ...old, ...data }))
+        queryClient.setQueryData(["job", data._id || data.jobId], old => ({ ...old, ...data }))
       }
+    }
+
+    // Handle user notifications (for insufficient credits)
+    const handleUserNotification = () => {
+      // Refetch user to get latest notifications
+      // The notification will be displayed by the NotificationDropdown component
+      console.debug("User notification received, checking for insufficient credits")
+
+      // Also invalidate jobs query to ensure UI is in sync
+      queryClient.invalidateQueries({ queryKey: ["jobs", user.id] })
     }
 
     socket.on("job:statusChanged", data => handleJobChange(data, "job:statusChanged"))
     socket.on("job:updated", data => handleJobChange(data, "job:updated"))
     socket.on("job:created", data => handleJobChange(data, "job:created"))
     socket.on("job:deleted", data => handleJobChange(data, "job:deleted"))
+    socket.on("user:notification", handleUserNotification)
 
     // Test connection
     socket.on("connect", () => console.debug("Socket connected"))
@@ -94,10 +144,11 @@ const Jobs = () => {
       socket.off("job:updated")
       socket.off("job:created")
       socket.off("job:deleted")
+      socket.off("user:notification")
       socket.off("connect")
       socket.off("disconnect")
     }
-  }, [queryClient, user])
+  }, [queryClient, user, navigate])
 
   // Clear cache on user logout
   useEffect(() => {

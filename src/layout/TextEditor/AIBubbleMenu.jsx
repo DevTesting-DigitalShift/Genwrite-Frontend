@@ -2,15 +2,15 @@ import React, { useEffect, useState, useRef, useMemo } from "react"
 import axiosInstance from "@/api"
 import ReactDiffViewer, { DiffMethod } from "react-diff-viewer-continued"
 import TurndownService from "turndown"
-import { Sparkles, FileCheck, MessageSquare, Loader2 } from "lucide-react"
-import { Tooltip, message, Modal, Input } from "antd"
+import { marked } from "marked"
+import { DOMSerializer } from "@tiptap/pm/model"
+import { Sparkles, Loader2 } from "lucide-react"
+import { Tooltip, message, Modal } from "antd"
 
 // AI Bubble Menu Component - Custom implementation without TipTap BubbleMenu
 const AIBubbleMenu = ({ editor, blogId, sectionId, onContentUpdate }) => {
   const [isProcessing, setIsProcessing] = useState(false)
-  const [showCustomPrompt, setShowCustomPrompt] = useState(false)
-  const [customPrompt, setCustomPrompt] = useState("")
-  const [selectedText, setSelectedText] = useState("")
+
   const [showMenu, setShowMenu] = useState(false)
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 })
   const menuRef = useRef(null)
@@ -46,7 +46,6 @@ const AIBubbleMenu = ({ editor, blogId, sectionId, onContentUpdate }) => {
       const text = editor.state.doc.textBetween(from, to, " ")
 
       if (text.trim().length > 0) {
-        setSelectedText(text)
         setSelectionRange({ from, to })
 
         // Get selection coordinates
@@ -76,33 +75,59 @@ const AIBubbleMenu = ({ editor, blogId, sectionId, onContentUpdate }) => {
     }
   }, [editor])
 
-  const handleAIOperation = async (operation, userInstructions = "") => {
-    if (!blogId || !sectionId) {
-      message.error("Blog ID or Section ID not found")
+  const handleAIOperation = async operation => {
+    if (!blogId) {
+      message.error("Blog ID not found")
       return
     }
 
     const { from, to } = editor.state.selection
-    const selectedContent = editor.state.doc.textBetween(from, to, " ")
 
-    if (!selectedContent.trim()) {
+    // Extract HTML content from selection using TipTap's DOMSerializer
+    const selectedFragment = editor.state.doc.slice(from, to)
+
+    // Create a temporary div to serialize the fragment
+    const tempDiv = document.createElement("div")
+    const serializer = DOMSerializer.fromSchema(editor.schema)
+
+    selectedFragment.content.forEach(node => {
+      tempDiv.appendChild(serializer.serializeNode(node))
+    })
+
+    const selectedHtmlContent = tempDiv.innerHTML
+
+    if (!selectedHtmlContent.trim()) {
       message.warning("Please select some text first")
       return
     }
 
+    // Convert HTML to Markdown before sending to API
+    const turndownService = new TurndownService({
+      headingStyle: "atx",
+      bulletListMarker: "-",
+      codeBlockStyle: "fenced",
+    })
+    turndownService.keep(["table", "tr", "td", "th"])
+    const markdownContent = turndownService.turndown(selectedHtmlContent)
+
     setIsProcessing(true)
     try {
-      const response = await axiosInstance.post(`/blogs/${blogId}/sectionTask`, {
-        sectionId: sectionId,
-        task: operation,
-        userInstructions: userInstructions,
-        selectedText: selectedContent, // Send only selected text
+      // Call the rewrite endpoint
+      const response = await axiosInstance.post(`/blogs/${blogId}/rewrite`, {
+        contentPart: markdownContent, // Send markdown content
       })
 
-      if (response.data?.content) {
-        // Store original and new content for comparison
-        setOriginalContent(selectedContent)
-        setNewContent(response.data.content)
+      if (response.data) {
+        // The API returns markdown, convert it back to HTML
+        const markdownResponse =
+          typeof response.data === "string"
+            ? response.data
+            : response.data.content || response.data.message || ""
+        const htmlResponse = await marked.parse(markdownResponse)
+
+        // Store original HTML and new HTML for comparison
+        setOriginalContent(selectedHtmlContent)
+        setNewContent(htmlResponse)
         setCurrentOperation(operation)
         setAiResultModalOpen(true)
         setShowMenu(false)
@@ -110,24 +135,25 @@ const AIBubbleMenu = ({ editor, blogId, sectionId, onContentUpdate }) => {
       }
     } catch (error) {
       console.error("AI Operation Error:", error)
-      const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        `Failed to ${operation}. Please try again.`
-      message.error(errorMessage)
+
+      // Handle 402 Insufficient Credits error specifically
+      if (error.response?.status === 402) {
+        const neededCredits = error.response?.data?.neededCredits
+        const errorMsg = neededCredits
+          ? `Insufficient credits. You need ${neededCredits} credits to perform this operation.`
+          : "Insufficient credits to perform this operation. Please add more credits."
+        message.error({ content: errorMsg, duration: 5 })
+      } else {
+        // Handle other errors
+        const errorMessage =
+          error.response?.data?.message ||
+          error.message ||
+          `Failed to ${operation}. Please try again.`
+        message.error(errorMessage)
+      }
     } finally {
       setIsProcessing(false)
-      setShowCustomPrompt(false)
-      setCustomPrompt("")
     }
-  }
-
-  const handleCustomPromptSubmit = () => {
-    if (!customPrompt.trim()) {
-      message.warning("Please enter a prompt")
-      return
-    }
-    handleAIOperation("promptChanges", customPrompt)
   }
 
   // Handle accepting AI changes
@@ -241,100 +267,17 @@ const AIBubbleMenu = ({ editor, blogId, sectionId, onContentUpdate }) => {
             <span className="text-sm text-gray-600">Processing...</span>
           </div>
         ) : (
-          <>
-            <Tooltip title="Rewrite selected text with AI">
-              <button
-                onClick={() => handleAIOperation("rewrite")}
-                className="flex items-center gap-1.5 px-3 py-2 text-sm bg-purple-50 text-purple-700 rounded-md hover:bg-purple-100 transition-colors"
-              >
-                <Sparkles className="w-4 h-4" />
-                <span className="font-medium">Rewrite</span>
-              </button>
-            </Tooltip>
-
-            <Tooltip title="Proofread and fix errors">
-              <button
-                onClick={() => handleAIOperation("proofread")}
-                className="flex items-center gap-1.5 px-3 py-2 text-sm bg-green-50 text-green-700 rounded-md hover:bg-green-100 transition-colors"
-              >
-                <FileCheck className="w-4 h-4" />
-                <span className="font-medium">Proofread</span>
-              </button>
-            </Tooltip>
-
-            <Tooltip title="Custom AI prompt">
-              <button
-                onClick={() => setShowCustomPrompt(true)}
-                className="flex items-center gap-1.5 px-3 py-2 text-sm bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors"
-              >
-                <MessageSquare className="w-4 h-4" />
-                <span className="font-medium">Custom Prompt</span>
-              </button>
-            </Tooltip>
-          </>
+          <Tooltip title="Rewrite selected text with AI">
+            <button
+              onClick={() => handleAIOperation("rewrite")}
+              className="flex items-center gap-1.5 px-3 py-2 text-sm bg-purple-50 text-purple-700 rounded-md hover:bg-purple-100 transition-colors"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span className="font-medium">Rewrite</span>
+            </button>
+          </Tooltip>
         )}
       </div>
-
-      {/* Custom Prompt Modal */}
-      <Modal
-        title={
-          <div className="flex items-center gap-2">
-            <MessageSquare className="w-5 h-5 text-blue-600" />
-            <span>Custom AI Prompt for Selected Text</span>
-          </div>
-        }
-        open={showCustomPrompt}
-        onCancel={() => {
-          setShowCustomPrompt(false)
-          setCustomPrompt("")
-        }}
-        footer={[
-          <button
-            key="cancel"
-            onClick={() => {
-              setShowCustomPrompt(false)
-              setCustomPrompt("")
-            }}
-            className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-          >
-            Cancel
-          </button>,
-          <button
-            key="submit"
-            onClick={handleCustomPromptSubmit}
-            disabled={!customPrompt.trim() || isProcessing}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ml-2"
-          >
-            {isProcessing ? "Processing..." : "Apply Changes"}
-          </button>,
-        ]}
-        width={520}
-      >
-        <div className="space-y-3">
-          <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-            <p className="text-xs font-medium text-gray-600 mb-1">Selected Text:</p>
-            <p className="text-sm text-gray-800 line-clamp-3">{selectedText}</p>
-          </div>
-
-          <p className="text-sm text-gray-600">
-            Enter your custom instructions for how you want to modify the selected text:
-          </p>
-
-          <Input.TextArea
-            value={customPrompt}
-            onChange={e => setCustomPrompt(e.target.value)}
-            placeholder="E.g., Make it more professional, add statistics, simplify the language..."
-            rows={4}
-            maxLength={2000}
-            showCount
-            autoFocus
-          />
-
-          <p className="text-xs text-gray-500">
-            💡 Tip: Be specific about what changes you want to see in the selected text.
-          </p>
-        </div>
-      </Modal>
 
       {/* AI Result Comparison Modal */}
       <Modal
