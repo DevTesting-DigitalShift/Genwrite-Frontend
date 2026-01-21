@@ -22,9 +22,8 @@ node_modules
 *.sw?
 
 anupDoc.md
-.env
-
 
 *.env
 .env
 todo.txt
+.agent
