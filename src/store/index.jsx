@@ -10,6 +10,7 @@ import gscReducer from "./slices/gscSlice"
 import humanizeReducer from "./slices/humanizeSlice"
 import creditLogsReducer from "./slices/creditLogSlice"
 import integrationReducer from "./slices/integrationSlice"
+import toolsReducer from "./slices/toolsSlice"
 
 export const store = configureStore({
   reducer: {
@@ -24,6 +25,7 @@ export const store = configureStore({
     humanize: humanizeReducer,
     creditLogs: creditLogsReducer,
     integration: integrationReducer,
+    tools: toolsReducer,
   },
 })
 

@@ -79,9 +79,7 @@ const HumanizeContent = () => {
       return
     }
 
-    const payload = {
-      content: inputContent.trim(),
-    }
+    const payload = { content: inputContent.trim() }
 
     try {
       const resultAction = await dispatch(generateHumanizedContent(payload)).unwrap()

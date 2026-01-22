@@ -39,6 +39,9 @@ const ShopifyVerification = lazy(() => import("@pages/ShopifyVerification"))
 const PricingCalculator = lazy(() => import("@pages/PricingCalculator"))
 const ImageGallery = lazy(() => import("@pages/ImageGallery"))
 const Onboarding = lazy(() => import("@pages/Onboarding"))
+const AiContentDetection = lazy(() => import("@pages/AiContentDetection"))
+const YouTubeSummarization = lazy(() => import("@pages/YouTubeSummarization"))
+const KeywordScraping = lazy(() => import("@pages/KeywordScraping"))
 
 /**
  * Wraps a component in React.Suspense with fallback support.
@@ -117,6 +120,9 @@ const router = createBrowserRouter([
           { path: "generate-metadata", element: withSuspense(GenerateMetaData) },
           { path: "prompt-content", element: withSuspense(PromptContent) },
           { path: "image-gallery", element: withSuspense(ImageGallery) },
+          { path: "content-detection", element: withSuspense(AiContentDetection) },
+          { path: "youtube-summarization", element: withSuspense(YouTubeSummarization) },
+          { path: "keyword-scraping", element: withSuspense(KeywordScraping) },
         ],
       },
     ],

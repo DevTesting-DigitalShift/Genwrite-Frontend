@@ -8,6 +8,8 @@ import {
   DownloadOutlined,
   ThunderboltTwoTone,
   CrownTwoTone,
+  YoutubeOutlined,
+  RadarChartOutlined,
 } from "@ant-design/icons"
 import { motion } from "framer-motion"
 import CompetitiveAnalysisModal from "../components/dashboardModals/CompetitiveAnalysisModal"
@@ -156,10 +158,10 @@ export default function ToolboxPage() {
             text === "LOW"
               ? "green"
               : text === "MEDIUM"
-              ? "orange"
-              : text === "HIGH"
-              ? "red"
-              : "gray"
+                ? "orange"
+                : text === "HIGH"
+                  ? "red"
+                  : "gray"
           }
           className="text-xs sm:text-sm"
         >
@@ -203,9 +205,7 @@ export default function ToolboxPage() {
     onChange: newSelectedRowKeys => {
       setSelectedRowKeys(newSelectedRowKeys)
     },
-    getCheckboxProps: record => ({
-      name: record.keyword,
-    }),
+    getCheckboxProps: record => ({ name: record.keyword }),
   }
 
   const tableData =
@@ -300,6 +300,40 @@ export default function ToolboxPage() {
       creditType: "tools.boost",
       color: "from-rose-500 to-pink-600",
     },
+    {
+      key: "content-detection",
+      title: "AI Content Detection",
+      icon: <RadarChartOutlined className="size-4 sm:size-5 text-purple-500" />,
+      description:
+        "Detect AI-generated text and get confidence scores to verify content authenticity.",
+      action: () => navigate("/content-detection"),
+      actionText: "Detect Content",
+      credits: "5",
+      creditType: "tools.outline",
+      color: "from-purple-500 to-fuchsia-600",
+    },
+    {
+      key: "youtube-summarization",
+      title: "YouTube Summarization",
+      icon: <YoutubeOutlined className="size-4 sm:size-5 text-red-500" />,
+      description: "Summarize long YouTube videos into clear insights, highlights, and timestamps.",
+      action: () => navigate("/youtube-summarization"),
+      actionText: "Summarize Video",
+      credits: "5",
+      creditType: "tools.outline",
+      color: "from-red-500 to-rose-600",
+    },
+    {
+      key: "keyword-scraping",
+      title: "Keyword Scraping",
+      icon: <SearchOutlined className="size-4 sm:size-5 text-emerald-500" />,
+      description: "Extract high-intent SEO keywords and clusters to build content that ranks.",
+      action: () => navigate("/keyword-scraping"),
+      actionText: "Find Keywords",
+      credits: "5",
+      creditType: "tools.outline",
+      color: "from-emerald-500 to-teal-600",
+    },
   ]
 
   useEffect(() => {
@@ -352,10 +386,7 @@ export default function ToolboxPage() {
           activeKey={activeTab}
           onChange={setActiveTab}
           className="custom-tabs"
-          tabBarStyle={{
-            padding: "0 8px sm:0 16px",
-            marginBottom: "16px sm:24px",
-          }}
+          tabBarStyle={{ padding: "0 8px sm:0 16px", marginBottom: "16px sm:24px" }}
           items={[
             {
               key: "content",
@@ -372,9 +403,15 @@ export default function ToolboxPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8 mt-4 px-2 sm:px-4">
                   {cardItems
                     .filter(item =>
-                      ["ai-writer", "humanize-content", "outline", "prompt-content"].includes(
-                        item.key
-                      )
+                      [
+                        "ai-writer",
+                        "humanize-content",
+                        "outline",
+                        "prompt-content",
+                        "content-detection",
+                        "youtube-summarization",
+                        "keyword-scraping",
+                      ].includes(item.key)
                     )
                     .map(item => (
                       <AnimatedCard key={item.key} item={item} />
@@ -586,15 +623,8 @@ export default function ToolboxPage() {
                           ],
                           opacity: [0, 0.5, 0],
                         }}
-                        transition={{
-                          duration: 3,
-                          repeat: Infinity,
-                        }}
-                        style={{
-                          zIndex: -1,
-                          margin: "-1px",
-                          border: "1px solid transparent",
-                        }}
+                        transition={{ duration: 3, repeat: Infinity }}
+                        style={{ zIndex: -1, margin: "-1px", border: "1px solid transparent" }}
                       />
                     </Card>
                   </motion.div>
