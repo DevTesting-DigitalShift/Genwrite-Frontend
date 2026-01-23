@@ -87,6 +87,7 @@ const NAV_ITEMS = [
   { id: "overview", icon: BarChart3, label: "Overview" },
   { id: "seo", icon: TrendingUp, label: "SEO" },
   { id: "bloginfo", icon: Info, label: "Blog Info" },
+  { id: "posting", icon: Send, label: "Posting" },
   { id: "regenerate", icon: RefreshCw, label: "Regenerate" },
 ]
 
@@ -125,6 +126,10 @@ const TextEditorSidebar = ({
   // Blog postings state
   const [blogPostings, setBlogPostings] = useState([])
   const [isLoadingPostings, setIsLoadingPostings] = useState(false)
+
+  // Blog slug editor state
+  const [blogSlug, setBlogSlug] = useState(blog?.slug || "")
+  const [isEditingSlug, setIsEditingSlug] = useState(false)
 
   const { data: integrations } = useSelector(state => state.wordpress)
   const [metadata, setMetadata] = useState({
@@ -236,7 +241,8 @@ const TextEditorSidebar = ({
       title: blog?.seoMetadata?.title || "",
       description: blog?.seoMetadata?.description || "",
     })
-  }, [blog?._id])
+    setBlogSlug(blog?.slug || "")
+  }, [blog?._id, blog?.slug])
 
   useEffect(() => {
     if (blog) {
@@ -827,8 +833,8 @@ const TextEditorSidebar = ({
                               posting.status === "published"
                                 ? "bg-green-100 text-green-700"
                                 : posting.status === "failed"
-                                ? "bg-red-100 text-red-700"
-                                : "bg-yellow-100 text-yellow-700"
+                                  ? "bg-red-100 text-red-700"
+                                  : "bg-yellow-100 text-yellow-700"
                             }`}
                           >
                             {posting.status}
@@ -1325,10 +1331,7 @@ const TextEditorSidebar = ({
 
     // Add original index to each suggestion for tracking
     const suggestionsWithIndex =
-      proofreadingResults?.map((s, i) => ({
-        ...s,
-        originalIndex: i,
-      })) || []
+      proofreadingResults?.map((s, i) => ({ ...s, originalIndex: i })) || []
 
     return (
       <div className="flex flex-col h-full">
@@ -1431,6 +1434,52 @@ const TextEditorSidebar = ({
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-4 custom-scroll">
+        {/* Blog Slug */}
+        <div className="p-3 bg-white border rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-xs text-gray-500">Blog Slug</div>
+            {!hasPublishedLinks && (
+              <button
+                onClick={() => setIsEditingSlug(!isEditingSlug)}
+                className="text-xs text-blue-600 hover:text-blue-700 font-semibold"
+              >
+                {isEditingSlug ? "Cancel" : "Edit"}
+              </button>
+            )}
+          </div>
+          {isEditingSlug && !hasPublishedLinks ? (
+            <div className="space-y-2">
+              <Input
+                size="small"
+                value={blogSlug}
+                onChange={e => setBlogSlug(e.target.value)}
+                placeholder="blog-slug"
+                className="text-sm font-mono"
+              />
+              <Button
+                size="small"
+                type="primary"
+                block
+                onClick={async () => {
+                  await handleSubmit({ slug: blogSlug })
+                  setIsEditingSlug(false)
+                }}
+              >
+                Save Slug
+              </Button>
+            </div>
+          ) : (
+            <div>
+              <div className="font-semibold text-gray-900 font-mono text-sm break-all">
+                {blog?.slug || "Not set"}
+              </div>
+              {hasPublishedLinks && (
+                <p className="text-[10px] text-gray-400 mt-1 italic">Slug locked after posting</p>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Template & Category */}
         <div className="space-y-3">
           <div className="p-3 bg-white border rounded-lg">
@@ -1442,6 +1491,26 @@ const TextEditorSidebar = ({
             <div className="font-semibold text-gray-900">{blog?.category || "N/A"}</div>
           </div>
         </div>
+
+        {/* Brand Information */}
+        {blog?.brandId && (
+          <div className="p-3 bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-100 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <Crown className="w-3.5 h-3.5 text-purple-600" />
+              <div className="text-xs font-bold text-purple-900 uppercase tracking-wider">
+                Brand Voice
+              </div>
+            </div>
+            <div className="font-bold text-gray-900">
+              {typeof blog.brandId === "object" ? blog.brandId.name : "Custom Brand"}
+            </div>
+            {typeof blog.brandId === "object" && blog.brandId.description && (
+              <p className="text-[10px] text-gray-500 mt-1 line-clamp-2">
+                {blog.brandId.description}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Tags */}
         {blog?.tags && blog.tags.length > 0 && (
@@ -1541,6 +1610,191 @@ const TextEditorSidebar = ({
     </div>
   )
 
+  const renderPostingPanel = () => (
+    <div className="flex flex-col h-full">
+      <div className="p-3 border-b bg-gradient-to-r from-emerald-50 to-green-50">
+        <div className="flex items-center gap-2">
+          <div className="p-2 bg-gradient-to-br from-green-600 to-emerald-600 rounded-lg">
+            <Send className="w-4 h-4 text-white" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-900">Publishing</h3>
+            <p className="text-xs text-gray-500 font-medium mt-0.5">
+              Manage blog distribution and status
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-3 space-y-4 custom-scroll">
+        {/* Current Status */}
+        {isLoadingPostings ? (
+          <div className="p-8 text-center bg-gray-50 rounded-xl border border-dashed">
+            <RefreshCw className="w-6 h-6 animate-spin text-blue-500 mx-auto mb-2" />
+            <p className="text-xs text-gray-500">Checking posting history...</p>
+          </div>
+        ) : hasPublishedLinks ? (
+          <div className="space-y-4">
+            <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                <span className="text-xs font-bold text-green-900 uppercase tracking-widest">
+                  Content Live
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                {blogPostings.map((posting, idx) => (
+                  <div
+                    key={idx}
+                    className="p-3 bg-white/80 rounded-lg border border-green-100 group/posting"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold text-gray-700">
+                        {PLATFORM_LABELS[posting.platform] || posting.platform}
+                      </span>
+                      <span className="text-[10px] text-gray-400 font-medium">
+                        {new Date(posting.postedAt).toLocaleDateString(undefined, {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      {posting.url ? (
+                        <a
+                          href={posting.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1 group"
+                        >
+                          View Blog
+                          <ExternalLink className="w-3 h-3 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                        </a>
+                      ) : (
+                        <span className="text-[10px] text-gray-400 italic">No URL available</span>
+                      )}
+
+                      <button
+                        onClick={() => {
+                          handlePopup({
+                            title: `Repost to ${PLATFORM_LABELS[posting.platform] || posting.platform}`,
+                            description: "Post again with the same settings?",
+                            confirmText: "Post Now",
+                            onConfirm: () => {
+                              onPost({
+                                ...formData,
+                                categories: posting.category,
+                                includeTableOfContents: posting.includeTableOfContents,
+                                type: { platform: posting.platform },
+                              })
+                            },
+                          })
+                        }}
+                        disabled={isPosting}
+                        className="p-1.5 bg-green-50 text-green-600 rounded-md hover:bg-green-100 transition-colors opacity-0 group-hover/posting:opacity-100 focus:opacity-100"
+                        title="Quick Repost"
+                      >
+                        <RefreshCw className={`w-3 h-3 ${isPosting ? "animate-spin" : ""}`} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+              <h4 className="text-xs font-bold text-gray-600 uppercase mb-2">Update or Repost</h4>
+              <p className="text-[11px] text-gray-500 mb-4 leading-relaxed">
+                Need to update the blog or post it to another platform? Click below to open the
+                publishing options.
+              </p>
+              <button
+                onClick={handlePostClick}
+                disabled={isPosting || !hasAnyIntegration}
+                className="w-full py-3 px-4 bg-white border-2 border-green-500 text-green-600 rounded-xl font-bold hover:bg-green-50 transition-all flex items-center justify-center gap-2 group shadow-sm active:scale-95"
+              >
+                <RefreshCcw className="w-4 h-4 transition-transform group-hover:rotate-180 duration-500" />
+                Repost to Platform
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="p-6 text-center bg-blue-50 rounded-2xl border border-blue-100">
+              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm border border-blue-50">
+                <Globe className="w-6 h-6 text-blue-600" />
+              </div>
+              <h4 className="text-sm font-bold text-blue-900 mb-2">Ready to Publish?</h4>
+              <p className="text-xs text-blue-700 leading-relaxed mb-6">
+                Connect with your audience. Post this blog to your website in just a few clicks.
+              </p>
+              <button
+                onClick={handlePostClick}
+                disabled={isPosting || !hasAnyIntegration}
+                className="w-full py-3.5 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold hover:shadow-lg hover:shadow-blue-200 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:grayscale"
+              >
+                <Send className="w-4 h-4" />
+                {isPosting ? "Posting Content..." : "Post to Platform"}
+              </button>
+            </div>
+
+            {!hasAnyIntegration && (
+              <div className="p-4 bg-amber-50 rounded-xl border border-amber-100 flex items-start gap-3">
+                <div className="p-1.5 bg-amber-100 rounded-lg">
+                  <Lock className="w-3.5 h-3.5 text-amber-600" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-amber-900 mb-1">No Platforms Connected</p>
+                  <p className="text-[10px] text-amber-700 leading-normal">
+                    You need to connect a WordPress, Shopify, or Wix site to publish.{" "}
+                    <button
+                      onClick={() => navigate("/plugins")}
+                      className="font-bold underline text-amber-900"
+                    >
+                      Connect Now
+                    </button>
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Connected Platforms List */}
+        {hasAnyIntegration && (
+          <div className="p-4 bg-white border border-gray-100 rounded-xl">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                Targets
+              </span>
+              <span className="px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-[9px] font-bold">
+                CONNECTED
+              </span>
+            </div>
+            <div className="space-y-2">
+              {Object.keys(integrations?.integrations || {}).map(platform => (
+                <div
+                  key={platform}
+                  className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors border border-transparent hover:border-gray-100"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+                    <span className="text-xs font-semibold text-gray-700 capitalize">
+                      {PLATFORM_LABELS[platform] || platform}
+                    </span>
+                  </div>
+                  <ExternalLink className="w-3 h-3 text-gray-300" />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+
   const renderPanel = () => {
     switch (activePanel) {
       case "overview":
@@ -1549,6 +1803,10 @@ const TextEditorSidebar = ({
         return renderSeoPanel()
       case "bloginfo":
         return renderBlogInfoPanel()
+      case "posting":
+        return renderPostingPanel()
+      case "regenerate":
+        return renderSuggestionsPanel()
       default:
         return renderOverviewPanel()
     }

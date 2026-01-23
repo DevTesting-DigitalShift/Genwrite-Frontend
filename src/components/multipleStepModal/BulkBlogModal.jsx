@@ -67,6 +67,8 @@ const BulkBlogModal = ({ closeFnc }) => {
     addCTA: false,
     isDragging: false,
     costCutter: true,
+    easyToUnderstand: false,
+    embedYouTubeVideos: false,
   }
 
   const initialErrorsState = {
@@ -182,10 +184,7 @@ const BulkBlogModal = ({ closeFnc }) => {
 
   const handlePrev = () => {
     setCurrentStep(prev => (prev > 0 ? prev - 1 : prev))
-    setErrors(prev => ({
-      ...prev,
-      ...initialErrorsState,
-    }))
+    setErrors(prev => ({ ...prev, ...initialErrorsState }))
   }
 
   const handleClose = () => {
@@ -241,8 +240,8 @@ const BulkBlogModal = ({ closeFnc }) => {
       const errorStep = newErrors.templates
         ? 0
         : newErrors.topics || newErrors.keywords || newErrors.tone
-        ? 1
-        : 2
+          ? 1
+          : 2
       setCurrentStep(errorStep)
       return
     }
@@ -334,10 +333,7 @@ const BulkBlogModal = ({ closeFnc }) => {
       val = value
     }
 
-    setFormData(prev => ({
-      ...prev,
-      [name]: val,
-    }))
+    setFormData(prev => ({ ...prev, [name]: val }))
     setErrors(prev => ({ ...prev, [name]: "" }))
   }
 
@@ -346,10 +342,7 @@ const BulkBlogModal = ({ closeFnc }) => {
     if (name === "wordpressPostStatus" && checked) {
       const hasAnyIntegration = Object.keys(integrations?.integrations || {}).length > 0
       if (!hasAnyIntegration) {
-        setErrors(prev => ({
-          ...prev,
-          integration: "Please connect your account in plugins.",
-        }))
+        setErrors(prev => ({ ...prev, integration: "Please connect your account in plugins." }))
         return
       }
     }
@@ -398,20 +391,13 @@ const BulkBlogModal = ({ closeFnc }) => {
       return false
     }
 
-    setFormData(prev => ({
-      ...prev,
-      topics: [...prev.topics, ...newTopics],
-      topicInput: "",
-    }))
+    setFormData(prev => ({ ...prev, topics: [...prev.topics, ...newTopics], topicInput: "" }))
     setErrors(prev => ({ ...prev, topics: "", topicsCSV: "" }))
     return true
   }
 
   const handleRemoveTopic = index => {
-    setFormData(prev => ({
-      ...prev,
-      topics: prev.topics.filter((_, i) => i !== index),
-    }))
+    setFormData(prev => ({ ...prev, topics: prev.topics.filter((_, i) => i !== index) }))
     setErrors(prev => ({ ...prev, topics: "", topicsCSV: "" }))
   }
 
@@ -447,10 +433,7 @@ const BulkBlogModal = ({ closeFnc }) => {
   }
 
   const handleRemoveKeyword = index => {
-    setFormData(prev => ({
-      ...prev,
-      keywords: prev.keywords.filter((_, i) => i !== index),
-    }))
+    setFormData(prev => ({ ...prev, keywords: prev.keywords.filter((_, i) => i !== index) }))
     setErrors(prev => ({ ...prev, keywords: "", keywordsCSV: "" }))
   }
 
@@ -470,10 +453,7 @@ const BulkBlogModal = ({ closeFnc }) => {
   }
 
   const handleIntegrationChange = platform => {
-    setFormData(prev => ({
-      ...prev,
-      postingType: platform,
-    }))
+    setFormData(prev => ({ ...prev, postingType: platform }))
     setErrors(prev => ({ ...prev, integration: "" }))
   }
 
@@ -489,10 +469,7 @@ const BulkBlogModal = ({ closeFnc }) => {
     }
 
     if (!file.name.toLowerCase().endsWith(".csv")) {
-      setErrors(prev => ({
-        ...prev,
-        topicsCSV: "Invalid file type. Please upload a .csv file.",
-      }))
+      setErrors(prev => ({ ...prev, topicsCSV: "Invalid file type. Please upload a .csv file." }))
       e.target.value = null
       return
     }
@@ -539,10 +516,7 @@ const BulkBlogModal = ({ closeFnc }) => {
         .filter(item => item && item.trim().length > 0)
 
       if (items.length === 0) {
-        setErrors(prev => ({
-          ...prev,
-          topicsCSV: "No valid topics found in the CSV file.",
-        }))
+        setErrors(prev => ({ ...prev, topicsCSV: "No valid topics found in the CSV file." }))
         return
       }
 
@@ -564,20 +538,14 @@ const BulkBlogModal = ({ closeFnc }) => {
         return
       }
 
-      setFormData(prev => ({
-        ...prev,
-        topics: [...prev.topics, ...uniqueNewItems],
-      }))
+      setFormData(prev => ({ ...prev, topics: [...prev.topics, ...uniqueNewItems] }))
       setErrors(prev => ({ ...prev, topics: "", topicsCSV: "" }))
       setRecentlyUploadedTopicsCount(uniqueNewItems.length)
       setTimeout(() => setRecentlyUploadedTopicsCount(null), 5000)
     }
 
     reader.onerror = () => {
-      setErrors(prev => ({
-        ...prev,
-        topicsCSV: "An error occurred while reading the CSV file.",
-      }))
+      setErrors(prev => ({ ...prev, topicsCSV: "An error occurred while reading the CSV file." }))
     }
 
     reader.readAsText(file)
@@ -596,10 +564,7 @@ const BulkBlogModal = ({ closeFnc }) => {
     }
 
     if (!file.name.toLowerCase().endsWith(".csv")) {
-      setErrors(prev => ({
-        ...prev,
-        keywordsCSV: "Invalid file type. Please upload a .csv file.",
-      }))
+      setErrors(prev => ({ ...prev, keywordsCSV: "Invalid file type. Please upload a .csv file." }))
       e.target.value = null
       return
     }
@@ -649,10 +614,7 @@ const BulkBlogModal = ({ closeFnc }) => {
         .filter(item => item && item.trim().length > 0)
 
       if (items.length === 0) {
-        setErrors(prev => ({
-          ...prev,
-          keywordsCSV: "No valid keywords found in the CSV file.",
-        }))
+        setErrors(prev => ({ ...prev, keywordsCSV: "No valid keywords found in the CSV file." }))
         return
       }
 
@@ -674,20 +636,14 @@ const BulkBlogModal = ({ closeFnc }) => {
         return
       }
 
-      setFormData(prev => ({
-        ...prev,
-        keywords: [...prev.keywords, ...uniqueNewItems],
-      }))
+      setFormData(prev => ({ ...prev, keywords: [...prev.keywords, ...uniqueNewItems] }))
       setErrors(prev => ({ ...prev, keywords: "", keywordsCSV: "" }))
       setRecentlyUploadedKeywordsCount(uniqueNewItems.length)
       setTimeout(() => setRecentlyUploadedKeywordsCount(null), 5000)
     }
 
     reader.onerror = () => {
-      setErrors(prev => ({
-        ...prev,
-        keywordsCSV: "An error occurred while reading the CSV file.",
-      }))
+      setErrors(prev => ({ ...prev, keywordsCSV: "An error occurred while reading the CSV file." }))
     }
 
     reader.readAsText(file)
@@ -716,10 +672,7 @@ const BulkBlogModal = ({ closeFnc }) => {
         return false
       }
       if (file.size > maxSize) {
-        setErrors(prev => ({
-          ...prev,
-          blogImages: `"${file.name}" exceeds the 5 MB size limit.`,
-        }))
+        setErrors(prev => ({ ...prev, blogImages: `"${file.name}" exceeds the 5 MB size limit.` }))
         return false
       }
       return true
@@ -727,10 +680,7 @@ const BulkBlogModal = ({ closeFnc }) => {
 
     const totalImages = formData.blogImages.length + validFiles.length
     if (totalImages > maxImages) {
-      setErrors(prev => ({
-        ...prev,
-        blogImages: `Cannot upload more than ${maxImages} images.`,
-      }))
+      setErrors(prev => ({ ...prev, blogImages: `Cannot upload more than ${maxImages} images.` }))
       return validFiles.slice(0, maxImages - formData.blogImages.length)
     }
 
@@ -743,10 +693,7 @@ const BulkBlogModal = ({ closeFnc }) => {
 
     const validFiles = validateImages(files)
     if (validFiles.length > 0) {
-      setFormData(prev => ({
-        ...prev,
-        blogImages: [...prev.blogImages, ...validFiles],
-      }))
+      setFormData(prev => ({ ...prev, blogImages: [...prev.blogImages, ...validFiles] }))
       setErrors(prev => ({ ...prev, blogImages: "" }))
     }
     if (fileInputRef.current) {
@@ -1150,10 +1097,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                         checked={formData.aiModel === model.id}
                         onChange={e => {
                           if (!model.restricted) {
-                            setFormData(prev => ({
-                              ...prev,
-                              aiModel: e.target.value,
-                            }))
+                            setFormData(prev => ({ ...prev, aiModel: e.target.value }))
                             setErrors(prev => ({ ...prev, aiModel: "" }))
                           }
                         }}
@@ -1185,10 +1129,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                       className="sr-only peer"
                       checked={formData.costCutter || false}
                       onChange={e => {
-                        setFormData(prev => ({
-                          ...prev,
-                          costCutter: e.target.checked,
-                        }))
+                        setFormData(prev => ({ ...prev, costCutter: e.target.checked }))
                       }}
                     />
                     <div
@@ -1199,6 +1140,78 @@ const BulkBlogModal = ({ closeFnc }) => {
                     <div
                       className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-300 shadow-md ${
                         formData.costCutter ? "translate-x-6" : ""
+                      }`}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {/* Easy to Understand Toggle */}
+              <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-4 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-semibold text-purple-900 mb-1">
+                      📖 Easy to Understand
+                    </h3>
+                    <p className="text-xs text-purple-700"></p>
+                  </div>
+                  <label
+                    htmlFor="bulk-easy-understand-toggle"
+                    className="relative inline-block w-12 h-6"
+                  >
+                    <input
+                      type="checkbox"
+                      id="bulk-easy-understand-toggle"
+                      className="sr-only peer"
+                      checked={formData.easyToUnderstand || false}
+                      onChange={e => {
+                        setFormData(prev => ({ ...prev, easyToUnderstand: e.target.checked }))
+                      }}
+                    />
+                    <div
+                      className={`w-12 h-6 rounded-full transition-all duration-300 ${
+                        formData.easyToUnderstand ? "bg-purple-500" : "bg-gray-300"
+                      }`}
+                    />
+                    <div
+                      className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-300 shadow-md ${
+                        formData.easyToUnderstand ? "translate-x-6" : ""
+                      }`}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {/* Embed YouTube Videos Toggle */}
+              <div className="bg-gradient-to-r from-red-50 to-pink-50 border border-red-200 rounded-xl p-4 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-semibold text-red-900 mb-1">
+                      🎥 Embed YouTube Videos
+                    </h3>
+                    <p className="text-xs text-red-700">Add relevant YouTube videos to your blog</p>
+                  </div>
+                  <label
+                    htmlFor="bulk-embed-youtube-toggle"
+                    className="relative inline-block w-12 h-6"
+                  >
+                    <input
+                      type="checkbox"
+                      id="bulk-embed-youtube-toggle"
+                      className="sr-only peer"
+                      checked={formData.embedYouTubeVideos || false}
+                      onChange={e => {
+                        setFormData(prev => ({ ...prev, embedYouTubeVideos: e.target.checked }))
+                      }}
+                    />
+                    <div
+                      className={`w-12 h-6 rounded-full transition-all duration-300 ${
+                        formData.embedYouTubeVideos ? "bg-red-500" : "bg-gray-300"
+                      }`}
+                    />
+                    <div
+                      className={`absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform duration-300 shadow-md ${
+                        formData.embedYouTubeVideos ? "translate-x-6" : ""
                       }`}
                     />
                   </label>
@@ -1231,11 +1244,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                           isCheckedGeneratedImages: checked,
                           imageSource: checked ? prev.imageSource : "unsplash",
                         }))
-                        setErrors(prev => ({
-                          ...prev,
-                          numberOfImages: "",
-                          blogImages: "",
-                        }))
+                        setErrors(prev => ({ ...prev, numberOfImages: "", blogImages: "" }))
                       }}
                     />
                     <div

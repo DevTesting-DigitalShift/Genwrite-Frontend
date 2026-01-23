@@ -115,6 +115,16 @@ export const quickBlogFinalDataSchema = z.object({
 
   costCutter: z.boolean().default(true).describe("Use AI Flash model for 25% credit savings"),
 
+  easyToUnderstand: z
+    .boolean()
+    .default(false)
+    .describe("Use v2 system prompts for 8th grader level readability"),
+
+  embedYouTubeVideos: z
+    .boolean()
+    .default(false)
+    .describe("Embed YouTube videos in the blog content"),
+
   type: z.enum(["quick", "yt"]).describe("Blog type: quick (standard) or yt (YouTube-based)"),
 
   otherLinks: z
@@ -218,6 +228,16 @@ export const bulkBlogFinalDataSchema = z
     addCTA: z.boolean().default(false).describe("Whether to add call-to-action"),
 
     costCutter: z.boolean().default(true).describe("Use AI Flash model for 25% credit savings"),
+
+    easyToUnderstand: z
+      .boolean()
+      .default(false)
+      .describe("Use v2 system prompts for 8th grader level readability"),
+
+    embedYouTubeVideos: z
+      .boolean()
+      .default(false)
+      .describe("Embed YouTube videos in the blog content"),
   })
   .transform(data => {
     // Strip irrelevant UI state fields
@@ -292,6 +312,16 @@ export const jobBlogConfigSchema = z.object({
   languageToWrite: languageSchema.default(Language.ENGLISH).describe("Content language"),
 
   costCutter: z.boolean().default(true).describe("Enable cost cutter mode"),
+
+  easyToUnderstand: z
+    .boolean()
+    .default(false)
+    .describe("Use v2 system prompts for 8th grader level readability"),
+
+  embedYouTubeVideos: z
+    .boolean()
+    .default(false)
+    .describe("Embed YouTube videos in the blog content"),
 })
 
 export const jobOptionsSchema = z.object({
@@ -308,6 +338,16 @@ export const jobOptionsSchema = z.object({
   includeTableOfContents: z.boolean().default(false).describe("Include table of contents"),
 
   addOutBoundLinks: z.boolean().default(false).describe("Include outbound links"),
+
+  easyToUnderstand: z
+    .boolean()
+    .default(false)
+    .describe("Use v2 system prompts for 8th grader level readability"),
+
+  embedYouTubeVideos: z
+    .boolean()
+    .default(false)
+    .describe("Embed YouTube videos in the blog content"),
 
   brandId: z.string().nullable().optional().describe("Brand voice ID for job"),
 })
@@ -352,6 +392,16 @@ export const advancedBlogOptionsSchema = z.object({
   addOutBoundLinks: z.boolean().default(false).describe("Include outbound links"),
 
   addCTA: z.boolean().default(false).describe("Add call-to-action"),
+
+  easyToUnderstand: z
+    .boolean()
+    .default(false)
+    .describe("Use v2 system prompts for 8th grader level readability"),
+
+  embedYouTubeVideos: z
+    .boolean()
+    .default(false)
+    .describe("Embed YouTube videos in the blog content"),
 })
 
 export const advancedBlogFinalDataSchema = z
@@ -417,6 +467,16 @@ export const advancedBlogFinalDataSchema = z
       .describe("Target language for content"),
 
     costCutter: z.boolean().default(true).describe("Use AI Flash model for 25% savings"),
+
+    easyToUnderstand: z
+      .boolean()
+      .default(false)
+      .describe("Use v2 system prompts for 8th grader level readability"),
+
+    embedYouTubeVideos: z
+      .boolean()
+      .default(false)
+      .describe("Embed YouTube videos in the blog content"),
 
     options: advancedBlogOptionsSchema.describe("Advanced blog options"),
   })
@@ -489,6 +549,14 @@ export const regenerateBlogOptionsSchema = z.object({
   addCTA: z.boolean().default(false).describe("Add call-to-action"),
   automaticPosting: z.boolean().default(false).describe("Enable automatic posting"),
   includeTableOfContents: z.boolean().default(false).describe("Include table of contents"),
+  easyToUnderstand: z
+    .boolean()
+    .default(false)
+    .describe("Use v2 system prompts for 8th grader level readability"),
+  embedYouTubeVideos: z
+    .boolean()
+    .default(false)
+    .describe("Embed YouTube videos in the blog content"),
 })
 
 export const regenerateBlogSchema = z.object({

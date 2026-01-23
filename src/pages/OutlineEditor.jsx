@@ -10,7 +10,7 @@ import clsx from "clsx"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 import { selectUser } from "@store/slices/authSlice"
 import { brandsQuery } from "@api/Brand/Brand.query"
-import LoadingScreen from "@components/UI/LoadingScreen"
+import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
 
 const { Option } = Select
 
@@ -109,8 +109,8 @@ const OutlineEditor = () => {
       type === "keywords"
         ? "keywordInput"
         : type === "focusKeywords"
-        ? "focusKeywordInput"
-        : "resourceInput"
+          ? "focusKeywordInput"
+          : "resourceInput"
     setFormData(prev => ({ ...prev, [key]: e.target.value }))
     setErrors(prev => ({ ...prev, [type]: false }))
   }
@@ -120,8 +120,8 @@ const OutlineEditor = () => {
       type === "keywords"
         ? "keywordInput"
         : type === "focusKeywords"
-        ? "focusKeywordInput"
-        : "resourceInput"
+          ? "focusKeywordInput"
+          : "resourceInput"
     const inputValue = formData[inputKey].trim()
 
     if (!inputValue) {
@@ -165,11 +165,7 @@ const OutlineEditor = () => {
       }
     }
 
-    setFormData(prev => ({
-      ...prev,
-      [type]: [...prev[type], ...newItems],
-      [inputKey]: "",
-    }))
+    setFormData(prev => ({ ...prev, [type]: [...prev[type], ...newItems], [inputKey]: "" }))
     setErrors(prev => ({ ...prev, [type]: false }))
   }
 
@@ -291,7 +287,7 @@ const OutlineEditor = () => {
 
   return (
     <>
-      {isSubmitting && <LoadingScreen message="Generating your outline..." />}
+      {isSubmitting && <ProgressLoadingScreen message="Generating your outline..." />}
       <div className="px-4 sm:px-6 lg:px-8">
         <Modal
           title={
@@ -299,8 +295,8 @@ const OutlineEditor = () => {
               {currentStep === 0
                 ? "Select Template"
                 : currentStep === 1
-                ? "Tell us about your blog, we'll outline it for you!"
-                : "Brand Voice & Resources"}
+                  ? "Tell us about your blog, we'll outline it for you!"
+                  : "Brand Voice & Resources"}
             </span>
           }
           open={isOpen}
@@ -318,70 +314,67 @@ const OutlineEditor = () => {
                   </button>,
                 ]
               : currentStep === 1
-              ? [
-                  <button
-                    key="previous"
-                    onClick={handlePrev}
-                    className="px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 text-sm sm:text-base"
-                    aria-label="Go to previous step"
-                  >
-                    Previous
-                  </button>,
-                  <button
-                    key="next"
-                    onClick={handleNext}
-                    className="px-4 py-2 sm:px-6 sm:py-2.5 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 ml-2 sm:ml-3 text-sm sm:text-base"
-                    aria-label="Proceed to brand and resources"
-                  >
-                    Next
-                  </button>,
-                ]
-              : currentStep === 2
-              ? [
-                  <button
-                    key="previous"
-                    onClick={handlePrev}
-                    className="px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 text-sm sm:text-base"
-                    aria-label="Go to previous step"
-                  >
-                    Previous
-                  </button>,
-                  <button
-                    key="submit"
-                    onClick={handleSubmit}
-                    className="px-4 py-2 sm:px-6 sm:py-2.5 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 ml-2 sm:ml-3 text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={isSubmitting}
-                    aria-label="Submit blog"
-                  >
-                    {isSubmitting ? "Submitting..." : "Submit"}
-                  </button>,
-                ]
-              : [
-                  <button
-                    key="export"
-                    onClick={handleExportMarkdown}
-                    className="px-4 py-2 sm:px-6 sm:py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm sm:text-base"
-                    aria-label="Export as Markdown"
-                  >
-                    Export as Markdown
-                  </button>,
-                  <button
-                    key="close"
-                    onClick={handleClose}
-                    className="px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 ml-2 sm:ml-3 text-sm sm:text-base"
-                    aria-label="Close modal"
-                  >
-                    Close
-                  </button>,
-                ]
+                ? [
+                    <button
+                      key="previous"
+                      onClick={handlePrev}
+                      className="px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 text-sm sm:text-base"
+                      aria-label="Go to previous step"
+                    >
+                      Previous
+                    </button>,
+                    <button
+                      key="next"
+                      onClick={handleNext}
+                      className="px-4 py-2 sm:px-6 sm:py-2.5 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 ml-2 sm:ml-3 text-sm sm:text-base"
+                      aria-label="Proceed to brand and resources"
+                    >
+                      Next
+                    </button>,
+                  ]
+                : currentStep === 2
+                  ? [
+                      <button
+                        key="previous"
+                        onClick={handlePrev}
+                        className="px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 text-sm sm:text-base"
+                        aria-label="Go to previous step"
+                      >
+                        Previous
+                      </button>,
+                      <button
+                        key="submit"
+                        onClick={handleSubmit}
+                        className="px-4 py-2 sm:px-6 sm:py-2.5 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90 ml-2 sm:ml-3 text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={isSubmitting}
+                        aria-label="Submit blog"
+                      >
+                        {isSubmitting ? "Submitting..." : "Submit"}
+                      </button>,
+                    ]
+                  : [
+                      <button
+                        key="export"
+                        onClick={handleExportMarkdown}
+                        className="px-4 py-2 sm:px-6 sm:py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm sm:text-base"
+                        aria-label="Export as Markdown"
+                      >
+                        Export as Markdown
+                      </button>,
+                      <button
+                        key="close"
+                        onClick={handleClose}
+                        className="px-3 py-1.5 sm:px-4 sm:py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 ml-2 sm:ml-3 text-sm sm:text-base"
+                        aria-label="Close modal"
+                      >
+                        Close
+                      </button>,
+                    ]
           }
           width="90vw"
           style={{ maxWidth: "800px" }}
           centered
-          maskStyle={{
-            backdropFilter: "blur(4px)",
-            backgroundColor: "rgba(0, 0, 0, 0.35)",
-          }}
+          maskStyle={{ backdropFilter: "blur(4px)", backgroundColor: "rgba(0, 0, 0, 0.35)" }}
         >
           <div className="px-2 sm:px-4">
             {currentStep === 0 && (

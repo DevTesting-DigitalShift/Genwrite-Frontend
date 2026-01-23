@@ -15,12 +15,7 @@ import type { UploadFile } from "antd"
 // ============================================================================
 
 /** Image source options for blog generation */
-export const ImageSource = {
-  NONE: "none",
-  STOCK: "stock",
-  AI: "ai",
-  UPLOAD: "upload",
-} as const
+export const ImageSource = { NONE: "none", STOCK: "stock", AI: "ai", UPLOAD: "upload" } as const
 
 export type ImageSourceType = (typeof ImageSource)[keyof typeof ImageSource]
 
@@ -100,6 +95,7 @@ export interface QuickBlogFormData {
   keywordInput: string
   languageToWrite: LanguageType
   costCutter: boolean
+  easyToUnderstand: boolean
 }
 
 /** Data sent to API/Redux for QuickBlogModal */
@@ -115,6 +111,8 @@ export interface QuickBlogFinalData {
   focusKeywords: string[]
   languageToWrite: LanguageType
   costCutter: boolean
+  easyToUnderstand: boolean
+  embedYouTubeVideos: boolean
   type: "quick" | "yt"
   otherLinks: string[]
 }
@@ -154,6 +152,8 @@ export interface BulkBlogFormData {
   addCTA: boolean
   isDragging: boolean
   costCutter: boolean
+  easyToUnderstand: boolean
+  embedYouTubeVideos: boolean
 }
 
 /** Data sent to API/Redux for BulkBlogModal */
@@ -184,6 +184,8 @@ export interface BulkBlogFinalData {
   brandId: string | null
   addCTA: boolean
   costCutter: boolean
+  easyToUnderstand: boolean
+  embedYouTubeVideos: boolean
 }
 
 // ============================================================================
@@ -218,6 +220,8 @@ export interface JobBlogConfig {
   postingType: PostingType
   languageToWrite: LanguageType
   costCutter: boolean
+  easyToUnderstand: boolean
+  embedYouTubeVideos: boolean
 }
 
 /** Boolean options for job configuration */
@@ -229,6 +233,8 @@ export interface JobOptions {
   performKeywordResearch: boolean
   includeTableOfContents: boolean
   addOutBoundLinks: boolean
+  embedYouTubeVideos: boolean
+  easyToUnderstand: boolean
 }
 
 /** Internal form state for JobModal */
@@ -264,9 +270,7 @@ export interface JobFinalData {
     imageSource: ImageSourceType
     brandId: string | null
   }
-  options: JobOptions & {
-    performKeywordResearch: boolean
-  }
+  options: JobOptions & { performKeywordResearch: boolean }
   status: "active" | "stop"
   templateIds: number[]
 }
@@ -284,6 +288,8 @@ export interface AdvancedBlogOptions {
   includeCompetitorResearch: boolean
   addOutBoundLinks: boolean
   addCTA: boolean
+  embedYouTubeVideos: boolean
+  easyToUnderstand: boolean
 }
 
 /** Internal form state for AdvancedBlogModal */
@@ -308,6 +314,8 @@ export interface AdvancedBlogFormData {
   brandId: string
   languageToWrite: LanguageType
   costCutter: boolean
+  easyToUnderstand: boolean
+  embedYouTubeVideos: boolean
   options: AdvancedBlogOptions
 }
 

@@ -194,11 +194,11 @@ const MainEditorPage = () => {
       const postedData = response?.data?.posting?.items?.[postData.type.platform] || null
       setIsPosted(prev => ({ ...(prev || {}), [postData.type.platform]: postedData }))
       message.success(
-        `Blog ${isPosted?.[postData.type.platform] ? "updated" : "posted"} successfully!`,
+        `Blog ${isPosted?.[postData.type.platform] ? "updated" : "posted"} successfully!`
       )
     } catch (error) {
       message.error(
-        error.response?.data?.message || `Failed to ${isPosted ? "update" : "post to"} WordPress.`,
+        error.response?.data?.message || `Failed to ${isPosted ? "update" : "post to"} WordPress.`
       )
     } finally {
       setIsPosting(false)
@@ -216,7 +216,8 @@ const MainEditorPage = () => {
       .filter(word => word.length > 0).length
   }
 
-  const handleSave = async ({ metadata }) => {
+  const handleSave = async (updateData = {}) => {
+    const { metadata, slug, ...rest } = updateData
     if (userPlan === "free" || userPlan === "basic") {
       navigate("/pricing")
       return
@@ -237,10 +238,12 @@ const MainEditorPage = () => {
           published: blog?.published,
           focusKeywords: blog?.focusKeywords,
           keywords,
+          slug: slug !== undefined ? slug : blog?.slug,
           seoMetadata: metadata
             ? { title: metadata.title, description: metadata.description }
             : blog?.seoMetadata || { title: "", description: "" },
-        }),
+          ...rest,
+        })
       ).unwrap()
 
       message.success("Blog updated successfully")
@@ -276,7 +279,7 @@ const MainEditorPage = () => {
           seoMetadata: metadata
             ? { title: metadata.title, description: metadata.description }
             : blog?.seoMetadata || { title: "", description: "" },
-        }),
+        })
       ).unwrap()
       const res = await sendRetryLines(blog._id)
       if (res.data) {

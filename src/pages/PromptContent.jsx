@@ -6,7 +6,7 @@ import { RefreshCw, Sparkles, Copy, Check } from "lucide-react"
 import { generatePromptContentThunk, resetMetadata } from "@store/slices/otherSlice"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
-import LoadingScreen from "@components/UI/LoadingScreen"
+import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
 const { TextArea } = Input
 
 const PromptContent = () => {
@@ -98,10 +98,7 @@ const PromptContent = () => {
       <div
         className="prose max-w-none p-4 bg-gray-50 rounded-lg border"
         dangerouslySetInnerHTML={{ __html: htmlContent }}
-        style={{
-          lineHeight: "1.6",
-          color: "#374151",
-        }}
+        style={{ lineHeight: "1.6", color: "#374151" }}
       />
     )
   }
@@ -111,6 +108,14 @@ const PromptContent = () => {
     .split(/\s+/)
     .filter(word => word.length > 0).length
   const promptLength = prompt.trim().length
+
+  if (isGenerating) {
+    return (
+      <div className="h-[calc(100vh-200px)] p-4 flex items-center justify-center">
+        <ProgressLoadingScreen message="Generating content..." />
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 p-5">
@@ -235,13 +240,6 @@ const PromptContent = () => {
           </Button>
         </div>
       </div>
-
-      {/* Loading State */}
-      {isGenerating && (
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <LoadingScreen />
-        </div>
-      )}
 
       {/* Generated Content Display */}
       {generatedContent?.data && !isGenerating && (

@@ -13,7 +13,7 @@ import {
 import { Button, message } from "antd"
 import { useDispatch, useSelector } from "react-redux"
 import { detectAiContent, resetAiDetection } from "@store/slices/toolsSlice"
-import LoadingScreen from "@components/UI/LoadingScreen"
+import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
 
 const AiContentDetection = () => {
   const [inputContent, setInputContent] = useState("")
@@ -94,7 +94,7 @@ const AiContentDetection = () => {
   if (isLoading) {
     return (
       <div className="h-[calc(100vh-200px)] p-4 flex items-center justify-center">
-        <LoadingScreen message="Analyzing your content..." />
+        <ProgressLoadingScreen message="Analyzing your content..." />
       </div>
     )
   }

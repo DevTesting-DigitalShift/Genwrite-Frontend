@@ -40,6 +40,8 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
       performKeywordResearch: false,
       includeTableOfContents: false,
       addOutBoundLinks: false,
+      easyToUnderstand: false,
+      embedYouTubeVideos: false,
     },
     status: "active",
     templateIds: [],
@@ -344,10 +346,10 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
         currentStep === 1
           ? "Select Templates"
           : currentStep === 2
-          ? "Job Details"
-          : currentStep === 3
-          ? "Schedule Settings"
-          : "Blog Options"
+            ? "Job Details"
+            : currentStep === 3
+              ? "Schedule Settings"
+              : "Blog Options"
       }`}
       open={showJobModal}
       onCancel={() => {

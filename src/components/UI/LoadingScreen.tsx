@@ -59,20 +59,18 @@ const LoadingScreen = ({
     }
   }, [maxDuration, onTimeout])
 
-  // Performance monitoring in development
+  // Performance monitoring
   useEffect(() => {
-    if (import.meta.env.NODE_ENV === "development") {
-      const startTime = performance.now()
+    const startTime = performance.now()
 
-      return () => {
-        const endTime = performance.now()
-        const duration = endTime - startTime
-        if (duration > 3000) {
-          console.warn(
-            `LoadingScreen: Long display duration detected: ${(duration / 1000).toFixed(2)}s. ` +
-              `Consider optimizing the loading operation.`
-          )
-        }
+    return () => {
+      const endTime = performance.now()
+      const duration = endTime - startTime
+      if (duration > 3000) {
+        console.warn(
+          `LoadingScreen: Long display duration detected: ${(duration / 1000).toFixed(2)}s. ` +
+            `Consider optimizing the loading operation.`
+        )
       }
     }
   }, [])

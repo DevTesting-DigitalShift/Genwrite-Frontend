@@ -6,6 +6,7 @@ import { PlusOutlined, CloseOutlined, CopyOutlined } from "@ant-design/icons"
 import { generateMetadataThunk, resetMetadata } from "@store/slices/otherSlice"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { RefreshCw, Sparkles } from "lucide-react"
+import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
 
 const { TextArea } = Input
 
@@ -17,15 +18,15 @@ const GenerateMetaData = () => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
-  const userPlan = useSelector((state) => state.auth.user?.subscription?.plan)
-  const metadata = useSelector((state) => state.wordpress.metadata)
+  const userPlan = useSelector(state => state.auth.user?.subscription?.plan)
+  const metadata = useSelector(state => state.wordpress.metadata)
 
   // Calculate word count
   const wordCount = useCallback(() => {
     const words = content
       .trim()
       .split(/\s+/)
-      .filter((word) => word.length > 0)
+      .filter(word => word.length > 0)
     return words.length
   }, [content])
 
@@ -47,11 +48,7 @@ const GenerateMetaData = () => {
 
     setIsGenerating(true)
     try {
-      await dispatch(
-        generateMetadataThunk({
-          content,
-        })
-      ).unwrap()
+      await dispatch(generateMetadataThunk({ content })).unwrap()
       message.success("Metadata generated successfully!")
     } catch (error) {
       console.error("Error generating metadata:", error)
@@ -65,17 +62,17 @@ const GenerateMetaData = () => {
     if (newKeyword.trim()) {
       const newKeywordsArray = newKeyword
         .split(",")
-        .map((k) => k.trim().toLowerCase())
-        .filter((k) => k && !keywords.map((kw) => kw.toLowerCase()).includes(k))
+        .map(k => k.trim().toLowerCase())
+        .filter(k => k && !keywords.map(kw => kw.toLowerCase()).includes(k))
       if (newKeywordsArray.length > 0) {
-        setKeywords((prev) => [...prev, ...newKeywordsArray])
+        setKeywords(prev => [...prev, ...newKeywordsArray])
       }
       setNewKeyword("")
     }
   }, [newKeyword, keywords])
 
   const handleKeyDown = useCallback(
-    (e) => {
+    e => {
       if (e.key === "Enter") {
         e.preventDefault()
         addKeyword()
@@ -84,8 +81,8 @@ const GenerateMetaData = () => {
     [addKeyword]
   )
 
-  const removeKeyword = useCallback((keyword) => {
-    setKeywords((prev) => prev.filter((k) => k !== keyword))
+  const removeKeyword = useCallback(keyword => {
+    setKeywords(prev => prev.filter(k => k !== keyword))
   }, [])
 
   const copyToClipboard = (text, label) => {
@@ -106,6 +103,14 @@ const GenerateMetaData = () => {
     dispatch(resetMetadata())
     message.success("Content and metadata reset!")
   }, [dispatch])
+
+  if (isGenerating) {
+    return (
+      <div className="h-[calc(100vh-200px)] p-4 flex items-center justify-center">
+        <ProgressLoadingScreen message="Generating metadata..." />
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 p-5">
@@ -166,7 +171,7 @@ const GenerateMetaData = () => {
             </div>
             <TextArea
               value={content}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={e => setContent(e.target.value)}
               placeholder="Enter your content here..."
               rows={12}
               className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 custom-scroll"
@@ -174,7 +179,9 @@ const GenerateMetaData = () => {
           </div>
 
           <div className="flex justify-end items-center">
-            <p className={`text-sm mb-2 ${wordCount() < 300 ? "text-yellow-500" : "text-green-600"}`}>
+            <p
+              className={`text-sm mb-2 ${wordCount() < 300 ? "text-yellow-500" : "text-green-600"}`}
+            >
               Word count: {wordCount()} {wordCount() < 300 ? "(Minimum 60 words required)" : ""}
             </p>
           </div>

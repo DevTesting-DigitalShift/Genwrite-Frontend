@@ -42,10 +42,7 @@ const StepContent = ({
 
   useEffect(() => {
     if (integrations?.integrations?.size) {
-      setFormData(prev => ({
-        ...prev,
-        postingType: integrations.integrations.key().next().value,
-      }))
+      setFormData(prev => ({ ...prev, postingType: integrations.integrations.key().next().value }))
     }
   }, [integrations])
 
@@ -73,22 +70,13 @@ const StepContent = ({
     if (isAiImagesLimitReached && newJob.blogs.isCheckedGeneratedImages) {
       setNewJob(prev => ({
         ...prev,
-        blogs: {
-          ...prev.blogs,
-          isCheckedGeneratedImages: false,
-          imageSource: "stock",
-        },
+        blogs: { ...prev.blogs, isCheckedGeneratedImages: false, imageSource: "stock" },
       }))
     }
   }, [isAiImagesLimitReached, newJob.blogs.isCheckedGeneratedImages])
 
   const imageSources = [
-    {
-      id: "stock",
-      label: "Stock Images",
-      value: "stock",
-      restricted: false,
-    },
+    { id: "stock", label: "Stock Images", value: "stock", restricted: false },
     {
       id: "ai",
       label: "AI-Generated Images",
@@ -124,10 +112,7 @@ const StepContent = ({
   ]
 
   const handleIntegrationChange = platform => {
-    setFormData(prev => ({
-      ...prev,
-      postingType: platform,
-    }))
+    setFormData(prev => ({ ...prev, postingType: platform }))
     setErrors(prev => ({ ...prev, postingType: false })) // Clear error on change
   }
 
@@ -153,10 +138,7 @@ const StepContent = ({
     if (newItems.length === 0) return
 
     if (type === "topics") {
-      setFormData(prev => ({
-        ...prev,
-        topicInput: "",
-      }))
+      setFormData(prev => ({ ...prev, topicInput: "" }))
       setNewJob(prev => ({
         ...prev,
         blogs: { ...prev.blogs, topics: [...prev.blogs.topics, ...newItems] },
@@ -194,13 +176,7 @@ const StepContent = ({
     }
 
     // Update state
-    setNewJob(prev => ({
-      ...prev,
-      blogs: {
-        ...prev.blogs,
-        [name]: val,
-      },
-    }))
+    setNewJob(prev => ({ ...prev, blogs: { ...prev.blogs, [name]: val } }))
   }
 
   const handleCSVUpload = (e, type) => {
@@ -285,10 +261,7 @@ const StepContent = ({
         }))
         setErrors(prev => ({ ...prev, topics: false }))
       } else {
-        setFormData(prev => ({
-          ...prev,
-          keywords: [...prev.keywords, ...uniqueNewItems],
-        }))
+        setFormData(prev => ({ ...prev, keywords: [...prev.keywords, ...uniqueNewItems] }))
         setNewJob(prev => ({
           ...prev,
           blogs: { ...prev.blogs, keywords: [...prev.blogs.keywords, ...uniqueNewItems] },
@@ -327,10 +300,7 @@ const StepContent = ({
         return
       }
     }
-    setNewJob(prev => ({
-      ...prev,
-      options: { ...prev.options, [name]: checked },
-    }))
+    setNewJob(prev => ({ ...prev, options: { ...prev.options, [name]: checked } }))
     if (name === "performKeywordResearch") {
       setFormData(prev => ({ ...prev, performKeywordResearch: checked }))
       setErrors(prev => ({ ...prev, keywords: false })) // Clear keyword error if enabling research
@@ -350,10 +320,7 @@ const StepContent = ({
       if (numberValue < 0) numberValue = 0 // optional: clamp to min
     }
 
-    setNewJob(prev => ({
-      ...prev,
-      blogs: { ...prev.blogs, numberOfBlogs: numberValue },
-    }))
+    setNewJob(prev => ({ ...prev, blogs: { ...prev.blogs, numberOfBlogs: numberValue } }))
 
     setErrors(prev => ({ ...prev, numberOfBlogs: false }))
   }
@@ -369,11 +336,7 @@ const StepContent = ({
   const handleImageSourceChange = source => {
     setNewJob(prev => ({
       ...prev,
-      blogs: {
-        ...prev.blogs,
-        imageSource: source,
-        isstockActive: source === "stock",
-      },
+      blogs: { ...prev.blogs, imageSource: source, isstockActive: source === "stock" },
     }))
     setErrors(prev => ({ ...prev, imageSource: false })) // Clear error
   }
@@ -416,10 +379,7 @@ const StepContent = ({
     if (validFiles.length > 0) {
       setNewJob(prev => ({
         ...prev,
-        blogs: {
-          ...prev.blogs,
-          blogImages: [...prev.blogs.blogImages, ...validFiles],
-        },
+        blogs: { ...prev.blogs, blogImages: [...prev.blogs.blogImages, ...validFiles] },
       }))
       message.success(`${validFiles.length} image(s) added successfully!`)
     }
@@ -440,10 +400,7 @@ const StepContent = ({
     if (validFiles.length > 0) {
       setNewJob(prev => ({
         ...prev,
-        blogs: {
-          ...prev.blogs,
-          blogImages: [...prev.blogs.blogImages, ...validFiles],
-        },
+        blogs: { ...prev.blogs, blogImages: [...prev.blogs.blogImages, ...validFiles] },
       }))
       // message.success(`${validFiles.length} image(s) added successfully!`)
     }
@@ -464,20 +421,14 @@ const StepContent = ({
   const handleRemoveImage = index => {
     setNewJob(prev => ({
       ...prev,
-      blogs: {
-        ...prev.blogs,
-        blogImages: prev.blogs.blogImages.filter((_, i) => i !== index),
-      },
+      blogs: { ...prev.blogs, blogImages: prev.blogs.blogImages.filter((_, i) => i !== index) },
     }))
   }
 
   const handleTemplateSelection = useCallback(temps => {
     setNewJob(prev => ({
       ...prev,
-      blogs: {
-        ...prev.blogs,
-        templates: temps.map(t => t.name),
-      },
+      blogs: { ...prev.blogs, templates: temps.map(t => t.name) },
       templateIds: temps.map(t => t.id),
     }))
     setErrors(prev => ({ ...prev, templates: false }))
@@ -1256,10 +1207,7 @@ const StepContent = ({
                   onChange={e => {
                     setNewJob(prev => ({
                       ...prev,
-                      blogs: {
-                        ...prev.blogs,
-                        costCutter: e.target.checked,
-                      },
+                      blogs: { ...prev.blogs, costCutter: e.target.checked },
                     }))
                   }}
                 />
@@ -1481,6 +1429,16 @@ const StepContent = ({
                     },
                   ]
                 : []),
+              {
+                label: "Easy to Understand",
+                name: "easyToUnderstand",
+                desc: " for better accessibility.",
+              },
+              {
+                label: "Embed YouTube Videos",
+                name: "embedYouTubeVideos",
+                desc: "Add relevant YouTube videos to your blog content.",
+              },
             ].map(({ label, name, desc }) => (
               <div key={name} className="flex items-start justify-between py-2 mt-3">
                 <span className="text-sm font-medium text-gray-700">

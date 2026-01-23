@@ -12,7 +12,7 @@ import {
 import { Button, message } from "antd"
 import { useDispatch, useSelector } from "react-redux"
 import { summarizeYoutube, resetYoutubeSummary } from "@store/slices/toolsSlice"
-import LoadingScreen from "@components/UI/LoadingScreen"
+import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
 
 const YouTubeSummarization = () => {
   const [inputUrl, setInputUrl] = useState("")
@@ -87,7 +87,7 @@ const YouTubeSummarization = () => {
   if (isLoading) {
     return (
       <div className="h-[calc(100vh-200px)] p-4 flex items-center justify-center">
-        <LoadingScreen message="Summarizing YouTube video..." />
+        <ProgressLoadingScreen message="Summarizing YouTube video..." isYouTube={true} />
       </div>
     )
   }

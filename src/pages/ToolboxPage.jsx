@@ -25,6 +25,7 @@ import { Rocket } from "lucide-react"
 import { Layers } from "lucide-react"
 import { checkSufficientCredits, getInsufficientCreditsPopup } from "@/utils/creditCheck.jsx"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
 
 export default function ToolboxPage() {
   const navigate = useNavigate()
@@ -344,6 +345,7 @@ export default function ToolboxPage() {
 
   return (
     <>
+      {analyzing && <ProgressLoadingScreen message="Analyzing keywords..." />}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

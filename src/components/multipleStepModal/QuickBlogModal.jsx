@@ -36,15 +36,11 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     keywordInput: "",
     languageToWrite: "English",
     costCutter: true,
+    easyToUnderstand: false,
+    embedYouTubeVideos: false,
   }
 
-  const initialErrors = {
-    topic: "",
-    template: "",
-    focusKeywords: "",
-    keywords: "",
-    otherLinks: "",
-  }
+  const initialErrors = { topic: "", template: "", focusKeywords: "", keywords: "", otherLinks: "" }
 
   const [formData, setFormData] = useState(initialFormData)
   const [errors, setErrors] = useState(initialErrors)
@@ -107,10 +103,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
 
   const handleChange = e => {
     const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }))
+    setFormData(prev => ({ ...prev, [name]: value }))
     setErrors(prev => ({ ...prev, [name]: "" }))
   }
 
@@ -138,10 +131,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     }
 
     if (otherLinks.length > 3) {
-      setErrors(prev => ({
-        ...prev,
-        otherLinks: "You can only add up to 3 links.",
-      }))
+      setErrors(prev => ({ ...prev, otherLinks: "You can only add up to 3 links." }))
       message.error("You can only add up to 3 links.")
       return
     }
@@ -201,13 +191,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
 
           // Dispatch and await the result
           await dispatch(
-            createNewQuickBlog({
-              blogData: validatedData,
-              user,
-              navigate,
-              type,
-              queryClient,
-            })
+            createNewQuickBlog({ blogData: validatedData, user, navigate, type, queryClient })
           ).unwrap()
 
           // ✅ Only close modal on success
@@ -235,10 +219,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   // Handle keyword input changes
   const handleKeywordInputChange = (e, type) => {
     const key = type === "keywords" ? "keywordInput" : "focusKeywordInput"
-    setFormData(prev => ({
-      ...prev,
-      [key]: e.target.value,
-    }))
+    setFormData(prev => ({ ...prev, [key]: e.target.value }))
     setErrors(prev => ({ ...prev, [type]: "" }))
   }
 
@@ -267,18 +248,11 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     }
 
     if (type === "focusKeywords" && formData[type].length + newKeywords.length > 3) {
-      setErrors(prev => ({
-        ...prev,
-        [type]: "You can only add up to 3 focus keywords.",
-      }))
+      setErrors(prev => ({ ...prev, [type]: "You can only add up to 3 focus keywords." }))
       return
     }
 
-    setFormData(prev => ({
-      ...prev,
-      [type]: [...prev[type], ...newKeywords],
-      [inputKey]: "",
-    }))
+    setFormData(prev => ({ ...prev, [type]: [...prev[type], ...newKeywords], [inputKey]: "" }))
     setErrors(prev => ({ ...prev, [type]: "" }))
   }
 
@@ -390,26 +364,17 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     }
 
     if (validNewLinks.length === 0) {
-      setErrors(prev => ({
-        ...prev,
-        otherLinks: "No valid, unique links found.",
-      }))
+      setErrors(prev => ({ ...prev, otherLinks: "No valid, unique links found." }))
       return
     }
 
     if (otherLinks.length + validNewLinks.length > maxLinks) {
-      setErrors(prev => ({
-        ...prev,
-        otherLinks: `You can only add up to ${maxLinks} links.`,
-      }))
+      setErrors(prev => ({ ...prev, otherLinks: `You can only add up to ${maxLinks} links.` }))
       return
     }
 
     setOtherLinks([...otherLinks, ...validNewLinks])
-    setFormData(prev => ({
-      ...prev,
-      otherLinkInput: "",
-    }))
+    setFormData(prev => ({ ...prev, otherLinkInput: "" }))
     setErrors(prev => ({ ...prev, otherLinks: "" }))
   }
 
@@ -533,12 +498,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                   <input
                     type="checkbox"
                     checked={formData.exactTitle}
-                    onChange={e =>
-                      setFormData(prev => ({
-                        ...prev,
-                        exactTitle: e.target.checked,
-                      }))
-                    }
+                    onChange={e => setFormData(prev => ({ ...prev, exactTitle: e.target.checked }))}
                     className="sr-only peer"
                   />
                   <div className="absolute inset-0 bg-gray-200 rounded-full transition-colors duration-200 peer-checked:bg-[#1B6FC9]"></div>
@@ -690,12 +650,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                   <input
                     type="checkbox"
                     checked={formData.addImages}
-                    onChange={e =>
-                      setFormData(prev => ({
-                        ...prev,
-                        addImages: e.target.checked,
-                      }))
-                    }
+                    onChange={e => setFormData(prev => ({ ...prev, addImages: e.target.checked }))}
                     className="sr-only peer"
                   />
                   <div className="absolute inset-0 bg-gray-200 rounded-full transition-colors duration-200 peer-checked:bg-[#1B6FC9]"></div>
@@ -799,14 +754,59 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                       type="checkbox"
                       checked={formData.costCutter}
                       onChange={e =>
-                        setFormData(prev => ({
-                          ...prev,
-                          costCutter: e.target.checked,
-                        }))
+                        setFormData(prev => ({ ...prev, costCutter: e.target.checked }))
                       }
                       className="sr-only peer"
                     />
                     <div className="absolute inset-0 bg-gray-300 rounded-full transition-colors duration-200 peer-checked:bg-green-500"></div>
+                    <div className="absolute top-[2px] left-[2px] h-6 w-6 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-7 shadow-md"></div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Easy to Understand Toggle */}
+              <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-4 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-semibold text-purple-900 mb-1">
+                      📖 Easy to Understand
+                    </h3>
+                    <p className="text-xs text-purple-700"></p>
+                  </div>
+                  <label className="relative inline-block w-14 h-7 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.easyToUnderstand}
+                      onChange={e =>
+                        setFormData(prev => ({ ...prev, easyToUnderstand: e.target.checked }))
+                      }
+                      className="sr-only peer"
+                    />
+                    <div className="absolute inset-0 bg-gray-300 rounded-full transition-colors duration-200 peer-checked:bg-purple-500"></div>
+                    <div className="absolute top-[2px] left-[2px] h-6 w-6 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-7 shadow-md"></div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Embed YouTube Videos Toggle */}
+              <div className="bg-gradient-to-r from-red-50 to-pink-50 border border-red-200 rounded-xl p-4 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-semibold text-red-900 mb-1">
+                      🎥 Embed YouTube Videos
+                    </h3>
+                    <p className="text-xs text-red-700">Add relevant YouTube videos to your blog</p>
+                  </div>
+                  <label className="relative inline-block w-14 h-7 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.embedYouTubeVideos}
+                      onChange={e =>
+                        setFormData(prev => ({ ...prev, embedYouTubeVideos: e.target.checked }))
+                      }
+                      className="sr-only peer"
+                    />
+                    <div className="absolute inset-0 bg-gray-300 rounded-full transition-colors duration-200 peer-checked:bg-red-500"></div>
                     <div className="absolute top-[2px] left-[2px] h-6 w-6 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-7 shadow-md"></div>
                   </label>
                 </div>

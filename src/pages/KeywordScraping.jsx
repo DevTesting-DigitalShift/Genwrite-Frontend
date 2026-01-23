@@ -3,7 +3,7 @@ import { Copy, RefreshCw, Search, Sparkles, Loader2, Link as LinkIcon, Tag } fro
 import { Button, message } from "antd"
 import { useDispatch, useSelector } from "react-redux"
 import { scrapeKeywords, resetKeywordScraping } from "@store/slices/toolsSlice"
-import LoadingScreen from "@components/UI/LoadingScreen"
+import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
 
 const KeywordScraping = () => {
   const [inputUrl, setInputUrl] = useState("")
@@ -76,7 +76,7 @@ const KeywordScraping = () => {
   if (isLoading) {
     return (
       <div className="h-[calc(100vh-200px)] p-4 flex items-center justify-center">
-        <LoadingScreen message="Scraping keywords from the website..." />
+        <ProgressLoadingScreen message="Scraping keywords from the website..." />
       </div>
     )
   }
