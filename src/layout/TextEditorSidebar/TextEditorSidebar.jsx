@@ -82,15 +82,6 @@ const AI_MODELS = [
   },
 ]
 
-// Sidebar navigation items
-const NAV_ITEMS = [
-  { id: "overview", icon: BarChart3, label: "Overview" },
-  { id: "seo", icon: TrendingUp, label: "SEO" },
-  { id: "bloginfo", icon: Info, label: "Blog Info" },
-  { id: "posting", icon: Send, label: "Posting" },
-  { id: "regenerate", icon: RefreshCw, label: "Regenerate" },
-]
-
 const TextEditorSidebar = ({
   blog,
   keywords,
@@ -112,6 +103,18 @@ const TextEditorSidebar = ({
   setIsSidebarOpen,
   unsavedChanges,
 }) => {
+  // Sidebar navigation items
+  const NAV_ITEMS = [
+    { id: "overview", icon: BarChart3, label: "Overview" },
+    { id: "seo", icon: TrendingUp, label: "SEO" },
+    { id: "bloginfo", icon: Info, label: "Blog Info" },
+    ...(blog?.brandId || blog?.nameOfVoice
+      ? [{ id: "brand", icon: Crown, label: "Brand Voice" }]
+      : []),
+    { id: "posting", icon: Send, label: "Posting" },
+    { id: "regenerate", icon: RefreshCw, label: "Regenerate" },
+  ]
+
   const [activePanel, setActivePanel] = useState("overview")
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
@@ -704,6 +707,117 @@ const TextEditorSidebar = ({
   const contentScore = blog?.blogScore || 0
 
   // ========== PANELS ==========
+  const renderBrandPanel = () => {
+    // If brandId is an object, use it. Otherwise look for flattened properties in blog.
+    const isBrandPopulated = blog?.brandId && typeof blog.brandId === "object"
+    const brand = isBrandPopulated ? blog.brandId : {}
+
+    const nameOfVoice = brand.nameOfVoice || blog.nameOfVoice || brand.name || "Brand Voice"
+    const describeBrand =
+      brand.describeBrand || blog.describeBrand || brand.description || blog.description
+    const persona = brand.persona || blog.persona
+    const postLink = brand.postLink || blog.postLink || brand.url
+    const brandKeywords = brand.keywords || (isBrandPopulated ? [] : []) // Don't fall back to blog keywords here
+
+    if (!blog?.brandId && !blog?.nameOfVoice) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+          <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mb-4 border border-gray-100">
+            <Crown className="w-8 h-8 text-gray-300" />
+          </div>
+          <h3 className="text-lg font-bold text-gray-900 mb-2">No Brand Selected</h3>
+          <p className="text-xs text-gray-500 leading-relaxed mb-6">
+            This blog wasn't generated with a specific brand voice. Add one to maintain personality
+            across your content.
+          </p>
+          <button
+            onClick={() => setIsRegenerateModalOpen(true)}
+            className="px-6 py-2.5 bg-gray-900 text-white rounded-xl text-xs font-bold hover:bg-black transition-all"
+          >
+            Regenerate with Brand
+          </button>
+        </div>
+      )
+    }
+
+    return (
+      <div className="flex flex-col h-full bg-white">
+        {/* Header */}
+        <div className="p-4 border-b bg-gradient-to-br from-purple-50 to-indigo-50 sticky top-0 z-10">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-purple-600 rounded-xl shadow-lg shadow-purple-100">
+              <Crown className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-900 line-clamp-1">
+                {brand.nameOfVoice || brand.name || "Brand Voice"}
+              </h3>
+              <p className="text-[10px] text-purple-600 font-bold uppercase tracking-widest mt-0.5">
+                Authenticated Identity
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scroll">
+          {/* Persona */}
+          {brand.persona && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <User className="w-3.5 h-3.5 text-blue-500" />
+                <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                  Author Persona
+                </h4>
+              </div>
+              <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100 text-xs text-gray-700 leading-relaxed">
+                {brand.persona}
+              </div>
+            </div>
+          )}
+
+          {/* Keywords & Links */}
+          <div className="grid grid-cols-1 gap-4">
+            {brand.postLink && (
+              <div className="space-y-2">
+                <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                  Reference Site
+                </h4>
+                <a
+                  href={brand.postLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-xl hover:border-blue-200 transition-all group"
+                >
+                  <span className="text-xs font-semibold text-blue-600 truncate mr-2">
+                    {brand.postLink}
+                  </span>
+                  <ExternalLink className="w-3.5 h-3.5 text-gray-400 group-hover:text-blue-500 transition-colors" />
+                </a>
+              </div>
+            )}
+
+            {brand.keywords && brand.keywords.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                  Core Keywords
+                </h4>
+                <div className="flex flex-wrap gap-1.5">
+                  {brand.keywords.map((kw, i) => (
+                    <span
+                      key={i}
+                      className="px-2.5 py-1 bg-white border border-gray-100 text-gray-600 rounded-lg text-xs font-medium"
+                    >
+                      {kw}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   const renderOverviewPanel = () => (
     <div className="flex flex-col h-full">
@@ -1493,7 +1607,7 @@ const TextEditorSidebar = ({
         </div>
 
         {/* Brand Information */}
-        {blog?.brandId && (
+        {(blog?.brandId || blog?.nameOfVoice) && (
           <div className="p-3 bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-100 rounded-lg">
             <div className="flex items-center gap-2 mb-2">
               <Crown className="w-3.5 h-3.5 text-purple-600" />
@@ -1502,11 +1616,13 @@ const TextEditorSidebar = ({
               </div>
             </div>
             <div className="font-bold text-gray-900">
-              {typeof blog.brandId === "object" ? blog.brandId.name : "Custom Brand"}
+              {typeof blog.brandId === "object"
+                ? blog.brandId.nameOfVoice || blog.brandId.name
+                : blog.nameOfVoice || "Custom Brand"}
             </div>
-            {typeof blog.brandId === "object" && blog.brandId.description && (
+            {(blog.brandId?.describeBrand || blog.describeBrand) && (
               <p className="text-[10px] text-gray-500 mt-1 line-clamp-2">
-                {blog.brandId.description}
+                {blog.brandId?.describeBrand || blog.describeBrand}
               </p>
             )}
           </div>
@@ -1803,6 +1919,8 @@ const TextEditorSidebar = ({
         return renderSeoPanel()
       case "bloginfo":
         return renderBlogInfoPanel()
+      case "brand":
+        return renderBrandPanel()
       case "posting":
         return renderPostingPanel()
       case "regenerate":
@@ -1831,22 +1949,33 @@ const TextEditorSidebar = ({
 
         {NAV_ITEMS.map(item => {
           const Icon = item.icon
+          const isActive = activePanel === item.id
           return (
             <Tooltip key={item.id} title={item.label} placement="left">
               <button
                 onClick={() => {
                   if (item.id === "regenerate") {
-                    // Open the regenerate modal
                     setIsRegenerateModalOpen(true)
-                    setIsCollapsed(false)
                   } else {
-                    setActivePanel(item.id)
-                    setIsCollapsed(false)
+                    if (isActive && !isCollapsed) {
+                      setIsCollapsed(true)
+                    } else {
+                      setActivePanel(item.id)
+                      setIsCollapsed(false)
+                    }
                   }
                 }}
-                className="w-11 h-11 rounded-2xl flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-white hover:shadow-md transition-all duration-200 relative group"
+                className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-200 relative group ${
+                  isActive && !isCollapsed
+                    ? "bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-200"
+                    : "text-gray-400 hover:text-blue-600 hover:bg-white hover:shadow-md"
+                }`}
               >
-                <Icon className="w-5 h-5 transition-transform group-hover:scale-110" />
+                <Icon
+                  className={`w-5 h-5 transition-transform ${
+                    isActive && !isCollapsed ? "" : "group-hover:scale-110"
+                  }`}
+                />
               </button>
             </Tooltip>
           )
@@ -1911,18 +2040,23 @@ const TextEditorSidebar = ({
                       // Open the regenerate modal
                       setIsRegenerateModalOpen(true)
                     } else {
-                      setActivePanel(item.id)
+                      if (isActive && !isCollapsed) {
+                        setIsCollapsed(true)
+                      } else {
+                        setActivePanel(item.id)
+                        setIsCollapsed(false)
+                      }
                     }
                   }}
                   className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-200 relative group ${
-                    isActive
+                    isActive && !isCollapsed
                       ? "bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-200"
                       : "text-gray-400 hover:text-blue-600 hover:bg-white hover:shadow-md"
                   }`}
                 >
                   <Icon
                     className={`w-5 h-5 transition-transform ${
-                      isActive ? "" : "group-hover:scale-110"
+                      isActive && !isCollapsed ? "" : "group-hover:scale-110"
                     }`}
                   />
                 </button>
