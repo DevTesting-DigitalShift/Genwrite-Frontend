@@ -500,6 +500,26 @@ const RegenerateModal = ({
                 />
               </div>
 
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3 mt-3">
+                  <span className="text-sm font-medium text-gray-700">Easy to Understand</span>
+                </div>
+                <Switch
+                  checked={regenForm.easyToUnderstand}
+                  onChange={val => updateRegenField("easyToUnderstand", val)}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3 mt-3">
+                  <span className="text-sm font-medium text-gray-700">Embed YouTube Videos</span>
+                </div>
+                <Switch
+                  checked={regenForm.embedYouTubeVideos}
+                  onChange={val => updateRegenField("embedYouTubeVideos", val)}
+                />
+              </div>
+
               {/* Automate Posting */}
               <div className="">
                 <div className="flex items-center justify-between">

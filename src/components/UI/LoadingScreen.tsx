@@ -163,13 +163,6 @@ const LoadingScreen = ({
             {message}
           </p>
         )}
-
-        {/* Timeout warning (only visible if timeout reached) */}
-        {isTimedOut && (
-          <div className="loading-timeout-warning" role="alert">
-            <p className="text-sm text-orange-600">Loading is taking longer than expected...</p>
-          </div>
-        )}
       </div>
     </div>
   )

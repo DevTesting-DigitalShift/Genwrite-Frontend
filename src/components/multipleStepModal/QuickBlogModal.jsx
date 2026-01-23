@@ -690,6 +690,44 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                 </div>
               )}
 
+              {/* Easy to Understand Toggle */}
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Easy to Understand
+                </label>
+                <label className="relative inline-block w-11 h-6 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.easyToUnderstand}
+                    onChange={e =>
+                      setFormData(prev => ({ ...prev, easyToUnderstand: e.target.checked }))
+                    }
+                    className="sr-only peer"
+                  />
+                  <div className="absolute inset-0 bg-gray-200 rounded-full transition-colors duration-200 peer-checked:bg-[#1B6FC9]"></div>
+                  <div className="absolute top-[2px] left-[2px] h-5 w-5 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-5"></div>
+                </label>
+              </div>
+
+              {/* Embed YouTube Videos Toggle */}
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Embed YouTube Videos
+                </label>
+                <label className="relative inline-block w-11 h-6 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.embedYouTubeVideos}
+                    onChange={e =>
+                      setFormData(prev => ({ ...prev, embedYouTubeVideos: e.target.checked }))
+                    }
+                    className="sr-only peer"
+                  />
+                  <div className="absolute inset-0 bg-gray-200 rounded-full transition-colors duration-200 peer-checked:bg-[#1B6FC9]"></div>
+                  <div className="absolute top-[2px] left-[2px] h-5 w-5 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-5"></div>
+                </label>
+              </div>
+
               {/* Reference Links Section */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -759,54 +797,6 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                       className="sr-only peer"
                     />
                     <div className="absolute inset-0 bg-gray-300 rounded-full transition-colors duration-200 peer-checked:bg-green-500"></div>
-                    <div className="absolute top-[2px] left-[2px] h-6 w-6 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-7 shadow-md"></div>
-                  </label>
-                </div>
-              </div>
-
-              {/* Easy to Understand Toggle */}
-              <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-4 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-semibold text-purple-900 mb-1">
-                      📖 Easy to Understand
-                    </h3>
-                    <p className="text-xs text-purple-700"></p>
-                  </div>
-                  <label className="relative inline-block w-14 h-7 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.easyToUnderstand}
-                      onChange={e =>
-                        setFormData(prev => ({ ...prev, easyToUnderstand: e.target.checked }))
-                      }
-                      className="sr-only peer"
-                    />
-                    <div className="absolute inset-0 bg-gray-300 rounded-full transition-colors duration-200 peer-checked:bg-purple-500"></div>
-                    <div className="absolute top-[2px] left-[2px] h-6 w-6 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-7 shadow-md"></div>
-                  </label>
-                </div>
-              </div>
-
-              {/* Embed YouTube Videos Toggle */}
-              <div className="bg-gradient-to-r from-red-50 to-pink-50 border border-red-200 rounded-xl p-4 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-semibold text-red-900 mb-1">
-                      🎥 Embed YouTube Videos
-                    </h3>
-                    <p className="text-xs text-red-700">Add relevant YouTube videos to your blog</p>
-                  </div>
-                  <label className="relative inline-block w-14 h-7 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.embedYouTubeVideos}
-                      onChange={e =>
-                        setFormData(prev => ({ ...prev, embedYouTubeVideos: e.target.checked }))
-                      }
-                      className="sr-only peer"
-                    />
-                    <div className="absolute inset-0 bg-gray-300 rounded-full transition-colors duration-200 peer-checked:bg-red-500"></div>
                     <div className="absolute top-[2px] left-[2px] h-6 w-6 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-7 shadow-md"></div>
                   </label>
                 </div>

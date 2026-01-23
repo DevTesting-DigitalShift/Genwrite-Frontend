@@ -52,21 +52,82 @@ const ProgressLoadingScreen = ({
     }
   }, [maxDuration, onTimeout])
 
-  // Progress logic
+  // Smart Progress Logic with Delays
   useEffect(() => {
-    const intervalTime = isYouTube ? 1500 : 80
-    const interval = setInterval(() => {
+    // Initial pattern: 1-2-3-15-20-25-30-40 with delays
+    const initialPattern = [1, 2, 3, 15, 20, 25, 30, 40]
+    let currentIndex = 0
+    let elapsedTime = 0
+    let timeoutId: NodeJS.Timeout | null = null
+
+    // YouTube is SUPER slow, others are moderate
+    const baseDelay = isYouTube ? 2000 : 500 // 2s for YouTube, 500ms for others
+
+    const updateProgress = () => {
       setProgress(prev => {
+        // Never reach 100%
         if (prev >= 98) {
-          clearInterval(interval)
           return 98
         }
-        if (prev > 80) return prev + 0.5
-        return prev + 1
-      })
-    }, intervalTime)
 
-    return () => clearInterval(interval)
+        // Phase 1: Follow initial pattern (1-2-3-15-20-25-30-40)
+        if (currentIndex < initialPattern.length) {
+          const nextValue = initialPattern[currentIndex]
+          currentIndex++
+
+          // Schedule next update with delay
+          const delay = isYouTube ? baseDelay + currentIndex * 300 : baseDelay
+          timeoutId = setTimeout(updateProgress, delay)
+
+          return nextValue
+        }
+
+        // Phase 2: After 40%, increase by 6% increments
+        if (prev >= 40 && prev < 70) {
+          const delay = isYouTube ? 3000 : 800
+          timeoutId = setTimeout(updateProgress, delay)
+          return Math.min(prev + 6, 70)
+        }
+
+        // Phase 3: After 70%, slow down based on elapsed time
+        if (prev >= 70 && prev < 85) {
+          const slowIncrement = elapsedTime > 10000 ? 2 : 3
+          const delay = isYouTube ? 4000 : 1200
+          timeoutId = setTimeout(updateProgress, delay)
+          return Math.min(prev + slowIncrement, 85)
+        }
+
+        // Phase 4: After 85%, very slow increments
+        if (prev >= 85 && prev < 95) {
+          const verySlowIncrement = elapsedTime > 20000 ? 0.5 : 1
+          const delay = isYouTube ? 5000 : 1500
+          timeoutId = setTimeout(updateProgress, delay)
+          return Math.min(prev + verySlowIncrement, 95)
+        }
+
+        // Phase 5: After 95%, crawl to 98% (never 100%)
+        if (prev >= 95 && prev < 98) {
+          const delay = isYouTube ? 6000 : 2000
+          timeoutId = setTimeout(updateProgress, delay)
+          return Math.min(prev + 0.3, 98)
+        }
+
+        return prev
+      })
+    }
+
+    // Track elapsed time
+    const timeInterval = setInterval(() => {
+      elapsedTime += 100
+    }, 100)
+
+    // Start the progress
+    updateProgress()
+
+    return () => {
+      clearInterval(timeInterval)
+      if (timeoutId) clearTimeout(timeoutId)
+    }
   }, [isYouTube])
 
   if (!shouldShow) return null
@@ -91,12 +152,6 @@ const ProgressLoadingScreen = ({
         </div>
 
         {message && <p className="loading-message-text">{message}</p>}
-
-        {isTimedOut && (
-          <div className="loading-timeout-warning" role="alert">
-            <p className="timeout-text">Loading is taking longer than expected...</p>
-          </div>
-        )}
       </div>
     </div>
   )

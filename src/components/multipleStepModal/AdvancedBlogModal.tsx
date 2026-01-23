@@ -348,7 +348,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
       event:
         | React.ChangeEvent<HTMLInputElement>
         | RadioChangeEvent
-        | { target: { name: string; value: string | number | boolean } }
+        | { target: { name: string; value: string | number | boolean | string[] | UploadFile[] } }
     ) => {
       const { name, value } = event.target
 
@@ -359,7 +359,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
       if (keys.length > 1) {
         setFormData(prev => setValueByPath(prev, keys, value))
       } else {
-        updateFormData({ [name]: value })
+        updateFormData({ [name]: value } as any)
 
         updateErrors({ [name]: "" })
       }
@@ -434,8 +434,6 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
             />
 
             <Flex justify="space-between" className="mt-3 form-item-wrapper">
-              {" "}
-              Easy to Understand
               <label htmlFor="blog-auto-generate-title-keywords">
                 Auto Generate Title & Keywords
               </label>
@@ -689,36 +687,28 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
             </div>
 
             {/* Easy to Understand Toggle */}
-            <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-4 shadow-sm">
-              <Flex justify="space-between" align="center">
-                <div>
-                  <h3 className="text-sm font-semibold text-purple-900 mb-1">
-                    📖 Easy to Understand
-                  </h3>
-                  <p className="text-xs text-purple-700"></p>
-                </div>
+            <Space direction="vertical" className="form-item-wrapper">
+              <Flex justify="space-between">
+                <label htmlFor="easy-to-understand-toggle">Easy to Understand</label>
                 <Switch
+                  id="easy-to-understand-toggle"
                   checked={formData.easyToUnderstand}
                   onChange={checked => updateFormData({ easyToUnderstand: checked })}
                 />
               </Flex>
-            </div>
+            </Space>
 
             {/* Embed YouTube Videos Toggle */}
-            <div className="bg-gradient-to-r from-red-50 to-pink-50 border border-red-200 rounded-xl p-4 shadow-sm">
-              <Flex justify="space-between" align="center">
-                <div>
-                  <h3 className="text-sm font-semibold text-red-900 mb-1">
-                    🎥 Embed YouTube Videos
-                  </h3>
-                  <p className="text-xs text-red-700">Add relevant YouTube videos to your blog</p>
-                </div>
+            <Space direction="vertical" className="form-item-wrapper">
+              <Flex justify="space-between">
+                <label htmlFor="embed-youtube-toggle">Embed YouTube Videos</label>
                 <Switch
+                  id="embed-youtube-toggle"
                   checked={formData.embedYouTubeVideos}
                   onChange={checked => updateFormData({ embedYouTubeVideos: checked })}
                 />
               </Flex>
-            </div>
+            </Space>
             {/* Image Settings */}
             <Space direction="vertical" className="form-item-wrapper">
               <Flex justify="space-between">
