@@ -151,8 +151,8 @@ const TextEditorSidebar = ({
 
   // Blog postings state
   const [blogPostings, setBlogPostings] = useState([])
-  const [isLoadingPostings, setIsLoadingPostings] = useState(false)
   console.log(blogPostings)
+  const [isLoadingPostings, setIsLoadingPostings] = useState(false)
 
   // Blog slug editor state
   const [blogSlug, setBlogSlug] = useState(blog?.slug || "")
@@ -761,6 +761,40 @@ const TextEditorSidebar = ({
     // 3. Platform Selection & History Logic
     // If we already have a selection, don't override unless forced by history logic
 
+    // PRIORITY 1: Check blogPostings (New API Source)
+    if (blogPostings.length > 0) {
+      // Find Shopify posting if exists to lock category
+      const shopifyPosting = blogPostings.find(p => (p.integrationType || p.platform) === "SHOPIFY")
+
+      if (shopifyPosting) {
+        setIsCategoryLocked(true)
+        setSelectedCategory(blog?.category || "")
+        if (!selectedIntegration) {
+          setSelectedIntegration({
+            platform: "shopify",
+            rawPlatform: "SHOPIFY",
+            url: integrations?.integrations?.SHOPIFY?.url || "",
+          })
+        }
+        return
+      }
+
+      // If not Shopify locked, default to the most recent posting's platform
+      if (!selectedIntegration && blogPostings[0]) {
+        const lastPost = blogPostings[0]
+        const rawPlatform = lastPost.integrationType || lastPost.platform
+
+        if (rawPlatform && integrations?.integrations?.[rawPlatform]) {
+          setSelectedIntegration({
+            platform: rawPlatform.toLowerCase(),
+            rawPlatform: rawPlatform,
+            url: integrations.integrations[rawPlatform].url,
+          })
+          return
+        }
+      }
+    }
+
     const shopify = posted?.SHOPIFY
 
     // CASE 1: Shopify Posted -> Lock Everything
@@ -789,28 +823,6 @@ const TextEditorSidebar = ({
       }
       return
     }
-
-    // CASE 3: No History -> Use Defaults from "postingDefaultType"
-    if (!selectedIntegration && integrations?.integrations) {
-      const defaultType = blog?.postingDefaultType
-      if (defaultType && integrations.integrations[defaultType]) {
-        setSelectedIntegration({
-          platform: defaultType.toLowerCase(),
-          rawPlatform: defaultType,
-          url: integrations.integrations[defaultType].url,
-        })
-      } else {
-        // Fallback: Pick first available
-        const firstKey = Object.keys(integrations.integrations)[0]
-        if (firstKey) {
-          setSelectedIntegration({
-            platform: firstKey.toLowerCase(),
-            rawPlatform: firstKey,
-            url: integrations.integrations[firstKey].url,
-          })
-        }
-      }
-    }
   }, [
     activePanel,
     posted,
@@ -819,6 +831,7 @@ const TextEditorSidebar = ({
     selectedIntegration,
     selectedCategory,
     setIncludeTableOfContents,
+    blogPostings,
   ])
 
   const handlePostClick = useCallback(() => {
@@ -1855,9 +1868,6 @@ const TextEditorSidebar = ({
                 Post History
               </span>
             </div>
-            <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-[10px] font-bold">
-              {blogPostings.length} Live
-            </span>
           </div>
 
           {isLoadingPostings ? (
@@ -1874,7 +1884,9 @@ const TextEditorSidebar = ({
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[12px] font-bold text-gray-700">
-                      {PLATFORM_LABELS[posting.platform] || posting.platform}
+                      {PLATFORM_LABELS[posting.integrationType || posting.platform] ||
+                        posting.integrationType ||
+                        posting.platform}
                     </span>
                     <span className="text-[12px] text-gray-400">
                       {new Date(posting.postedOn).toLocaleDateString()}
@@ -1904,9 +1916,9 @@ const TextEditorSidebar = ({
                     onClick={() => {
                       onPost({
                         ...formData,
-                        categories: posting.category,
+                        categories: posting.category || blog.category,
                         includeTableOfContents: posting.includeTableOfContents,
-                        type: { platform: posting.platform },
+                        type: { platform: posting.integrationType || posting.platform },
                       })
                     }}
                     disabled={isPosting}
@@ -1933,6 +1945,7 @@ const TextEditorSidebar = ({
               </span>
             </div>
             <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[12px] font-bold">
+              {console.log(selectedIntegration)}
               {selectedIntegration
                 ? PLATFORM_LABELS[selectedIntegration.rawPlatform] || "Selected"
                 : "Configure"}

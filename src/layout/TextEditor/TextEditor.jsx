@@ -207,7 +207,7 @@ function parseHtmlIntoSections(htmlString) {
     const lastSec = sections[sections.length - 1]
     // Check for FAQ header
     const faqMatch = lastSec.content.match(
-      /(<h[2-4][^>]*>\s*(?:FAQ|Frequently Asked Questions)\s*<\/h[2-4]>)/i,
+      /(<h[2-4][^>]*>\s*(?:FAQ|Frequently Asked Questions)\s*<\/h[2-4]>)/i
     )
 
     if (faqMatch) {
@@ -398,22 +398,22 @@ const TextEditor = ({
       if (!sectionImages || !Array.isArray(sectionImages)) return null
       return sectionImages.find(img => img.sectionId === sectionId && img.role === "section")
     },
-    [sectionImages],
+    [sectionImages]
   )
 
   // Update section image
   const handleUpdateSectionImage = useCallback((sectionId, updatedImage) => {
     setSectionImages(prev =>
       prev.map(img =>
-        img.sectionId === sectionId && img.role === "section" ? { ...img, ...updatedImage } : img,
-      ),
+        img.sectionId === sectionId && img.role === "section" ? { ...img, ...updatedImage } : img
+      )
     )
   }, [])
 
   // Delete section image
   const handleDeleteSectionImage = useCallback(sectionId => {
     setSectionImages(prev =>
-      prev.filter(img => !(img.sectionId === sectionId && img.role === "section")),
+      prev.filter(img => !(img.sectionId === sectionId && img.role === "section"))
     )
   }, [])
 
@@ -606,7 +606,7 @@ const TextEditor = ({
               title: s.title,
               content: s.content,
               originalContent: s.originalContent || s.content,
-            })),
+            }))
           )
           setOriginalCta(parsedData.cta)
           setOriginalQuickSummary(parsedData.quickSummary)
@@ -628,7 +628,7 @@ const TextEditor = ({
           title: s.title,
           content: s.content,
           originalContent: s.content, // Set originalContent to current content after save
-        })),
+        }))
       )
       setOriginalCta(cta)
       setOriginalQuickSummary(quickSummary)
@@ -683,7 +683,7 @@ const TextEditor = ({
 
       // Add section images if they exist
       const secImages = sectionImages.filter(
-        img => img.sectionId === sec.id && img.role === "section",
+        img => img.sectionId === sec.id && img.role === "section"
       )
       if (secImages.length > 0) {
         html += '        <div class="section-images-wrapper">\n'
@@ -786,7 +786,7 @@ const TextEditor = ({
           }
         }
         return s
-      }),
+      })
     )
   }
 
@@ -800,8 +800,8 @@ const TextEditor = ({
               title: newTitle,
               originalContent: s.originalContent, // Preserve original
             }
-          : s,
-      ),
+          : s
+      )
     )
   }
 
@@ -862,7 +862,7 @@ const TextEditor = ({
           return { ...section, content: section.content.replace(regex, change) }
         }
         return section
-      }),
+      })
     )
   }, [])
 
@@ -907,7 +907,7 @@ const TextEditor = ({
   // Navigation blocker
   const blocker = useBlocker(
     ({ currentLocation, nextLocation }) =>
-      hasContentChanges && currentLocation.pathname !== nextLocation.pathname,
+      hasContentChanges && currentLocation.pathname !== nextLocation.pathname
   )
 
   useEffect(() => {
@@ -948,7 +948,7 @@ const TextEditor = ({
         setContent(prev => prev.replace(regex, change))
       }
     },
-    [handleReplaceInSections, setContent],
+    [handleReplaceInSections, setContent]
   )
 
   // Editor context value for child components
@@ -987,7 +987,7 @@ const TextEditor = ({
       handleReplaceWithSections,
       handleUpdateSectionImage,
       handleDeleteSectionImage,
-    ],
+    ]
   )
 
   // Handle FAQ edit
@@ -1356,15 +1356,35 @@ const TextEditor = ({
               editorClassName="text-3xl font-bold text-gray-900"
             />
           ) : (
-            <div
-              className="flex items-center gap-2 group cursor-pointer"
-              onClick={() => setIsEditingTitle(true)}
-            >
+            <div className="relative group">
               <div
-                className="text-3xl font-bold text-gray-900"
-                dangerouslySetInnerHTML={{ __html: blogTitle || "Untitled Blog" }}
-              />
-              <Edit3 className="w-5 h-5 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                className="flex items-center gap-2 cursor-pointer"
+                onClick={() => setIsEditingTitle(true)}
+              >
+                <div
+                  className="text-3xl font-bold text-gray-900"
+                  dangerouslySetInnerHTML={{ __html: blogTitle || "Untitled Blog" }}
+                />
+                <Edit3 className="w-5 h-5 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+
+              {/* Add Thumbnail Option - Show on hover if no thumbnail */}
+              {!blogThumbnail && (
+                <div className="absolute top-full left-0 mt-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                  <button
+                    onClick={e => {
+                      e.stopPropagation()
+                      setThumbnailUrl("")
+                      setThumbnailAlt("")
+                      setThumbnailModalOpen(true)
+                    }}
+                    className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 hover:bg-blue-100 transition-colors shadow-sm"
+                  >
+                    <ImageIcon className="w-4 h-4" />
+                    Add Thumbnail Image
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -1621,7 +1641,7 @@ const TextEditor = ({
           {/* Featured Image - First section image or main thumbnail */}
           {(() => {
             const mainImage = sectionImages?.find(
-              img => img.role === "thumbnail" || img.role === "main",
+              img => img.role === "thumbnail" || img.role === "main"
             )
             const firstSectionImage = sections.length > 0 ? getSectionImage(sections[0]?.id) : null
             const featuredImage = mainImage || firstSectionImage
