@@ -46,14 +46,18 @@ import {
 } from "antd"
 import { fetchProofreadingSuggestions, fetchBlogPrompt } from "@store/slices/blogSlice"
 import { fetchCompetitiveAnalysisThunk } from "@store/slices/analysisSlice"
-import { generateMetadataThunk, getIntegrationsThunk } from "@store/slices/otherSlice"
+import {
+  generateMetadataThunk,
+  getIntegrationsThunk,
+  getCategoriesThunk,
+  resetCategories,
+} from "@store/slices/otherSlice"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useNavigate } from "react-router-dom"
 import { useDispatch, useSelector } from "react-redux"
 import { getEstimatedCost, creditCostsWithGemini } from "@utils/getEstimatedCost"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
 import { Modal } from "antd"
-import CategoriesModal from "../Editor/CategoriesModal"
 import { TONES } from "@/data/blogData"
 import { retryBlogById, exportBlogAsPdf, getBlogPostings, exportBlog } from "@api/blogApi"
 import { validateRegenerateBlogData } from "@/types/forms.schemas"
@@ -80,6 +84,25 @@ const AI_MODELS = [
     logo: "/Images/claude.webp",
     restrictedPlans: ["free", "basic"],
   },
+]
+
+// Popular WordPress categories (limited to 15 for relevance)
+const POPULAR_CATEGORIES = [
+  "Blogging",
+  "Technology",
+  "Lifestyle",
+  "Travel",
+  "Food & Drink",
+  "Health & Wellness",
+  "Fashion",
+  "Business",
+  "Education",
+  "Entertainment",
+  "Photography",
+  "Fitness",
+  "Marketing",
+  "Finance",
+  "DIY & Crafts",
 ]
 
 const TextEditorSidebar = ({
@@ -129,12 +152,24 @@ const TextEditorSidebar = ({
   // Blog postings state
   const [blogPostings, setBlogPostings] = useState([])
   const [isLoadingPostings, setIsLoadingPostings] = useState(false)
+  console.log(blogPostings)
 
   // Blog slug editor state
   const [blogSlug, setBlogSlug] = useState(blog?.slug || "")
   const [isEditingSlug, setIsEditingSlug] = useState(false)
 
   const { data: integrations } = useSelector(state => state.wordpress)
+  const { categories, error: wordpressError } = useSelector(state => state.wordpress)
+
+  // Posting State (Migrated from CategoriesModal)
+  const [selectedCategory, setSelectedCategory] = useState("")
+  const [selectedIntegration, setSelectedIntegration] = useState(null)
+  const [includeTableOfContents, setIncludeTableOfContents] = useState(false)
+  const [isCategoryLocked, setIsCategoryLocked] = useState(false)
+  const [categoryError, setCategoryError] = useState(false)
+  const [platformError, setPlatformError] = useState(false)
+  const [errors, setErrors] = useState({ category: "", platform: "" })
+
   const [metadata, setMetadata] = useState({
     title: blog?.seoMetadata?.title || "",
     description: blog?.seoMetadata?.description || "",
@@ -176,6 +211,8 @@ const TextEditorSidebar = ({
       addOutBoundLinks: false,
       performKeywordResearch: false,
     },
+    easyToUnderstand: false,
+    embedYouTubeVideos: false,
     isCheckedQuick: false,
     wordpressPostStatus: false,
     postingType: null,
@@ -268,6 +305,8 @@ const TextEditorSidebar = ({
         brandId: typeof blog.brandId === "object" ? blog.brandId?._id || "" : blog.brandId || "",
         addCTA: blog.options?.addCTA || false,
         costCutter: blog.costCutter || false,
+        easyToUnderstand: blog.easyToUnderstand || blog.options?.easyToUnderstand || false,
+        embedYouTubeVideos: blog.embedYouTubeVideos || blog.options?.embedYouTubeVideos || false,
         options: {
           includeFaqs: blog.options?.includeFaqs || false,
           includeInterlinks: blog.options?.includeInterlinks || false,
@@ -392,6 +431,8 @@ const TextEditorSidebar = ({
           includeCompetitorResearch: regenForm.options.includeCompetitorResearch,
           addOutBoundLinks: regenForm.options.addOutBoundLinks,
           performKeywordResearch: regenForm.options.performKeywordResearch,
+          easyToUnderstand: regenForm.easyToUnderstand,
+          embedYouTubeVideos: regenForm.embedYouTubeVideos,
         },
       }
 
@@ -650,14 +691,175 @@ const TextEditorSidebar = ({
     })
   }, [handlePopup, handleSave])
 
+  // --- Posting Helpers (from CategoriesModal) ---
+
+  const handleIntegrationChange = useCallback(
+    (platform, url) => {
+      setSelectedIntegration({ platform: platform.toLowerCase(), rawPlatform: platform, url })
+      setPlatformError(false)
+      setErrors(prev => ({ ...prev, platform: "" }))
+
+      const hasShopifyAlready = posted?.SHOPIFY?.link ? true : false
+      if (platform === "SHOPIFY") {
+        setIsCategoryLocked(hasShopifyAlready)
+      } else {
+        setIsCategoryLocked(false)
+      }
+    },
+    [posted]
+  )
+
+  const handleCategoryAdd = useCallback(
+    category => {
+      if (selectedCategory) return
+      setSelectedCategory(category)
+      setCategoryError(false)
+      setErrors(prev => ({ ...prev, category: "" }))
+    },
+    [selectedCategory]
+  )
+
+  const handleCategoryRemove = useCallback(() => {
+    setSelectedCategory("")
+    setCategoryError(false)
+    setErrors(prev => ({ ...prev, category: "" }))
+  }, [])
+
+  const handleCategoryChange = useCallback(value => {
+    if (value.length > 1) {
+      message.error("Only one category can be selected.")
+      return
+    }
+    const newCategory = value.length > 0 ? value[0] : ""
+    setSelectedCategory(newCategory)
+    setCategoryError(false)
+    setErrors(prev => ({ ...prev, category: "" }))
+  }, [])
+
+  // Auto-fetch categories when integration changes
+  useEffect(() => {
+    if (selectedIntegration?.platform) {
+      dispatch(getCategoriesThunk(selectedIntegration.platform.toUpperCase()))
+        .unwrap()
+        .catch(() => {})
+    }
+  }, [dispatch, selectedIntegration?.platform])
+
+  // Initialize posting form based on Blog Data & History
+  useEffect(() => {
+    if (activePanel !== "posting") return
+
+    // 1. Always sync ToC from Blog Data if not manually changed (optional, but good for defaults)
+    // We'll trust the initial state setting mostly, but here we enforce blog defaults if state is empty
+    setIncludeTableOfContents(prev => blog?.options?.includeTableOfContents ?? prev)
+
+    // 2. Sync Category from Blog Data
+    if (blog?.category && !selectedCategory) {
+      setSelectedCategory(blog.category)
+    }
+
+    // 3. Platform Selection & History Logic
+    // If we already have a selection, don't override unless forced by history logic
+
+    const shopify = posted?.SHOPIFY
+
+    // CASE 1: Shopify Posted -> Lock Everything
+    if (shopify?.link) {
+      setIsCategoryLocked(true)
+      setSelectedCategory(blog?.category || "")
+      setSelectedIntegration({
+        platform: "shopify",
+        rawPlatform: "SHOPIFY",
+        url: shopify.url || "",
+      })
+      return
+    }
+
+    // CASE 2: Other History
+    const otherPosted = Object.entries(posted || {}).find(([k, v]) => k !== "SHOPIFY" && v?.link)
+    if (otherPosted) {
+      const [key, val] = otherPosted
+      // Don't lock category for non-Shopify, but selecting platform is helpful
+      if (!selectedIntegration) {
+        setSelectedIntegration({
+          platform: key.toLowerCase(),
+          rawPlatform: key,
+          url: val?.url || "",
+        })
+      }
+      return
+    }
+
+    // CASE 3: No History -> Use Defaults from "postingDefaultType"
+    if (!selectedIntegration && integrations?.integrations) {
+      const defaultType = blog?.postingDefaultType
+      if (defaultType && integrations.integrations[defaultType]) {
+        setSelectedIntegration({
+          platform: defaultType.toLowerCase(),
+          rawPlatform: defaultType,
+          url: integrations.integrations[defaultType].url,
+        })
+      } else {
+        // Fallback: Pick first available
+        const firstKey = Object.keys(integrations.integrations)[0]
+        if (firstKey) {
+          setSelectedIntegration({
+            platform: firstKey.toLowerCase(),
+            rawPlatform: firstKey,
+            url: integrations.integrations[firstKey].url,
+          })
+        }
+      }
+    }
+  }, [
+    activePanel,
+    posted,
+    blog,
+    integrations,
+    selectedIntegration,
+    selectedCategory,
+    setIncludeTableOfContents,
+  ])
+
   const handlePostClick = useCallback(() => {
-    // Block free users from posting
+    // 1. Plan Check
     if (userPlan === "free") {
       return handlePopup({
         title: "Posting Unavailable",
         description: "Free users cannot publish blogs. Upgrade to unlock automated posting.",
         confirmText: "Upgrade Now",
         onConfirm: () => navigate("/pricing"),
+      })
+    }
+
+    // 2. Validate
+    const newErrors = { category: "", platform: "" }
+    let isValid = true
+
+    if (!selectedIntegration) {
+      newErrors.platform = "Please select a platform"
+      setPlatformError(true)
+      isValid = false
+    }
+    if (!selectedCategory) {
+      newErrors.category = "Please select a category"
+      setCategoryError(true)
+      isValid = false
+    }
+    setErrors(newErrors)
+
+    if (!isValid) {
+      message.error("Please fill in required fields")
+      return
+    }
+
+    // 3. Execution
+    const executePost = () => {
+      onPost({
+        ...formData,
+        categories: selectedCategory.trim(), // API expects 'categories'
+        includeTableOfContents,
+        type: { platform: selectedIntegration.rawPlatform, url: selectedIntegration.url },
       })
     }
 
@@ -669,21 +871,26 @@ const TextEditorSidebar = ({
         cancelText: "Post Anyway",
         onConfirm: async () => {
           await handleSubmit({ metadata })
-          setIsCategoryModalOpen(true)
+          executePost()
         },
-        onCancel: e => e?.source === "button" && setIsCategoryModalOpen(true),
+        onCancel: e => e?.source === "button" && executePost(),
       })
     } else {
-      setIsCategoryModalOpen(true)
+      executePost()
     }
-  }, [unsavedChanges, handlePopup, handleSubmit, metadata, userPlan, navigate])
-
-  const handleCategorySubmit = useCallback(
-    ({ category, includeTableOfContents, type }) => {
-      onPost({ ...formData, categories: category, includeTableOfContents, type })
-    },
-    [formData, onPost]
-  )
+  }, [
+    userPlan,
+    selectedIntegration,
+    selectedCategory,
+    includeTableOfContents,
+    formData,
+    onPost,
+    unsavedChanges,
+    handleSubmit,
+    metadata,
+    handlePopup,
+    navigate,
+  ])
 
   const addKeyword = useCallback(() => {
     if (newKeyword.trim()) {
@@ -1626,186 +1833,260 @@ const TextEditorSidebar = ({
   )
 
   const renderPostingPanel = () => (
-    <div className="flex flex-col h-full">
-      <div className="p-3 border-b bg-gradient-to-r from-emerald-50 to-green-50">
+    <div className="flex flex-col h-full bg-white relative">
+      <div className="p-3 border-b bg-gradient-to-r from-emerald-50 to-green-50 sticky top-0 z-10">
         <div className="flex items-center gap-2">
           <div className="p-2 bg-gradient-to-br from-green-600 to-emerald-600 rounded-lg">
             <Send className="w-4 h-4 text-white" />
           </div>
           <div>
             <h3 className="font-semibold text-gray-900">Publishing</h3>
-            <p className="text-xs text-gray-500 font-medium mt-0.5">
-              Manage blog distribution and status
-            </p>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3 space-y-4 custom-scroll">
-        {/* Current Status */}
-        {isLoadingPostings ? (
-          <div className="p-8 text-center bg-gray-50 rounded-xl border border-dashed">
-            <RefreshCw className="w-6 h-6 animate-spin text-blue-500 mx-auto mb-2" />
-            <p className="text-xs text-gray-500">Checking posting history...</p>
-          </div>
-        ) : hasPublishedLinks ? (
-          <div className="space-y-4">
-            <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                <span className="text-xs font-bold text-green-900 uppercase tracking-widest">
-                  Content Live
-                </span>
-              </div>
-
-              <div className="space-y-2">
-                {blogPostings.map((posting, idx) => (
-                  <div
-                    key={idx}
-                    className="p-3 bg-white/80 rounded-lg border border-green-100 group/posting"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-gray-700">
-                        {PLATFORM_LABELS[posting.platform] || posting.platform}
-                      </span>
-                      <span className="text-[10px] text-gray-400 font-medium">
-                        {new Date(posting.postedAt).toLocaleDateString(undefined, {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      {posting.url ? (
-                        <a
-                          href={posting.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1 group"
-                        >
-                          View Blog
-                          <ExternalLink className="w-3 h-3 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                        </a>
-                      ) : (
-                        <span className="text-[10px] text-gray-400 italic">No URL available</span>
-                      )}
-
-                      <button
-                        onClick={() => {
-                          handlePopup({
-                            title: `Repost to ${PLATFORM_LABELS[posting.platform] || posting.platform}`,
-                            description: "Post again with the same settings?",
-                            confirmText: "Post Now",
-                            onConfirm: () => {
-                              onPost({
-                                ...formData,
-                                categories: posting.category,
-                                includeTableOfContents: posting.includeTableOfContents,
-                                type: { platform: posting.platform },
-                              })
-                            },
-                          })
-                        }}
-                        disabled={isPosting}
-                        className="p-1.5 bg-green-50 text-green-600 rounded-md hover:bg-green-100 transition-colors opacity-0 group-hover/posting:opacity-100 focus:opacity-100"
-                        title="Quick Repost"
-                      >
-                        <RefreshCw className={`w-3 h-3 ${isPosting ? "animate-spin" : ""}`} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-              <h4 className="text-xs font-bold text-gray-600 uppercase mb-2">Update or Repost</h4>
-              <p className="text-[11px] text-gray-500 mb-4 leading-relaxed">
-                Need to update the blog or post it to another platform? Click below to open the
-                publishing options.
-              </p>
-              <button
-                onClick={handlePostClick}
-                disabled={isPosting || !hasAnyIntegration}
-                className="w-full py-3 px-4 bg-white border-2 border-green-500 text-green-600 rounded-xl font-bold hover:bg-green-50 transition-all flex items-center justify-center gap-2 group shadow-sm active:scale-95"
-              >
-                <RefreshCcw className="w-4 h-4 transition-transform group-hover:rotate-180 duration-500" />
-                Repost to Platform
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="p-6 text-center bg-blue-50 rounded-2xl border border-blue-100">
-              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm border border-blue-50">
-                <Globe className="w-6 h-6 text-blue-600" />
-              </div>
-              <h4 className="text-sm font-bold text-blue-900 mb-2">Ready to Publish?</h4>
-              <p className="text-xs text-blue-700 leading-relaxed mb-6">
-                Connect with your audience. Post this blog to your website in just a few clicks.
-              </p>
-              <button
-                onClick={handlePostClick}
-                disabled={isPosting || !hasAnyIntegration}
-                className="w-full py-3.5 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold hover:shadow-lg hover:shadow-blue-200 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:grayscale"
-              >
-                <Send className="w-4 h-4" />
-                {isPosting ? "Posting Content..." : "Post to Platform"}
-              </button>
-            </div>
-
-            {!hasAnyIntegration && (
-              <div className="p-4 bg-amber-50 rounded-xl border border-amber-100 flex items-start gap-3">
-                <div className="p-1.5 bg-amber-100 rounded-lg">
-                  <Lock className="w-3.5 h-3.5 text-amber-600" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-amber-900 mb-1">No Platforms Connected</p>
-                  <p className="text-[10px] text-amber-700 leading-normal">
-                    You need to connect a WordPress, Shopify, or Wix site to publish.{" "}
-                    <button
-                      onClick={() => navigate("/plugins")}
-                      className="font-bold underline text-amber-900"
-                    >
-                      Connect Now
-                    </button>
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Connected Platforms List */}
-        {hasAnyIntegration && (
-          <div className="p-4 bg-white border border-gray-100 rounded-xl">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                Targets
-              </span>
-              <span className="px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-[9px] font-bold">
-                CONNECTED
+      <div className="flex-1 overflow-y-auto p-3 space-y-6 custom-scroll pb-20">
+        {/* === POST HISTORY SECTION === */}
+        <div>
+          <div className="flex items-center justify-between pb-2 border-b border-gray-100 mb-3">
+            <div className="flex items-center gap-2">
+              <RefreshCw className="w-3.5 h-3.5 text-gray-400" />
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+                Post History
               </span>
             </div>
-            <div className="space-y-2">
-              {Object.keys(integrations?.integrations || {}).map(platform => (
+            <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-[10px] font-bold">
+              {blogPostings.length} Live
+            </span>
+          </div>
+
+          {isLoadingPostings ? (
+            <div className="p-6 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200">
+              <RefreshCw className="w-5 h-5 animate-spin text-gray-400 mx-auto mb-2" />
+              <p className="text-xs text-gray-500">Loading history...</p>
+            </div>
+          ) : hasPublishedLinks ? (
+            <div className="space-y-3">
+              {blogPostings.map((posting, idx) => (
                 <div
-                  key={platform}
-                  className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors border border-transparent hover:border-gray-100"
+                  key={idx}
+                  className="p-3 bg-white rounded-xl border border-gray-100 shadow-sm hover:border-blue-100 transition-all"
                 >
-                  <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-                    <span className="text-xs font-semibold text-gray-700 capitalize">
-                      {PLATFORM_LABELS[platform] || platform}
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[12px] font-bold text-gray-700">
+                      {PLATFORM_LABELS[posting.platform] || posting.platform}
+                    </span>
+                    <span className="text-[12px] text-gray-400">
+                      {new Date(posting.postedOn).toLocaleDateString()}
                     </span>
                   </div>
-                  <ExternalLink className="w-3 h-3 text-gray-300" />
+                  <div className="space-y-1 mb-2">
+                    <div className="flex justify-between">
+                      <span className="text-[12px] text-gray-400">Category:</span>
+                      <span className="text-[12px] font-medium text-gray-700 text-right truncate max-w-[120px]">
+                        {blog.category}
+                      </span>
+                    </div>
+                    {posting.link && (
+                      <a
+                        href={posting.link}
+                        target="_blank"
+                        className="flex items-center justify-end gap-1 text-[12px] text-blue-600 hover:underline"
+                      >
+                        View Live <ExternalLink className="w-2.5 h-2.5" />
+                      </a>
+                    )}
+                  </div>
+                  <Button
+                    size="small"
+                    block
+                    className="text-[12px] font-semibold h-7"
+                    onClick={() => {
+                      onPost({
+                        ...formData,
+                        categories: posting.category,
+                        includeTableOfContents: posting.includeTableOfContents,
+                        type: { platform: posting.platform },
+                      })
+                    }}
+                    disabled={isPosting}
+                  >
+                    Repost Same Settings
+                  </Button>
                 </div>
               ))}
             </div>
+          ) : (
+            <div className="p-6 bg-gray-50 rounded-xl border border-dashed border-gray-200 text-center">
+              <p className="text-xs text-gray-400 italic">No posting history yet.</p>
+            </div>
+          )}
+        </div>
+
+        {/* === NEW POST SECTION === */}
+        <div>
+          <div className="flex items-center justify-between pb-2 border-b border-gray-100 mb-3">
+            <div className="flex items-center gap-2">
+              <Send className="w-3.5 h-3.5 text-gray-400" />
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+                New Post
+              </span>
+            </div>
+            <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[12px] font-bold">
+              {selectedIntegration
+                ? PLATFORM_LABELS[selectedIntegration.rawPlatform] || "Selected"
+                : "Configure"}
+            </span>
           </div>
-        )}
+
+          <div className="space-y-4">
+            {/* Platform Select */}
+            <div>
+              <label className="text-xs font-semibold text-gray-700 mb-1.5 block">
+                Select Platform
+              </label>
+              {integrations?.integrations && Object.keys(integrations.integrations).length > 0 ? (
+                <Select
+                  className={`w-full ${platformError ? "border-red-500" : ""}`}
+                  placeholder="Choose platform..."
+                  value={selectedIntegration?.rawPlatform || undefined}
+                  onChange={v => {
+                    const d = integrations.integrations[v]
+                    handleIntegrationChange(v, d?.url)
+                  }}
+                  status={platformError ? "error" : ""}
+                >
+                  {Object.entries(integrations.integrations).map(([k, v]) => (
+                    <Select.Option key={k} value={k}>
+                      {PLATFORM_LABELS[k] || k}
+                    </Select.Option>
+                  ))}
+                </Select>
+              ) : (
+                <div className="p-3 bg-amber-50 rounded-lg border border-amber-100 text-xs text-amber-800">
+                  No platforms connected.{" "}
+                  <span
+                    className="font-bold cursor-pointer underline"
+                    onClick={() => navigate("/plugins")}
+                  >
+                    Connect now
+                  </span>
+                  .
+                </div>
+              )}
+              {platformError && <p className="text-[10px] text-red-500 mt-1">{errors.platform}</p>}
+            </div>
+            {/* Category Select */}
+            <div>
+              <label className="text-xs font-semibold text-gray-700 mb-1.5 block">
+                Select Category
+              </label>
+
+              {/* Active Category Tag */}
+              {selectedCategory && (
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-500 text-white rounded-lg text-xs font-medium max-w-full">
+                    <span className="truncate">{selectedCategory}</span>
+                    {!isCategoryLocked && (
+                      <X
+                        size={12}
+                        className="cursor-pointer opacity-75 hover:opacity-100"
+                        onClick={handleCategoryRemove}
+                      />
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <Select
+                mode="tags"
+                className="w-full"
+                placeholder="Select or type..."
+                value={selectedCategory ? [selectedCategory] : []}
+                onChange={handleCategoryChange}
+                disabled={isCategoryLocked}
+                showSearch
+                allowClear
+                status={categoryError ? "error" : ""}
+                options={POPULAR_CATEGORIES.map(c => ({ value: c, label: c }))}
+              />
+
+              {categoryError && <p className="text-[10px] text-red-500 mt-1">{errors.category}</p>}
+
+              {/* Auto Suggestions */}
+              {/* {!wordpressError && categories?.length > 0 && !isCategoryLocked && (
+                <div className="mt-2">
+                  <p className="text-[10px] text-gray-400 font-bold uppercase mb-1.5">
+                    Suggested Categories
+                  </p>
+                  <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+                    {categories.map(cat => (
+                      <button
+                        key={cat}
+                        onClick={() => handleCategoryAdd(cat)}
+                        disabled={!!selectedCategory}
+                        className={`px-2 py-1 rounded text-[10px] border transition-all ${
+                          selectedCategory === cat
+                            ? "bg-indigo-100 border-indigo-300 text-indigo-700"
+                            : selectedCategory
+                              ? "opacity-40"
+                              : "bg-gray-50 border-gray-100 text-gray-600 hover:bg-white hover:border-gray-300"
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )} */}
+
+              {isCategoryLocked && selectedIntegration?.platform === "shopify" && (
+                <div className="mt-2 p-2 bg-blue-50 text-blue-700 text-[10px] border border-blue-100 rounded">
+                  <Info className="inline w-3 h-3 mr-1" />
+                  Shopify categories are permanent once posted.
+                </div>
+              )}
+            </div>
+            {/* ToC Toggle */}
+            <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-xl">
+              <span className="text-xs font-semibold text-gray-800">Table of Contents</span>
+              <Switch
+                size="small"
+                checked={includeTableOfContents}
+                onChange={setIncludeTableOfContents}
+              />
+            </div>
+            <div className="h-4" /> {/* Spacer */}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Post Action */}
+      <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 shadow-[0_-5px_15px_-5px_rgba(0,0,0,0.05)] z-20">
+        <button
+          onClick={handlePostClick}
+          disabled={isPosting || !hasAnyIntegration}
+          className={`
+            w-full py-3.5 px-6 rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95
+            ${
+              isPosting || !hasAnyIntegration
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:shadow-lg hover:shadow-blue-200"
+            }
+          `}
+        >
+          {isPosting ? (
+            <>
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              <span>Publishing...</span>
+            </>
+          ) : (
+            <>
+              <Send className="w-4 h-4" />
+              <span>Publish Now</span>
+            </>
+          )}
+        </button>
       </div>
     </div>
   )
@@ -1966,17 +2247,6 @@ const TextEditorSidebar = ({
       </div>
 
       {/* Modals */}
-      <CategoriesModal
-        isCategoryModalOpen={isCategoryModalOpen}
-        setIsCategoryModalOpen={setIsCategoryModalOpen}
-        onSubmit={handleCategorySubmit}
-        initialCategory={formData.category}
-        initialIncludeTableOfContents={formData.includeTableOfContents}
-        integrations={integrations}
-        blogData={blog}
-        posted={posted}
-      />
-
       <Modal
         title={
           <div className="flex items-center gap-2">

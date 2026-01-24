@@ -40,10 +40,7 @@ const CategoriesModal = ({
   )
   const [categoryError, setCategoryError] = useState(false)
   const [platformError, setPlatformError] = useState(false)
-  const [errors, setErrors] = useState({
-    category: "",
-    platform: "",
-  })
+  const [errors, setErrors] = useState({ category: "", platform: "" })
   const { categories, error: wordpressError } = useSelector(state => state.wordpress)
   const [selectedIntegration, setSelectedIntegration] = useState(null)
   const [isCategoryLocked, setIsCategoryLocked] = useState(false)
@@ -121,10 +118,7 @@ const CategoriesModal = ({
 
   // Validation function
   const validateForm = useCallback(() => {
-    const newErrors = {
-      category: "",
-      platform: "",
-    }
+    const newErrors = { category: "", platform: "" }
     let isValid = true
 
     // Check if integrations exist and platform is selected
@@ -410,8 +404,8 @@ const CategoriesModal = ({
                     selectedCategory === category
                       ? "bg-indigo-100 border-indigo-400"
                       : selectedCategory
-                      ? "opacity-50 cursor-not-allowed"
-                      : ""
+                        ? "opacity-50 cursor-not-allowed"
+                        : ""
                   }`}
                 >
                   <span className="truncate">{category}</span>
@@ -447,10 +441,7 @@ const CategoriesModal = ({
             filterOption={(input, option) =>
               option.label.toLowerCase().includes(input.toLowerCase())
             }
-            options={POPULAR_CATEGORIES.map(category => ({
-              value: category,
-              label: category,
-            }))}
+            options={POPULAR_CATEGORIES.map(category => ({ value: category, label: category }))}
             styles={{ popup: { root: { borderRadius: "8px" } } }}
             aria-label="Select or add a category"
           />
