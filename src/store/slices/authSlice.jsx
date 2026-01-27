@@ -110,10 +110,7 @@ export const googleLogin = createAsyncThunk(
       pushToDataLayer({
         ...(authStatus == "sign_up"
           ? { event: "sign_up_attempt" }
-          : {
-              event: "google_auth",
-              event_type: authStatus,
-            }),
+          : { event: "google_auth", event_type: authStatus }),
         event_status: "success",
         auth_method: "google_oauth",
         user_id: user._id,
@@ -338,3 +335,6 @@ export const selectUser = state => state.auth.user
 export const selectToken = state => state.auth.token
 export const selectAuthLoading = state => state.auth.loading
 export const selectAuthError = state => state.auth.error
+
+// Alias for compatibility
+export const fetchUserThunk = loadAuthenticatedUser

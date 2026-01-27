@@ -65,6 +65,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
 import { ScoreCard, StatCard, CompetitorsList, AnalysisInsights } from "./FeatureComponents"
 import RegenerateModal from "@components/RegenerateModal"
+import CategoriesModal from "../Editor/CategoriesModal"
 
 import { IMAGE_SOURCE, DEFAULT_IMAGE_SOURCE } from "@/data/blogData"
 import { computeCost } from "@/data/pricingConfig"
@@ -868,12 +869,8 @@ const TextEditorSidebar = ({
 
     // 3. Execution
     const executePost = () => {
-      onPost({
-        ...formData,
-        categories: selectedCategory.trim(), // API expects 'categories'
-        includeTableOfContents,
-        type: { platform: selectedIntegration.rawPlatform, url: selectedIntegration.url },
-      })
+      // Instead of direct post, open Categories Modal for final confirmation
+      setIsCategoryModalOpen(true)
     }
 
     if (unsavedChanges) {
@@ -897,12 +894,13 @@ const TextEditorSidebar = ({
     selectedCategory,
     includeTableOfContents,
     formData,
-    onPost,
+    // onPost, // Passed via CategoriesModal now
     unsavedChanges,
     handleSubmit,
     metadata,
     handlePopup,
     navigate,
+    setIsCategoryModalOpen,
   ])
 
   const addKeyword = useCallback(() => {
@@ -2126,7 +2124,7 @@ const TextEditorSidebar = ({
   // Collapsed state - show only icon bar
   if (isCollapsed) {
     return (
-      <div className="w-16 bg-gradient-to-b from-slate-50 to-gray-100 border-l border-gray-200 flex flex-col items-center gap-2">
+      <div className="w-16 border-l border-gray-200 flex flex-col items-center gap-2">
         <div className="flex flex-col gap-2">
           <Tooltip title="Expand Sidebar" placement="left">
             <button
@@ -2362,6 +2360,17 @@ const TextEditorSidebar = ({
         updateRegenField={updateRegenField}
         userPlan={userPlan}
         integrations={integrations}
+      />
+
+      {/* Categories Modal for Publishing */}
+      <CategoriesModal
+        isCategoryModalOpen={isCategoryModalOpen}
+        setIsCategoryModalOpen={setIsCategoryModalOpen}
+        onSubmit={onPost}
+        initialIncludeTableOfContents={includeTableOfContents}
+        integrations={integrations}
+        blogData={blog}
+        posted={posted}
       />
     </>
   )

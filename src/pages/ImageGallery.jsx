@@ -1,9 +1,31 @@
 import { useState, useEffect, useCallback } from "react"
-import { Pagination, Spin, Modal, message } from "antd"
-import { Search, Image as ImageIcon, X, Download, Copy } from "lucide-react"
+import { Pagination, Spin, Modal, message, Button, Input, Select, Tooltip, Tag } from "antd"
+import {
+  Search,
+  Image as ImageIcon,
+  X,
+  Download,
+  Copy,
+  Wand2,
+  Sparkles,
+  Type,
+  Bot,
+} from "lucide-react"
 import { Helmet } from "react-helmet"
-import { getImages, searchImages } from "@api/imageGalleryApi"
+import {
+  getImages,
+  searchImages,
+  generateImage,
+  enhanceImage,
+  generateAltText,
+} from "@api/imageGalleryApi"
 import DebouncedSearchInput from "@components/UI/DebouncedSearchInput"
+import { useSelector, useDispatch } from "react-redux"
+import { useNavigate } from "react-router-dom"
+import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import { fetchUserThunk } from "@/store/slices/authSlice"
+
+const { TextArea } = Input
 
 // Skeleton Loader Component
 const ImageSkeleton = () => {
@@ -47,19 +69,35 @@ const ImageGallery = () => {
   const [selectedTags, setSelectedTags] = useState([])
   const [previewImage, setPreviewImage] = useState(null)
 
-  // Available tags (you can make this dynamic by fetching from backend)
-  const availableTags = [
-    "nature",
-    "technology",
-    "business",
-    "lifestyle",
-    "food",
-    "travel",
-    "architecture",
-    "abstract",
-    "people",
-    "animals",
-  ]
+  // New Features State
+  const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false)
+  const [isEnhanceModalOpen, setIsEnhanceModalOpen] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [isEnhancing, setIsEnhancing] = useState(false)
+  const [isGeneratingAlt, setIsGeneratingAlt] = useState(false)
+  const [generatedAltText, setGeneratedAltText] = useState("")
+  const [isCreationExpanded, setIsCreationExpanded] = useState(true)
+  const [generationSuccess, setGenerationSuccess] = useState(false)
+
+  const [genForm, setGenForm] = useState({
+    prompt: "",
+    style: "photorealistic",
+    aspectRatio: "1:1",
+    imageSize: "1024x1024",
+  })
+
+  const [enhanceForm, setEnhanceForm] = useState({ prompt: "", style: "photorealistic" })
+
+  // Auth & Credits
+  const { user } = useSelector(state => state.auth)
+  const dispatch = useDispatch()
+  const navigate = useNavigate()
+  const { handlePopup } = useConfirmPopup()
+
+  const userCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
+
+  // Constants
+  const COSTS = { GENERATE: 2, ENHANCE: 5, ALT_TEXT: 2 }
 
   // Calculate total pages
   const totalPages = Math.ceil(totalImages / pageSize)
@@ -105,16 +143,124 @@ const ImageGallery = () => {
     fetchImages()
   }, [fetchImages])
 
-  const handleTagToggle = tag => {
-    setSelectedTags(prev => (prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]))
+  const checkCredits = required => {
+    if (userCredits < required) {
+      handlePopup({
+        title: "Insufficient Credits",
+        description: `This action requires ${required} credits. You have ${userCredits}.`,
+        confirmText: "Get Credits",
+        onConfirm: () => navigate("/pricing"),
+      })
+      return false
+    }
+    return true
   }
 
-  const handleScoreChange = value => {
-    setMinScore(value)
+  const checkQuota = () => {
+    if (user?.usage?.aiImages >= user?.usageLimits?.aiImages) {
+      message.error("You have reached your AI Image generation limit. preventing generation.")
+      return false
+    }
+    return true
   }
 
-  const handleImageClick = image => {
-    setPreviewImage(image)
+  const handleGenerateImage = async () => {
+    if (!checkQuota()) return
+    if (!checkCredits(COSTS.GENERATE)) return
+    if (!genForm.prompt.trim()) return message.error("Please enter a prompt")
+
+    setIsGenerating(true)
+    setGenerationSuccess(false)
+    try {
+      // Assuming generateImage returns { image: { url, ... } } or similar structure.
+      // Based on previous code, it returns response data directly or inside a wrapper.
+      // Let's assume response structure matches getImages item structure for consistency.
+      const response = await generateImage(genForm)
+
+      message.success("Image generated successfully!")
+      setGenerationSuccess(true)
+      setGenForm({ ...genForm, prompt: "" })
+      dispatch(fetchUserThunk()) // Update credits
+
+      // Handle Image Preview
+      // Inspecting typical API response patterns for this project
+      const newImage = response.image || response.data || response
+
+      if (newImage && newImage.url) {
+        setPreviewImage(newImage) // Open the lightbox with new image
+      }
+
+      fetchImages() // Refresh gallery
+    } catch (error) {
+      console.error(error)
+      message.error(error.response?.data?.message || "Generation failed")
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
+  const handleEnhanceImage = async () => {
+    if (!checkQuota()) return
+    if (!checkCredits(COSTS.ENHANCE)) return
+    if (!enhanceForm.prompt.trim()) return message.error("Please describe how to enhance")
+
+    setIsEnhancing(true)
+    try {
+      const formData = new FormData()
+      formData.append("prompt", enhanceForm.prompt)
+      formData.append("style", enhanceForm.style)
+      formData.append("existingImageId", previewImage._id)
+      formData.append("imageUrl", previewImage.url)
+
+      await enhanceImage(formData)
+      message.success("Image enhancement started! It will appear shortly.")
+      setIsEnhanceModalOpen(false)
+      setPreviewImage(null) // Close preview
+      dispatch(fetchUserThunk())
+      // Delay fetch slightly to allow backend processing if sync, or just refresh
+      setTimeout(fetchImages, 1000)
+    } catch (error) {
+      console.error(error)
+      message.error(error.response?.data?.message || "Enhancement failed")
+    } finally {
+      setIsEnhancing(false)
+    }
+  }
+
+  const handleGenerateAltText = async () => {
+    if (!checkCredits(COSTS.ALT_TEXT)) return
+
+    setIsGeneratingAlt(true)
+    try {
+      const res = await generateAltText({ imageUrl: previewImage.url })
+      setGeneratedAltText(res.altText)
+      message.success("Alt text generated!")
+      dispatch(fetchUserThunk())
+    } catch (error) {
+      console.error(error)
+      message.error("Failed to generate alt text")
+    } finally {
+      setIsGeneratingAlt(false)
+    }
+  }
+
+  /**
+   * Check if image is valid for enhancement.
+   * Now strictly permissive: if it has an ID and URL, we allow it.
+   */
+  const canEnhance = img => {
+    return img && img._id && img.url
+  }
+
+  const handleCopyLink = async (image, e) => {
+    if (e) e.stopPropagation()
+    try {
+      await navigator.clipboard.writeText(image.url)
+      message.success("Image link copied to clipboard!")
+    } catch (error) {
+      console.error(error)
+      message.error("Failed to copy link")
+    }
   }
 
   const handleDownload = async (image, e) => {
@@ -137,24 +283,12 @@ const ImageGallery = () => {
     }
   }
 
-  const handleCopyLink = async (image, e) => {
-    if (e) e.stopPropagation()
-    try {
-      await navigator.clipboard.writeText(image.url)
-      message.success("Image link copied to clipboard!")
-    } catch (error) {
-      console.error(error)
-      message.error("Failed to copy link")
-    }
+  const handleImageClick = image => {
+    setPreviewImage(image)
+    setGeneratedAltText("") // Reset alt text
+    // Pre-fill enhance prompt with description if available
+    setEnhanceForm(prev => ({ ...prev, prompt: image.description || "" }))
   }
-
-  const clearFilters = () => {
-    setSearchQuery("")
-    setSelectedTags([])
-    setMinScore(0)
-  }
-
-  const hasActiveFilters = searchQuery || selectedTags.length > 0 || minScore > 0
 
   return (
     <>
@@ -162,32 +296,195 @@ const ImageGallery = () => {
         <title>Image Gallery | GenWrite</title>
       </Helmet>
 
+      {/* Full Screen Loading Overlay */}
+      {isGenerating && (
+        <div className="fixed inset-0 z-50 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center animate-in fade-in duration-300">
+          <div className="relative">
+            <div className="absolute inset-0 bg-blue-500 rounded-full blur-xl opacity-20 animate-pulse"></div>
+            <Spin size="large" className="scale-150 relative z-10" />
+          </div>
+          <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mt-8">
+            Dreaming up your masterpiece...
+          </h3>
+          <p className="text-gray-500 mt-2 font-medium">This usually takes about 10-20 seconds.</p>
+        </div>
+      )}
+
       <div className="min-h-screen p-3 md:p-6 lg:p-8">
         {/* Header */}
-        <div className="mb-8 mt-5 md:mt-0">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
-            <div className="text-left">
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Explore Creations
-              </h1>
-              <p className="text-gray-500 text-sm mt-2 max-w-md">
-                Curated high-quality generations for your next project
-              </p>
-            </div>
-          </div>
+        <div className="mb-4 mt-5 md:mt-0">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Explore Creations
+          </h1>
+          <p className="text-gray-500 text-sm mt-1 max-w-md">
+            Curated high-quality generations for your next project.
+          </p>
+        </div>
 
-          {/* Search and Filters Bar */}
-          <div className="mb-6">
-            <DebouncedSearchInput
-              onSearch={setSearchQuery}
-              placeholder="Search..."
-              debounceTime={500}
-              className="focus:ring-1 focus:ring-gray-400 focus:border-gray-400"
-            />
+        {/* Creation Studio Section - Inline */}
+        <div className="mb-8">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md">
+            {/* Header - Always visible unless loading/success takes over fully, but kept for context */}
+            {!isGenerating && !generationSuccess && (
+              <div
+                className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100 flex items-center justify-between cursor-pointer select-none"
+                onClick={() => setIsCreationExpanded(!isCreationExpanded)}
+              >
+                <div className="flex items-center gap-2 text-blue-900">
+                  <div className="p-1.5 bg-white rounded-lg shadow-sm text-blue-600">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <span className="font-bold text-sm">Creation Studio</span>
+                  <span className="text-xs font-medium text-blue-600/70 ml-2 bg-white/50 px-2 py-0.5 rounded-full border border-blue-100">
+                    {COSTS.GENERATE} Credits
+                  </span>
+                </div>
+                <div
+                  className={`text-blue-400 transition-transform duration-300 ${isCreationExpanded ? "rotate-180" : ""}`}
+                >
+                  ▼
+                </div>
+              </div>
+            )}
+
+            {/* Content Area */}
+            <div
+              className={`transition-all duration-300 ease-in-out ${isCreationExpanded || isGenerating || generationSuccess ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0 overflow-hidden"}`}
+            >
+              {isGenerating ? (
+                // Loading State
+                <div className="p-10 flex flex-col items-center justify-center text-center space-y-4">
+                  <Spin size="large" className="scale-150" />
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-800 mt-4">
+                      Creating your masterpiece...
+                    </h3>
+                    <p className="text-gray-500 text-sm">This usually takes about 10-20 seconds.</p>
+                  </div>
+                </div>
+              ) : generationSuccess ? (
+                // Success State
+                <div className="p-8 flex flex-col items-center justify-center text-center space-y-4 bg-green-50/50">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-green-600 mb-2 animate-bounce">
+                    <Sparkles className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-800">Image Generated Successfully!</h3>
+                  <p className="text-gray-500 text-sm max-w-sm">
+                    Your new creation has been added to the gallery below.
+                  </p>
+                  <button
+                    onClick={() => setGenerationSuccess(false)}
+                    className="mt-4 px-6 py-2 bg-white border border-gray-200 text-gray-700 font-bold rounded-xl shadow-sm hover:bg-gray-50 hover:border-gray-300 transition-all text-sm"
+                  >
+                    Generate Another
+                  </button>
+                </div>
+              ) : (
+                // Form State
+                <div className="p-5">
+                  <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr_auto] gap-5 items-start">
+                    {/* Grid Item 1: Prompt */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                        Prompt
+                      </label>
+                      <TextArea
+                        value={genForm.prompt}
+                        onChange={e => setGenForm({ ...genForm, prompt: e.target.value })}
+                        placeholder="A futuristic city with flying cars at sunset, cyberpunk style..."
+                        className="!min-h-[100px] !resize-none !text-sm !rounded-xl !border-gray-200 focus:!border-blue-400 focus:!ring-2 focus:!ring-blue-50"
+                      />
+                    </div>
+
+                    {/* Grid Item 2: Settings */}
+                    <div className="grid grid-cols-2 lg:grid-cols-1 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                          Style
+                        </label>
+                        <Select
+                          value={genForm.style}
+                          onChange={val => setGenForm({ ...genForm, style: val })}
+                          className="w-full"
+                          size="large"
+                          options={[
+                            { value: "photorealistic", label: "Photorealistic" },
+                            { value: "anime", label: "Anime" },
+                            { value: "digital-art", label: "Digital Art" },
+                            { value: "oil-painting", label: "Oil Painting" },
+                            { value: "sketch", label: "Sketch" },
+                            { value: "cinematic", label: "Cinematic" },
+                          ]}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                          Ratio
+                        </label>
+                        <Select
+                          value={genForm.aspectRatio}
+                          onChange={val => setGenForm({ ...genForm, aspectRatio: val })}
+                          className="w-full"
+                          size="large"
+                          options={[
+                            { value: "1:1", label: "Square (1:1)" },
+                            { value: "16:9", label: "Landscape (16:9)" },
+                            { value: "9:16", label: "Portrait (9:16)" },
+                            { value: "4:3", label: "Standard (4:3)" },
+                          ]}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Grid Item 3: Action */}
+                    <div className="flex flex-col justify-end h-full pt-6 lg:pt-0">
+                      <button
+                        onClick={handleGenerateImage}
+                        disabled={isGenerating}
+                        className={`
+                              h-[100px] w-full lg:w-[140px] rounded-xl font-bold text-white shadow-lg flex flex-col items-center justify-center gap-2 transition-all
+                              bg-gradient-to-br from-blue-600 to-indigo-600 hover:shadow-blue-200 hover:scale-[1.02] active:scale-[0.98]
+                            `}
+                      >
+                        <Sparkles className="w-6 h-6" />
+                        <span>Generate</span>
+                      </button>
+                    </div>
+                  </div>
+                  {/* Footer Credits Info */}
+                  <div className="px-1 pt-3 flex flex-col items-end gap-1">
+                    <div className="text-xs text-gray-400 font-medium">
+                      AI Images Usage:{" "}
+                      <span
+                        className={`${user?.usage?.aiImages >= user?.usageLimits?.aiImages ? "text-red-500" : "text-gray-700"} font-bold`}
+                      >
+                        {user?.usage?.aiImages || 0} / {user?.usageLimits?.aiImages || 0}
+                      </span>
+                    </div>
+                    <div className="text-xs text-gray-400 font-medium">
+                      You have{" "}
+                      <span className="text-blue-600 font-bold">{userCredits} credits</span>{" "}
+                      available
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
+        {/* Search and Filters Bar */}
+        <div className="mb-6 sticky top-2 z-20 bg-white/80 backdrop-blur-sm p-2 rounded-xl border border-gray-100 shadow-sm">
+          <DebouncedSearchInput
+            onSearch={setSearchQuery}
+            placeholder="Search gallery..."
+            debounceTime={500}
+            className="!border-none !shadow-none !bg-transparent focus:!ring-0 text-base"
+          />
+        </div>
+
         <div>
+          {/* Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {images.map((image, index) => (
               <div
@@ -205,6 +502,15 @@ const ImageGallery = () => {
                 {/* Hover Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
                   <div className="flex items-center justify-between">
+                    {/* Tags/badges if AI generated */}
+                    {canEnhance(image) && (
+                      <div className="absolute top-2 right-2">
+                        <span className="bg-white/20 backdrop-blur-md px-2 py-1 rounded text-[10px] font-bold text-white border border-white/30 flex items-center gap-1">
+                          <Bot size={10} /> AI
+                        </span>
+                      </div>
+                    )}
+
                     <p className="text-white text-sm line-clamp-2 font-medium mr-2">
                       {image.description}
                     </p>
@@ -257,9 +563,54 @@ const ImageGallery = () => {
           )}
         </div>
 
-        {/* Enhanced Modal */}
+        {/* Enhance Modal */}
         <Modal
-          open={!!previewImage}
+          title={
+            <div className="flex items-center gap-2">
+              <Wand2 className="text-purple-600" /> Enhance Image
+            </div>
+          }
+          open={isEnhanceModalOpen}
+          onCancel={() => setIsEnhanceModalOpen(false)}
+          footer={null}
+          centered
+          width={500}
+        >
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-gray-500">
+              Enhance or modify this image using AI. Describe what you want to improve or change.
+            </p>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Instruction</label>
+              <TextArea
+                value={enhanceForm.prompt}
+                onChange={e => setEnhanceForm({ ...enhanceForm, prompt: e.target.value })}
+                placeholder="Make it higher definition, fix lighting, add a hat..."
+                rows={4}
+              />
+            </div>
+
+            <div className="bg-purple-50 p-3 rounded-lg flex justify-between items-center text-xs text-purple-700">
+              <span>Cost: {COSTS.ENHANCE} credits</span>
+              <span className="font-bold">Available: {userCredits}</span>
+            </div>
+
+            <Button
+              type="primary"
+              block
+              size="large"
+              onClick={handleEnhanceImage}
+              loading={isEnhancing}
+              className="bg-gradient-to-r from-purple-600 to-pink-600 border-none h-12"
+            >
+              Enhance Image
+            </Button>
+          </div>
+        </Modal>
+
+        {/* Preview Modal (Enhanced) */}
+        <Modal
+          open={!!previewImage && !isEnhanceModalOpen}
           onCancel={() => setPreviewImage(null)}
           footer={null}
           centered
@@ -279,7 +630,7 @@ const ImageGallery = () => {
           {previewImage && (
             <div className="bg-white rounded-xl overflow-hidden shadow-2xl flex flex-col md:flex-row max-h-[90vh]">
               {/* Left: Image Container */}
-              <div className="flex-1 relative group flex items-center justify-center p-2">
+              <div className="flex-1 relative group flex items-center justify-center p-2 bg-gray-50">
                 <div className="relative max-h-full max-w-full shadow-lg rounded-lg overflow-hidden">
                   <img
                     src={previewImage.url}
@@ -296,15 +647,71 @@ const ImageGallery = () => {
               </div>
 
               {/* Right: Details */}
-              <div className="w-full md:w-[350px] bg-white p-6 md:p-4 flex flex-col overflow-y-auto border-l border-gray-100">
-                <h3 className="text-xl font-semibold text-gray-900 leading-snug mb-4">
-                  Prompt Details
+              <div className="w-full md:w-[380px] bg-white p-6 md:p-6 flex flex-col overflow-y-auto border-l border-gray-100">
+                <h3 className="text-xl font-semibold text-gray-900 leading-snug mb-4 flex items-center gap-2">
+                  Image Details
+                  {canEnhance(previewImage) && (
+                    <Tooltip title="AI Generated">
+                      <span className="bg-blue-100 text-blue-700 p-1 rounded-md text-xs">
+                        <Bot size={14} />
+                      </span>
+                    </Tooltip>
+                  )}
                 </h3>
 
                 <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                  <p className="text-gray-600 leading-relaxed text-sm mb-6">
-                    {previewImage.description || "No description provided for this generation."}
+                  <p className="text-gray-600 leading-relaxed text-sm mb-6 bg-gray-50 p-3 rounded-lg border border-gray-100 italic">
+                    {previewImage.description || "No description provided."}
                   </p>
+
+                  <div className="grid grid-cols-2 gap-2 mb-6">
+                    {/* Alt Text Button */}
+                    <button
+                      onClick={handleGenerateAltText}
+                      className="flex items-center justify-center gap-2 py-2 px-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-bold transition-all"
+                    >
+                      <Type size={14} /> {isGeneratingAlt ? "Generating..." : "Generate Alt Text"}
+                      <span className="bg-gray-200 px-1 rounded text-[10px] text-gray-500">
+                        {COSTS.ALT_TEXT}c
+                      </span>
+                    </button>
+
+                    {/* Enhance Button (Conditional) */}
+                    {canEnhance(previewImage) ? (
+                      <button
+                        onClick={() => setIsEnhanceModalOpen(true)}
+                        className="flex items-center justify-center gap-2 py-2 px-3 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg text-xs font-bold transition-all"
+                      >
+                        <Wand2 size={14} /> Enhance
+                        <span className="bg-purple-200 px-1 rounded text-[10px] text-purple-700">
+                          {COSTS.ENHANCE}c
+                        </span>
+                      </button>
+                    ) : (
+                      <div className="flex items-center justify-center text-xs text-gray-400 italic bg-gray-50 rounded-lg">
+                        Enhance unavailable
+                      </div>
+                    )}
+                  </div>
+
+                  {generatedAltText && (
+                    <div className="mb-6 animate-in fade-in slide-in-from-top-2">
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">
+                        Generated Alt Text
+                      </label>
+                      <Tooltip title="Click to copy">
+                        <div
+                          className="p-3 bg-green-50 text-green-800 text-xs rounded-lg border border-green-100 cursor-pointer hover:bg-green-100 transition-colors select-none"
+                          onClick={() => {
+                            navigator.clipboard.writeText(generatedAltText)
+                            message.success("Alt text copied!")
+                          }}
+                        >
+                          {generatedAltText}
+                        </div>
+                      </Tooltip>
+                    </div>
+                  )}
 
                   {previewImage.tags && previewImage.tags.length > 0 && (
                     <div className="mb-6">

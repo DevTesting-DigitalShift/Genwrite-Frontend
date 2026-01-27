@@ -43,10 +43,14 @@ import {
   Minus,
   Youtube,
   Info,
+  Sparkles,
 } from "lucide-react"
-import { Tooltip, message, Modal, Input, Button, Dropdown, Popover } from "antd"
+import { Tooltip, message, Modal, Input, Button, Dropdown, Popover, Select } from "antd"
 import { createPortal } from "react-dom"
 import ImageGalleryPicker from "@components/ImageGalleryPicker"
+import { generateImage } from "@api/imageGalleryApi"
+import { COSTS } from "@/data/blogData"
+import { useSelector } from "react-redux"
 import { AIBubbleMenu } from "./AIBubbleMenu"
 import { useEditorContext } from "./EditorContext"
 
@@ -112,6 +116,18 @@ const SectionEditor = ({
   const [youtubeUrl, setYoutubeUrl] = useState("")
   const [youtubeTitle, setYoutubeTitle] = useState("")
   const [youtubeError, setYoutubeError] = useState("")
+
+  // AI Generation State
+  const [isGenerateMode, setIsGenerateMode] = useState(false)
+  const [genForm, setGenForm] = useState({
+    prompt: "",
+    style: "photorealistic",
+    aspectRatio: "16:9", // Default landscape for blog
+    imageSize: "1024x1024",
+  })
+
+  // Auth & Credits
+  const { user } = useSelector(state => state.auth)
 
   // Table grid selector state
   const [tableDropdownOpen, setTableDropdownOpen] = useState(false)
@@ -207,7 +223,7 @@ const SectionEditor = ({
 
         // Check if clicked on proofreading mark (original or suggestion)
         const proofMark = event.target.closest(
-          ".proofreading-original, .proofreading-suggestion, .proofreading-mark",
+          ".proofreading-original, .proofreading-suggestion, .proofreading-mark"
         )
         if (proofMark && (proofMark.dataset.suggestion || proofMark.dataset.original)) {
           event.preventDefault()
@@ -227,7 +243,7 @@ const SectionEditor = ({
   useEffect(() => {
     if (editor) {
       const proofExt = editor.extensionManager.extensions.find(
-        ext => ext.name === "proofreadingDecoration",
+        ext => ext.name === "proofreadingDecoration"
       )
       if (proofExt) {
         proofExt.options.suggestions = proofreadingResults || []
@@ -743,11 +759,11 @@ const SectionEditor = ({
                       onMouseEnter={() => setHoveredCell({ row: rowIndex + 1, col: colIndex + 1 })}
                       onClick={() => handleTableSelect(rowIndex + 1, colIndex + 1)}
                     />
-                  )),
+                  ))
                 )}
               </div>
             </div>,
-            document.body,
+            document.body
           )}
 
         {/* Table Manipulation Menu - Only show when inside a table */}
@@ -1241,6 +1257,126 @@ const SectionEditor = ({
                 </div>
               )}
             </div>
+
+            {/* Manual / Generate Options */}
+            {!imageUrl && !isGenerateMode && (
+              <div className="flex flex-col gap-2 w-full mt-2">
+                {user?.usage?.aiImages >= user?.usageLimits?.aiImages && (
+                  <div className="text-xs text-red-500 bg-red-50 p-2 rounded border border-red-100 text-center">
+                    You have reached your AI Image generation limit. preventing generation.
+                  </div>
+                )}
+                <Button
+                  block
+                  onClick={() => setIsGenerateMode(true)}
+                  disabled={user?.usage?.aiImages >= user?.usageLimits?.aiImages}
+                  className="flex items-center justify-center gap-1"
+                >
+                  <Sparkles className="w-4 h-4 text-blue-600" /> Generate Image
+                </Button>
+              </div>
+            )}
+
+            {/* Generation Controls */}
+            {isGenerateMode && (
+              <div className="w-full mt-2 bg-white p-3 rounded border border-blue-100 shadow-sm space-y-3">
+                <div>
+                  <label className="text-xs font-medium text-gray-500">Prompt</label>
+                  <Input.TextArea
+                    placeholder="Describe image for this section..."
+                    value={genForm.prompt}
+                    onChange={e => setGenForm({ ...genForm, prompt: e.target.value })}
+                    rows={2}
+                    className="text-sm mt-1"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs font-medium text-gray-500">Style</label>
+                    <Select
+                      value={genForm.style}
+                      onChange={val => setGenForm({ ...genForm, style: val })}
+                      className="w-full mt-1"
+                      size="small"
+                      options={[
+                        { value: "photorealistic", label: "Photorealistic" },
+                        { value: "anime", label: "Anime" },
+                        { value: "digital-art", label: "Digital Art" },
+                        { value: "oil-painting", label: "Oil Painting" },
+                        { value: "sketch", label: "Sketch" },
+                        { value: "cinematic", label: "Cinematic" },
+                      ]}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-500">Ratio</label>
+                    <Select
+                      value={genForm.aspectRatio}
+                      onChange={val => setGenForm({ ...genForm, aspectRatio: val })}
+                      className="w-full mt-1"
+                      size="small"
+                      options={[
+                        { value: "1:1", label: "Square (1:1)" },
+                        { value: "16:9", label: "Landscape (16:9)" },
+                        { value: "9:16", label: "Portrait (9:16)" },
+                        { value: "4:3", label: "Standard (4:3)" },
+                      ]}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2 justify-end">
+                  <Button size="small" onClick={() => setIsGenerateMode(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    size="small"
+                    type="primary"
+                    className="bg-blue-600"
+                    onClick={async () => {
+                      // Quota Check
+                      if (user?.usage?.aiImages >= user?.usageLimits?.aiImages) {
+                        message.error(
+                          "You have reached your AI Image generation limit. preventing generation."
+                        )
+                        return
+                      }
+
+                      const credits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
+                      if (credits < COSTS.GENERATE) {
+                        message.error(`Insufficient credits. Need ${COSTS.GENERATE} credits.`)
+                        return
+                      }
+
+                      if (!genForm.prompt.trim()) {
+                        message.error("Please enter a prompt")
+                        return
+                      }
+
+                      const hide = message.loading("Generating image...", 0)
+                      try {
+                        const response = await generateImage(genForm)
+                        const newImage = response.image || response.data || response
+                        if (newImage && newImage.url) {
+                          setImageUrl(newImage.url)
+                          setImageAltText(genForm.prompt)
+                          message.success("Image generated! Save to apply.")
+                          setIsGenerateMode(false)
+                        }
+                      } catch (err) {
+                        console.error(err)
+                        message.error("Failed to generate image")
+                      } finally {
+                        hide()
+                      }
+                    }}
+                  >
+                    <Sparkles className="w-3 h-3 mr-1" /> Generate ({COSTS.GENERATE}c)
+                  </Button>
+                </div>
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Alt Text (optional)

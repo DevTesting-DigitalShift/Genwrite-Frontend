@@ -37,37 +37,16 @@ export const LANGUAGES = [
 ]
 
 export const AI_MODELS = [
-  {
-    id: "gemini",
-    label: "Gemini",
-    logo: "/Images/gemini.webp",
-  },
-  {
-    id: "openai",
-    label: "ChatGPT",
-    logo: "/Images/chatgpt.webp",
-  },
-  {
-    id: "claude",
-    label: "Claude",
-    logo: "/Images/claude.webp",
-  },
+  { id: "gemini", label: "Gemini", logo: "/Images/gemini.webp" },
+  { id: "openai", label: "ChatGPT", logo: "/Images/chatgpt.webp" },
+  { id: "claude", label: "Claude", logo: "/Images/claude.webp" },
 ]
 
 export const IMAGE_OPTIONS = [
-  {
-    id: IMAGE_SOURCE.STOCK,
-    label: "Stock Images",
-    restrict: false,
-  },
-  {
-    id: IMAGE_SOURCE.AI,
-    label: "AI-Generated Images",
-    restrict: true,
-  },
-  {
-    id: IMAGE_SOURCE.UPLOAD,
-    label: "Upload Images",
-    restrict: true,
-  },
+  { id: IMAGE_SOURCE.STOCK, label: "Stock Images", restrict: false },
+  { id: IMAGE_SOURCE.AI, label: "AI-Generated Images", restrict: true },
+  { id: IMAGE_SOURCE.UPLOAD, label: "Upload Images", restrict: true },
 ]
+
+// Credit Costs for AI Operations
+export const COSTS = { GENERATE: 2, ENHANCE: 5, ALT_TEXT: 2 }
