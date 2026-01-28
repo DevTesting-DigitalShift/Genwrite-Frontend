@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useLayoutEffect, useMemo, useCallback } from "react"
 import { useEditor, EditorContent } from "@tiptap/react"
-import { BubbleMenu } from "@tiptap/react"
+import { BubbleMenu } from "@tiptap/react/menus"
 import StarterKit from "@tiptap/starter-kit"
 import Image from "@tiptap/extension-image"
 import TextAlign from "@tiptap/extension-text-align"
