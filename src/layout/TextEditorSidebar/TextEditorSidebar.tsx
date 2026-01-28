@@ -1,20 +1,3 @@
-/**
- * TextEditorSidebar - Main Controller
- *
- * Refactored modular sidebar with:
- * - Dynamic panel switching
- * - Clean separation of concerns
- * - TypeScript type safety
- * - Framer Motion animations
- * - SessionStorage persistence
- *
- * Architecture:
- * - Each panel in `sidebars/` folder
- * - Shared types in `types.ts`
- * - Animation hook respects `prefers-reduced-motion`
- * - All business logic handled here, panels are presentation-only
- */
-
 import { useEffect, useState, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { ChevronLeft, ChevronRight } from "lucide-react"
@@ -23,19 +6,11 @@ import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import { useQueryClient } from "@tanstack/react-query"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
-import * as Cheerio from "cheerio"
-
-// Redux actions
-import { fetchProofreadingSuggestions, fetchBlogPrompt } from "@store/slices/blogSlice"
 import { fetchCompetitiveAnalysisThunk } from "@store/slices/analysisSlice"
 import {
   generateMetadataThunk,
   getIntegrationsThunk,
-  getCategoriesThunk,
-  resetCategories,
 } from "@store/slices/otherSlice"
-
-// API
 import {
   retryBlogById,
   exportBlogAsPdf,
@@ -43,8 +18,6 @@ import {
   exportBlog,
   updateBlog,
 } from "@api/blogApi"
-
-// Utils
 import { getEstimatedCost, creditCostsWithGemini } from "@utils/getEstimatedCost"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
 import { validateRegenerateBlogData } from "@/types/forms.schemas"

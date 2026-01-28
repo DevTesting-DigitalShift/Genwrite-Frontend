@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useLayoutEffect, useMemo, useCallback } from "react"
 import { useEditor, EditorContent } from "@tiptap/react"
-import { BubbleMenu } from "@tiptap/react/menus"
+import { BubbleMenu } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 import Image from "@tiptap/extension-image"
 import TextAlign from "@tiptap/extension-text-align"
@@ -122,10 +122,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
 
   const htmlToMarkdown = useCallback(html => {
     if (!html) return ""
-    const turndownService = new TurndownService({
-      headingStyle: "atx",
-      bulletListMarker: "-",
-    })
+    const turndownService = new TurndownService({ headingStyle: "atx", bulletListMarker: "-" })
     turndownService.keep(["p", "div", "iframe", "table", "tr", "th", "td"])
     return turndownService.turndown(html)
   }, [])
@@ -133,12 +130,8 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
   const normalEditor = useEditor(
     {
       extensions: [
-        StarterKit.configure({
-          heading: false,
-        }),
-        Heading.configure({
-          levels: [1, 2, 3, 4],
-        }),
+        StarterKit.configure({ heading: false }),
+        Heading.configure({ levels: [1, 2, 3, 4] }),
         Image.configure({
           HTMLAttributes: { class: "rounded-lg mx-auto w-3/4 h-auto object-contain" },
         }),
@@ -844,11 +837,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
           </div>
         }
         width="100%"
-        style={{
-          maxWidth: showGalleryPicker ? "1200px" : "600px",
-          top: 20,
-          paddingBottom: 0,
-        }}
+        style={{ maxWidth: showGalleryPicker ? "1200px" : "600px", top: 20, paddingBottom: 0 }}
         centered
         bodyStyle={{ padding: 0, maxHeight: "85vh", overflow: "hidden" }}
         className="responsive-image-modal"
