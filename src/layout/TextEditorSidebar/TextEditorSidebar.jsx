@@ -72,8 +72,68 @@ import { computeCost } from "@/data/pricingConfig"
 import * as Cheerio from "cheerio"
 import TurndownService from "turndown"
 
+import axios from "axios"
+
 const { TextArea } = Input
 const { Panel } = Collapse
+
+// WordPress Categories Component
+const WordPressCategories = ({ onSelect, currentCategory }) => {
+  const [categories, setCategories] = useState([])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    const fetchWPCategories = async () => {
+      setLoading(true)
+      try {
+        const response = await axios.get(
+          "http://localhost:8000/api/v1/integrations/category?type=WORDPRESS"
+        )
+        // Filter out "Uncategorized" and empty strings if needed, or keep as raw list
+        if (Array.isArray(response.data)) {
+          setCategories(response.data)
+        }
+      } catch (error) {
+        console.error("Failed to fetch WP categories", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchWPCategories()
+  }, [])
+
+  if (loading)
+    return <div className="text-[10px] text-gray-400">Loading WordPress categories...</div>
+
+  if (categories.length === 0) return null
+
+  return (
+    <div className="mb-4">
+      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
+        WordPress Categories
+      </p>
+      <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto custom-scroll pr-2">
+        {categories.map((cat, idx) => (
+          <button
+            key={idx}
+            onClick={() => onSelect(cat)}
+            className={`
+              px-2.5 py-1 rounded-md text-[11px] font-medium transition-all border
+              ${
+                currentCategory === cat
+                  ? "bg-blue-100 text-blue-700 border-blue-200 shadow-sm"
+                  : "bg-gray-50 text-gray-600 border-gray-100 hover:bg-white hover:border-gray-300 hover:shadow-sm"
+              }
+            `}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 // AI Models config
 const AI_MODELS = [
@@ -2031,6 +2091,13 @@ const TextEditorSidebar = ({
               )}
               {platformError && <p className="text-[10px] text-red-500 mt-1">{errors.platform}</p>}
             </div>
+            {/* WordPress Categories Fetcher */}
+            {selectedIntegration && selectedIntegration.rawPlatform === "WORDPRESS" && (
+              <WordPressCategories
+                onSelect={handleCategoryAdd}
+                currentCategory={selectedCategory}
+              />
+            )}
             {/* Category Select */}
             <div>
               <label className="text-xs font-semibold text-gray-700 mb-1.5 block">

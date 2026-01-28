@@ -323,6 +323,9 @@ importers:
       remark-rehype:
         specifier: ^11.1.2
         version: 11.1.2
+      root:
+        specifier: git+https://github.com/tanstack/react-query.git
+        version: git+https://github.com/tanstack/react-query.git#ed5e5fcfc135f7899804a4176353d81cac5d2f27
       sheetjs-style:
         specifier: ^0.15.8
         version: 0.15.8
@@ -4500,6 +4503,10 @@ packages:
     resolution: {integrity: sha512-wDv/Ht1BNHB4upNbK74s9usvl7hObDnvVzknxqY/E/O3X6rW1U1rV1aENEfJ54eFZDTNo7zv1f5N4edCluH7+A==}
     engines: {node: '>=18.0.0', npm: '>=8.0.0'}
     hasBin: true
+
+  root@git+https://github.com/tanstack/react-query.git#ed5e5fcfc135f7899804a4176353d81cac5d2f27:
+    resolution: {commit: ed5e5fcfc135f7899804a4176353d81cac5d2f27, repo: https://github.com/tanstack/react-query.git, type: git}
+    version: 0.0.0
 
   rope-sequence@1.3.4:
     resolution: {integrity: sha512-UT5EDe2cu2E/6O4igUr5PSFs23nvvukicWHx6GnOPlHAiiYbzNuCRQCuiUdHJQcqKalLKlrYJnjY0ySGsXNQXQ==}
@@ -10330,6 +10337,8 @@ snapshots:
       '@rollup/rollup-win32-x64-gnu': 4.55.1
       '@rollup/rollup-win32-x64-msvc': 4.55.1
       fsevents: 2.3.3
+
+  root@git+https://github.com/tanstack/react-query.git#ed5e5fcfc135f7899804a4176353d81cac5d2f27: {}
 
   rope-sequence@1.3.4: {}
 
