@@ -1,105 +1,207 @@
-// @components/Jobs/Jobs.jsx
-import React, { useState, useEffect, useMemo } from "react";
-import { motion } from "framer-motion";
-import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
-import { Helmet } from "react-helmet";
-import { Pagination } from "antd";
-import { FiPlus } from "react-icons/fi";
-import { fetchJobs, openJobModal } from "@store/slices/jobSlice";
-import { fetchBrands } from "@store/slices/brandSlice";
-import { selectUser } from "@store/slices/authSlice";
-import SkeletonLoader from "@components/Projects/SkeletonLoader";
-import UpgradeModal from "@components/UpgradeModal";
-import { openUpgradePopup } from "@utils/UpgardePopUp";
-import JobModal from "@components/Jobs/JobModal";
-import JobCard from "@components/Jobs/JobCard";
-import { AlertTriangle } from "lucide-react";
-import { message } from "antd";
+import { useState, useEffect, useMemo, useCallback } from "react"
+import { motion } from "framer-motion"
+import { useDispatch, useSelector } from "react-redux"
+import { useNavigate } from "react-router-dom"
+import { Helmet } from "react-helmet"
+import { Pagination, Button, message } from "antd"
+import { FiPlus } from "react-icons/fi"
+import { RefreshCcw } from "lucide-react"
+import { fetchJobs, openJobModal } from "@store/slices/jobSlice"
+import { selectUser } from "@store/slices/authSlice"
+import SkeletonLoader from "@components/UI/SkeletonLoader"
+import UpgradeModal from "@components/UpgradeModal"
+import { openUpgradePopup } from "@utils/UpgardePopUp"
+import JobModal from "@/layout/Jobs/JobModal"
+import JobCard from "@/layout/Jobs/JobCard"
+import { AlertTriangle } from "lucide-react"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { getSocket } from "@utils/socket"
 
-const PAGE_SIZE = 15;
+const PAGE_SIZE = 15
 
 const Jobs = () => {
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
-  const { jobs, loading: isLoading, showJobModal } = useSelector((state) => state.jobs);
-  const { selectedKeywords } = useSelector((state) => state.analysis);
-  const user = useSelector(selectUser);
-  const userPlan = (user?.plan || user?.subscription?.plan || "free").toLowerCase();
-  const [currentPage, setCurrentPage] = useState(1);
-  const [showWarning, setShowWarning] = useState(false);
-  const [isUserLoaded, setIsUserLoaded] = useState(false);
-  const usage = user?.usage?.createdJobs;
-  const usageLimit = user?.usageLimits?.createdJobs;
+  const dispatch = useDispatch()
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const { showJobModal } = useSelector(state => state.jobs)
+  const { selectedKeywords } = useSelector(state => state.analysis)
+  const user = useSelector(selectUser)
+  const userPlan = (user?.plan || user?.subscription?.plan || "free").toLowerCase()
+  const [currentPage, setCurrentPage] = useState(1)
+  const [showWarning, setShowWarning] = useState(false)
+  const [isUserLoaded, setIsUserLoaded] = useState(false)
+  const usage = user?.usage?.createdJobs
+  const usageLimit = user?.usageLimits?.createdJobs
 
-  const JOB_LIMITS = {
-    free: 0,
-    basic: 1,
-    pro: 5,
-    enterprise: Infinity,
-  };
+  // TanStack Query for fetching jobs
+  const { data: queryJobs = [], isLoading: queryLoading } = useQuery({
+    queryKey: ["jobs", user?.id],
+    queryFn: async () => {
+      const response = await dispatch(fetchJobs()).unwrap()
+      return response || []
+    },
+    staleTime: Infinity, // Data never becomes stale
+    gcTime: Infinity, // Cache persists for the session
+    refetchOnMount: "always", // Fetch only if cache is empty
+    refetchOnWindowFocus: false, // Prevent refetch on window focus
+    enabled: !!user, // Only fetch if user is logged in
+  })
 
-  const checkJobLimit = () => {
-    const limit = JOB_LIMITS[userPlan] || 0;
-    if (usage >= limit) {
-      message.error(
-        `You have reached the job limit for your ${userPlan} plan (${limit} job${
-          limit === 1 ? "" : "s"
-        }). ${
-          userPlan === "basic"
-            ? "Delete an existing job to create a new one."
-            : "Please upgrade your plan to create more jobs."
-        }`
-      );
-      if (userPlan !== "basic") {
-        openUpgradePopup({ featureName: "Additional Jobs", navigate });
+  // Socket for real-time updates
+  useEffect(() => {
+    const socket = getSocket()
+    if (!socket || !user) {
+      console.debug("Socket or user not available, skipping WebSocket setup")
+      return
+    }
+
+    console.debug("Setting up WebSocket listeners for user:", user.id)
+
+    const handleJobChange = (data, eventType) => {
+      console.debug(`Received ${eventType}:`, data)
+
+      // Check if job stopped due to insufficient credits
+      if (
+        (data?.status === "stop" || data?.status === "stopped") &&
+        data?.reason?.toLowerCase().includes("insufficient credits")
+      ) {
+        message.error({
+          content: (
+            <div>
+              <strong>Job Stopped: Insufficient Credits</strong>
+              <p className="mt-1">
+                {data.reason || "This job was stopped because you don't have enough credits."}
+              </p>
+              <a
+                href="/pricing"
+                className="text-blue-600 hover:text-blue-700 font-semibold underline"
+                onClick={e => {
+                  e.preventDefault()
+                  navigate("/pricing")
+                }}
+              >
+                Add Credits →
+              </a>
+            </div>
+          ),
+          duration: 8,
+          className: "insufficient-credits-notification",
+        })
       }
-      return false;
+
+      const queryKey = ["jobs", user.id]
+
+      if (eventType === "job:deleted") {
+        queryClient.setQueryData(queryKey, (old = []) =>
+          old.filter(job => job._id !== (data._id || data.jobId))
+        )
+        queryClient.removeQueries({ queryKey: ["job", data._id || data.jobId] })
+      } else {
+        // Handle create, update, statusChanged uniformly: update if exists, add if not
+        queryClient.setQueryData(queryKey, (old = []) => {
+          const jobIdToFind = data._id || data.jobId
+          const index = old.findIndex(job => job._id === jobIdToFind)
+
+          if (index > -1) {
+            // Create a new array with the updated job (immutable update)
+            const newJobs = [...old]
+            newJobs[index] = { ...old[index], ...data, _id: jobIdToFind }
+            console.debug(`Updated job at index ${index}:`, newJobs[index])
+            return newJobs
+          } else {
+            // Add new job at the beginning (for job:created)
+            console.debug(`Adding new job:`, data)
+            return [{ ...data, _id: jobIdToFind }, ...old]
+          }
+        })
+        queryClient.setQueryData(["job", data._id || data.jobId], old => ({ ...old, ...data }))
+      }
     }
-    return true;
-  };
 
-  const handleOpenJobModal = () => {
-    if (!isUserLoaded) {
-      message.error("User data is still loading. Please try again.");
-      return;
+    // Handle user notifications (for insufficient credits)
+    const handleUserNotification = () => {
+      // Refetch user to get latest notifications
+      // The notification will be displayed by the NotificationDropdown component
+      console.debug("User notification received, checking for insufficient credits")
+
+      // Also invalidate jobs query to ensure UI is in sync
+      queryClient.invalidateQueries({ queryKey: ["jobs", user.id] })
     }
-    if (!checkJobLimit()) return;
-    dispatch(openJobModal(null)); // Pass null for new job
-  };
+
+    socket.on("job:statusChanged", data => handleJobChange(data, "job:statusChanged"))
+    socket.on("job:updated", data => handleJobChange(data, "job:updated"))
+    socket.on("job:created", data => handleJobChange(data, "job:created"))
+    socket.on("job:deleted", data => handleJobChange(data, "job:deleted"))
+    socket.on("user:notification", handleUserNotification)
+
+    // Test connection
+    socket.on("connect", () => console.debug("Socket connected"))
+    socket.on("disconnect", () => console.debug("Socket disconnected"))
+
+    return () => {
+      console.debug("Cleaning up WebSocket listeners")
+      socket.off("job:statusChanged")
+      socket.off("job:updated")
+      socket.off("job:created")
+      socket.off("job:deleted")
+      socket.off("user:notification")
+      socket.off("connect")
+      socket.off("disconnect")
+    }
+  }, [queryClient, user, navigate])
+
+  // Clear cache on user logout
+  useEffect(() => {
+    if (!user) {
+      queryClient.removeQueries({ queryKey: ["jobs"] })
+      setCurrentPage(1)
+      setShowWarning(false)
+      setIsUserLoaded(false)
+    } else {
+      setIsUserLoaded(!!(user?.name || user?.credits))
+    }
+  }, [user, queryClient])
+
+  const checkJobLimit = useCallback(() => {
+    if (usage >= usageLimit) {
+      openUpgradePopup({ featureName: "Additional Jobs", navigate })
+      return false
+    }
+    return true
+  }, [usage, usageLimit, navigate])
+
+  const handleOpenJobModal = useCallback(() => {
+    if (!checkJobLimit()) return
+    dispatch(openJobModal(null)) // Pass null for new job
+  }, [dispatch, checkJobLimit])
+
+  const handleRefresh = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["jobs", user?.id] })
+  }, [queryClient, user])
 
   useEffect(() => {
-    dispatch(fetchJobs());
-    dispatch(fetchBrands());
-  }, [dispatch]);
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }, [currentPage])
 
-  useEffect(() => {
-    setIsUserLoaded(!!(user?.name || user?.credits));
-  }, [user]);
-
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [currentPage]);
-
-  const totalPages = useMemo(() => Math.ceil(jobs.length / PAGE_SIZE), [jobs]);
+  const totalPages = useMemo(() => Math.ceil(queryJobs.length / PAGE_SIZE), [queryJobs])
 
   const paginatedJobs = useMemo(() => {
-    const startIndex = (currentPage - 1) * PAGE_SIZE;
-    return jobs.slice(startIndex, startIndex + PAGE_SIZE);
-  }, [jobs, currentPage]);
+    const startIndex = (currentPage - 1) * PAGE_SIZE
+    return queryJobs.slice(startIndex, startIndex + PAGE_SIZE)
+  }, [queryJobs, currentPage])
 
   if (userPlan === "free") {
-    return <UpgradeModal featureName="Content Agent" />;
+    return <UpgradeModal featureName="Content Agent" />
   }
-
+  //asd
   return (
     <>
       <Helmet>
         <title>Content Agent | GenWrite</title>
       </Helmet>
-      <div className="min-h-screen bg-gray-50 p-8">
+      <div className="min-h-screen p-4 lg:p-8">
         <div>
-          <div className="flex justify-between">
+          <div className="flex justify-between mt-5 md:mt-0">
             <div className="mb-8">
               <motion.h1
                 initial={{ y: -20 }}
@@ -110,18 +212,31 @@ const Jobs = () => {
               </motion.h1>
               <p className="text-gray-600 mt-2">Manage your automated content generation jobs</p>
             </div>
-            {usage === usageLimit && (
-              <button
-                onClick={() => setShowWarning((prev) => !prev)}
-                className="text-yellow-500 hover:text-yellow-600 transition"
-                title="View usage warning"
-              >
-                <AlertTriangle className="w-6 h-6" />
-              </button>
-            )}
+            <div className="flex gap-2">
+              {usage >= usageLimit && (
+                <button
+                  onClick={() => setShowWarning(prev => !prev)}
+                  className="text-yellow-500 hover:text-yellow-600 transition"
+                  title="View usage warning"
+                >
+                  <AlertTriangle className="w-6 h-6" />
+                </button>
+              )}
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  type="default"
+                  icon={<RefreshCcw className="w-4 sm:w-5 h-4 sm:h-5" />}
+                  onClick={handleRefresh}
+                  disabled={queryLoading}
+                  className="text-xs sm:text-sm px-4 py-2"
+                >
+                  Refresh
+                </Button>
+              </motion.div>
+            </div>
           </div>
 
-          {showWarning && usage === usageLimit && (
+          {showWarning && usage >= usageLimit && (
             <div className="flex items-start mb-10 gap-3 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg shadow-sm text-sm">
               <div className="pt-1 text-yellow-500">
                 <AlertTriangle className="w-5 h-5" />
@@ -141,33 +256,33 @@ const Jobs = () => {
           )}
 
           <motion.div
-            whileHover={{ y: -2 }}
-            className="w-full md:w-1/2 lg:w-1/3 h-48 p-6 bg-white rounded-xl shadow-sm hover:shadow-md cursor-pointer mb-8"
+            className="w-full md:w-1/2 lg:w-1/3 h-52 p-6 bg-white rounded-2xl shadow-lg hover:shadow-xl cursor-pointer mb-8 transition-all duration-300 border border-gray-100"
             onClick={handleOpenJobModal}
           >
             <div className="flex items-center justify-between gap-4">
-              <span className="bg-blue-100 rounded-lg p-3">
-                <FiPlus className="w-6 h-6 text-blue-600" />
+              <span className="bg-blue-50 rounded-2xl p-4 shadow-inner">
+                <FiPlus className="w-7 h-7 text-blue-600" />
               </span>
             </div>
-            <div className="mt-4">
-              <h3 className="text-xl font-semibold text-gray-800">Create New Job</h3>
-              <p className="text-gray-500 mt-2 text-sm">
-                Set up automated content generation with custom templates and scheduling
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold text-gray-900 tracking-wide">Create New Job</h3>
+              <p className="text-gray-500 mt-2 text-sm leading-relaxed">
+                Automate content generation with custom templates and scheduling.
               </p>
             </div>
           </motion.div>
-          {jobs.length > 0 && (
+
+          {queryJobs.length > 0 && (
             <h2 className="text-xl font-semibold text-gray-800 mb-6">Active Jobs</h2>
           )}
 
-          {isLoading ? (
+          {queryLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[...Array(PAGE_SIZE)].map((_, index) => (
                 <SkeletonLoader key={index} />
               ))}
             </div>
-          ) : jobs.length === 0 ? (
+          ) : queryJobs.length === 0 ? (
             <div
               className="flex flex-col justify-center items-center"
               style={{ minHeight: "calc(100vh - 250px)" }}
@@ -176,7 +291,9 @@ const Jobs = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {paginatedJobs.map((job) => (
+              {" "}
+              {/* No transition class to avoid animations */}
+              {paginatedJobs.map(job => (
                 <JobCard
                   key={job._id}
                   job={job}
@@ -191,8 +308,8 @@ const Jobs = () => {
               <Pagination
                 current={currentPage}
                 pageSize={PAGE_SIZE}
-                total={jobs.length}
-                onChange={(page) => setCurrentPage(page)}
+                total={queryJobs.length}
+                onChange={page => setCurrentPage(page)}
                 showSizeChanger={false}
                 responsive
               />
@@ -208,7 +325,7 @@ const Jobs = () => {
         />
       </div>
     </>
-  );
-};
+  )
+}
 
-export default Jobs;
+export default Jobs

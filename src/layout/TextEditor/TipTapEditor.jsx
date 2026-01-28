@@ -1,0 +1,951 @@
+import React, { useState, useEffect, useRef, useLayoutEffect, useMemo, useCallback } from "react"
+import { useEditor, EditorContent } from "@tiptap/react"
+import { BubbleMenu } from "@tiptap/react/menus"
+import StarterKit from "@tiptap/starter-kit"
+import Image from "@tiptap/extension-image"
+import TextAlign from "@tiptap/extension-text-align"
+import { motion } from "framer-motion"
+import DOMPurify from "dompurify"
+import {
+  Bold,
+  Italic,
+  Underline as IconUnderline,
+  List,
+  ListOrdered,
+  Heading1,
+  Heading2,
+  Heading3,
+  Heading4,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  Link as LinkIcon,
+  Image as ImageIcon,
+  Undo2,
+  Redo2,
+  RotateCcw,
+  Trash2,
+  Table as TableIcon,
+  TableProperties,
+  Columns,
+  Rows,
+  Plus,
+  Minus,
+} from "lucide-react"
+import { useDispatch, useSelector } from "react-redux"
+import { Input, Modal, Tooltip, message, Select, Button, Flex, Popover } from "antd"
+import { marked } from "marked"
+import TurndownService from "turndown"
+import { useBlocker, useLocation, useNavigate } from "react-router-dom"
+import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import { ProofreadingDecoration } from "@/extensions/ProofreadingDecoration"
+import { ReloadOutlined } from "@ant-design/icons"
+import { sendRetryLines } from "@api/blogApi"
+import { retryBlog } from "@store/slices/blogSlice"
+import { createPortal } from "react-dom"
+import { getLinkPreview } from "link-preview-js"
+import { useQueryClient } from "@tanstack/react-query"
+import { useProofreadingUI } from "@/layout/Editor/useProofreadingUI"
+import ContentDiffViewer from "../Editor/ContentDiffViewer"
+import "./editor.css"
+import { VideoEmbed } from "@/extensions/VideoEmbed"
+import { Iframe } from "@/extensions/IframeExtension"
+import LoadingScreen from "@components/UI/LoadingScreen"
+import { computeCost } from "@/data/pricingConfig"
+import { Table } from "@tiptap/extension-table"
+import TableRow from "@tiptap/extension-table-row"
+import TableCell from "@tiptap/extension-table-cell"
+import TableHeader from "@tiptap/extension-table-header"
+import Heading from "@tiptap/extension-heading"
+import ImageGalleryPicker from "@components/ImageGalleryPicker"
+
+const FONT_OPTIONS = [
+  { label: "Arial", value: "font-arial" },
+  { label: "Georgia", value: "font-georgia" },
+  { label: "Mono", value: "font-mono" },
+  { label: "Comic Sans", value: "font-comic" },
+]
+
+const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedChanges }) => {
+  const [isEditorLoading, setIsEditorLoading] = useState(true)
+  const [selectedFont, setSelectedFont] = useState(FONT_OPTIONS[0].value)
+  const [linkModalOpen, setLinkModalOpen] = useState(false)
+  const [imageModalOpen, setImageModalOpen] = useState(false)
+  const [showGalleryPicker, setShowGalleryPicker] = useState(false)
+  const [tableDropdownOpen, setTableDropdownOpen] = useState(false)
+  const [hoveredCell, setHoveredCell] = useState({ row: 0, col: 0 })
+  const tableButtonRef = useRef(null)
+  const [linkUrl, setLinkUrl] = useState("")
+  const [imageUrl, setImageUrl] = useState("")
+  const [imageAlt, setImageAlt] = useState("")
+  const [editorReady, setEditorReady] = useState(false)
+  const [editImageModalOpen, setEditImageModalOpen] = useState(false)
+  const [selectedImage, setSelectedImage] = useState(null)
+  const [linkPreview, setLinkPreview] = useState(null)
+  const [linkPreviewPos, setLinkPreviewPos] = useState(null)
+  const [linkPreviewUrl, setLinkPreviewUrl] = useState(null)
+  const [linkPreviewElement, setLinkPreviewElement] = useState(null)
+  const hideTimeout = useRef(null)
+  const [lastSavedContent, setLastSavedContent] = useState("")
+
+  const navigate = useNavigate()
+  const { handlePopup } = useConfirmPopup()
+  const user = useSelector(state => state.auth.user)
+  const userPlan = user?.subscription?.plan
+  const location = useLocation()
+
+  const normalizeContent = useCallback(str => str.replace(/\s+/g, " ").trim(), [])
+  const safeContent = content ?? blog?.content ?? ""
+
+  const markdownToHtml = useCallback(markdown => {
+    if (!markdown) return "<p></p>"
+    const rawHtml = marked.parse(
+      markdown
+        .replace(/!\[\s*["']?(.*?)["']?\s*\]\((.*?)\)/g, (_, alt, url) => `![${alt}](${url})`)
+        .replace(/'/g, "'"),
+      { gfm: true, breaks: true }
+    )
+    return DOMPurify.sanitize(rawHtml, {
+      ADD_TAGS: ["iframe", "div", "table", "th", "td", "tr"],
+      ADD_ATTR: [
+        "allow",
+        "allowfullscreen",
+        "frameborder",
+        "scrolling",
+        "src",
+        "style",
+        "title",
+        "class",
+      ],
+    })
+  }, [])
+
+  const htmlToMarkdown = useCallback(html => {
+    if (!html) return ""
+    const turndownService = new TurndownService({
+      headingStyle: "atx",
+      bulletListMarker: "-",
+    })
+    turndownService.keep(["p", "div", "iframe", "table", "tr", "th", "td"])
+    return turndownService.turndown(html)
+  }, [])
+
+  const normalEditor = useEditor(
+    {
+      extensions: [
+        StarterKit.configure({
+          heading: false,
+        }),
+        Heading.configure({
+          levels: [1, 2, 3, 4],
+        }),
+        Image.configure({
+          HTMLAttributes: { class: "rounded-lg mx-auto w-3/4 h-auto object-contain" },
+        }),
+        TextAlign.configure({ types: ["heading", "paragraph"] }),
+        Table.configure({
+          resizable: false,
+          allowTableNodeSelection: true,
+          HTMLAttributes: { class: "border-2 w-full border-collapse p-2" },
+        }),
+        TableHeader.configure({
+          HTMLAttributes: { class: "text-center font-bold border align-middle border-gray-400" },
+        }),
+        TableRow.configure({
+          HTMLAttributes: { class: "text-center font-medium border align-middle border-gray-400" },
+        }),
+        TableCell.configure({
+          HTMLAttributes: { class: "text-center font-medium border align-middle border-gray-400" },
+        }),
+        VideoEmbed,
+        // Iframe,
+      ],
+      content: "<p></p>",
+      editorProps: {
+        attributes: {
+          class: `prose max-w-none focus:outline-none p-4 min-h-[400px] ${selectedFont} blog-content editor-container`,
+        },
+      },
+      onUpdate: ({ editor }) => {
+        const html = editor.getHTML()
+        const markdown = htmlToMarkdown(html)
+        setContent(markdown)
+        const normCurrent = normalizeContent(markdown)
+        const normSaved = normalizeContent(lastSavedContent ?? "")
+        setUnsavedChanges(normCurrent !== normSaved)
+      },
+    },
+    [
+      selectedFont,
+      htmlToMarkdown,
+      setContent,
+      setUnsavedChanges,
+      lastSavedContent,
+      normalizeContent,
+    ]
+  )
+
+  const safeEditorAction = useCallback(
+    action => {
+      if (userPlan === "free" || userPlan === "basic") {
+        navigate("/pricing")
+        return
+      }
+      action()
+    },
+    [userPlan, navigate]
+  )
+
+  const handleAddLink = useCallback(() => {
+    if (!normalEditor || normalEditor.state.selection.empty) {
+      message.error("Select text to link.")
+      return
+    }
+    safeEditorAction(() => {
+      setLinkUrl("")
+      setLinkModalOpen(true)
+    })
+  }, [normalEditor, safeEditorAction])
+
+  const handleAddImage = useCallback(() => {
+    safeEditorAction(() => {
+      setImageUrl("")
+      setImageAlt("")
+      setImageModalOpen(true)
+    })
+  }, [safeEditorAction])
+
+  const handleSelectFromGallery = useCallback((url, alt) => {
+    setImageUrl(url)
+    setImageAlt(alt)
+    setShowGalleryPicker(false)
+  }, [])
+
+  const handleConfirmLink = useCallback(() => {
+    if (!linkUrl || !/https?:\/\//i.test(linkUrl)) {
+      message.error("Enter a valid URL.")
+      return
+    }
+    if (normalEditor) {
+      const { from, to } = normalEditor.state.selection
+      normalEditor
+        .chain()
+        .focus()
+        .setLink({ href: linkUrl, target: "_blank", rel: "noopener noreferrer" })
+        .setTextSelection({ from, to })
+        .run()
+      setLinkModalOpen(false)
+      message.success("Link added.")
+    }
+  }, [linkUrl, normalEditor])
+
+  const handleConfirmImage = useCallback(() => {
+    if (!imageUrl || !/https?:\/\//i.test(imageUrl)) {
+      message.error("Enter a valid image URL.")
+      return
+    }
+    if (normalEditor) {
+      normalEditor.chain().focus().setImage({ src: imageUrl, alt: imageAlt }).run()
+      setImageModalOpen(false)
+      message.success("Image added.")
+    }
+  }, [imageUrl, imageAlt, normalEditor])
+
+  const handleImageClick = useCallback(event => {
+    if (event.target.tagName === "IMG") {
+      const { src, alt } = event.target
+      setSelectedImage({ src, alt: alt || "" })
+      setImageAlt(alt || "")
+      setEditImageModalOpen(true)
+    }
+  }, [])
+
+  const handleConfirmEditImage = useCallback(() => {
+    if (!selectedImage || !imageAlt) {
+      message.error("Alt text is required.")
+      return
+    }
+    if (normalEditor) {
+      let updated = false
+      normalEditor.state.doc.descendants((node, pos) => {
+        if (node.type.name === "image" && node.attrs.src === selectedImage.src) {
+          normalEditor
+            .chain()
+            .focus()
+            .setNodeSelection(pos)
+            .setImage({ src: selectedImage.src, alt: imageAlt })
+            .run()
+          updated = true
+        }
+      })
+      if (updated) {
+        message.success("Image alt text updated.")
+        setEditImageModalOpen(false)
+        setSelectedImage(null)
+        setImageAlt("")
+      }
+    }
+  }, [selectedImage, imageAlt, normalEditor])
+
+  const handleDeleteImage = useCallback(() => {
+    if (!selectedImage || !normalEditor) return
+    let deleted = false
+    normalEditor.state.doc.descendants((node, pos) => {
+      if (node.type.name === "image" && node.attrs.src === selectedImage.src) {
+        normalEditor
+          .chain()
+          .focus()
+          .deleteRange({ from: pos, to: pos + 1 })
+          .run()
+        deleted = true
+      }
+    })
+    if (deleted) {
+      setEditImageModalOpen(false)
+      setSelectedImage(null)
+      setImageAlt("")
+      message.success("Image deleted.")
+    }
+  }, [selectedImage, normalEditor])
+
+  const handleAddTable = useCallback(() => {
+    safeEditorAction(() => {
+      setTableDropdownOpen(prev => !prev)
+    })
+  }, [safeEditorAction])
+
+  const handleTableSelect = useCallback(
+    (rows, cols) => {
+      if (normalEditor) {
+        // First close the dropdown
+        setTableDropdownOpen(false)
+        setHoveredCell({ row: 0, col: 0 })
+
+        // Then insert table at current cursor position with a slight delay
+        setTimeout(() => {
+          normalEditor.chain().focus().insertTable({ rows, cols, withHeaderRow: true }).run()
+          message.success(`Table ${rows}x${cols} added.`)
+        }, 100)
+      }
+    },
+    [normalEditor]
+  )
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = event => {
+      if (
+        tableDropdownOpen &&
+        tableButtonRef.current &&
+        !tableButtonRef.current.contains(event.target) &&
+        !event.target.closest(".fixed.bg-white") // Don't close if clicking inside the dropdown
+      ) {
+        setTableDropdownOpen(false)
+        setHoveredCell({ row: 0, col: 0 })
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [tableDropdownOpen])
+
+  useEffect(() => {
+    if (normalEditor && blog?.content) {
+      const html = markdownToHtml(blog.content)
+      normalEditor.commands.setContent(html, false)
+      setContent(blog.content)
+      setLastSavedContent(blog.content)
+
+      // Scroll to top after content is loaded
+      setTimeout(() => {
+        const editorContainer = document.querySelector(".flex-1.overflow-auto.custom-scroll")
+        if (editorContainer) {
+          editorContainer.scrollTop = 0
+        }
+      }, 100)
+    }
+  }, [normalEditor, blog, markdownToHtml])
+
+  useEffect(() => {
+    setIsEditorLoading(true)
+    const timer = setTimeout(() => {
+      setIsEditorLoading(false)
+      // Don't auto-focus to prevent scrolling to bottom
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [normalEditor])
+
+  useEffect(() => {
+    if (normalEditor) {
+      setEditorReady(true)
+      return () => {
+        if (!normalEditor.isDestroyed) normalEditor.destroy()
+      }
+    }
+  }, [normalEditor])
+
+  useEffect(() => {
+    if (normalEditor?.view?.dom) {
+      const editorElement = normalEditor.view.dom
+      editorElement.addEventListener("click", handleImageClick)
+      return () => editorElement?.removeEventListener("click", handleImageClick)
+    }
+  }, [normalEditor, handleImageClick])
+
+  const renderToolbar = () => (
+    <div className="bg-white border-x border-gray-200 shadow-sm px-2 sm:px-4 py-2 flex flex-wrap items-center justify-start gap-y-2 overflow-x-auto">
+      <div className="flex gap-1 flex-shrink-0">
+        {[1, 2, 3, 4].map(level => (
+          <Tooltip key={level} title={`Heading ${level}`}>
+            <button
+              onClick={() =>
+                safeEditorAction(() => normalEditor.chain().focus().toggleHeading({ level }).run())
+              }
+              className={`p-2 rounded-md transition-colors ${
+                normalEditor?.isActive("heading", { level })
+                  ? "bg-blue-100 text-blue-600"
+                  : "hover:bg-gray-100"
+              }`}
+              type="button"
+            >
+              {level === 1 && <Heading1 className="w-4 h-4" />}
+              {level === 2 && <Heading2 className="w-4 h-4" />}
+              {level === 3 && <Heading3 className="w-4 h-4" />}
+              {level === 4 && <Heading4 className="w-4 h-4" />}
+            </button>
+          </Tooltip>
+        ))}
+      </div>
+
+      <div className="w-px h-6 bg-gray-200 mx-2 flex-shrink-0" />
+
+      {/* Text styles */}
+      <div className="flex gap-1 flex-shrink-0">
+        <Tooltip title="Bold">
+          <button
+            onClick={() => safeEditorAction(() => normalEditor.chain().focus().toggleBold().run())}
+            className={`p-2 rounded-md transition-colors ${
+              normalEditor?.isActive("bold") ? "bg-blue-100 text-blue-600" : "hover:bg-gray-100"
+            }`}
+            type="button"
+          >
+            <Bold className="w-4 h-4" />
+          </button>
+        </Tooltip>
+        <Tooltip title="Italic">
+          <button
+            onClick={() =>
+              safeEditorAction(() => normalEditor.chain().focus().toggleItalic().run())
+            }
+            className={`p-2 rounded-md transition-colors ${
+              normalEditor?.isActive("italic") ? "bg-blue-100 text-blue-600" : "hover:bg-gray-100"
+            }`}
+            type="button"
+          >
+            <Italic className="w-4 h-4" />
+          </button>
+        </Tooltip>
+      </div>
+
+      <div className="w-px h-6 bg-gray-200 mx-2 flex-shrink-0" />
+
+      {/* Alignment */}
+      <div className="flex gap-1 flex-shrink-0">
+        {["left", "center", "right"].map(align => (
+          <Tooltip key={align} title={`Align ${align}`}>
+            <button
+              onClick={() =>
+                safeEditorAction(() => normalEditor.chain().focus().setTextAlign(align).run())
+              }
+              className={`p-2 rounded-md transition-colors ${
+                normalEditor?.isActive({ textAlign: align })
+                  ? "bg-blue-100 text-blue-600"
+                  : "hover:bg-gray-100"
+              }`}
+              type="button"
+            >
+              {align === "left" && <AlignLeft className="w-4 h-4" />}
+              {align === "center" && <AlignCenter className="w-4 h-4" />}
+              {align === "right" && <AlignRight className="w-4 h-4" />}
+            </button>
+          </Tooltip>
+        ))}
+      </div>
+
+      <div className="w-px h-6 bg-gray-200 mx-2 flex-shrink-0" />
+
+      {/* Lists */}
+      <div className="flex gap-1 flex-shrink-0">
+        <Tooltip title="Bullet List">
+          <button
+            onClick={() =>
+              safeEditorAction(() => normalEditor.chain().focus().toggleBulletList().run())
+            }
+            className={`p-2 rounded-md transition-colors ${
+              normalEditor?.isActive("bulletList")
+                ? "bg-blue-100 text-blue-600"
+                : "hover:bg-gray-100"
+            }`}
+            type="button"
+          >
+            <List className="w-4 h-4" />
+          </button>
+        </Tooltip>
+        <Tooltip title="Ordered List">
+          <button
+            onClick={() =>
+              safeEditorAction(() => normalEditor.chain().focus().toggleOrderedList().run())
+            }
+            className={`p-2 rounded-md transition-colors ${
+              normalEditor?.isActive("orderedList")
+                ? "bg-blue-100 text-blue-600"
+                : "hover:bg-gray-100"
+            }`}
+            type="button"
+          >
+            <ListOrdered className="w-4 h-4" />
+          </button>
+        </Tooltip>
+      </div>
+
+      <div className="w-px h-6 bg-gray-200 mx-2 flex-shrink-0" />
+
+      {/* Media & Undo/Redo */}
+      <div className="flex gap-1 flex-nowrap">
+        <Tooltip title="Link">
+          <button
+            onClick={handleAddLink}
+            className="p-2 rounded-md hover:bg-gray-100 flex-shrink-0"
+            type="button"
+          >
+            <LinkIcon className="w-4 h-4" />
+          </button>
+        </Tooltip>
+        <Tooltip title="Image">
+          <button
+            onClick={handleAddImage}
+            className="p-2 rounded-md hover:bg-gray-100 flex-shrink-0"
+            type="button"
+          >
+            <ImageIcon className="w-4 h-4" />
+          </button>
+        </Tooltip>
+        <div className="relative" ref={tableButtonRef}>
+          <Tooltip title="Table">
+            <button
+              onClick={handleAddTable}
+              className={`p-2 rounded-md hover:bg-gray-100 flex-shrink-0 ${
+                tableDropdownOpen ? "bg-blue-100 text-blue-600" : ""
+              }`}
+              type="button"
+            >
+              <TableIcon className="w-4 h-4" />
+            </button>
+          </Tooltip>
+        </div>
+
+        {tableDropdownOpen &&
+          tableButtonRef.current &&
+          createPortal(
+            <div
+              className="fixed bg-white border border-gray-300 rounded-lg shadow-lg p-3 z-[9999]"
+              style={{
+                top: `${tableButtonRef.current.getBoundingClientRect().bottom + 8}px`,
+                left: `${tableButtonRef.current.getBoundingClientRect().left}px`,
+              }}
+            >
+              <div className="mb-2 text-xs text-gray-600 text-center">
+                {hoveredCell.row > 0 && hoveredCell.col > 0
+                  ? `${hoveredCell.row} x ${hoveredCell.col}`
+                  : "Select table size"}
+              </div>
+              <div className="grid gap-1" style={{ gridTemplateColumns: "repeat(10, 1fr)" }}>
+                {Array.from({ length: 10 }, (_, rowIndex) =>
+                  Array.from({ length: 10 }, (_, colIndex) => (
+                    <div
+                      key={`${rowIndex}-${colIndex}`}
+                      className={`w-5 h-5 border border-gray-300 cursor-pointer transition-colors ${
+                        rowIndex < hoveredCell.row && colIndex < hoveredCell.col
+                          ? "bg-blue-500 border-blue-600"
+                          : "bg-white hover:bg-blue-100"
+                      }`}
+                      onMouseEnter={() => setHoveredCell({ row: rowIndex + 1, col: colIndex + 1 })}
+                      onClick={() => handleTableSelect(rowIndex + 1, colIndex + 1)}
+                    />
+                  ))
+                )}
+              </div>
+            </div>,
+            document.body
+          )}
+
+        {/* Table Manipulation Menu - Only show when inside a table */}
+        {normalEditor?.isActive("table") && (
+          <Popover
+            content={
+              <div className="flex flex-col gap-1 min-w-[180px]">
+                <Button
+                  size="small"
+                  icon={<Plus className="w-3 h-3" />}
+                  onClick={() => {
+                    normalEditor.chain().focus().addRowBefore().run()
+                    message.success("Row added")
+                  }}
+                  disabled={!normalEditor.can().addRowBefore()}
+                  className="justify-start"
+                >
+                  Add Row Before
+                </Button>
+                <Button
+                  size="small"
+                  icon={<Plus className="w-3 h-3" />}
+                  onClick={() => {
+                    normalEditor.chain().focus().addRowAfter().run()
+                    message.success("Row added")
+                  }}
+                  disabled={!normalEditor.can().addRowAfter()}
+                  className="justify-start"
+                >
+                  Add Row After
+                </Button>
+                <Button
+                  size="small"
+                  icon={<Minus className="w-3 h-3" />}
+                  onClick={() => {
+                    normalEditor.chain().focus().deleteRow().run()
+                    message.success("Row deleted")
+                  }}
+                  disabled={!normalEditor.can().deleteRow()}
+                  danger
+                  className="justify-start"
+                >
+                  Delete Row
+                </Button>
+                <div className="border-t my-1" />
+                <Button
+                  size="small"
+                  icon={<Plus className="w-3 h-3" />}
+                  onClick={() => {
+                    normalEditor.chain().focus().addColumnBefore().run()
+                    message.success("Column added")
+                  }}
+                  disabled={!normalEditor.can().addColumnBefore()}
+                  className="justify-start"
+                >
+                  Add Column Before
+                </Button>
+                <Button
+                  size="small"
+                  icon={<Plus className="w-3 h-3" />}
+                  onClick={() => {
+                    normalEditor.chain().focus().addColumnAfter().run()
+                  }}
+                  disabled={!normalEditor.can().addColumnAfter()}
+                  className="justify-start"
+                >
+                  Add Column After
+                </Button>
+                <Button
+                  size="small"
+                  icon={<Minus className="w-3 h-3" />}
+                  onClick={() => {
+                    normalEditor.chain().focus().deleteColumn().run()
+                  }}
+                  disabled={!normalEditor.can().deleteColumn()}
+                  danger
+                  className="justify-start"
+                >
+                  Delete Column
+                </Button>
+                <div className="border-t my-1" />
+                <Button
+                  size="small"
+                  icon={<Trash2 className="w-3 h-3" />}
+                  onClick={() => {
+                    normalEditor.chain().focus().deleteTable().run()
+                  }}
+                  disabled={!normalEditor.can().deleteTable()}
+                  danger
+                  className="justify-start"
+                >
+                  Delete Table
+                </Button>
+              </div>
+            }
+            trigger="click"
+            placement="bottomLeft"
+          >
+            <Tooltip title="Table Options">
+              <button
+                className={`p-2 rounded-md transition-colors flex-shrink-0 ${
+                  normalEditor.isActive("table") ? "bg-blue-100 text-blue-600" : "hover:bg-gray-100"
+                }`}
+                type="button"
+              >
+                <TableProperties className="w-4 h-4" />
+              </button>
+            </Tooltip>
+          </Popover>
+        )}
+
+        <Tooltip title="Undo">
+          <button
+            onClick={() => safeEditorAction(() => normalEditor?.chain().focus().undo().run())}
+            className="p-2 rounded-md hover:bg-gray-100 flex-shrink-0"
+            type="button"
+          >
+            <Undo2 className="w-4 h-4" />
+          </button>
+        </Tooltip>
+        <Tooltip title="Redo">
+          <button
+            onClick={() => safeEditorAction(() => normalEditor?.chain().focus().redo().run())}
+            className="p-2 rounded-md hover:bg-gray-100 flex-shrink-0"
+            type="button"
+          >
+            <Redo2 className="w-4 h-4" />
+          </button>
+        </Tooltip>
+      </div>
+
+      <div className="w-px h-6 bg-gray-200 mx-2 flex-shrink-0" />
+
+      {/* Font Select */}
+      <Select
+        value={selectedFont}
+        onChange={value => safeEditorAction(() => setSelectedFont(value))}
+        className="w-32 flex-shrink-0"
+      >
+        {FONT_OPTIONS.map(font => (
+          <Select.Option key={font.value} value={font.value}>
+            {font.label}
+          </Select.Option>
+        ))}
+      </Select>
+    </div>
+  )
+
+  if (isEditorLoading || !editorReady) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-300px)] bg-white border rounded-lg">
+        <LoadingScreen />
+      </div>
+    )
+  }
+
+  return (
+    <motion.div
+      className="flex-1 bg-gray-50 h-full flex flex-col"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+    >
+      {/* Toolbar - Fixed at top */}
+      <div className="sticky top-0 z-50 bg-white shadow-sm flex-shrink-0">{renderToolbar()}</div>
+
+      {/* Editor Content - Scrollable */}
+      <div className="flex-1 overflow-auto custom-scroll bg-white p-4">
+        {normalEditor && (
+          <BubbleMenu
+            editor={normalEditor}
+            className="flex gap-2 bg-white shadow-lg p-2 rounded-lg border"
+          >
+            <Tooltip title="Bold">
+              <button
+                className="p-2 rounded hover:bg-gray-200"
+                onClick={() =>
+                  safeEditorAction(() => normalEditor.chain().focus().toggleBold().run())
+                }
+              >
+                <Bold className="w-5 h-5" />
+              </button>
+            </Tooltip>
+            <Tooltip title="Italic">
+              <button
+                className="p-2 rounded hover:bg-gray-200"
+                onClick={() =>
+                  safeEditorAction(() => normalEditor.chain().focus().toggleItalic().run())
+                }
+              >
+                <Italic className="w-5 h-5" />
+              </button>
+            </Tooltip>
+            <Tooltip title="Link">
+              <button className="p-2 rounded hover:bg-gray-200" onClick={handleAddLink}>
+                <LinkIcon className="w-5 h-5" />
+              </button>
+            </Tooltip>
+          </BubbleMenu>
+        )}
+        <EditorContent editor={normalEditor} />
+      </div>
+
+      {/* Modals */}
+      <Modal
+        title="Insert Link"
+        open={linkModalOpen}
+        onOk={handleConfirmLink}
+        onCancel={() => setLinkModalOpen(false)}
+        footer={
+          <Flex justify="end" gap={16}>
+            <Button key="cancel" onClick={() => setLinkModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button key="ok" type="primary" onClick={handleConfirmLink}>
+              Ok
+            </Button>
+          </Flex>
+        }
+        centered
+      >
+        <Input
+          value={linkUrl}
+          onChange={e => setLinkUrl(e.target.value)}
+          placeholder="https://example.com"
+          className="mt-4"
+        />
+      </Modal>
+
+      <Modal
+        title={
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pr-6 sm:pr-10">
+            <div className="flex items-center gap-2">
+              <ImageIcon className="w-5 h-5 text-purple-600" />
+              <span>Add Image</span>
+            </div>
+            <Button
+              size="small"
+              type={showGalleryPicker ? "primary" : "default"}
+              onClick={() => setShowGalleryPicker(prev => !prev)}
+              className="text-xs w-full sm:w-auto"
+              icon={<ImageIcon className="w-3 h-3" />}
+            >
+              {showGalleryPicker ? "Manual Entry" : "Browse Gallery"}
+            </Button>
+          </div>
+        }
+        open={imageModalOpen}
+        onCancel={() => {
+          setImageModalOpen(false)
+          setShowGalleryPicker(false)
+        }}
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button
+              onClick={() => {
+                setImageModalOpen(false)
+                setShowGalleryPicker(false)
+              }}
+            >
+              Cancel
+            </Button>
+            <Button type="primary" onClick={handleConfirmImage}>
+              Add Image
+            </Button>
+          </div>
+        }
+        width="100%"
+        style={{
+          maxWidth: showGalleryPicker ? "1200px" : "600px",
+          top: 20,
+          paddingBottom: 0,
+        }}
+        centered
+        bodyStyle={{ padding: 0, maxHeight: "85vh", overflow: "hidden" }}
+        className="responsive-image-modal"
+      >
+        <div
+          className={`flex flex-col ${showGalleryPicker ? "md:flex-row h-[85vh] md:h-[80vh]" : ""}`}
+        >
+          {/* Main Form - Top on Mobile, Left on Desktop */}
+          <div
+            className={`${
+              showGalleryPicker
+                ? "w-full md:w-[400px] border-b md:border-b-0 md:border-r"
+                : "w-full"
+            } p-4 sm:p-6 space-y-4 flex-shrink-0 ${showGalleryPicker ? "overflow-y-auto" : ""}`}
+          >
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
+              <Input
+                value={imageUrl}
+                onChange={e => setImageUrl(e.target.value)}
+                placeholder="https://example.com/image.jpg"
+                size="large"
+              />
+              {imageUrl && (
+                <div className="mt-3 border rounded-lg overflow-hidden bg-gray-50 p-2">
+                  <img
+                    src={imageUrl}
+                    alt="Preview"
+                    className="w-full h-auto max-h-48 object-contain rounded"
+                    onError={e => (e.target.style.display = "none")}
+                  />
+                </div>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Alt Text (optional)
+              </label>
+              <Input
+                value={imageAlt}
+                onChange={e => setImageAlt(e.target.value)}
+                placeholder="Description of the image"
+                size="large"
+              />
+              <p className="text-xs text-gray-500 mt-1">Helps with SEO and accessibility</p>
+            </div>
+          </div>
+
+          {/* Gallery Picker - Bottom on Mobile, Right on Desktop */}
+          {showGalleryPicker && (
+            <div className="flex-1 p-4 sm:p-6 bg-gray-50 overflow-hidden min-h-[400px] md:min-h-0">
+              <ImageGalleryPicker onSelect={handleSelectFromGallery} selectedImageUrl={imageUrl} />
+            </div>
+          )}
+        </div>
+      </Modal>
+
+      <Modal
+        title="Edit Image"
+        open={editImageModalOpen}
+        onOk={handleConfirmEditImage}
+        onCancel={() => {
+          setEditImageModalOpen(false)
+          setSelectedImage(null)
+        }}
+        footer={
+          <Flex justify="end" gap={16}>
+            <Button
+              key="delete"
+              danger
+              icon={<Trash2 className="w-4 h-4" />}
+              onClick={handleDeleteImage}
+            >
+              Delete
+            </Button>
+            <Button key="cancel" onClick={() => setEditImageModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button key="ok" type="primary" onClick={handleConfirmEditImage}>
+              Update
+            </Button>
+          </Flex>
+        }
+        centered
+      >
+        <Input
+          value={imageAlt}
+          onChange={e => setImageAlt(e.target.value)}
+          placeholder="Alt text"
+          className="mt-4"
+        />
+        {selectedImage && (
+          <img src={selectedImage.src} alt={imageAlt} className="mt-4 rounded-lg max-w-full" />
+        )}
+      </Modal>
+    </motion.div>
+  )
+}
+
+export default TipTapEditor

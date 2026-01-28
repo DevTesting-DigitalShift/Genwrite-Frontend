@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit"
+import { createSlice, createAsyncThunk, isAnyOf } from "@reduxjs/toolkit"
 import { getProfile, getTransactions, markNotificationsAsRead, updateUserProfile } from "@api/userApi"
 import { message } from "antd"
 
@@ -24,7 +24,7 @@ export const markAllNotificationsAsRead = createAsyncThunk(
       const response = await markNotificationsAsRead()
       return response.updatedNotifications || []
     } catch (error) {
-      message.error("Failed to mark notifications as read.")
+      message.error(error.response?.data?.message || "Failed to mark notifications as read.")
       return rejectWithValue(error.response?.data?.message || error.message)
     }
   }
@@ -49,7 +49,6 @@ export const updateProfile = createAsyncThunk(
   async (payload, { rejectWithValue, dispatch }) => {
     try {
       const data = await updateUserProfile(payload)
-      message.success("Profile updated successfully")
       dispatch(fetchUserProfile()) // refetch profile after update
       return data
     } catch (error) {
@@ -58,6 +57,8 @@ export const updateProfile = createAsyncThunk(
     }
   }
 )
+
+const UserThunks = [fetchUserProfile, markAllNotificationsAsRead, fetchTransactions, updateProfile]
 
 const initialState = {
   profile: null,
@@ -77,22 +78,9 @@ const userSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchUserProfile.pending, (state) => {
-        state.loading = true
-        state.error = null
-      })
       .addCase(fetchUserProfile.fulfilled, (state, action) => {
         state.loading = false
         state.profile = action.payload
-      })
-      .addCase(fetchUserProfile.rejected, (state, action) => {
-        state.loading = false
-        state.error = action.payload
-      })
-
-      // Handle notifications marking
-      .addCase(markAllNotificationsAsRead.pending, (state) => {
-        state.loading = true
       })
       .addCase(markAllNotificationsAsRead.fulfilled, (state, action) => {
         state.loading = false
@@ -103,20 +91,20 @@ const userSlice = createSlice({
           }))
         }
       })
-      .addCase(markAllNotificationsAsRead.rejected, (state, action) => {
-        state.loading = false
-        state.error = action.payload
-      })
-
-      // Handle transactions fetching
-      .addCase(fetchTransactions.pending, (state) => {
-        state.loading = true
-      })
       .addCase(fetchTransactions.fulfilled, (state, action) => {
         state.loading = false
         state.transactions = action.payload
       })
-      .addCase(fetchTransactions.rejected, (state, action) => {
+      .addCase(updateProfile.fulfilled, (state, action) => {
+        state.loading = false
+        state.profile = action.payload
+      })
+      // Handle transactions fetching
+      .addMatcher(isAnyOf(...UserThunks.map((t) => t.pending)), (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addMatcher(isAnyOf(...UserThunks.map((t) => t.rejected)), (state, action) => {
         state.loading = false
         state.error = action.payload
       })

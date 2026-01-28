@@ -20,3 +20,10 @@ export const deleteBrandVoice = async (id) => {
   const res = await axiosInstance.delete(`/brand/${id}`)
   return res.data
 }
+
+export const getSiteInfo = async (url) => {
+  const res = await axiosInstance.get("/brand/site-info", {
+    params: { url },
+  })
+  return res.data
+}

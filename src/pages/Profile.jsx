@@ -1,18 +1,21 @@
-import React, { useState, useRef, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import React, { useState, useEffect } from "react"
+import { motion } from "framer-motion"
 import {
   CreditCardIcon,
   BanknotesIcon,
-  PencilIcon,
   CheckIcon,
-  XMarkIcon,
+  ShieldCheckIcon,
+  LockClosedIcon,
+  UserGroupIcon,
 } from "@heroicons/react/24/solid"
 import { useSelector, useDispatch } from "react-redux"
 import { loadAuthenticatedUser } from "@store/slices/authSlice"
-import { DatePicker, message } from "antd"
-import moment from "moment"
+import { DatePicker, message, Select, Tag, Tooltip } from "antd"
+import dayjs from "dayjs"
 import { Helmet } from "react-helmet"
 import { updateProfile } from "@store/slices/userSlice"
+import PasswordModal from "@components/PasswordModal"
+import { updatePasswordAPI } from "@api/userApi"
 
 const DEMO_PROFILE = {
   profilePicture: "",
@@ -23,38 +26,38 @@ const DEMO_PROFILE = {
     bio: "eg : Lead Product Designer",
     jobTitle: "eg : Senior UX Engineer",
     company: "eg : Tech Innovators Inc",
-    // website: "eg : www.sivadheeraj.design",
     dob: "eg : 1990-05-15",
-  },
-  billingDetails: {
-    companyName: "eg : ABC Corporation",
-    address: "eg : 123 Business Street, Financial District",
-    city: "eg : Mumbai",
-    country: "eg : India",
-    gstNumber: "eg : 27ABCDE1234F1Z5",
-    taxId: "eg : AS564178969",
-    paymentMethod: "eg : Stripe",
-    companyEmail: "eg : accounts@abc-corp.in",
-  },
-  subscription: {
-    type: "Free",
-    startDate: "2024-01-01",
-    renewalDate: "1/1/2025",
-    credits: 0,
-    planFeatures: ["Unlimited Projects", "Priority Support", "Advanced Analytics"],
-    paymentHistory: [
-      { id: 1, date: "2024-03-01", amount: "$1500", status: "paid" },
-      { id: 2, date: "2024-02-01", amount: "$1500", status: "paid" },
-    ],
+    interests: ["technology", "art"],
   },
 }
 
+const INTEREST_OPTIONS = [
+  { value: "technology", label: "Technology", color: "#1890ff" },
+  { value: "sports", label: "Sports", color: "#52c41a" },
+  { value: "music", label: "Music", color: "#722ed1" },
+  { value: "art", label: "Art", color: "#eb2f96" },
+  { value: "other", label: "Other", color: "#fa8c16" },
+]
+
+const PLAN_COLORS = {
+  free: "from-gray-500 to-gray-600",
+  basic: "from-blue-500 to-blue-600",
+  pro: "from-purple-500 to-purple-600",
+  enterprise: "from-yellow-500 to-yellow-600",
+}
+
+const STATUS_COLORS = {
+  active: "bg-green-500",
+  canceled: "bg-red-500",
+  past_due: "bg-orange-500",
+  unpaid: "bg-red-600",
+}
+
 const Profile = () => {
-  const [isEditing, setIsEditing] = useState(false)
-  const fileInputRef = useRef(null)
   const [profileData, setProfileData] = useState(DEMO_PROFILE)
-  const { user } = useSelector((state) => state.auth)
+  const { user } = useSelector(state => state.auth)
   const dispatch = useDispatch()
+  const [passwordModalVisible, setPasswordModalVisible] = useState(false)
 
   useEffect(() => {
     dispatch(loadAuthenticatedUser())
@@ -65,7 +68,7 @@ const Profile = () => {
   useEffect(() => {
     if (!user) return
 
-    setProfileData((prev) => ({
+    setProfileData(prev => ({
       profilePicture: user.avatar || prev.profilePicture,
       personalDetails: {
         name: user.name || "",
@@ -74,28 +77,14 @@ const Profile = () => {
         bio: user.bio || "",
         jobTitle: user.jobTitle || "",
         company: user.company || "",
-        // website: user.website || "",
-        wordpress: user.wordpressLink || "",
         dob: user.dob || "",
-      },
-      billingDetails: {
-        companyName: user.billingDetails?.companyName || "",
-        address: user.billingDetails?.address || "",
-        city: user.billingDetails?.city || "",
-        country: user.billingDetails?.country || "",
-        gstNumber: user.billingDetails?.gstNumber || "",
-        taxId: user.billingDetails?.taxId || "",
-        paymentMethod: user.billingDetails?.paymentMethod || "",
-        companyEmail: user.billingDetails?.companyEmail || "",
+        interests: user.interests || ["other"],
       },
       subscription: {
-        type: user?.plan || "Free",
-        startDate: user.subscription?.startDate || "",
-        renewalDate: user.subscription?.renewalDate || "",
-        credits: user.credits?.base ?? 0,
-        planFeatures: user.subscription?.planFeatures || [],
+        plan: user.subscription?.plan || "free",
+        status: user.subscription?.status || "active",
       },
-      invoices: user.invoices?.length ? user.invoices : [],
+      emailVerified: user.emailVerified || false,
     }))
   }, [user])
 
@@ -108,59 +97,36 @@ const Profile = () => {
       phone: profileData.personalDetails.phone,
       jobTitle: profileData.personalDetails.jobTitle,
       company: profileData.personalDetails.company,
-      // website: profileData.personalDetails.website,
       dob: profileData.personalDetails.dob,
-      wordpressLink: profileData.personalDetails.wordpress,
+      interests: profileData.personalDetails.interests,
     }
 
     try {
-      dispatch(updateProfile(payload))
-        .unwrap()
-        .then(() => {
-          setIsEditing(false)
-        })
+      await dispatch(updateProfile(payload)).unwrap()
+      message.success("Profile updated successfully!")
     } catch (err) {
       message.error("Error updating profile, try again")
     }
   }
 
-  // Handlers
-  const handleEditToggle = () => setIsEditing(!isEditing)
-  // const handleSave = () => setIsEditing(false)
-  const handleCancel = () => setIsEditing(false)
-
-  const handleImageUpload = (e) => {
-    if (!isEditing) return
-    const file = e.target.files[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        setProfileData((prev) => ({ ...prev, profilePicture: e.target.result }))
-      }
-      reader.readAsDataURL(file)
-    }
-  }
-
-  const handleInputChange = (e) => {
+  const handleInputChange = e => {
     const { name, value } = e.target
 
-    // For phone number field, allow only digits and enforce max length of 15
     if (name === "personalDetails.phone") {
-      const numericValue = value.replace(/[^0-9]/g, "") // Remove non-numeric characters
+      const numericValue = value.replace(/[^0-9]/g, "")
       if (numericValue.length > 15) {
         message.error("Phone number cannot exceed 15 digits.")
         return
       }
-      setProfileData((prev) => ({
+      setProfileData(prev => ({
         ...prev,
         personalDetails: {
           ...prev.personalDetails,
           phone: numericValue,
         },
       }))
-    } else {
-      // Handle other fields
-      setProfileData((prev) => ({
+    } else if (name.startsWith("personalDetails.")) {
+      setProfileData(prev => ({
         ...prev,
         personalDetails: {
           ...prev.personalDetails,
@@ -169,457 +135,281 @@ const Profile = () => {
       }))
     }
   }
-  // Animation configurations
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1, delayChildren: 0.2 },
-    },
+
+  const handleInterestsChange = selectedInterests => {
+    setProfileData(prev => ({
+      ...prev,
+      personalDetails: {
+        ...prev.personalDetails,
+        interests: selectedInterests,
+      },
+    }))
   }
 
-  const cardVariants = {
-    hidden: { opacity: 0, y: 20 },
-    show: {
-      opacity: 1,
-      y: 0,
-      transition: { type: "spring", stiffness: 120 },
-    },
-    hover: {
-      y: -5,
-      scale: 1.02,
-      boxShadow: "0 20px 25px -12px rgba(0, 0, 0, 0.15)",
-    },
+  const handlePasswordSubmit = async values => {
+    try {
+      const payload = user?.hasPassword
+        ? {
+            oldPassword: values.oldPassword,
+            newPassword: values.newPassword,
+          }
+        : {
+            newPassword: values.newPassword,
+          }
+
+      const response = await updatePasswordAPI(payload)
+
+      if (!response.success) {
+        throw new Error(response.message || "Failed to update password")
+      }
+
+      // Reload user data to update hasPassword status
+      dispatch(loadAuthenticatedUser())
+    } catch (error) {
+      throw error
+    }
   }
 
   return (
     <>
+      <Helmet>
+        <title>Profile | GenWrite</title>
+      </Helmet>
+
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/50 p-8"
+        className="min-h-screen p-3 sm:p-4 md:p-6 mt-5"
       >
-        <Helmet>
-          <title>Profile | GenWrite</title>
-        </Helmet>
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="show"
-          className="max-w-7xl mx-auto bg-white/95 backdrop-blur-xl rounded-[2rem] shadow-2xl border border-white/20 overflow-hidden"
-        >
-          {/* Header Section */}
-          <div className="relative p-8 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600">
-            <div className="relative flex flex-col md:flex-row items-center gap-8">
-              <motion.div
-                className="relative group"
-                whileHover="hover"
-                variants={{
-                  hover: { scale: 1.03 },
-                }}
-              >
+        <div className="max-w-4xl mx-auto">
+          {/* Header Card */}
+          <motion.div
+            initial={{ y: -20 }}
+            animate={{ y: 0 }}
+            className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 md:p-8 mb-4 sm:mb-6"
+          >
+            <div className="flex flex-col sm:flex-row items-center gap-6">
+              {/* Profile Picture */}
+              <div className="flex-shrink-0">
                 {profileData?.profilePicture ? (
-                  <>
-                    <img
-                      src={profileData.profilePicture}
-                      alt="Profile"
-                      className="w-40 h-40 rounded-full border-4 border-white/80 object-cover shadow-2xl relative z-10"
-                      // onClick={() => isEditing && fileInputRef.current.click()}
-                      style={{ cursor: isEditing ? "pointer" : "default" }}
-                    />
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleImageUpload}
-                      className="hidden"
-                      accept="image/*"
-                      disabled={!isEditing}
-                    />
-                  </>
+                  <img
+                    src={profileData.profilePicture}
+                    alt="Profile"
+                    className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full border-4 border-gray-100 object-cover shadow-md"
+                  />
                 ) : (
-                  <div
-                    className="w-40 h-40 rounded-full border-4 border-white/80 bg-gradient-to-tr from-blue-400 to-purple-700 text-white flex items-center justify-center text-7xl font-bold shadow-2xl relative z-10"
-                    onClick={() => isEditing && fileInputRef.current.click()}
-                    style={{ cursor: isEditing ? "pointer" : "default" }}
-                  >
+                  <div className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full border-4 border-gray-100 bg-gradient-to-br from-blue-500 to-purple-600 text-white flex items-center justify-center text-4xl sm:text-5xl font-bold shadow-md">
                     {profileData?.personalDetails?.name
                       ? `${profileData?.personalDetails.name[0]?.toUpperCase()}`
                       : "NA"}
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleImageUpload}
-                      className="hidden"
-                      accept="image/*"
-                      disabled={!isEditing}
-                    />
                   </div>
                 )}
-              </motion.div>
-
-              <motion.div className="space-y-3 text-white" initial={{ x: -20 }} animate={{ x: 0 }}>
-                <h1 className="text-4xl font-bold flex items-center gap-3">
-                  {profileData.personalDetails.name || (
-                    <span className="text-gray-300">Full Name</span>
-                  )}
-                </h1>
-                <p className="text-xl font-light opacity-90">
-                  {profileData.personalDetails.bio || <span className="text-gray-300">Bio</span>}
-                </p>
-                <div className="flex flex-wrap gap-3">
-                  <motion.div
-                    className="px-4 py-2 bg-white/20 rounded-full capitalize backdrop-blur-sm flex items-center gap-2"
-                    whileHover={{ y: -2 }}
-                  >
-                    <CreditCardIcon className="w-5 h-5" />
-                    <span>{profileData.subscription.type}</span>
-                  </motion.div>
-                  <motion.div
-                    className="px-4 py-2 bg-white/20 rounded-full backdrop-blur-sm flex items-center gap-2"
-                    whileHover={{ y: -2 }}
-                  >
-                    <BanknotesIcon className="w-5 h-5" />
-                    <span>{totalCredits} Credits</span>
-                  </motion.div>
-                </div>
-              </motion.div>
-            </div>
-          </div>
-
-          {/* Main Content */}
-          <motion.div className="p-8 space-y-8">
-            {/* Edit Controls */}
-            <div className="flex justify-end gap-4">
-              <AnimatePresence>
-                {isEditing ? (
-                  <>
-                    <motion.button
-                      key="save"
-                      onClick={handleSave}
-                      className="px-6 py-2 bg-green-500 text-white rounded-xl flex items-center gap-2"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      whileHover={{ scale: 1.05 }}
-                    >
-                      <CheckIcon className="w-5 h-5" />
-                      Save Changes
-                    </motion.button>
-                    <motion.button
-                      key="cancel"
-                      onClick={handleCancel}
-                      className="px-6 py-2 bg-gray-500 text-white rounded-xl flex items-center gap-2"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      whileHover={{ scale: 1.05 }}
-                    >
-                      <XMarkIcon className="w-5 h-5" />
-                      Cancel
-                    </motion.button>
-                  </>
-                ) : (
-                  <motion.button
-                    key="edit"
-                    onClick={handleEditToggle}
-                    className="px-6 py-2 bg-blue-500 text-white rounded-xl flex items-center gap-2"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    whileHover={{ scale: 1.05 }}
-                  >
-                    <PencilIcon className="w-5 h-5" />
-                    Edit Profile
-                  </motion.button>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Profile Sections */}
-            <div className="grid grid-cols-1 lg:grid-cols-1 gap-8">
-              {/* Left Column */}
-              <div className="space-y-6">
-                {/* Personal Details */}
-                <motion.div
-                  variants={cardVariants}
-                  whileHover="hover"
-                  className="bg-white/80 backdrop-blur-sm p-8 rounded-2xl border-2 border-slate-200 shadow-lg"
-                >
-                  <h2 className="text-2xl font-bold text-slate-800 mb-6">Personal Details</h2>
-                  <div className="space-y-4">
-                    <ProfileField
-                      label="Full Name"
-                      name="personalDetails.name"
-                      value={profileData.personalDetails.name}
-                      isEditing={isEditing}
-                      onChange={handleInputChange}
-                      placeholder={DEMO_PROFILE.personalDetails.name}
-                    />
-                    <ProfileField
-                      label="Email"
-                      name="personalDetails.email"
-                      value={profileData.personalDetails.email}
-                      isEditing={isEditing}
-                      onChange={handleInputChange}
-                      placeholder={DEMO_PROFILE.personalDetails.email}
-                    />
-                    <ProfileField
-                      label="Bio"
-                      name="personalDetails.bio"
-                      value={profileData.personalDetails.bio}
-                      isEditing={isEditing}
-                      onChange={handleInputChange}
-                      placeholder="e.g : I'm a travel enthusiast who loves exploring new cultures."
-                    />
-                    <ProfileField
-                      label="WordPress Link"
-                      name="personalDetails.wordpress"
-                      value={profileData.personalDetails.wordpress}
-                      isEditing={isEditing}
-                      onChange={handleInputChange}
-                      placeholder="eg : https://yourblog.wordpress.com"
-                    />
-                    <ProfileField
-                      label="Phone"
-                      name="personalDetails.phone"
-                      value={profileData.personalDetails.phone}
-                      isEditing={isEditing}
-                      onChange={handleInputChange}
-                      placeholder={DEMO_PROFILE.personalDetails.phone}
-                      maxLength={15}
-                    />
-                    <ProfileField
-                      label="Job Title"
-                      name="personalDetails.jobTitle"
-                      value={profileData.personalDetails.jobTitle}
-                      isEditing={isEditing}
-                      onChange={handleInputChange}
-                      placeholder={DEMO_PROFILE.personalDetails.jobTitle}
-                    />
-                    <ProfileField
-                      label="Company"
-                      name="personalDetails.company"
-                      value={profileData.personalDetails.company}
-                      isEditing={isEditing}
-                      onChange={handleInputChange}
-                      placeholder={DEMO_PROFILE.personalDetails.company}
-                    />
-                    {/* <ProfileField
-                      label="Website"
-                      name="personalDetails.website"
-                      value={profileData.personalDetails.website}
-                      isEditing={isEditing}
-                      onChange={handleInputChange}
-                      placeholder={DEMO_PROFILE.personalDetails.website}
-                    /> */}
-                    <motion.div className="space-y-2" whileHover={{ scale: 1.02 }}>
-                      <label className="text-sm font-medium text-slate-600">Date of Birth</label>
-                      {isEditing ? (
-                        <DatePicker
-                          format="YYYY-MM-DD"
-                          value={
-                            profileData.personalDetails.dob
-                              ? moment(profileData.personalDetails.dob)
-                              : null
-                          }
-                          onChange={(date, dateString) =>
-                            handleInputChange({
-                              target: {
-                                name: "personalDetails.dob",
-                                value: dateString,
-                              },
-                            })
-                          }
-                          className="w-full"
-                          disabledDate={(current) => current && current > moment().endOf("day")}
-                        />
-                      ) : (
-                        <motion.div
-                          className="px-4 py-2 bg-white/80 rounded-lg border-2 border-slate-200"
-                          whileHover={{ x: 5 }}
-                        >
-                          {profileData.personalDetails.dob ? (
-                            new Date(profileData.personalDetails.dob).toLocaleDateString("en-IN", {
-                              day: "numeric",
-                              month: "long",
-                              year: "numeric",
-                            })
-                          ) : (
-                            <span className="text-gray-400">
-                              {DEMO_PROFILE.personalDetails.dob}
-                            </span>
-                          )}
-                        </motion.div>
-                      )}
-                    </motion.div>
-                  </div>
-                </motion.div>
-
-                {/* Subscription & Credits */}
-                <motion.div
-                  variants={cardVariants}
-                  whileHover="hover"
-                  className="bg-gradient-to-br from-blue-50 to-purple-50 p-8 rounded-2xl border-2 border-indigo-100 shadow-lg relative overflow-hidden"
-                >
-                  <div className="absolute -top-20 -right-20 w-40 h-40 bg-purple-200/20 rounded-full blur-3xl" />
-                  <h2 className="text-2xl font-bold text-slate-800 mb-6">Subscription & Credits</h2>
-                  <div className="space-y-4 ">
-                    <div className="flex justify-between items-center p-3 rounded-lg bg-white/80">
-                      <span className="font-medium">Plan Type</span>
-                      <span className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-1 rounded-full capitalize">
-                        {profileData.subscription.type}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 rounded-lg bg-white/80">
-                      <span className="font-medium">Credits Available</span>
-                      <span className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-4 py-1 rounded-full">
-                        {totalCredits || DEMO_PROFILE.subscription.credits}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 rounded-lg bg-white/80">
-                      <span className="font-medium">Start Date</span>
-                      <span>
-                        {profileData?.subscription?.startDate
-                          ? new Date(profileData.subscription.startDate).toLocaleDateString(
-                              "en-IN",
-                              {
-                                day: "numeric",
-                                month: "long",
-                                year: "numeric",
-                              }
-                            )
-                          : DEMO_PROFILE.subscription.startDate}
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between items-center p-3 rounded-lg bg-white/80">
-                      <span className="font-medium">Renewal Date</span>
-                      <span>
-                        {profileData?.subscription?.startDate
-                          ? new Date(
-                              new Date(profileData.subscription.startDate).setMonth(
-                                new Date(profileData.subscription.startDate).getMonth() + 1
-                              )
-                            ).toLocaleDateString("en-IN", {
-                              day: "numeric",
-                              month: "long",
-                              year: "numeric",
-                            })
-                          : "Not renewed yet"}
-                      </span>
-                    </div>
-                  </div>
-                </motion.div>
               </div>
 
-              {/* Right Column */}
-              {/* <div className="space-y-6">
-                <motion.div
-                  variants={cardVariants}
-                  whileHover="hover"
-                  className="bg-white/80 backdrop-blur-sm p-8 rounded-2xl border-2 border-slate-200 shadow-lg"
-                >
-                  <h2 className="text-2xl font-bold text-slate-800 mb-6">Billing Information</h2>
-                  <div className="space-y-4">
-                    <ProfileField
-                      label="Company Name"
-                      name="billingDetails.companyName"
-                      value={profileData.billingDetails.companyName}
-                      isEditing={isEditing}
-                      onChange={handleInputChange}
-                      placeholder={DEMO_PROFILE.billingDetails.companyName}
-                    />
-                    <ProfileField
-                      label="Address"
-                      name="billingDetails.address"
-                      value={profileData.billingDetails.address}
-                      isEditing={isEditing}
-                      onChange={handleInputChange}
-                      placeholder={DEMO_PROFILE.billingDetails.address}
-                    />
-                    <ProfileField
-                      label="City"
-                      name="billingDetails.city"
-                      value={profileData.billingDetails.city}
-                      isEditing={isEditing}
-                      onChange={handleInputChange}
-                      placeholder={DEMO_PROFILE.billingDetails.city}
-                    />
-                    <ProfileField
-                      label="Country"
-                      name="billingDetails.country"
-                      value={profileData.billingDetails.country}
-                      isEditing={isEditing}
-                      onChange={handleInputChange}
-                      placeholder={DEMO_PROFILE.billingDetails.country}
-                    />
-                    <ProfileField
-                      label="GST Number"
-                      name="billingDetails.gstNumber"
-                      value={profileData.billingDetails.gstNumber}
-                      isEditing={isEditing}
-                      onChange={handleInputChange}
-                      placeholder={DEMO_PROFILE.billingDetails.gstNumber}
-                    />
-                    <ProfileField
-                      label="Tax ID"
-                      name="billingDetails.taxId"
-                      value={profileData.billingDetails.taxId}
-                      isEditing={isEditing}
-                      onChange={handleInputChange}
-                      placeholder={DEMO_PROFILE.billingDetails.taxId}
-                    />
-                    <ProfileField
-                      label="Payment Method"
-                      name="billingDetails.paymentMethod"
-                      value={profileData.billingDetails.paymentMethod}
-                      isEditing={isEditing}
-                      onChange={handleInputChange}
-                      placeholder={DEMO_PROFILE.billingDetails.paymentMethod}
-                    />
-                    <ProfileField
-                      label="Billing Email"
-                      name="billingDetails.companyEmail"
-                      value={profileData.billingDetails.companyEmail}
-                      isEditing={isEditing}
-                      onChange={handleInputChange}
-                      placeholder={DEMO_PROFILE.billingDetails.companyEmail}
-                    />
-                  </div>
-                </motion.div>
-              </div> */}
+              {/* User Info */}
+              <div className="flex-1 text-center sm:text-left">
+                <div className="flex flex-col sm:flex-row items-center sm:items-start justify-center sm:justify-start gap-2 mb-2">
+                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+                    {profileData.personalDetails.name || "Full Name"}
+                  </h1>
+                  {profileData.emailVerified && (
+                    <Tooltip title="Email Verified">
+                      <ShieldCheckIcon className="w-5 h-5 mt-2 sm:w-6 sm:h-6 text-blue-500" />
+                    </Tooltip>
+                  )}
+                </div>
+                <p className="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 line-clamp-2">
+                  {profileData.personalDetails.bio || "Add your bio"}
+                </p>
+                <div className="flex flex-wrap justify-center sm:justify-start gap-2">
+                  <span
+                    className={`px-3 sm:px-4 py-1 sm:py-1.5 bg-gradient-to-r ${
+                      PLAN_COLORS[profileData.subscription?.plan] || PLAN_COLORS.free
+                    } text-white rounded-full text-xs sm:text-sm font-medium capitalize`}
+                  >
+                    <CreditCardIcon className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
+                    {profileData.subscription?.plan || "free"}
+                  </span>
+                  <span className="px-3 sm:px-4 py-1 sm:py-1.5 bg-blue-50 text-blue-700 rounded-full text-xs sm:text-sm font-medium">
+                    <BanknotesIcon className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
+                    {totalCredits} Credits
+                  </span>
+                  <span
+                    className={`px-3 sm:px-4 py-1 sm:py-1.5 ${
+                      STATUS_COLORS[profileData.subscription?.status] || STATUS_COLORS.active
+                    } text-white rounded-full text-xs sm:text-sm font-medium capitalize`}
+                  >
+                    {profileData.subscription?.status || "active"}
+                  </span>
+                </div>
+              </div>
             </div>
           </motion.div>
-        </motion.div>
+
+          {/* Personal Details Card */}
+          <motion.div
+            initial={{ y: 20 }}
+            animate={{ y: 0 }}
+            className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 md:p-8"
+          >
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-4 sm:mb-6">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <UserGroupIcon className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500" />
+                Personal Details
+              </h2>
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                <button
+                  onClick={() => setPasswordModalVisible(true)}
+                  className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-2.5 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
+                >
+                  <LockClosedIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                  {user?.hasPassword ? "Change Password" : "Set Password"}
+                </button>
+                <button
+                  onClick={handleSave}
+                  className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
+                >
+                  <CheckIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                  Save Changes
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+              <ProfileField
+                label="Full Name"
+                name="personalDetails.name"
+                value={profileData.personalDetails.name}
+                onChange={handleInputChange}
+                placeholder={DEMO_PROFILE.personalDetails.name}
+              />
+
+              <ProfileField
+                label="Email"
+                name="personalDetails.email"
+                value={profileData.personalDetails.email}
+                onChange={handleInputChange}
+                placeholder={DEMO_PROFILE.personalDetails.email}
+                disabled={true}
+              />
+
+              <ProfileField
+                label="Phone"
+                name="personalDetails.phone"
+                value={profileData.personalDetails.phone}
+                onChange={handleInputChange}
+                placeholder={DEMO_PROFILE.personalDetails.phone}
+                maxLength={15}
+              />
+
+              <ProfileField
+                label="Job Title"
+                name="personalDetails.jobTitle"
+                value={profileData.personalDetails.jobTitle}
+                onChange={handleInputChange}
+                placeholder={DEMO_PROFILE.personalDetails.jobTitle}
+              />
+
+              <ProfileField
+                label="Company"
+                name="personalDetails.company"
+                value={profileData.personalDetails.company}
+                onChange={handleInputChange}
+                placeholder={DEMO_PROFILE.personalDetails.company}
+              />
+
+              {/* Date of Birth */}
+              <div className="space-y-2">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700">
+                  Date of Birth
+                </label>
+                <DatePicker
+                  format="YYYY-MM-DD"
+                  value={
+                    profileData.personalDetails.dob ? dayjs(profileData.personalDetails.dob) : null
+                  }
+                  onChange={(date, dateString) =>
+                    handleInputChange({
+                      target: {
+                        name: "personalDetails.dob",
+                        value: dateString,
+                      },
+                    })
+                  }
+                  className="w-full"
+                  size="large"
+                  placeholder={DEMO_PROFILE.personalDetails.dob}
+                  disabledDate={current => current && current > dayjs().endOf("day")}
+                />
+              </div>
+
+              {/* Bio - Full Width */}
+              <div className="sm:col-span-2 space-y-2">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700">Bio</label>
+                <textarea
+                  name="personalDetails.bio"
+                  value={profileData.personalDetails.bio || ""}
+                  onChange={handleInputChange}
+                  placeholder="Tell us about yourself..."
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none text-sm sm:text-base"
+                  rows={4}
+                />
+              </div>
+
+              {/* Interests - Full Width */}
+              <div className="sm:col-span-2 space-y-2">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700">
+                  Interests
+                </label>
+                <Select
+                  mode="multiple"
+                  value={profileData.personalDetails.interests}
+                  onChange={handleInterestsChange}
+                  className="w-full"
+                  placeholder="Select your interests"
+                  options={INTEREST_OPTIONS}
+                  maxTagCount="responsive"
+                  size="large"
+                />
+              </div>
+            </div>
+          </motion.div>
+        </div>
       </motion.div>
+
+      <PasswordModal
+        visible={passwordModalVisible}
+        onClose={() => setPasswordModalVisible(false)}
+        hasPassword={user?.hasPassword || false}
+        onSubmit={handlePasswordSubmit}
+      />
     </>
   )
 }
 
-const ProfileField = ({ label, name, value, isEditing, onChange, placeholder, maxLength }) => (
-  <motion.div className="space-y-2" whileHover={{ scale: 1.02 }}>
-    <label className="text-sm font-medium text-slate-600">{label}</label>
-    {isEditing ? (
-      <motion.input
-        type="tel" // Set input type to 'tel' for phone numbers
-        name={name}
-        value={value || ""} // Ensure controlled input with fallback
-        onChange={onChange}
-        placeholder={placeholder}
-        className="w-full px-4 py-2 border-2 border-blue-500 rounded-lg focus:ring-2 focus:ring-blue-200 bg-white/80"
-        whileFocus={{ scale: 1.02 }}
-        maxLength={maxLength} // Use maxLength instead of max
-        pattern="[0-9]*" // Restrict to numeric input (optional, for browsers)
-      />
-    ) : (
-      <motion.div
-        className="px-4 py-2 bg-white/80 rounded-lg border-2 border-slate-200"
-        whileHover={{ x: 5 }}
-      >
-        {value || <span className="text-gray-400">{placeholder}</span>}
-      </motion.div>
-    )}
-  </motion.div>
+const ProfileField = ({
+  label,
+  name,
+  value,
+  onChange,
+  placeholder,
+  maxLength,
+  disabled = false,
+}) => (
+  <div className="space-y-2">
+    <label className="block text-xs sm:text-sm font-medium text-gray-700">{label}</label>
+    <input
+      type={name === "personalDetails.phone" ? "tel" : "text"}
+      name={name}
+      value={value || ""}
+      onChange={onChange}
+      placeholder={placeholder}
+      className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all disabled:bg-gray-50 disabled:cursor-not-allowed text-sm sm:text-base"
+      maxLength={maxLength}
+      pattern={name === "personalDetails.phone" ? "[0-9]*" : undefined}
+      disabled={disabled}
+    />
+  </div>
 )
 
 export default Profile

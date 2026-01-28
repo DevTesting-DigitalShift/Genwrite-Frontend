@@ -1,28 +1,40 @@
-import React from "react"
 import ReactDOM from "react-dom/client"
 import "./index.css"
 import App from "./App"
 import { Provider } from "react-redux"
-import { store } from "./store/index.jsx"
+import { store } from "./store"
 import { GoogleOAuthProvider } from "@react-oauth/google"
-import ReactGA from "react-ga4"
+import { QueryProvider } from "./utils/queryClient"
+import { RouterProvider } from "react-router-dom"
+import router from "./router"
 
-// Enable testMode only in development
-const isProd = import.meta.env.PROD
+// if (import.meta.env.PROD && "serviceWorker" in navigator) {
+//   navigator.serviceWorker.register("/sw.js")
+// }
 
-ReactGA.initialize("G-0BBLW98TFM", {
-  testMode: !isProd, // ✅ testMode is true only in dev
-  debug_mode: !isProd, // optional: enable GA debug mode too
-})
-// Optional but useful for development
-ReactGA.send("pageview") // Send initial pageview
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.getRegistrations().then(registrations => {
+    for (const registration of registrations) {
+      registration.unregister()
+    }
+  })
 
-const root = ReactDOM.createRoot(document.getElementById("root"))
+  if ("caches" in window) {
+    caches.keys().then(keys => {
+      keys.forEach(key => caches.delete(key))
+    })
+    // window.location.reload(true)
+  }
+}
 
-root.render(
+ReactDOM.createRoot(document.getElementById("root")).render(
   <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
-    <Provider store={store}>
-      <App />
-    </Provider>
+    <QueryProvider>
+      <Provider store={store}>
+        <RouterProvider router={router}>
+          <App />
+        </RouterProvider>
+      </Provider>
+    </QueryProvider>
   </GoogleOAuthProvider>
 )

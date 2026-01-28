@@ -14,8 +14,11 @@ import {
   Building2,
   ArrowRight,
   Sparkles,
+  Youtube,
 } from "lucide-react"
 import { message } from "antd"
+import { Helmet } from "react-helmet"
+import { motion, AnimatePresence } from "framer-motion"
 
 const ContactUs = () => {
   const [formData, setFormData] = useState({
@@ -28,15 +31,15 @@ const ContactUs = () => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
 
-  const handleInputChange = (e) => {
+  const handleInputChange = e => {
     const { name, value } = e.target
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       [name]: value,
     }))
     // Clear error when user starts typing
     if (errors[name]) {
-      setErrors((prev) => ({
+      setErrors(prev => ({
         ...prev,
         [name]: "",
       }))
@@ -65,7 +68,7 @@ const ContactUs = () => {
     return newErrors
   }
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async e => {
     e.preventDefault()
     const newErrors = validateForm()
 
@@ -85,6 +88,8 @@ const ContactUs = () => {
       )
       message.success("Message sent successfully!")
       setFormData({ name: "", email: "", subject: "", message: "" })
+      setIsSubmitted(true)
+      setTimeout(() => setIsSubmitted(false), 5000)
     } catch (error) {
       console.error("FAILED...", error)
       message.error("Failed to send message. Try again.")
@@ -92,39 +97,6 @@ const ContactUs = () => {
       setIsSubmitting(false)
     }
   }
-
-  // using node mailer
-  //   const handleSubmit = async (e) => {
-  //   e.preventDefault()
-  //   const newErrors = validateForm()
-  //   if (Object.keys(newErrors).length > 0) {
-  //     setErrors(newErrors)
-  //     return
-  //   }
-
-  //   setIsSubmitting(true)
-
-  //   try {
-  //     const response = await fetch("http://localhost:5000/api/send-email", {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify(formData),
-  //     })
-
-  //     const data = await response.json()
-  //     if (data.success) {
-  //       setFormData({ name: "", email: "", subject: "", message: "" })
-  //       message.success("Message sent successfully!")
-  //     } else {
-  //       throw new Error(data.message)
-  //     }
-  //   } catch (error) {
-  //     console.error("FAILED...", error)
-  //     message.error("Failed to send message. Try again.")
-  //   } finally {
-  //     setIsSubmitting(false)
-  //   }
-  // }
 
   const companyInfo = {
     name: "GenWrite Technologies",
@@ -137,7 +109,7 @@ const ContactUs = () => {
       country: "United States",
     },
     phone: "+1 (555) 123-4567",
-    email: "support@genwrite.co",
+    email: " support@genwrite.co",
     workingHours: {
       weekdays: "Monday - Friday: 9:00 AM - 6:00 PM PST",
       weekend: "Saturday - Sunday: Closed",
@@ -146,15 +118,15 @@ const ContactUs = () => {
 
   const socialLinks = [
     {
-      name: "Facebook",
-      icon: Facebook,
-      url: "https://facebook.com/genwrite",
-      color: "hover:text-blue-600",
+      name: "Youtube",
+      icon: Youtube,
+      url: "https://www.youtube.com/@genwrite",
+      color: "hover:text-red-600",
     },
     {
       name: "Instagram",
       icon: Instagram,
-      url: "https://instagram.com/genwrite",
+      url: "https://instagram.com/genwrite_ai",
       color: "hover:text-pink-600",
     },
     {
@@ -166,28 +138,36 @@ const ContactUs = () => {
     {
       name: "LinkedIn",
       icon: Linkedin,
-      url: "https://linkedin.com/company/genwrite",
+      url: "https://www.linkedin.com/in/genwrite/",
       color: "hover:text-blue-700",
     },
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/50">
+    <div className="min-h-screen">
+      <Helmet>
+        <title>Contact Us | GenWrite</title>
+      </Helmet>
+
       {/* Hero Section */}
-      <div className="py-10 px-4">
-        <div className="max-w-7xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-100 to-purple-100 px-4 py-2 rounded-full text-sm font-medium text-blue-800 mb-6 shadow-sm">
+      <div className="pt-8 md:pt-12 py-12 md:py-16 lg:py-20 px-4">
+        <div className="max-w-7xl mx-auto text-center mt-6 md:mt-0">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-100 to-purple-100 px-4 py-2 rounded-full text-xs sm:text-sm font-medium text-blue-800 mb-6 shadow-sm"
+          >
             <Sparkles className="w-4 h-4 text-blue-600" />
             We'd Love to Hear From You
-          </div>
+          </motion.div>
 
-          <h1 className="text-5xl md:text-6xl font-extrabold mb-6 text-gray-900">
+          <h1 className="text-3xl md:text-5xl lg:text-6xl font-extrabold mb-6 text-gray-900 leading-tight">
             <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               Get in Touch
             </span>
           </h1>
 
-          <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-base md:text-lg lg:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
             Have questions about our AI writing platform? Need support? Want to explore enterprise
             solutions?{" "}
             <span className="text-blue-600 font-medium">We're here to help you succeed.</span>
@@ -195,102 +175,108 @@ const ContactUs = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-16">
-        <div className="grid lg:grid-cols-3 gap-12">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 md:py-8 lg:py-12">
+        <div className="grid lg:grid-cols-3 gap-8 lg:gap-12">
           {/* Contact Form */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 relative overflow-hidden">
+            <div className="bg-white rounded-3xl shadow border border-gray-100 p-5 sm:p-8 relative overflow-hidden">
               {/* Decorative Elements */}
               <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400/10 to-purple-400/10 rounded-full -translate-y-16 translate-x-16" />
               <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-indigo-400/10 to-cyan-400/10 rounded-full translate-y-12 -translate-x-12" />
 
               <div className="relative">
-                <div className="flex items-center gap-3 mb-8">
-                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-8">
+                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0">
                     <MessageSquare className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-3xl font-bold text-gray-900">Send us a Message</h2>
-                    <p className="text-gray-600">We'll get back to you within 24 hours</p>
+                    <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 leading-tight">
+                      Send us a Message
+                    </h2>
+                    <p className="text-gray-500 text-sm sm:text-base font-medium">
+                      We'll get back to you within 24 hours
+                    </p>
                   </div>
                 </div>
 
                 {/* Success Message */}
-                {isSubmitted && (
-                  <div className="mb-8 p-4 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3">
-                    <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
-                    <div>
-                      <h3 className="font-semibold text-green-800">Message Sent Successfully!</h3>
-                      <p className="text-green-700 text-sm">
-                        Thank you for contacting us. We'll respond within 24 hours.
-                      </p>
-                    </div>
-                  </div>
-                )}
+                <AnimatePresence>
+                  {isSubmitted && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="mb-8 p-4 bg-green-50 border border-green-200 rounded-2xl flex items-start gap-3 overflow-hidden"
+                    >
+                      <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <h3 className="font-bold text-green-800">Message Sent Successfully!</h3>
+                        <p className="text-green-700 text-sm">
+                          Thank you for contacting us. We'll respond within 24 hours.
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="grid md:grid-cols-1 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     {/* Name Field */}
-                    <div>
-                      <label
-                        htmlFor="name"
-                        className="block text-sm font-semibold text-gray-700 mb-2"
-                      >
-                        Full Name <span className="text-red-500 ml-1">*</span>
+                    <div className="space-y-2">
+                      <label htmlFor="name" className="text-sm font-bold text-gray-700 ml-1">
+                        Full Name <span className="text-red-500">*</span>
                       </label>
-                      <div className="relative">
-                        <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <div className="relative group">
+                        <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
                         <input
                           type="text"
                           id="name"
                           name="name"
                           value={formData.name}
                           onChange={handleInputChange}
-                          className={`w-full pl-12 pr-4 py-4 bg-gray-50 border-2 rounded-xl text-gray-800 placeholder-gray-500 focus:bg-white focus:shadow-lg outline-none transition-all duration-300 ${
+                          className={`w-full pl-12 pr-4 py-4 bg-gray-50 border-2 rounded-2xl text-gray-800 placeholder-gray-400 focus:bg-white focus:shadow-sm outline-none transition-all duration-300 ${
                             errors.name
                               ? "border-red-300 focus:border-red-500"
-                              : "border-gray-200 focus:border-blue-500"
+                              : "border-gray-50 focus:border-blue-500"
                           }`}
-                          placeholder="Enter your full name"
+                          placeholder="Your full name"
                         />
                       </div>
-                      {errors.name && <p className="mt-2 text-sm text-red-600">{errors.name}</p>}
+                      {errors.name && (
+                        <p className="text-xs font-semibold text-red-500 ml-1">{errors.name}</p>
+                      )}
                     </div>
 
                     {/* Email Field */}
-                    <div>
-                      <label
-                        htmlFor="email"
-                        className="block text-sm font-semibold text-gray-700 mb-2"
-                      >
-                        Email Address <span className="text-red-500 ml-1">*</span>
+                    <div className="space-y-2">
+                      <label htmlFor="email" className="text-sm font-bold text-gray-700 ml-1">
+                        Email Address <span className="text-red-500">*</span>
                       </label>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <div className="relative group">
+                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
                         <input
                           type="email"
                           id="email"
                           name="email"
                           value={formData.email}
                           onChange={handleInputChange}
-                          className={`w-full pl-12 pr-4 py-4 bg-gray-50 border-2 rounded-xl text-gray-800 placeholder-gray-500 focus:bg-white focus:shadow-lg outline-none transition-all duration-300 ${
+                          className={`w-full pl-12 pr-4 py-4 bg-gray-50 border-2 rounded-2xl text-gray-800 placeholder-gray-400 focus:bg-white focus:shadow-sm outline-none transition-all duration-300 ${
                             errors.email
                               ? "border-red-300 focus:border-red-500"
-                              : "border-gray-200 focus:border-blue-500"
+                              : "border-gray-50 focus:border-blue-500"
                           }`}
-                          placeholder="Enter your email address"
+                          placeholder="you@example.com"
                         />
                       </div>
-                      {errors.email && <p className="mt-2 text-sm text-red-600">{errors.email}</p>}
+                      {errors.email && (
+                        <p className="text-xs font-semibold text-red-500 ml-1">{errors.email}</p>
+                      )}
                     </div>
                   </div>
 
                   {/* Subject Field */}
-                  <div>
-                    <label
-                      htmlFor="subject"
-                      className="block text-sm font-semibold text-gray-700 mb-2"
-                    >
+                  <div className="space-y-2">
+                    <label htmlFor="subject" className="text-sm font-bold text-gray-700 ml-1">
                       Subject
                     </label>
                     <input
@@ -299,34 +285,31 @@ const ContactUs = () => {
                       name="subject"
                       value={formData.subject}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-4 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-800 placeholder-gray-500 focus:border-blue-500 focus:bg-white focus:shadow-lg outline-none transition-all duration-300"
-                      placeholder="What's this about? (optional)"
+                      className="w-full px-5 py-4 bg-gray-50 border-2 border-gray-50 rounded-2xl text-gray-800 placeholder-gray-400 focus:border-blue-500 focus:bg-white focus:shadow-sm outline-none transition-all duration-300"
+                      placeholder="What is this about? (optional)"
                     />
                   </div>
 
                   {/* Message Field */}
-                  <div>
-                    <label
-                      htmlFor="message"
-                      className="block text-sm font-semibold text-gray-700 mb-2"
-                    >
-                      Message <span className="text-red-500 ml-1">*</span>
+                  <div className="space-y-2">
+                    <label htmlFor="message" className="text-sm font-bold text-gray-700 ml-1">
+                      Message <span className="text-red-500">*</span>
                     </label>
                     <textarea
                       id="message"
                       name="message"
-                      rows={6}
+                      rows={5}
                       value={formData.message}
                       onChange={handleInputChange}
-                      className={`w-full px-4 py-4 bg-gray-50 border-2 rounded-xl text-gray-800 placeholder-gray-500 focus:bg-white focus:shadow-lg outline-none transition-all duration-300 resize-none ${
+                      className={`w-full px-5 py-4 bg-gray-50 border-2 rounded-2xl text-gray-800 placeholder-gray-400 focus:bg-white focus:shadow-sm outline-none transition-all duration-300 resize-none ${
                         errors.message
                           ? "border-red-300 focus:border-red-500"
-                          : "border-gray-200 focus:border-blue-500"
+                          : "border-gray-50 focus:border-blue-500"
                       }`}
                       placeholder="Tell us how we can help you..."
                     />
                     {errors.message && (
-                      <p className="mt-2 text-sm text-red-600">{errors.message}</p>
+                      <p className="text-xs font-semibold text-red-500 ml-1">{errors.message}</p>
                     )}
                   </div>
 
@@ -334,22 +317,21 @@ const ContactUs = () => {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className={`w-full py-4 px-8 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-3 ${
+                    className={`w-full py-5 px-8 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-2xl transition-all duration-300 shadow shadow-blue-100 hover:shadow flex items-center justify-center gap-3 border-none group ${
                       isSubmitting
                         ? "opacity-70 cursor-not-allowed"
-                        : "hover:from-blue-700 hover:to-purple-700 hover:scale-[1.02]"
+                        : "hover:scale-[1.01] active:scale-[0.99]"
                     }`}
                   >
                     {isSubmitting ? (
                       <>
                         <div className="w-5 h-5 border-2 border-white/30 rounded-full border-t-white animate-spin" />
-                        Sending Message...
+                        Processing...
                       </>
                     ) : (
                       <>
-                        <Send className="w-5 h-5" />
+                        <Send className="w-5 h-5 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
                         Send Message
-                        <ArrowRight className="w-4 h-4" />
                       </>
                     )}
                   </button>
@@ -358,78 +340,46 @@ const ContactUs = () => {
             </div>
           </div>
 
-          {/* Company Information & Map */}
-          <div className="space-y-8">
-            {/* Company Info */}
-            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center">
-                  <Building2 className="w-5 h-5 text-white" />
+          {/* Info Side Panel */}
+          <div className="space-y-6 sm:space-y-8">
+            {/* Contact Info Card */}
+            <div className="bg-white rounded-3xl shadow border border-gray-100 p-6 sm:p-8">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
+                  <Building2 className="w-5 h-5 text-blue-600" />
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900">Visit Us</h3>
+                <h3 className="text-xl font-bold text-gray-900">Contact Details</h3>
               </div>
 
-              <div className="space-y-6">
-                {/* Address */}
-                {/* <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <MapPin className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-900 mb-1">Address</h4>
-                    <div className="text-gray-600 text-sm leading-relaxed">
-                      <p className="font-medium">{companyInfo.name}</p>
-                      <p>{companyInfo.address.street}</p>
-                      <p>{companyInfo.address.suite}</p>
-                      <p>
-                        {companyInfo.address.city}, {companyInfo.address.state}{" "}
-                        {companyInfo.address.zip}
-                      </p>
-                      <p>{companyInfo.address.country}</p>
-                    </div>
-                  </div>
-                </div> */}
-
-                {/* Phone */}
-                {/* <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Phone className="w-6 h-6 text-green-600" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-900 mb-1">Phone</h4>
-                    <a
-                      href={`tel:${companyInfo.phone}`}
-                      className="text-gray-600 hover:text-blue-600 transition-colors"
-                    >
-                      {companyInfo.phone}
-                    </a>
-                  </div>
-                </div> */}
-
+              <div className="space-y-8 text-left">
                 {/* Email */}
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Mail className="w-6 h-6 text-purple-600" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-900 mb-1">Email</h4>
-                    <a
-                      href={`mailto:${companyInfo.email}`}
-                      className="text-gray-600 hover:text-blue-600 transition-colors "
-                    >
-                      {companyInfo.email}
-                    </a>
-                  </div>
+                <div className="group">
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">
+                    Support Email
+                  </p>
+                  <a
+                    href={`mailto:${companyInfo.email.trim()}`}
+                    className="flex items-center gap-4 p-4 bg-gray-50 hover:bg-blue-50 border border-transparent hover:border-blue-100 rounded-2xl transition-all"
+                  >
+                    <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm group-hover:shadow-none">
+                      <Mail className="w-5 h-5 text-blue-500" />
+                    </div>
+                    <span className="text-sm sm:text-base font-bold text-gray-700 group-hover:text-blue-600 truncate">
+                      {companyInfo.email.trim()}
+                    </span>
+                  </a>
                 </div>
 
                 {/* Working Hours */}
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Clock className="w-6 h-6 text-orange-600" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-900 mb-1">Working Hours</h4>
-                    <div className="text-gray-600 text-sm">
+                <div className="group">
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">
+                    Working Hours
+                  </p>
+                  <div className="flex items-start gap-4 p-4 bg-gray-50 border border-transparent group-hover:border-orange-100 rounded-2xl transition-all">
+                    <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm">
+                      <Clock className="w-5 h-5 text-orange-500" />
+                    </div>
+                    <div className="text-xs sm:text-sm font-bold text-gray-600 space-y-1">
                       <p>{companyInfo.workingHours.weekdays}</p>
                       <p>{companyInfo.workingHours.weekend}</p>
                     </div>
@@ -438,82 +388,60 @@ const ContactUs = () => {
               </div>
             </div>
 
-            {/* Social Media */}
-            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
+            {/* Social Media Card */}
+            <div className="bg-white rounded-3xl shadow border border-gray-100 p-6 sm:p-8">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-gradient-to-r from-pink-500 to-rose-500 rounded-xl flex items-center justify-center">
-                  <Sparkles className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 bg-pink-50 rounded-xl flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-pink-500" />
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900">Follow Us</h3>
+                <h3 className="text-xl font-bold text-gray-900">Follow Us</h3>
               </div>
 
-              <p className="text-gray-600 mb-6">Stay connected and get the latest updates</p>
-
-              <div className="grid grid-cols-2 gap-4">
-                {socialLinks.map((social) => {
-                  const IconComponent = social.icon
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                {socialLinks.map(social => {
+                  const Icon = social.icon
                   return (
                     <a
                       key={social.name}
                       href={social.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`flex items-center gap-3 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all duration-300 hover:scale-105 hover:shadow-md ${social.color}`}
+                      className={`flex flex-col items-center justify-center gap-2 p-4 bg-gray-50 rounded-2xl transition-all duration-300 hover:bg-white hover:shadow border border-transparent hover:border-gray-100 group`}
                     >
-                      <IconComponent className="w-6 h-6" />
-                      <span className="font-medium text-gray-700">{social.name}</span>
+                      <Icon className={`w-6 h-6 text-gray-400 transition-colors ${social.color}`} />
+                      <span className="text-[10px] sm:text-xs font-bold text-gray-600 uppercase tracking-tighter sm:tracking-normal">
+                        {social.name}
+                      </span>
                     </a>
                   )
                 })}
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-gradient-to-r from-green-400 to-blue-500 rounded-xl flex items-center justify-center">
-                  <Sparkles className="w-5 h-5 text-white" />
+            {/* Feedback Widget */}
+            <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-6 sm:p-8 text-white shadow shadow-indigo-100 overflow-hidden relative">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -translate-y-12 translate-x-12" />
+              <div className="relative">
+                <div className="flex items-center gap-3 mb-4">
+                  <Sparkles className="w-6 h-6 text-indigo-200" />
+                  <h3 className="text-xl font-bold">Feedback</h3>
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900">Your Feedback Matters</h3>
+                <p className="text-indigo-100 text-xs sm:text-sm mb-6 leading-relaxed">
+                  Your insights power our growth. Help us shape the future of GenWrite.
+                </p>
+                <a
+                  href="https://docs.google.com/forms/d/e/1FAIpQLScIdA2aVtugx-zMGON8LJKD4IRWtLZqiiurw-jU6wRYfOv7EA/viewform"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center w-full gap-2 px-6 py-4 bg-white text-indigo-600 font-bold rounded-2xl shadow hover:bg-indigo-50 transition-all border-none"
+                >
+                  Join the Survey
+                  <ArrowRight className="w-4 h-4" />
+                </a>
               </div>
-
-              {/* <p className="text-gray-600 mb-6">
-                Help us improve by sharing your experience. It only takes a minute!
-              </p> */}
-
-              <a
-                href="https://docs.google.com/forms/d/e/1FAIpQLScIdA2aVtugx-zMGON8LJKD4IRWtLZqiiurw-jU6wRYfOv7EA/viewform?usp=sharing&ouid=117159793210831255816" // replace this with your actual Google Form link
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center w-full justify-center gap-2 px-5 py-3 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-medium rounded-lg shadow-md hover:from-purple-600 hover:to-indigo-700 transition-all"
-              >
-                <Sparkles className="w-4 h-4 text-white" />
-                Give Feedback
-              </a>
             </div>
           </div>
         </div>
-        {/* <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden mt-10">
-          <div className="p-6 border-b border-gray-100">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-pink-500 rounded-xl flex items-center justify-center">
-                <Globe className="w-5 h-5 text-white" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900">Find Us</h3>
-            </div>
-          </div>
-          <div className="h-96 bg-gray-100 relative">
-            <iframe
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3153.0197327113716!2d-122.39492668468141!3d37.78808797975647!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8085807cf8b8b5b5%3A0x8b8b8b8b8b8b8b8b!2sSan%20Francisco%2C%20CA!5e0!3m2!1sen!2sus!4v1635959999999!5m2!1sen!2sus"
-              width="100%"
-              height="100%"
-              style={{ border: 0 }}
-              allowFullScreen=""
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              className="rounded-b-2xl"
-            />
-          </div>
-        </div> */}
       </div>
     </div>
   )

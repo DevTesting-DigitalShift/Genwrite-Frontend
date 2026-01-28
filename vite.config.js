@@ -4,10 +4,23 @@ import path from "path"
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react({
+      // Optimize React production builds
+      jsxRuntime: "automatic",
+      // Ensure TypeScript files are processed correctly
+      include: ["**/*.jsx", "**/*.tsx"],
+    }),
+  ],
   server: {
     host: true,
     port: 5174,
+    // Optimize dev server
+    hmr: true,
+    // hmr: {
+    //   host: "distinguishingly-postpeduncular-annalisa.ngrok-free.dev",
+    //   protocol: "wss",
+    // },
   },
   resolve: {
     alias: {
@@ -19,22 +32,42 @@ export default defineConfig({
       "@store": path.resolve(__dirname, "./src/store"),
       "@": path.resolve(__dirname, "./src"),
     },
+    // Add .ts and .tsx extensions for TypeScript support
+    extensions: [".js", ".jsx", ".ts", ".tsx"],
   },
   build: {
-    cssCodeSplit: true, // Split CSS into separate files based on entry points
+    // Optimize build output
+    target: "es2015",
+    cssCodeSplit: true,
     cssMinify: "esbuild",
-    modulePreload: true,
     minify: "esbuild",
-    sourcemap: false, // Optional: useful for debugging
-    rollupOptions: {
-      output: {
-        manualChunks: (id) => {
-          if (id.includes("tiptap")) return "chunk-tiptap"
-        },
-      },
+    sourcemap: false,
+    // Enable module preloading for better performance
+    modulePreload: {
+      polyfill: true,
     },
+
+    // Optimize asset handling
+    assetsInlineLimit: 4096, // 4kb - inline smaller assets as base64
   },
+  // Optimize dependency pre-bundling
   optimizeDeps: {
-    include: ["@tiptap/extension-font-family", "antd", "@tiptap/extension-history", "prismjs"],
+    include: [
+      // Pre-bundle these dependencies for faster dev server startup
+      "react",
+      "react-dom",
+      "react-router-dom",
+      "antd",
+      "@reduxjs/toolkit",
+      "react-redux",
+      "framer-motion",
+      "lucide-react",
+      "@tiptap/extension-font-family",
+      "@tiptap/extension-history",
+      "axios",
+      "marked",
+      "dompurify",
+    ],
+    exclude: ["lexical", "lexical-react"],
   },
 })

@@ -1,13 +1,10 @@
 {
   "compilerOptions": {
     "module": "ESNext",
-    "moduleResolution": "Bundler",
+    "moduleResolution": "node",
     "target": "ES2022",
     "jsx": "react-jsx",
-    "allowImportingTsExtensions": true,
     "allowJs": true,
-    "strictNullChecks": true,
-    "strictFunctionTypes": true,
     "baseUrl": "src",
     "paths": {
       "@api/*": ["api/*"],
@@ -19,5 +16,5 @@
       "@/*": ["*"]
     }
   },
-  "exclude": ["node_modules", "**/node_modules/*"]
+  "exclude": ["node_modules"]
 }

@@ -16,8 +16,11 @@ import {
   getGeneratedTitles,
   createSimpleBlog,
   getBlogStatus,
+  getBlogs,
+  getBlogPrompt,
 } from "@api/blogApi"
 import { message } from "antd"
+import { pushToDataLayer } from "@utils/DataLayer"
 
 // ----------------------- Async Thunks -----------------------
 
@@ -58,34 +61,117 @@ export const fetchBlogDetails = createAsyncThunk(
 
 export const createNewBlog = createAsyncThunk(
   "blogs/createNewBlog",
-  async ({ blogData, navigate }, { rejectWithValue }) => {
-    if (!blogData) {
-      message.error("Blog data is required to create a blog.")
-      return rejectWithValue("Blog data is required to create a blog.")
-    }
-
+  async ({ blogData, user, navigate, queryClient }, { rejectWithValue }) => {
     try {
+      if (!blogData) {
+        message.error("Blog data is required to create a blog.")
+        throw new Error("Blog data is required to create a blog.")
+      }
       const blog = await createBlog(blogData)
-      message.success("Blog created successfully")
-      navigate("/blogs")
+      pushToDataLayer({
+        event: "Blog Creation",
+        event_type: "Single blog",
+        event_status: "success",
+        user_id: user._id,
+
+        blog_id: blog._id,
+        blog_template: blogData.template.name,
+        blog_ai_model: blogData.aiModel,
+        blog_words_length: blogData?.userDefinedLength || 1000,
+        blog_images: blogData.isCheckedGeneratedImages
+          ? blogData.isUnsplashActive
+            ? "stock_images"
+            : "ai_images"
+          : "no_images",
+        blog_isBranded: blogData.isCheckedBrand,
+        blog_isBriefedByUser: blogData?.brief?.length ? "yes" : "no",
+        blog_quickSummary: blogData.isCheckedQuick,
+      })
+
+      // Invalidate blogs query to refresh the list
+      if (queryClient) {
+        queryClient.invalidateQueries({ queryKey: ["blogs"], refetchType: "all" })
+      }
+
       return blog
     } catch (error) {
+      pushToDataLayer({
+        event: "Blog Creation",
+        event_type: "Single blog",
+        event_status: "fail",
+        user_id: user._id,
+
+        blog_template: blogData.template.name,
+        blog_ai_model: blogData.aiModel,
+        blog_words_length: blogData?.userDefinedLength || 1000,
+        blog_images: blogData.isCheckedGeneratedImages
+          ? blogData.isUnsplashActive
+            ? "stock_images"
+            : "ai_images"
+          : "no_images",
+        blog_isBranded: blogData.isCheckedBrand,
+        blog_isBriefedByUser: blogData?.brief ? "yes" : "no",
+        blog_quickSummary: blogData.isCheckedQuick,
+
+        error_msg: err?.message || err?.response?.data?.message || "Blog Creation Failed",
+      })
       message.error(error.message)
       console.error("Blog creation error:", error)
       return rejectWithValue(error.message)
+    } finally {
+      // ✅ Always navigate (pending, success, or fail)
+      navigate("/blogs")
     }
   }
 )
 
 export const createNewQuickBlog = createAsyncThunk(
   "blogs/createNewQuickBlog",
-  async ({ blogData, navigate }, { rejectWithValue }) => {
+  async ({ blogData, user, navigate, queryClient, type = "quick" }, { rejectWithValue }) => {
     try {
-      const blog = await createQuickBlog(blogData)
-      message.success("QuickBlog created successfully")
-      navigate(`/toolbox/${blog._id}`)
+      const blog = await createQuickBlog(blogData, type)
+
+      pushToDataLayer({
+        event: "Blog Creation",
+        event_type: type === "yt" ? "YouTube blog" : "Quick blog",
+        event_status: "success",
+        user_id: user._id,
+
+        blog_id: blog._id,
+        blog_template: blogData.template,
+        blog_words_length: blogData?.userDefinedLength || 1000,
+        blog_ai_model: "gemini",
+        blog_images: "stock_images",
+        blog_isBranded: blogData?.isCheckedBrand || false,
+        blog_isBriefedByUser: blogData?.brief ? "yes" : "no",
+        blog_quickSummary: blogData?.isCheckedQuick || false,
+      })
+
+      // Invalidate blogs query to refresh the list
+      if (queryClient) {
+        queryClient.invalidateQueries({ queryKey: ["blogs"], refetchType: "all" })
+      }
+
+      // ✅ Only navigate on success
+      navigate(`/blogs`)
       return blog
     } catch (error) {
+      pushToDataLayer({
+        event: "Blog Creation",
+        event_type: type === "yt" ? "YouTube blog" : "Quick blog",
+        event_status: "fail",
+        user_id: user._id,
+
+        blog_template: blogData.template,
+        blog_words_length: blogData?.userDefinedLength || 1000,
+        blog_ai_model: "gemini",
+        blog_images: "stock_images",
+        blog_isBranded: blogData?.isCheckedBrand || false,
+        blog_isBriefedByUser: blogData?.brief ? "yes" : "no",
+        blog_quickSummary: blogData?.isCheckedQuick || false,
+
+        error_msg: error?.message || error?.response?.data?.message || "Blog Creation Failed",
+      })
       message.error(error.message)
       return rejectWithValue(error.message)
     }
@@ -94,13 +180,106 @@ export const createNewQuickBlog = createAsyncThunk(
 
 export const createMultiBlog = createAsyncThunk(
   "blogs/createMultiBlog",
-  async ({ blogData, navigate }, { rejectWithValue }) => {
+  async ({ blogData, user, navigate, queryClient }, { rejectWithValue }) => {
     try {
-      await createBlogMultiple(blogData)
+      const blogs = await createBlogMultiple(blogData)
+
       message.success("Bulk blogs will be generated shortly")
+      pushToDataLayer({
+        event: "Blog Creation",
+        event_type: "Bulk blog",
+        event_status: "success",
+        user_id: user._id,
+
+        blog_id: JSON.stringify(blogs),
+        blog_template: JSON.stringify(blogData.templates),
+        blog_words_length: blogData.userDefinedLength,
+        blog_count: blogData.numberOfBlogs,
+        blog_ai_model: blogData.aiModel || "gemini",
+        blog_images: blogData.isCheckedGeneratedImages
+          ? blogData.imageSource == "unsplash"
+            ? "stock_images"
+            : "ai_images"
+          : "no_images",
+        blog_isBranded: blogData?.useBrandVoice || false,
+      })
+
+      // Invalidate blogs query to refresh the list
+      if (queryClient) {
+        queryClient.invalidateQueries({ queryKey: ["blogs"], refetchType: "all" })
+      }
+
+      // ✅ Only navigate on success
       navigate("/blogs")
+      return blogs
     } catch (error) {
+      pushToDataLayer({
+        event: "Blog Creation",
+        event_type: "Bulk blog",
+        event_status: "fail",
+        user_id: user._id,
+
+        blog_template: JSON.stringify(blogData.templates),
+        blog_words_length: blogData.userDefinedLength,
+        blog_count: blogData.numberOfBlogs,
+        blog_ai_model: blogData.aiModel || "gemini",
+        blog_images: blogData.isCheckedGeneratedImages
+          ? blogData.imageSource == "unsplash"
+            ? "stock_images"
+            : "ai_images"
+          : "no_images",
+        blog_isBranded: blogData?.useBrandVoice || false,
+
+        error_msg: error?.message || error?.response?.data?.message || "Blog Creation Failed",
+      })
       return rejectWithValue(error.message)
+    }
+  }
+)
+
+export const createManualBlog = createAsyncThunk(
+  "blogs/createBlog",
+  async ({ blogData, user }, { rejectWithValue }) => {
+    try {
+      const blog = await createSimpleBlog(blogData)
+      pushToDataLayer({
+        event: "Blog Creation",
+        event_type: "Manual blog",
+        event_status: "success",
+        user_id: user._id,
+
+        blog_id: blog._id,
+        blog_template: blogData.template,
+        blog_words_length: blogData?.userDefinedLength || 1000,
+        blog_ai_model: blogData.aiModel || "gemini",
+        blog_images: blogData?.isCheckedGeneratedImages
+          ? blogData?.imageSource == "unsplash"
+            ? "stock_images"
+            : "ai_images"
+          : "no_images",
+        blog_isBranded: blogData?.useBrandVoice || false,
+      })
+      return blog
+    } catch (error) {
+      pushToDataLayer({
+        event: "Blog Creation",
+        event_type: "Manual blog",
+        event_status: "fail",
+        user_id: user._id,
+
+        blog_template: blogData.template,
+        blog_words_length: blogData?.userDefinedLength || 1000,
+        blog_ai_model: blogData.aiModel || "gemini",
+        blog_images: blogData?.isCheckedGeneratedImages
+          ? blogData?.imageSource == "unsplash"
+            ? "stock_images"
+            : "ai_images"
+          : "no_images",
+        blog_isBranded: blogData?.useBrandVoice || false,
+
+        error_msg: error?.message || error?.response?.data?.message || "Blog Creation Failed",
+      })
+      return rejectWithValue(error)
     }
   }
 )
@@ -225,33 +404,18 @@ export const fetchBlogStats = createAsyncThunk(
     }
   }
 )
-
+/**
+ * Async thunk to fetch generated titles
+ *  @type { AsyncThunk<string[], GenerateTitlesPayload | any, AsyncThunkConfig>}
+ */
 export const fetchGeneratedTitles = createAsyncThunk(
   "blogs/fetchGeneratedTitles",
-  async ({ keywords, focusKeywords, topic, template }, { rejectWithValue }) => {
+  async (payload, { rejectWithValue }) => {
     try {
-      const titles = await getGeneratedTitles({
-        keywords,
-        focusKeywords,
-        topic,
-        template,
-      })
+      const titles = await getGeneratedTitles(payload)
       return titles
     } catch (error) {
-      message.error("Failed to generate blog titles.")
       return rejectWithValue(error.response?.data?.message || error.message)
-    }
-  }
-)
-
-export const createManualBlog = createAsyncThunk(
-  "blogs/createBlog",
-  async (blogData, { rejectWithValue }) => {
-    try {
-      const response = await createSimpleBlog(blogData)
-      return response.blog
-    } catch (error) {
-      return rejectWithValue(error)
     }
   }
 )
@@ -268,6 +432,27 @@ export const fetchBlogStatus = createAsyncThunk(
   }
 )
 
+export const fetchBlogs = createAsyncThunk("blogs/fetchBlogs", async (_, { rejectWithValue }) => {
+  try {
+    const result = await getBlogs()
+    return result
+  } catch (error) {
+    return rejectWithValue(error?.message || "Something went wrong")
+  }
+})
+
+export const fetchBlogPrompt = createAsyncThunk(
+  "blogs/fetchBlogPrompt",
+  async ({ id, prompt }, { rejectWithValue }) => {
+    try {
+      const result = await getBlogPrompt(id, prompt)
+      return result
+    } catch (error) {
+      return rejectWithValue(error.message || "Failed to fetch blog prompt")
+    }
+  }
+)
+
 // ------------------------ Initial State ------------------------
 
 const initialState = {
@@ -280,6 +465,8 @@ const initialState = {
   blogStats: {},
   generatedTitles: [],
   blogStatus: null,
+  allBlogs: [],
+  blogPrompts: {},
 }
 
 // ------------------------ Slice ------------------------
@@ -288,7 +475,7 @@ const blogSlice = createSlice({
   name: "blog",
   initialState,
   reducers: {
-    clearSelectedBlog: (state) => {
+    clearSelectedBlog: state => {
       state.selectedBlog = null
     },
     setProofreadingSuggestions(state, action) {
@@ -301,7 +488,7 @@ const blogSlice = createSlice({
       state.proofreadingSuggestions = []
     },
   },
-  extraReducers: (builder) => {
+  extraReducers: builder => {
     builder
 
       .addCase(fetchAllBlogs.fulfilled, (state, action) => {
@@ -323,14 +510,8 @@ const blogSlice = createSlice({
         state.selectedBlog = action.payload
       })
 
-      // Create Blog
-      .addCase(createNewBlog.fulfilled, (state, action) => {
-        state.userBlogs.push(action.payload)
-      })
-      .addCase(createNewQuickBlog.fulfilled, (state, action) => {
-        state.userBlogs.push(action.payload)
-        state.selectedBlog = action.payload
-      })
+      // Create Blog - no state changes needed here
+      // Loading is managed by LoadingContext in components
 
       // Update Blog
       .addCase(updateBlogDetails.fulfilled, (state, action) => {
@@ -339,23 +520,23 @@ const blogSlice = createSlice({
 
       // Restore / Retry / Archive
       .addCase(restoreTrashedBlog.fulfilled, (state, action) => {
-        state.userBlogs.push(action.payload)
+        // state.userBlogs.push(action.payload)
       })
       .addCase(retryBlog.fulfilled, (state, action) => {
-        state.userBlogs.push(action.payload)
+        // state.userBlogs.push(action.payload)
       })
       .addCase(archiveBlog.fulfilled, (state, action) => {
         const id = action.meta.arg
-        state.userBlogs = state.userBlogs.filter((b) => b._id !== id)
+        state.userBlogs = state.userBlogs.filter(b => b._id !== id)
       })
 
       // Delete All
-      .addCase(deleteAllUserBlogs.fulfilled, (state) => {
+      .addCase(deleteAllUserBlogs.fulfilled, state => {
         state.userBlogs = []
       })
 
       // Fetch Blog by ID
-      .addCase(fetchBlogById.pending, (state) => {
+      .addCase(fetchBlogById.pending, state => {
         state.loading = true
         state.error = null
       })
@@ -369,7 +550,7 @@ const blogSlice = createSlice({
       })
 
       //Update Blog by ID
-      .addCase(updateBlogById.pending, (state) => {
+      .addCase(updateBlogById.pending, state => {
         state.loading = true
         state.error = null
       })
@@ -384,7 +565,7 @@ const blogSlice = createSlice({
       })
 
       // Fetch Proofreading Suggestions
-      .addCase(fetchProofreadingSuggestions.pending, (state) => {
+      .addCase(fetchProofreadingSuggestions.pending, state => {
         state.loading = true
       })
       .addCase(fetchProofreadingSuggestions.fulfilled, (state, action) => {
@@ -397,7 +578,7 @@ const blogSlice = createSlice({
       })
 
       // Fetch Blog Stats
-      .addCase(fetchBlogStats.pending, (state) => {
+      .addCase(fetchBlogStats.pending, state => {
         state.loading = true
         state.error = null
       })
@@ -410,33 +591,27 @@ const blogSlice = createSlice({
         state.error = action.payload
       })
 
-      .addCase(fetchGeneratedTitles.pending, (state) => {
-        state.loading = true
+      .addCase(fetchGeneratedTitles.pending, state => {
         state.error = null
       })
       .addCase(fetchGeneratedTitles.fulfilled, (state, action) => {
-        state.loading = false
         state.generatedTitles = action.payload
       })
       .addCase(fetchGeneratedTitles.rejected, (state, action) => {
-        state.loading = false
         state.error = action.payload
       })
 
-      .addCase(createManualBlog.pending, (state) => {
-        state.loading = true
+      .addCase(createManualBlog.pending, state => {
         state.error = null
       })
       .addCase(createManualBlog.fulfilled, (state, action) => {
-        state.loading = false
-        state.blogs.data.unshift(action.payload.blog) // or push depending on ordering
+        state.data = action.payload
       })
       .addCase(createManualBlog.rejected, (state, action) => {
-        state.loading = false
         state.error = action.payload
       })
 
-      .addCase(fetchBlogStatus.pending, (state) => {
+      .addCase(fetchBlogStatus.pending, state => {
         state.loading = true
       })
       .addCase(fetchBlogStatus.fulfilled, (state, action) => {
@@ -448,29 +623,30 @@ const blogSlice = createSlice({
         state.error = action.payload
       })
 
-      // Generic Error/Loading Handling
-      .addMatcher(
-        (action) => action.type.startsWith("blogs/") && action.type.endsWith("/pending"),
-        (state) => {
-          state.loading = true
-          state.error = null
-        }
-      )
-      .addMatcher(
-        (action) => action.type.startsWith("blogs/") && action.type.endsWith("/fulfilled"),
-        (state) => {
-          state.loading = false
-        }
-      )
-      .addMatcher(
-        (action) => action.type.startsWith("blogs/") && action.type.endsWith("/rejected"),
-        (state, action) => {
-          state.loading = false
-          state.error = action.payload
-        }
-      )
+      .addCase(fetchBlogs.pending, state => {
+        state.loading = true
+      })
+      .addCase(fetchBlogs.fulfilled, (state, action) => {
+        state.loading = false
+        state.allBlogs = action.payload || [] // Add `blogStatus` in initialState
+      })
+      .addCase(fetchBlogs.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload
+      })
+
+      .addCase(fetchBlogPrompt.fulfilled, (state, action) => {
+        state.loading = false
+        const { id, prompt } = action.payload
+        state.blogPrompts[id] = prompt
+      })
   },
 })
 
-export const { clearSelectedBlog, setProofreadingSuggestions, setIsAnalyzingProofreading, clearProofreadingSuggestions } = blogSlice.actions
+export const {
+  clearSelectedBlog,
+  setProofreadingSuggestions,
+  setIsAnalyzingProofreading,
+  clearProofreadingSuggestions,
+} = blogSlice.actions
 export default blogSlice.reducer

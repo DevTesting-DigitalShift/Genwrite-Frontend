@@ -18,14 +18,16 @@ const UpgradeModal = ({ featureName }) => {
       centered
       maskClosable={false}
       onCancel={handleClose}
-      maskStyle={{
-        background: "rgba(0, 0, 0, 0.5)",
-        backdropFilter: "blur(8px)",
-      }}
-      bodyStyle={{
-        padding: 0,
-        borderRadius: "12px",
-        overflow: "hidden",
+      styles={{
+        body: {
+          padding: 0,
+          borderRadius: "12px",
+          overflow: "hidden",
+        },
+        mask: {
+          background: "rgba(0, 0, 0, 0.5)",
+          backdropFilter: "blur(8px)",
+        },
       }}
       width={450}
     >

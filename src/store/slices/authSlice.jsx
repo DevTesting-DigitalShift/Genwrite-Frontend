@@ -8,9 +8,10 @@ import {
   resetPasswordAPI,
   loginWithGoogle,
 } from "@api/authApi"
+import { pushToDataLayer } from "@utils/DataLayer"
 
 // Utils
-const saveToken = (token) => localStorage.setItem("token", token)
+const saveToken = token => localStorage.setItem("token", token)
 const removeToken = () => localStorage.removeItem("token")
 const getToken = () => localStorage.getItem("token")
 
@@ -27,16 +28,33 @@ const initialState = {
 // 🔐 Login
 export const loginUser = createAsyncThunk(
   "auth/loginUser",
-  async ({ email, password }, { rejectWithValue }) => {
+  async ({ email, password, captchaToken }, { rejectWithValue }) => {
     try {
-      const data = await login(email, password)
-      if (data?.token) {
-        saveToken(data.token)
-        return { user: data.user, token: data.token }
+      const { user, token } = await login({ email, password, captchaToken })
+      if (token && user) {
+        saveToken(token)
+        pushToDataLayer({
+          event: "login_attempt",
+          event_status: "success",
+          auth_method: "email_password",
+          user_id: user._id,
+          user_subscription: user.subscription.plan,
+        })
+        return { user, token }
       }
       return rejectWithValue("Invalid login response")
     } catch (err) {
-      return rejectWithValue(err.response)
+      pushToDataLayer({
+        event: "login_attempt",
+        event_status: "fail",
+        auth_method: "email_password",
+        error_msg: err?.message || err?.response?.data?.message || "Login Failed",
+      })
+      return rejectWithValue({
+        status: err.response?.status,
+        data: err.response?.data,
+        message: err.message,
+      })
     }
   }
 )
@@ -44,16 +62,70 @@ export const loginUser = createAsyncThunk(
 // 📝 Signup
 export const signupUser = createAsyncThunk(
   "auth/signupUser",
-  async ({ email, password, name }, { rejectWithValue }) => {
+  async ({ email, password, name, captchaToken }, { rejectWithValue }) => {
     try {
-      const data = await signup(email, password, name)
-      if (data?.token) {
-        saveToken(data.token)
-        return { user: data.user, token: data.token }
+      const { user, token } = await signup({ email, password, name, captchaToken })
+
+      if (token && user) {
+        saveToken(token)
+
+        pushToDataLayer({
+          event: "sign_up_attempt",
+          event_status: "success",
+          auth_method: "email_password",
+          user_id: user._id,
+          user_subscription: user.subscription.plan,
+        })
+        return { user, token }
       }
       return rejectWithValue("Invalid signup response")
     } catch (err) {
+      pushToDataLayer({
+        event: "sign_up_attempt",
+        event_status: "fail",
+        auth_method: "email_password",
+        error_msg: err?.message || err?.response?.data?.message || "Signup Failed",
+      })
       return rejectWithValue("Signup failed")
+    }
+  }
+)
+
+// Google Login
+export const googleLogin = createAsyncThunk(
+  "auth/googleLogin",
+  async ({ access_token }, { rejectWithValue }) => {
+    try {
+      const response = await loginWithGoogle({ access_token })
+
+      if (!response.success || !response.token || !response.user) {
+        return rejectWithValue("Invalid Google login response")
+      }
+
+      // ✅ Save token
+      localStorage.setItem("token", response.token)
+
+      const { user, authStatus } = response
+
+      pushToDataLayer({
+        ...(authStatus == "sign_up"
+          ? { event: "sign_up_attempt" }
+          : { event: "google_auth", event_type: authStatus }),
+        event_status: "success",
+        auth_method: "google_oauth",
+        user_id: user._id,
+        user_subscription: user.subscription.plan,
+      })
+
+      return response // or return whole response if needed
+    } catch (error) {
+      pushToDataLayer({
+        event: "google_auth",
+        event_status: "fail",
+        auth_method: "google_oauth",
+        error_msg: error?.message || error?.response?.data?.message || "Google Login Failed",
+      })
+      return rejectWithValue(error.response?.data?.message || error.message)
     }
   }
 )
@@ -115,32 +187,12 @@ export const resetPassword = createAsyncThunk(
   }
 )
 
-export const googleLogin = createAsyncThunk(
-  "auth/googleLogin",
-  async (access_token, { rejectWithValue }) => {
-    try {
-      const response = await loginWithGoogle(access_token)
-
-      if (!response.success || !response.token || !response.user) {
-        return rejectWithValue("Invalid Google login response")
-      }
-
-      // ✅ Save token
-      localStorage.setItem("token", response.token)
-
-      return response.user // or return whole response if needed
-    } catch (error) {
-      return rejectWithValue(error.response?.data?.message || error.message)
-    }
-  }
-)
-
 // Slice
 const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-    logout: (state) => {
+    logout: state => {
       state.user = null
       state.token = null
       removeToken()
@@ -148,17 +200,38 @@ const authSlice = createSlice({
     setUser: (state, action) => {
       state.user = action.payload
     },
+    // Granular update for credits (used by socket events)
+    updateCredits: (state, action) => {
+      if (state.user) {
+        state.user.credits = action.payload
+      }
+    },
+    // Add a new notification (used by socket events)
+    addNotification: (state, action) => {
+      if (state.user && state.user.notifications) {
+        state.user.notifications = [action.payload, ...state.user.notifications]
+      } else if (state.user) {
+        state.user.notifications = [action.payload]
+      }
+    },
+    // Update user partially (used by socket events)
+    updateUserPartial: (state, action) => {
+      if (state.user) {
+        state.user = { ...state.user, ...action.payload }
+      }
+    },
   },
-  extraReducers: (builder) => {
+  extraReducers: builder => {
     // Login
-    builder.addCase(loginUser.pending, (state) => {
+    builder.addCase(loginUser.pending, state => {
       state.loading = true
       state.error = null
     })
     builder.addCase(loginUser.fulfilled, (state, action) => {
+      const { token, user } = action.payload
       state.loading = false
-      state.user = action.payload.user
-      state.token = action.payload.token
+      state.user = user
+      state.token = token
     })
     builder.addCase(loginUser.rejected, (state, action) => {
       state.loading = false
@@ -166,14 +239,15 @@ const authSlice = createSlice({
     })
 
     // Signup
-    builder.addCase(signupUser.pending, (state) => {
+    builder.addCase(signupUser.pending, state => {
       state.loading = true
       state.error = null
     })
     builder.addCase(signupUser.fulfilled, (state, action) => {
+      const { token, user } = action.payload
       state.loading = false
-      state.user = action.payload.user
-      state.token = action.payload.token
+      state.user = user
+      state.token = token
     })
     builder.addCase(signupUser.rejected, (state, action) => {
       state.loading = false
@@ -181,7 +255,7 @@ const authSlice = createSlice({
     })
 
     // Load Authenticated User
-    builder.addCase(loadAuthenticatedUser.pending, (state) => {
+    builder.addCase(loadAuthenticatedUser.pending, state => {
       state.loading = true
       state.error = null
     })
@@ -196,13 +270,11 @@ const authSlice = createSlice({
     })
 
     // Logout (doesn't have async states)
-    builder.addCase(logoutUser.fulfilled, (state) => {
-      state.user = null
-      state.token = null
-      state.loading = false
+    builder.addCase(logoutUser.fulfilled, state => {
+      state = initialState
     })
     // Forgot Password
-    builder.addCase(forgotPassword.pending, (state) => {
+    builder.addCase(forgotPassword.pending, state => {
       state.loading = true
       state.error = null
       state.forgotMessage = null
@@ -217,7 +289,7 @@ const authSlice = createSlice({
     })
 
     // Reset Password
-    builder.addCase(resetPassword.pending, (state) => {
+    builder.addCase(resetPassword.pending, state => {
       state.loading = true
       state.error = null
       state.resetMessage = null
@@ -234,28 +306,35 @@ const authSlice = createSlice({
 
     //Google Login
     builder
-      .addCase(googleLogin.pending, (state) => {
+      .addCase(googleLogin.pending, state => {
         state.loading = true
         state.error = null
       })
       .addCase(googleLogin.fulfilled, (state, action) => {
-        state.user = action.payload
+        const { user } = action.payload
+        state.loading = false
+        state.user = user
         state.isAuthenticated = true
       })
       .addCase(googleLogin.rejected, (state, action) => {
         state.user = null
         state.isAuthenticated = false
+        state.loading = false
         state.error = action.payload
       })
   },
 })
 
-export const { logout } = authSlice.actions
+export const { logout, setUser, updateCredits, addNotification, updateUserPartial } =
+  authSlice.actions
 export default authSlice.reducer
 
 // 📦 Selectors
-export const selectAuth = (state) => state.auth
-export const selectUser = (state) => state.auth.user
-export const selectToken = (state) => state.auth.token
-export const selectAuthLoading = (state) => state.auth.loading
-export const selectAuthError = (state) => state.auth.error
+export const selectAuth = state => state.auth
+export const selectUser = state => state.auth.user
+export const selectToken = state => state.auth.token
+export const selectAuthLoading = state => state.auth.loading
+export const selectAuthError = state => state.auth.error
+
+// Alias for compatibility
+export const fetchUserThunk = loadAuthenticatedUser
