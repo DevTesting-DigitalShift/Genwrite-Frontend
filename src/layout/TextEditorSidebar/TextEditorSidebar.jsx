@@ -727,11 +727,8 @@ const TextEditorSidebar = ({
   }, [])
 
   const handleCategoryChange = useCallback(value => {
-    if (value.length > 1) {
-      message.error("Only one category can be selected.")
-      return
-    }
-    const newCategory = value.length > 0 ? value[0] : ""
+    // If multiple values selected (mode='tags'), take the last one to allow switching
+    const newCategory = value.length > 0 ? value[value.length - 1] : ""
     setSelectedCategory(newCategory)
     setCategoryError(false)
     setErrors(prev => ({ ...prev, category: "" }))
@@ -869,21 +866,59 @@ const TextEditorSidebar = ({
 
     // 3. Execution
     const executePost = () => {
-      // Instead of direct post, open Categories Modal for final confirmation
-      setIsCategoryModalOpen(true)
+      // Direct post call with confirmation
+      handlePopup({
+        title: "Confirm Publishing",
+        description: (
+          <div className="text-sm text-gray-600">
+            <p className="mb-2">Are you sure you want to publish this blog?</p>
+            <ul className="list-disc pl-4 space-y-1">
+              <li>
+                Platform: <span className="font-semibold">{selectedIntegration?.label}</span>
+              </li>
+              <li>
+                Category: <span className="font-semibold">{selectedCategory}</span>
+              </li>
+              {includeTableOfContents && <li>Includes Table of Contents</li>}
+            </ul>
+          </div>
+        ),
+        confirmText: isPosting ? "Publishing..." : "Confirm & Publish",
+        onConfirm: async () => {
+          try {
+            await onPost({
+              ...formData,
+              categories: selectedCategory, // Use the selected category from sidebar
+              includeTableOfContents,
+              type: { platform: selectedIntegration?.rawPlatform }, // Use raw platform ID
+            })
+          } catch (error) {
+            console.error("Posting failed:", error)
+          }
+        },
+      })
     }
 
     if (unsavedChanges) {
       handlePopup({
         title: "Unsaved Changes",
-        description: "Save before posting?",
+        description: "You have unsaved changes. Save before posting?",
         confirmText: "Save & Post",
-        cancelText: "Post Anyway",
+        cancelText: "Post Without Saving",
         onConfirm: async () => {
-          await handleSubmit({ metadata })
-          executePost()
+          try {
+            await handleSubmit({ metadata })
+            executePost()
+          } catch (error) {
+            message.error("Failed to save changes")
+          }
         },
-        onCancel: e => e?.source === "button" && executePost(),
+        onCancel: e => {
+          // If user clicks "Post Without Saving" (which is typically the cancel button action in this context)
+          if (e?.source === "cancel") {
+            executePost()
+          }
+        },
       })
     } else {
       executePost()
@@ -894,13 +929,13 @@ const TextEditorSidebar = ({
     selectedCategory,
     includeTableOfContents,
     formData,
-    // onPost, // Passed via CategoriesModal now
+    onPost,
     unsavedChanges,
     handleSubmit,
     metadata,
     handlePopup,
     navigate,
-    setIsCategoryModalOpen,
+    isPosting,
   ])
 
   const addKeyword = useCallback(() => {
@@ -1692,8 +1727,17 @@ const TextEditorSidebar = ({
                 type="primary"
                 block
                 onClick={async () => {
-                  await handleSubmit({ slug: blogSlug })
-                  setIsEditingSlug(false)
+                  if (!blogSlug.trim()) {
+                    return message.error("Slug cannot be empty")
+                  }
+                  try {
+                    await handleSubmit({ slug: blogSlug })
+                    setIsEditingSlug(false)
+                    message.success("Slug updated successfully")
+                  } catch (error) {
+                    console.error("Failed to update slug:", error)
+                    message.error("Failed to update slug")
+                  }
                 }}
               >
                 Save Slug
