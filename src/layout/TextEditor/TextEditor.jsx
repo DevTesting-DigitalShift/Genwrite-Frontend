@@ -367,6 +367,8 @@ const TextEditor = ({
 
   // Thumbnail edit modal state
   const [thumbnailModalOpen, setThumbnailModalOpen] = useState(false)
+  const [thumbnailModalView, setThumbnailModalView] = useState("main") // new
+  const [generatedImageTemp, setGeneratedImageTemp] = useState(null) // new
   const [showGalleryPicker, setShowGalleryPicker] = useState(false)
   const [thumbnailUrl, setThumbnailUrl] = useState("")
   const [thumbnailAlt, setThumbnailAlt] = useState("")
@@ -1514,352 +1516,131 @@ const TextEditor = ({
         {renderFAQ()}
 
         {/* Thumbnail Edit Modal */}
+        {/* Thumbnail Edit Modal */}
         <Modal
           title={
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pr-6 sm:pr-10">
+            <div className="flex items-center justify-between gap-3 pr-8">
               <div className="flex items-center gap-2">
                 <ImageIcon className="w-5 h-5 text-purple-600" />
-                <span>Edit Thumbnail Image</span>
+                <span className="font-semibold text-gray-800">
+                  {thumbnailModalView === "generate"
+                    ? "Generate Image"
+                    : thumbnailModalView === "enhance"
+                      ? "Enhance Image"
+                      : thumbnailModalView === "gallery"
+                        ? "Select from Gallery"
+                        : "Edit Thumbnail Image"}
+                </span>
               </div>
-              <Button
-                size="small"
-                type={showGalleryPicker ? "primary" : "default"}
-                onClick={() => setShowGalleryPicker(prev => !prev)}
-                className="text-xs w-full sm:w-auto"
-                icon={<ImageIcon className="w-3 h-3" />}
-              >
-                {showGalleryPicker ? "Manual Entry" : "Browse Gallery"}
-              </Button>
             </div>
           }
           open={thumbnailModalOpen}
           onCancel={() => {
             setThumbnailModalOpen(false)
-            setShowGalleryPicker(false)
+            setThumbnailModalView("main")
           }}
-          footer={
-            <div className="flex items-center justify-between w-full">
-              {/* Left: Destructive action */}
-              <Button
-                danger
-                icon={<Trash2 className="w-4 h-4" />}
-                onClick={() => {
-                  setBlogThumbnail(null)
-                  setThumbnailModalOpen(false)
-                  message.success("Thumbnail removed")
-                }}
-              >
-                Delete Thumbnail
-              </Button>
-
-              {/* Right: Actions */}
-              <div className="flex items-center gap-2">
-                <Button
-                  onClick={() => {
-                    setThumbnailModalOpen(false)
-                    setShowGalleryPicker(false)
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="primary"
-                  icon={<Check className="w-4 h-4" />}
-                  onClick={() => {
-                    setBlogThumbnail({ url: thumbnailUrl, alt: thumbnailAlt })
-                    message.success("Thumbnail updated")
-                    setThumbnailModalOpen(false)
-                  }}
-                >
-                  Save Changes
-                </Button>
-              </div>
-            </div>
-          }
-          width={700}
-          style={{ top: 20, paddingBottom: 0 }}
+          footer={null}
+          width={thumbnailModalView === "gallery" ? 1000 : 600}
           centered
-          bodyStyle={{ padding: "24px", maxHeight: "85vh", overflow: "hidden" }}
           className="responsive-image-modal"
+          bodyStyle={{ padding: 0, maxHeight: "85vh", overflow: "hidden" }}
         >
-          {showGalleryPicker ? (
-            <div className="h-[70vh] overflow-hidden">
-              <ImageGalleryPicker
-                onSelect={(url, alt) => {
-                  setThumbnailUrl(url)
-                  setThumbnailAlt(alt || "")
-                  setShowGalleryPicker(false)
-                }}
-                selectedImageUrl={thumbnailUrl}
-              />
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Left: Image Preview */}
-              <div className="border rounded-lg bg-gray-50 p-2 flex flex-col items-center justify-center gap-3">
-                <img
-                  src={thumbnailUrl || "/placeholder.png"}
-                  alt="Preview"
-                  className="max-w-full rounded-lg object-contain"
-                  style={{ maxHeight: "300px" }}
-                  onError={e => (e.target.style.display = "none")}
-                />
-
-                {thumbnailUrl && !isEnhanceMode && blog?.imageSource === "ai" && (
-                  <Button
-                    type="default"
-                    size="small"
-                    className="mt-2 text-purple-600 border-purple-200 bg-purple-50 hover:bg-purple-100 hover:border-purple-300 flex items-center gap-2"
-                    onClick={() => {
-                      setIsEnhanceMode(true)
-                      // Pre-fill prompt if available from alt text or description?
-                      setEnhanceForm(prev => ({ ...prev, prompt: thumbnailAlt || "" }))
-                    }}
-                  >
-                    <Sparkles className="w-3 h-3" /> Enhance Image
-                    <span className="text-[10px] bg-purple-200 px-1 rounded ml-1 text-purple-700">
-                      {COSTS.ENHANCE} credits
-                    </span>
-                  </Button>
-                )}
-
-                {/* Enhancement Controls */}
-                {isEnhanceMode && (
-                  <div className="w-full mt-2 bg-white p-3 rounded border border-purple-100 shadow-sm space-y-3">
-                    <div>
-                      <label className="text-xs font-medium text-gray-500">Instruction</label>
-                      <Input.TextArea
-                        placeholder="Describe changes (e.g. make it high res)"
-                        value={enhanceForm.prompt}
-                        onChange={e => setEnhanceForm({ ...enhanceForm, prompt: e.target.value })}
-                        rows={2}
-                        className="text-sm mt-1"
+          <div className="flex flex-col h-[70vh] md:h-[550px] bg-gray-50/50">
+            {/* VIEW: MAIN */}
+            {thumbnailModalView === "main" && (
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                {/* Image Preview & Actions */}
+                <div className="rounded-xl">
+                  <div className="relative group min-h-[200px] flex items-center justify-center bg-gray-100 rounded-lg overflow-hidden border border-dashed border-gray-300">
+                    {thumbnailUrl ? (
+                      <img
+                        src={thumbnailUrl}
+                        alt="Preview"
+                        className="w-full h-full max-h-[300px] object-contain"
                       />
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-gray-500">Style</label>
-                      <Select
-                        value={enhanceForm.style}
-                        onChange={val => setEnhanceForm({ ...enhanceForm, style: val })}
-                        className="w-full mt-1"
-                        size="small"
-                        options={[
-                          { value: "photorealistic", label: "Photorealistic" },
-                          { value: "anime", label: "Anime" },
-                          { value: "digital-art", label: "Digital Art" },
-                          { value: "oil-painting", label: "Oil Painting" },
-                          { value: "cinematic", label: "Cinematic" },
-                        ]}
-                      />
-                    </div>
-                    <div className="flex gap-2 justify-end">
-                      <Button size="small" onClick={() => setIsEnhanceMode(false)}>
-                        Cancel
-                      </Button>
-                      <Button
-                        size="small"
-                        type="primary"
-                        className="bg-purple-600"
-                        onClick={async () => {
-                          if (user?.usage?.aiImages >= user?.usageLimits?.aiImages) {
-                            message.error(
-                              "You have reached your AI Image generation limit. preventing enhancement."
-                            )
-                            return
-                          }
-                          const credits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
-                          if (credits < COSTS.ENHANCE) {
-                            message.error(`Insufficient credits. Need ${COSTS.ENHANCE} credits.`)
-                            return
-                          }
-                          if (!enhanceForm.prompt.trim()) {
-                            message.error("Please enter an instruction")
-                            return
-                          }
-
-                          const hide = message.loading("Enhancing thumbnail...", 0)
-                          try {
-                            // Try to find existing ID
-                            const existingImage = blog?.images?.find(
-                              img => img.url === thumbnailUrl
-                            )
-                            const existingImageId = existingImage ? existingImage._id : undefined
-
-                            const formData = new FormData()
-                            formData.append("prompt", enhanceForm.prompt)
-                            formData.append("style", enhanceForm.style)
-                            formData.append("imageUrl", thumbnailUrl)
-                            if (existingImageId) {
-                              formData.append("existingImageId", existingImageId)
-                            }
-
-                            const response = await enhanceImage(formData)
-                            const newImage = response.image || response.data || response
-                            if (newImage && newImage.url) {
-                              setThumbnailUrl(newImage.url)
-                              message.success("Thumbnail enhanced! Save to apply.")
-                              setIsEnhanceMode(false)
-                            }
-                          } catch (err) {
-                            console.error(err)
-                            message.error("Failed to enhance thumbnail")
-                          } finally {
-                            hide()
-                          }
-                        }}
-                      >
-                        <Sparkles className="w-3 h-3 mr-1" /> Generate
-                      </Button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Manual / Generate Options */}
-                {!thumbnailUrl && !isGenerateMode && (
-                  <div className="flex flex-col gap-2 w-full mt-2">
-                    {user?.usage?.aiImages >= user?.usageLimits?.aiImages && (
-                      <div className="text-xs text-red-500 bg-red-50 p-2 rounded border border-red-100 text-center">
-                        You have reached your AI Image generation limit. preventing generation.
+                    ) : (
+                      <div className="text-gray-400 flex flex-col items-center gap-2">
+                        <ImageIcon className="w-10 h-10 opacity-50" />
+                        <span className="text-sm">No image selected</span>
                       </div>
                     )}
+                  </div>
+
+                  {/* Actions Grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
                     <Button
                       block
-                      onClick={() => setIsGenerateMode(true)}
-                      disabled={user?.usage?.aiImages >= user?.usageLimits?.aiImages}
-                      className="flex items-center justify-center gap-1"
+                      className="h-auto py-2 flex flex-col items-center justify-center gap-1 hover:border-purple-300 hover:text-purple-600"
+                      onClick={() => setThumbnailModalView("gallery")}
                     >
-                      <Sparkles className="w-4 h-4 text-blue-600" /> Generate Image
+                      <ImageIcon className="w-4 h-4" />
+                      <span className="text-xs">Gallery</span>
+                    </Button>
+                    <Button
+                      block
+                      className="h-auto py-2 flex flex-col items-center justify-center gap-1 hover:border-blue-300 hover:text-blue-600"
+                      onClick={() => setThumbnailModalView("generate")}
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      <span className="text-xs">Generate AI</span>
+                    </Button>
+                    <Button
+                      block
+                      disabled={!thumbnailUrl || blog?.imageSource !== "ai"}
+                      className="h-auto py-2 flex flex-col items-center justify-center gap-1 hover:border-indigo-300 hover:text-indigo-600 disabled:opacity-50"
+                      onClick={() => {
+                        setEnhanceForm(prev => ({ ...prev, prompt: thumbnailAlt || "" }))
+                        setThumbnailModalView("enhance")
+                      }}
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      <span className="text-xs">Enhance</span>
+                    </Button>
+                    <Button
+                      block
+                      danger
+                      disabled={!thumbnailUrl}
+                      className="h-auto py-2 flex flex-col items-center justify-center gap-1"
+                      onClick={() => {
+                        setThumbnailUrl("")
+                        setThumbnailAlt("")
+                        setBlogThumbnail(null)
+                        message.success("Image removed")
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span className="text-xs">Remove</span>
                     </Button>
                   </div>
-                )}
-
-                {/* Generation Controls */}
-                {isGenerateMode && (
-                  <div className="w-full mt-2 bg-white p-3 rounded border border-blue-100 shadow-sm space-y-3">
-                    <div>
-                      <label className="text-xs font-medium text-gray-500">Prompt</label>
-                      <Input.TextArea
-                        placeholder="A professional blog thumbnail..."
-                        value={genForm.prompt}
-                        onChange={e => setGenForm({ ...genForm, prompt: e.target.value })}
-                        rows={2}
-                        className="text-sm mt-1"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="text-xs font-medium text-gray-500">Style</label>
-                        <Select
-                          value={genForm.style}
-                          onChange={val => setGenForm({ ...genForm, style: val })}
-                          className="w-full mt-1"
-                          size="small"
-                          options={[
-                            { value: "photorealistic", label: "Photorealistic" },
-                            { value: "anime", label: "Anime" },
-                            { value: "digital-art", label: "Digital Art" },
-                            { value: "oil-painting", label: "Oil Painting" },
-                            { value: "sketch", label: "Sketch" },
-                            { value: "cinematic", label: "Cinematic" },
-                          ]}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs font-medium text-gray-500">Ratio</label>
-                        <Select
-                          value={genForm.aspectRatio}
-                          onChange={val => setGenForm({ ...genForm, aspectRatio: val })}
-                          className="w-full mt-1"
-                          size="small"
-                          options={[
-                            { value: "1:1", label: "Square (1:1)" },
-                            { value: "16:9", label: "Landscape (16:9)" },
-                            { value: "9:16", label: "Portrait (9:16)" },
-                            { value: "4:3", label: "Standard (4:3)" },
-                          ]}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2 justify-end">
-                      <Button size="small" onClick={() => setIsGenerateMode(false)}>
-                        Cancel
-                      </Button>
-                      <Button
-                        size="small"
-                        type="primary"
-                        className="bg-blue-600"
-                        onClick={async () => {
-                          // Quota Check
-                          if (user?.usage?.aiImages >= user?.usageLimits?.aiImages) {
-                            message.error(
-                              "You have reached your AI Image generation limit. preventing generation."
-                            )
-                            return
-                          }
-
-                          const credits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
-                          if (credits < COSTS.GENERATE) {
-                            message.error(`Insufficient credits. Need ${COSTS.GENERATE} credits.`)
-                            return
-                          }
-
-                          if (!genForm.prompt.trim()) {
-                            message.error("Please enter a prompt")
-                            return
-                          }
-
-                          const hide = message.loading("Generating image...", 0)
-                          try {
-                            const response = await generateImage(genForm)
-                            const newImage = response.image || response.data || response
-                            if (newImage && newImage.url) {
-                              setThumbnailUrl(newImage.url)
-                              setThumbnailAlt(genForm.prompt) // Use prompt as initial alt text
-                              message.success("Image generated! Save to apply.")
-                              setIsGenerateMode(false)
-                            }
-                          } catch (err) {
-                            console.error(err)
-                            message.error("Failed to generate image")
-                          } finally {
-                            hide()
-                          }
-                        }}
-                      >
-                        <Sparkles className="w-3 h-3 mr-1" /> Generate ({COSTS.GENERATE}c)
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Right: Form */}
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
-                  <Input
-                    value={thumbnailUrl}
-                    onChange={e => setThumbnailUrl(e.target.value)}
-                    placeholder="https://example.com/image.jpg"
-                    size="large"
-                  />
                 </div>
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Alt Text (optional)
+
+                {/* URL & Alt Text Inputs */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Image URL
                     </label>
-                    {thumbnailUrl && (
-                      <Tooltip title="Generate Alt Text using AI">
+                    <Input
+                      value={thumbnailUrl}
+                      onChange={e => setThumbnailUrl(e.target.value)}
+                      placeholder="https://example.com/image.jpg"
+                      size="large"
+                    />
+                  </div>
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Alt Text <span className="text-gray-400 font-normal">(Optional)</span>
+                      </label>
+                      {thumbnailUrl && (
                         <Button
                           type="text"
                           size="small"
-                          className="text-xs flex items-center gap-1 text-gray-500 hover:text-blue-600"
+                          className="text-xs flex items-center gap-1 text-blue-600 hover:bg-blue-50"
                           onClick={async () => {
                             const credits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
                             if (credits < COSTS.ALT_TEXT) {
-                              message.error(`Insufficient credits. Need ${COSTS.ALT_TEXT} credits.`)
+                              message.error(`Insufficient credits. Need ${COSTS.ALT_TEXT}.`)
                               return
                             }
                             const hide = message.loading("Generating alt text...", 0)
@@ -1871,34 +1652,322 @@ const TextEditor = ({
                                 message.success("Alt text generated!")
                               }
                             } catch (err) {
-                              console.error(err)
                               message.error("Failed to generate alt text")
                             } finally {
                               hide()
                             }
                           }}
                         >
-                          <MessageSquare className="w-3 h-3" /> Generate
-                          <span className="text-[10px] bg-gray-100 px-1 rounded text-gray-500">
-                            {COSTS.ALT_TEXT} credits
-                          </span>
+                          <Sparkles className="w-3 h-3" /> Auto-Generate
                         </Button>
-                      </Tooltip>
-                    )}
+                      )}
+                    </div>
+                    <Input.TextArea
+                      value={thumbnailAlt}
+                      onChange={e => setThumbnailAlt(e.target.value)}
+                      placeholder="Describe the image for SEO..."
+                      rows={4}
+                      className="resize-none"
+                    />
                   </div>
-                  <Input.TextArea
-                    value={thumbnailAlt}
-                    onChange={e => setThumbnailAlt(e.target.value)}
-                    placeholder="Describe the image for accessibility and SEO"
-                    rows={3}
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Helps with SEO and screen readers. Be descriptive and specific.
-                  </p>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+
+            {/* VIEW: GALLERY */}
+            {thumbnailModalView === "gallery" && (
+              <div className="flex-1 overflow-hidden">
+                <ImageGalleryPicker
+                  onSelect={(url, alt) => {
+                    setThumbnailUrl(url)
+                    setThumbnailAlt(alt || "")
+                    setThumbnailModalView("main")
+                  }}
+                  selectedImageUrl={thumbnailUrl}
+                />
+              </div>
+            )}
+
+            {/* VIEW: GENERATE FORM */}
+            {thumbnailModalView === "generate" && (
+              <div className="flex-1 p-6 flex flex-col">
+                <div className="flex-1 max-w-lg mx-auto w-full space-y-6">
+                  <div className="text-center mb-6">
+                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <Sparkles className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900">Generate New Image</h3>
+                    <p className="text-sm text-gray-500">
+                      Describe your vision and AI will create it.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Prompt</label>
+                    <Input.TextArea
+                      placeholder="e.g. A futuristic city skyline at sunset, cyberpunk style..."
+                      value={genForm.prompt}
+                      onChange={e => setGenForm({ ...genForm, prompt: e.target.value })}
+                      rows={4}
+                      size="large"
+                      className="text-base"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Style</label>
+                      <Select
+                        value={genForm.style}
+                        onChange={val => setGenForm({ ...genForm, style: val })}
+                        className="w-full"
+                        size="large"
+                        options={[
+                          { value: "photorealistic", label: "Photorealistic" },
+                          { value: "anime", label: "Anime" },
+                          { value: "digital-art", label: "Digital Art" },
+                          { value: "oil-painting", label: "Oil Painting" },
+                          { value: "cinematic", label: "Cinematic" },
+                        ]}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Aspect Ratio
+                      </label>
+                      <Select
+                        value={genForm.aspectRatio}
+                        onChange={val => setGenForm({ ...genForm, aspectRatio: val })}
+                        className="w-full"
+                        size="large"
+                        options={[
+                          { value: "1:1", label: "Square (1:1)" },
+                          { value: "16:9", label: "Landscape (16:9)" },
+                          { value: "9:16", label: "Portrait (9:16)" },
+                          { value: "4:3", label: "Standard (4:3)" },
+                          { value: "3:2", label: "Classic (3:2)" },
+                          { value: "5:4", label: "Traditional (5:4)" },
+                          { value: "21:9", label: "Ultrawide (21:9)" },
+                        ]}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* VIEW: ENHANCE FORM */}
+            {thumbnailModalView === "enhance" && (
+              <div className="flex-1 p-6 flex flex-col">
+                <div className="flex-1 max-w-lg mx-auto w-full space-y-6">
+                  <div className="text-center mb-6">
+                    <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <Sparkles className="w-6 h-6 text-purple-600" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900">Enhance Image</h3>
+                    <p className="text-sm text-gray-500">
+                      Improve quality or change style of current image.
+                    </p>
+                  </div>
+
+                  {/* Preview of source */}
+                  <div className="flex justify-center mb-4">
+                    <img
+                      src={thumbnailUrl}
+                      alt="Source"
+                      className="h-32 object-contain rounded border bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Instruction
+                    </label>
+                    <Input.TextArea
+                      placeholder="e.g. Make it higher resolution, fix lighting..."
+                      value={enhanceForm.prompt}
+                      onChange={e => setEnhanceForm({ ...enhanceForm, prompt: e.target.value })}
+                      rows={3}
+                      size="large"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Style</label>
+                    <Select
+                      value={enhanceForm.style}
+                      onChange={val => setEnhanceForm({ ...enhanceForm, style: val })}
+                      className="w-full"
+                      size="large"
+                      options={[
+                        { value: "photorealistic", label: "Photorealistic" },
+                        { value: "anime", label: "Anime" },
+                        { value: "digital-art", label: "Digital Art" },
+                        { value: "oil-painting", label: "Oil Painting" },
+                      ]}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* VIEW: LOADING (Transient) */}
+            {(thumbnailModalView === "generating" || thumbnailModalView === "enhancing") && (
+              <div className="flex-1 flex flex-col items-center justify-center p-6 space-y-4">
+                <LoadingScreen
+                  message={
+                    thumbnailModalView === "generating"
+                      ? "Creating your masterpiece..."
+                      : "Enhancing image..."
+                  }
+                />
+                <p className="text-gray-500 text-sm max-w-xs text-center animate-pulse">
+                  This may take 10-20 seconds. Please wait.
+                </p>
+              </div>
+            )}
+
+            {/* VIEW: PREVIEW RESULT */}
+            {(thumbnailModalView === "preview_generate" ||
+              thumbnailModalView === "preview_enhance") && (
+              <div className="flex-1 p-6 flex flex-col h-full">
+                <div className="flex-1 flex items-center justify-center bg-gray-100 rounded-xl border border-gray-200 overflow-hidden relative">
+                  <img
+                    src={generatedImageTemp?.url}
+                    alt="Generated Result"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <div className="mt-4 text-center">
+                  <p className="text-gray-600 font-medium">{generatedImageTemp?.prompt}</p>
+                  <p className="text-xs text-gray-400 mt-1">Generated by AI</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* FOOTER ACTIONS */}
+          <div className="p-4 border-t bg-white flex items-center justify-between">
+            {thumbnailModalView === "main" ? (
+              <>
+                <Button onClick={() => setThumbnailModalOpen(false)}>Cancel</Button>
+                <Button
+                  type="primary"
+                  onClick={() => {
+                    setBlogThumbnail({ url: thumbnailUrl, alt: thumbnailAlt })
+                    setThumbnailModalOpen(false)
+                    message.success("Thumbnail saved")
+                  }}
+                >
+                  Save Changes
+                </Button>
+              </>
+            ) : thumbnailModalView === "generate" ? (
+              <>
+                <Button onClick={() => setThumbnailModalView("main")}>Cancel</Button>
+                <Button
+                  type="primary"
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 border-none"
+                  icon={<Sparkles className="w-4 h-4" />}
+                  onClick={async () => {
+                    // Cost Check
+                    const cost = COSTS.GENERATE
+                    const credits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
+                    if (user?.usage?.aiImages >= user?.usageLimits?.aiImages) {
+                      return message.error("Limit reached")
+                    }
+                    if (credits < cost) {
+                      return message.error(`Need ${cost} credits`)
+                    }
+                    if (!genForm.prompt.trim()) return message.error("Enter a prompt")
+
+                    setThumbnailModalView("generating")
+                    try {
+                      const res = await generateImage(genForm)
+                      const img = res.image || res.data || res
+                      if (img?.url) {
+                        setGeneratedImageTemp({ ...img, prompt: genForm.prompt }) // Store temp
+                        setThumbnailModalView("preview_generate")
+                      } else {
+                        throw new Error("No image data")
+                      }
+                    } catch (e) {
+                      console.error(e)
+                      message.error("Generation failed")
+                      setThumbnailModalView("generate")
+                    }
+                  }}
+                >
+                  Generate ({COSTS.GENERATE}c)
+                </Button>
+              </>
+            ) : thumbnailModalView === "enhance" ? (
+              <>
+                <Button onClick={() => setThumbnailModalView("main")}>Cancel</Button>
+                <Button
+                  type="primary"
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 border-none"
+                  icon={<Sparkles className="w-4 h-4" />}
+                  onClick={async () => {
+                    // Logic for enhance call
+                    const cost = COSTS.ENHANCE
+                    const credits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
+                    if (user?.usage?.aiImages >= user?.usageLimits?.aiImages) {
+                      return message.error("Limit reached")
+                    }
+                    if (credits < cost) return message.error(`Need ${cost} credits`)
+                    if (!enhanceForm.prompt.trim()) return message.error("Enter instruction")
+
+                    setThumbnailModalView("enhancing")
+                    try {
+                      const formData = new FormData()
+                      formData.append("prompt", enhanceForm.prompt)
+                      formData.append("style", enhanceForm.style)
+                      formData.append("imageUrl", thumbnailUrl)
+                      const res = await enhanceImage(formData)
+                      const img = res.image || res.data || res
+                      if (img?.url) {
+                        setGeneratedImageTemp({ ...img, prompt: enhanceForm.prompt })
+                        setThumbnailModalView("preview_enhance")
+                      } else {
+                        throw new Error("No image data")
+                      }
+                    } catch (e) {
+                      message.error("Enhancement failed")
+                      setThumbnailModalView("enhance")
+                    }
+                  }}
+                >
+                  Enhance ({COSTS.ENHANCE}c)
+                </Button>
+              </>
+            ) : thumbnailModalView.startsWith("preview") ? (
+              <>
+                <Button
+                  onClick={() =>
+                    setThumbnailModalView(
+                      thumbnailModalView === "preview_generate" ? "generate" : "enhance"
+                    )
+                  }
+                >
+                  Try Again
+                </Button>
+                <Button
+                  type="primary"
+                  onClick={() => {
+                    setThumbnailUrl(generatedImageTemp.url)
+                    setThumbnailAlt(generatedImageTemp.prompt)
+                    setGeneratedImageTemp(null)
+                    setThumbnailModalView("main")
+                  }}
+                >
+                  Use This Image
+                </Button>
+              </>
+            ) : (
+              <Button onClick={() => setThumbnailModalView("main")}>Back</Button>
+            )}
+          </div>
         </Modal>
       </div>
     )

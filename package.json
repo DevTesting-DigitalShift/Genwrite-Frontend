@@ -118,6 +118,7 @@
     "remark-parse": "^11.0.0",
     "remark-parse-frontmatter": "^1.0.3",
     "remark-rehype": "^11.1.2",
+    "root": "git+https://github.com/tanstack/react-query.git",
     "sheetjs-style": "^0.15.8",
     "showdown": "^2.1.0",
     "slick-carousel": "^1.8.1",

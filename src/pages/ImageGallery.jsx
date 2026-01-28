@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react"
-import { Pagination, Spin, Modal, message, Button, Input, Select, Tooltip, Tag } from "antd"
+import { Pagination, Spin, Modal, message, Button, Input, Select, Tooltip, Tag, Switch } from "antd"
 import {
   Search,
   Image as ImageIcon,
@@ -10,6 +10,7 @@ import {
   Sparkles,
   Type,
   Bot,
+  Upload,
 } from "lucide-react"
 import { Helmet } from "react-helmet"
 import {
@@ -164,10 +165,29 @@ const ImageGallery = () => {
     return true
   }
 
+  const [showErrors, setShowErrors] = useState(false)
+
+  const countWords = str => {
+    return str
+      .trim()
+      .split(/\s+/)
+      .filter(n => n !== "").length
+  }
+
   const handleGenerateImage = async () => {
+    setShowErrors(true)
     if (!checkQuota()) return
     if (!checkCredits(COSTS.GENERATE)) return
-    if (!genForm.prompt.trim()) return message.error("Please enter a prompt")
+
+    if (!genForm.prompt.trim()) {
+      message.error("Please enter a prompt")
+      return
+    }
+
+    if (countWords(genForm.prompt) < 10) {
+      message.error("Prompt must be at least 10 words")
+      return
+    }
 
     setIsGenerating(true)
     setGenerationSuccess(false)
@@ -180,6 +200,7 @@ const ImageGallery = () => {
       message.success("Image generated successfully!")
       setGenerationSuccess(true)
       setGenForm({ ...genForm, prompt: "" })
+      setShowErrors(false)
       dispatch(fetchUserThunk()) // Update credits
 
       // Handle Image Preview
@@ -323,37 +344,13 @@ const ImageGallery = () => {
 
         {/* Creation Studio Section - Inline */}
         <div className="mb-8">
+          {/* Creation Studio - Simplified Card */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md">
-            {/* Header - Always visible unless loading/success takes over fully, but kept for context */}
-            {!isGenerating && !generationSuccess && (
-              <div
-                className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100 flex items-center justify-between cursor-pointer select-none"
-                onClick={() => setIsCreationExpanded(!isCreationExpanded)}
-              >
-                <div className="flex items-center gap-2 text-blue-900">
-                  <div className="p-1.5 bg-white rounded-lg shadow-sm text-blue-600">
-                    <Sparkles className="w-4 h-4" />
-                  </div>
-                  <span className="font-bold text-sm">Creation Studio</span>
-                  <span className="text-xs font-medium text-blue-600/70 ml-2 bg-white/50 px-2 py-0.5 rounded-full border border-blue-100">
-                    {COSTS.GENERATE} Credits
-                  </span>
-                </div>
-                <div
-                  className={`text-blue-400 transition-transform duration-300 ${isCreationExpanded ? "rotate-180" : ""}`}
-                >
-                  ▼
-                </div>
-              </div>
-            )}
-
             {/* Content Area */}
-            <div
-              className={`transition-all duration-300 ease-in-out ${isCreationExpanded || isGenerating || generationSuccess ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0 overflow-hidden"}`}
-            >
+            <div className="transition-all duration-300 ease-in-out">
               {isGenerating ? (
                 // Loading State
-                <div className="p-10 flex flex-col items-center justify-center text-center space-y-4">
+                <div className="p-10 flex flex-col items-center justify-center text-center space-y-4 min-h-[400px]">
                   <Spin size="large" className="scale-150" />
                   <div>
                     <h3 className="text-lg font-bold text-gray-800 mt-4">
@@ -364,7 +361,7 @@ const ImageGallery = () => {
                 </div>
               ) : generationSuccess ? (
                 // Success State
-                <div className="p-8 flex flex-col items-center justify-center text-center space-y-4 bg-green-50/50">
+                <div className="p-10 flex flex-col items-center justify-center text-center space-y-4 bg-green-50/50 min-h-[400px]">
                   <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-green-600 mb-2 animate-bounce">
                     <Sparkles className="w-8 h-8" />
                   </div>
@@ -380,91 +377,134 @@ const ImageGallery = () => {
                   </button>
                 </div>
               ) : (
-                // Form State
-                <div className="p-5">
-                  <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr_auto] gap-5 items-start">
-                    {/* Grid Item 1: Prompt */}
-                    <div className="space-y-2">
+                // Form State - Simplified & Polished
+                <div className="p-6">
+                  {/* Top Row: Type & Ratio */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div className="space-y-1.5">
                       <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                        Prompt
+                        Type of Image
                       </label>
-                      <TextArea
-                        value={genForm.prompt}
-                        onChange={e => setGenForm({ ...genForm, prompt: e.target.value })}
-                        placeholder="A futuristic city with flying cars at sunset, cyberpunk style..."
-                        className="!min-h-[100px] !resize-none !text-sm !rounded-xl !border-gray-200 focus:!border-blue-400 focus:!ring-2 focus:!ring-blue-50"
+                      <Select
+                        value={genForm.style}
+                        onChange={val => setGenForm({ ...genForm, style: val })}
+                        className="w-full"
+                        size="large"
+                        options={[
+                          { value: "photorealistic", label: "Photorealistic" },
+                          { value: "anime", label: "Anime" },
+                          { value: "digital-art", label: "Digital Art" },
+                          { value: "oil-painting", label: "Oil Painting" },
+                          { value: "cinematic", label: "Cinematic" },
+                        ]}
                       />
                     </div>
-
-                    {/* Grid Item 2: Settings */}
-                    <div className="grid grid-cols-2 lg:grid-cols-1 gap-3">
-                      <div className="space-y-1">
-                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                          Style
-                        </label>
-                        <Select
-                          value={genForm.style}
-                          onChange={val => setGenForm({ ...genForm, style: val })}
-                          className="w-full"
-                          size="large"
-                          options={[
-                            { value: "photorealistic", label: "Photorealistic" },
-                            { value: "anime", label: "Anime" },
-                            { value: "digital-art", label: "Digital Art" },
-                            { value: "oil-painting", label: "Oil Painting" },
-                            { value: "sketch", label: "Sketch" },
-                            { value: "cinematic", label: "Cinematic" },
-                          ]}
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                          Ratio
-                        </label>
-                        <Select
-                          value={genForm.aspectRatio}
-                          onChange={val => setGenForm({ ...genForm, aspectRatio: val })}
-                          className="w-full"
-                          size="large"
-                          options={[
-                            { value: "1:1", label: "Square (1:1)" },
-                            { value: "16:9", label: "Landscape (16:9)" },
-                            { value: "9:16", label: "Portrait (9:16)" },
-                            { value: "4:3", label: "Standard (4:3)" },
-                          ]}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Grid Item 3: Action */}
-                    <div className="flex flex-col justify-end h-full pt-6 lg:pt-0">
-                      <button
-                        onClick={handleGenerateImage}
-                        disabled={isGenerating}
-                        className={`
-                              h-[100px] w-full lg:w-[140px] rounded-xl font-bold text-white shadow-lg flex flex-col items-center justify-center gap-2 transition-all
-                              bg-gradient-to-br from-blue-600 to-indigo-600 hover:shadow-blue-200 hover:scale-[1.02] active:scale-[0.98]
-                            `}
-                      >
-                        <Sparkles className="w-6 h-6" />
-                        <span>Generate</span>
-                      </button>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                        Aspect Ratio <span className="text-red-500">*</span>
+                      </label>
+                      <Select
+                        value={genForm.aspectRatio}
+                        onChange={val => setGenForm({ ...genForm, aspectRatio: val })}
+                        className="w-full"
+                        size="large"
+                        options={[
+                          { value: "1:1", label: "Square (1:1)" },
+                          { value: "16:9", label: "Landscape (16:9)" },
+                          { value: "9:16", label: "Portrait (9:16)" },
+                          { value: "4:3", label: "Standard (4:3)" },
+                          { value: "3:2", label: "Classic (3:2)" },
+                          { value: "5:4", label: "Traditional (5:4)" },
+                          { value: "21:9", label: "Ultrawide (21:9)" },
+                        ]}
+                      />
                     </div>
                   </div>
-                  {/* Footer Credits Info */}
-                  <div className="px-1 pt-3 flex flex-col items-end gap-1">
-                    <div className="text-xs text-gray-400 font-medium">
-                      AI Images Usage:{" "}
+
+                  {/* Prompt Section */}
+                  <div className="space-y-2 relative mb-6">
+                    <div className="flex justify-between items-center">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                        Prompt <span className="text-red-500">*</span>
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${
+                            showErrors &&
+                            countWords(genForm.prompt) < 10 &&
+                            genForm.prompt.length > 0
+                              ? "text-red-500 bg-red-50 border-red-100"
+                              : "text-gray-400 bg-gray-50 border-gray-100"
+                          }`}
+                        >
+                          {countWords(genForm.prompt)} words
+                        </span>
+                        <span className="text-[10px] font-medium text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full border border-gray-100">
+                          {genForm.prompt.length}/1000
+                        </span>
+                      </div>
+                    </div>
+                    <TextArea
+                      value={genForm.prompt}
+                      onChange={e => setGenForm({ ...genForm, prompt: e.target.value })}
+                      maxLength={1000}
+                      placeholder="Describe the image you want to create... (Minimum 10 words)"
+                      className={`!min-h-[140px] !resize-none !text-base !rounded-xl transition-all p-4 shadow-sm ${
+                        showErrors && countWords(genForm.prompt) < 10
+                          ? "!border-red-400 focus:!border-red-500 focus:!ring-red-50"
+                          : "!border-gray-200 focus:!border-blue-500 focus:!ring-4 focus:!ring-blue-50/50"
+                      }`}
+                    />
+                    {showErrors && !genForm.prompt.trim() && (
+                      <p className="text-xs text-red-500 mt-1 animate-in slide-in-from-top-1">
+                        Image prompt is required
+                      </p>
+                    )}
+                    {showErrors && genForm.prompt.trim() && countWords(genForm.prompt) < 10 && (
+                      <p className="text-xs text-red-500 mt-1 animate-in slide-in-from-top-1">
+                        Please provide more detail (at least 10 words) for better results.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Footer Actions */}
+                  <div className="pt-6 border-t border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4">
+                    {/* Usage Limit Info */}
+                    <div className="text-xs text-gray-500 font-medium order-2 md:order-1 bg-gray-50 px-3 py-2 rounded-lg border border-gray-100">
+                      Monthly Usage:{" "}
                       <span
-                        className={`${user?.usage?.aiImages >= user?.usageLimits?.aiImages ? "text-red-500" : "text-gray-700"} font-bold`}
+                        className={`${user?.usage?.aiImages >= user?.usageLimits?.aiImages ? "text-red-600" : "text-gray-900"} font-bold ml-1`}
                       >
                         {user?.usage?.aiImages || 0} / {user?.usageLimits?.aiImages || 0}
                       </span>
                     </div>
-                    <div className="text-xs text-gray-400 font-medium">
-                      You have{" "}
-                      <span className="text-blue-600 font-bold">{userCredits} credits</span>{" "}
-                      available
+
+                    <div className="flex items-center gap-3 w-full md:w-auto justify-end order-1 md:order-2">
+                      <Button
+                        size="large"
+                        onClick={() => {
+                          setGenForm({
+                            prompt: "",
+                            style: "photorealistic",
+                            aspectRatio: "1:1",
+                            imageSize: "1024x1024",
+                          })
+                          setShowErrors(false)
+                        }}
+                        className="!rounded-xl !border-gray-200 !text-gray-500 hover:!bg-gray-50 hover:!text-gray-700 font-medium px-6"
+                      >
+                        Reset
+                      </Button>
+                      <Button
+                        type="primary"
+                        size="large"
+                        onClick={handleGenerateImage}
+                        disabled={isGenerating}
+                        icon={<Sparkles className="w-5 h-5" />}
+                        className="!rounded-xl !bg-gradient-to-r !from-blue-600 !to-indigo-600 hover:!from-blue-700 hover:!to-indigo-700 !shadow-lg !shadow-blue-200 !h-12 !px-8 !font-bold !text-base flex-1 md:flex-none"
+                      >
+                        Generate
+                      </Button>
                     </div>
                   </div>
                 </div>
