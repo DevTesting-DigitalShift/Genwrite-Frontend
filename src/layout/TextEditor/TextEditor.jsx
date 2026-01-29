@@ -30,6 +30,7 @@ import showdown from "showdown"
 import SectionCard from "./SectionCard"
 import { EditorProvider } from "./EditorContext"
 import InlineEditor from "./InlineEditor"
+import SectionEditor from "./SectionEditor"
 
 // Configure showdown for better image handling
 showdown.setOption("tables", true)
@@ -382,7 +383,7 @@ const TextEditor = ({
     prompt: "",
     style: "photorealistic",
     aspectRatio: "1:1",
-    imageSize: "1024x1024",
+    imageSize: "1k",
   })
 
   // Section images state
@@ -1496,26 +1497,27 @@ const TextEditor = ({
                   <SectionCard key={section.id || index} section={section} index={index} />
                 ))}
               </Reorder.Group>
-            </EditorProvider>
 
-            {/* Add Section button at bottom */}
-            <div className="flex justify-center mt-6">
-              <button
-                onClick={() => handleAddSection(sections.length - 1)}
-                className="flex items-center gap-2 px-5 py-2.5 bg-white border-2 border-dashed border-gray-300 text-gray-600 rounded-xl hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200"
-              >
-                <Plus className="w-5 h-5" />
-                Add Section
-              </button>
-            </div>
+              {/* Add Section button at bottom */}
+              <div className="flex justify-center mt-6">
+                <button
+                  onClick={() => handleAddSection(sections.length - 1)}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-white border-2 border-dashed border-gray-300 text-gray-600 rounded-xl hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200"
+                >
+                  <Plus className="w-5 h-5" />
+                  Add Section
+                </button>
+              </div>
+            </EditorProvider>
           </>
         )}
 
-        {renderCTA()}
-        {renderQuickSummary()}
-        {renderFAQ()}
+        <EditorProvider value={editorContextValue}>
+          {renderCTA()}
+          {renderQuickSummary()}
+          {renderFAQ()}
+        </EditorProvider>
 
-        {/* Thumbnail Edit Modal */}
         {/* Thumbnail Edit Modal */}
         <Modal
           title={
@@ -1538,6 +1540,9 @@ const TextEditor = ({
           onCancel={() => {
             setThumbnailModalOpen(false)
             setThumbnailModalView("main")
+            // Clear prompts
+            setGenForm(prev => ({ ...prev, prompt: "" }))
+            setEnhanceForm(prev => ({ ...prev, prompt: "" }))
           }}
           footer={null}
           width={thumbnailModalView === "gallery" ? 1000 : 600}
@@ -1545,7 +1550,7 @@ const TextEditor = ({
           className="responsive-image-modal"
           bodyStyle={{ padding: 0, maxHeight: "85vh", overflow: "hidden" }}
         >
-          <div className="flex flex-col h-[70vh] md:h-[550px] bg-gray-50/50">
+          <div className="flex flex-col h-[70vh] bg-gray-50/50 overflow-y-auto custom-scroll">
             {/* VIEW: MAIN */}
             {thumbnailModalView === "main" && (
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
@@ -1567,7 +1572,7 @@ const TextEditor = ({
                   </div>
 
                   {/* Actions Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+                  <div className="grid grid-cols-4 gap-3 mt-4">
                     <Button
                       block
                       className="h-auto py-2 flex flex-col items-center justify-center gap-1 hover:border-purple-300 hover:text-purple-600"
@@ -1586,7 +1591,7 @@ const TextEditor = ({
                     </Button>
                     <Button
                       block
-                      disabled={!thumbnailUrl || blog?.imageSource !== "ai"}
+                      // disabled={!thumbnailUrl || blog?.imageSource !== "ai"}
                       className="h-auto py-2 flex flex-col items-center justify-center gap-1 hover:border-indigo-300 hover:text-indigo-600 disabled:opacity-50"
                       onClick={() => {
                         setEnhanceForm(prev => ({ ...prev, prompt: thumbnailAlt || "" }))
@@ -1751,6 +1756,22 @@ const TextEditor = ({
                         ]}
                       />
                     </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Quality
+                      </label>
+                      <Select
+                        value={genForm.imageSize}
+                        onChange={val => setGenForm({ ...genForm, imageSize: val })}
+                        className="w-full"
+                        size="large"
+                        options={[
+                          { value: "1k", label: "Standard (1K)" },
+                          { value: "2k", label: "High Res (2K)" },
+                          { value: "4k", label: "Ultra (4K)" },
+                        ]}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1760,22 +1781,12 @@ const TextEditor = ({
             {thumbnailModalView === "enhance" && (
               <div className="flex-1 p-6 flex flex-col">
                 <div className="flex-1 max-w-lg mx-auto w-full space-y-6">
-                  <div className="text-center mb-6">
-                    <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <Sparkles className="w-6 h-6 text-purple-600" />
-                    </div>
-                    <h3 className="text-lg font-semibold text-gray-900">Enhance Image</h3>
-                    <p className="text-sm text-gray-500">
-                      Improve quality or change style of current image.
-                    </p>
-                  </div>
-
                   {/* Preview of source */}
                   <div className="flex justify-center mb-4">
                     <img
                       src={thumbnailUrl}
                       alt="Source"
-                      className="h-32 object-contain rounded border bg-white"
+                      className="h-full object-contain rounded border bg-white"
                     />
                   </div>
 
@@ -1813,7 +1824,7 @@ const TextEditor = ({
 
             {/* VIEW: LOADING (Transient) */}
             {(thumbnailModalView === "generating" || thumbnailModalView === "enhancing") && (
-              <div className="flex-1 flex flex-col items-center justify-center p-6 space-y-4">
+              <div className="flex-1 flex flex-col items-center justify-center p-6 space-y-4 z-[999]">
                 <LoadingScreen
                   message={
                     thumbnailModalView === "generating"
@@ -1886,8 +1897,12 @@ const TextEditor = ({
                       const res = await generateImage(genForm)
                       const img = res.image || res.data || res
                       if (img?.url) {
-                        setGeneratedImageTemp({ ...img, prompt: genForm.prompt }) // Store temp
-                        setThumbnailModalView("preview_generate")
+                        // Direct validation success logic
+                        setThumbnailUrl(img.url)
+                        setThumbnailAlt(genForm.prompt)
+                        setGenForm(prev => ({ ...prev, prompt: "" })) // Clear prompt
+                        message.success("Image generated successfully!")
+                        setThumbnailModalView("main")
                       } else {
                         throw new Error("No image data")
                       }
@@ -1927,8 +1942,11 @@ const TextEditor = ({
                       const res = await enhanceImage(formData)
                       const img = res.image || res.data || res
                       if (img?.url) {
-                        setGeneratedImageTemp({ ...img, prompt: enhanceForm.prompt })
-                        setThumbnailModalView("preview_enhance")
+                        // Direct validation success logic
+                        setThumbnailUrl(img.url)
+                        setEnhanceForm(prev => ({ ...prev, prompt: "" })) // Clear prompt
+                        message.success("Image enhanced successfully!")
+                        setThumbnailModalView("main")
                       } else {
                         throw new Error("No image data")
                       }
@@ -1939,29 +1957,6 @@ const TextEditor = ({
                   }}
                 >
                   Enhance ({COSTS.ENHANCE}c)
-                </Button>
-              </>
-            ) : thumbnailModalView.startsWith("preview") ? (
-              <>
-                <Button
-                  onClick={() =>
-                    setThumbnailModalView(
-                      thumbnailModalView === "preview_generate" ? "generate" : "enhance"
-                    )
-                  }
-                >
-                  Try Again
-                </Button>
-                <Button
-                  type="primary"
-                  onClick={() => {
-                    setThumbnailUrl(generatedImageTemp.url)
-                    setThumbnailAlt(generatedImageTemp.prompt)
-                    setGeneratedImageTemp(null)
-                    setThumbnailModalView("main")
-                  }}
-                >
-                  Use This Image
                 </Button>
               </>
             ) : (

@@ -10,6 +10,9 @@ import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
 
 const { TextArea } = Input
 
+// Helper to detect if input is URL
+const isUrl = text => text.trim().startsWith("http")
+
 const GenerateMetaData = () => {
   const [content, setContent] = useState("")
   const [keywords, setKeywords] = useState([])
@@ -23,6 +26,8 @@ const GenerateMetaData = () => {
 
   // Calculate word count
   const wordCount = useCallback(() => {
+    // If URL, word count is 0 or we can just return a dummy valid number so it doesn't block
+    if (isUrl(content)) return 300 // Return sufficient length for URL
     const words = content
       .trim()
       .split(/\s+/)
@@ -36,7 +41,7 @@ const GenerateMetaData = () => {
       return
     }
 
-    if (content.length < 300) {
+    if (!isUrl(content) && content.length < 300) {
       message.error("Content must be at least 300 characters long.")
       return
     }
@@ -48,7 +53,9 @@ const GenerateMetaData = () => {
 
     setIsGenerating(true)
     try {
-      await dispatch(generateMetadataThunk({ content })).unwrap()
+      // If content is URL, send as url param, otherwise content
+      const payload = isUrl(content) ? { url: content } : { content }
+      await dispatch(generateMetadataThunk(payload)).unwrap()
       message.success("Metadata generated successfully!")
     } catch (error) {
       console.error("Error generating metadata:", error)
@@ -167,31 +174,48 @@ const GenerateMetaData = () => {
                 <path d="M16 13H8"></path>
                 <path d="M16 17H8"></path>
               </svg>
-              <h2 className="text-xl font-semibold text-gray-900">Content</h2>
+              <h2 className="text-xl font-semibold text-gray-900">
+                {isUrl(content) ? "Target URL" : "Content"}
+              </h2>
             </div>
-            <TextArea
-              value={content}
-              onChange={e => setContent(e.target.value)}
-              placeholder="Enter your content here..."
-              rows={12}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 custom-scroll"
-            />
+            {isUrl(content) ? (
+              <Input
+                value={content}
+                onChange={e => setContent(e.target.value)}
+                placeholder="Enter URL (e.g., https://example.com/blog)..."
+                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            ) : (
+              <TextArea
+                value={content}
+                onChange={e => setContent(e.target.value)}
+                placeholder="Paste content or enter URL..."
+                rows={12}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 custom-scroll"
+              />
+            )}
           </div>
 
           <div className="flex justify-end items-center">
             <p
               className={`text-sm mb-2 ${wordCount() < 300 ? "text-yellow-500" : "text-green-600"}`}
             >
-              Word count: {wordCount()} {wordCount() < 300 ? "(Minimum 60 words required)" : ""}
+              {!isUrl(content) && (
+                <>
+                  Word count: {wordCount()} {wordCount() < 300 ? "(Minimum 60 words required)" : ""}
+                </>
+              )}
             </p>
           </div>
 
           <Button
             onClick={() => handleGenerateMetadata()}
             loading={isGenerating}
-            disabled={isGenerating || !content.trim() || content.length < 300}
+            disabled={isGenerating || !content.trim() || (!isUrl(content) && content.length < 300)}
             className={`w-full py-3 text-sm font-medium text-white rounded-lg transition-all duration-200 bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-lg flex items-center justify-center gap-2 ${
-              !content.trim() || content.length < 300 ? "opacity-50 cursor-not-allowed" : ""
+              !content.trim() || (!isUrl(content) && content.length < 300)
+                ? "opacity-50 cursor-not-allowed"
+                : ""
             }`}
           >
             {isGenerating ? "Generating..." : "Generate Metadata"}

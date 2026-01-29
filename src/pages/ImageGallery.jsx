@@ -84,7 +84,7 @@ const ImageGallery = () => {
     prompt: "",
     style: "photorealistic",
     aspectRatio: "1:1",
-    imageSize: "1024x1024",
+    imageSize: "1k",
   })
 
   const [enhanceForm, setEnhanceForm] = useState({ prompt: "", style: "photorealistic" })
@@ -197,8 +197,6 @@ const ImageGallery = () => {
       // Let's assume response structure matches getImages item structure for consistency.
       const response = await generateImage(genForm)
 
-      message.success("Image generated successfully!")
-      setGenerationSuccess(true)
       setGenForm({ ...genForm, prompt: "" })
       setShowErrors(false)
       dispatch(fetchUserThunk()) // Update credits
@@ -209,6 +207,7 @@ const ImageGallery = () => {
 
       if (newImage && newImage.url) {
         setPreviewImage(newImage) // Open the lightbox with new image
+        setEnhanceForm(prev => ({ ...prev, prompt: "" })) // Clear enhance input
       }
 
       fetchImages() // Refresh gallery
@@ -233,13 +232,20 @@ const ImageGallery = () => {
       formData.append("existingImageId", previewImage._id)
       formData.append("imageUrl", previewImage.url)
 
-      await enhanceImage(formData)
-      message.success("Image enhancement started! It will appear shortly.")
+      const response = await enhanceImage(formData)
+      const newImage = response.image || response.data || response
+
+      message.success("Image enhanced successfully!")
       setIsEnhanceModalOpen(false)
-      setPreviewImage(null) // Close preview
+      setEnhanceForm(prev => ({ ...prev, prompt: "" })) // Clear enhance input
+
+      // Update preview with new enhanced image immediately
+      if (newImage) {
+        setPreviewImage(newImage)
+      }
+
       dispatch(fetchUserThunk())
-      // Delay fetch slightly to allow backend processing if sync, or just refresh
-      setTimeout(fetchImages, 1000)
+      fetchImages()
     } catch (error) {
       console.error(error)
       message.error(error.response?.data?.message || "Enhancement failed")
@@ -307,8 +313,8 @@ const ImageGallery = () => {
   const handleImageClick = image => {
     setPreviewImage(image)
     setGeneratedAltText("") // Reset alt text
-    // Pre-fill enhance prompt with description if available
-    setEnhanceForm(prev => ({ ...prev, prompt: image.description || "" }))
+    // Clear enhance prompt
+    setEnhanceForm(prev => ({ ...prev, prompt: "" }))
   }
 
   return (
@@ -359,31 +365,14 @@ const ImageGallery = () => {
                     <p className="text-gray-500 text-sm">This usually takes about 10-20 seconds.</p>
                   </div>
                 </div>
-              ) : generationSuccess ? (
-                // Success State
-                <div className="p-10 flex flex-col items-center justify-center text-center space-y-4 bg-green-50/50 min-h-[400px]">
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-green-600 mb-2 animate-bounce">
-                    <Sparkles className="w-8 h-8" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-800">Image Generated Successfully!</h3>
-                  <p className="text-gray-500 text-sm max-w-sm">
-                    Your new creation has been added to the gallery below.
-                  </p>
-                  <button
-                    onClick={() => setGenerationSuccess(false)}
-                    className="mt-4 px-6 py-2 bg-white border border-gray-200 text-gray-700 font-bold rounded-xl shadow-sm hover:bg-gray-50 hover:border-gray-300 transition-all text-sm"
-                  >
-                    Generate Another
-                  </button>
-                </div>
               ) : (
                 // Form State - Simplified & Polished
                 <div className="p-6">
-                  {/* Top Row: Type & Ratio */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  {/* Top Row: Type & Ratio & Size */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                        Type of Image
+                        Style
                       </label>
                       <Select
                         value={genForm.style}
@@ -401,7 +390,7 @@ const ImageGallery = () => {
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                        Aspect Ratio <span className="text-red-500">*</span>
+                        Dimension
                       </label>
                       <Select
                         value={genForm.aspectRatio}
@@ -414,8 +403,22 @@ const ImageGallery = () => {
                           { value: "9:16", label: "Portrait (9:16)" },
                           { value: "4:3", label: "Standard (4:3)" },
                           { value: "3:2", label: "Classic (3:2)" },
-                          { value: "5:4", label: "Traditional (5:4)" },
-                          { value: "21:9", label: "Ultrawide (21:9)" },
+                        ]}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                        Quality
+                      </label>
+                      <Select
+                        value={genForm.imageSize}
+                        onChange={val => setGenForm({ ...genForm, imageSize: val })}
+                        className="w-full"
+                        size="large"
+                        options={[
+                          { value: "1k", label: "Standard (1K)" },
+                          { value: "2k", label: "High Res (2K)" },
+                          { value: "4k", label: "Ultra (4K)" },
                         ]}
                       />
                     </div>
@@ -427,22 +430,7 @@ const ImageGallery = () => {
                       <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
                         Prompt <span className="text-red-500">*</span>
                       </label>
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${
-                            showErrors &&
-                            countWords(genForm.prompt) < 10 &&
-                            genForm.prompt.length > 0
-                              ? "text-red-500 bg-red-50 border-red-100"
-                              : "text-gray-400 bg-gray-50 border-gray-100"
-                          }`}
-                        >
-                          {countWords(genForm.prompt)} words
-                        </span>
-                        <span className="text-[10px] font-medium text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full border border-gray-100">
-                          {genForm.prompt.length}/1000
-                        </span>
-                      </div>
+
                     </div>
                     <TextArea
                       value={genForm.prompt}
@@ -487,7 +475,7 @@ const ImageGallery = () => {
                             prompt: "",
                             style: "photorealistic",
                             aspectRatio: "1:1",
-                            imageSize: "1024x1024",
+                            imageSize: "1k",
                           })
                           setShowErrors(false)
                         }}
@@ -654,115 +642,169 @@ const ImageGallery = () => {
           onCancel={() => setPreviewImage(null)}
           footer={null}
           centered
-          width={1000}
+          width={1100}
           closeIcon={null}
           className="image-detail-modal"
           styles={{
             content: {
               padding: 0,
-              borderRadius: "24px",
+              borderRadius: "20px",
               overflow: "hidden",
-              backgroundColor: "transparent",
-              boxShadow: "none",
+              backgroundColor: "#ffffff",
+              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
             },
+            mask: { backdropFilter: "blur(8px)", backgroundColor: "rgba(0,0,0,0.7)" },
           }}
         >
           {previewImage && (
-            <div className="bg-white rounded-xl overflow-hidden shadow-2xl flex flex-col md:flex-row max-h-[90vh]">
-              {/* Left: Image Container */}
-              <div className="flex-1 relative group flex items-center justify-center p-2 bg-gray-50">
-                <div className="relative max-h-full max-w-full shadow-lg rounded-lg overflow-hidden">
-                  <img
-                    src={previewImage.url}
-                    alt={previewImage.description}
-                    className="max-h-[85vh] w-auto object-contain"
-                  />
-                </div>
+            <div className="flex flex-col md:flex-row h-[85vh] md:h-[800px] max-h-[85vh]">
+              {/* Left: Image Canvas */}
+              <div className="flex-1 bg-[#0f1014] relative flex items-center justify-center p-4 md:p-8 overflow-hidden group">
+                <div
+                  className="absolute inset-0 opacity-20 blur-3xl saturate-200"
+                  style={{
+                    backgroundImage: `url(${previewImage.url})`,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                  }}
+                />
+
+                <img
+                  src={previewImage.url}
+                  alt={previewImage.description}
+                  className="relative max-h-full max-w-full object-contain shadow-2xl rounded-lg z-10"
+                />
+
                 <button
                   onClick={() => setPreviewImage(null)}
-                  className="absolute top-4 left-4 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-all backdrop-blur-sm z-10"
+                  className="absolute top-6 left-6 p-2 bg-black/40 hover:bg-white/20 text-white rounded-full transition-all backdrop-blur-md z-20 border border-white/10"
                 >
                   <X className="w-5 h-5" />
                 </button>
+
+                {/* Quick actions floating on image */}
+                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 px-2 py-1.5 bg-black/60 backdrop-blur-md rounded-full border border-white/10 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0 text-white z-20">
+                  <button
+                    onClick={() => handleCopyLink(previewImage)}
+                    className="p-2 hover:bg-white/20 rounded-full transition-colors tooltip"
+                    title="Copy Link"
+                  >
+                    <Copy size={18} />
+                  </button>
+                  <div className="w-px h-4 bg-white/20"></div>
+                  <button
+                    onClick={() => handleDownload(previewImage)}
+                    className="p-2 hover:bg-white/20 rounded-full transition-colors tooltip"
+                    title="Download Original"
+                  >
+                    <Download size={18} />
+                  </button>
+                </div>
               </div>
 
-              {/* Right: Details */}
-              <div className="w-full md:w-[380px] bg-white p-6 md:p-6 flex flex-col overflow-y-auto border-l border-gray-100">
-                <h3 className="text-xl font-semibold text-gray-900 leading-snug mb-4 flex items-center gap-2">
-                  Image Details
-                  {canEnhance(previewImage) && (
-                    <Tooltip title="AI Generated">
-                      <span className="bg-blue-100 text-blue-700 p-1 rounded-md text-xs">
-                        <Bot size={14} />
+              {/* Right: Premium Details Panel */}
+              <div className="w-full md:w-[400px] bg-white flex flex-col border-l border-gray-100 shadow-xl relative z-20">
+                {/* Header */}
+                <div className="p-6 border-b border-gray-50 flex-shrink-0">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold tracking-widest text-gray-400 uppercase">
+                      Generated Image
+                    </span>
+                    {canEnhance(previewImage) && (
+                      <span className="flex items-center gap-1.5 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 px-2.5 py-1 rounded-full text-[10px] font-bold border border-blue-100">
+                        <Sparkles size={10} className="fill-blue-500 text-blue-500" /> AI Creative
                       </span>
-                    </Tooltip>
-                  )}
-                </h3>
+                    )}
+                  </div>
+                  <h2 className="text-lg font-bold text-gray-900 leading-tight line-clamp-2">
+                    {previewImage.title || "Untitled Creation"}
+                  </h2>
+                  <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
+                    <span>{new Date().toLocaleDateString()}</span>
+                    <span>•</span>
+                    <span>{previewImage.resolution || genForm.imageSize}</span>
+                  </div>
+                </div>
 
-                <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                  <p className="text-gray-600 leading-relaxed text-sm mb-6 bg-gray-50 p-3 rounded-lg border border-gray-100 italic">
-                    {previewImage.description || "No description provided."}
-                  </p>
+                {/* Scrollable Content */}
+                <div className="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-8">
+                  {/* Prompt Section */}
+                  <div>
+                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                      <Bot size={14} className="text-gray-400" /> Prompt Details
+                    </h3>
+                    <div className="bg-gray-50/80 p-4 rounded-2xl border border-gray-100 text-sm text-gray-600 leading-relaxed font-medium">
+                      {previewImage.description || "No description provided."}
+                    </div>
+                  </div>
 
-                  <div className="grid grid-cols-2 gap-2 mb-6">
-                    {/* Alt Text Button */}
+                  {/* Actions Grid */}
+                  <div className="grid grid-cols-2 gap-3">
                     <button
                       onClick={handleGenerateAltText}
-                      className="flex items-center justify-center gap-2 py-2 px-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-bold transition-all"
+                      disabled={isGeneratingAlt}
+                      className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl border border-gray-100 bg-white hover:border-blue-200 hover:bg-blue-50/30 hover:shadow-md transition-all group text-center"
                     >
-                      <Type size={14} /> {isGeneratingAlt ? "Generating..." : "Generate Alt Text"}
-                      <span className="bg-gray-200 px-1 rounded text-[10px] text-gray-500">
-                        {COSTS.ALT_TEXT}c
+                      <div className="w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center text-gray-600 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
+                        <Type size={18} />
+                      </div>
+                      <span className="text-xs font-bold text-gray-600 group-hover:text-gray-900">
+                        {isGeneratingAlt ? "Generating..." : "Generate Alt Text"}
                       </span>
                     </button>
 
-                    {/* Enhance Button (Conditional) */}
-                    {canEnhance(previewImage) ? (
-                      <button
-                        onClick={() => setIsEnhanceModalOpen(true)}
-                        className="flex items-center justify-center gap-2 py-2 px-3 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg text-xs font-bold transition-all"
-                      >
-                        <Wand2 size={14} /> Enhance
-                        <span className="bg-purple-200 px-1 rounded text-[10px] text-purple-700">
-                          {COSTS.ENHANCE}c
-                        </span>
-                      </button>
-                    ) : (
-                      <div className="flex items-center justify-center text-xs text-gray-400 italic bg-gray-50 rounded-lg">
-                        Enhance unavailable
+                    <button
+                      onClick={() => setIsEnhanceModalOpen(true)}
+                      disabled={!canEnhance(previewImage)}
+                      className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border border-gray-100 bg-white transition-all group text-center
+                        ${
+                          canEnhance(previewImage)
+                            ? "hover:border-purple-200 hover:bg-purple-50/30 hover:shadow-md cursor-pointer"
+                            : "opacity-50 cursor-not-allowed grayscale"
+                        }`}
+                    >
+                      <div className="w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center text-gray-600 group-hover:bg-purple-100 group-hover:text-purple-600 transition-colors">
+                        <Wand2 size={18} />
                       </div>
-                    )}
+                      <span className="text-xs font-bold text-gray-600 group-hover:text-gray-900">
+                        Enhance Details
+                      </span>
+                    </button>
                   </div>
 
+                  {/* Generated Data */}
                   {generatedAltText && (
-                    <div className="mb-6 animate-in fade-in slide-in-from-top-2">
-                      <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">
-                        Generated Alt Text
-                      </label>
-                      <Tooltip title="Click to copy">
-                        <div
-                          className="p-3 bg-green-50 text-green-800 text-xs rounded-lg border border-green-100 cursor-pointer hover:bg-green-100 transition-colors select-none"
-                          onClick={() => {
-                            navigator.clipboard.writeText(generatedAltText)
-                            message.success("Alt text copied!")
-                          }}
-                        >
-                          {generatedAltText}
-                        </div>
-                      </Tooltip>
+                    <div className="animate-in fade-in zoom-in-95 duration-300">
+                      <h3 className="text-xs font-bold text-green-600 uppercase tracking-wider mb-2 flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-green-500"></span> Alt Text Ready
+                      </h3>
+                      <div
+                        onClick={() => {
+                          navigator.clipboard.writeText(generatedAltText)
+                          message.success("Copied to clipboard!")
+                        }}
+                        className="p-4 bg-green-50/50 text-green-900 text-xs rounded-xl border border-green-100 cursor-copy hover:bg-green-100 transition-all leading-relaxed relative group"
+                      >
+                        <Copy
+                          size={12}
+                          className="absolute top-2 right-2 text-green-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                        />
+                        {generatedAltText}
+                      </div>
                     </div>
                   )}
 
+                  {/* Tags */}
                   {previewImage.tags && previewImage.tags.length > 0 && (
-                    <div className="mb-6">
-                      <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
+                    <div>
+                      <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
                         Tags
-                      </h4>
+                      </h3>
                       <div className="flex flex-wrap gap-2">
                         {previewImage.tags.map((tag, i) => (
                           <span
                             key={i}
-                            className="px-3 py-1 bg-gray-100 text-gray-600 rounded-lg text-xs font-medium border border-gray-200"
+                            className="px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-[11px] font-semibold tracking-wide hover:border-gray-300 transition-colors"
                           >
                             #{tag}
                           </span>
@@ -772,22 +814,17 @@ const ImageGallery = () => {
                   )}
                 </div>
 
-                {/* Actions */}
-                <div className="mt-0 md:mt-6 pt-0 md:pt-6 border-t border-gray-100 space-y-3">
-                  <button
-                    onClick={() => handleCopyLink(previewImage)}
-                    className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-100 flex items-center justify-center gap-2"
-                  >
-                    <Copy className="w-5 h-5" />
-                    Copy Image Link
-                  </button>
-                  <button
+                {/* Footer Actions */}
+                <div className="p-6 pt-2 bg-white flex flex-col gap-3">
+                  <Button
                     onClick={() => handleDownload(previewImage)}
-                    className="w-full py-4 bg-gray-900 hover:bg-black text-white rounded-xl font-bold transition-all shadow-lg shadow-gray-200 flex items-center justify-center gap-2"
+                    type="primary"
+                    size="large"
+                    icon={<Download className="w-4 h-4" />}
+                    className="!w-full !rounded-xl !h-12 !bg-gray-900 hover:!bg-black !shadow-lg !font-bold"
                   >
-                    <Download className="w-5 h-5" />
                     Download Image
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>

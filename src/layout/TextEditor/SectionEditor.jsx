@@ -123,7 +123,7 @@ const SectionEditor = ({
     prompt: "",
     style: "photorealistic",
     aspectRatio: "16:9", // Default landscape for blog
-    imageSize: "1024x1024",
+    imageSize: "1k",
   })
 
   // Enhancement state
@@ -1207,6 +1207,9 @@ const SectionEditor = ({
         onCancel={() => {
           setImageModalOpen(false)
           setImageModalView("main")
+          // Clear prompts
+          setGenForm(prev => ({ ...prev, prompt: "" }))
+          setEnhanceForm(prev => ({ ...prev, prompt: "" }))
         }}
         footer={null}
         width={imageModalView === "gallery" ? 1000 : 600}
@@ -1214,7 +1217,7 @@ const SectionEditor = ({
         className="responsive-image-modal"
         bodyStyle={{ padding: 0, maxHeight: "85vh", overflow: "hidden" }}
       >
-        <div className="flex flex-col h-[70vh] md:h-[610px] bg-gray-50/50 custom-scroll">
+        <div className="flex flex-col h-[70vh] bg-gray-50/50 overflow-y-auto custom-scroll">
           {/* VIEW: MAIN */}
           {imageModalView === "main" && (
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
@@ -1423,6 +1426,20 @@ const SectionEditor = ({
                       ]}
                     />
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Quality</label>
+                    <Select
+                      value={genForm.imageSize}
+                      onChange={val => setGenForm({ ...genForm, imageSize: val })}
+                      className="w-full"
+                      size="large"
+                      options={[
+                        { value: "1k", label: "Standard (1K)" },
+                        { value: "2k", label: "High Res (2K)" },
+                        { value: "4k", label: "Ultra (4K)" },
+                      ]}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -1457,6 +1474,7 @@ const SectionEditor = ({
                         setGeneratedImageTemp(newImage)
                         setImageUrl(newImage.url)
                         setImageAltText(genForm.prompt)
+                        setGenForm(prev => ({ ...prev, prompt: "" })) // Clear prompt
                         message.success("Image generated successfully!")
                         setImageModalView("main")
                       }
@@ -1478,22 +1496,13 @@ const SectionEditor = ({
           {imageModalView === "enhance" && (
             <div className="flex-1 p-6 flex flex-col">
               <div className="flex-1 max-w-lg mx-auto w-full space-y-6">
-                <div className="text-center mb-6">
-                  <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <Sparkles className="w-6 h-6 text-purple-600" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900">Enhance Image</h3>
-                  <p className="text-sm text-gray-500">
-                    Improve quality or change style of current image.
-                  </p>
-                </div>
 
                 {/* Preview of source */}
                 <div className="flex justify-center mb-4">
                   <img
                     src={imageUrl}
                     alt="Source"
-                    className="h-32 object-contain rounded border bg-white"
+                    className="h-full object-contain rounded border bg-white"
                   />
                 </div>
 
@@ -1529,7 +1538,7 @@ const SectionEditor = ({
               </div>
 
               {/* Footer Actions */}
-              <div className="border-t p-4 flex justify-end gap-3 bg-white">
+              <div className="border-t p-4 pb-0 flex justify-end gap-3 bg-white">
                 <Button onClick={() => setImageModalView("main")}>Cancel</Button>
                 <Button
                   type="primary"
@@ -1557,6 +1566,7 @@ const SectionEditor = ({
                       const newImage = response.image || response.data || response // Adjust based on API response structure
                       if (newImage && newImage.url) {
                         setImageUrl(newImage.url)
+                        setEnhanceForm(prev => ({ ...prev, prompt: "" })) // Clear prompt
                         message.success("Image enhanced successfully!")
                         setImageModalView("main")
                       }
@@ -1576,7 +1586,7 @@ const SectionEditor = ({
 
           {/* VIEW: LOADING (Transient) */}
           {imageModalView === "generating" && (
-            <div className="flex-1 flex flex-col items-center justify-center p-6 space-y-4">
+            <div className="flex-1 flex flex-col items-center justify-center p-6 space-y-4 z-[999]">
               <LoadingScreen message="Creating your masterpiece..." />
               <p className="text-gray-500 text-sm max-w-xs text-center animate-pulse">
                 This may take 10-20 seconds. Please wait.

@@ -31,6 +31,8 @@ import {
   Calendar,
   User,
   ImageIcon,
+  Pencil,
+  CheckCircle,
 } from "lucide-react"
 import {
   Button,
@@ -89,7 +91,6 @@ const WordPressCategories = ({ onSelect, currentCategory }) => {
         const response = await axios.get(
           "http://localhost:8000/api/v1/integrations/category?type=WORDPRESS"
         )
-        // Filter out "Uncategorized" and empty strings if needed, or keep as raw list
         if (Array.isArray(response.data)) {
           setCategories(response.data)
         }
@@ -103,34 +104,50 @@ const WordPressCategories = ({ onSelect, currentCategory }) => {
     fetchWPCategories()
   }, [])
 
-  if (loading)
-    return <div className="text-[10px] text-gray-400">Loading WordPress categories...</div>
-
-  if (categories.length === 0) return null
+  if (categories.length === 0 && !loading) return null
 
   return (
-    <div className="mb-4">
-      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
-        WordPress Categories
-      </p>
-      <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto custom-scroll pr-2">
-        {categories.map((cat, idx) => (
-          <button
-            key={idx}
-            onClick={() => onSelect(cat)}
-            className={`
-              px-2.5 py-1 rounded-md text-[11px] font-medium transition-all border
-              ${
-                currentCategory === cat
-                  ? "bg-blue-100 text-blue-700 border-blue-200 shadow-sm"
-                  : "bg-gray-50 text-gray-600 border-gray-100 hover:bg-white hover:border-gray-300 hover:shadow-sm"
-              }
-            `}
-          >
-            {cat}
-          </button>
-        ))}
+    <div className="mt-4 pt-4 border-t border-gray-100">
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
+          <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+          WordPress Categories
+        </span>
+        <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-medium">
+          {categories.length} available
+        </span>
       </div>
+
+      <div className="bg-gray-50/50 rounded-xl p-3 border border-gray-100 max-h-48 overflow-y-auto custom-scroll">
+        {loading ? (
+          <div className="flex justify-center p-4">
+            <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {categories.map((cat, idx) => (
+              <button
+                key={idx}
+                onClick={() => onSelect(cat)}
+                className={`
+                  px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 border flex items-center gap-1.5
+                  ${
+                    currentCategory === cat
+                      ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-200 transform scale-105"
+                      : "bg-white text-gray-600 border-gray-200 hover:border-blue-400 hover:text-blue-600 hover:shadow-sm"
+                  }
+                `}
+              >
+                {cat}
+                {currentCategory === cat && <CheckCircle className="w-3 h-3" />}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      <p className="text-[10px] text-gray-400 mt-2 px-1">
+        Select a category from your WordPress site to populate the field above.
+      </p>
     </div>
   )
 }
@@ -207,12 +224,19 @@ const TextEditorSidebar = ({
   const [newKeyword, setNewKeyword] = useState("")
   const [isRegenerating, setIsRegenerating] = useState(false)
 
+  // Repost Modal State
+  const [isRepostModalOpen, setIsRepostModalOpen] = useState(false)
+  const [repostSettings, setRepostSettings] = useState({
+    platform: "",
+    category: "",
+    includeTableOfContents: false,
+  })
+
   // 2-step regenerate modal state
   const [isRegenerateModalOpen, setIsRegenerateModalOpen] = useState(false)
 
   // Blog postings state
   const [blogPostings, setBlogPostings] = useState([])
-  console.log(blogPostings)
   const [isLoadingPostings, setIsLoadingPostings] = useState(false)
 
   // Blog slug editor state
@@ -752,7 +776,33 @@ const TextEditorSidebar = ({
     })
   }, [handlePopup, handleSave])
 
-  // --- Posting Helpers (from CategoriesModal) ---
+  // --- Posting Helpers ---
+  const openRepostModal = posting => {
+    setRepostSettings({
+      platform: posting.integrationType || posting.platform || "",
+      category: posting.category || blog.category || "",
+      includeTableOfContents: !!posting.includeTableOfContents,
+    })
+    setIsRepostModalOpen(true)
+  }
+
+  const handleRepostSubmit = async () => {
+    if (!repostSettings.platform || !repostSettings.category) {
+      return message.error("Platform and Category are required")
+    }
+
+    try {
+      await onPost({
+        ...formData,
+        categories: repostSettings.category,
+        includeTableOfContents: repostSettings.includeTableOfContents,
+        type: { platform: repostSettings.platform },
+      })
+      setIsRepostModalOpen(false)
+    } catch (error) {
+      console.error("Repost failed", error)
+    }
+  }
 
   const handleIntegrationChange = useCallback(
     (platform, url) => {
@@ -1998,7 +2048,7 @@ const TextEditorSidebar = ({
                     <div className="flex justify-between">
                       <span className="text-[12px] text-gray-400">Category:</span>
                       <span className="text-[12px] font-medium text-gray-700 text-right truncate max-w-[120px]">
-                        {blog.category}
+                        {posting.category || blog.category}
                       </span>
                     </div>
                     {posting.link && (
@@ -2011,22 +2061,34 @@ const TextEditorSidebar = ({
                       </a>
                     )}
                   </div>
-                  <Button
-                    size="small"
-                    block
-                    className="text-[12px] font-semibold h-7"
-                    onClick={() => {
-                      onPost({
-                        ...formData,
-                        categories: posting.category || blog.category,
-                        includeTableOfContents: posting.includeTableOfContents,
-                        type: { platform: posting.integrationType || posting.platform },
-                      })
-                    }}
-                    disabled={isPosting}
-                  >
-                    Repost Same Settings
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Tooltip title="Edit settings and repost">
+                      <Button
+                        size="small"
+                        className="flex items-center justify-center p-0 w-8 h-8 rounded-lg border-gray-200 hover:text-blue-600 hover:border-blue-200"
+                        onClick={() => openRepostModal(posting)}
+                        disabled={isPosting}
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
+                    </Tooltip>
+                    <Button
+                      size="small"
+                      block
+                      className="text-[12px] font-semibold h-8"
+                      onClick={() => {
+                        onPost({
+                          ...formData,
+                          categories: posting.category || blog.category,
+                          includeTableOfContents: posting.includeTableOfContents,
+                          type: { platform: posting.integrationType || posting.platform },
+                        })
+                      }}
+                      disabled={isPosting}
+                    >
+                      Repost Same Settings
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -2047,7 +2109,6 @@ const TextEditorSidebar = ({
               </span>
             </div>
             <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[12px] font-bold">
-              {console.log(selectedIntegration)}
               {selectedIntegration
                 ? PLATFORM_LABELS[selectedIntegration.rawPlatform] || "Selected"
                 : "Configure"}
@@ -2091,13 +2152,6 @@ const TextEditorSidebar = ({
               )}
               {platformError && <p className="text-[10px] text-red-500 mt-1">{errors.platform}</p>}
             </div>
-            {/* WordPress Categories Fetcher */}
-            {selectedIntegration && selectedIntegration.rawPlatform === "WORDPRESS" && (
-              <WordPressCategories
-                onSelect={handleCategoryAdd}
-                currentCategory={selectedCategory}
-              />
-            )}
             {/* Category Select */}
             <div>
               <label className="text-xs font-semibold text-gray-700 mb-1.5 block">
@@ -2178,6 +2232,13 @@ const TextEditorSidebar = ({
                 onChange={setIncludeTableOfContents}
               />
             </div>
+            {/* WordPress Categories (Moved Below ToC) */}
+            {selectedIntegration && selectedIntegration.rawPlatform === "WORDPRESS" && (
+              <WordPressCategories
+                onSelect={handleCategoryAdd}
+                currentCategory={selectedCategory}
+              />
+            )}
             <div className="h-4" /> {/* Spacer */}
           </div>
         </div>
@@ -2392,6 +2453,90 @@ const TextEditorSidebar = ({
               {label} <ExternalLink className="w-4 h-4" />
             </button>
           ))}
+        </div>
+      </Modal>
+
+      {/* Edit & Repost Modal */}
+      <Modal
+        title="Edit & Repost"
+        open={isRepostModalOpen}
+        onCancel={() => setIsRepostModalOpen(false)}
+        centered
+        width={400}
+        footer={[
+          <div className="flex justify-end gap-2">
+            <Button key="cancel" onClick={() => setIsRepostModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              key="submit"
+              type="primary"
+              onClick={handleRepostSubmit}
+              loading={isPosting}
+              className="bg-blue-600"
+            >
+              Repost Now
+            </Button>
+          </div>,
+        ]}
+      >
+        <div className="space-y-4 py-2">
+          {/* Platform Select */}
+          <div>
+            <label className="text-xs font-semibold text-gray-700 mb-1.5 block">Platform</label>
+            <Select
+              className="w-full"
+              value={repostSettings.platform}
+              onChange={v => setRepostSettings({ ...repostSettings, platform: v })}
+            >
+              {Object.entries(integrations?.integrations || {}).map(([k, v]) => (
+                <Select.Option key={k} value={k}>
+                  {PLATFORM_LABELS[k] || k}
+                </Select.Option>
+              ))}
+            </Select>
+            <p className="text-[10px] text-gray-400 mt-1">
+              Platform cannot be changed for reposting.
+            </p>
+          </div>
+
+          {/* Category Select */}
+          <div>
+            <label className="text-xs font-semibold text-gray-700 mb-1.5 block">Category</label>
+            <Select
+              mode="tags"
+              className="w-full"
+              placeholder="Select or type..."
+              value={repostSettings.category ? [repostSettings.category] : []}
+              onChange={vals =>
+                setRepostSettings({ ...repostSettings, category: vals[vals.length - 1] || "" })
+              }
+            >
+              {POPULAR_CATEGORIES.map(c => (
+                <Select.Option key={c} value={c} label={c}>
+                  {c}
+                </Select.Option>
+              ))}
+            </Select>
+          </div>
+
+          {/* ToC Toggle */}
+          <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-xl">
+            <span className="text-xs font-semibold text-gray-800">Table of Contents</span>
+            <Switch
+              size="small"
+              checked={repostSettings.includeTableOfContents}
+              onChange={c => setRepostSettings({ ...repostSettings, includeTableOfContents: c })}
+            />
+          </div>
+
+          {/* WordPress Categories */}
+          {repostSettings.platform === "WORDPRESS" && (
+            <WordPressCategories
+              onSelect={cat => setRepostSettings({ ...repostSettings, category: cat })}
+              currentCategory={repostSettings.category}
+            />
+          )}
         </div>
       </Modal>
 
