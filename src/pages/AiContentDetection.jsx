@@ -195,7 +195,7 @@ const AiContentDetection = () => {
                     </h3>
                   </div>
                   <span className={`text-3xl font-bold ${getScoreColor(detectionResult.score)}`}>
-                    {detectionResult.score * 100}%
+                    {Number(detectionResult.score).toPrecision(2)}%
                   </span>
                 </div>
 
