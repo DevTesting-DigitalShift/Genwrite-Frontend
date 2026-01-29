@@ -1,6 +1,17 @@
 import { useState, useEffect, useMemo, useRef } from "react"
-import { Tabs, Button, Card, Flex, Typography, message, Space, Spin } from "antd"
-import { Server, Download, Tag, Clock, CheckCircle, Edit, Globe, XCircle } from "lucide-react"
+import { Tabs, Button, Card, Flex, Typography, message, Space, Spin, Input } from "antd"
+import {
+  Server,
+  Download,
+  Tag,
+  Clock,
+  CheckCircle,
+  Edit,
+  Globe,
+  XCircle,
+  Eye,
+  EyeOff,
+} from "lucide-react"
 import { pluginsData } from "@/data/pluginsData"
 import { Helmet } from "react-helmet"
 import { useDispatch, useSelector } from "react-redux"
@@ -51,11 +62,7 @@ const PluginsMain = () => {
       const result = await plugin.onCheck()
       setWordpressStatus(prev => ({
         ...prev,
-        [plugin.id]: {
-          status: result.status,
-          message: result.message,
-          success: result.success,
-        },
+        [plugin.id]: { status: result.status, message: result.message, success: result.success },
       }))
     } catch (err) {
       console.error(`Error checking plugin ${plugin.pluginName}:`, err)
@@ -67,8 +74,8 @@ const PluginsMain = () => {
             err.response?.status === 400
               ? "No link found. Add the appropriate link into your profile."
               : err.response?.status === 502
-              ? `${plugin.pluginName} connection failed, check integration is active`
-              : `${plugin.pluginName} Connection Error`,
+                ? `${plugin.pluginName} connection failed, check integration is active`
+                : `${plugin.pluginName} Connection Error`,
           success: false,
         },
       }))
@@ -98,6 +105,10 @@ const PluginsMain = () => {
     const [isValidFrontend, setIsValidFrontend] = useState(!!serverInt)
     const [isEditing, setIsEditing] = useState(plugin.id === 112 ? !serverInt : !wordpressInt)
     const [localLoading, setLocalLoading] = useState(false)
+    // New states for WordPress credentials
+    const [wpUsername, setWpUsername] = useState("")
+    const [wpPassword, setWpPassword] = useState("")
+    const [hasCredentials, setHasCredentials] = useState(!!wordpressInt) // If integration exists, assume credentials are set on backend
 
     useEffect(() => {
       if (plugin.id === 112 && serverInt) {
@@ -111,13 +122,17 @@ const PluginsMain = () => {
         setUrl(wordpressInt.url)
         setIsValidUrl(true)
         setIsEditing(false)
+        setHasCredentials(true) // Backend has credentials
       } else {
         setUrl("")
         setFrontend("")
         setAuthToken("")
+        setWpUsername("")
+        setWpPassword("")
         setIsValidUrl(false)
         setIsValidFrontend(false)
         setIsEditing(true)
+        setHasCredentials(false)
       }
     }, [wordpressInt, serverInt, plugin.id])
 
@@ -165,10 +180,21 @@ const PluginsMain = () => {
       if (plugin.id === 111 && !isValidUrl) return
       setLocalLoading(true)
       try {
-        const payload =
-          plugin.id === 112
-            ? { type: "SERVERENDPOINT", url, frontend, credentials: { authToken } }
-            : { type: "WORDPRESS", url }
+        let payload
+        if (plugin.id === 112) {
+          payload = { type: "SERVERENDPOINT", url, frontend, credentials: { authToken } }
+        } else {
+          // For WordPress, send credentials if provided (new integration)
+          // If editing existing and fields are empty, backend might keep old ones,
+          // BUT here we enforce re-entering if not present/hidden.
+          // Logic: If user is adding new, send user/pass.
+          payload = {
+            type: "WORDPRESS",
+            url,
+            credentials: { user: wpUsername, password: wpPassword },
+          }
+        }
+
         const result = await dispatch(createIntegrationThunk(payload)).unwrap()
         await dispatch(getIntegrationsThunk()).unwrap()
         setIsEditing(false)
@@ -220,11 +246,7 @@ const PluginsMain = () => {
         const errorMsg = err.message || `Failed to check ${plugin.pluginName} connection status`
         setWordpressStatus(prev => ({
           ...prev,
-          [plugin.id]: {
-            status: "error",
-            message: errorMsg,
-            success: false,
-          },
+          [plugin.id]: { status: "error", message: errorMsg, success: false },
         }))
         message.error(errorMsg)
       } finally {
@@ -835,6 +857,53 @@ const PluginsMain = () => {
                   <span className="text-red-500 text-xs mt-1">
                     Please enter a valid URL (e.g., https://example.com)
                   </span>
+                )}
+
+                {/* Additional Credentials for WordPress if not already connected/integrated */}
+                {isEditing && !hasCredentials && (
+                  <div className="flex flex-col gap-4 mt-4">
+                    <Text strong className="text-gray-700">
+                      WordPress Credentials
+                    </Text>
+                    <div className="flex flex-col w-full">
+                      <label className="text-sm font-medium text-gray-700 mb-1">Username</label>
+                      <Input
+                        placeholder="WordPress Username"
+                        value={wpUsername}
+                        onChange={e => setWpUsername(e.target.value)}
+                        disabled={loading || localLoading}
+                        className="rounded-lg"
+                      />
+                    </div>
+                    <div className="flex flex-col w-full">
+                      <label className="text-sm font-medium text-gray-700 mb-1">
+                        Application Password
+                      </label>
+                      <Input
+                        placeholder="Application Password"
+                        value={wpPassword}
+                        onChange={e => setWpPassword(e.target.value)}
+                        disabled={loading || localLoading}
+                        className="rounded-lg"
+                      />
+                      <Text className="text-xs text-gray-500 mt-1">
+                        Use an Application Password, not your login password.
+                        {/* <a
+                          href="https://make.wordpress.org/core/2020/11/05/application-passwords-integration-guide/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="ml-1 text-blue-500 hover:underline"
+                        >
+                          Learn how
+                        </a> */}
+                      </Text>
+                      <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800 flex items-start gap-2">
+                        <span className="font-semibold">Note:</span>
+                        You must have Editor or Administrator level access to your WordPress site to
+                        successfully connect this integration.
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
 

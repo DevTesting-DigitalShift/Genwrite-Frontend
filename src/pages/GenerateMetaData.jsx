@@ -238,12 +238,6 @@ const GenerateMetaData = () => {
               </div>
               <div className="p-3 bg-white border border-gray-300 rounded-lg text-sm text-gray-700">
                 {metadata.title || "No title generated"}
-                <p className="text-xs text-gray-500 mt-1">
-                  {metadata.title?.length || 0}/60 characters
-                  {metadata.title?.length > 60 && (
-                    <span className="text-red-600 ml-2">Title exceeds 60 characters</span>
-                  )}
-                </p>
               </div>
             </div>
             <div>
@@ -260,12 +254,6 @@ const GenerateMetaData = () => {
               </div>
               <div className="p-3 bg-white border border-gray-300 rounded-lg text-sm text-gray-700">
                 {metadata.description || "No description generated"}
-                <p className="text-xs text-gray-500 mt-1">
-                  {metadata.description?.length || 0}/160 characters
-                  {metadata.description?.length > 160 && (
-                    <span className="text-red-600 ml-2">Description exceeds 160 characters</span>
-                  )}
-                </p>
               </div>
             </div>
           </div>
