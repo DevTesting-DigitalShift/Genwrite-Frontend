@@ -9,8 +9,8 @@ export const pluginsData = dispatch => [
     pluginTitle: "A WordPress plugin to upload blogs using AI",
     pluginName: "AI Blogger Sync",
     pluginImage: "./Images/wordpres.webp",
-    updatedDate: "18th Sep, 2025",
-    version: "3.3.4",
+    updatedDate: "29th Jan, 2026",
+    version: "3.3.5",
     description: "A WordPress plugin to upload blogs using AI",
     message:
       "AI Blogger Sync is a powerful WordPress plugin that connects your WordPress website to our genwrite.co domain, enabling you to upload AI-generated blogs effortlessly. It is an excellent tool for bloggers and content creators aiming to save time and effort in content creation. With AI Blogger Sync, you can generate high-quality content with minimal effort and post it to your WordPress website seamlessly.",
@@ -40,12 +40,12 @@ export const pluginsData = dispatch => [
     pluginTitle: "Direct server-to-server integration for seamless data transfer and automation.",
     pluginName: "Server-to-Server",
     pluginImage: "./Images/genwriteIcon.webp",
-    updatedDate: "4th Oct, 2025",
+    updatedDate: "29th Jan, 2026",
     version: "1.0.0",
     description: "Direct server-to-server integration for seamless data transfer and automation.",
     message:
       "Server-to-Server integration enables direct communication between your server and our platform for automated content publishing, including fetching posts, categories, and creating new posts programmatically.",
-    downloadLink: "/plugins/ServerEndpointDoc.pdf",
+    downloadLink: "/plugins/ServerEndpoint.md",
     isVisible: true,
     onCheck: async () => {
       try {
