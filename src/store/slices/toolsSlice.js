@@ -39,11 +39,25 @@ export const summarizeYoutube = createAsyncThunk(
     }
   }
 )
+// PDF Chat
+export const pdfChat = createAsyncThunk("tools/pdfChat", async (payload, { rejectWithValue }) => {
+  try {
+    // Handle FormData payloads (file uploads)
+    const config =
+      payload instanceof FormData ? { headers: { "Content-Type": "multipart/form-data" } } : {}
+
+    const response = await axiosInstance.post("/generate/pdf-chat", payload, config)
+    return response.data
+  } catch (error) {
+    return rejectWithValue(error.response?.data || error.message)
+  }
+})
 
 const initialState = {
   aiDetection: { loading: false, result: null, error: null },
   keywordScraping: { loading: false, result: null, error: null },
   youtubeSummary: { loading: false, result: null, error: null },
+  pdfChat: { loading: false, result: null, error: null, cacheKey: null, messages: [] },
 }
 
 const toolsSlice = createSlice({
@@ -58,6 +72,12 @@ const toolsSlice = createSlice({
     },
     resetYoutubeSummary: state => {
       state.youtubeSummary = initialState.youtubeSummary
+    },
+    resetPdfChat: state => {
+      state.pdfChat = initialState.pdfChat
+    },
+    addPdfChatMessage: (state, action) => {
+      state.pdfChat.messages.push(action.payload)
     },
   },
   extraReducers: builder => {
@@ -105,8 +125,33 @@ const toolsSlice = createSlice({
         state.youtubeSummary.loading = false
         state.youtubeSummary.error = action.payload
       })
+
+    // PDF Chat
+    builder
+      .addCase(pdfChat.pending, state => {
+        state.pdfChat.loading = true
+        state.pdfChat.error = null
+      })
+      .addCase(pdfChat.fulfilled, (state, action) => {
+        state.pdfChat.loading = false
+        state.pdfChat.result = action.payload
+        // Save cacheKey for subsequent requests
+        if (action.payload.cacheKey) {
+          state.pdfChat.cacheKey = action.payload.cacheKey
+        }
+      })
+      .addCase(pdfChat.rejected, (state, action) => {
+        state.pdfChat.loading = false
+        state.pdfChat.error = action.payload
+      })
   },
 })
 
-export const { resetAiDetection, resetKeywordScraping, resetYoutubeSummary } = toolsSlice.actions
+export const {
+  resetAiDetection,
+  resetKeywordScraping,
+  resetYoutubeSummary,
+  resetPdfChat,
+  addPdfChatMessage,
+} = toolsSlice.actions
 export default toolsSlice.reducer

@@ -26,6 +26,7 @@ import { Layers } from "lucide-react"
 import { checkSufficientCredits, getInsufficientCreditsPopup } from "@/utils/creditCheck.jsx"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
+import { COSTS } from "@/data/blogData"
 
 export default function ToolboxPage() {
   const navigate = useNavigate()
@@ -252,7 +253,7 @@ export default function ToolboxPage() {
         "Transform AI-generated text into natural, human-sounding content while preserving intent and clarity.",
       action: () => navigate("/humanize-content"),
       actionText: "Let's Convert",
-      credits: "5",
+      credits: COSTS.HUMANISED_CONTENT,
       creditType: "tools.humanize",
       color: "from-blue-500 to-indigo-600",
     },
@@ -264,7 +265,7 @@ export default function ToolboxPage() {
         "Craft high-impact blog outlines with SEO keywords, structure, and brand voice in seconds using AI.",
       action: () => navigate("/outline"),
       actionText: "Let's Outline",
-      credits: "5",
+      credits: COSTS.OUTLINE,
       creditType: "tools.outline",
       color: "from-green-500 to-emerald-600",
     },
@@ -275,7 +276,7 @@ export default function ToolboxPage() {
       description: "Analyze top performing content in your niche",
       action: () => setCompetitiveAnalysisModalOpen(true),
       actionText: "Start Analysis",
-      credits: "10",
+      credits: COSTS.ANALYSIS,
       creditType: "analysis.competitors",
       color: "from-rose-500 to-pink-600",
     },
@@ -286,7 +287,7 @@ export default function ToolboxPage() {
       description: "Turn content into SEO-friendly metadata",
       action: () => navigate("/generate-metadata"),
       actionText: "Boost SEO",
-      credits: "2",
+      credits: COSTS.METADATA,
       creditType: "tools.metadata",
       color: "from-rose-500 to-pink-600",
     },
@@ -297,7 +298,7 @@ export default function ToolboxPage() {
       description: "Transform your content into SEO-optimized metadata in seconds",
       action: () => navigate("/prompt-content"),
       actionText: "Boost SEO",
-      credits: "5",
+      credits: COSTS.PROMPT_CONTENT,
       creditType: "tools.boost",
       color: "from-rose-500 to-pink-600",
     },
@@ -309,7 +310,7 @@ export default function ToolboxPage() {
         "Detect AI-generated text and get confidence scores to verify content authenticity.",
       action: () => navigate("/content-detection"),
       actionText: "Detect Content",
-      credits: "5",
+      credits: COSTS.DETECTOR,
       creditType: "tools.outline",
       color: "from-purple-500 to-fuchsia-600",
     },
@@ -320,7 +321,7 @@ export default function ToolboxPage() {
       description: "Summarize long YouTube videos into clear insights, highlights, and timestamps.",
       action: () => navigate("/youtube-summarization"),
       actionText: "Summarize Video",
-      credits: "5",
+      credits: COSTS.YOUTUBE_SUMMARIZER,
       creditType: "tools.outline",
       color: "from-red-500 to-rose-600",
     },
@@ -331,7 +332,7 @@ export default function ToolboxPage() {
       description: "Extract high-intent SEO keywords and clusters to build content that ranks.",
       action: () => navigate("/keyword-scraping"),
       actionText: "Find Keywords",
-      credits: "5",
+      credits: COSTS.KEYWORD_SCRAPER,
       creditType: "tools.outline",
       color: "from-emerald-500 to-teal-600",
     },
@@ -342,7 +343,7 @@ export default function ToolboxPage() {
       description: "Upload a PDF and chat with AI to extract insights and answers.",
       action: () => navigate("/chat-with-pdf"),
       actionText: "Chat Now",
-      credits: "5",
+      credits: COSTS.CHAT_WITH_PDF + " /  message",
       creditType: "tools.chatpdf",
       color: "from-red-500 to-orange-600",
     },
