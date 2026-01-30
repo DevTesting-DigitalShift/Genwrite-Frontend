@@ -468,16 +468,6 @@ export const advancedBlogFinalDataSchema = z
 
     costCutter: z.boolean().default(true).describe("Use AI Flash model for 25% savings"),
 
-    easyToUnderstand: z
-      .boolean()
-      .default(false)
-      .describe("Use v2 system prompts for 8th grader level readability"),
-
-    embedYouTubeVideos: z
-      .boolean()
-      .default(false)
-      .describe("Embed YouTube videos in the blog content"),
-
     options: advancedBlogOptionsSchema.describe("Advanced blog options"),
   })
   .transform(data => {

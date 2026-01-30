@@ -72,8 +72,6 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
     brandId: "" as string,
     languageToWrite: "English" as string,
     costCutter: true as boolean,
-    easyToUnderstand: false as boolean,
-    embedYouTubeVideos: false as boolean,
     options: {
       exactTitle: false as boolean,
       performKeywordResearch: false as boolean,
@@ -82,6 +80,8 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
       includeCompetitorResearch: false as boolean,
       addOutBoundLinks: false as boolean,
       addCTA: false as boolean,
+      easyToUnderstand: false as boolean,
+      embedYouTubeVideos: false as boolean,
     },
   }
 
@@ -692,8 +692,12 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                 <label htmlFor="easy-to-understand-toggle">Easy to Understand</label>
                 <Switch
                   id="easy-to-understand-toggle"
-                  checked={formData.easyToUnderstand}
-                  onChange={checked => updateFormData({ easyToUnderstand: checked })}
+                  checked={formData.options.easyToUnderstand}
+                  onChange={checked =>
+                    handleInputChange({
+                      target: { name: "options.easyToUnderstand", value: checked },
+                    })
+                  }
                 />
               </Flex>
             </Space>
@@ -704,8 +708,12 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
                 <label htmlFor="embed-youtube-toggle">Embed YouTube Videos</label>
                 <Switch
                   id="embed-youtube-toggle"
-                  checked={formData.embedYouTubeVideos}
-                  onChange={checked => updateFormData({ embedYouTubeVideos: checked })}
+                  checked={formData.options.embedYouTubeVideos}
+                  onChange={checked =>
+                    handleInputChange({
+                      target: { name: "options.embedYouTubeVideos", value: checked },
+                    })
+                  }
                 />
               </Flex>
             </Space>
