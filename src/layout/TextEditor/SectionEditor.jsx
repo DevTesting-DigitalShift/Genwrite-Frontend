@@ -127,7 +127,11 @@ const SectionEditor = ({
   })
 
   // Enhancement state
-  const [enhanceForm, setEnhanceForm] = useState({ prompt: "", style: "photorealistic" })
+  const [enhanceForm, setEnhanceForm] = useState({
+    prompt: "",
+    style: "photorealistic",
+    imageSize: "1k",
+  })
 
   // Auth & Credits
   const { user } = useSelector(state => state.auth)
@@ -1496,7 +1500,6 @@ const SectionEditor = ({
           {imageModalView === "enhance" && (
             <div className="flex-1 p-6 flex flex-col">
               <div className="flex-1 max-w-lg mx-auto w-full space-y-6">
-
                 {/* Preview of source */}
                 <div className="flex justify-center mb-4">
                   <img
@@ -1535,6 +1538,21 @@ const SectionEditor = ({
                     ]}
                   />
                 </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Quality</label>
+                  <Select
+                    value={enhanceForm.imageSize}
+                    onChange={val => setEnhanceForm({ ...enhanceForm, imageSize: val })}
+                    className="w-full"
+                    size="large"
+                    options={[
+                      { value: "1k", label: "Standard (1K)" },
+                      { value: "2k", label: "High Res (2K)" },
+                      { value: "4k", label: "Ultra (4K)" },
+                    ]}
+                  />
+                </div>
               </div>
 
               {/* Footer Actions */}
@@ -1544,6 +1562,11 @@ const SectionEditor = ({
                   type="primary"
                   className="bg-purple-600"
                   onClick={async () => {
+                    if (!imageUrl) {
+                      message.error("No image selected to enhance")
+                      return
+                    }
+
                     const credits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
                     if (credits < COSTS.ENHANCE) {
                       message.error(`Insufficient credits. Need ${COSTS.ENHANCE} credits.`)
@@ -1562,6 +1585,7 @@ const SectionEditor = ({
                         imageUrl: imageUrl,
                         prompt: enhanceForm.prompt,
                         style: enhanceForm.style,
+                        quality: enhanceForm.imageSize,
                       })
                       const newImage = response.image || response.data || response // Adjust based on API response structure
                       if (newImage && newImage.url) {

@@ -375,7 +375,11 @@ const TextEditor = ({
   const [thumbnailAlt, setThumbnailAlt] = useState("")
   // Enhancement state
   const [isEnhanceMode, setIsEnhanceMode] = useState(false)
-  const [enhanceForm, setEnhanceForm] = useState({ prompt: "", style: "photorealistic" })
+  const [enhanceForm, setEnhanceForm] = useState({
+    prompt: "",
+    style: "photorealistic",
+    imageSize: "1k",
+  })
 
   // Generation state
   const [isGenerateMode, setIsGenerateMode] = useState(false)
@@ -1818,6 +1822,21 @@ const TextEditor = ({
                       ]}
                     />
                   </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Quality</label>
+                    <Select
+                      value={enhanceForm.imageSize}
+                      onChange={val => setEnhanceForm({ ...enhanceForm, imageSize: val })}
+                      className="w-full"
+                      size="large"
+                      options={[
+                        { value: "1k", label: "Standard (1K)" },
+                        { value: "2k", label: "High Res (2K)" },
+                        { value: "4k", label: "Ultra (4K)" },
+                      ]}
+                    />
+                  </div>
                 </div>
               </div>
             )}
@@ -1925,6 +1944,10 @@ const TextEditor = ({
                   icon={<Sparkles className="w-4 h-4" />}
                   onClick={async () => {
                     // Logic for enhance call
+                    if (!thumbnailUrl) {
+                      return message.error("No image to enhance")
+                    }
+
                     const cost = COSTS.ENHANCE
                     const credits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
                     if (user?.usage?.aiImages >= user?.usageLimits?.aiImages) {
@@ -1938,6 +1961,7 @@ const TextEditor = ({
                       const formData = new FormData()
                       formData.append("prompt", enhanceForm.prompt)
                       formData.append("style", enhanceForm.style)
+                      formData.append("quality", enhanceForm.imageSize)
                       formData.append("imageUrl", thumbnailUrl)
                       const res = await enhanceImage(formData)
                       const img = res.image || res.data || res

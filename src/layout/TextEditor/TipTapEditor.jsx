@@ -62,6 +62,7 @@ import TableHeader from "@tiptap/extension-table-header"
 import Heading from "@tiptap/extension-heading"
 import ImageGalleryPicker from "@components/ImageGalleryPicker"
 import { generateImage, generateAltText } from "@api/imageGalleryApi"
+import { AIBubbleMenu } from "./AIBubbleMenu"
 
 const FONT_OPTIONS = [
   { label: "Arial", value: "font-arial" },
@@ -749,9 +750,11 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
       {/* Editor Content - Scrollable */}
       <div className="flex-1 overflow-auto custom-scroll bg-white p-4">
         {normalEditor && (
-          <BubbleMenu
+          <AIBubbleMenu
             editor={normalEditor}
-            className="flex gap-2 bg-white shadow-lg p-2 rounded-lg border"
+            blogId={blog?._id}
+            sectionId={null}
+            onContentUpdate={() => {}}
           >
             <Tooltip title="Bold">
               <button
@@ -778,7 +781,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
                 <LinkIcon className="w-5 h-5" />
               </button>
             </Tooltip>
-          </BubbleMenu>
+          </AIBubbleMenu>
         )}
         <EditorContent editor={normalEditor} />
       </div>

@@ -25,6 +25,7 @@ import { useSelector, useDispatch } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { fetchUserThunk } from "@/store/slices/authSlice"
+import { COSTS } from "@/data/blogData"
 
 const { TextArea } = Input
 
@@ -87,7 +88,16 @@ const ImageGallery = () => {
     imageSize: "1k",
   })
 
-  const [enhanceForm, setEnhanceForm] = useState({ prompt: "", style: "photorealistic" })
+  // Enhance form needs extra fields now
+  const [enhanceForm, setEnhanceForm] = useState({
+    prompt: "",
+    style: "photorealistic",
+    aspectRatio: "1:1",
+    imageSize: "1k",
+  })
+
+  // Toggle for inline enhance mode
+  const [isEnhanceMode, setIsEnhanceMode] = useState(false)
 
   // Auth & Credits
   const { user } = useSelector(state => state.auth)
@@ -98,7 +108,7 @@ const ImageGallery = () => {
   const userCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
 
   // Constants
-  const COSTS = { GENERATE: 2, ENHANCE: 5, ALT_TEXT: 2 }
+  // Constants - now imported from blogData
 
   // Calculate total pages
   const totalPages = Math.ceil(totalImages / pageSize)
@@ -229,6 +239,8 @@ const ImageGallery = () => {
       const formData = new FormData()
       formData.append("prompt", enhanceForm.prompt)
       formData.append("style", enhanceForm.style)
+      formData.append("aspectRatio", enhanceForm.aspectRatio)
+      formData.append("quality", enhanceForm.imageSize)
       formData.append("existingImageId", previewImage._id)
       formData.append("imageUrl", previewImage.url)
 
@@ -236,7 +248,7 @@ const ImageGallery = () => {
       const newImage = response.image || response.data || response
 
       message.success("Image enhanced successfully!")
-      setIsEnhanceModalOpen(false)
+      setIsEnhanceMode(false) // Close inline enhance mode
       setEnhanceForm(prev => ({ ...prev, prompt: "" })) // Clear enhance input
 
       // Update preview with new enhanced image immediately
@@ -314,7 +326,8 @@ const ImageGallery = () => {
     setPreviewImage(image)
     setGeneratedAltText("") // Reset alt text
     // Clear enhance prompt
-    setEnhanceForm(prev => ({ ...prev, prompt: "" }))
+    setEnhanceForm({ prompt: "", style: "photorealistic", aspectRatio: "1:1", imageSize: "1k" })
+    setIsEnhanceMode(false) // Ensure we start in normal mode
   }
 
   return (
@@ -430,7 +443,6 @@ const ImageGallery = () => {
                       <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
                         Prompt <span className="text-red-500">*</span>
                       </label>
-
                     </div>
                     <TextArea
                       value={genForm.prompt}
@@ -591,64 +603,21 @@ const ImageGallery = () => {
           )}
         </div>
 
-        {/* Enhance Modal */}
-        <Modal
-          title={
-            <div className="flex items-center gap-2">
-              <Wand2 className="text-purple-600" /> Enhance Image
-            </div>
-          }
-          open={isEnhanceModalOpen}
-          onCancel={() => setIsEnhanceModalOpen(false)}
-          footer={null}
-          centered
-          width={500}
-        >
-          <div className="space-y-4 py-2">
-            <p className="text-sm text-gray-500">
-              Enhance or modify this image using AI. Describe what you want to improve or change.
-            </p>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Instruction</label>
-              <TextArea
-                value={enhanceForm.prompt}
-                onChange={e => setEnhanceForm({ ...enhanceForm, prompt: e.target.value })}
-                placeholder="Make it higher definition, fix lighting, add a hat..."
-                rows={4}
-              />
-            </div>
-
-            <div className="bg-purple-50 p-3 rounded-lg flex justify-between items-center text-xs text-purple-700">
-              <span>Cost: {COSTS.ENHANCE} credits</span>
-              <span className="font-bold">Available: {userCredits}</span>
-            </div>
-
-            <Button
-              type="primary"
-              block
-              size="large"
-              onClick={handleEnhanceImage}
-              loading={isEnhancing}
-              className="bg-gradient-to-r from-purple-600 to-pink-600 border-none h-12"
-            >
-              Enhance Image
-            </Button>
-          </div>
-        </Modal>
+        {/* Enhance Modal Removed - Inline Implementation */}
 
         {/* Preview Modal (Enhanced) */}
         <Modal
-          open={!!previewImage && !isEnhanceModalOpen}
+          open={!!previewImage}
           onCancel={() => setPreviewImage(null)}
           footer={null}
           centered
           width={1100}
           closeIcon={null}
-          className="image-detail-modal"
+          className="image-detail-modal !p-0"
           styles={{
             content: {
               padding: 0,
-              borderRadius: "20px",
+              borderRadius: "16px",
               overflow: "hidden",
               backgroundColor: "#ffffff",
               boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
@@ -657,9 +626,9 @@ const ImageGallery = () => {
           }}
         >
           {previewImage && (
-            <div className="flex flex-col md:flex-row h-[85vh] md:h-[800px] max-h-[85vh]">
+            <div className="flex flex-col lg:flex-row h-[85vh] lg:h-[800px] max-h-[90vh] overflow-hidden">
               {/* Left: Image Canvas */}
-              <div className="flex-1 bg-[#0f1014] relative flex items-center justify-center p-4 md:p-8 overflow-hidden group">
+              <div className="bg-[#0f1014] relative flex items-center justify-center p-4 lg:p-8 overflow-hidden group h-[35vh] lg:h-auto lg:flex-1 shrink-0">
                 <div
                   className="absolute inset-0 opacity-20 blur-3xl saturate-200"
                   style={{
@@ -677,7 +646,7 @@ const ImageGallery = () => {
 
                 <button
                   onClick={() => setPreviewImage(null)}
-                  className="absolute top-6 left-6 p-2 bg-black/40 hover:bg-white/20 text-white rounded-full transition-all backdrop-blur-md z-20 border border-white/10"
+                  className="absolute top-4 left-4 lg:top-6 lg:left-6 p-2 bg-black/40 hover:bg-white/20 text-white rounded-full transition-all backdrop-blur-md z-20 border border-white/10"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -703,129 +672,244 @@ const ImageGallery = () => {
               </div>
 
               {/* Right: Premium Details Panel */}
-              <div className="w-full md:w-[400px] bg-white flex flex-col border-l border-gray-100 shadow-xl relative z-20">
+              <div className="w-full lg:w-[400px] bg-white flex flex-col border-l border-gray-100 shadow-xl relative z-20 flex-1 lg:h-full overflow-hidden">
                 {/* Header */}
-                <div className="p-6 border-b border-gray-50 flex-shrink-0">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold tracking-widest text-gray-400 uppercase">
-                      Generated Image
-                    </span>
-                    {canEnhance(previewImage) && (
-                      <span className="flex items-center gap-1.5 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 px-2.5 py-1 rounded-full text-[10px] font-bold border border-blue-100">
-                        <Sparkles size={10} className="fill-blue-500 text-blue-500" /> AI Creative
+                <div className="p-5 lg:p-6 border-b border-gray-50 flex-shrink-0 flex items-start justify-between bg-white relative z-10">
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xs font-bold tracking-widest text-gray-400 uppercase">
+                        {isEnhanceMode ? "Enhance Mode" : "Generated Image"}
                       </span>
+                      {canEnhance(previewImage) && !isEnhanceMode && (
+                        <span className="flex items-center gap-1.5 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 px-2.5 py-1 rounded-full text-[10px] font-bold border border-blue-100">
+                          <Sparkles size={10} className="fill-blue-500 text-blue-500" /> AI Creative
+                        </span>
+                      )}
+                    </div>
+                    <h2 className="text-lg font-bold text-gray-900 leading-tight line-clamp-2">
+                      {isEnhanceMode ? "Enhance Image" : previewImage.title || "Untitled Creation"}
+                    </h2>
+                    {!isEnhanceMode && (
+                      <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
+                        <span>{new Date().toLocaleDateString()}</span>
+                        <span>•</span>
+                        <span>{previewImage.resolution || genForm.imageSize}</span>
+                      </div>
                     )}
                   </div>
-                  <h2 className="text-lg font-bold text-gray-900 leading-tight line-clamp-2">
-                    {previewImage.title || "Untitled Creation"}
-                  </h2>
-                  <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
-                    <span>{new Date().toLocaleDateString()}</span>
-                    <span>•</span>
-                    <span>{previewImage.resolution || genForm.imageSize}</span>
-                  </div>
+                  {isEnhanceMode && (
+                    <button
+                      onClick={() => setIsEnhanceMode(false)}
+                      className="text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  )}
                 </div>
 
                 {/* Scrollable Content */}
-                <div className="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-8">
-                  {/* Prompt Section */}
-                  <div>
-                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                      <Bot size={14} className="text-gray-400" /> Prompt Details
-                    </h3>
-                    <div className="bg-gray-50/80 p-4 rounded-2xl border border-gray-100 text-sm text-gray-600 leading-relaxed font-medium">
-                      {previewImage.description || "No description provided."}
-                    </div>
-                  </div>
+                <div className="flex-1 overflow-y-auto p-5 lg:p-6 custom-scrollbar space-y-6 relative">
+                  {isEnhanceMode ? (
+                    // INLINE ENHANCE FORM
+                    <div className="space-y-5 animate-in slide-in-from-right-4 duration-300">
+                      <p className="text-sm text-gray-500">
+                        Describe what you want to improve or change in this image.
+                      </p>
 
-                  {/* Actions Grid */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      onClick={handleGenerateAltText}
-                      disabled={isGeneratingAlt}
-                      className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl border border-gray-100 bg-white hover:border-blue-200 hover:bg-blue-50/30 hover:shadow-md transition-all group text-center"
-                    >
-                      <div className="w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center text-gray-600 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
-                        <Type size={18} />
+                      <div className="space-y-4">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                            Instruction
+                          </label>
+                          <TextArea
+                            value={enhanceForm.prompt}
+                            onChange={e =>
+                              setEnhanceForm({ ...enhanceForm, prompt: e.target.value })
+                            }
+                            placeholder="e.g. Make it higher definition, fix lighting, add a hat..."
+                            rows={3}
+                            className="!resize-none !text-sm !rounded-xl"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                              Style
+                            </label>
+                            <Select
+                              value={enhanceForm.style}
+                              onChange={val => setEnhanceForm({ ...enhanceForm, style: val })}
+                              className="w-full"
+                              options={[
+                                { value: "photorealistic", label: "Photorealistic" },
+                                { value: "anime", label: "Anime" },
+                                { value: "digital-art", label: "Digital Art" },
+                                { value: "oil-painting", label: "Oil Painting" },
+                                { value: "cinematic", label: "Cinematic" },
+                              ]}
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                              Quality
+                            </label>
+                            <Select
+                              value={enhanceForm.imageSize}
+                              onChange={val => setEnhanceForm({ ...enhanceForm, imageSize: val })}
+                              className="w-full"
+                              options={[
+                                { value: "1k", label: "Standard (1K)" },
+                                { value: "2k", label: "High Res (2K)" },
+                                { value: "4k", label: "Ultra (4K)" },
+                              ]}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                            Aspect Ratio
+                          </label>
+                          <Select
+                            value={enhanceForm.aspectRatio}
+                            onChange={val => setEnhanceForm({ ...enhanceForm, aspectRatio: val })}
+                            className="w-full"
+                            options={[
+                              { value: "1:1", label: "Square (1:1)" },
+                              { value: "16:9", label: "Landscape (16:9)" },
+                              { value: "9:16", label: "Portrait (9:16)" },
+                              { value: "4:3", label: "Standard (4:3)" },
+                              { value: "3:2", label: "Classic (3:2)" },
+                            ]}
+                          />
+                        </div>
                       </div>
-                      <span className="text-xs font-bold text-gray-600 group-hover:text-gray-900">
-                        {isGeneratingAlt ? "Generating..." : "Generate Alt Text"}
-                      </span>
-                    </button>
 
-                    <button
-                      onClick={() => setIsEnhanceModalOpen(true)}
-                      disabled={!canEnhance(previewImage)}
-                      className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border border-gray-100 bg-white transition-all group text-center
-                        ${
-                          canEnhance(previewImage)
-                            ? "hover:border-purple-200 hover:bg-purple-50/30 hover:shadow-md cursor-pointer"
-                            : "opacity-50 cursor-not-allowed grayscale"
-                        }`}
-                    >
-                      <div className="w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center text-gray-600 group-hover:bg-purple-100 group-hover:text-purple-600 transition-colors">
-                        <Wand2 size={18} />
+                      <div className="bg-purple-50 p-3 rounded-xl flex justify-between items-center text-xs text-purple-700 border border-purple-100">
+                        <span className="flex items-center gap-1 font-medium">
+                          <Sparkles size={12} /> Enhancement Cost
+                        </span>
+                        <span className="font-bold">{COSTS.ENHANCE} credits</span>
                       </div>
-                      <span className="text-xs font-bold text-gray-600 group-hover:text-gray-900">
-                        Enhance Details
-                      </span>
-                    </button>
-                  </div>
 
-                  {/* Generated Data */}
-                  {generatedAltText && (
-                    <div className="animate-in fade-in zoom-in-95 duration-300">
-                      <h3 className="text-xs font-bold text-green-600 uppercase tracking-wider mb-2 flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-green-500"></span> Alt Text Ready
-                      </h3>
-                      <div
-                        onClick={() => {
-                          navigator.clipboard.writeText(generatedAltText)
-                          message.success("Copied to clipboard!")
-                        }}
-                        className="p-4 bg-green-50/50 text-green-900 text-xs rounded-xl border border-green-100 cursor-copy hover:bg-green-100 transition-all leading-relaxed relative group"
+                      <Button
+                        type="primary"
+                        block
+                        size="large"
+                        onClick={handleEnhanceImage}
+                        loading={isEnhancing}
+                        className="!bg-gradient-to-r !from-purple-600 !to-pink-600 !border-none !h-12 !rounded-xl !font-bold !shadow-lg !shadow-purple-100"
                       >
-                        <Copy
-                          size={12}
-                          className="absolute top-2 right-2 text-green-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                        />
-                        {generatedAltText}
-                      </div>
+                        Enhance Now
+                      </Button>
                     </div>
-                  )}
+                  ) : (
+                    // NORMAL DETAILS VIEW
+                    <>
+                      {/* Prompt Section */}
+                      <div>
+                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                          <Bot size={14} className="text-gray-400" /> Prompt Details
+                        </h3>
+                        <div className="bg-gray-50/80 p-4 rounded-2xl border border-gray-100 text-sm text-gray-600 leading-relaxed font-medium">
+                          {previewImage.description || "No description provided."}
+                        </div>
+                      </div>
 
-                  {/* Tags */}
-                  {previewImage.tags && previewImage.tags.length > 0 && (
-                    <div>
-                      <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
-                        Tags
-                      </h3>
-                      <div className="flex flex-wrap gap-2">
-                        {previewImage.tags.map((tag, i) => (
-                          <span
-                            key={i}
-                            className="px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-[11px] font-semibold tracking-wide hover:border-gray-300 transition-colors"
-                          >
-                            #{tag}
+                      {/* Actions Grid */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                          onClick={handleGenerateAltText}
+                          disabled={isGeneratingAlt}
+                          className="flex flex-col items-center justify-center gap-2 p-4 rounded-xl border border-gray-100 bg-white hover:border-blue-200 hover:bg-blue-50/30 hover:shadow-md transition-all group text-center"
+                        >
+                          <div className="w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center text-gray-600 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
+                            <Type size={18} />
+                          </div>
+                          <span className="text-xs font-bold text-gray-600 group-hover:text-gray-900">
+                            {isGeneratingAlt ? "Generating..." : "Generate Alt Text"}
                           </span>
-                        ))}
+                        </button>
+
+                        <button
+                          onClick={() => setIsEnhanceMode(true)}
+                          disabled={!canEnhance(previewImage)}
+                          className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border border-gray-100 bg-white transition-all group text-center
+                            ${
+                              canEnhance(previewImage)
+                                ? "hover:border-purple-200 hover:bg-purple-50/30 hover:shadow-md cursor-pointer"
+                                : "opacity-50 cursor-not-allowed grayscale"
+                            }`}
+                        >
+                          <div className="w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center text-gray-600 group-hover:bg-purple-100 group-hover:text-purple-600 transition-colors">
+                            <Wand2 size={18} />
+                          </div>
+                          <span className="text-xs font-bold text-gray-600 group-hover:text-gray-900">
+                            Enhance Image
+                          </span>
+                        </button>
                       </div>
-                    </div>
+
+                      {/* Generated Data */}
+                      {generatedAltText && (
+                        <div className="animate-in fade-in zoom-in-95 duration-300">
+                          <h3 className="text-xs font-bold text-green-600 uppercase tracking-wider mb-2 flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-green-500"></span> Alt Text
+                            Ready
+                          </h3>
+                          <div
+                            onClick={() => {
+                              navigator.clipboard.writeText(generatedAltText)
+                              message.success("Copied to clipboard!")
+                            }}
+                            className="p-4 bg-green-50/50 text-green-900 text-xs rounded-xl border border-green-100 cursor-copy hover:bg-green-100 transition-all leading-relaxed relative group"
+                          >
+                            <Copy
+                              size={12}
+                              className="absolute top-2 right-2 text-green-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                            />
+                            {generatedAltText}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Tags */}
+                      {previewImage.tags && previewImage.tags.length > 0 && (
+                        <div>
+                          <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
+                            Tags
+                          </h3>
+                          <div className="flex flex-wrap gap-2">
+                            {previewImage.tags.map((tag, i) => (
+                              <span
+                                key={i}
+                                className="px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-[11px] font-semibold tracking-wide hover:border-gray-300 transition-colors"
+                              >
+                                #{tag}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
 
                 {/* Footer Actions */}
-                <div className="p-6 pt-2 bg-white flex flex-col gap-3">
-                  <Button
-                    onClick={() => handleDownload(previewImage)}
-                    type="primary"
-                    size="large"
-                    icon={<Download className="w-4 h-4" />}
-                    className="!w-full !rounded-xl !h-12 !bg-gray-900 hover:!bg-black !shadow-lg !font-bold"
-                  >
-                    Download Image
-                  </Button>
-                </div>
+                {!isEnhanceMode && (
+                  <div className="p-5 lg:p-6 pt-2 bg-white flex flex-col gap-3 flex-shrink-0 mt-auto">
+                    <Button
+                      onClick={() => handleDownload(previewImage)}
+                      type="primary"
+                      size="large"
+                      icon={<Download className="w-4 h-4" />}
+                      className="!w-full !rounded-xl !h-12 !bg-gray-900 hover:!bg-black !shadow-lg !font-bold"
+                    >
+                      Download Image
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           )}

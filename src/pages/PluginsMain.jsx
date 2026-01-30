@@ -120,6 +120,8 @@ const PluginsMain = () => {
         setIsEditing(false)
       } else if (plugin.id === 111 && wordpressInt) {
         setUrl(wordpressInt.url)
+        setWpUsername("**********")
+        setWpPassword("**********")
         setIsValidUrl(true)
         setIsEditing(false)
         setHasCredentials(true) // Backend has credentials
@@ -775,34 +777,33 @@ const PluginsMain = () => {
             </Flex>
           </Flex>
 
+          {/* Integration Card */}
           <Card className="mt-6 bg-gray-50 border-0 rounded-lg shadow-sm">
             <Flex vertical gap="middle">
-              {/* Header */}
-              <Flex align="center" justify="between">
-                <Flex align="center" gap="small">
-                  <Text strong>AI Blogger Sync Integration</Text>
+              {/* 🔹 Header + Status */}
+              <Flex align="center" gap="small">
+                <Text strong>AI Blogger Sync Integration</Text>
 
-                  {integrations?.integrations?.WORDPRESS &&
-                    wordpressStatus[plugin.id]?.success !== undefined &&
-                    (wordpressStatus[plugin.id]?.success ? (
-                      <Flex align="center" gap="small">
-                        <CheckCircle size={16} className="text-green-500" />
-                        <Text className="text-green-600">Connected</Text>
-                      </Flex>
-                    ) : (
-                      <Flex align="center" gap="small">
-                        <XCircle size={16} className="text-red-500" />
-                        <Text className="text-red-600">Not Connected</Text>
-                      </Flex>
-                    ))}
-                </Flex>
+                {integrations?.integrations?.WORDPRESS &&
+                  wordpressStatus[plugin.id]?.success !== undefined &&
+                  (wordpressStatus[plugin.id]?.success ? (
+                    <Flex align="center" gap="small">
+                      <CheckCircle size={16} className="text-green-500" />
+                      <Text className="text-green-600">Connected</Text>
+                    </Flex>
+                  ) : (
+                    <Flex align="center" gap="small">
+                      <XCircle size={16} className="text-red-500" />
+                      <Text className="text-red-600">Not Connected</Text>
+                    </Flex>
+                  ))}
               </Flex>
 
-              {/* Input + Button */}
-              <div className="flex flex-col w-full">
-                {/* Label Row */}
-                <label className="flex items-center justify-between text-sm font-medium text-gray-700 mb-2">
-                  <span>Enter your WordPress URL</span>
+              {/* 🔹 Input fields */}
+              <Flex vertical gap="middle" className="w-full">
+                {/* Header Row */}
+                <Flex align="center" className="justify-between">
+                  <Text strong>WordPress Configuration</Text>
                   <Button
                     type="link"
                     icon={<Edit size={16} />}
@@ -811,108 +812,102 @@ const PluginsMain = () => {
                   >
                     {isEditing ? "Cancel" : "Edit"}
                   </Button>
-                </label>
+                </Flex>
 
-                {/* Input + Primary Action */}
-                <div className="flex flex-col sm:flex-row w-full gap-2">
-                  <div className="relative flex-1">
-                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                    <input
-                      placeholder="e.g., https://example.com"
-                      value={url}
-                      onChange={handleUrlChange}
-                      status={url && !isValidUrl ? "error" : ""}
+                {/* Input Fields */}
+                <div className="flex flex-col gap-3 w-full">
+                  {/* WordPress URL */}
+                  <div className="flex flex-col w-full">
+                    <label className="text-sm font-medium text-gray-700 mb-1">WordPress URL</label>
+                    <div className="relative w-full">
+                      <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                      <input
+                        placeholder="e.g., https://example.com"
+                        value={url}
+                        onChange={handleUrlChange}
+                        disabled={!isEditing || loading || localLoading}
+                        className={`w-full rounded-lg border ${
+                          url && !isValidUrl ? "border-red-400" : "border-gray-300"
+                        } px-10 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 disabled:bg-gray-100`}
+                      />
+                    </div>
+                    {url && !isValidUrl && (
+                      <span className="text-red-500 text-xs mt-1">
+                        Please enter a valid URL (e.g., https://example.com)
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Username */}
+                  <div className="flex flex-col w-full">
+                    <label className="text-sm font-medium text-gray-700 mb-1">Username</label>
+                    <Input
+                      placeholder="WordPress Username"
+                      value={wpUsername}
+                      onFocus={() => setWpUsername("")}
+                      onChange={e => setWpUsername(e.target.value)}
                       disabled={!isEditing || loading || localLoading}
-                      className="w-full rounded-lg border border-gray-300 px-10 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 disabled:bg-gray-100"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 disabled:bg-gray-100"
                     />
                   </div>
 
-                  {isEditing ? (
-                    <Button
-                      type="primary"
-                      size="large"
-                      onClick={handleConnect}
-                      disabled={!isValidUrl || loading || localLoading}
-                      loading={localLoading}
-                      className="rounded-lg bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600 transition-all duration-200"
-                    >
-                      {wordpressInt ? "Update" : "Connect"}
-                    </Button>
-                  ) : (
-                    <Button
-                      type="primary"
-                      size="large"
-                      onClick={handlePing}
-                      disabled={loading || localLoading}
-                      loading={localLoading}
-                      className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 transition-all duration-200"
-                    >
-                      Check Status
-                    </Button>
-                  )}
-                </div>
-
-                {/* Error message */}
-                {url && !isValidUrl && (
-                  <span className="text-red-500 text-xs mt-1">
-                    Please enter a valid URL (e.g., https://example.com)
-                  </span>
-                )}
-
-                {/* Additional Credentials for WordPress if not already connected/integrated */}
-                {isEditing && !hasCredentials && (
-                  <div className="flex flex-col gap-4 mt-4">
-                    <Text strong className="text-gray-700">
-                      WordPress Credentials
-                    </Text>
-                    <div className="flex flex-col w-full">
-                      <label className="text-sm font-medium text-gray-700 mb-1">Username</label>
-                      <Input
-                        placeholder="WordPress Username"
-                        value={wpUsername}
-                        onChange={e => setWpUsername(e.target.value)}
-                        disabled={loading || localLoading}
-                        className="rounded-lg"
-                      />
-                    </div>
-                    <div className="flex flex-col w-full">
-                      <label className="text-sm font-medium text-gray-700 mb-1">
-                        Application Password
-                      </label>
-                      <Input
+                  {/* Application Password */}
+                  <div className="flex flex-col w-full">
+                    <label className="text-sm font-medium text-gray-700 mb-1">
+                      Application Password
+                    </label>
+                    <div className="relative w-full">
+                      <input
+                        type="password"
                         placeholder="Application Password"
                         value={wpPassword}
+                        onFocus={() => setWpPassword("")}
                         onChange={e => setWpPassword(e.target.value)}
-                        disabled={loading || localLoading}
-                        className="rounded-lg"
+                        disabled={!isEditing || loading || localLoading}
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 disabled:bg-gray-100"
                       />
-                      <Text className="text-xs text-gray-500 mt-1">
-                        Use an Application Password, not your login password.
-                        {/* <a
-                          href="https://make.wordpress.org/core/2020/11/05/application-passwords-integration-guide/"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="ml-1 text-blue-500 hover:underline"
-                        >
-                          Learn how
-                        </a> */}
-                      </Text>
+                    </div>
+                    <Text className="text-xs text-gray-500 mt-1">
+                      Use an Application Password, not your login password.
+                    </Text>
+                    {isEditing && (
                       <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800 flex items-start gap-2">
                         <span className="font-semibold">Note:</span>
-                        You must have Editor or Administrator level access to your WordPress site to
-                        successfully connect this integration.
+                        You must have Editor or Administrator level access.
                       </div>
-                    </div>
+                    )}
                   </div>
-                )}
-              </div>
 
-              {/* Status / Error / Loader */}
-              {localLoading && (
-                <Flex justify="center" className="mt-4">
-                  <Spin />
-                </Flex>
-              )}
+                  {/* Action Button */}
+                  <Button
+                    type="primary"
+                    size="large"
+                    onClick={isEditing ? handleConnect : handlePing}
+                    disabled={
+                      isEditing
+                        ? loading ||
+                          localLoading ||
+                          !url ||
+                          !wpUsername ||
+                          !wpPassword ||
+                          !isValidUrl
+                        : loading || localLoading
+                    }
+                    loading={localLoading}
+                    className={`rounded-lg border-0 mt-2 ${
+                      isEditing
+                        ? "bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600"
+                        : "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+                    }`}
+                  >
+                    {wordpressInt
+                      ? isEditing
+                        ? "Update Integration"
+                        : "Check Status"
+                      : "Connect Integration"}
+                  </Button>
+                </div>
+              </Flex>
             </Flex>
           </Card>
 

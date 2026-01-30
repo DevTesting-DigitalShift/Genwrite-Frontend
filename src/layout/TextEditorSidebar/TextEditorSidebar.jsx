@@ -778,10 +778,13 @@ const TextEditorSidebar = ({
 
   // --- Posting Helpers ---
   const openRepostModal = posting => {
+    // Use metadata from the posting object as the primary source of truth
+    const metadata = posting.metadata || {}
     setRepostSettings({
       platform: posting.integrationType || posting.platform || "",
-      category: posting.category || blog.category || "",
-      includeTableOfContents: !!posting.includeTableOfContents,
+      category: metadata.category || posting.category || "", // Prioritize metadata.category
+      includeTableOfContents:
+        metadata.includeTableOfContents ?? posting.includeTableOfContents ?? false, // Prioritize metadata.includeTableOfContents
     })
     setIsRepostModalOpen(true)
   }
@@ -875,8 +878,10 @@ const TextEditorSidebar = ({
       const shopifyPosting = blogPostings.find(p => (p.integrationType || p.platform) === "SHOPIFY")
 
       if (shopifyPosting) {
+        const meta = shopifyPosting.metadata || {}
         setIsCategoryLocked(true)
-        setSelectedCategory(blog?.category || "")
+        // Use metadata category if available
+        setSelectedCategory(meta.category || shopifyPosting.category || "")
         if (!selectedIntegration) {
           setSelectedIntegration({
             platform: "shopify",
@@ -887,9 +892,10 @@ const TextEditorSidebar = ({
         return
       }
 
-      // If not Shopify locked, default to the most recent posting's platform
+      // If not Shopify locked, default to the most recent posting's platform & metadata
       if (!selectedIntegration && blogPostings[0]) {
         const lastPost = blogPostings[0]
+        const meta = lastPost.metadata || {}
         const rawPlatform = lastPost.integrationType || lastPost.platform
 
         if (rawPlatform && integrations?.integrations?.[rawPlatform]) {
@@ -898,6 +904,12 @@ const TextEditorSidebar = ({
             rawPlatform: rawPlatform,
             url: integrations.integrations[rawPlatform].url,
           })
+
+          // Pre-fill category and ToC from last post metadata
+          if (meta.category) setSelectedCategory(meta.category)
+          if (meta.includeTableOfContents !== undefined)
+            setIncludeTableOfContents(meta.includeTableOfContents)
+
           return
         }
       }
@@ -937,7 +949,6 @@ const TextEditorSidebar = ({
     blog,
     integrations,
     selectedIntegration,
-    selectedCategory,
     setIncludeTableOfContents,
     blogPostings,
   ])
@@ -1004,6 +1015,29 @@ const TextEditorSidebar = ({
             })
           } catch (error) {
             console.error("Posting failed:", error)
+            // Handle 400 Invalid Credentials specifically
+            if (
+              error?.response?.status === 400 &&
+              (error?.response?.data?.message?.toLowerCase()?.includes("invalid credentials") ||
+                error?.response?.data?.message?.toLowerCase()?.includes("wordpress api"))
+            ) {
+              message.error({
+                content: (
+                  <span>
+                    WordPress API has changed. Kindly update your WordPress credentials.
+                    <span
+                      className="underline cursor-pointer ml-1 font-bold"
+                      onClick={() => navigate("/integration")}
+                    >
+                      Update Now
+                    </span>
+                  </span>
+                ),
+                duration: 5,
+              })
+              // Optional: Auto-navigate after a delay if preferred, but link is better UX
+              // setTimeout(() => navigate("/integration"), 2000)
+            }
           }
         },
       })
@@ -2048,7 +2082,7 @@ const TextEditorSidebar = ({
                     <div className="flex justify-between">
                       <span className="text-[12px] text-gray-400">Category:</span>
                       <span className="text-[12px] font-medium text-gray-700 text-right truncate max-w-[120px]">
-                        {posting.category || blog.category}
+                        {posting.metadata?.category || posting.category || blog.category}
                       </span>
                     </div>
                     {posting.link && (
@@ -2079,8 +2113,11 @@ const TextEditorSidebar = ({
                       onClick={() => {
                         onPost({
                           ...formData,
-                          categories: posting.category || blog.category,
-                          includeTableOfContents: posting.includeTableOfContents,
+                          categories:
+                            posting.metadata?.category || posting.category || blog.category,
+                          includeTableOfContents:
+                            posting.metadata?.includeTableOfContents ??
+                            posting.includeTableOfContents,
                           type: { platform: posting.integrationType || posting.platform },
                         })
                       }}
@@ -2159,7 +2196,7 @@ const TextEditorSidebar = ({
               </label>
 
               {/* Active Category Tag */}
-              {selectedCategory && (
+              {/* {selectedCategory && (
                 <div className="flex items-center gap-2 mb-2">
                   <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-500 text-white rounded-lg text-xs font-medium max-w-full">
                     <span className="truncate">{selectedCategory}</span>
@@ -2172,7 +2209,7 @@ const TextEditorSidebar = ({
                     )}
                   </div>
                 </div>
-              )}
+              )} */}
 
               <Select
                 mode="tags"
@@ -2190,7 +2227,7 @@ const TextEditorSidebar = ({
               {categoryError && <p className="text-[10px] text-red-500 mt-1">{errors.category}</p>}
 
               {/* Auto Suggestions */}
-              {/* {!wordpressError && categories?.length > 0 && !isCategoryLocked && (
+              {!wordpressError && categories?.length > 0 && !isCategoryLocked && (
                 <div className="mt-2">
                   <p className="text-[10px] text-gray-400 font-bold uppercase mb-1.5">
                     Suggested Categories
@@ -2214,7 +2251,7 @@ const TextEditorSidebar = ({
                     ))}
                   </div>
                 </div>
-              )} */}
+              )}
 
               {isCategoryLocked && selectedIntegration?.platform === "shopify" && (
                 <div className="mt-2 p-2 bg-blue-50 text-blue-700 text-[10px] border border-blue-100 rounded">

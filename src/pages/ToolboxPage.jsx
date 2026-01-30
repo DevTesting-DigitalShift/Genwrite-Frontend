@@ -17,7 +17,7 @@ import { useDispatch, useSelector } from "react-redux"
 import { analyzeKeywordsThunk, clearKeywordAnalysis } from "@store/slices/analysisSlice"
 import { Helmet } from "react-helmet"
 import { ImMagicWand } from "react-icons/im"
-import { Coins, Keyboard, Search, WholeWord, Workflow, Zap } from "lucide-react"
+import { Coins, Keyboard, Search, WholeWord, Workflow, Zap, FileText } from "lucide-react"
 import { selectUser } from "@store/slices/authSlice"
 import { Crown } from "lucide-react"
 import { Flex } from "antd"
@@ -335,6 +335,17 @@ export default function ToolboxPage() {
       creditType: "tools.outline",
       color: "from-emerald-500 to-teal-600",
     },
+    {
+      key: "chat-with-pdf",
+      title: "Chat with PDF",
+      icon: <FileText className="size-4 sm:size-5 text-red-500" />,
+      description: "Upload a PDF and chat with AI to extract insights and answers.",
+      action: () => navigate("/chat-with-pdf"),
+      actionText: "Chat Now",
+      credits: "5",
+      creditType: "tools.chatpdf",
+      color: "from-red-500 to-orange-600",
+    },
   ]
 
   useEffect(() => {
@@ -407,6 +418,7 @@ export default function ToolboxPage() {
                     .filter(item =>
                       [
                         "ai-writer",
+                        "chat-with-pdf",
                         "humanize-content",
                         "outline",
                         "prompt-content",

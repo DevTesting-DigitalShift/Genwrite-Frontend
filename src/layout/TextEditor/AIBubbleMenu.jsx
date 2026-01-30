@@ -8,7 +8,7 @@ import { Sparkles, Loader2 } from "lucide-react"
 import { Tooltip, message, Modal } from "antd"
 
 // AI Bubble Menu Component - Custom implementation without TipTap BubbleMenu
-const AIBubbleMenu = ({ editor, blogId, sectionId, onContentUpdate }) => {
+const AIBubbleMenu = ({ editor, blogId, sectionId, onContentUpdate, children }) => {
   const [isProcessing, setIsProcessing] = useState(false)
 
   const [showMenu, setShowMenu] = useState(false)
@@ -267,15 +267,23 @@ const AIBubbleMenu = ({ editor, blogId, sectionId, onContentUpdate }) => {
             <span className="text-sm text-gray-600">Processing...</span>
           </div>
         ) : (
-          <Tooltip title="Rewrite selected text with AI">
-            <button
-              onClick={() => handleAIOperation("rewrite")}
-              className="flex items-center gap-1.5 px-3 py-2 text-sm bg-purple-50 text-purple-700 rounded-md hover:bg-purple-100 transition-colors"
-            >
-              <Sparkles className="w-4 h-4" />
-              <span className="font-medium">Rewrite</span>
-            </button>
-          </Tooltip>
+          <>
+            {children && (
+              <>
+                {children}
+                <div className="w-px h-5 bg-gray-200 mx-1" />
+              </>
+            )}
+            <Tooltip title="Rewrite selected text with AI">
+              <button
+                onClick={() => handleAIOperation("rewrite")}
+                className="flex items-center gap-1.5 px-3 py-2 text-sm bg-purple-50 text-purple-700 rounded-md hover:bg-purple-100 transition-colors"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span className="font-medium">Rewrite</span>
+              </button>
+            </Tooltip>
+          </>
         )}
       </div>
 

@@ -49,4 +49,18 @@ export const IMAGE_OPTIONS = [
 ]
 
 // Credit Costs for AI Operations
-export const COSTS = { GENERATE: 2, ENHANCE: 5, ALT_TEXT: 2 }
+// Credit Costs for AI Operations (Synced with Backend)
+export const COSTS = {
+  GENERATE: 2, // Image Generation
+  ENHANCE: 5, // Image Enhancement
+  ALT_TEXT: 2,
+  REWRITE: 3,
+  PROOFREAD: 5,
+  ANALYSIS: 10,
+  METADATA: 5,
+  DETECTOR: 2,
+  KEYWORD_SCRAPER: 5,
+  YOUTUBE_SUMMARIZER: 5,
+  OUTLINE: 10,
+  HUMANISED_CONTENT: 5,
+}
