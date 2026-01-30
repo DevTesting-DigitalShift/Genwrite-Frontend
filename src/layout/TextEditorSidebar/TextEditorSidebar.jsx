@@ -304,6 +304,21 @@ const TextEditorSidebar = ({
     includeTableOfContents: false,
   })
 
+  // UI State for categories to prevent flickering or disappearing on re-renders
+  const [uiCategories, setUiCategories] = useState([])
+
+  // Sync UI categories with Redux, preserving data during re-renders
+  useEffect(() => {
+    if (categories?.length > 0) {
+      setUiCategories(categories)
+    }
+  }, [categories])
+
+  // Clear UI categories only when actual platform changes
+  useEffect(() => {
+    setUiCategories([])
+  }, [selectedIntegration?.platform])
+
   const user = useSelector(state => state.auth.user)
   const userPlan = user?.subscription?.plan?.toLowerCase() || "free"
   const navigate = useNavigate()
@@ -2227,13 +2242,14 @@ const TextEditorSidebar = ({
               {categoryError && <p className="text-[10px] text-red-500 mt-1">{errors.category}</p>}
 
               {/* Auto Suggestions */}
-              {!wordpressError && categories?.length > 0 && !isCategoryLocked && (
+              {/* Auto Suggestions - Using persistent UI state */}
+              {uiCategories?.length > 0 && (
                 <div className="mt-2">
                   <p className="text-[10px] text-gray-400 font-bold uppercase mb-1.5">
                     Suggested Categories
                   </p>
                   <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
-                    {categories.map(cat => (
+                    {uiCategories.map(cat => (
                       <button
                         key={cat}
                         onClick={() => handleCategoryAdd(cat)}

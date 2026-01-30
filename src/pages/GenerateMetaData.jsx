@@ -256,6 +256,32 @@ const GenerateMetaData = () => {
                 {metadata.description || "No description generated"}
               </div>
             </div>
+
+            {metadata.tags && metadata.tags.length > 0 && (
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-sm font-medium text-gray-700">Tags</label>
+                  <Button
+                    type="link"
+                    onClick={() => copyToClipboard(metadata.tags.join(", "), "Tags")}
+                    className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 p-0"
+                  >
+                    <CopyOutlined className="w-4 h-4" />
+                    Copy All
+                  </Button>
+                </div>
+                <div className="p-3 bg-white border border-gray-300 rounded-lg text-sm text-gray-700 flex flex-wrap gap-2">
+                  {metadata.tags.map((tag, idx) => (
+                    <span
+                      key={idx}
+                      className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full border border-blue-200"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
