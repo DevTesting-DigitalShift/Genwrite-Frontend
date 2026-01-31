@@ -1,32 +1,33 @@
 import React, { useState, useRef, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
-  UploadOutlined,
-  FilePdfOutlined,
-  SendOutlined,
-  DeleteOutlined,
-  ArrowLeftOutlined,
-  LoadingOutlined,
-  RobotOutlined,
-  UserOutlined,
-} from "@ant-design/icons"
-import { Button, Input, message, Upload, Spin, Avatar } from "antd"
-import { useNavigate } from "react-router-dom"
-import { Helmet } from "react-helmet"
+  FileText,
+  Send,
+  Trash2,
+  Upload,
+  MessageSquare,
+  User,
+  Sparkles,
+  AlertCircle,
+  CheckCircle2,
+  Zap,
+  Shield,
+  File as FileIcon,
+  Loader2,
+  ArrowRight,
+  BrainCircuit,
+} from "lucide-react"
+import { Button, Input, message, Upload as AntUpload, Avatar } from "antd"
 import { useDispatch, useSelector } from "react-redux"
-import { pdfChat, resetPdfChat, addPdfChatMessage } from "@/store/slices/toolsSlice"
+import { pdfChat, resetPdfChat } from "@/store/slices/toolsSlice"
+import { Helmet } from "react-helmet"
 
-const { Dragger } = Upload
+const { Dragger } = AntUpload
+const { TextArea } = Input
 
 const ChatWithPdf = () => {
-  const navigate = useNavigate()
   const dispatch = useDispatch()
-  const {
-    loading,
-    cacheKey,
-    messages: storedMessages,
-    error,
-  } = useSelector(state => state.tools.pdfChat)
+  const { loading, cacheKey, error } = useSelector(state => state.tools.pdfChat)
 
   const [file, setFile] = useState(null)
   const [messages, setMessages] = useState([
@@ -49,7 +50,6 @@ const ChatWithPdf = () => {
     scrollToBottom()
   }, [messages, loading])
 
-  // Handle API errors
   useEffect(() => {
     if (error) {
       message.error(error?.message || "An error occurred")
@@ -61,16 +61,12 @@ const ChatWithPdf = () => {
     if (status === "done") {
       const uploadedFile = info.file.originFileObj
       setFile(uploadedFile)
-      message.success(
-        `${uploadedFile.name} uploaded successfully! You can now ask questions about it.`
-      )
-
-      // Update welcome message
+      message.success(`${uploadedFile.name} uploaded successfully!`)
       setMessages([
         {
           id: 1,
           role: "model",
-          content: `PDF uploaded! Ask me anything about "${uploadedFile.name}".`,
+          content: `I've analyzed "${uploadedFile.name}". What would you like to know?`,
           timestamp: new Date(),
         },
       ])
@@ -79,7 +75,7 @@ const ChatWithPdf = () => {
     }
   }
 
-  const dummyRequest = ({ file, onSuccess }) => {
+  const dummyRequest = ({ onSuccess }) => {
     setTimeout(() => {
       onSuccess("ok")
     }, 0)
@@ -89,34 +85,24 @@ const ChatWithPdf = () => {
     if (!input.trim() || !file) return
 
     const userMessage = { id: Date.now(), role: "user", content: input, timestamp: new Date() }
-
     setMessages(prev => [...prev, userMessage])
     setInput("")
 
     try {
       let payload
-
-      // First message: Send file with FormData
       if (!cacheKey) {
         const formData = new FormData()
         formData.append("file", file)
         formData.append("question", userMessage.content)
         payload = formData
-      }
-      // Subsequent messages: Send JSON with cacheKey
-      else {
-        // Get last 10 messages for context, excluding current user message
+      } else {
         const conversationHistory = messages
           .slice(-10)
           .map(msg => ({ role: msg.role, content: msg.content }))
-
         payload = { cacheKey, messages: conversationHistory, question: userMessage.content }
       }
 
-      // Dispatch chat action
       const result = await dispatch(pdfChat(payload)).unwrap()
-
-      // Add AI response
       setMessages(prev => [
         ...prev,
         { id: Date.now() + 1, role: "model", content: result.text, timestamp: new Date() },
@@ -148,187 +134,225 @@ const ChatWithPdf = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50/50 p-4 md:p-8">
+    <div className="min-h-screen bg-[#F8FAFC]">
       <Helmet>
         <title>Chat with PDF | GenWrite</title>
       </Helmet>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="max-w-5xl mx-auto h-[calc(100vh-100px)] flex flex-col"
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+      <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8 h-screen flex flex-col gap-6">
+        {/* Header - Always visible but adaptable */}
+        <header className="flex items-center justify-between bg-white/80 backdrop-blur-xl p-4 rounded-2xl border border-white/20 shadow-sm sticky top-0 z-10 transition-all">
           <div className="flex items-center gap-4">
-            <Button
-              icon={<ArrowLeftOutlined />}
-              type="text"
-              onClick={() => navigate("/toolbox")}
-              className="text-gray-500 hover:text-gray-900"
-            />
+            <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20 text-white transform hover:scale-105 transition-transform duration-300">
+              <FileText className="w-6 h-6" />
+            </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 m-0 font-montserrat">
-                Chat with PDF
-              </h1>
-              <p className="text-gray-500 text-sm m-0">Upload a document and get instant answers</p>
+              <h1 className="text-xl font-bold text-slate-800 tracking-tight">Chat with PDF</h1>
+              <p className="text-sm text-slate-500 font-medium">Research Assistant</p>
             </div>
           </div>
+
           {file && (
             <Button
               danger
-              icon={<DeleteOutlined />}
+              type="text"
+              className="hover:bg-red-50 text-red-600 rounded-xl font-medium flex items-center gap-2"
               onClick={clearFile}
-              className="flex items-center"
             >
-              Remove PDF
+              <Trash2 className="w-4 h-4" />
+              <span className="hidden sm:inline">End Session</span>
             </Button>
           )}
-        </div>
+        </header>
 
-        {/* Main Content */}
-        <div className="flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative flex flex-col">
-          {!file && (
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+        {/* Content Area */}
+        <div className="flex-1 relative overflow-hidden flex flex-col">
+          <AnimatePresence mode="wait">
+            {!file ? (
+              /* EMPTY STATE / LANDING */
               <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="w-full max-w-md"
+                key="upload-view"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="items-center justify-center"
               >
-                <div className="mb-8">
-                  <div className="w-20 h-20 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <FilePdfOutlined className="text-4xl text-red-500" />
+                <div className="w-full">
+                  <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden relative">
+                    <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
+
+                    <div className="p-4 md:p-8 h-[35rem]">
+                      <div className="text-center mb-8">
+                        <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-bounce-slow">
+                          <Upload className="w-8 h-8 text-indigo-600" />
+                        </div>
+                        <h3 className="text-xl font-bold text-slate-900">Upload your PDF</h3>
+                        <p className="text-slate-500 mt-2">Up to 10MB • Auto-OCR included</p>
+                      </div>
+
+                      <div className="relative group">
+                        <Dragger
+                          accept=".pdf"
+                          customRequest={dummyRequest}
+                          onChange={handleUpload}
+                          showUploadList={false}
+                          className="!border-0 !bg-transparent w-full"
+                          style={{ padding: 0 }}
+                        >
+                          <div
+                            className="border-2 border-dashed border-slate-200 rounded-2xl p-10 bg-slate-50/50 
+                group-hover:bg-indigo-50/30 group-hover:border-indigo-400 
+                transition-all cursor-pointer text-center h-[20rem]
+                flex flex-col items-center justify-center"
+                          >
+                            <p className="text-indigo-600 font-medium mb-2">Click to browse</p>
+                            <p className="text-slate-400 text-sm">or drag and drop here</p>
+                          </div>
+                        </Dragger>
+                      </div>
+                    </div>
                   </div>
-                  <h2 className="text-xl font-bold text-gray-900 mb-2 font-montserrat">
-                    Upload your PDF
-                  </h2>
-                  <p className="text-gray-500">
-                    Drag and drop your file here, or click to browse. We'll analyze it instantly.
-                  </p>
                 </div>
-
-                <Dragger
-                  accept=".pdf"
-                  customRequest={dummyRequest}
-                  onChange={handleUpload}
-                  showUploadList={false}
-                  className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl hover:border-red-500 transition-colors"
-                >
-                  <p className="ant-upload-drag-icon">
-                    <UploadOutlined className="text-red-500 text-2xl" />
-                  </p>
-                  <p className="ant-upload-text font-medium text-gray-700 font-montserrat">
-                    Click or drag file to this area to upload
-                  </p>
-                  <p className="ant-upload-hint text-gray-400 text-xs">
-                    Support for a single PDF file upload.
-                  </p>
-                </Dragger>
               </motion.div>
-            </div>
-          )}
-
-          {file && (
-            <div className="flex-1 flex flex-col h-full">
-              {/* PDF Info Bar */}
-              <div className="h-14 border-b border-gray-100 flex items-center px-6 bg-gray-50/50 justify-between">
-                <div className="flex items-center gap-3">
-                  <FilePdfOutlined className="text-red-500 text-lg" />
-                  <span className="font-semibold text-gray-700 truncate max-w-xs font-montserrat">
-                    {file.name}
-                  </span>
+            ) : (
+              /* CHAT STATE */
+              <motion.div
+                key="chat-interface"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex flex-col h-full bg-white rounded-3xl shadow-xl shadow-slate-200/40 border border-slate-100 overflow-hidden"
+              >
+                {/* File Context Bar */}
+                <div className="h-14 bg-white border-b border-slate-100 flex items-center justify-between px-6 flex-shrink-0">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-red-50 p-1.5 rounded text-red-500">
+                      <FileIcon className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h2 className="text-sm font-semibold text-slate-700 truncate max-w-[200px] md:max-w-md">
+                        {file.name}
+                      </h2>
+                    </div>
+                  </div>
+                  <div className="text-xs font-mono text-slate-400 bg-slate-100 px-2 py-1 rounded">
+                    {(file.size / 1024 / 1024).toFixed(2)} MB
+                  </div>
                 </div>
-                <span className="text-xs text-gray-400">
-                  {(file.size / 1024 / 1024).toFixed(2)} MB
-                </span>
-              </div>
 
-              {/* Chat Area */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-gray-50/30">
-                <AnimatePresence>
-                  {messages.map(msg => (
+                {/* Messages Area */}
+                <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-8 bg-slate-50/30 scroll-smooth">
+                  {messages.map((msg, idx) => (
                     <motion.div
                       key={msg.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
-                      className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                      className={`flex gap-4 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                     >
-                      <div
-                        className={`flex gap-3 max-w-[80%] ${
-                          msg.role === "user" ? "flex-row-reverse" : "flex-row"
-                        }`}
-                      >
-                        <Avatar
-                          icon={msg.role === "user" ? <UserOutlined /> : <RobotOutlined />}
-                          className={`${
-                            msg.role === "user" ? "bg-blue-600" : "bg-emerald-600"
-                          } flex-shrink-0`}
-                        />
-                        <div
-                          className={`p-4 rounded-2xl text-sm leading-relaxed ${
-                            msg.role === "user"
-                              ? "bg-blue-600 text-white rounded-tr-none shadow-md shadow-blue-100"
-                              : "bg-white text-gray-800 border border-gray-100 rounded-tl-none shadow-sm"
-                          }`}
-                        >
-                          {msg.content}
+                      {/* Avatar (Model) */}
+                      {msg.role === "model" && (
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-indigo-500/20 text-white mt-1">
+                          <BrainCircuit className="w-4 h-4" />
                         </div>
+                      )}
+
+                      {/* Bubble */}
+                      <div
+                        className={`
+                        max-w-[85%] md:max-w-[75%] p-4 md:p-6 rounded-2xl text-[15px] leading-relaxed shadow-sm
+                        ${
+                          msg.role === "user"
+                            ? "bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-tr-none"
+                            : "bg-white text-slate-700 border border-slate-100 rounded-tl-none"
+                        }
+                      `}
+                      >
+                        {msg.content}
                       </div>
+
+                      {/* Avatar (User) */}
+                      {msg.role === "user" && (
+                        <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0 mt-1">
+                          <User className="w-4 h-4 text-slate-500" />
+                        </div>
+                      )}
                     </motion.div>
                   ))}
-                </AnimatePresence>
-                {loading && (
-                  <div className="flex justify-start">
-                    <div className="flex gap-3 max-w-[80%]">
-                      <Avatar icon={<RobotOutlined />} className="bg-emerald-600 flex-shrink-0" />
-                      <div className="bg-white px-4 py-3 rounded-2xl rounded-tl-none border border-gray-100 shadow-sm flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" />
-                        <span
-                          className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"
-                          style={{ animationDelay: "0.2s" }}
-                        />
-                        <span
-                          className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"
-                          style={{ animationDelay: "0.4s" }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-                <div ref={messagesEndRef} />
-              </div>
 
-              {/* Input Area */}
-              <div className="p-4 bg-white border-t border-gray-100">
-                <div className="relative">
-                  <Input
-                    value={input}
-                    onChange={e => setInput(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder="Ask something about your document..."
-                    size="large"
-                    className="pr-12 rounded-xl border-gray-200 hover:border-blue-400 focus:border-blue-500 focus:shadow-none font-montserrat"
-                    disabled={loading || !file}
-                  />
-                  <Button
-                    type="text"
-                    icon={<SendOutlined />}
-                    onClick={handleSendMessage}
-                    disabled={!input.trim() || loading || !file}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                  />
+                  {/* Loading Indicator */}
+                  {loading && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="flex gap-4"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-indigo-500/20 text-white mt-1">
+                        <BrainCircuit className="w-4 h-4" />
+                      </div>
+                      <div className="bg-white px-6 py-4 rounded-2xl rounded-tl-none border border-slate-100 shadow-sm flex items-center gap-2">
+                        <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" />
+                        <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce delay-100" />
+                        <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce delay-200" />
+                      </div>
+                    </motion.div>
+                  )}
+                  <div ref={messagesEndRef} />
                 </div>
-                <div className="text-center mt-2">
-                  <span className="text-[10px] text-gray-400">
-                    AI can make mistakes. Please verify important information.
-                  </span>
+
+                {/* Input Area */}
+                <div className="p-4 md:p-6 bg-white border-t border-slate-100">
+                  <div className="max-w-4xl mx-auto relative group">
+                    <TextArea
+                      value={input}
+                      onChange={e => setInput(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      placeholder="Ask a question about your document..."
+                      autoSize={{ minRows: 1, maxRows: 6 }}
+                      className="!pr-14 !pl-6 !py-4 !rounded-2xl !bg-slate-50 !border-slate-200 focus:!bg-white focus:!border-indigo-500 hover:!border-indigo-300 !text-slate-800 !text-base !resize-none !shadow-inner transition-all"
+                      disabled={loading}
+                    />
+                    <Button
+                      type="primary"
+                      shape="circle"
+                      size="large"
+                      icon={
+                        loading ? (
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                          <ArrowRight className="w-5 h-5" />
+                        )
+                      }
+                      onClick={handleSendMessage}
+                      disabled={!input.trim() || loading}
+                      className={`absolute right-2 bottom-2 !flex !items-center !justify-center !w-10 !h-10 !border-0 !shadow-lg ${
+                        !input.trim() || loading
+                          ? "!bg-slate-200 !text-slate-400"
+                          : "!bg-gradient-to-r !from-indigo-600 !to-violet-600 !text-white hover:!scale-110"
+                      } transition-all duration-300`}
+                    />
+                  </div>
+                  <div className="text-center mt-3">
+                    <p className="text-xs text-slate-400">
+                      AI can assist with key findings, summaries, and data extraction.
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </div>
-          )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
-      </motion.div>
+      </div>
+
+      {/* Global Style Override for Ant Design Dragger */}
+      <style>{`
+        .ant-upload-wrapper .ant-upload-drag {
+           background: transparent !important;
+           border: 0 !important;
+        }
+        .ant-upload-wrapper .ant-upload-drag .ant-upload {
+           padding: 0 !important;
+        }
+      `}</style>
     </div>
   )
 }

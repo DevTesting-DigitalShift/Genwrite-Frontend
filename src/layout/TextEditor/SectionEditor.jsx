@@ -46,13 +46,10 @@ import {
   Sparkles,
 } from "lucide-react"
 import { Tooltip, message, Modal, Input, Button, Dropdown, Popover, Select } from "antd"
-import { generateImage, generateAltText, enhanceImage } from "@api/imageGalleryApi"
-import { COSTS } from "@/data/blogData"
+import ImageModal from "@components/ImageModal"
 import { useSelector } from "react-redux"
-import { AIBubbleMenu } from "./AIBubbleMenu"
 import { useEditorContext } from "./EditorContext"
-import LoadingScreen from "@components/UI/LoadingScreen"
-import ImageGalleryPicker from "@components/ImageGalleryPicker"
+import { AIBubbleMenu } from "./AIBubbleMenu"
 
 const ToolbarButton = ({ active, onClick, disabled, children, title }) => (
   <Tooltip title={title}>
@@ -85,7 +82,6 @@ const SectionEditor = ({
   const [linkUrl, setLinkUrl] = useState("")
   const [linkText, setLinkText] = useState("")
   const [imageModalOpen, setImageModalOpen] = useState(false)
-  const [imageModalView, setImageModalView] = useState("main")
   const [imageUrl, setImageUrl] = useState("")
   const [imageAltText, setImageAltText] = useState("")
   const [selectedLink, setSelectedLink] = useState(null)
@@ -117,21 +113,6 @@ const SectionEditor = ({
   const [youtubeUrl, setYoutubeUrl] = useState("")
   const [youtubeTitle, setYoutubeTitle] = useState("")
   const [youtubeError, setYoutubeError] = useState("")
-
-  // AI Generation State
-  const [genForm, setGenForm] = useState({
-    prompt: "",
-    style: "photorealistic",
-    aspectRatio: "16:9", // Default landscape for blog
-    imageSize: "1k",
-  })
-
-  // Enhancement state
-  const [enhanceForm, setEnhanceForm] = useState({
-    prompt: "",
-    style: "photorealistic",
-    imageSize: "1k",
-  })
 
   // Auth & Credits
   const { user } = useSelector(state => state.auth)
@@ -217,7 +198,11 @@ const SectionEditor = ({
         const img = event.target.closest("img")
         if (img) {
           event.preventDefault()
-          const imageData = { src: img.src, alt: img.alt || "", element: img }
+          // Use posAtDOM to get the precise position of the image node
+          const imgPos = view.posAtDOM(img)
+
+          const imageData = { src: img.src, alt: img.alt || "", element: img, pos: imgPos }
+
           setSelectedImage(imageData)
           setSelectedLink(null)
           setImageEditMode(false)
@@ -381,14 +366,7 @@ const SectionEditor = ({
   const handleAddImage = () => {
     setImageUrl("")
     setImageAltText("")
-    setImageModalView("main")
     setImageModalOpen(true)
-  }
-
-  const handleSelectFromGallery = (url, alt) => {
-    setImageUrl(url)
-    setImageAltText(alt || "")
-    setImageModalView("main")
   }
 
   const confirmAddImage = () => {
@@ -461,16 +439,31 @@ const SectionEditor = ({
 
   const deleteSelectedImage = () => {
     if (selectedImage && editor) {
-      // Find and delete the image node
       const { state } = editor
       let imagePos = null
 
-      state.doc.descendants((node, pos) => {
-        if (node.type.name === "image" && node.attrs.src === selectedImage.src) {
-          imagePos = pos
-          return false
+      // Use precise position if available from click event
+      if (selectedImage.pos !== undefined && selectedImage.pos !== null) {
+        // Validation: Check if the node at this position is indeed an image and matches
+        try {
+          const node = state.doc.nodeAt(selectedImage.pos)
+          if (node && node.type.name === "image" && node.attrs.src === selectedImage.src) {
+            imagePos = selectedImage.pos
+          }
+        } catch (e) {
+          // fallback to scan
         }
-      })
+      }
+
+      // Fallback: Scan if pos is invalid or not found
+      if (imagePos === null) {
+        state.doc.descendants((node, pos) => {
+          if (node.type.name === "image" && node.attrs.src === selectedImage.src) {
+            imagePos = pos
+            return false
+          }
+        })
+      }
 
       if (imagePos !== null) {
         editor
@@ -478,6 +471,10 @@ const SectionEditor = ({
           .focus()
           .deleteRange({ from: imagePos, to: imagePos + 1 })
           .run()
+
+        // Explicitly update parent state
+        onChange(editor.getHTML())
+
         setSelectedImage(null)
         message.success("Image deleted")
       }
@@ -1189,436 +1186,37 @@ const SectionEditor = ({
         </div>
       </Modal>
 
-      {/* Image Modal with Gallery Picker */}
-      <Modal
-        title={
-          <div className="flex items-center justify-between gap-3 pr-8">
-            <div className="flex items-center gap-2">
-              <ImageIcon className="w-5 h-5 text-blue-600" />
-              <span className="font-semibold text-gray-800">
-                {imageModalView === "generate"
-                  ? "Generate Image"
-                  : imageModalView === "enhance"
-                    ? "Enhance Image"
-                    : imageModalView === "gallery"
-                      ? "Select from Gallery"
-                      : "Add Image"}
-              </span>
-            </div>
-          </div>
-        }
+      {/* Image Modal using Reusable Component */}
+      <ImageModal
         open={imageModalOpen}
         onCancel={() => {
           setImageModalOpen(false)
-          setImageModalView("main")
-          // Clear prompts
-          setGenForm(prev => ({ ...prev, prompt: "" }))
-          setEnhanceForm(prev => ({ ...prev, prompt: "" }))
+          setImageUrl("")
+          setImageAltText("")
         }}
-        footer={null}
-        width={imageModalView === "gallery" ? 1000 : 600}
-        centered
-        className="responsive-image-modal"
-        bodyStyle={{ padding: 0, maxHeight: "85vh", overflow: "hidden" }}
-      >
-        <div className="flex flex-col h-[70vh] bg-gray-50/50 overflow-y-auto custom-scroll">
-          {/* VIEW: MAIN */}
-          {imageModalView === "main" && (
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              {/* Image Preview & Actions */}
-              <div className="rounded-xl">
-                <div className="relative group min-h-[200px] flex items-center justify-center bg-gray-100 rounded-lg overflow-hidden border border-dashed border-gray-300">
-                  {imageUrl ? (
-                    <img
-                      src={imageUrl}
-                      alt="Preview"
-                      className="w-full h-full max-h-[300px] object-contain"
-                    />
-                  ) : (
-                    <div className="text-gray-400 flex flex-col items-center gap-2">
-                      <ImageIcon className="w-10 h-10 opacity-50" />
-                      <span className="text-sm">No image selected</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Actions Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
-                  <Button
-                    block
-                    className="h-auto py-2 flex flex-col items-center justify-center gap-1 hover:border-purple-300 hover:text-purple-600"
-                    onClick={() => setImageModalView("gallery")}
-                  >
-                    <ImageIcon className="w-4 h-4" />
-                    <span className="text-xs">Gallery</span>
-                  </Button>
-                  <Button
-                    block
-                    className="h-auto py-2 flex flex-col items-center justify-center gap-1 hover:border-blue-300 hover:text-blue-600"
-                    onClick={() => setImageModalView("generate")}
-                  >
-                    <Sparkles className="w-4 h-4" />
-                    <span className="text-xs">Generate AI</span>
-                  </Button>
-                  <Button
-                    block
-                    disabled={!imageUrl}
-                    className="h-auto py-2 flex flex-col items-center justify-center gap-1 hover:border-indigo-300 hover:text-indigo-600 disabled:opacity-50"
-                    onClick={() => {
-                      setEnhanceForm(prev => ({ ...prev, prompt: imageAltText || "" }))
-                      setImageModalView("enhance")
-                    }}
-                  >
-                    <Sparkles className="w-4 h-4" />
-                    <span className="text-xs">Enhance</span>
-                  </Button>
-                  <Button
-                    block
-                    danger
-                    disabled={!imageUrl}
-                    className="h-auto py-2 flex flex-col items-center justify-center gap-1"
-                    onClick={() => {
-                      setImageUrl("")
-                      setImageAltText("")
-                      message.success("Image removed")
-                    }}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    <span className="text-xs">Clear</span>
-                  </Button>
-                </div>
-              </div>
-
-              {/* URL & Alt Text Inputs */}
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
-                  <Input
-                    value={imageUrl}
-                    onChange={e => setImageUrl(e.target.value)}
-                    placeholder="https://example.com/image.jpg"
-                    size="large"
-                  />
-                </div>
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Alt Text <span className="text-gray-400 font-normal">(Optional)</span>
-                    </label>
-                    {imageUrl && (
-                      <Button
-                        type="text"
-                        size="small"
-                        className="text-xs flex items-center gap-1 text-blue-600 hover:bg-blue-50"
-                        onClick={async () => {
-                          const credits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
-                          if (credits < COSTS.ALT_TEXT) {
-                            message.error(`Insufficient credits. Need ${COSTS.ALT_TEXT}.`)
-                            return
-                          }
-                          const hide = message.loading("Generating alt text...", 0)
-                          try {
-                            const response = await generateAltText({ imageUrl })
-                            const alt = response.altText || response.data?.altText
-                            if (alt) {
-                              setImageAltText(alt)
-                              message.success("Alt text generated!")
-                            }
-                          } catch (err) {
-                            message.error("Failed to generate alt text")
-                          } finally {
-                            hide()
-                          }
-                        }}
-                      >
-                        <Sparkles className="w-3 h-3" /> Auto-Generate
-                      </Button>
-                    )}
-                  </div>
-                  <Input.TextArea
-                    value={imageAltText}
-                    onChange={e => setImageAltText(e.target.value)}
-                    placeholder="Describe the image for SEO..."
-                    rows={4}
-                    className="resize-none"
-                  />
-                </div>
-
-                {/* Primary Action Button (Insert) */}
-                <div className="pt-2">
-                  <Button
-                    type="primary"
-                    block
-                    size="large"
-                    onClick={confirmAddImage}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    Insert Image
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* VIEW: GALLERY */}
-          {imageModalView === "gallery" && (
-            <div className="flex-1 overflow-hidden">
-              <ImageGalleryPicker onSelect={handleSelectFromGallery} selectedImageUrl={imageUrl} />
-            </div>
-          )}
-
-          {/* VIEW: GENERATE FORM */}
-          {imageModalView === "generate" && (
-            <div className="flex-1 p-6 flex flex-col">
-              <div className="flex-1 max-w-lg mx-auto w-full space-y-6">
-                <div className="text-center mb-6">
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <Sparkles className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900">Generate New Image</h3>
-                  <p className="text-sm text-gray-500">
-                    Describe your vision and AI will create it.
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Prompt</label>
-                  <Input.TextArea
-                    placeholder="e.g. A futuristic city skyline at sunset, cyberpunk style..."
-                    value={genForm.prompt}
-                    onChange={e => setGenForm({ ...genForm, prompt: e.target.value })}
-                    rows={4}
-                    size="large"
-                    className="text-base"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Style</label>
-                    <Select
-                      value={genForm.style}
-                      onChange={val => setGenForm({ ...genForm, style: val })}
-                      className="w-full"
-                      size="large"
-                      options={[
-                        { value: "photorealistic", label: "Photorealistic" },
-                        { value: "anime", label: "Anime" },
-                        { value: "digital-art", label: "Digital Art" },
-                        { value: "oil-painting", label: "Oil Painting" },
-                        { value: "cinematic", label: "Cinematic" },
-                      ]}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Aspect Ratio
-                    </label>
-                    <Select
-                      value={genForm.aspectRatio}
-                      onChange={val => setGenForm({ ...genForm, aspectRatio: val })}
-                      className="w-full"
-                      size="large"
-                      options={[
-                        { value: "1:1", label: "Square (1:1)" },
-                        { value: "16:9", label: "Landscape (16:9)" },
-                        { value: "9:16", label: "Portrait (9:16)" },
-                        { value: "4:3", label: "Standard (4:3)" },
-                        { value: "3:2", label: "Classic (3:2)" },
-                        { value: "5:4", label: "Traditional (5:4)" },
-                        { value: "21:9", label: "Ultrawide (21:9)" },
-                      ]}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Quality</label>
-                    <Select
-                      value={genForm.imageSize}
-                      onChange={val => setGenForm({ ...genForm, imageSize: val })}
-                      className="w-full"
-                      size="large"
-                      options={[
-                        { value: "1k", label: "Standard (1K)" },
-                        { value: "2k", label: "High Res (2K)" },
-                        { value: "4k", label: "Ultra (4K)" },
-                      ]}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Footer Actions */}
-              <div className="border-t p-4 flex justify-end gap-3 bg-white">
-                <Button onClick={() => setImageModalView("main")}>Cancel</Button>
-                <Button
-                  type="primary"
-                  className="bg-blue-600"
-                  onClick={async () => {
-                    if (user?.usage?.aiImages >= user?.usageLimits?.aiImages) {
-                      message.error("You have reached your AI Image generation limit.")
-                      return
-                    }
-
-                    const credits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
-                    if (credits < COSTS.GENERATE) {
-                      message.error(`Insufficient credits. Need ${COSTS.GENERATE} credits.`)
-                      return
-                    }
-
-                    if (!genForm.prompt.trim()) {
-                      message.error("Please enter a prompt")
-                      return
-                    }
-
-                    setImageModalView("generating")
-                    try {
-                      const response = await generateImage(genForm)
-                      const newImage = response.image || response.data || response
-                      if (newImage && newImage.url) {
-                        setGeneratedImageTemp(newImage)
-                        setImageUrl(newImage.url)
-                        setImageAltText(genForm.prompt)
-                        setGenForm(prev => ({ ...prev, prompt: "" })) // Clear prompt
-                        message.success("Image generated successfully!")
-                        setImageModalView("main")
-                      }
-                    } catch (err) {
-                      console.error(err)
-                      message.error("Failed to generate image")
-                      setImageModalView("generate")
-                    }
-                  }}
-                >
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Generate ({COSTS.GENERATE}c)
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* VIEW: ENHANCE FORM */}
-          {imageModalView === "enhance" && (
-            <div className="flex-1 p-6 flex flex-col">
-              <div className="flex-1 max-w-lg mx-auto w-full space-y-6">
-                {/* Preview of source */}
-                <div className="flex justify-center mb-4">
-                  <img
-                    src={imageUrl}
-                    alt="Source"
-                    className="h-full object-contain rounded border bg-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Instruction
-                  </label>
-                  <Input.TextArea
-                    placeholder="e.g. Make it higher resolution, fix lighting..."
-                    value={enhanceForm.prompt}
-                    onChange={e => setEnhanceForm({ ...enhanceForm, prompt: e.target.value })}
-                    rows={3}
-                    size="large"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Style</label>
-                  <Select
-                    value={enhanceForm.style}
-                    onChange={val => setEnhanceForm({ ...enhanceForm, style: val })}
-                    className="w-full"
-                    size="large"
-                    options={[
-                      { value: "photorealistic", label: "Photorealistic" },
-                      { value: "anime", label: "Anime" },
-                      { value: "digital-art", label: "Digital Art" },
-                      { value: "oil-painting", label: "Oil Painting" },
-                      { value: "cinematic", label: "Cinematic" },
-                    ]}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Quality</label>
-                  <Select
-                    value={enhanceForm.imageSize}
-                    onChange={val => setEnhanceForm({ ...enhanceForm, imageSize: val })}
-                    className="w-full"
-                    size="large"
-                    options={[
-                      { value: "1k", label: "Standard (1K)" },
-                      { value: "2k", label: "High Res (2K)" },
-                      { value: "4k", label: "Ultra (4K)" },
-                    ]}
-                  />
-                </div>
-              </div>
-
-              {/* Footer Actions */}
-              <div className="border-t p-4 pb-0 flex justify-end gap-3 bg-white">
-                <Button onClick={() => setImageModalView("main")}>Cancel</Button>
-                <Button
-                  type="primary"
-                  className="bg-purple-600"
-                  onClick={async () => {
-                    if (!imageUrl) {
-                      message.error("No image selected to enhance")
-                      return
-                    }
-
-                    const credits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
-                    if (credits < COSTS.ENHANCE) {
-                      message.error(`Insufficient credits. Need ${COSTS.ENHANCE} credits.`)
-                      return
-                    }
-
-                    if (!enhanceForm.prompt.trim()) {
-                      message.error("Please enter an instruction")
-                      return
-                    }
-
-                    setImageModalView("generating")
-                    try {
-                      // Adjust enhance logic based on your API
-                      const response = await enhanceImage({
-                        imageUrl: imageUrl,
-                        prompt: enhanceForm.prompt,
-                        style: enhanceForm.style,
-                        quality: enhanceForm.imageSize,
-                      })
-                      const newImage = response.image || response.data || response // Adjust based on API response structure
-                      if (newImage && newImage.url) {
-                        setImageUrl(newImage.url)
-                        setEnhanceForm(prev => ({ ...prev, prompt: "" })) // Clear prompt
-                        message.success("Image enhanced successfully!")
-                        setImageModalView("main")
-                      }
-                    } catch (err) {
-                      console.error(err)
-                      message.error("Failed to enhance image")
-                      setImageModalView("enhance")
-                    }
-                  }}
-                >
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Enhance ({COSTS.ENHANCE}c)
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* VIEW: LOADING (Transient) */}
-          {imageModalView === "generating" && (
-            <div className="flex-1 flex flex-col items-center justify-center p-6 space-y-4 z-[999]">
-              <LoadingScreen message="Creating your masterpiece..." />
-              <p className="text-gray-500 text-sm max-w-xs text-center animate-pulse">
-                This may take 10-20 seconds. Please wait.
-              </p>
-            </div>
-          )}
-        </div>
-      </Modal>
+        onSave={(url, alt) => {
+          if (!url) {
+            message.error("Please select or generate an image")
+            return
+          }
+          let finalUrl = url
+          if (!/^https?:\/\//i.test(finalUrl)) {
+            finalUrl = "https://" + finalUrl
+          }
+          editor
+            .chain()
+            .focus()
+            .setImage({ src: finalUrl, alt: alt || "" })
+            .run()
+          setImageModalOpen(false)
+          setImageUrl("")
+          setImageAltText("")
+          message.success("Image added")
+        }}
+        initialUrl={imageUrl}
+        initialAlt={imageAltText}
+        title="Add Image to Section"
+      />
 
       {/* Edit Link Modal - Comprehensive version */}
       <Modal

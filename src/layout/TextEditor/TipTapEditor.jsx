@@ -53,16 +53,13 @@ import "./editor.css"
 import { VideoEmbed } from "@/extensions/VideoEmbed"
 import { Iframe } from "@/extensions/IframeExtension"
 import LoadingScreen from "@components/UI/LoadingScreen"
-import { computeCost } from "@/data/pricingConfig"
-import { COSTS } from "@/data/blogData"
 import { Table } from "@tiptap/extension-table"
 import TableRow from "@tiptap/extension-table-row"
 import TableCell from "@tiptap/extension-table-cell"
 import TableHeader from "@tiptap/extension-table-header"
 import Heading from "@tiptap/extension-heading"
-import ImageGalleryPicker from "@components/ImageGalleryPicker"
-import { generateImage, generateAltText } from "@api/imageGalleryApi"
 import { AIBubbleMenu } from "./AIBubbleMenu"
+import ImageModal from "@components/ImageModal"
 
 const FONT_OPTIONS = [
   { label: "Arial", value: "font-arial" },
@@ -83,16 +80,10 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
   const [linkUrl, setLinkUrl] = useState("")
   const [imageUrl, setImageUrl] = useState("")
   const [imageAlt, setImageAlt] = useState("")
-  const [imageModalView, setImageModalView] = useState("main")
-  const [generatedImageTemp, setGeneratedImageTemp] = useState(null)
-  const [genForm, setGenForm] = useState({
-    prompt: "",
-    style: "photorealistic",
-    aspectRatio: "1:1",
-  })
+  const [editingImageSrc, setEditingImageSrc] = useState(null)
+
+  // Image modal state
   const [editorReady, setEditorReady] = useState(false)
-  const [editImageModalOpen, setEditImageModalOpen] = useState(false)
-  const [selectedImage, setSelectedImage] = useState(null)
   const [linkPreview, setLinkPreview] = useState(null)
   const [linkPreviewPos, setLinkPreviewPos] = useState(null)
   const [linkPreviewUrl, setLinkPreviewUrl] = useState(null)
@@ -111,12 +102,24 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
 
   const markdownToHtml = useCallback(markdown => {
     if (!markdown) return "<p></p>"
-    const rawHtml = marked.parse(
-      markdown
-        .replace(/!\[\s*["']?(.*?)["']?\s*\]\((.*?)\)/g, (_, alt, url) => `![${alt}](${url})`)
-        .replace(/'/g, "'"),
-      { gfm: true, breaks: true }
-    )
+    // Check if content looks like HTML (starts with common tags like <p, <div, <h, <section, <article)
+    // or contains high density of HTML tags vs markdown symbols
+    const trimmed = markdown.trim()
+    const isHtml =
+      /^\s*<(p|div|h[1-6]|section|article|table|ul|ol|blockquote|iframe|figure)/i.test(trimmed) ||
+      (trimmed.includes("<") &&
+        trimmed.includes(">") &&
+        !trimmed.includes("## ") &&
+        !trimmed.includes("**"))
+
+    const rawHtml = isHtml
+      ? markdown
+      : marked.parse(
+          markdown
+            .replace(/!\[\s*["']?(.*?)["']?\s*\]\((.*?)\)/g, (_, alt, url) => `![${alt}](${url})`)
+            .replace(/'/g, "'"),
+          { gfm: true, breaks: true }
+        )
     return DOMPurify.sanitize(rawHtml, {
       ADD_TAGS: ["iframe", "div", "table", "th", "td", "tr"],
       ADD_ATTR: [
@@ -216,6 +219,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
     safeEditorAction(() => {
       setImageUrl("")
       setImageAlt("")
+      setEditingImageSrc(null)
       setImageModalOpen(true)
     })
   }, [safeEditorAction])
@@ -244,74 +248,17 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
     }
   }, [linkUrl, normalEditor])
 
-  const handleConfirmImage = useCallback(() => {
-    if (!imageUrl || !/https?:\/\//i.test(imageUrl)) {
-      message.error("Enter a valid image URL.")
-      return
-    }
-    if (normalEditor) {
-      normalEditor.chain().focus().setImage({ src: imageUrl, alt: imageAlt }).run()
-      setImageModalOpen(false)
-      message.success("Image added.")
-    }
-  }, [imageUrl, imageAlt, normalEditor])
+  // handleConfirmImage is now handled by ImageModal's onSave prop
 
   const handleImageClick = useCallback(event => {
     if (event.target.tagName === "IMG") {
       const { src, alt } = event.target
-      setSelectedImage({ src, alt: alt || "" })
+      setImageUrl(src)
       setImageAlt(alt || "")
-      setEditImageModalOpen(true)
+      setEditingImageSrc(src)
+      setImageModalOpen(true)
     }
   }, [])
-
-  const handleConfirmEditImage = useCallback(() => {
-    if (!selectedImage || !imageAlt) {
-      message.error("Alt text is required.")
-      return
-    }
-    if (normalEditor) {
-      let updated = false
-      normalEditor.state.doc.descendants((node, pos) => {
-        if (node.type.name === "image" && node.attrs.src === selectedImage.src) {
-          normalEditor
-            .chain()
-            .focus()
-            .setNodeSelection(pos)
-            .setImage({ src: selectedImage.src, alt: imageAlt })
-            .run()
-          updated = true
-        }
-      })
-      if (updated) {
-        message.success("Image alt text updated.")
-        setEditImageModalOpen(false)
-        setSelectedImage(null)
-        setImageAlt("")
-      }
-    }
-  }, [selectedImage, imageAlt, normalEditor])
-
-  const handleDeleteImage = useCallback(() => {
-    if (!selectedImage || !normalEditor) return
-    let deleted = false
-    normalEditor.state.doc.descendants((node, pos) => {
-      if (node.type.name === "image" && node.attrs.src === selectedImage.src) {
-        normalEditor
-          .chain()
-          .focus()
-          .deleteRange({ from: pos, to: pos + 1 })
-          .run()
-        deleted = true
-      }
-    })
-    if (deleted) {
-      setEditImageModalOpen(false)
-      setSelectedImage(null)
-      setImageAlt("")
-      message.success("Image deleted.")
-    }
-  }, [selectedImage, normalEditor])
 
   const handleAddTable = useCallback(() => {
     safeEditorAction(() => {
@@ -812,367 +759,67 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
         />
       </Modal>
 
-      <Modal
-        title={
-          <div className="flex items-center justify-between gap-3 pr-8">
-            <div className="flex items-center gap-2">
-              <ImageIcon className="w-5 h-5 text-purple-600" />
-              <span className="font-semibold text-gray-800">
-                {imageModalView === "generate"
-                  ? "Generate Image"
-                  : imageModalView === "gallery"
-                    ? "Select from Gallery"
-                    : "Add Image"}
-              </span>
-            </div>
-            {imageModalView !== "main" && (
-              <Button
-                size="small"
-                type="text"
-                icon={<Undo2 className="w-4 h-4" />}
-                onClick={() => setImageModalView("main")}
-              >
-                Back
-              </Button>
-            )}
-          </div>
-        }
+      <ImageModal
         open={imageModalOpen}
         onCancel={() => {
           setImageModalOpen(false)
-          setImageModalView("main")
+          setEditingImageSrc(null)
         }}
-        footer={null}
-        width={imageModalView === "gallery" ? 1000 : 600}
-        centered
-        className="responsive-image-modal"
-        bodyStyle={{ padding: 0, maxHeight: "85vh", overflow: "hidden" }}
-      >
-        <div className="flex flex-col h-[70vh] md:h-[600px] bg-gray-50/50">
-          {/* VIEW: MAIN */}
-          {imageModalView === "main" && (
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              {/* Image Preview & Actions */}
-              <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                <div className="relative group min-h-[200px] flex items-center justify-center bg-gray-100 rounded-lg overflow-hidden border border-dashed border-gray-300">
-                  {imageUrl ? (
-                    <img
-                      src={imageUrl}
-                      alt="Preview"
-                      className="w-full h-full max-h-[300px] object-contain"
-                    />
-                  ) : (
-                    <div className="text-gray-400 flex flex-col items-center gap-2">
-                      <ImageIcon className="w-10 h-10 opacity-50" />
-                      <span className="text-sm">No image selected</span>
-                    </div>
-                  )}
-                </div>
+        onSave={(url, alt) => {
+          if (normalEditor) {
+            normalEditor.chain().focus()
 
-                {/* Actions Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">
-                  <Button
-                    block
-                    className="h-auto py-2 flex flex-col items-center justify-center gap-1 hover:border-purple-300 hover:text-purple-600"
-                    onClick={() => setImageModalView("gallery")}
-                  >
-                    <ImageIcon className="w-4 h-4" />
-                    <span className="text-xs">Gallery</span>
-                  </Button>
-                  <Button
-                    block
-                    className="h-auto py-2 flex flex-col items-center justify-center gap-1 hover:border-blue-300 hover:text-blue-600"
-                    onClick={() => setImageModalView("generate")}
-                  >
-                    <Sparkles className="w-4 h-4" />
-                    <span className="text-xs">Generate AI</span>
-                  </Button>
-                  <Button
-                    block
-                    danger
-                    disabled={!imageUrl}
-                    className="h-auto py-2 flex flex-col items-center justify-center gap-1"
-                    onClick={() => {
-                      setImageUrl("")
-                      setImageAlt("")
-                      message.success("Image removed")
-                    }}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    <span className="text-xs">Clear</span>
-                  </Button>
-                </div>
-              </div>
-
-              {/* URL & Alt Text Inputs */}
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
-                  <Input
-                    prefix={<LinkIcon className="w-4 h-4 text-gray-400" />}
-                    value={imageUrl}
-                    onChange={e => setImageUrl(e.target.value)}
-                    placeholder="https://example.com/image.jpg"
-                    size="large"
-                  />
-                </div>
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Alt Text <span className="text-gray-400 font-normal">(Optional)</span>
-                    </label>
-                    {imageUrl && (
-                      <Button
-                        type="text"
-                        size="small"
-                        className="text-xs flex items-center gap-1 text-blue-600 hover:bg-blue-50"
-                        onClick={async () => {
-                          const credits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
-                          if (credits < COSTS.ALT_TEXT) {
-                            message.error(`Insufficient credits. Need ${COSTS.ALT_TEXT}.`)
-                            return
-                          }
-                          const hide = message.loading("Generating alt text...", 0)
-                          try {
-                            const response = await generateAltText({ imageUrl })
-                            const alt = response.altText || response.data?.altText
-                            if (alt) {
-                              setImageAlt(alt)
-                              message.success("Alt text generated!")
-                            }
-                          } catch (err) {
-                            message.error("Failed to generate alt text")
-                          } finally {
-                            hide()
-                          }
-                        }}
-                      >
-                        <Sparkles className="w-3 h-3" /> Auto-Generate
-                      </Button>
-                    )}
-                  </div>
-                  <Input.TextArea
-                    value={imageAlt}
-                    onChange={e => setImageAlt(e.target.value)}
-                    placeholder="Describe the image for SEO..."
-                    rows={2}
-                    className="resize-none"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* VIEW: GALLERY */}
-          {imageModalView === "gallery" && (
-            <div className="flex-1 overflow-hidden">
-              <ImageGalleryPicker
-                onSelect={(url, alt) => {
-                  setImageUrl(url)
-                  setImageAlt(alt || "")
-                  setImageModalView("main")
-                }}
-                selectedImageUrl={imageUrl}
-              />
-            </div>
-          )}
-
-          {/* VIEW: GENERATE FORM */}
-          {imageModalView === "generate" && (
-            <div className="flex-1 p-6 flex flex-col">
-              <div className="flex-1 max-w-lg mx-auto w-full space-y-6">
-                <div className="text-center mb-6">
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <Sparkles className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900">Generate New Image</h3>
-                  <p className="text-sm text-gray-500">
-                    Describe your vision and AI will create it.
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Prompt</label>
-                  <Input.TextArea
-                    placeholder="e.g. A futuristic city skyline at sunset, cyberpunk style..."
-                    value={genForm.prompt}
-                    onChange={e => setGenForm({ ...genForm, prompt: e.target.value })}
-                    rows={4}
-                    size="large"
-                    className="text-base"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Style</label>
-                    <Select
-                      value={genForm.style}
-                      onChange={val => setGenForm({ ...genForm, style: val })}
-                      className="w-full"
-                      size="large"
-                      options={[
-                        { value: "photorealistic", label: "Photorealistic" },
-                        { value: "anime", label: "Anime" },
-                        { value: "digital-art", label: "Digital Art" },
-                        { value: "oil-painting", label: "Oil Painting" },
-                        { value: "cinematic", label: "Cinematic" },
-                      ]}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Aspect Ratio
-                    </label>
-                    <Select
-                      value={genForm.aspectRatio}
-                      onChange={val => setGenForm({ ...genForm, aspectRatio: val })}
-                      className="w-full"
-                      size="large"
-                      options={[
-                        { value: "1:1", label: "Square (1:1)" },
-                        { value: "16:9", label: "Landscape (16:9)" },
-                        { value: "9:16", label: "Portrait (9:16)" },
-                      ]}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* VIEW: LOADING (Transient) */}
-          {imageModalView === "generating" && (
-            <div className="flex-1 flex flex-col items-center justify-center p-6 space-y-4">
-              <LoadingScreen message="Creating your masterpiece..." />
-              <p className="text-gray-500 text-sm max-w-xs text-center animate-pulse">
-                This may take 10-20 seconds. Please wait.
-              </p>
-            </div>
-          )}
-
-          {/* VIEW: PREVIEW RESULT */}
-          {imageModalView === "preview_generate" && (
-            <div className="flex-1 p-6 flex flex-col h-full">
-              <div className="flex-1 flex items-center justify-center bg-gray-100 rounded-xl border border-gray-200 overflow-hidden relative">
-                <img
-                  src={generatedImageTemp?.url}
-                  alt="Generated Result"
-                  className="w-full h-full object-contain"
-                />
-              </div>
-              <div className="mt-4 text-center">
-                <p className="text-gray-600 font-medium">{generatedImageTemp?.prompt}</p>
-                <p className="text-xs text-gray-400 mt-1">Generated by AI</p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* FOOTER ACTIONS */}
-        <div className="p-4 border-t bg-white flex items-center justify-between">
-          {imageModalView === "main" ? (
-            <>
-              <Button onClick={() => setImageModalOpen(false)}>Cancel</Button>
-              <Button type="primary" onClick={handleConfirmImage}>
-                Insert Image
-              </Button>
-            </>
-          ) : imageModalView === "generate" ? (
-            <>
-              <Button onClick={() => setImageModalView("main")}>Cancel</Button>
-              <Button
-                type="primary"
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 border-none"
-                icon={<Sparkles className="w-4 h-4" />}
-                onClick={async () => {
-                  const cost = COSTS.GENERATE
-                  const credits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
-                  if (user?.usage?.aiImages >= user?.usageLimits?.aiImages) {
-                    return message.error("Limit reached")
+            if (!url) {
+              // Handle Delete if url is empty (user cleared it)
+              if (editingImageSrc) {
+                let deleted = false
+                normalEditor.state.doc.descendants((node, pos) => {
+                  if (node.type.name === "image" && node.attrs.src === editingImageSrc) {
+                    normalEditor
+                      .chain()
+                      .deleteRange({ from: pos, to: pos + 1 })
+                      .run()
+                    deleted = true
+                    return false
                   }
-                  if (credits < cost) return message.error(`Need ${cost} credits`)
-                  if (!genForm.prompt.trim()) return message.error("Enter a prompt")
-
-                  setImageModalView("generating")
-                  try {
-                    const res = await generateImage(genForm)
-                    const img = res.image || res.data || res
-                    if (img?.url) {
-                      setGeneratedImageTemp({ ...img, prompt: genForm.prompt })
-                      setImageModalView("preview_generate")
-                    } else {
-                      throw new Error("No image data")
-                    }
-                  } catch (e) {
-                    console.error(e)
-                    message.error("Generation failed")
-                    setImageModalView("generate")
+                })
+                if (deleted) message.success("Image deleted")
+              }
+            } else {
+              // Handle Insert or Update
+              if (editingImageSrc) {
+                let updated = false
+                normalEditor.state.doc.descendants((node, pos) => {
+                  if (node.type.name === "image" && node.attrs.src === editingImageSrc) {
+                    normalEditor
+                      .chain()
+                      .setNodeSelection(pos)
+                      .setImage({ src: url, alt: alt || "" })
+                      .run()
+                    updated = true
+                    return false
                   }
-                }}
-              >
-                Generate ({COSTS.GENERATE}c)
-              </Button>
-            </>
-          ) : imageModalView === "preview_generate" ? (
-            <>
-              <Button onClick={() => setImageModalView("generate")}>Try Again</Button>
-              <Button
-                type="primary"
-                onClick={() => {
-                  setImageUrl(generatedImageTemp.url)
-                  setImageAlt(generatedImageTemp.prompt)
-                  setGeneratedImageTemp(null)
-                  setImageModalView("main")
-                }}
-              >
-                Use This Image
-              </Button>
-            </>
-          ) : (
-            <Button onClick={() => setImageModalView("main")}>Back</Button>
-          )}
-        </div>
-      </Modal>
-
-      <Modal
-        title="Edit Image"
-        open={editImageModalOpen}
-        onOk={handleConfirmEditImage}
-        onCancel={() => {
-          setEditImageModalOpen(false)
-          setSelectedImage(null)
+                })
+                if (updated) message.success("Image updated")
+              } else {
+                normalEditor
+                  .chain()
+                  .setImage({ src: url, alt: alt || "" })
+                  .run()
+                message.success("Image added")
+              }
+            }
+            setImageModalOpen(false)
+            setEditingImageSrc(null)
+            setImageUrl("")
+            setImageAlt("")
+          }
         }}
-        footer={
-          <Flex justify="end" gap={16}>
-            <Button
-              key="delete"
-              danger
-              icon={<Trash2 className="w-4 h-4" />}
-              onClick={handleDeleteImage}
-            >
-              Delete
-            </Button>
-            <Button key="cancel" onClick={() => setEditImageModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button key="ok" type="primary" onClick={handleConfirmEditImage}>
-              Update
-            </Button>
-          </Flex>
-        }
-        centered
-      >
-        <Input
-          value={imageAlt}
-          onChange={e => setImageAlt(e.target.value)}
-          placeholder="Alt text"
-          className="mt-4"
-        />
-        {selectedImage && (
-          <img src={selectedImage.src} alt={imageAlt} className="mt-4 rounded-lg max-w-full" />
-        )}
-      </Modal>
+        title={editingImageSrc ? "Edit Image" : "Add Image"}
+        initialUrl={imageUrl}
+        initialAlt={imageAlt}
+        imageSourceType={editingImageSrc ? "thumbnail" : "url"}
+      />
     </motion.div>
   )
 }

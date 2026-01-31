@@ -184,12 +184,21 @@ const PluginsMain = () => {
       try {
         let payload
         if (plugin.id === 112) {
+          // Validate authToken is not placeholder
+          if (authToken === "*".repeat(10)) {
+            message.error("Please re-enter your auth token to update the integration")
+            setLocalLoading(false)
+            return
+          }
           payload = { type: "SERVERENDPOINT", url, frontend, credentials: { authToken } }
         } else {
-          // For WordPress, send credentials if provided (new integration)
-          // If editing existing and fields are empty, backend might keep old ones,
-          // BUT here we enforce re-entering if not present/hidden.
-          // Logic: If user is adding new, send user/pass.
+          // Validate credentials are not placeholders
+          if (wpUsername === "**********" || wpPassword === "**********") {
+            message.error("Please re-enter your credentials to update the integration")
+            setLocalLoading(false)
+            return
+          }
+
           payload = {
             type: "WORDPRESS",
             url,
@@ -867,9 +876,6 @@ const PluginsMain = () => {
                         className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 disabled:bg-gray-100"
                       />
                     </div>
-                    <Text className="text-xs text-gray-500 mt-1">
-                      Use an Application Password, not your login password.
-                    </Text>
                     {isEditing && (
                       <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800 flex items-start gap-2">
                         <span className="font-semibold">Note:</span>

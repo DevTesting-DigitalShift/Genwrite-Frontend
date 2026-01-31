@@ -728,6 +728,20 @@ const SectionCard = ({ section, index }) => {
                       ]}
                     />
                   </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Aspect Ratio</label>
+                    <Select
+                      value={enhanceForm.dimensions || "1024x1024"}
+                      onChange={val => setEnhanceForm({ ...enhanceForm, dimensions: val })}
+                      className="w-full mt-1"
+                      options={[
+                        { value: "1024x1024", label: "Square (1:1)" },
+                        { value: "1280x720", label: "Landscape (16:9)" },
+                        { value: "720x1280", label: "Portrait (9:16)" },
+                        { value: "1024x768", label: "Standard (4:3)" },
+                      ]}
+                    />
+                  </div>
                 </div>
 
                 <div className="flex gap-2 justify-end mt-auto pt-4">
@@ -758,6 +772,7 @@ const SectionCard = ({ section, index }) => {
                         formData.append("prompt", enhanceForm.prompt)
                         formData.append("style", enhanceForm.style)
                         formData.append("quality", enhanceForm.quality || "2k") // Pass quality
+                        formData.append("dimensions", enhanceForm.dimensions || "1024x1024")
                         formData.append("imageUrl", imageUrl)
                         if (existingImageId) {
                           formData.append("existingImageId", existingImageId)

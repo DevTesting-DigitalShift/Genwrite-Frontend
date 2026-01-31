@@ -356,24 +356,24 @@ const TextEditorSidebar = ({
   const hasPublishedLinks = blogPostings.length > 0
 
   // Fetch blog postings when blog changes
-  useEffect(() => {
-    const fetchPostings = async () => {
-      if (!blog?._id) return
+  const fetchPostings = useCallback(async () => {
+    if (!blog?._id) return
 
-      setIsLoadingPostings(true)
-      try {
-        const postings = await getBlogPostings(blog._id)
-        setBlogPostings(postings)
-      } catch (error) {
-        console.error("Failed to fetch blog postings:", error)
-        // Don't show error message to user, just log it
-      } finally {
-        setIsLoadingPostings(false)
-      }
+    setIsLoadingPostings(true)
+    try {
+      const postings = await getBlogPostings(blog._id)
+      setBlogPostings(postings)
+    } catch (error) {
+      console.error("Failed to fetch blog postings:", error)
+      // Don't show error message to user, just log it
+    } finally {
+      setIsLoadingPostings(false)
     }
+  }, [blog?._id])
 
+  useEffect(() => {
     fetchPostings()
-  }, [blog?._id, posted]) // Re-fetch when blog changes or when new post is made
+  }, [fetchPostings, posted]) // Re-fetch when blog changes or when new post is made
 
   // Initialize data
   useEffect(() => {
@@ -817,6 +817,9 @@ const TextEditorSidebar = ({
         type: { platform: repostSettings.platform },
       })
       setIsRepostModalOpen(false)
+      // Refresh postings and other data after repost
+      await fetchPostings()
+      queryClient.invalidateQueries({ queryKey: ["blogs"] })
     } catch (error) {
       console.error("Repost failed", error)
     }
@@ -838,15 +841,12 @@ const TextEditorSidebar = ({
     [posted]
   )
 
-  const handleCategoryAdd = useCallback(
-    category => {
-      if (selectedCategory) return
-      setSelectedCategory(category)
-      setCategoryError(false)
-      setErrors(prev => ({ ...prev, category: "" }))
-    },
-    [selectedCategory]
-  )
+  const handleCategoryAdd = useCallback(category => {
+    // Remove restriction to allow explicit selection change even if something is selected
+    setSelectedCategory(category)
+    setCategoryError(false)
+    setErrors(prev => ({ ...prev, category: "" }))
+  }, [])
 
   const handleCategoryRemove = useCallback(() => {
     setSelectedCategory("")
@@ -1000,6 +1000,10 @@ const TextEditorSidebar = ({
       return
     }
 
+    // Check if this platform has been posted to before (Warning logic)
+    // Simplified logic: If the blog has ANY published links, warn about duplicate/new URL
+    const isDuplicatePost = hasPublishedLinks
+
     // 3. Execution
     const executePost = () => {
       // Direct post call with confirmation
@@ -1008,15 +1012,29 @@ const TextEditorSidebar = ({
         description: (
           <div className="text-sm text-gray-600">
             <p className="mb-2">Are you sure you want to publish this blog?</p>
-            <ul className="list-disc pl-4 space-y-1">
+            <ul className="list-disc pl-4 space-y-1 mb-3">
               <li>
-                Platform: <span className="font-semibold">{selectedIntegration?.label}</span>
+                Platform:{" "}
+                <span className="font-semibold">
+                  {PLATFORM_LABELS[selectedIntegration?.rawPlatform] ||
+                    selectedIntegration?.rawPlatform}
+                </span>
               </li>
               <li>
                 Category: <span className="font-semibold">{selectedCategory}</span>
               </li>
               {includeTableOfContents && <li>Includes Table of Contents</li>}
             </ul>
+
+            {isDuplicatePost && (
+              <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-[11px] text-amber-800 leading-tight">
+                <span className="font-bold flex items-center gap-1 mb-0.5">
+                  <Info className="w-3 h-3" /> Duplicate Warning
+                </span>
+                If you have already posted to this platform. Proceeding will generate a{" "}
+                <strong>new URL</strong> for the content.
+              </div>
+            )}
           </div>
         ),
         confirmText: isPosting ? "Publishing..." : "Confirm & Publish",
@@ -1028,6 +1046,9 @@ const TextEditorSidebar = ({
               includeTableOfContents,
               type: { platform: selectedIntegration?.rawPlatform }, // Use raw platform ID
             })
+            // Clean Refresh "Everything" related to postings
+            await fetchPostings()
+            queryClient.invalidateQueries({ queryKey: ["blogs"] })
           } catch (error) {
             console.error("Posting failed:", error)
             // Handle 400 Invalid Credentials specifically
@@ -1095,6 +1116,9 @@ const TextEditorSidebar = ({
     handlePopup,
     navigate,
     isPosting,
+    blogPostings,
+    fetchPostings,
+    queryClient,
   ])
 
   const addKeyword = useCallback(() => {
