@@ -208,7 +208,7 @@ const ImageModal = ({
       <div className="flex flex-col h-[70vh] md:h-[600px] bg-gray-50/50">
         {/* VIEW: MAIN */}
         {view === VIEWS.MAIN && (
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div className="flex-1 overflow-y-auto p-3 custom-scroll space-y-6">
             {/* Image Preview & Actions */}
             <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
               <div className="relative group min-h-[200px] flex items-center justify-center bg-gray-100 rounded-lg overflow-hidden border border-dashed border-gray-300">

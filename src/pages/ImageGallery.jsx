@@ -65,7 +65,7 @@ const ImageGallery = () => {
   const [loading, setLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize] = useState(20)
+  const [pageSize] = useState(40)
   const [totalImages, setTotalImages] = useState(0)
   const [minScore, setMinScore] = useState(0)
   const [selectedTags, setSelectedTags] = useState([])
@@ -245,15 +245,30 @@ const ImageGallery = () => {
       formData.append("imageUrl", previewImage.url)
 
       const response = await enhanceImage(formData)
-      const newImage = response.image || response.data || response
+      const newImage = response.data || response.image || response
 
       message.success("Image enhanced successfully!")
       setIsEnhanceMode(false) // Close inline enhance mode
       setEnhanceForm(prev => ({ ...prev, prompt: "" })) // Clear enhance input
 
       // Update preview with new enhanced image immediately
-      if (newImage) {
-        setPreviewImage(newImage)
+      if (newImage && newImage.url) {
+        // Force cache bust with timestamp
+        const timestamp = new Date().getTime()
+        const urlWithCacheBust = newImage.url.includes("?")
+          ? `${newImage.url}&t=${timestamp}`
+          : `${newImage.url}?t=${timestamp}`
+
+        // Merge with previous image to strictly preserve metadata (description, tags)
+        // while overwriting URL and ID
+        setPreviewImage(prev => ({ ...prev, ...newImage, url: urlWithCacheBust }))
+      } else {
+        // Fallback
+        console.warn("Unexpected enhance response structure:", response)
+        if (response && response.url) {
+          const timestamp = new Date().getTime()
+          setPreviewImage(prev => ({ ...prev, ...response, url: `${response.url}?t=${timestamp}` }))
+        }
       }
 
       dispatch(fetchUserThunk())
@@ -524,12 +539,12 @@ const ImageGallery = () => {
         </div>
 
         <div>
-          {/* Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {/* Masonry Grid */}
+          <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4">
             {images.map((image, index) => (
               <div
                 key={image._id}
-                className="break-inside-avoid relative group rounded-xl overflow-hidden cursor-pointer bg-gray-100"
+                className="break-inside-avoid relative group rounded-xl overflow-hidden cursor-pointer bg-gray-100 mb-4"
                 onClick={() => handleImageClick(image)}
               >
                 <img

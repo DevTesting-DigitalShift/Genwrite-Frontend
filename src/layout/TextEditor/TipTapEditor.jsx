@@ -175,12 +175,20 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
         },
       },
       onUpdate: ({ editor }) => {
+        if (!editorReady) return
         const html = editor.getHTML()
         const markdown = htmlToMarkdown(html)
         setContent(markdown)
+
         const normCurrent = normalizeContent(markdown)
         const normSaved = normalizeContent(lastSavedContent ?? "")
-        setUnsavedChanges(normCurrent !== normSaved)
+
+        // Avoid setting true on initial load if contents are effectively same
+        if (normCurrent !== normSaved) {
+          setUnsavedChanges(true)
+        } else {
+          setUnsavedChanges(false)
+        }
       },
     },
     [
@@ -190,6 +198,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
       setUnsavedChanges,
       lastSavedContent,
       normalizeContent,
+      editorReady,
     ]
   )
 
@@ -304,8 +313,13 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
     if (normalEditor && blog?.content) {
       const html = markdownToHtml(blog.content)
       normalEditor.commands.setContent(html, false)
-      setContent(blog.content)
-      setLastSavedContent(blog.content)
+
+      // Calculate round-trip content to prevent false unsaved changes
+      const currentHtml = normalEditor.getHTML()
+      const roundTripMarkdown = htmlToMarkdown(currentHtml)
+
+      setContent(roundTripMarkdown)
+      setLastSavedContent(roundTripMarkdown)
 
       // Scroll to top after content is loaded
       setTimeout(() => {

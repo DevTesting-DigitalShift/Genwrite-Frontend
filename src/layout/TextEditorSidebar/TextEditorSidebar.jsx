@@ -1005,78 +1005,41 @@ const TextEditorSidebar = ({
     const isDuplicatePost = hasPublishedLinks
 
     // 3. Execution
-    const executePost = () => {
-      // Direct post call with confirmation
-      handlePopup({
-        title: "Confirm Publishing",
-        description: (
-          <div className="text-sm text-gray-600">
-            <p className="mb-2">Are you sure you want to publish this blog?</p>
-            <ul className="list-disc pl-4 space-y-1 mb-3">
-              <li>
-                Platform:{" "}
-                <span className="font-semibold">
-                  {PLATFORM_LABELS[selectedIntegration?.rawPlatform] ||
-                    selectedIntegration?.rawPlatform}
+    const executePost = async () => {
+      try {
+        await onPost({
+          ...formData,
+          categories: selectedCategory, // Use the selected category from sidebar
+          includeTableOfContents,
+          type: { platform: selectedIntegration?.rawPlatform }, // Use raw platform ID
+        })
+        // Clean Refresh "Everything" related to postings
+        await fetchPostings()
+        queryClient.invalidateQueries({ queryKey: ["blogs"] })
+      } catch (error) {
+        console.error("Posting failed:", error)
+        // Handle 400 Invalid Credentials specifically
+        if (
+          error?.response?.status === 400 &&
+          (error?.response?.data?.message?.toLowerCase()?.includes("invalid credentials") ||
+            error?.response?.data?.message?.toLowerCase()?.includes("wordpress api"))
+        ) {
+          message.error({
+            content: (
+              <span>
+                WordPress API has changed. Kindly update your WordPress credentials.
+                <span
+                  className="underline cursor-pointer ml-1 font-bold"
+                  onClick={() => navigate("/integration")}
+                >
+                  Update Now
                 </span>
-              </li>
-              <li>
-                Category: <span className="font-semibold">{selectedCategory}</span>
-              </li>
-              {includeTableOfContents && <li>Includes Table of Contents</li>}
-            </ul>
-
-            {isDuplicatePost && (
-              <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-[11px] text-amber-800 leading-tight">
-                <span className="font-bold flex items-center gap-1 mb-0.5">
-                  <Info className="w-3 h-3" /> Duplicate Warning
-                </span>
-                If you have already posted to this platform. Proceeding will generate a{" "}
-                <strong>new URL</strong> for the content.
-              </div>
-            )}
-          </div>
-        ),
-        confirmText: isPosting ? "Publishing..." : "Confirm & Publish",
-        onConfirm: async () => {
-          try {
-            await onPost({
-              ...formData,
-              categories: selectedCategory, // Use the selected category from sidebar
-              includeTableOfContents,
-              type: { platform: selectedIntegration?.rawPlatform }, // Use raw platform ID
-            })
-            // Clean Refresh "Everything" related to postings
-            await fetchPostings()
-            queryClient.invalidateQueries({ queryKey: ["blogs"] })
-          } catch (error) {
-            console.error("Posting failed:", error)
-            // Handle 400 Invalid Credentials specifically
-            if (
-              error?.response?.status === 400 &&
-              (error?.response?.data?.message?.toLowerCase()?.includes("invalid credentials") ||
-                error?.response?.data?.message?.toLowerCase()?.includes("wordpress api"))
-            ) {
-              message.error({
-                content: (
-                  <span>
-                    WordPress API has changed. Kindly update your WordPress credentials.
-                    <span
-                      className="underline cursor-pointer ml-1 font-bold"
-                      onClick={() => navigate("/integration")}
-                    >
-                      Update Now
-                    </span>
-                  </span>
-                ),
-                duration: 5,
-              })
-              // Optional: Auto-navigate after a delay if preferred, but link is better UX
-              // setTimeout(() => navigate("/integration"), 2000)
-            }
-          }
-        },
-      })
+              </span>
+            ),
+            duration: 5,
+          })
+        }
+      }
     }
 
     if (unsavedChanges) {
@@ -1095,7 +1058,7 @@ const TextEditorSidebar = ({
         },
         onCancel: e => {
           // If user clicks "Post Without Saving" (which is typically the cancel button action in this context)
-          if (e?.source === "cancel") {
+          if (e?.source === "button") {
             executePost()
           }
         },
@@ -2048,7 +2011,7 @@ const TextEditorSidebar = ({
         </div>
 
         {/* Options/Features */}
-        {blog?.options && (
+        {blog?.options && Object.values(blog.options).some(Boolean) && (
           <div className="p-3 bg-white border rounded-lg">
             <div className="text-xs text-gray-500 mb-2">Features Enabled</div>
             <div className="space-y-1.5">

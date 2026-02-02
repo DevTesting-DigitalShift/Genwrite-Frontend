@@ -21,6 +21,8 @@ import { Button, Input, message, Upload as AntUpload, Avatar } from "antd"
 import { useDispatch, useSelector } from "react-redux"
 import { pdfChat, resetPdfChat } from "@/store/slices/toolsSlice"
 import { Helmet } from "react-helmet"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 
 const { Dragger } = AntUpload
 const { TextArea } = Input
@@ -49,12 +51,6 @@ const ChatWithPdf = () => {
   useEffect(() => {
     scrollToBottom()
   }, [messages, loading])
-
-  useEffect(() => {
-    if (error) {
-      message.error(error?.message || "An error occurred")
-    }
-  }, [error])
 
   const handleUpload = info => {
     const { status } = info.file
@@ -275,7 +271,13 @@ const ChatWithPdf = () => {
                         }
                       `}
                       >
-                        {msg.content}
+                        {msg.role === "model" ? (
+                          <div className="prose prose-sm max-w-none prose-slate">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                          </div>
+                        ) : (
+                          msg.content
+                        )}
                       </div>
 
                       {/* Avatar (User) */}
