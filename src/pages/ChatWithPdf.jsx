@@ -60,6 +60,14 @@ const ChatWithPdf = () => {
     const { status } = info.file
     if (status === "done") {
       const uploadedFile = info.file.originFileObj
+      // Size check: 2MB limit (2 * 1024 * 1024 bytes)
+      if (uploadedFile.size > 2 * 1024 * 1024) {
+        message.error(
+          `File is too large (${(uploadedFile.size / 1024 / 1024).toFixed(2)}MB). Max size is 2MB.`
+        )
+        return
+      }
+
       setFile(uploadedFile)
       message.success(`${uploadedFile.name} uploaded successfully!`)
       setMessages([
@@ -187,7 +195,7 @@ const ChatWithPdf = () => {
                           <Upload className="w-8 h-8 text-indigo-600" />
                         </div>
                         <h3 className="text-xl font-bold text-slate-900">Upload your PDF</h3>
-                        <p className="text-slate-500 mt-2">Up to 10MB • Auto-OCR included</p>
+                        <p className="text-slate-500 mt-2">Up to 2MB • Auto-OCR included</p>
                       </div>
 
                       <div className="relative group">
@@ -342,17 +350,6 @@ const ChatWithPdf = () => {
           </AnimatePresence>
         </div>
       </div>
-
-      {/* Global Style Override for Ant Design Dragger */}
-      <style>{`
-        .ant-upload-wrapper .ant-upload-drag {
-           background: transparent !important;
-           border: 0 !important;
-        }
-        .ant-upload-wrapper .ant-upload-drag .ant-upload {
-           padding: 0 !important;
-        }
-      `}</style>
     </div>
   )
 }
