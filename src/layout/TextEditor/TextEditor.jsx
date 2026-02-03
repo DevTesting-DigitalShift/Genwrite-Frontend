@@ -1492,7 +1492,6 @@ const TextEditor = ({
           {renderQuickSummary()}
           {renderFAQ()}
         </EditorProvider>
-
         {/* Thumbnail Edit Modal using Reusable Component */}
         <ImageModal
           open={thumbnailModalOpen}
@@ -1509,7 +1508,12 @@ const TextEditor = ({
             setThumbnailModalOpen(false)
             message.success("Thumbnail updated")
           }}
-          allowEnhance={true}
+          allowEnhance={
+            blog?.imageSource !== "stock" &&
+            !["pexels.com", "unsplash.com", "pixabay.com"].some(domain =>
+              blogThumbnail?.url?.includes(domain)
+            )
+          }
           imageSourceType="thumbnail"
         />
       </div>

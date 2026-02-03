@@ -23,6 +23,8 @@ import { pdfChat, resetPdfChat } from "@/store/slices/toolsSlice"
 import { Helmet } from "react-helmet"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
+import { checkSufficientCredits, getInsufficientCreditsPopup } from "@/utils/creditCheck"
+import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 
 const { Dragger } = AntUpload
 const { TextArea } = Input
@@ -85,8 +87,29 @@ const ChatWithPdf = () => {
     }, 0)
   }
 
+  const user = useSelector(state => state.auth.user)
+  const { handlePopup } = useConfirmPopup()
+
   const handleSendMessage = async () => {
     if (!input.trim() || !file) return
+
+    // Credit Check
+    const creditCheck = checkSufficientCredits(user, "tools.chatpdf", "gemini")
+    if (!creditCheck.hasEnough) {
+      const popupConfig = getInsufficientCreditsPopup(
+        creditCheck.required,
+        creditCheck.available,
+        "Chat with PDF"
+      )
+      handlePopup({
+        ...popupConfig,
+        onConfirm: () => {
+          // Navigate to pricing or handle confirm
+          window.location.href = "/pricing" // Or use navigate from router
+        },
+      })
+      return
+    }
 
     const userMessage = { id: Date.now(), role: "user", content: input, timestamp: new Date() }
     setMessages(prev => [...prev, userMessage])

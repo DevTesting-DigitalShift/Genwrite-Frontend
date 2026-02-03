@@ -344,7 +344,6 @@ export default function ToolboxPage() {
       action: () => navigate("/chat-with-pdf"),
       actionText: "Chat Now",
       credits: COSTS.CHAT_WITH_PDF + " /  message",
-      creditType: "tools.chatpdf",
       color: "from-red-500 to-orange-600",
     },
   ]
