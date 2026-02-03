@@ -6,7 +6,7 @@ const CLAUDE_MULTIPLIER = 2
 export const creditCostsWithGemini = Object.freeze({
   analysis: { competitors: 10, keywords: 1 },
   blog: { quick: 10, proofread: 5, single: 10, regenerate: 15 },
-  tools: { humanize: 10, outline: 5, boost: 10, metadata: 5, rewrite: 5, chatpdf: 5 },
+  tools: { humanize: 10, outline: 5, boost: 10, metadata: 5, rewrite: 5, chatpdf: 1 },
   aiImages: 10,
 })
 

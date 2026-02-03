@@ -366,7 +366,8 @@ const ChatWithPdf = () => {
                   </div>
                   <div className="text-center mt-3">
                     <p className="text-xs text-slate-400">
-                      AI can assist with key findings, summaries, and data extraction.
+                      AI can assist with key findings, summaries, and data extraction. (Cost: 1
+                      credit/message)
                     </p>
                   </div>
                 </div>

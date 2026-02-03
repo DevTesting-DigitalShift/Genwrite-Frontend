@@ -1270,6 +1270,27 @@ const TextEditorSidebar = ({
               Keywords
             </div>
           </div>
+          {/* GSC Stats */}
+          {blog?.statistics?.totalGSCClicks > 0 && (
+            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex flex-col items-center justify-center text-center group hover:bg-white hover:shadow-md transition-all">
+              <div className="text-2xl font-black text-gray-900 group-hover:text-green-600 transition-colors">
+                {blog.statistics.totalGSCClicks}
+              </div>
+              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                Total Clicks
+              </div>
+            </div>
+          )}
+          {blog?.statistics?.totalGSCImpressions > 0 && (
+            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex flex-col items-center justify-center text-center group hover:bg-white hover:shadow-md transition-all">
+              <div className="text-2xl font-black text-gray-900 group-hover:text-orange-600 transition-colors">
+                {blog.statistics.totalGSCImpressions}
+              </div>
+              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                Impressions
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Scores */}
@@ -2011,24 +2032,94 @@ const TextEditorSidebar = ({
         </div>
 
         {/* Options/Features */}
-        {blog?.options && Object.values(blog.options).some(Boolean) && (
-          <div className="p-3 bg-white border rounded-lg">
-            <div className="text-xs text-gray-500 mb-2">Features Enabled</div>
-            <div className="space-y-1.5">
-              {Object.entries(blog.options).map(
-                ([key, value]) =>
-                  value && (
-                    <div key={key} className="flex items-center gap-2 text-xs">
-                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-                      <span className="text-gray-700 capitalize">
-                        {key.replace(/([A-Z])/g, " $1").trim()}
-                      </span>
-                    </div>
-                  )
-              )}
-            </div>
+        {/* Options/Features - Redesigned */}
+        <div className="p-4 bg-white border border-gray-100 rounded-lg shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+              Feature Status
+            </span>
           </div>
-        )}
+
+          <div className="space-y-3">
+            {[
+              { key: "exactTitle", label: "Exact Title", value: blog?.options?.exactTitle },
+              {
+                key: "performKeywordResearch",
+                label: "Perform Keyword Research",
+                value: blog?.options?.performKeywordResearch,
+              },
+              {
+                key: "includeInterlinks",
+                label: "Include Interlinks",
+                value: blog?.options?.includeInterlinks,
+              },
+              {
+                key: "includeCompetitorResearch",
+                label: "Include Competitor Research",
+                value: blog?.options?.includeCompetitorResearch,
+              },
+              {
+                key: "addOutBoundLinks",
+                label: "Add Outbound Links",
+                value: blog?.options?.addOutBoundLinks,
+              },
+              { key: "includeFaqs", label: "Include FAQs", value: blog?.options?.includeFaqs },
+              { key: "addCTA", label: "Add CTA", value: blog?.options?.addCTA || blog?.addCTA },
+              {
+                key: "automaticPosting",
+                label: "Automatic Posting",
+                value: blog?.options?.automaticPosting,
+              },
+              {
+                key: "includeTableOfContents",
+                label: "Include Table Of Contents",
+                value: blog?.options?.includeTableOfContents,
+              },
+              {
+                key: "embedYouTubeVideos",
+                label: "Embed YouTube Videos",
+                value: blog?.options?.embedYouTubeVideos || blog?.embedYouTubeVideos,
+              },
+              {
+                key: "easyToUnderstand",
+                label: "Easy To Understand",
+                value: blog?.options?.easyToUnderstand || blog?.easyToUnderstand,
+              },
+              { key: "costCutter", label: "Cost Cutter", value: blog?.costCutter },
+              { key: "isCheckedBrand", label: "Brand Voice", value: blog?.isCheckedBrand },
+              { key: "isCheckedQuick", label: "Quick Summary", value: blog?.isCheckedQuick },
+            ].map((feature, idx) => (
+              <div
+                key={idx}
+                className="flex items-center justify-between p-2 bg-gray-50 rounded-lg border border-gray-100"
+              >
+                <span className="text-sm text-gray-700 font-medium">{feature.label}</span>
+                <div
+                  className={`
+                    flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border
+                    ${
+                      feature.value
+                        ? "bg-green-50 text-green-700 border-green-200"
+                        : "bg-gray-100 text-gray-500 border-gray-200"
+                    }
+                  `}
+                >
+                  {feature.value ? (
+                    <>
+                      <CheckCircle className="w-3 h-3" />
+                      <span>ON</span>
+                    </>
+                  ) : (
+                    <>
+                      <X className="w-3 h-3" />
+                      <span>OFF</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   )

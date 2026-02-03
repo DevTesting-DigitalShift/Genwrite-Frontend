@@ -52,6 +52,8 @@ import ContentDiffViewer from "../Editor/ContentDiffViewer"
 import "./editor.css"
 import { VideoEmbed } from "@/extensions/VideoEmbed"
 import { Iframe } from "@/extensions/IframeExtension"
+import { Figure, FigCaption } from "@/extensions/FigureExtension"
+import Link from "@tiptap/extension-link"
 import LoadingScreen from "@components/UI/LoadingScreen"
 import { Table } from "@tiptap/extension-table"
 import TableRow from "@tiptap/extension-table-row"
@@ -121,7 +123,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
           { gfm: true, breaks: true }
         )
     return DOMPurify.sanitize(rawHtml, {
-      ADD_TAGS: ["iframe", "div", "table", "th", "td", "tr"],
+      ADD_TAGS: ["iframe", "div", "table", "th", "td", "tr", "figure", "figcaption"],
       ADD_ATTR: [
         "allow",
         "allowfullscreen",
@@ -138,7 +140,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
   const htmlToMarkdown = useCallback(html => {
     if (!html) return ""
     const turndownService = new TurndownService({ headingStyle: "atx", bulletListMarker: "-" })
-    turndownService.keep(["p", "div", "iframe", "table", "tr", "th", "td"])
+    turndownService.keep(["p", "div", "iframe", "table", "tr", "th", "td", "figure", "figcaption"])
     return turndownService.turndown(html)
   }, [])
 
@@ -148,7 +150,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
         StarterKit.configure({ heading: false }),
         Heading.configure({ levels: [1, 2, 3, 4] }),
         Image.configure({
-          HTMLAttributes: { class: "rounded-lg mx-auto w-3/4 h-auto object-contain" },
+          HTMLAttributes: { class: "rounded-lg mx-auto w-full h-auto object-contain" },
         }),
         TextAlign.configure({ types: ["heading", "paragraph"] }),
         Table.configure({
@@ -166,6 +168,12 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
           HTMLAttributes: { class: "text-center font-medium border align-middle border-gray-400" },
         }),
         VideoEmbed,
+        Figure,
+        FigCaption,
+        Link.configure({
+          openOnClick: false,
+          HTMLAttributes: { class: "text-blue-600 hover:underline" },
+        }),
         // Iframe,
       ],
       content: "<p></p>",
@@ -802,19 +810,46 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
             } else {
               // Handle Insert or Update
               if (editingImageSrc) {
-                let updated = false
+                let targetPos = null
+                let figCaptionRange = null
+
                 normalEditor.state.doc.descendants((node, pos) => {
                   if (node.type.name === "image" && node.attrs.src === editingImageSrc) {
-                    normalEditor
-                      .chain()
-                      .setNodeSelection(pos)
-                      .setImage({ src: url, alt: alt || "" })
-                      .run()
-                    updated = true
+                    targetPos = pos
+
+                    // Check for parent Figure to remove citation if image changed
+                    if (url !== editingImageSrc) {
+                      const $pos = normalEditor.state.doc.resolve(pos)
+                      for (let d = $pos.depth; d > 0; d--) {
+                        const ancestor = $pos.node(d)
+                        if (ancestor.type.name === "figure") {
+                          ancestor.forEach((child, offset) => {
+                            if (child.type.name === "figcaption") {
+                              figCaptionRange = {
+                                from: $pos.start(d) + offset,
+                                to: $pos.start(d) + offset + child.nodeSize,
+                              }
+                            }
+                          })
+                          break
+                        }
+                      }
+                    }
                     return false
                   }
                 })
-                if (updated) message.success("Image updated")
+
+                if (targetPos !== null) {
+                  const tr = normalEditor.state.tr
+                  tr.setNodeMarkup(targetPos, undefined, { src: url, alt: alt || "" })
+
+                  if (figCaptionRange) {
+                    tr.delete(figCaptionRange.from, figCaptionRange.to)
+                  }
+
+                  normalEditor.view.dispatch(tr)
+                  message.success("Image updated")
+                }
               } else {
                 normalEditor
                   .chain()
@@ -833,6 +868,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
         initialUrl={imageUrl}
         initialAlt={imageAlt}
         imageSourceType={editingImageSrc ? "thumbnail" : "url"}
+        allowEnhance={blog?.imageSource !== "stock"}
       />
     </motion.div>
   )
