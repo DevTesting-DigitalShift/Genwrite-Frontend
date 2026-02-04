@@ -62,9 +62,9 @@ export const loginUser = createAsyncThunk(
 // 📝 Signup
 export const signupUser = createAsyncThunk(
   "auth/signupUser",
-  async ({ email, password, name, captchaToken }, { rejectWithValue }) => {
+  async ({ email, password, name, captchaToken, referralId }, { rejectWithValue }) => {
     try {
-      const { user, token } = await signup({ email, password, name, captchaToken })
+      const { user, token } = await signup({ email, password, name, captchaToken, referralId })
 
       if (token && user) {
         saveToken(token)
@@ -94,9 +94,9 @@ export const signupUser = createAsyncThunk(
 // Google Login
 export const googleLogin = createAsyncThunk(
   "auth/googleLogin",
-  async ({ access_token }, { rejectWithValue }) => {
+  async ({ access_token, referralId }, { rejectWithValue }) => {
     try {
-      const response = await loginWithGoogle({ access_token })
+      const response = await loginWithGoogle({ access_token, referralId })
 
       if (!response.success || !response.token || !response.user) {
         return rejectWithValue("Invalid Google login response")

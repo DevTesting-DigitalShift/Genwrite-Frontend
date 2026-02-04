@@ -212,8 +212,10 @@ const Profile = () => {
 
   const copyReferralCode = () => {
     if (!referralCode) return
-    navigator.clipboard.writeText(referralCode)
-    message.success("Referral code copied to clipboard!")
+    const baseUrl = import.meta.env.VITE_FRONTEND_URL || window.location.origin
+    const referralLink = `${baseUrl}/signup?referal=${referralCode}`
+    navigator.clipboard.writeText(referralLink)
+    message.success("Referral link copied to clipboard!")
   }
 
   const handleEmailPreferenceChange = async (key, checked) => {

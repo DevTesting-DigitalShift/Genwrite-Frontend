@@ -24,11 +24,7 @@ import Footer from "@components/Footer"
 import IceAnimation from "@components/IceAnimation"
 
 const Auth = ({ path }) => {
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-    name: "",
-  })
+  const [formData, setFormData] = useState({ email: "", password: "", name: "", referralId: "" })
   const [errors, setErrors] = useState({})
   const [showPassword, setShowPassword] = useState(false)
   const [isSignup, setIsSignup] = useState(path === "signup")
@@ -102,7 +98,9 @@ const Auth = ({ path }) => {
     flow: "implicit",
     redirect_uri: "https://app.genwrite.co/login",
     onSuccess: async tokenResponse => {
-      dispatch(googleLogin({ access_token: tokenResponse.access_token }))
+      dispatch(
+        googleLogin({ access_token: tokenResponse.access_token, referralId: formData.referralId })
+      )
         .unwrap()
         .then(data => {
           message.success("Google login successful!")
@@ -136,6 +134,7 @@ const Auth = ({ path }) => {
               password: formData.password,
               name: formData.name,
               captchaToken: recaptchaValue,
+              referralId: formData.referralId,
             })
           : loginUser({
               email: formData.email,
@@ -174,12 +173,17 @@ const Auth = ({ path }) => {
   }, [path])
 
   // Pre-fill email from URL parameter
+  // Pre-fill email and referral from URL parameter
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
     const emailParam = urlParams.get("email")
+    const referralParam = urlParams.get("referal") || urlParams.get("referral")
 
     if (emailParam) {
       setFormData(prev => ({ ...prev, email: decodeURIComponent(emailParam) }))
+    }
+    if (referralParam) {
+      setFormData(prev => ({ ...prev, referralId: referralParam }))
     }
   }, [])
 
@@ -541,6 +545,32 @@ const Auth = ({ path }) => {
                     )}
                   </AnimatePresence>
                 </div>
+
+                {/* Referral Code (Signup Only) */}
+                <AnimatePresence>
+                  {isSignup && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="relative"
+                    >
+                      <div className="absolute top-4 left-4 text-gray-500 z-2">
+                        <FiGift />
+                      </div>
+                      <input
+                        type="text"
+                        name="referralId"
+                        placeholder="Referral Code (Optional)"
+                        value={formData.referralId || ""}
+                        onChange={handleInputChange}
+                        className="w-full pl-12 pr-4 py-2 bg-gray-50/80 border-2 border-gray-200 rounded-2xl text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
+                        aria-label="Referral Code"
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 {/* Terms and Conditions Checkbox (Signup Only) */}
                 {isSignup && (
