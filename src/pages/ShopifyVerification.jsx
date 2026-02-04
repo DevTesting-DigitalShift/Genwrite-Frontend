@@ -17,7 +17,7 @@ const { Title, Text, Paragraph } = Typography
 const ShopifyVerification = () => {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false) // Set to false since useEffect is commented
-  const [verified, setVerified] = useState(true) // Set to true to show the table
+  const [verified, setVerified] = useState(false) // Set to true to show the table
   const [error, setError] = useState(null)
 
   // Removed duplicate blog data - keeping only unique entries

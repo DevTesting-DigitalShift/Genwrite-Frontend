@@ -33,6 +33,7 @@ import {
   ImageIcon,
   Pencil,
   CheckCircle,
+  MessageSquare,
 } from "lucide-react"
 import {
   Button,
@@ -75,6 +76,7 @@ import * as Cheerio from "cheerio"
 import TurndownService from "turndown"
 
 import axios from "axios"
+import { marked } from "marked"
 
 const { TextArea } = Input
 const { Panel } = Collapse
@@ -203,19 +205,8 @@ const TextEditorSidebar = ({
   setIsHumanizeModalOpen,
   setIsSidebarOpen,
   unsavedChanges,
+  activeEditorVersion, // NEW PROP
 }) => {
-  // Sidebar navigation items
-  const NAV_ITEMS = [
-    { id: "overview", icon: BarChart3, label: "Overview" },
-    { id: "seo", icon: TrendingUp, label: "SEO" },
-    { id: "bloginfo", icon: Info, label: "Blog Info" },
-    ...(blog?.brandId || blog?.nameOfVoice
-      ? [{ id: "brand", icon: Crown, label: "Brand Voice" }]
-      : []),
-    { id: "posting", icon: Send, label: "Posting" },
-    { id: "regenerate", icon: RefreshCw, label: "Regenerate" },
-  ]
-
   const [activePanel, setActivePanel] = useState("overview")
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
@@ -303,6 +294,229 @@ const TextEditorSidebar = ({
     postingType: null,
     includeTableOfContents: false,
   })
+
+  // AI Section Tools State
+  const [sectionToolState, setSectionToolState] = useState({
+    sectionId: "",
+    task: "rewrite",
+    instructions: "",
+  })
+  const [isProcessingSection, setIsProcessingSection] = useState(false)
+  const [availableSections, setAvailableSections] = useState([])
+
+  // Sidebar navigation items
+  const NAV_ITEMS = [
+    { id: "overview", icon: BarChart3, label: "Overview" },
+    { id: "seo", icon: TrendingUp, label: "SEO" },
+    { id: "bloginfo", icon: Info, label: "Blog Info" },
+    ...(blog?.brandId || blog?.nameOfVoice
+      ? [{ id: "brand", icon: Crown, label: "Brand Voice" }]
+      : []),
+    { id: "posting", icon: Send, label: "Posting" },
+    { id: "regenerate", icon: RefreshCw, label: "Regenerate" },
+    // Conditionally render AI Section Tools if sections are available AND editor is TipTap (v1)
+    ...(availableSections.length > 0 && activeEditorVersion === 1
+      ? [{ id: "sectionTools", icon: Wand2, label: "AI Tools" }]
+      : []),
+  ]
+
+  // Clear section selection when switching tabs to simple cleanup
+  useEffect(() => {
+    if (activePanel !== "sectionTools" && sectionToolState.sectionId) {
+      setSectionToolState(prev => ({ ...prev, sectionId: "" }))
+      window.dispatchEvent(new CustomEvent("highlight-section", { detail: null }))
+    }
+  }, [activePanel])
+
+  // Parse sections from content whenever it changes
+  useEffect(() => {
+    if (!editorContent) {
+      setAvailableSections([])
+      return
+    }
+
+    try {
+      let sections = []
+      // ... (rest of parsing logic will remain, just inserting the hook before it)
+
+      // STRATEGY 1: Structured HTML with <section> tags
+      // Use Cheerio to parse the generic content first
+      // Note: editorContent might be Markdown, but if it contains HTML <section> tags, Cheerio finds them.
+      const $ = Cheerio.load(editorContent, { xmlMode: false }) // xmlMode false to handle standard HTML
+      const $htmlSections = $("section")
+
+      if ($htmlSections.length > 0) {
+        $htmlSections.each((i, el) => {
+          const $el = $(el)
+          const id = $el.attr("id")
+
+          // Skip if no ID (cannot target)
+          if (!id) return
+
+          // Try to find a heading inside this section
+          const $heading = $el.find("h1, h2, h3, h4, h5, h6").first()
+          const title = $heading.length ? $heading.text().trim() : `Section ${i + 1}`
+
+          // Get text preview
+          // Prefer content inside .section-content if available, otherwise full section text
+          // Removing the title from the preview text
+          const $content = $el.find(".section-content").length ? $el.find(".section-content") : $el
+          let text = $content.text()
+          if ($heading.length) {
+            text = text.replace($heading.text(), "")
+          }
+          text = text.replace(/\s+/g, " ").trim()
+
+          const preview = text.substring(0, 120) + (text.length > 120 ? "..." : "")
+
+          sections.push({ id, title, preview })
+        })
+      }
+
+      // STRATEGY 2: Markdown/Flat HTML Headers (Fallback)
+      // Only runs if no proper <section> tags were found
+      if (sections.length === 0) {
+        // Configure marked to match TipTap's ID generation
+        const renderer = {
+          heading(text, level) {
+            const slug = text
+              .toLowerCase()
+              .replace(/[^\w]+/g, "-")
+              .replace(/^-+|-+$/g, "")
+            return `<h${level} id="${slug}">${text}</h${level}>`
+          },
+        }
+        marked.use({ renderer })
+
+        // Convert Markdown to HTML to ensure we catch all headers with generated IDs
+        const html = marked.parse(editorContent)
+        const $md = Cheerio.load(html)
+
+        $md("h1, h2, h3").each((i, el) => {
+          const $el = $md(el)
+          const id = $el.attr("id")
+          const title = $el.text().trim()
+
+          // Extract content preview (next elements until next header)
+          let contentPreview = ""
+          let $next = $el.next()
+          let charCount = 0
+          const MAX_PREVIEW = 120
+
+          while ($next.length && !$next.is("h1, h2, h3") && charCount < MAX_PREVIEW) {
+            const text = $next.text().trim()
+            if (text) {
+              contentPreview += text + " "
+              charCount += text.length
+            }
+            $next = $next.next()
+          }
+
+          if (id) {
+            sections.push({
+              id,
+              title: title || `Heading ${i + 1}`,
+              preview:
+                contentPreview.trim().substring(0, MAX_PREVIEW) +
+                (charCount >= MAX_PREVIEW ? "..." : ""),
+            })
+          }
+        })
+      }
+
+      setAvailableSections(sections)
+
+      // Auto-select first section if none selected and sections exist
+      if (sections.length > 0 && !sectionToolState.sectionId) {
+        // Don't auto-set ID, let user select
+        // setSectionToolState(prev => ({ ...prev, sectionId: sections[0].id }))
+      }
+    } catch (e) {
+      console.error("Failed to parse sections for tools:", e)
+    }
+  }, [editorContent])
+
+  const handleSectionTask = async () => {
+    if (!blog?._id) return message.error("Blog ID missing")
+    if (!sectionToolState.sectionId) return message.error("Please select a section")
+    if (sectionToolState.task === "custom" && !sectionToolState.instructions.trim()) {
+      return message.error("Please enter instructions for custom task")
+    }
+
+    setIsProcessingSection(true)
+    try {
+      const payload = {
+        sectionId: sectionToolState.sectionId,
+        task: sectionToolState.task,
+        userInstructions: sectionToolState.instructions,
+      }
+
+      // API Call
+      const response = await axios.post(
+        `http://localhost:8000/api/v1/blogs/${blog._id}/sectionTask`,
+        payload
+      )
+
+      if (response.data && response.data.content) {
+        // Assume API returns the new HTML content for the section
+        // We need to replace the OLD section content with New content
+        // We use Cheerio on the current editorContent to find the target section and replace it
+
+        const $ = Cheerio.load(editorContent)
+        const $section = $(`#${sectionToolState.sectionId}`)
+
+        if ($section.length) {
+          // Get original outerHTML for replacement reference (if using handleReplace)
+          // But strict replace might be hard if formating changed slightly.
+          // Better to replace in the Cheerio, get full HTML, then setEditorContent
+
+          // Check if response.data.content is full section HTML or just inner content
+          // Assuming it returns inner content or we replace inner content based on logic
+          // The prompt example implies "sending data section wise", response likely updates that section.
+
+          // If the response is the new HTML for the SECTION content (inner):
+          // $section.find('.section-content').html(response.data.content)
+
+          // However, to be safe, let's look at TextEditor.jsx structure:
+          // <section ...><div class="section-wrapper"> ... <div class="section-content">CONTENT</div> ... </div></section>
+
+          // If the backend returns just the text/content without wrappers, we should inject it into .section-content
+          // If the backend returns the whole section HTML, we replace the section.
+
+          // Strategy: Replace .section-content contents.
+          const $contentDiv = $section.find(".section-content")
+          if ($contentDiv.length) {
+            $contentDiv.html(response.data.content)
+          } else {
+            // Fallback: append or replace html
+            $section.html(response.data.content)
+          }
+
+          const newFullHtml = $.html()
+
+          // If handleReplace is available and we want to be fancy, we use it.
+          // But explicit setEditorContent is safer here as we reconstructed the whole DOM.
+          setEditorContent(newFullHtml) // This updates parent
+
+          message.success("Section updated successfully!")
+
+          // Clear instructions if custom
+          if (sectionToolState.task === "custom") {
+            setSectionToolState(prev => ({ ...prev, instructions: "" }))
+          }
+        } else {
+          message.error("Section not found in current content")
+        }
+      } else {
+        message.warning("No content returned from AI")
+      }
+    } catch (error) {
+      console.error("Section task failed:", error)
+      message.error(error.response?.data?.message || "Failed to process section task")
+    } finally {
+      setIsProcessingSection(false)
+    }
+  }
 
   // UI State for categories to prevent flickering or disappearing on re-renders
   const [uiCategories, setUiCategories] = useState([])
@@ -2124,6 +2338,213 @@ const TextEditorSidebar = ({
     </div>
   )
 
+  const renderSectionToolsPanel = () => (
+    <div className="flex flex-col h-full bg-white relative">
+      <div className="p-4 border-b bg-gradient-to-r from-indigo-50 to-blue-50 sticky top-0 z-10">
+        <div className="flex items-center gap-2">
+          <div className="p-2 bg-gradient-to-br from-indigo-600 to-blue-600 rounded-lg shadow-sm">
+            <Wand2 className="w-4 h-4 text-white" />
+          </div>
+          <div>
+            <h3 className="font-bold text-gray-900">AI Section Tools</h3>
+            <p className="text-xs text-blue-600 font-medium">Edit specific sections</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scroll">
+        {/* Section List (Cards) */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-bold text-gray-500 uppercase tracking-widest block">
+              Result Sections ({availableSections.length})
+            </label>
+            {sectionToolState.sectionId ? (
+              <button
+                onClick={e => {
+                  e.stopPropagation()
+                  setSectionToolState(prev => ({ ...prev, sectionId: "" }))
+                  window.dispatchEvent(new CustomEvent("highlight-section", { detail: null }))
+                }}
+                className="flex items-center gap-1 px-2 py-1 bg-red-50 text-red-600 rounded-lg text-[10px] font-bold hover:bg-red-100 transition-colors"
+              >
+                <X className="w-3 h-3" />
+                Cancel
+              </button>
+            ) : (
+              <span className="text-[10px] text-gray-400">Select to edit</span>
+            )}
+          </div>
+
+          <div className="grid gap-3">
+            {availableSections.length === 0 ? (
+              <div className="text-center p-4 bg-gray-50 rounded-lg text-gray-400 text-xs">
+                No headers found. Add headings to your content to use section tools.
+              </div>
+            ) : (
+              availableSections.map(section => (
+                <div
+                  key={section.id}
+                  onClick={() => {
+                    setSectionToolState(prev => ({ ...prev, sectionId: section.id }))
+                    // Dispatch highlight event
+                    window.dispatchEvent(
+                      new CustomEvent("highlight-section", { detail: section.id })
+                    )
+                  }}
+                  className={`
+                            group relative p-3 rounded-xl border cursor-pointer transition-all duration-200 text-left
+                            ${
+                              sectionToolState.sectionId === section.id
+                                ? "bg-blue-50 border-blue-400 shadow-md ring-1 ring-blue-200"
+                                : "bg-white border-gray-100 hover:border-blue-300 hover:shadow-sm"
+                            }
+                        `}
+                >
+                  <h4
+                    className={`text-sm font-bold mb-1 line-clamp-1 ${sectionToolState.sectionId === section.id ? "text-blue-800" : "text-gray-800"}`}
+                  >
+                    {section.title}
+                  </h4>
+                  <p
+                    className={`text-[11px] line-clamp-2 leading-relaxed ${sectionToolState.sectionId === section.id ? "text-blue-600/80" : "text-gray-500"}`}
+                  >
+                    {section.preview || "No content preview available..."}
+                  </p>
+
+                  {sectionToolState.sectionId === section.id && (
+                    <div className="absolute top-3 right-3">
+                      <span className="flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Task Selector */}
+        <div
+          className={`space-y-3 transition-opacity duration-300 ${!sectionToolState.sectionId ? "opacity-50 pointer-events-none grayscale" : "opacity-100"}`}
+        >
+          <label className="text-xs font-bold text-gray-500 uppercase tracking-widest block">
+            Operation
+          </label>
+
+          <div className="grid grid-cols-1 gap-2">
+            {[
+              {
+                id: "rewrite",
+                label: "Rewrite Content",
+                icon: RefreshCcw,
+                desc: "Improve clarity and flow",
+              },
+              {
+                id: "proofread",
+                label: "Proofread",
+                icon: CheckCircle,
+                desc: "Fix grammar and spelling",
+              },
+              {
+                id: "custom",
+                label: "Custom Prompt",
+                icon: MessageSquare,
+                desc: "Give your own instructions",
+              },
+            ].map(task => (
+              <div
+                key={task.id}
+                onClick={() => setSectionToolState(prev => ({ ...prev, task: task.id }))}
+                className={`
+                            relative p-3 rounded-xl border flex items-center gap-3 cursor-pointer transition-all duration-200
+                            ${
+                              sectionToolState.task === task.id
+                                ? "bg-blue-50 border-blue-200 shadow-sm"
+                                : "bg-white border-gray-100 hover:border-blue-200 hover:bg-gray-50"
+                            }
+                        `}
+              >
+                <div
+                  className={`
+                            p-2 rounded-full 
+                            ${sectionToolState.task === task.id ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-500"}
+                        `}
+                >
+                  <task.icon className="w-4 h-4" />
+                </div>
+                <div>
+                  <div
+                    className={`text-sm font-semibold ${sectionToolState.task === task.id ? "text-blue-900" : "text-gray-700"}`}
+                  >
+                    {task.label}
+                  </div>
+                  <div className="text-[10px] text-gray-400">{task.desc}</div>
+                </div>
+                {sectionToolState.task === task.id && (
+                  <div className="absolute top-3 right-3 text-blue-500">
+                    <CheckCircle className="w-4 h-4 fill-blue-100" />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Custom Instructions */}
+        {sectionToolState.task === "custom" && sectionToolState.sectionId && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            className="space-y-2"
+          >
+            <label className="text-xs font-bold text-gray-500 uppercase tracking-widest block">
+              Your Instructions
+            </label>
+            <TextArea
+              placeholder="E.g., Make it more professional and add 2 examples..."
+              rows={4}
+              value={sectionToolState.instructions}
+              onChange={e =>
+                setSectionToolState(prev => ({ ...prev, instructions: e.target.value }))
+              }
+              className="!bg-gray-50 !border-gray-200 !text-sm focus:!bg-white"
+            />
+          </motion.div>
+        )}
+
+        {/* Action Button */}
+        <div className="pt-2">
+          <Button
+            type="primary"
+            icon={
+              isProcessingSection ? (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4" />
+              )
+            }
+            onClick={handleSectionTask}
+            disabled={
+              isProcessingSection ||
+              !sectionToolState.sectionId ||
+              (sectionToolState.task === "custom" && !sectionToolState.instructions.trim())
+            }
+            className="w-full h-11 bg-gradient-to-r from-indigo-600 to-blue-600 border-none shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all rounded-xl font-semibold text-sm"
+          >
+            {isProcessingSection ? "Processing..." : "Run AI Task"}
+          </Button>
+          <p className="text-[10px] text-center text-gray-400 mt-2">
+            This will update {sectionToolState.sectionId ? "the selected section" : "a section"}{" "}
+            directly.
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+
   const renderPostingPanel = () => (
     <div className="flex flex-col h-full bg-white relative">
       <div className="p-3 border-b bg-gradient-to-r from-emerald-50 to-green-50 sticky top-0 z-10">
@@ -2419,6 +2840,8 @@ const TextEditorSidebar = ({
         return renderPostingPanel()
       case "regenerate":
         return renderSuggestionsPanel()
+      case "sectionTools":
+        return renderSectionToolsPanel()
       default:
         return renderOverviewPanel()
     }
@@ -2500,17 +2923,6 @@ const TextEditorSidebar = ({
         {/* Icon Navigation Bar - Premium Theme */}
         <div className="w-16 border-l border-gray-200 flex flex-col items-center py-5 gap-2">
           <div className="flex flex-col gap-2">
-            {/* Collapse Button */}
-            <div className="hidden md:block">
-              <Tooltip title="Collapse Sidebar" placement="left">
-                <button
-                  onClick={() => setIsCollapsed(true)}
-                  className="w-11 h-11 rounded-2xl items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-white hover:shadow-md transition-all duration-200 group flex"
-                >
-                  <ChevronRight className="w-5 h-5 transition-transform group-hover:translate-x-0.5" />
-                </button>
-              </Tooltip>
-            </div>
             {/* Mobile close */}
             <div className="md:hidden">
               <button
