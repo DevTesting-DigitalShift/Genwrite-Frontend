@@ -21,7 +21,7 @@ import {
 } from "lucide-react"
 import { Tooltip, Input, message, Modal, Button, Select } from "antd"
 import SectionEditor from "./SectionEditor"
-import { useEditorContext } from "./EditorContext"
+import { useEditorContext } from "../layout/TextEditor/EditorContext"
 import { EmbedCard, parseEmbedsFromHtml } from "./EmbedManager"
 import { generateAltText, enhanceImage, generateImage } from "@api/imageGalleryApi"
 import { COSTS } from "@/data/blogData"

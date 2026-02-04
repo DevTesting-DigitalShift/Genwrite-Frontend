@@ -48,8 +48,8 @@ import {
 import { Tooltip, message, Modal, Input, Button, Dropdown, Popover, Select } from "antd"
 import ImageModal from "@components/ImageModal"
 import { useSelector } from "react-redux"
-import { useEditorContext } from "./EditorContext"
-import { AIBubbleMenu } from "./AIBubbleMenu"
+import { useEditorContext } from "../layout/TextEditor/EditorContext"
+import { AIBubbleMenu } from "../layout/TextEditor/AIBubbleMenu"
 
 const ToolbarButton = ({ active, onClick, disabled, children, title }) => (
   <Tooltip title={title}>

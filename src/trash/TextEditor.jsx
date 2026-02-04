@@ -22,11 +22,10 @@ const { TextArea } = Input
 import TurndownService from "turndown"
 import { useBlocker, useLocation, useNavigate } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
-import "./editor.css"
 import LoadingScreen from "@components/UI/LoadingScreen"
 import showdown from "showdown"
 import SectionCard from "./SectionCard"
-import { EditorProvider } from "./EditorContext"
+import { EditorProvider } from "../layout/TextEditor/EditorContext"
 import InlineEditor from "./InlineEditor"
 import SectionEditor from "./SectionEditor"
 

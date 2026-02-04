@@ -20,7 +20,7 @@ import { sendRetryLines } from "@api/blogApi"
 import TemplateModal from "@components/generateBlog/TemplateModal"
 import { OpenAIFilled } from "@ant-design/icons"
 import TextEditorSidebar from "@/layout/TextEditorSidebar/TextEditorSidebar"
-import EditorVersionWrapper from "@/layout/TextEditor/EditorVersionWrapper"
+import TipTapEditor from "@/layout/TextEditor/TipTapEditor"
 import "../layout/TextEditor/editor.css"
 import LoadingScreen from "@components/UI/LoadingScreen"
 
@@ -119,13 +119,8 @@ const MainEditorPage = () => {
         title: blog.title || "",
       })
       setUnsavedChanges(false) // Reset unsavedChanges when blog is loaded
-      if (blog.textVersion) {
-        setEditorVersion(blog.textVersion)
-      }
     }
   }, [blog, id])
-
-  const [editorVersion, setEditorVersion] = useState(2) // Default to Section Editor (v2)
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -566,31 +561,25 @@ const MainEditorPage = () => {
                   <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
                 </div>
               ) : (
-                <EditorVersionWrapper
-                  // Controlled version state
-                  currentVersion={editorVersion}
-                  onVersionChange={setEditorVersion}
-                  // Original props
-                  textVersion={blog?.textVersion || 2}
-                  keywords={keywords}
-                  setKeywords={setKeywords}
+                <TipTapEditor
                   blog={blog}
-                  proofreadingResults={proofreadingResults}
-                  handleReplace={handleReplace}
                   content={editorContent}
                   setContent={setEditorContent}
+                  unsavedChanges={unsavedChanges}
+                  setUnsavedChanges={setUnsavedChanges}
+                  // New props added for direct control
                   title={editorTitle}
                   setTitle={setEditorTitle}
-                  isSavingKeyword={isSaving}
                   handleSubmit={handleSave}
-                  className="w-full"
+                  keywords={keywords}
+                  setKeywords={setKeywords}
+                  proofreadingResults={proofreadingResults}
+                  handleReplace={handleReplace}
+                  isSavingKeyword={isSaving}
                   humanizedContent={humanizedContent}
                   showDiff={isHumanizeModalOpen}
                   handleAcceptHumanizedContent={handleAcceptHumanizedContent}
                   handleAcceptOriginalContent={handleAcceptOriginalContent}
-                  editorContent={editorContent}
-                  unsavedChanges={unsavedChanges}
-                  setUnsavedChanges={setUnsavedChanges}
                   wordpressMetadata={metadata}
                   onReplaceReady={handleReplaceReady}
                 />
@@ -599,7 +588,7 @@ const MainEditorPage = () => {
           </div>
           <div className="hidden md:block border-l border-gray-200 overflow-y-auto custom-scroll max-h-[900px]">
             <TextEditorSidebar
-              activeEditorVersion={editorVersion}
+              activeEditorVersion={1} // Hardcoded to TipTap
               blog={blog}
               keywords={keywords}
               setKeywords={setKeywords}
@@ -636,7 +625,7 @@ const MainEditorPage = () => {
                 className="fixed inset-y-0 right-0 w-4/5 max-w-xs bg-white shadow-lg z-50 overflow-y-auto md:hidden"
               >
                 <TextEditorSidebar
-                  activeEditorVersion={editorVersion}
+                  activeEditorVersion={1} // Hardcoded to TipTap
                   blog={blog}
                   keywords={keywords}
                   setKeywords={setKeywords}
