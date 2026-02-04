@@ -7,15 +7,25 @@ import {
   ShieldCheckIcon,
   LockClosedIcon,
   UserGroupIcon,
+  EnvelopeIcon,
+  ShareIcon,
+  ClipboardDocumentIcon,
+  ArrowPathIcon,
 } from "@heroicons/react/24/solid"
 import { useSelector, useDispatch } from "react-redux"
 import { loadAuthenticatedUser } from "@store/slices/authSlice"
-import { DatePicker, message, Select, Tag, Tooltip } from "antd"
+import { DatePicker, message, Select, Tag, Tooltip, Switch } from "antd"
 import dayjs from "dayjs"
 import { Helmet } from "react-helmet"
 import { updateProfile } from "@store/slices/userSlice"
 import PasswordModal from "@components/PasswordModal"
-import { updatePasswordAPI } from "@api/userApi"
+import {
+  updatePasswordAPI,
+  getReferralStatsAPI,
+  generateReferralCodeAPI,
+  getEmailPreferencesAPI,
+  updateEmailPreferencesAPI,
+} from "@api/userApi"
 
 const DEMO_PROFILE = {
   profilePicture: "",
@@ -58,6 +68,13 @@ const Profile = () => {
   const { user } = useSelector(state => state.auth)
   const dispatch = useDispatch()
   const [passwordModalVisible, setPasswordModalVisible] = useState(false)
+  const [referralStats, setReferralStats] = useState({ totalJoined: 0, converted: 0 })
+  const [emailPreferences, setEmailPreferences] = useState({
+    promotionalEmails: false,
+    newFeatureUpdates: false,
+    accountAlerts: false,
+  })
+  const [referralCode, setReferralCode] = useState("")
 
   useEffect(() => {
     dispatch(loadAuthenticatedUser())
@@ -86,6 +103,31 @@ const Profile = () => {
       },
       emailVerified: user.emailVerified || false,
     }))
+
+    if (user.referral?.referralId) {
+      setReferralCode(user.referral.referralId)
+    }
+  }, [user])
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [statsRes, prefsRes] = await Promise.all([
+          getReferralStatsAPI(),
+          getEmailPreferencesAPI(),
+        ])
+        setReferralStats(statsRes)
+        if (prefsRes.emailPreference) {
+          setEmailPreferences(prev => ({ ...prev, ...prefsRes.emailPreference }))
+        }
+      } catch (error) {
+        console.error("Failed to fetch additional profile data", error)
+      }
+    }
+
+    if (user) {
+      fetchData()
+    }
   }, [user])
 
   const handleSave = async () => {
@@ -120,18 +162,12 @@ const Profile = () => {
       }
       setProfileData(prev => ({
         ...prev,
-        personalDetails: {
-          ...prev.personalDetails,
-          phone: numericValue,
-        },
+        personalDetails: { ...prev.personalDetails, phone: numericValue },
       }))
     } else if (name.startsWith("personalDetails.")) {
       setProfileData(prev => ({
         ...prev,
-        personalDetails: {
-          ...prev.personalDetails,
-          [name.split(".")[1]]: value,
-        },
+        personalDetails: { ...prev.personalDetails, [name.split(".")[1]]: value },
       }))
     }
   }
@@ -139,23 +175,15 @@ const Profile = () => {
   const handleInterestsChange = selectedInterests => {
     setProfileData(prev => ({
       ...prev,
-      personalDetails: {
-        ...prev.personalDetails,
-        interests: selectedInterests,
-      },
+      personalDetails: { ...prev.personalDetails, interests: selectedInterests },
     }))
   }
 
   const handlePasswordSubmit = async values => {
     try {
       const payload = user?.hasPassword
-        ? {
-            oldPassword: values.oldPassword,
-            newPassword: values.newPassword,
-          }
-        : {
-            newPassword: values.newPassword,
-          }
+        ? { oldPassword: values.oldPassword, newPassword: values.newPassword }
+        : { newPassword: values.newPassword }
 
       const response = await updatePasswordAPI(payload)
 
@@ -167,6 +195,36 @@ const Profile = () => {
       dispatch(loadAuthenticatedUser())
     } catch (error) {
       throw error
+    }
+  }
+
+  const handleGenerateReferral = async () => {
+    try {
+      const res = await generateReferralCodeAPI()
+      setReferralCode(res.referralId)
+      message.success("Referral code generated!")
+      // Update user in store to reflect new referral code
+      dispatch(loadAuthenticatedUser())
+    } catch (error) {
+      message.error("Failed to generate referral code")
+    }
+  }
+
+  const copyReferralCode = () => {
+    if (!referralCode) return
+    navigator.clipboard.writeText(referralCode)
+    message.success("Referral code copied to clipboard!")
+  }
+
+  const handleEmailPreferenceChange = async (key, checked) => {
+    const newPrefs = { ...emailPreferences, [key]: checked }
+    setEmailPreferences(newPrefs) // Optimistic update
+    try {
+      await updateEmailPreferencesAPI({ emailPreference: newPrefs })
+      message.success("Preferences updated")
+    } catch (error) {
+      setEmailPreferences(emailPreferences) // Revert on failure
+      message.error("Failed to update preferences")
     }
   }
 
@@ -330,10 +388,7 @@ const Profile = () => {
                   }
                   onChange={(date, dateString) =>
                     handleInputChange({
-                      target: {
-                        name: "personalDetails.dob",
-                        value: dateString,
-                      },
+                      target: { name: "personalDetails.dob", value: dateString },
                     })
                   }
                   className="w-full"
@@ -370,6 +425,114 @@ const Profile = () => {
                   options={INTEREST_OPTIONS}
                   maxTagCount="responsive"
                   size="large"
+                />
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Referral Program Card */}
+          <motion.div
+            initial={{ y: 20 }}
+            animate={{ y: 0 }}
+            className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 md:p-8 mt-6"
+          >
+            <div className="flex items-center gap-2 mb-6">
+              <ShareIcon className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500" />
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Referral Program</h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-4">
+                <p className="text-gray-600 text-sm">
+                  Share your referral code with friends and earn rewards when they subscribe.
+                </p>
+                {referralCode ? (
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 font-mono text-lg font-bold text-gray-800 tracking-wider">
+                      {referralCode}
+                    </div>
+                    <button
+                      onClick={copyReferralCode}
+                      className="p-3 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors"
+                      title="Copy Code"
+                    >
+                      <ClipboardDocumentIcon className="w-6 h-6" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleGenerateReferral}
+                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:shadow-lg transition-shadow"
+                  >
+                    <ArrowPathIcon className="w-5 h-5" />
+                    Generate Referral Code
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-blue-50 rounded-xl p-4 text-center">
+                  <div className="text-3xl font-bold text-blue-600 mb-1">
+                    {referralStats.totalJoined}
+                  </div>
+                  <div className="text-xs sm:text-sm text-gray-600 font-medium">Referred Users</div>
+                </div>
+                <div className="bg-purple-50 rounded-xl p-4 text-center">
+                  <div className="text-3xl font-bold text-purple-600 mb-1">
+                    {referralStats.converted}
+                  </div>
+                  <div className="text-xs sm:text-sm text-gray-600 font-medium">Converted</div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Email Preferences Card */}
+          <motion.div
+            initial={{ y: 20 }}
+            animate={{ y: 0 }}
+            className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6 md:p-8 mt-6 mb-6"
+          >
+            <div className="flex items-center gap-2 mb-6">
+              <EnvelopeIcon className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500" />
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Email Notifications</h2>
+            </div>
+
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-semibold text-gray-900">Promotions & Offers</h3>
+                  <p className="text-sm text-gray-500">
+                    Receive emails about new discounts and deals.
+                  </p>
+                </div>
+                <Switch
+                  checked={emailPreferences.promotionalEmails}
+                  onChange={checked => handleEmailPreferenceChange("promotionalEmails", checked)}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-semibold text-gray-900">Feature Updates</h3>
+                  <p className="text-sm text-gray-500">
+                    Stay informed about new features and improvements.
+                  </p>
+                </div>
+                <Switch
+                  checked={emailPreferences.newFeatureUpdates}
+                  onChange={checked => handleEmailPreferenceChange("newFeatureUpdates", checked)}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-semibold text-gray-900">Account Alerts</h3>
+                  <p className="text-sm text-gray-500">
+                    Get notified about important security changes.
+                  </p>
+                </div>
+                <Switch
+                  checked={emailPreferences.accountAlerts}
+                  onChange={checked => handleEmailPreferenceChange("accountAlerts", checked)}
                 />
               </div>
             </div>
