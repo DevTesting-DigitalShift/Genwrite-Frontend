@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom"
 import { createNewQuickBlog } from "../../store/slices/blogSlice"
 import { selectUser } from "@store/slices/authSlice"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import { useLoading } from "@/context/LoadingContext"
 import { computeCost } from "@/data/pricingConfig"
 import { message, Modal, Tooltip } from "antd"
 import { Plus, X, Crown } from "lucide-react" // Added Crown icon
@@ -14,13 +15,11 @@ import { IMAGE_SOURCE, LANGUAGES } from "@/data/blogData"
 import { useQueryClient } from "@tanstack/react-query"
 import { getEstimatedCost } from "@utils/getEstimatedCost"
 import { validateQuickBlogData } from "@/types/forms.schemas"
-import LoadingScreen from "@components/UI/LoadingScreen"
 
 // Quick Blog Modal Component - Updated pricing calculation
 const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   const [currentStep, setCurrentStep] = useState(0)
   const [otherLinks, setOtherLinks] = useState([])
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const initialFormData = {
     topic: "",
@@ -37,15 +36,11 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     keywordInput: "",
     languageToWrite: "English",
     costCutter: true,
+    easyToUnderstand: false,
+    embedYouTubeVideos: false,
   }
 
-  const initialErrors = {
-    topic: "",
-    template: "",
-    focusKeywords: "",
-    keywords: "",
-    otherLinks: "",
-  }
+  const initialErrors = { topic: "", template: "", focusKeywords: "", keywords: "", otherLinks: "" }
 
   const [formData, setFormData] = useState(initialFormData)
   const [errors, setErrors] = useState(initialErrors)
@@ -53,6 +48,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
+  const { showLoading, hideLoading } = useLoading()
   const user = useSelector(selectUser)
   const queryClient = useQueryClient()
 
@@ -107,10 +103,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
 
   const handleChange = e => {
     const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }))
+    setFormData(prev => ({ ...prev, [name]: value }))
     setErrors(prev => ({ ...prev, [name]: "" }))
   }
 
@@ -138,10 +131,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     }
 
     if (otherLinks.length > 3) {
-      setErrors(prev => ({
-        ...prev,
-        otherLinks: "You can only add up to 3 links.",
-      }))
+      setErrors(prev => ({ ...prev, otherLinks: "You can only add up to 3 links." }))
       message.error("You can only add up to 3 links.")
       return
     }
@@ -192,12 +182,26 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
           <span>Are you sure you want to proceed?</span>
         </>
       ),
-      onConfirm: () => {
-        // Validate with Zod schema (logs to console when VITE_VALIDATE_FORMS=true)
-        const validatedData = validateQuickBlogData(finalData)
-        setIsSubmitting(true)
-        dispatch(createNewQuickBlog({ blogData: validatedData, user, navigate, type }))
-        handleClose()
+      onConfirm: async () => {
+        const loadingId = showLoading(`Creating ${type === "quick" ? "quick" : "YouTube"} blog...`)
+
+        try {
+          // Validate with Zod schema (logs to console when VITE_VALIDATE_FORMS=true)
+          const validatedData = validateQuickBlogData(finalData)
+
+          // Dispatch and await the result
+          await dispatch(
+            createNewQuickBlog({ blogData: validatedData, user, navigate, type, queryClient })
+          ).unwrap()
+
+          // ✅ Only close modal on success
+          handleClose()
+        } catch (error) {
+          // ❌ Don't close modal - let user retry
+          message.error(error?.message || "Failed to create blog. Please try again.")
+        } finally {
+          hideLoading(loadingId)
+        }
       },
     })
   }
@@ -215,10 +219,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   // Handle keyword input changes
   const handleKeywordInputChange = (e, type) => {
     const key = type === "keywords" ? "keywordInput" : "focusKeywordInput"
-    setFormData(prev => ({
-      ...prev,
-      [key]: e.target.value,
-    }))
+    setFormData(prev => ({ ...prev, [key]: e.target.value }))
     setErrors(prev => ({ ...prev, [type]: "" }))
   }
 
@@ -247,18 +248,11 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     }
 
     if (type === "focusKeywords" && formData[type].length + newKeywords.length > 3) {
-      setErrors(prev => ({
-        ...prev,
-        [type]: "You can only add up to 3 focus keywords.",
-      }))
+      setErrors(prev => ({ ...prev, [type]: "You can only add up to 3 focus keywords." }))
       return
     }
 
-    setFormData(prev => ({
-      ...prev,
-      [type]: [...prev[type], ...newKeywords],
-      [inputKey]: "",
-    }))
+    setFormData(prev => ({ ...prev, [type]: [...prev[type], ...newKeywords], [inputKey]: "" }))
     setErrors(prev => ({ ...prev, [type]: "" }))
   }
 
@@ -370,26 +364,17 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
     }
 
     if (validNewLinks.length === 0) {
-      setErrors(prev => ({
-        ...prev,
-        otherLinks: "No valid, unique links found.",
-      }))
+      setErrors(prev => ({ ...prev, otherLinks: "No valid, unique links found." }))
       return
     }
 
     if (otherLinks.length + validNewLinks.length > maxLinks) {
-      setErrors(prev => ({
-        ...prev,
-        otherLinks: `You can only add up to ${maxLinks} links.`,
-      }))
+      setErrors(prev => ({ ...prev, otherLinks: `You can only add up to ${maxLinks} links.` }))
       return
     }
 
     setOtherLinks([...otherLinks, ...validNewLinks])
-    setFormData(prev => ({
-      ...prev,
-      otherLinkInput: "",
-    }))
+    setFormData(prev => ({ ...prev, otherLinkInput: "" }))
     setErrors(prev => ({ ...prev, otherLinks: "" }))
   }
 
@@ -416,7 +401,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
 
   return (
     <>
-      {isSubmitting && <LoadingScreen />}
+      {" "}
       <Modal
         title={`Generate ${type === "quick" ? "Quick" : "Youtube"} Blog`}
         open={true}
@@ -513,12 +498,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                   <input
                     type="checkbox"
                     checked={formData.exactTitle}
-                    onChange={e =>
-                      setFormData(prev => ({
-                        ...prev,
-                        exactTitle: e.target.checked,
-                      }))
-                    }
+                    onChange={e => setFormData(prev => ({ ...prev, exactTitle: e.target.checked }))}
                     className="sr-only peer"
                   />
                   <div className="absolute inset-0 bg-gray-200 rounded-full transition-colors duration-200 peer-checked:bg-[#1B6FC9]"></div>
@@ -670,12 +650,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                   <input
                     type="checkbox"
                     checked={formData.addImages}
-                    onChange={e =>
-                      setFormData(prev => ({
-                        ...prev,
-                        addImages: e.target.checked,
-                      }))
-                    }
+                    onChange={e => setFormData(prev => ({ ...prev, addImages: e.target.checked }))}
                     className="sr-only peer"
                   />
                   <div className="absolute inset-0 bg-gray-200 rounded-full transition-colors duration-200 peer-checked:bg-[#1B6FC9]"></div>
@@ -714,6 +689,44 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                   </div>
                 </div>
               )}
+
+              {/* Easy to Understand Toggle */}
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Easy to Understand
+                </label>
+                <label className="relative inline-block w-11 h-6 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.easyToUnderstand}
+                    onChange={e =>
+                      setFormData(prev => ({ ...prev, easyToUnderstand: e.target.checked }))
+                    }
+                    className="sr-only peer"
+                  />
+                  <div className="absolute inset-0 bg-gray-200 rounded-full transition-colors duration-200 peer-checked:bg-[#1B6FC9]"></div>
+                  <div className="absolute top-[2px] left-[2px] h-5 w-5 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-5"></div>
+                </label>
+              </div>
+
+              {/* Embed YouTube Videos Toggle */}
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Embed YouTube Videos
+                </label>
+                <label className="relative inline-block w-11 h-6 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.embedYouTubeVideos}
+                    onChange={e =>
+                      setFormData(prev => ({ ...prev, embedYouTubeVideos: e.target.checked }))
+                    }
+                    className="sr-only peer"
+                  />
+                  <div className="absolute inset-0 bg-gray-200 rounded-full transition-colors duration-200 peer-checked:bg-[#1B6FC9]"></div>
+                  <div className="absolute top-[2px] left-[2px] h-5 w-5 bg-white rounded-full border border-gray-300 transition-transform duration-200 peer-checked:translate-x-5"></div>
+                </label>
+              </div>
 
               {/* Reference Links Section */}
               <div>
@@ -779,10 +792,7 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
                       type="checkbox"
                       checked={formData.costCutter}
                       onChange={e =>
-                        setFormData(prev => ({
-                          ...prev,
-                          costCutter: e.target.checked,
-                        }))
+                        setFormData(prev => ({ ...prev, costCutter: e.target.checked }))
                       }
                       className="sr-only peer"
                     />

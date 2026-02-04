@@ -8,6 +8,8 @@ import {
   DownloadOutlined,
   ThunderboltTwoTone,
   CrownTwoTone,
+  YoutubeOutlined,
+  RadarChartOutlined,
 } from "@ant-design/icons"
 import { motion } from "framer-motion"
 import CompetitiveAnalysisModal from "../components/dashboardModals/CompetitiveAnalysisModal"
@@ -15,7 +17,7 @@ import { useDispatch, useSelector } from "react-redux"
 import { analyzeKeywordsThunk, clearKeywordAnalysis } from "@store/slices/analysisSlice"
 import { Helmet } from "react-helmet"
 import { ImMagicWand } from "react-icons/im"
-import { Coins, Keyboard, Search, WholeWord, Workflow, Zap } from "lucide-react"
+import { Coins, Keyboard, Search, WholeWord, Workflow, Zap, FileText } from "lucide-react"
 import { selectUser } from "@store/slices/authSlice"
 import { Crown } from "lucide-react"
 import { Flex } from "antd"
@@ -23,6 +25,8 @@ import { Rocket } from "lucide-react"
 import { Layers } from "lucide-react"
 import { checkSufficientCredits, getInsufficientCreditsPopup } from "@/utils/creditCheck.jsx"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
+import { COSTS } from "@/data/blogData"
 
 export default function ToolboxPage() {
   const navigate = useNavigate()
@@ -156,10 +160,10 @@ export default function ToolboxPage() {
             text === "LOW"
               ? "green"
               : text === "MEDIUM"
-              ? "orange"
-              : text === "HIGH"
-              ? "red"
-              : "gray"
+                ? "orange"
+                : text === "HIGH"
+                  ? "red"
+                  : "gray"
           }
           className="text-xs sm:text-sm"
         >
@@ -203,9 +207,7 @@ export default function ToolboxPage() {
     onChange: newSelectedRowKeys => {
       setSelectedRowKeys(newSelectedRowKeys)
     },
-    getCheckboxProps: record => ({
-      name: record.keyword,
-    }),
+    getCheckboxProps: record => ({ name: record.keyword }),
   }
 
   const tableData =
@@ -251,7 +253,7 @@ export default function ToolboxPage() {
         "Transform AI-generated text into natural, human-sounding content while preserving intent and clarity.",
       action: () => navigate("/humanize-content"),
       actionText: "Let's Convert",
-      credits: "5",
+      credits: COSTS.HUMANISED_CONTENT,
       creditType: "tools.humanize",
       color: "from-blue-500 to-indigo-600",
     },
@@ -263,7 +265,7 @@ export default function ToolboxPage() {
         "Craft high-impact blog outlines with SEO keywords, structure, and brand voice in seconds using AI.",
       action: () => navigate("/outline"),
       actionText: "Let's Outline",
-      credits: "5",
+      credits: COSTS.OUTLINE,
       creditType: "tools.outline",
       color: "from-green-500 to-emerald-600",
     },
@@ -274,7 +276,7 @@ export default function ToolboxPage() {
       description: "Analyze top performing content in your niche",
       action: () => setCompetitiveAnalysisModalOpen(true),
       actionText: "Start Analysis",
-      credits: "10",
+      credits: COSTS.ANALYSIS,
       creditType: "analysis.competitors",
       color: "from-rose-500 to-pink-600",
     },
@@ -285,7 +287,7 @@ export default function ToolboxPage() {
       description: "Turn content into SEO-friendly metadata",
       action: () => navigate("/generate-metadata"),
       actionText: "Boost SEO",
-      credits: "2",
+      credits: COSTS.METADATA,
       creditType: "tools.metadata",
       color: "from-rose-500 to-pink-600",
     },
@@ -296,9 +298,53 @@ export default function ToolboxPage() {
       description: "Transform your content into SEO-optimized metadata in seconds",
       action: () => navigate("/prompt-content"),
       actionText: "Boost SEO",
-      credits: "5",
+      credits: COSTS.PROMPT_CONTENT,
       creditType: "tools.boost",
       color: "from-rose-500 to-pink-600",
+    },
+    {
+      key: "content-detection",
+      title: "AI Content Detection",
+      icon: <RadarChartOutlined className="size-4 sm:size-5 text-purple-500" />,
+      description:
+        "Detect AI-generated text and get confidence scores to verify content authenticity.",
+      action: () => navigate("/content-detection"),
+      actionText: "Detect Content",
+      credits: COSTS.DETECTOR,
+      creditType: "tools.outline",
+      color: "from-purple-500 to-fuchsia-600",
+    },
+    {
+      key: "youtube-summarization",
+      title: "YouTube Summarization",
+      icon: <YoutubeOutlined className="size-4 sm:size-5 text-red-500" />,
+      description: "Summarize long YouTube videos into clear insights, highlights, and timestamps.",
+      action: () => navigate("/youtube-summarization"),
+      actionText: "Summarize Video",
+      credits: COSTS.YOUTUBE_SUMMARIZER,
+      creditType: "tools.outline",
+      color: "from-red-500 to-rose-600",
+    },
+    {
+      key: "keyword-scraping",
+      title: "Keyword Scraping",
+      icon: <SearchOutlined className="size-4 sm:size-5 text-emerald-500" />,
+      description: "Extract high-intent SEO keywords and clusters to build content that ranks.",
+      action: () => navigate("/keyword-scraping"),
+      actionText: "Find Keywords",
+      credits: COSTS.KEYWORD_SCRAPER,
+      creditType: "tools.outline",
+      color: "from-emerald-500 to-teal-600",
+    },
+    {
+      key: "chat-with-pdf",
+      title: "Chat with PDF",
+      icon: <FileText className="size-4 sm:size-5 text-red-500" />,
+      description: "Upload a PDF and chat with AI to extract insights and answers.",
+      action: () => navigate("/chat-with-pdf"),
+      actionText: "Chat Now",
+      credits: COSTS.CHAT_WITH_PDF + " /  message",
+      color: "from-red-500 to-orange-600",
     },
   ]
 
@@ -310,6 +356,7 @@ export default function ToolboxPage() {
 
   return (
     <>
+      {analyzing && <ProgressLoadingScreen message="Analyzing keywords..." />}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -352,10 +399,7 @@ export default function ToolboxPage() {
           activeKey={activeTab}
           onChange={setActiveTab}
           className="custom-tabs"
-          tabBarStyle={{
-            padding: "0 8px sm:0 16px",
-            marginBottom: "16px sm:24px",
-          }}
+          tabBarStyle={{ padding: "0 8px sm:0 16px", marginBottom: "16px sm:24px" }}
           items={[
             {
               key: "content",
@@ -372,9 +416,16 @@ export default function ToolboxPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8 mt-4 px-2 sm:px-4">
                   {cardItems
                     .filter(item =>
-                      ["ai-writer", "humanize-content", "outline", "prompt-content"].includes(
-                        item.key
-                      )
+                      [
+                        "ai-writer",
+                        "chat-with-pdf",
+                        "humanize-content",
+                        "outline",
+                        "prompt-content",
+                        "content-detection",
+                        "youtube-summarization",
+                        "keyword-scraping",
+                      ].includes(item.key)
                     )
                     .map(item => (
                       <AnimatedCard key={item.key} item={item} />
@@ -586,15 +637,8 @@ export default function ToolboxPage() {
                           ],
                           opacity: [0, 0.5, 0],
                         }}
-                        transition={{
-                          duration: 3,
-                          repeat: Infinity,
-                        }}
-                        style={{
-                          zIndex: -1,
-                          margin: "-1px",
-                          border: "1px solid transparent",
-                        }}
+                        transition={{ duration: 3, repeat: Infinity }}
+                        style={{ zIndex: -1, margin: "-1px", border: "1px solid transparent" }}
                       />
                     </Card>
                   </motion.div>

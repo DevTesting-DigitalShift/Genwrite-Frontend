@@ -10,9 +10,13 @@ import {
   Info,
   Check,
   Image as ImageIcon,
+  Sparkles,
+  MessageSquare,
 } from "lucide-react"
 import { useSelector } from "react-redux"
-import { Modal, Tooltip, message, Button, Input, Popover } from "antd"
+import { Modal, Tooltip, message, Button, Input, Popover, Select } from "antd"
+import ImageModal from "@components/ImageModal"
+import { fetchUserThunk } from "@store/slices/authSlice"
 
 const { TextArea } = Input
 import TurndownService from "turndown"
@@ -24,6 +28,7 @@ import showdown from "showdown"
 import SectionCard from "./SectionCard"
 import { EditorProvider } from "./EditorContext"
 import InlineEditor from "./InlineEditor"
+import SectionEditor from "./SectionEditor"
 
 // Configure showdown for better image handling
 showdown.setOption("tables", true)
@@ -42,10 +47,7 @@ function generateSectionId() {
 // Convert HTML → Markdown for saving
 function htmlToMarkdownSection(html) {
   if (!html) return ""
-  const turndownService = new TurndownService({
-    headingStyle: "atx",
-    bulletListMarker: "-",
-  })
+  const turndownService = new TurndownService({ headingStyle: "atx", bulletListMarker: "-" })
   turndownService.keep(["p", "div", "iframe", "table", "tr", "th", "td", "img"])
   return turndownService.turndown(html)
 }
@@ -272,11 +274,7 @@ function parseMarkdownIntoSections(markdown) {
 
   const matches = []
   while ((match = headingRegex.exec(markdown)) !== null) {
-    matches.push({
-      title: match[1].trim(),
-      index: match.index,
-      fullMatch: match[0],
-    })
+    matches.push({ title: match[1].trim(), index: match.index, fullMatch: match[0] })
   }
 
   if (matches.length === 0) {
@@ -368,8 +366,6 @@ const TextEditor = ({
 
   // Thumbnail edit modal state
   const [thumbnailModalOpen, setThumbnailModalOpen] = useState(false)
-  const [thumbnailUrl, setThumbnailUrl] = useState("")
-  const [thumbnailAlt, setThumbnailAlt] = useState("")
 
   // Section images state
   const [sectionImages, setSectionImages] = useState([])
@@ -866,10 +862,7 @@ const TextEditor = ({
     setSections(prev =>
       prev.map(section => {
         if (section.content && section.content.includes(original)) {
-          return {
-            ...section,
-            content: section.content.replace(regex, change),
-          }
+          return { ...section, content: section.content.replace(regex, change) }
         }
         return section
       })
@@ -980,6 +973,7 @@ const TextEditor = ({
       handleReplace: handleReplaceWithSections, // Use wrapped version that updates sections
       onUpdateSectionImage: handleUpdateSectionImage,
       onDeleteSectionImage: handleDeleteSectionImage,
+      blog: blog, // Pass full blog object for access to imageSource etc.
     }),
     [
       blog?._id,
@@ -1019,10 +1013,7 @@ const TextEditor = ({
   const handleAddFaqItem = () => {
     setFaq(prev => {
       if (!prev) return prev
-      return {
-        ...prev,
-        qa: [...prev.qa, { question: "New Question", answer: "New Answer" }],
-      }
+      return { ...prev, qa: [...prev.qa, { question: "New Question", answer: "New Answer" }] }
     })
   }
 
@@ -1030,10 +1021,7 @@ const TextEditor = ({
   const handleDeleteFaqItem = index => {
     setFaq(prev => {
       if (!prev) return prev
-      return {
-        ...prev,
-        qa: prev.qa.filter((_, i) => i !== index),
-      }
+      return { ...prev, qa: prev.qa.filter((_, i) => i !== index) }
     })
   }
 
@@ -1352,7 +1340,7 @@ const TextEditor = ({
     if (isEditorLoading || blog?.status === "pending") {
       return (
         <div className="flex items-center justify-center h-[calc(100vh-300px)] bg-white">
-          <LoadingScreen />
+          <LoadingScreen message="Loading editor..." />
         </div>
       )
     }
@@ -1372,15 +1360,33 @@ const TextEditor = ({
               editorClassName="text-3xl font-bold text-gray-900"
             />
           ) : (
-            <div
-              className="flex items-center gap-2 group cursor-pointer"
-              onClick={() => setIsEditingTitle(true)}
-            >
+            <div className="relative group">
               <div
-                className="text-3xl font-bold text-gray-900"
-                dangerouslySetInnerHTML={{ __html: blogTitle || "Untitled Blog" }}
-              />
-              <Edit3 className="w-5 h-5 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                className="flex items-center gap-2 cursor-pointer"
+                onClick={() => setIsEditingTitle(true)}
+              >
+                <div
+                  className="text-3xl font-bold text-gray-900"
+                  dangerouslySetInnerHTML={{ __html: blogTitle || "Untitled Blog" }}
+                />
+                <Edit3 className="w-5 h-5 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+
+              {/* Add Thumbnail Option - Show on hover if no thumbnail */}
+              {!blogThumbnail && (
+                <div className="absolute top-full left-0 mt-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                  <button
+                    onClick={e => {
+                      e.stopPropagation()
+                      setThumbnailModalOpen(true)
+                    }}
+                    className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 hover:bg-blue-100 transition-colors shadow-sm"
+                  >
+                    <ImageIcon className="w-4 h-4" />
+                    Add Thumbnail Image
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -1391,8 +1397,6 @@ const TextEditor = ({
             <div
               className="cursor-pointer relative"
               onClick={() => {
-                setThumbnailUrl(blogThumbnail.url)
-                setThumbnailAlt(blogThumbnail.alt || "")
                 setThumbnailModalOpen(true)
               }}
             >
@@ -1468,123 +1472,50 @@ const TextEditor = ({
                   <SectionCard key={section.id || index} section={section} index={index} />
                 ))}
               </Reorder.Group>
-            </EditorProvider>
 
-            {/* Add Section button at bottom */}
-            <div className="flex justify-center mt-6">
-              <button
-                onClick={() => handleAddSection(sections.length - 1)}
-                className="flex items-center gap-2 px-5 py-2.5 bg-white border-2 border-dashed border-gray-300 text-gray-600 rounded-xl hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200"
-              >
-                <Plus className="w-5 h-5" />
-                Add Section
-              </button>
-            </div>
+              {/* Add Section button at bottom */}
+              <div className="flex justify-center mt-6">
+                <button
+                  onClick={() => handleAddSection(sections.length - 1)}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-white border-2 border-dashed border-gray-300 text-gray-600 rounded-xl hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200"
+                >
+                  <Plus className="w-5 h-5" />
+                  Add Section
+                </button>
+              </div>
+            </EditorProvider>
           </>
         )}
 
-        {renderCTA()}
-        {renderQuickSummary()}
-        {renderFAQ()}
-
-        {/* Thumbnail Edit Modal */}
-        <Modal
-          title={
-            <div className="flex items-center gap-2">
-              <ImageIcon className="w-5 h-5 text-purple-600" />
-              <span>Edit Thumbnail Image</span>
-            </div>
-          }
+        <EditorProvider value={editorContextValue}>
+          {renderCTA()}
+          {renderQuickSummary()}
+          {renderFAQ()}
+        </EditorProvider>
+        {/* Thumbnail Edit Modal using Reusable Component */}
+        <ImageModal
           open={thumbnailModalOpen}
+          initialUrl={blogThumbnail?.url || ""}
+          initialAlt={blogThumbnail?.alt || ""}
+          title="Edit Thumbnail Image"
           onCancel={() => setThumbnailModalOpen(false)}
-          footer={
-            <div className="flex items-center justify-between w-full">
-              {/* Left: Destructive action */}
-              <Button
-                danger
-                icon={<Trash2 className="w-4 h-4" />}
-                onClick={() => {
-                  setBlogThumbnail(null)
-                  setThumbnailModalOpen(false)
-                  message.success("Thumbnail removed")
-                }}
-              >
-                Delete Thumbnail
-              </Button>
-
-              {/* Right: Actions */}
-              <div className="flex items-center gap-2">
-                <Button onClick={() => setThumbnailModalOpen(false)}>Cancel</Button>
-                <Button
-                  type="primary"
-                  icon={<Check className="w-4 h-4" />}
-                  onClick={() => {
-                    if (blogThumbnail) {
-                      setBlogThumbnail({
-                        ...blogThumbnail,
-                        url: thumbnailUrl,
-                        alt: thumbnailAlt,
-                      })
-                      message.success("Thumbnail updated")
-                    }
-                    setThumbnailModalOpen(false)
-                  }}
-                >
-                  Save Changes
-                </Button>
-              </div>
-            </div>
+          onSave={(url, alt) => {
+            if (!url) {
+              setBlogThumbnail(null)
+            } else {
+              setBlogThumbnail({ url, alt })
+            }
+            setThumbnailModalOpen(false)
+            message.success("Thumbnail updated")
+          }}
+          allowEnhance={
+            blog?.imageSource !== "stock" &&
+            !["pexels.com", "unsplash.com", "pixabay.com"].some(domain =>
+              blogThumbnail?.url?.includes(domain)
+            )
           }
-          width={700}
-          centered
-        >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Left: Image Preview */}
-            <div className="border rounded-lg bg-gray-50 p-2 flex items-center justify-center">
-              <img
-                src={thumbnailUrl}
-                alt={thumbnailAlt || "Thumbnail preview"}
-                className="max-w-full rounded-lg object-contain"
-                style={{ maxHeight: "300px" }}
-                onError={e => {
-                  e.currentTarget.src = blogThumbnail?.url
-                }}
-              />
-            </div>
-
-            {/* Right: Image Details */}
-            <div className="space-y-4">
-              {/* Image URL */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Image URL <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  value={thumbnailUrl}
-                  onChange={e => setThumbnailUrl(e.target.value)}
-                  placeholder="https://example.com/image.jpg"
-                />
-                <p className="text-xs text-gray-500 mt-1">Enter a URL to replace the thumbnail</p>
-              </div>
-
-              {/* Alt Text */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Alt Text <span className="text-red-500">*</span>
-                </label>
-                <Input.TextArea
-                  value={thumbnailAlt}
-                  onChange={e => setThumbnailAlt(e.target.value)}
-                  placeholder="Describe the image for accessibility and SEO"
-                  rows={3}
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Helps with SEO and screen readers. Be descriptive and specific.
-                </p>
-              </div>
-            </div>
-          </div>
-        </Modal>
+          imageSourceType="thumbnail"
+        />
       </div>
     )
   }
@@ -1598,7 +1529,7 @@ const TextEditor = ({
     >
       {isSavingKeyword && (
         <div className="fixed inset-0 bg-white/80 flex items-center justify-center z-50">
-          <LoadingScreen />
+          <LoadingScreen message="Saving keywords..." />
         </div>
       )}
 

@@ -62,3 +62,37 @@ export const searchImages = async (params = {}) => {
   const response = await axiosInstance.get(`/image-gallery/search?${queryParams.toString()}`)
   return response.data
 }
+
+/**
+ * Generate a new image
+ * POST /api/v1/user/images/generate
+ * @param {Object} data - { prompt, style, imageSize, aspectRatio }
+ */
+export const generateImage = async data => {
+  const response = await axiosInstance.post(`/user/images/generate`, data)
+  return response.data
+}
+
+/**
+ * Enhance an existing image
+ * POST /api/v1/user/images/enhance
+ * @param {FormData} formData - FormData containing image (optional), prompt, etc.
+ */
+export const enhanceImage = async formData => {
+  // Content-Type header is usually auto-set by browser for FormData,
+  // but explicitly setting it to undefined lets the browser set the boundary correctly.
+  const response = await axiosInstance.post(`/user/images/enhance`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  })
+  return response.data
+}
+
+/**
+ * Generate Alt Text for an image
+ * POST /api/v1/user/images/alt-text
+ * @param {Object} data - { imageUrl, context }
+ */
+export const generateAltText = async data => {
+  const response = await axiosInstance.post(`/user/images/alt-text`, data)
+  return response.data
+}

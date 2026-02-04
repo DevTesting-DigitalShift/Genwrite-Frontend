@@ -50,7 +50,7 @@ import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tansta
 import { getSocket } from "@utils/socket"
 import isBetween from "dayjs/plugin/isBetween"
 import clsx from "clsx"
-import { debounce } from "lodash"
+import DebouncedSearchInput from "@components/UI/DebouncedSearchInput"
 import DateRangePicker from "@components/UI/DateRangePicker"
 import { useProAction } from "@/hooks/useProAction"
 import { archiveBlogById, getAllBlogs, retryBlogById } from "@api/blogApi"
@@ -102,7 +102,6 @@ const BlogsPage = () => {
 
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(15)
-  const inputRef = useRef(null)
   const [isMenuOpen, setMenuOpen] = useState(false)
   const [isFunnelMenuOpen, setFunnelMenuOpen] = useState(false)
   const [isDetailedFilterOpen, setDetailedFilterOpen] = useState(false)
@@ -139,7 +138,7 @@ const BlogsPage = () => {
     )
     if (field) {
       const parsedFilters = JSON.parse(field)
-      setBlogFilters(prev => ({ ...prev, ...parsedFilters } || {}))
+      setBlogFilters(prev => ({ ...prev, ...parsedFilters }) || {})
       // Sync temp values with loaded filters
       setTempGscClicks(parsedFilters.gscClicks ?? null)
       setTempGscImpressions(parsedFilters.gscImpressions ?? null)
@@ -191,6 +190,13 @@ const BlogsPage = () => {
     staleTime: Infinity,
     gcTime: Infinity,
     refetchOnWindowFocus: false,
+    // Refetch every 10 seconds if we have pending blogs
+    refetchInterval: data => {
+      const hasPending = data?.pages?.some(page =>
+        page.data?.some(blog => blog.status === "pending")
+      )
+      return hasPending ? 10000 : false // Poll every 10s if pending blogs exist
+    },
   })
 
   // For trashed blogs - regular query with pagination
@@ -209,10 +215,7 @@ const BlogsPage = () => {
         limit: pageSize,
       }
       const response = await getAllBlogs(queryParams)
-      return {
-        trashedBlogs: response.data || [],
-        totalBlogs: response.totalItems || 0,
-      }
+      return { trashedBlogs: response.data || [], totalBlogs: response.totalItems || 0 }
     },
     enabled: !!user && isTrashcan,
   })
@@ -225,7 +228,9 @@ const BlogsPage = () => {
     return activeData?.pages.flatMap(p => p.data) ?? []
   }, [isTrashcan, trashData, activeData])
 
-  const totalItems = isTrashcan ? trashData?.totalBlogs || 0 : activeData?.pages[0]?.totalItems ?? 0
+  const totalItems = isTrashcan
+    ? trashData?.totalBlogs || 0
+    : (activeData?.pages[0]?.totalItems ?? 0)
 
   const isLoading = isTrashcan ? isLoadingTrash : isLoadingActive
   const isRefetching = isTrashcan ? false : isRefetchingActive
@@ -248,7 +253,7 @@ const BlogsPage = () => {
     setBlogFilters({ ...initialBlogFilter, start: user?.createdAt })
     setTempGscClicks(null)
     setTempGscImpressions(null)
-    if (inputRef?.current) inputRef.current.input.value = ""
+    setTempGscImpressions(null)
     sessionStorage.removeItem(`user_${userId}_blog_filters_${isTrashcan ? "trash" : "active"}`)
     setCurrentPage(1)
   }, [user, isTrashcan, userId, initialBlogFilter])
@@ -275,24 +280,64 @@ const BlogsPage = () => {
     if (!socket || !user) return
 
     const handleStatusChange = data => {
+      // Check if blog failed due to insufficient credits
+      if (data?.newStatus === "failed") {
+        // Check recent notifications for insufficient credits
+        const recentNotification = user?.notifications?.[0]
+        if (recentNotification?.type === "INSUFFICIENT_CREDITS") {
+          message.error({
+            content: (
+              <div>
+                <strong>Insufficient Credits</strong>
+                <p className="mt-1">
+                  {recentNotification.message ||
+                    "You don't have enough credits to complete this operation."}
+                </p>
+                <a
+                  href="/pricing"
+                  className="text-blue-600 hover:text-blue-700 font-semibold underline"
+                  onClick={e => {
+                    e.preventDefault()
+                    navigate("/pricing")
+                  }}
+                >
+                  Add Credits →
+                </a>
+              </div>
+            ),
+            duration: 8,
+            className: "insufficient-credits-notification",
+          })
+        }
+      }
+
       queryClient.refetchQueries({
         queryKey: isTrashcan ? ["trashedBlogs"] : ["blogs"],
         type: "active",
       })
     }
 
+    // When a new blog is created, invalidate cache to fetch it
+    const handleBlogCreated = data => {
+      if (!isTrashcan) {
+        queryClient.invalidateQueries({ queryKey: ["blogs"] })
+      }
+    }
+
     socket.on("blog:statusChanged", handleStatusChange)
     socket.on("blog:archived", handleStatusChange)
     socket.on("blog:restored", handleStatusChange)
     socket.on("blog:deleted", handleStatusChange)
+    socket.on("blog:created", handleBlogCreated)
 
     return () => {
       socket.off("blog:statusChanged", handleStatusChange)
       socket.off("blog:archived", handleStatusChange)
       socket.off("blog:restored", handleStatusChange)
       socket.off("blog:deleted", handleStatusChange)
+      socket.off("blog:created", handleBlogCreated)
     }
-  }, [user, userId, queryClient, isTrashcan])
+  }, [user, userId, queryClient, isTrashcan, navigate])
 
   const handleBlogClick = useCallback(
     blog => {
@@ -465,16 +510,14 @@ const BlogsPage = () => {
       <div className="bg-white rounded-2xl border-slate-100 mb-8">
         <Flex justify="between" align="center" gap="small" wrap="wrap">
           {/* Search Box */}
-          <div className="relative flex-1 min-w-[280px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <Input
-              ref={inputRef}
-              placeholder="Search by title or keywords..."
-              defaultValue={blogFilters.q}
-              onChange={e => updateBlogFilters({ q: e.target.value })}
-              className="h-11 pl-10 pr-4 bg-slate-50 border-none hover:bg-slate-100 focus:bg-white focus:ring-2 focus:ring-blue-100 rounded-xl transition-all"
-            />
-          </div>
+          <DebouncedSearchInput
+            initialValue={blogFilters.q}
+            onSearch={val => updateBlogFilters({ q: val })}
+            placeholder="Search by title or keywords..."
+            containerClassName="relative flex-1 min-w-[280px]"
+            className="h-11 pl-10 pr-4 bg-slate-50 border-none hover:bg-slate-100 focus:bg-white focus:ring-2 focus:ring-blue-100 rounded-xl transition-all"
+            bordered={false}
+          />
 
           <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-hide">
             {/* Basic Filters (Visible on Desktop) */}

@@ -31,6 +31,8 @@ import {
   Rows,
   Plus,
   Minus,
+  Sparkles,
+  Check,
 } from "lucide-react"
 import { useDispatch, useSelector } from "react-redux"
 import { Input, Modal, Tooltip, message, Select, Button, Flex, Popover } from "antd"
@@ -50,13 +52,19 @@ import ContentDiffViewer from "../Editor/ContentDiffViewer"
 import "./editor.css"
 import { VideoEmbed } from "@/extensions/VideoEmbed"
 import { Iframe } from "@/extensions/IframeExtension"
+import { Figure, FigCaption } from "@/extensions/FigureExtension"
+import Link from "@tiptap/extension-link"
 import LoadingScreen from "@components/UI/LoadingScreen"
-import { computeCost } from "@/data/pricingConfig"
 import { Table } from "@tiptap/extension-table"
 import TableRow from "@tiptap/extension-table-row"
 import TableCell from "@tiptap/extension-table-cell"
 import TableHeader from "@tiptap/extension-table-header"
 import Heading from "@tiptap/extension-heading"
+import { AIBubbleMenu } from "./AIBubbleMenu"
+import { generateAltText, enhanceImage, generateImage } from "@api/imageGalleryApi"
+import { COSTS } from "@/data/blogData"
+import ImageModal from "@components/ImageModal"
+import { Node } from "@tiptap/core"
 
 const FONT_OPTIONS = [
   { label: "Arial", value: "font-arial" },
@@ -70,15 +78,33 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
   const [selectedFont, setSelectedFont] = useState(FONT_OPTIONS[0].value)
   const [linkModalOpen, setLinkModalOpen] = useState(false)
   const [imageModalOpen, setImageModalOpen] = useState(false)
+  const [showGalleryPicker, setShowGalleryPicker] = useState(false)
   const [tableDropdownOpen, setTableDropdownOpen] = useState(false)
   const [hoveredCell, setHoveredCell] = useState({ row: 0, col: 0 })
   const tableButtonRef = useRef(null)
   const [linkUrl, setLinkUrl] = useState("")
   const [imageUrl, setImageUrl] = useState("")
   const [imageAlt, setImageAlt] = useState("")
+  const [editingImageSrc, setEditingImageSrc] = useState(null)
+
+  // Unified Image Modal State
+  const [editModalOpen, setEditModalOpen] = useState(false)
+  const [isEnhanceMode, setIsEnhanceMode] = useState(false)
+  const [enhanceForm, setEnhanceForm] = useState({
+    prompt: "",
+    style: "photorealistic",
+    quality: "2k",
+  })
+  const [isGenerateMode, setIsGenerateMode] = useState(false)
+  const [genForm, setGenForm] = useState({
+    prompt: "",
+    style: "photorealistic",
+    aspectRatio: "1:1",
+    imageSize: "1024x1024",
+  })
+
+  // Image modal state
   const [editorReady, setEditorReady] = useState(false)
-  const [editImageModalOpen, setEditImageModalOpen] = useState(false)
-  const [selectedImage, setSelectedImage] = useState(null)
   const [linkPreview, setLinkPreview] = useState(null)
   const [linkPreviewPos, setLinkPreviewPos] = useState(null)
   const [linkPreviewUrl, setLinkPreviewUrl] = useState(null)
@@ -97,14 +123,49 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
 
   const markdownToHtml = useCallback(markdown => {
     if (!markdown) return "<p></p>"
-    const rawHtml = marked.parse(
-      markdown
-        .replace(/!\[\s*["']?(.*?)["']?\s*\]\((.*?)\)/g, (_, alt, url) => `![${alt}](${url})`)
-        .replace(/'/g, "'"),
-      { gfm: true, breaks: true }
-    )
+    // Check if content looks like HTML (starts with common tags like <p, <div, <h, <section, <article)
+    // or contains high density of HTML tags vs markdown symbols
+    const trimmed = markdown.trim()
+    const isHtml =
+      /^\s*<(p|div|h[1-6]|section|article|table|ul|ol|blockquote|iframe|figure)/i.test(trimmed) ||
+      (trimmed.includes("<") &&
+        trimmed.includes(">") &&
+        !trimmed.includes("## ") &&
+        !trimmed.includes("**"))
+
+    const renderer = {
+      heading(text, level) {
+        const slug = text
+          .toLowerCase()
+          .replace(/[^\w]+/g, "-")
+          .replace(/^-+|-+$/g, "")
+        return `<h${level} id="${slug}">${text}</h${level}>`
+      },
+    }
+
+    marked.use({ renderer })
+
+    const rawHtml = isHtml
+      ? markdown
+      : marked.parse(
+          markdown
+            .replace(/!\[\s*["']?(.*?)["']?\s*\]\((.*?)\)/g, (_, alt, url) => `![${alt}](${url})`)
+            .replace(/'/g, "'"),
+          { gfm: true, breaks: true }
+        )
     return DOMPurify.sanitize(rawHtml, {
-      ADD_TAGS: ["iframe", "div", "table", "th", "td", "tr"],
+      ADD_TAGS: [
+        "iframe",
+        "div",
+        "table",
+        "th",
+        "td",
+        "tr",
+        "figure",
+        "figcaption",
+        "section",
+        "article",
+      ],
       ADD_ATTR: [
         "allow",
         "allowfullscreen",
@@ -114,17 +175,27 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
         "style",
         "title",
         "class",
+        "id",
       ],
     })
   }, [])
 
   const htmlToMarkdown = useCallback(html => {
     if (!html) return ""
-    const turndownService = new TurndownService({
-      headingStyle: "atx",
-      bulletListMarker: "-",
-    })
-    turndownService.keep(["p", "div", "iframe", "table", "tr", "th", "td"])
+    const turndownService = new TurndownService({ headingStyle: "atx", bulletListMarker: "-" })
+    turndownService.keep([
+      "p",
+      "div",
+      "iframe",
+      "table",
+      "tr",
+      "th",
+      "td",
+      "figure",
+      "figcaption",
+      "section",
+      "article",
+    ])
     return turndownService.turndown(html)
   }, [])
 
@@ -133,12 +204,62 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
       extensions: [
         StarterKit.configure({
           heading: false,
+          // Disable default history if we wanted to control it, but StarterKit default is fine usually
         }),
-        Heading.configure({
-          levels: [1, 2, 3, 4],
+        // Custom Heading with ID support
+        Heading.extend({
+          addAttributes() {
+            return {
+              ...this.parent?.(),
+              id: {
+                default: null,
+                parseHTML: element => element.getAttribute("id"),
+                renderHTML: attributes => {
+                  if (!attributes.id) {
+                    return {}
+                  }
+                  return { id: attributes.id }
+                },
+              },
+            }
+          },
+        }).configure({ levels: [1, 2, 3, 4] }),
+        // Custom Section Node to preserve <section> tags
+        Node.create({
+          name: "section",
+          group: "block",
+          content: "block+",
+          draggable: false, // Sections usually container
+          parseHTML() {
+            return [{ tag: "section" }]
+          },
+          renderHTML({ HTMLAttributes }) {
+            return ["section", HTMLAttributes, 0]
+          },
+          addAttributes() {
+            return {
+              id: {
+                default: null,
+                parseHTML: element => element.getAttribute("id"),
+                renderHTML: attributes => {
+                  if (!attributes.id) {
+                    return {}
+                  }
+                  return { id: attributes.id }
+                },
+              },
+              class: {
+                default: "blog-section",
+                parseHTML: element => element.getAttribute("class"),
+                renderHTML: attributes => {
+                  return { class: attributes.class }
+                },
+              },
+            }
+          },
         }),
         Image.configure({
-          HTMLAttributes: { class: "rounded-lg mx-auto w-3/4 h-auto object-contain" },
+          HTMLAttributes: { class: "rounded-lg mx-auto w-full h-auto object-contain" },
         }),
         TextAlign.configure({ types: ["heading", "paragraph"] }),
         Table.configure({
@@ -156,6 +277,12 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
           HTMLAttributes: { class: "text-center font-medium border align-middle border-gray-400" },
         }),
         VideoEmbed,
+        Figure,
+        FigCaption,
+        Link.configure({
+          openOnClick: false,
+          HTMLAttributes: { class: "text-blue-600 hover:underline" },
+        }),
         // Iframe,
       ],
       content: "<p></p>",
@@ -165,12 +292,20 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
         },
       },
       onUpdate: ({ editor }) => {
+        if (!editorReady) return
         const html = editor.getHTML()
         const markdown = htmlToMarkdown(html)
         setContent(markdown)
+
         const normCurrent = normalizeContent(markdown)
         const normSaved = normalizeContent(lastSavedContent ?? "")
-        setUnsavedChanges(normCurrent !== normSaved)
+
+        // Avoid setting true on initial load if contents are effectively same
+        if (normCurrent !== normSaved) {
+          setUnsavedChanges(true)
+        } else {
+          setUnsavedChanges(false)
+        }
       },
     },
     [
@@ -180,6 +315,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
       setUnsavedChanges,
       lastSavedContent,
       normalizeContent,
+      editorReady,
     ]
   )
 
@@ -209,9 +345,16 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
     safeEditorAction(() => {
       setImageUrl("")
       setImageAlt("")
+      setEditingImageSrc(null)
       setImageModalOpen(true)
     })
   }, [safeEditorAction])
+
+  const handleSelectFromGallery = useCallback((url, alt) => {
+    setImageUrl(url)
+    setImageAlt(alt)
+    setShowGalleryPicker(false)
+  }, [])
 
   const handleConfirmLink = useCallback(() => {
     if (!linkUrl || !/https?:\/\//i.test(linkUrl)) {
@@ -231,74 +374,83 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
     }
   }, [linkUrl, normalEditor])
 
-  const handleConfirmImage = useCallback(() => {
-    if (!imageUrl || !/https?:\/\//i.test(imageUrl)) {
-      message.error("Enter a valid image URL.")
-      return
-    }
+  // handleConfirmImage is now handled by ImageModal's onSave prop
+
+  const handleSaveImageChanges = () => {
     if (normalEditor) {
-      normalEditor.chain().focus().setImage({ src: imageUrl, alt: imageAlt }).run()
-      setImageModalOpen(false)
-      message.success("Image added.")
+      if (!imageUrl) {
+        // Handle Delete if url is empty
+        handleDeleteImage()
+      } else {
+        // Handle Update
+        if (editingImageSrc) {
+          normalEditor.state.doc.descendants((node, pos) => {
+            if (node.type.name === "image" && node.attrs.src === editingImageSrc) {
+              const tr = normalEditor.state.tr
+              tr.setNodeMarkup(pos, undefined, { src: imageUrl, alt: imageAlt || "" })
+              normalEditor.view.dispatch(tr)
+              return false
+            }
+          })
+          message.success("Image updated")
+        }
+      }
+      setEditModalOpen(false)
+      setEditingImageSrc(null)
+      setImageUrl("")
+      setImageAlt("")
     }
-  }, [imageUrl, imageAlt, normalEditor])
+  }
+
+  const handleDeleteImage = () => {
+    if (normalEditor && editingImageSrc) {
+      let deleted = false
+      normalEditor.state.doc.descendants((node, pos) => {
+        if (node.type.name === "image" && node.attrs.src === editingImageSrc) {
+          // Check if parent is figure to also delete caption/attribution
+          const $pos = normalEditor.state.doc.resolve(pos)
+          const parent = $pos.parent
+
+          if (parent.type.name === "figure") {
+            // Delete the entire figure containing image and caption
+            // The figure starts at $pos.before() and ends at $pos.after()
+            const from = $pos.before()
+            const to = $pos.after()
+            normalEditor.chain().deleteRange({ from, to }).run()
+          } else {
+            // Just delete the image
+            normalEditor
+              .chain()
+              .deleteRange({ from: pos, to: pos + 1 })
+              .run()
+          }
+          deleted = true
+          return false
+        }
+      })
+      if (deleted) message.success("Image deleted")
+    }
+    setEditModalOpen(false)
+    setEditingImageSrc(null)
+  }
+
+  const handleOpenAdvancedOptions = () => {
+    setEditModalOpen(false)
+    setImageModalOpen(true)
+  }
 
   const handleImageClick = useCallback(event => {
     if (event.target.tagName === "IMG") {
       const { src, alt } = event.target
-      setSelectedImage({ src, alt: alt || "" })
+      setImageUrl(src)
       setImageAlt(alt || "")
-      setEditImageModalOpen(true)
+      setEditingImageSrc(src)
+      // Open Unified Modal instead of direct ImageModal
+      setEditModalOpen(true)
+      setIsEnhanceMode(false)
+      setIsGenerateMode(false)
     }
   }, [])
-
-  const handleConfirmEditImage = useCallback(() => {
-    if (!selectedImage || !imageAlt) {
-      message.error("Alt text is required.")
-      return
-    }
-    if (normalEditor) {
-      let updated = false
-      normalEditor.state.doc.descendants((node, pos) => {
-        if (node.type.name === "image" && node.attrs.src === selectedImage.src) {
-          normalEditor
-            .chain()
-            .focus()
-            .setNodeSelection(pos)
-            .setImage({ src: selectedImage.src, alt: imageAlt })
-            .run()
-          updated = true
-        }
-      })
-      if (updated) {
-        message.success("Image alt text updated.")
-        setEditImageModalOpen(false)
-        setSelectedImage(null)
-        setImageAlt("")
-      }
-    }
-  }, [selectedImage, imageAlt, normalEditor])
-
-  const handleDeleteImage = useCallback(() => {
-    if (!selectedImage || !normalEditor) return
-    let deleted = false
-    normalEditor.state.doc.descendants((node, pos) => {
-      if (node.type.name === "image" && node.attrs.src === selectedImage.src) {
-        normalEditor
-          .chain()
-          .focus()
-          .deleteRange({ from: pos, to: pos + 1 })
-          .run()
-        deleted = true
-      }
-    })
-    if (deleted) {
-      setEditImageModalOpen(false)
-      setSelectedImage(null)
-      setImageAlt("")
-      message.success("Image deleted.")
-    }
-  }, [selectedImage, normalEditor])
 
   const handleAddTable = useCallback(() => {
     safeEditorAction(() => {
@@ -344,8 +496,13 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
     if (normalEditor && blog?.content) {
       const html = markdownToHtml(blog.content)
       normalEditor.commands.setContent(html, false)
-      setContent(blog.content)
-      setLastSavedContent(blog.content)
+
+      // Calculate round-trip content to prevent false unsaved changes
+      const currentHtml = normalEditor.getHTML()
+      const roundTripMarkdown = htmlToMarkdown(currentHtml)
+
+      setContent(roundTripMarkdown)
+      setLastSavedContent(roundTripMarkdown)
 
       // Scroll to top after content is loaded
       setTimeout(() => {
@@ -382,6 +539,53 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
       return () => editorElement?.removeEventListener("click", handleImageClick)
     }
   }, [normalEditor, handleImageClick])
+
+  // Listen for Highlight Section events from Sidebar
+  useEffect(() => {
+    const handleHighlight = event => {
+      const sectionId = event.detail
+      if (!normalEditor) return
+
+      // Clear previous highlights from all elements
+      // We look for elements with our specific highlight class
+      const prevHighlights = normalEditor.view.dom.querySelectorAll(".ai-section-highlight")
+      prevHighlights.forEach(el => {
+        el.classList.remove(
+          "ai-section-highlight",
+          "bg-indigo-50",
+          "ring-2",
+          "ring-indigo-400",
+          "ring-offset-2",
+          "rounded-lg",
+          "transition-all",
+          "duration-300"
+        )
+      })
+
+      if (!sectionId) return
+
+      // Find the new element
+      const element = normalEditor.view.dom.querySelector(`#${sectionId}`)
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "center" })
+
+        // Add highlight classes
+        element.classList.add(
+          "ai-section-highlight",
+          "bg-indigo-50",
+          "ring-2",
+          "ring-indigo-400",
+          "ring-offset-2",
+          "rounded-lg",
+          "transition-all",
+          "duration-300"
+        )
+      }
+    }
+
+    window.addEventListener("highlight-section", handleHighlight)
+    return () => window.removeEventListener("highlight-section", handleHighlight)
+  }, [normalEditor])
 
   const renderToolbar = () => (
     <div className="bg-white border-x border-gray-200 shadow-sm px-2 sm:px-4 py-2 flex flex-wrap items-center justify-start gap-y-2 overflow-x-auto">
@@ -737,9 +941,11 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
       {/* Editor Content - Scrollable */}
       <div className="flex-1 overflow-auto custom-scroll bg-white p-4">
         {normalEditor && (
-          <BubbleMenu
+          <AIBubbleMenu
             editor={normalEditor}
-            className="flex gap-2 bg-white shadow-lg p-2 rounded-lg border"
+            blogId={blog?._id}
+            sectionId={null}
+            onContentUpdate={() => {}}
           >
             <Tooltip title="Bold">
               <button
@@ -766,7 +972,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
                 <LinkIcon className="w-5 h-5" />
               </button>
             </Tooltip>
-          </BubbleMenu>
+          </AIBubbleMenu>
         )}
         <EditorContent editor={normalEditor} />
       </div>
@@ -797,75 +1003,473 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
         />
       </Modal>
 
+      {/* Unified Image Edit Modal */}
       <Modal
-        title="Insert Image"
-        open={imageModalOpen}
-        onOk={handleConfirmImage}
-        onCancel={() => setImageModalOpen(false)}
-        footer={
-          <Flex justify="end" gap={16}>
-            <Button key="cancel" onClick={() => setImageModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button key="ok" type="primary" onClick={handleConfirmImage}>
-              Ok
-            </Button>
-          </Flex>
+        title={
+          <div className="flex items-center gap-2">
+            <ImageIcon className="w-5 h-5 text-purple-600" />
+            <span>Edit Image</span>
+          </div>
         }
+        open={editModalOpen}
+        onCancel={() => setEditModalOpen(false)}
+        footer={
+          !isEnhanceMode && (
+            <div className="flex items-center justify-between w-full">
+              {/* Left: Destructive action */}
+              <Button danger icon={<Trash2 className="w-4 h-4" />} onClick={handleDeleteImage}>
+                Delete
+              </Button>
+
+              {/* Right: Actions */}
+              <div className="flex items-center gap-2">
+                <Button onClick={handleOpenAdvancedOptions}>Advanced Options</Button>
+                <Button onClick={() => setEditModalOpen(false)}>Cancel</Button>
+                <Button
+                  type="primary"
+                  icon={<Check className="w-4 h-4" />}
+                  onClick={handleSaveImageChanges}
+                >
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          )
+        }
+        width={700}
         centered
+        bodyStyle={{ maxHeight: "calc(100vh - 250px)", overflowY: "auto" }}
       >
-        <Input
-          value={imageUrl}
-          onChange={e => setImageUrl(e.target.value)}
-          placeholder="https://example.com/image.jpg"
-          className="mt-4"
-        />
-        <Input
-          value={imageAlt}
-          onChange={e => setImageAlt(e.target.value)}
-          placeholder="Image description"
-          className="mt-4"
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Left: Image Preview & Enhancement Trigger */}
+          <div className="border rounded-lg bg-gray-50 p-2 flex flex-col items-center justify-center gap-3">
+            <img
+              src={imageUrl}
+              alt={imageAlt || "Preview"}
+              className="max-w-full rounded-lg object-contain"
+              style={{ maxHeight: "300px" }}
+              onError={e => {
+                e.currentTarget.src = "https://via.placeholder.com/300?text=Preview"
+              }}
+            />
+
+            {imageUrl && !isEnhanceMode && blog?.imageSource === "ai" && (
+              <Button
+                type="default"
+                size="small"
+                className="mt-2 text-purple-600 border-purple-200 bg-purple-50 hover:bg-purple-100 hover:border-purple-300 flex items-center gap-2"
+                onClick={() => {
+                  setIsEnhanceMode(true)
+                  setEnhanceForm(prev => ({ ...prev, prompt: imageAlt || "" }))
+                }}
+              >
+                <Sparkles className="w-3 h-3" /> Enhance Image
+                <span className="text-[10px] bg-purple-200 px-1 rounded ml-1 text-purple-700">
+                  {COSTS.ENHANCE} credits
+                </span>
+              </Button>
+            )}
+
+            {/* Manual / Generate Options */}
+            {!imageUrl && !isGenerateMode && (
+              <div className="flex gap-2 w-full mt-2">
+                <Button
+                  block
+                  onClick={() => setIsGenerateMode(true)}
+                  className="flex items-center justify-center gap-1"
+                >
+                  <Sparkles className="w-4 h-4 text-blue-600" /> Generate Image
+                </Button>
+              </div>
+            )}
+
+            {/* Generation Controls */}
+            {isGenerateMode && (
+              <div className="w-full mt-2 bg-white p-3 rounded border border-blue-100 shadow-sm space-y-3">
+                <div>
+                  <label className="text-xs font-medium text-gray-500">Prompt</label>
+                  <Input.TextArea
+                    placeholder="Describe image..."
+                    value={genForm.prompt}
+                    onChange={e => setGenForm({ ...genForm, prompt: e.target.value })}
+                    rows={2}
+                    className="text-sm mt-1"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs font-medium text-gray-500">Style</label>
+                    <Select
+                      value={genForm.style}
+                      onChange={val => setGenForm({ ...genForm, style: val })}
+                      className="w-full mt-1"
+                      size="small"
+                      options={[
+                        { value: "photorealistic", label: "Photorealistic" },
+                        { value: "anime", label: "Anime" },
+                        { value: "digital-art", label: "Digital Art" },
+                        { value: "oil-painting", label: "Oil Painting" },
+                        { value: "sketch", label: "Sketch" },
+                        { value: "cinematic", label: "Cinematic" },
+                      ]}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-500">Ratio</label>
+                    <Select
+                      value={genForm.aspectRatio}
+                      onChange={val => setGenForm({ ...genForm, aspectRatio: val })}
+                      className="w-full mt-1"
+                      size="small"
+                      options={[
+                        { value: "1:1", label: "Square (1:1)" },
+                        { value: "16:9", label: "Landscape (16:9)" },
+                        { value: "9:16", label: "Portrait (9:16)" },
+                        { value: "4:3", label: "Standard (4:3)" },
+                      ]}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2 justify-end">
+                  <Button size="small" onClick={() => setIsGenerateMode(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    size="small"
+                    type="primary"
+                    className="bg-blue-600"
+                    onClick={async () => {
+                      if (user?.usage?.aiImages >= user?.usageLimits?.aiImages) {
+                        message.error(
+                          "You have reached your AI Image generation limit. preventing generation."
+                        )
+                        return
+                      }
+
+                      const credits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
+                      if (credits < COSTS.GENERATE) {
+                        message.error(`Insufficient credits. Need ${COSTS.GENERATE} credits.`)
+                        return
+                      }
+
+                      if (!genForm.prompt.trim()) {
+                        message.error("Please enter a prompt")
+                        return
+                      }
+
+                      const hide = message.loading("Generating image...", 0)
+                      try {
+                        const response = await generateImage(genForm)
+                        const newImage = response.image || response.data || response
+                        if (newImage && newImage.url) {
+                          setImageUrl(newImage.url)
+                          setImageAlt(genForm.prompt)
+                          message.success("Image generated! Save to apply.")
+                          setIsGenerateMode(false)
+                        }
+                      } catch (err) {
+                        console.error(err)
+                        message.error("Failed to generate image")
+                      } finally {
+                        hide()
+                      }
+                    }}
+                  >
+                    <Sparkles className="w-3 h-3 mr-1" /> Generate ({COSTS.GENERATE}c)
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="space-y-4">
+            {isEnhanceMode ? (
+              <div className="w-full bg-white p-4 rounded border border-purple-100 shadow-sm space-y-4 h-full flex flex-col">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-purple-600" /> Enhance Settings
+                  </h3>
+                  <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-medium">
+                    {COSTS.ENHANCE} credits
+                  </span>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Instruction</label>
+                  <Input.TextArea
+                    placeholder="Describe changes (e.g. make it high res, fix lighting)"
+                    value={enhanceForm.prompt}
+                    onChange={e => setEnhanceForm({ ...enhanceForm, prompt: e.target.value })}
+                    rows={4}
+                    className="text-sm mt-1"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Style</label>
+                    <Select
+                      value={enhanceForm.style}
+                      onChange={val => setEnhanceForm({ ...enhanceForm, style: val })}
+                      className="w-full mt-1"
+                      options={[
+                        { value: "photorealistic", label: "Photorealistic" },
+                        { value: "anime", label: "Anime" },
+                        { value: "digital-art", label: "Digital Art" },
+                        { value: "oil-painting", label: "Oil Painting" },
+                        { value: "cinematic", label: "Cinematic" },
+                      ]}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Quality</label>
+                    <Select
+                      value={enhanceForm.quality || "2k"}
+                      onChange={val => setEnhanceForm({ ...enhanceForm, quality: val })}
+                      className="w-full mt-1"
+                      options={[
+                        { value: "1k", label: "Standard (1k)" },
+                        { value: "2k", label: "High (2k)" },
+                        { value: "4k", label: "Ultra (4k)" },
+                      ]}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Aspect Ratio</label>
+                    <Select
+                      value={enhanceForm.dimensions || "1024x1024"}
+                      onChange={val => setEnhanceForm({ ...enhanceForm, dimensions: val })}
+                      className="w-full mt-1"
+                      options={[
+                        { value: "1024x1024", label: "Square (1:1)" },
+                        { value: "1280x720", label: "Landscape (16:9)" },
+                        { value: "720x1280", label: "Portrait (9:16)" },
+                        { value: "1024x768", label: "Standard (4:3)" },
+                      ]}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2 justify-end mt-auto pt-4">
+                  <Button onClick={() => setIsEnhanceMode(false)}>Cancel</Button>
+                  <Button
+                    type="primary"
+                    className="bg-purple-600"
+                    onClick={async () => {
+                      if (user?.usage?.aiImages >= user?.usageLimits?.aiImages) {
+                        message.error("You have reached your AI Image generation limit.")
+                        return
+                      }
+                      const credits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
+                      if (credits < COSTS.ENHANCE) {
+                        message.error(`Insufficient credits. Need ${COSTS.ENHANCE} credits.`)
+                        return
+                      }
+                      if (!enhanceForm.prompt.trim()) {
+                        message.error("Please enter an instruction")
+                        return
+                      }
+
+                      const hide = message.loading("Enhancing image...", 0)
+                      try {
+                        const formData = new FormData()
+                        formData.append("prompt", enhanceForm.prompt)
+                        formData.append("style", enhanceForm.style)
+                        formData.append("quality", enhanceForm.quality || "2k") // Pass quality
+                        formData.append("dimensions", enhanceForm.dimensions || "1024x1024")
+                        formData.append("imageUrl", imageUrl)
+
+                        const response = await enhanceImage(formData)
+                        const newImage = response.image || response.data || response
+                        if (newImage && newImage.url) {
+                          setImageUrl(newImage.url)
+                          message.success("Image enhanced! Save to apply.")
+                          setIsEnhanceMode(false)
+                        }
+                      } catch (err) {
+                        console.error(err)
+                        message.error("Failed to enhance image")
+                      } finally {
+                        hide()
+                      }
+                    }}
+                  >
+                    <Sparkles className="w-3 h-3 mr-1" /> Generate
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Image URL */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Image URL <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    value={imageUrl}
+                    onChange={e => setImageUrl(e.target.value)}
+                    placeholder="https://example.com/image.jpg"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Enter a URL to replace the image</p>
+                </div>
+
+                {/* Alt Text */}
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Alt Text <span className="text-red-500">*</span>
+                    </label>
+                    {imageUrl && (
+                      <Tooltip title="Generate Alt Text using AI">
+                        <Button
+                          type="text"
+                          size="small"
+                          className="text-xs flex items-center gap-1 text-gray-500 hover:text-blue-600"
+                          onClick={async () => {
+                            const credits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
+                            if (credits < COSTS.ALT_TEXT) {
+                              message.error(`Insufficient credits. Need ${COSTS.ALT_TEXT} credits.`)
+                              return
+                            }
+                            const hide = message.loading("Generating alt text...", 0)
+                            try {
+                              const response = await generateAltText({ imageUrl })
+                              const alt = response.altText || response.data?.altText
+                              if (alt) {
+                                setImageAlt(alt)
+                                message.success("Alt text generated!")
+                              }
+                            } catch (err) {
+                              console.error(err)
+                              message.error("Failed to generate alt text")
+                            } finally {
+                              hide()
+                            }
+                          }}
+                        >
+                          <div className="w-3 h-3" /> Generate
+                          <span className="text-[10px] bg-gray-100 px-1 rounded text-gray-500">
+                            {COSTS.ALT_TEXT} credits
+                          </span>
+                        </Button>
+                      </Tooltip>
+                    )}
+                  </div>
+                  <Input.TextArea
+                    value={imageAlt}
+                    onChange={e => setImageAlt(e.target.value)}
+                    placeholder="Describe the image for accessibility and SEO"
+                    rows={3}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Helps with SEO and screen readers. Be descriptive and specific.
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       </Modal>
 
-      <Modal
-        title="Edit Image"
-        open={editImageModalOpen}
-        onOk={handleConfirmEditImage}
+      <ImageModal
+        open={imageModalOpen}
         onCancel={() => {
-          setEditImageModalOpen(false)
-          setSelectedImage(null)
+          setImageModalOpen(false)
+          setEditingImageSrc(null)
         }}
-        footer={
-          <Flex justify="end" gap={16}>
-            <Button
-              key="delete"
-              danger
-              icon={<Trash2 className="w-4 h-4" />}
-              onClick={handleDeleteImage}
-            >
-              Delete
-            </Button>
-            <Button key="cancel" onClick={() => setEditImageModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button key="ok" type="primary" onClick={handleConfirmEditImage}>
-              Update
-            </Button>
-          </Flex>
-        }
-        centered
-      >
-        <Input
-          value={imageAlt}
-          onChange={e => setImageAlt(e.target.value)}
-          placeholder="Alt text"
-          className="mt-4"
-        />
-        {selectedImage && (
-          <img src={selectedImage.src} alt={imageAlt} className="mt-4 rounded-lg max-w-full" />
-        )}
-      </Modal>
+        onSave={(url, alt) => {
+          if (normalEditor) {
+            normalEditor.chain().focus()
+
+            if (!url) {
+              // Handle Delete if url is empty (user cleared it)
+              if (editingImageSrc) {
+                let deleted = false
+                normalEditor.state.doc.descendants((node, pos) => {
+                  if (node.type.name === "image" && node.attrs.src === editingImageSrc) {
+                    // Check if parent is figure to also delete caption/attribution
+                    const $pos = normalEditor.state.doc.resolve(pos)
+                    const parent = $pos.parent
+
+                    if (parent.type.name === "figure") {
+                      const from = $pos.before()
+                      const to = $pos.after()
+                      normalEditor.chain().deleteRange({ from, to }).run()
+                    } else {
+                      normalEditor
+                        .chain()
+                        .deleteRange({ from: pos, to: pos + 1 })
+                        .run()
+                    }
+                    deleted = true
+                    return false
+                  }
+                })
+                if (deleted) message.success("Image deleted")
+              }
+            } else {
+              // Handle Insert or Update
+              if (editingImageSrc) {
+                let targetPos = null
+                let figCaptionRange = null
+
+                normalEditor.state.doc.descendants((node, pos) => {
+                  if (node.type.name === "image" && node.attrs.src === editingImageSrc) {
+                    targetPos = pos
+
+                    // Check for parent Figure to remove citation if image changed
+                    if (url !== editingImageSrc) {
+                      const $pos = normalEditor.state.doc.resolve(pos)
+                      for (let d = $pos.depth; d > 0; d--) {
+                        const ancestor = $pos.node(d)
+                        if (ancestor.type.name === "figure") {
+                          ancestor.forEach((child, offset) => {
+                            if (child.type.name === "figcaption") {
+                              figCaptionRange = {
+                                from: $pos.start(d) + offset,
+                                to: $pos.start(d) + offset + child.nodeSize,
+                              }
+                            }
+                          })
+                          break
+                        }
+                      }
+                    }
+                    return false
+                  }
+                })
+
+                if (targetPos !== null) {
+                  const tr = normalEditor.state.tr
+                  tr.setNodeMarkup(targetPos, undefined, { src: url, alt: alt || "" })
+
+                  if (figCaptionRange) {
+                    tr.delete(figCaptionRange.from, figCaptionRange.to)
+                  }
+
+                  normalEditor.view.dispatch(tr)
+                  message.success("Image updated")
+                }
+              } else {
+                normalEditor
+                  .chain()
+                  .setImage({ src: url, alt: alt || "" })
+                  .run()
+                message.success("Image added")
+              }
+            }
+            setImageModalOpen(false)
+            setEditingImageSrc(null)
+            setImageUrl("")
+            setImageAlt("")
+          }
+        }}
+        title={editingImageSrc ? "Edit Image" : "Add Image"}
+        initialUrl={imageUrl}
+        initialAlt={imageAlt}
+        imageSourceType={editingImageSrc ? "thumbnail" : "url"}
+        allowEnhance={blog?.imageSource !== "stock"}
+      />
     </motion.div>
   )
 }

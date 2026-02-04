@@ -8,8 +8,21 @@ export const createQuickBlog = async (blogData, type) => {
     const response = await axiosInstance.post(endpoint, blogData)
     return response.data.blog
   } catch (error) {
-    const msg = error.response?.data?.message || "Failed to create blog"
     console.error("Blog creation API error:", error)
+
+    // Handle 402 Insufficient Credits error
+    if (error.response?.status === 402) {
+      const neededCredits = error.response?.data?.neededCredits
+      const errorMsg = neededCredits
+        ? `Insufficient credits. You need ${neededCredits} credits to create this blog.`
+        : error.response?.data?.message || "Insufficient credits to create blog"
+      const err = new Error(errorMsg)
+      err.status = 402
+      err.neededCredits = neededCredits
+      throw err
+    }
+
+    const msg = error.response?.data?.message || "Failed to create blog"
     throw new Error(msg)
   }
 }
@@ -40,6 +53,19 @@ export const createBlog = async blogData => {
     return response.data.blog || response.data
   } catch (error) {
     console.error("createBlog error", error.response?.data || error)
+
+    // Handle 402 Insufficient Credits error
+    if (error.response?.status === 402) {
+      const neededCredits = error.response?.data?.neededCredits
+      const errorMsg = neededCredits
+        ? `Insufficient credits. You need ${neededCredits} credits to create this blog.`
+        : error.response?.data?.message || "Insufficient credits to create blog"
+      const err = new Error(errorMsg)
+      err.status = 402
+      err.neededCredits = neededCredits
+      throw err
+    }
+
     throw new Error(error.response?.data?.message || "Failed to create blog")
   }
 }
@@ -50,6 +76,19 @@ export const createBlogMultiple = async blogData => {
     return response.data.insertedBlogs
   } catch (error) {
     console.error("createBlogMultiple", error)
+
+    // Handle 402 Insufficient Credits error
+    if (error.response?.status === 402) {
+      const neededCredits = error.response?.data?.neededCredits
+      const errorMsg = neededCredits
+        ? `Insufficient credits. You need ${neededCredits} credits to create these blogs.`
+        : error.response?.data?.message || "Insufficient credits to create blogs"
+      const err = new Error(errorMsg)
+      err.status = 402
+      err.neededCredits = neededCredits
+      throw err
+    }
+
     throw new Error(error.response?.data?.message || "Failed to create blog")
   }
 }
@@ -222,15 +261,32 @@ export const getBlogPostings = async blogId => {
   }
 }
 
-export const exportBlogAsPdf = async id => {
+export const exportBlog = async (id, { type = "pdf", withImages = false } = {}) => {
   try {
     const response = await axiosInstance.get(`/blogs/${id}/export`, {
-      params: { type: "pdf" },
-      responseType: "blob", // ✅ correct
+      params: { type, withImages: withImages ? "true" : "false" },
+      responseType: "blob",
     })
 
-    return response.data
+    // Extract filename from Content-Disposition header if available
+    const contentDisposition = response.headers["content-disposition"]
+    let filename = `blog.${type}`
+
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename="?(.+)"?/)
+      if (filenameMatch) {
+        filename = filenameMatch[1]
+      }
+    }
+
+    return { data: response.data, filename }
   } catch (error) {
-    throw new Error(error.response?.data?.message || "Failed to export PDF")
+    throw new Error(error.response?.data?.message || `Failed to export ${type.toUpperCase()}`)
   }
+}
+
+// Legacy function for backward compatibility
+export const exportBlogAsPdf = async id => {
+  const result = await exportBlog(id, { type: "pdf", withImages: false })
+  return result.data
 }

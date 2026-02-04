@@ -13,7 +13,7 @@ import { Button, message } from "antd"
 import { useDispatch, useSelector } from "react-redux"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { generateHumanizedContent, resetHumanizeState } from "@store/slices/humanizeSlice"
-import LoadingScreen from "@components/UI/LoadingScreen"
+import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
 
 const HumanizeContent = () => {
   const [inputContent, setInputContent] = useState("")
@@ -79,9 +79,7 @@ const HumanizeContent = () => {
       return
     }
 
-    const payload = {
-      content: inputContent.trim(),
-    }
+    const payload = { content: inputContent.trim() }
 
     try {
       const resultAction = await dispatch(generateHumanizedContent(payload)).unwrap()
@@ -128,7 +126,7 @@ const HumanizeContent = () => {
   if (isLoading) {
     return (
       <div className="h-[calc(100vh-200px)] p-4 flex items-center justify-center">
-        <LoadingScreen />
+        <ProgressLoadingScreen message="Humanizing your content..." />
       </div>
     )
   }

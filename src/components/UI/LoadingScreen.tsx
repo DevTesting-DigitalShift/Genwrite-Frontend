@@ -1,26 +1,104 @@
-import { useEffect } from "react"
+import { useEffect, useRef, useState } from "react"
 import "./LoadingScreen.css"
 
-const LoadingScreen = () => {
+interface LoadingScreenProps {
+  maxDuration?: number // Maximum time to display (ms)
+  onTimeout?: () => void // Callback when timeout is reached
+  message?: string // Optional loading message
+  delay?: number // Delay before showing (ms) - prevents flash on quick loads
+}
+
+const LoadingScreen = ({
+  maxDuration = 60000, // 60 seconds default
+  onTimeout,
+  message,
+  delay = 200, // Default 200ms delay to prevent flash
+}: LoadingScreenProps = {}) => {
+  const [isTimedOut, setIsTimedOut] = useState(false)
+  const [shouldShow, setShouldShow] = useState(delay === 0) // Show immediately if no delay
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const delayRef = useRef<NodeJS.Timeout | null>(null)
+  const mountTimeRef = useRef<number>(Date.now())
+
+  // Delay before showing - prevents flash on quick loads
   useEffect(() => {
-    const originalOverflow = document.body.style.overflow
-    document.body.style.overflow = "hidden"
+    if (delay > 0) {
+      delayRef.current = setTimeout(() => {
+        setShouldShow(true)
+      }, delay)
+    }
 
     return () => {
-      document.body.style.overflow = originalOverflow
+      if (delayRef.current) {
+        clearTimeout(delayRef.current)
+      }
+    }
+  }, [delay])
+
+  // Timeout protection - prevent infinite loading states
+  useEffect(() => {
+    timeoutRef.current = setTimeout(() => {
+      console.warn(
+        `LoadingScreen: Maximum duration (${maxDuration}ms) exceeded. ` +
+          `Component has been visible for too long.`
+      )
+      setIsTimedOut(true)
+      onTimeout?.()
+    }, maxDuration)
+
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+
+      // Log how long the component was displayed
+      const duration = Date.now() - mountTimeRef.current
+      if (duration > 5000) {
+        console.info(`LoadingScreen: Was displayed for ${(duration / 1000).toFixed(1)}s`)
+      }
+    }
+  }, [maxDuration, onTimeout])
+
+  // Performance monitoring
+  useEffect(() => {
+    const startTime = performance.now()
+
+    return () => {
+      const endTime = performance.now()
+      const duration = endTime - startTime
+      if (duration > 3000) {
+        console.warn(
+          `LoadingScreen: Long display duration detected: ${(duration / 1000).toFixed(2)}s. ` +
+            `Consider optimizing the loading operation.`
+        )
+      }
     }
   }, [])
 
+  // Don't render until delay has passed (prevents flash)
+  if (!shouldShow) {
+    return null
+  }
+
   return (
-    <div className="loading-screen">
+    <div
+      className="loading-screen"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+      aria-label={message || "Loading content, please wait"}
+    >
+      {/* Screen reader-only text */}
+      <span className="sr-only">{message || "Loading, please wait..."}</span>
+
       <div className="loading-content">
         {/* Animated Logo Text with Morphing Background */}
         <div className="logo-container">
-          <div className="morphing-background"></div>
+          <div className="morphing-background" aria-hidden="true"></div>
 
           <div className="logo-wrapper">
             {/* Animated Pen Icon */}
-            <div className="pen-wrapper">
+            <div className="pen-wrapper" aria-hidden="true">
               <svg className="pen-svg" viewBox="0 0 24 24" fill="none">
                 <path
                   className="pen-path"
@@ -47,7 +125,7 @@ const LoadingScreen = () => {
             </div>
 
             {/* Logo Text */}
-            <h1 className="logo-text">
+            <h1 className="logo-text" aria-hidden="true">
               <span className="letter" style={{ animationDelay: "0s" }}>
                 g
               </span>
@@ -78,6 +156,13 @@ const LoadingScreen = () => {
             </h1>
           </div>
         </div>
+
+        {/* Optional message display */}
+        {message && (
+          <p className="loading-message" aria-hidden="true">
+            {message}
+          </p>
+        )}
       </div>
     </div>
   )

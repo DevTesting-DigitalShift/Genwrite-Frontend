@@ -152,6 +152,7 @@ export const createNewQuickBlog = createAsyncThunk(
         queryClient.invalidateQueries({ queryKey: ["blogs"], refetchType: "all" })
       }
 
+      // ✅ Only navigate on success
       navigate(`/blogs`)
       return blog
     } catch (error) {
@@ -208,7 +209,9 @@ export const createMultiBlog = createAsyncThunk(
         queryClient.invalidateQueries({ queryKey: ["blogs"], refetchType: "all" })
       }
 
+      // ✅ Only navigate on success
       navigate("/blogs")
+      return blogs
     } catch (error) {
       pushToDataLayer({
         event: "Blog Creation",
@@ -507,14 +510,8 @@ const blogSlice = createSlice({
         state.selectedBlog = action.payload
       })
 
-      // Create Blog
-      .addCase(createNewBlog.fulfilled, (state, action) => {
-        // state.userBlogs.push(action.payload)
-      })
-      .addCase(createNewQuickBlog.fulfilled, (state, action) => {
-        // state.userBlogs.push(action.payload)
-        // state.selectedBlog = action.payload
-      })
+      // Create Blog - no state changes needed here
+      // Loading is managed by LoadingContext in components
 
       // Update Blog
       .addCase(updateBlogDetails.fulfilled, (state, action) => {
@@ -595,28 +592,22 @@ const blogSlice = createSlice({
       })
 
       .addCase(fetchGeneratedTitles.pending, state => {
-        state.loading = true
         state.error = null
       })
       .addCase(fetchGeneratedTitles.fulfilled, (state, action) => {
-        state.loading = false
         state.generatedTitles = action.payload
       })
       .addCase(fetchGeneratedTitles.rejected, (state, action) => {
-        state.loading = false
         state.error = action.payload
       })
 
       .addCase(createManualBlog.pending, state => {
-        state.loading = true
         state.error = null
       })
       .addCase(createManualBlog.fulfilled, (state, action) => {
-        state.loading = false
         state.data = action.payload
       })
       .addCase(createManualBlog.rejected, (state, action) => {
-        state.loading = false
         state.error = action.payload
       })
 
@@ -649,28 +640,6 @@ const blogSlice = createSlice({
         const { id, prompt } = action.payload
         state.blogPrompts[id] = prompt
       })
-
-      // Generic Error/Loading Handling
-      .addMatcher(
-        action => action.type.startsWith("blogs/") && action.type.endsWith("/pending"),
-        state => {
-          state.loading = true
-          state.error = null
-        }
-      )
-      .addMatcher(
-        action => action.type.startsWith("blogs/") && action.type.endsWith("/fulfilled"),
-        state => {
-          state.loading = false
-        }
-      )
-      .addMatcher(
-        action => action.type.startsWith("blogs/") && action.type.endsWith("/rejected"),
-        (state, action) => {
-          state.loading = false
-          state.error = action.payload
-        }
-      )
   },
 })
 

@@ -33,7 +33,21 @@ const VerifiedEmail = () => {
 
     const verifyEmail = async () => {
       try {
-        const res = await axiosInstance.post("/auth/verify-email", { token })
+        // Create abort controller for timeout
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+
+        const res = await axiosInstance.post(
+          "/auth/verify-email",
+          { token },
+          {
+            signal: controller.signal,
+          }
+        )
+
+        clearTimeout(timeoutId)
+
+        console.log("Verification response:", res)
 
         if (res.data?.success) {
           hasVerified.current = true
@@ -43,10 +57,29 @@ const VerifiedEmail = () => {
           setErrorMessage(res.data?.message || "Verification failed")
         }
       } catch (err) {
+        console.error("Verification error:", err)
+
+        // Handle timeout
+        if (err.name === "AbortError" || err.code === "ECONNABORTED") {
+          setStatus("error")
+          setErrorMessage("Request timed out. Please check your connection and try again.")
+          return
+        }
+
+        // Handle network errors
+        if (err.code === "ERR_NETWORK" || !err.response) {
+          setStatus("error")
+          setErrorMessage("Network error. Please check your internet connection.")
+          return
+        }
+
         setStatus("error")
         setErrorMessage(err.response?.data?.message || "Invalid or expired token")
       }
     }
+
+    // Actually call the function!
+    verifyEmail()
   }, [token])
 
   return (
@@ -66,8 +99,8 @@ const VerifiedEmail = () => {
         {/* ✅ SUCCESS STATE */}
         {status === "success" && (
           <Result
+            className="p-0"
             status="success"
-            icon={<CheckCircleOutlined className="text-4xl text-green-500" />}
             title="Email Verified Successfully 🎉"
             subTitle="You're all set. You can now access your dashboard."
             extra={[
@@ -76,6 +109,7 @@ const VerifiedEmail = () => {
                 size="large"
                 onClick={() => navigate("/dashboard")}
                 key="dashboard"
+                className="w-full"
               >
                 Go to Dashboard
               </Button>,
@@ -92,8 +126,8 @@ const VerifiedEmail = () => {
             subTitle={errorMessage}
             extra={[
               <div className="flex justify-center">
-                <Button size="large" onClick={() => navigate("/login")} key="login">
-                  Back to Login
+                <Button size="large" onClick={() => navigate(-1)} key="back">
+                  Back
                 </Button>
               </div>,
             ]}

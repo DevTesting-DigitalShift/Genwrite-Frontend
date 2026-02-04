@@ -21,6 +21,8 @@ const PrivateRoutesLayout = () => {
   // Hide chatbot on toolbox routes
   const isToolboxRoute = location.pathname.startsWith("/toolbox/")
 
+  const [isSocketConnected, setIsSocketConnected] = useState(false)
+
   // Load authenticated user on mount
   useEffect(() => {
     const init = async () => {
@@ -33,8 +35,11 @@ const PrivateRoutesLayout = () => {
     }
 
     if (token) {
-      init()
       connectSocket(token)
+      setIsSocketConnected(true)
+      init()
+    } else {
+      setIsSocketConnected(true)
     }
   }, [])
 
@@ -51,16 +56,13 @@ const PrivateRoutesLayout = () => {
     if (!user.lastLogin && !hasCompletedOnboarding) {
       navigate("/onboarding", { replace: true })
     }
-    if (user.emailVerified === false) {
-      navigate(`/email-verify/${user.email}`, { replace: true })
-    }
   }, [user, navigate])
 
   const isToolbarRoute = location.pathname.startsWith("/toolbox/")
 
-  // Show loading screen while authenticating
-  if (loading && !user) {
-    return <LoadingScreen />
+  // Show loading screen while authenticating or connecting socket
+  if ((loading && !user) || (token && !isSocketConnected)) {
+    return <LoadingScreen message="Authenticating..." />
   }
 
   return token ? (

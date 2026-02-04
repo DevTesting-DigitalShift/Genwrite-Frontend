@@ -43,9 +43,13 @@ import {
   Minus,
   Youtube,
   Info,
+  Sparkles,
 } from "lucide-react"
-import { Tooltip, message, Modal, Input, Button, Dropdown, Popover } from "antd"
-import { createPortal } from "react-dom"
+import { Tooltip, message, Modal, Input, Button, Dropdown, Popover, Select } from "antd"
+import ImageModal from "@components/ImageModal"
+import { useSelector } from "react-redux"
+import { useEditorContext } from "./EditorContext"
+import { AIBubbleMenu } from "./AIBubbleMenu"
 
 const ToolbarButton = ({ active, onClick, disabled, children, title }) => (
   <Tooltip title={title}>
@@ -57,8 +61,8 @@ const ToolbarButton = ({ active, onClick, disabled, children, title }) => (
         disabled
           ? "opacity-50 cursor-not-allowed"
           : active
-          ? "bg-blue-100 text-blue-600"
-          : "hover:bg-gray-100"
+            ? "bg-blue-100 text-blue-600"
+            : "hover:bg-gray-100"
       }`}
     >
       {children}
@@ -72,6 +76,7 @@ const SectionEditor = ({
   onBlur,
   proofreadingResults = [],
   onAcceptSuggestion,
+  sectionId,
 }) => {
   const [linkModalOpen, setLinkModalOpen] = useState(false)
   const [linkUrl, setLinkUrl] = useState("")
@@ -88,6 +93,7 @@ const SectionEditor = ({
   const [editImageAlt, setEditImageAlt] = useState("")
   const [editImageUrl, setEditImageUrl] = useState("")
   const [linkEditModalOpen, setLinkEditModalOpen] = useState(false)
+  const [generatedImageTemp, setGeneratedImageTemp] = useState(null)
 
   // Link hover preview state with metadata
   const [hoveredLink, setHoveredLink] = useState(null)
@@ -108,10 +114,16 @@ const SectionEditor = ({
   const [youtubeTitle, setYoutubeTitle] = useState("")
   const [youtubeError, setYoutubeError] = useState("")
 
+  // Auth & Credits
+  const { user } = useSelector(state => state.auth)
+
   // Table grid selector state
   const [tableDropdownOpen, setTableDropdownOpen] = useState(false)
   const [hoveredCell, setHoveredCell] = useState({ row: 0, col: 0 })
   const tableButtonRef = useRef(null)
+
+  // Get editor context for AI operations
+  const { blogId } = useEditorContext()
 
   const editor = useEditor({
     extensions: [
@@ -129,33 +141,19 @@ const SectionEditor = ({
       Table.configure({
         resizable: true,
         allowTableNodeSelection: true,
-        HTMLAttributes: {
-          class: "border-collapse border border-gray-300 w-full my-4",
-        },
+        HTMLAttributes: { class: "border-collapse border border-gray-300 w-full my-4" },
       }),
-      TableRow.configure({
-        HTMLAttributes: {
-          class: "border border-gray-300",
-        },
-      }),
+      TableRow.configure({ HTMLAttributes: { class: "border border-gray-300" } }),
       TableHeader.configure({
-        HTMLAttributes: {
-          class: "border border-gray-300 bg-gray-100 p-2 font-semibold text-left",
-        },
+        HTMLAttributes: { class: "border border-gray-300 bg-gray-100 p-2 font-semibold text-left" },
       }),
-      TableCell.configure({
-        HTMLAttributes: {
-          class: "border border-gray-300 p-2",
-        },
-      }),
+      TableCell.configure({ HTMLAttributes: { class: "border border-gray-300 p-2" } }),
       Image.configure({
         HTMLAttributes: {
           class: "rounded-lg max-w-full h-auto object-contain my-4 cursor-pointer",
         },
       }),
-      TextAlign.configure({
-        types: ["heading", "paragraph"],
-      }),
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
@@ -165,9 +163,7 @@ const SectionEditor = ({
         },
       }),
       Iframe,
-      ProofreadingDecoration.configure({
-        suggestions: proofreadingResults,
-      }),
+      ProofreadingDecoration.configure({ suggestions: proofreadingResults }),
     ],
     content: initialContent,
     onUpdate: ({ editor }) => {
@@ -189,11 +185,7 @@ const SectionEditor = ({
         const link = event.target.closest("a")
         if (link) {
           event.preventDefault()
-          const linkData = {
-            href: link.href,
-            text: link.textContent,
-            element: link,
-          }
+          const linkData = { href: link.href, text: link.textContent, element: link }
           setSelectedLink(linkData)
           setSelectedImage(null)
           // Open link edit modal
@@ -206,11 +198,11 @@ const SectionEditor = ({
         const img = event.target.closest("img")
         if (img) {
           event.preventDefault()
-          const imageData = {
-            src: img.src,
-            alt: img.alt || "",
-            element: img,
-          }
+          // Use posAtDOM to get the precise position of the image node
+          const imgPos = view.posAtDOM(img)
+
+          const imageData = { src: img.src, alt: img.alt || "", element: img, pos: imgPos }
+
           setSelectedImage(imageData)
           setSelectedLink(null)
           setImageEditMode(false)
@@ -447,16 +439,31 @@ const SectionEditor = ({
 
   const deleteSelectedImage = () => {
     if (selectedImage && editor) {
-      // Find and delete the image node
       const { state } = editor
       let imagePos = null
 
-      state.doc.descendants((node, pos) => {
-        if (node.type.name === "image" && node.attrs.src === selectedImage.src) {
-          imagePos = pos
-          return false
+      // Use precise position if available from click event
+      if (selectedImage.pos !== undefined && selectedImage.pos !== null) {
+        // Validation: Check if the node at this position is indeed an image and matches
+        try {
+          const node = state.doc.nodeAt(selectedImage.pos)
+          if (node && node.type.name === "image" && node.attrs.src === selectedImage.src) {
+            imagePos = selectedImage.pos
+          }
+        } catch (e) {
+          // fallback to scan
         }
-      })
+      }
+
+      // Fallback: Scan if pos is invalid or not found
+      if (imagePos === null) {
+        state.doc.descendants((node, pos) => {
+          if (node.type.name === "image" && node.attrs.src === selectedImage.src) {
+            imagePos = pos
+            return false
+          }
+        })
+      }
 
       if (imagePos !== null) {
         editor
@@ -464,6 +471,10 @@ const SectionEditor = ({
           .focus()
           .deleteRange({ from: imagePos, to: imagePos + 1 })
           .run()
+
+        // Explicitly update parent state
+        onChange(editor.getHTML())
+
         setSelectedImage(null)
         message.success("Image deleted")
       }
@@ -556,14 +567,7 @@ const SectionEditor = ({
     }
 
     // Insert YouTube iframe using the extension
-    editor
-      .chain()
-      .focus()
-      .setIframe({
-        src: result.embedUrl,
-        title: youtubeTitle.trim(),
-      })
-      .run()
+    editor.chain().focus().setIframe({ src: result.embedUrl, title: youtubeTitle.trim() }).run()
 
     // Reset form
     setYoutubeUrl("")
@@ -980,10 +984,7 @@ const SectionEditor = ({
               }
 
               const linkHref = link.href
-              setHoveredLink({
-                href: linkHref,
-                text: link.textContent,
-              })
+              setHoveredLink({ href: linkHref, text: link.textContent })
 
               // Check cache first
               if (previewCacheRef.current[linkHref]) {
@@ -997,9 +998,7 @@ const SectionEditor = ({
                     proxyUrl: "https://api.allorigins.win/raw?url=",
                     timeout: 5000,
                     followRedirects: "follow",
-                    headers: {
-                      "user-agent": "googlebot",
-                    },
+                    headers: { "user-agent": "googlebot" },
                   })
 
                   const previewData = {
@@ -1044,6 +1043,16 @@ const SectionEditor = ({
         }}
       >
         <EditorContent editor={editor} />
+
+        {/* AI Bubble Menu for selected text */}
+        {editor && blogId && sectionId && (
+          <AIBubbleMenu
+            editor={editor}
+            blogId={blogId}
+            sectionId={sectionId}
+            onContentUpdate={onChange}
+          />
+        )}
 
         {/* Link Hover Preview Tooltip with Rich Preview */}
         {hoveredLink && !selectedLink && (
@@ -1177,41 +1186,37 @@ const SectionEditor = ({
         </div>
       </Modal>
 
-      {/* Image Modal */}
-      <Modal
-        title="Add Image"
+      {/* Image Modal using Reusable Component */}
+      <ImageModal
         open={imageModalOpen}
-        onCancel={() => setImageModalOpen(false)}
-        footer={
-          <div className="flex justify-end gap-2">
-            <Button onClick={() => setImageModalOpen(false)}>Cancel</Button>
-            <Button type="primary" onClick={confirmAddImage}>
-              Add Image
-            </Button>
-          </div>
-        }
-      >
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
-            <Input
-              value={imageUrl}
-              onChange={e => setImageUrl(e.target.value)}
-              placeholder="https://example.com/image.jpg"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Alt Text (optional)
-            </label>
-            <Input
-              value={imageAltText}
-              onChange={e => setImageAltText(e.target.value)}
-              placeholder="Description of the image"
-            />
-          </div>
-        </div>
-      </Modal>
+        onCancel={() => {
+          setImageModalOpen(false)
+          setImageUrl("")
+          setImageAltText("")
+        }}
+        onSave={(url, alt) => {
+          if (!url) {
+            message.error("Please select or generate an image")
+            return
+          }
+          let finalUrl = url
+          if (!/^https?:\/\//i.test(finalUrl)) {
+            finalUrl = "https://" + finalUrl
+          }
+          editor
+            .chain()
+            .focus()
+            .setImage({ src: finalUrl, alt: alt || "" })
+            .run()
+          setImageModalOpen(false)
+          setImageUrl("")
+          setImageAltText("")
+          message.success("Image added")
+        }}
+        initialUrl={imageUrl}
+        initialAlt={imageAltText}
+        title="Add Image to Section"
+      />
 
       {/* Edit Link Modal - Comprehensive version */}
       <Modal

@@ -119,8 +119,13 @@ const MainEditorPage = () => {
         title: blog.title || "",
       })
       setUnsavedChanges(false) // Reset unsavedChanges when blog is loaded
+      if (blog.textVersion) {
+        setEditorVersion(blog.textVersion)
+      }
     }
   }, [blog, id])
+
+  const [editorVersion, setEditorVersion] = useState(2) // Default to Section Editor (v2)
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -216,7 +221,8 @@ const MainEditorPage = () => {
       .filter(word => word.length > 0).length
   }
 
-  const handleSave = async ({ metadata }) => {
+  const handleSave = async (updateData = {}) => {
+    const { metadata, slug, ...rest } = updateData
     if (userPlan === "free" || userPlan === "basic") {
       navigate("/pricing")
       return
@@ -237,9 +243,11 @@ const MainEditorPage = () => {
           published: blog?.published,
           focusKeywords: blog?.focusKeywords,
           keywords,
+          slug: slug !== undefined ? slug : blog?.slug,
           seoMetadata: metadata
             ? { title: metadata.title, description: metadata.description }
             : blog?.seoMetadata || { title: "", description: "" },
+          ...rest,
         })
       ).unwrap()
 
@@ -310,10 +318,7 @@ const MainEditorPage = () => {
     message.info("Changes discarded.")
   }
 
-  const tabVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 },
-  }
+  const tabVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }
 
   const handleTemplateModalClose = () => {
     const isEmpty =
@@ -562,6 +567,10 @@ const MainEditorPage = () => {
                 </div>
               ) : (
                 <EditorVersionWrapper
+                  // Controlled version state
+                  currentVersion={editorVersion}
+                  onVersionChange={setEditorVersion}
+                  // Original props
                   textVersion={blog?.textVersion || 2}
                   keywords={keywords}
                   setKeywords={setKeywords}
@@ -590,6 +599,7 @@ const MainEditorPage = () => {
           </div>
           <div className="hidden md:block border-l border-gray-200 overflow-y-auto custom-scroll max-h-[900px]">
             <TextEditorSidebar
+              activeEditorVersion={editorVersion}
               blog={blog}
               keywords={keywords}
               setKeywords={setKeywords}
@@ -626,6 +636,7 @@ const MainEditorPage = () => {
                 className="fixed inset-y-0 right-0 w-4/5 max-w-xs bg-white shadow-lg z-50 overflow-y-auto md:hidden"
               >
                 <TextEditorSidebar
+                  activeEditorVersion={editorVersion}
                   blog={blog}
                   keywords={keywords}
                   setKeywords={setKeywords}

@@ -553,7 +553,7 @@
 .blog-content figcaption {
   text-align: center;
   color: #6b7280;
-  font-size: 0.875rem;
-  margin-top: 0.75rem;
-  font-style: italic;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  font-style: normal;
 }

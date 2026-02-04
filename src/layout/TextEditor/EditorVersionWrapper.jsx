@@ -18,18 +18,29 @@ import TextEditor from "./TextEditor"
 const EditorVersionWrapper = ({
   blog,
   textVersion = 2, // Default to section editor
+  currentVersion,
+  onVersionChange,
   content,
   setContent,
   unsavedChanges,
   setUnsavedChanges,
   ...editorProps
 }) => {
-  // For testing: allow manual toggle (will be removed when backend integration is complete)
-  const [manualVersion, setManualVersion] = useState(textVersion)
-  const currentVersion = manualVersion
+  // Controlled vs Uncontrolled logic
+  const isControlled = currentVersion !== undefined
+  // For uncontrolled usage (fallback)
+  const [internalVersion, setInternalVersion] = useState(textVersion)
+
+  // Determine active version
+  const activeVersion = isControlled ? currentVersion : internalVersion
 
   const handleVersionToggle = checked => {
-    setManualVersion(checked ? 1 : 2)
+    const newVer = checked ? 1 : 2
+    if (isControlled) {
+      onVersionChange && onVersionChange(newVer)
+    } else {
+      setInternalVersion(newVer)
+    }
   }
 
   return (
@@ -46,14 +57,14 @@ const EditorVersionWrapper = ({
               <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-sm border border-purple-200">
                 <span
                   className={`text-xs font-medium transition-colors ${
-                    currentVersion === 2 ? "text-purple-600" : "text-gray-400"
+                    activeVersion === 2 ? "text-purple-600" : "text-gray-400"
                   }`}
                 >
                   Section Editor
                 </span>
                 <Tooltip title="Toggle between TipTap Editor (v1) and Section Editor (v2)">
                   <Switch
-                    checked={currentVersion === 1}
+                    checked={activeVersion === 1}
                     onChange={handleVersionToggle}
                     size="small"
                     checkedChildren={<FileText className="w-3 h-3" />}
@@ -62,7 +73,7 @@ const EditorVersionWrapper = ({
                 </Tooltip>
                 <span
                   className={`text-xs font-medium transition-colors ${
-                    currentVersion === 1 ? "text-blue-600" : "text-gray-400"
+                    activeVersion === 1 ? "text-blue-600" : "text-gray-400"
                   }`}
                 >
                   TipTap Editor
@@ -81,7 +92,7 @@ const EditorVersionWrapper = ({
 
       {/* Editor Content */}
       <div className="flex-1">
-        {currentVersion === 1 ? (
+        {activeVersion === 1 ? (
           <TipTapEditor
             blog={blog}
             content={content}

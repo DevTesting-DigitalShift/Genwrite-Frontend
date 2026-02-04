@@ -30,6 +30,10 @@ import {
   Info,
   Calendar,
   User,
+  ImageIcon,
+  Pencil,
+  CheckCircle,
+  MessageSquare,
 } from "lucide-react"
 import {
   Button,
@@ -45,28 +49,110 @@ import {
 } from "antd"
 import { fetchProofreadingSuggestions, fetchBlogPrompt } from "@store/slices/blogSlice"
 import { fetchCompetitiveAnalysisThunk } from "@store/slices/analysisSlice"
-import { generateMetadataThunk, getIntegrationsThunk } from "@store/slices/otherSlice"
+import {
+  generateMetadataThunk,
+  getIntegrationsThunk,
+  getCategoriesThunk,
+  resetCategories,
+} from "@store/slices/otherSlice"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useNavigate } from "react-router-dom"
 import { useDispatch, useSelector } from "react-redux"
 import { getEstimatedCost, creditCostsWithGemini } from "@utils/getEstimatedCost"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
 import { Modal } from "antd"
-import CategoriesModal from "../Editor/CategoriesModal"
 import { TONES } from "@/data/blogData"
-import { retryBlogById, exportBlogAsPdf, getBlogPostings } from "@api/blogApi"
+import { retryBlogById, exportBlogAsPdf, getBlogPostings, exportBlog } from "@api/blogApi"
 import { validateRegenerateBlogData } from "@/types/forms.schemas"
 import { useQueryClient } from "@tanstack/react-query"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
 import { ScoreCard, StatCard, CompetitorsList, AnalysisInsights } from "./FeatureComponents"
 import RegenerateModal from "@components/RegenerateModal"
+import CategoriesModal from "../Editor/CategoriesModal"
 
 import { IMAGE_SOURCE, DEFAULT_IMAGE_SOURCE } from "@/data/blogData"
 import { computeCost } from "@/data/pricingConfig"
 import * as Cheerio from "cheerio"
+import TurndownService from "turndown"
+
+import axios from "axios"
+import { marked } from "marked"
 
 const { TextArea } = Input
 const { Panel } = Collapse
+
+// WordPress Categories Component
+const WordPressCategories = ({ onSelect, currentCategory }) => {
+  const [categories, setCategories] = useState([])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    const fetchWPCategories = async () => {
+      setLoading(true)
+      try {
+        const response = await axios.get(
+          "http://localhost:8000/api/v1/integrations/category?type=WORDPRESS"
+        )
+        if (Array.isArray(response.data)) {
+          setCategories(response.data)
+        }
+      } catch (error) {
+        console.error("Failed to fetch WP categories", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchWPCategories()
+  }, [])
+
+  if (categories.length === 0 && !loading) return null
+
+  return (
+    <div className="mt-4 pt-4 border-t border-gray-100">
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
+          <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+          WordPress Categories
+        </span>
+        <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-medium">
+          {categories.length} available
+        </span>
+      </div>
+
+      <div className="bg-gray-50/50 rounded-xl p-3 border border-gray-100 max-h-48 overflow-y-auto custom-scroll">
+        {loading ? (
+          <div className="flex justify-center p-4">
+            <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {categories.map((cat, idx) => (
+              <button
+                key={idx}
+                onClick={() => onSelect(cat)}
+                className={`
+                  px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 border flex items-center gap-1.5
+                  ${
+                    currentCategory === cat
+                      ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-200 transform scale-105"
+                      : "bg-white text-gray-600 border-gray-200 hover:border-blue-400 hover:text-blue-600 hover:shadow-sm"
+                  }
+                `}
+              >
+                {cat}
+                {currentCategory === cat && <CheckCircle className="w-3 h-3" />}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      <p className="text-[10px] text-gray-400 mt-2 px-1">
+        Select a category from your WordPress site to populate the field above.
+      </p>
+    </div>
+  )
+}
 
 // AI Models config
 const AI_MODELS = [
@@ -80,12 +166,23 @@ const AI_MODELS = [
   },
 ]
 
-// Sidebar navigation items
-const NAV_ITEMS = [
-  { id: "overview", icon: BarChart3, label: "Overview" },
-  { id: "seo", icon: TrendingUp, label: "SEO" },
-  { id: "bloginfo", icon: Info, label: "Blog Info" },
-  { id: "regenerate", icon: RefreshCw, label: "Regenerate" },
+// Popular WordPress categories (limited to 15 for relevance)
+const POPULAR_CATEGORIES = [
+  "Blogging",
+  "Technology",
+  "Lifestyle",
+  "Travel",
+  "Food & Drink",
+  "Health & Wellness",
+  "Fashion",
+  "Business",
+  "Education",
+  "Entertainment",
+  "Photography",
+  "Fitness",
+  "Marketing",
+  "Finance",
+  "DIY & Crafts",
 ]
 
 const TextEditorSidebar = ({
@@ -108,6 +205,7 @@ const TextEditorSidebar = ({
   setIsHumanizeModalOpen,
   setIsSidebarOpen,
   unsavedChanges,
+  activeEditorVersion, // NEW PROP
 }) => {
   const [activePanel, setActivePanel] = useState("overview")
   const [isCollapsed, setIsCollapsed] = useState(false)
@@ -117,6 +215,14 @@ const TextEditorSidebar = ({
   const [newKeyword, setNewKeyword] = useState("")
   const [isRegenerating, setIsRegenerating] = useState(false)
 
+  // Repost Modal State
+  const [isRepostModalOpen, setIsRepostModalOpen] = useState(false)
+  const [repostSettings, setRepostSettings] = useState({
+    platform: "",
+    category: "",
+    includeTableOfContents: false,
+  })
+
   // 2-step regenerate modal state
   const [isRegenerateModalOpen, setIsRegenerateModalOpen] = useState(false)
 
@@ -124,7 +230,22 @@ const TextEditorSidebar = ({
   const [blogPostings, setBlogPostings] = useState([])
   const [isLoadingPostings, setIsLoadingPostings] = useState(false)
 
+  // Blog slug editor state
+  const [blogSlug, setBlogSlug] = useState(blog?.slug || "")
+  const [isEditingSlug, setIsEditingSlug] = useState(false)
+
   const { data: integrations } = useSelector(state => state.wordpress)
+  const { categories, error: wordpressError } = useSelector(state => state.wordpress)
+
+  // Posting State (Migrated from CategoriesModal)
+  const [selectedCategory, setSelectedCategory] = useState("")
+  const [selectedIntegration, setSelectedIntegration] = useState(null)
+  const [includeTableOfContents, setIncludeTableOfContents] = useState(false)
+  const [isCategoryLocked, setIsCategoryLocked] = useState(false)
+  const [categoryError, setCategoryError] = useState(false)
+  const [platformError, setPlatformError] = useState(false)
+  const [errors, setErrors] = useState({ category: "", platform: "" })
+
   const [metadata, setMetadata] = useState({
     title: blog?.seoMetadata?.title || "",
     description: blog?.seoMetadata?.description || "",
@@ -133,6 +254,9 @@ const TextEditorSidebar = ({
   // Generated metadata accept/reject modal state
   const [generatedMetadataModal, setGeneratedMetadataModal] = useState(false)
   const [generatedMetadata, setGeneratedMetadata] = useState(null)
+
+  // Export with images toggle
+  const [includeImagesInExport, setIncludeImagesInExport] = useState(false)
   const [isGeneratingMetadata, setIsGeneratingMetadata] = useState(false)
 
   // Content enhancement editable options state
@@ -163,11 +287,251 @@ const TextEditorSidebar = ({
       addOutBoundLinks: false,
       performKeywordResearch: false,
     },
+    easyToUnderstand: false,
+    embedYouTubeVideos: false,
     isCheckedQuick: false,
     wordpressPostStatus: false,
     postingType: null,
     includeTableOfContents: false,
   })
+
+  // AI Section Tools State
+  const [sectionToolState, setSectionToolState] = useState({
+    sectionId: "",
+    task: "rewrite",
+    instructions: "",
+  })
+  const [isProcessingSection, setIsProcessingSection] = useState(false)
+  const [availableSections, setAvailableSections] = useState([])
+
+  // Sidebar navigation items
+  const NAV_ITEMS = [
+    { id: "overview", icon: BarChart3, label: "Overview" },
+    { id: "seo", icon: TrendingUp, label: "SEO" },
+    { id: "bloginfo", icon: Info, label: "Blog Info" },
+    ...(blog?.brandId || blog?.nameOfVoice
+      ? [{ id: "brand", icon: Crown, label: "Brand Voice" }]
+      : []),
+    { id: "posting", icon: Send, label: "Posting" },
+    { id: "regenerate", icon: RefreshCw, label: "Regenerate" },
+    // Conditionally render AI Section Tools if sections are available AND editor is TipTap (v1)
+    ...(availableSections.length > 0 && activeEditorVersion === 1
+      ? [{ id: "sectionTools", icon: Wand2, label: "AI Tools" }]
+      : []),
+  ]
+
+  // Clear section selection when switching tabs to simple cleanup
+  useEffect(() => {
+    if (activePanel !== "sectionTools" && sectionToolState.sectionId) {
+      setSectionToolState(prev => ({ ...prev, sectionId: "" }))
+      window.dispatchEvent(new CustomEvent("highlight-section", { detail: null }))
+    }
+  }, [activePanel])
+
+  // Parse sections from content whenever it changes
+  useEffect(() => {
+    if (!editorContent) {
+      setAvailableSections([])
+      return
+    }
+
+    try {
+      let sections = []
+      // ... (rest of parsing logic will remain, just inserting the hook before it)
+
+      // STRATEGY 1: Structured HTML with <section> tags
+      // Use Cheerio to parse the generic content first
+      // Note: editorContent might be Markdown, but if it contains HTML <section> tags, Cheerio finds them.
+      const $ = Cheerio.load(editorContent, { xmlMode: false }) // xmlMode false to handle standard HTML
+      const $htmlSections = $("section")
+
+      if ($htmlSections.length > 0) {
+        $htmlSections.each((i, el) => {
+          const $el = $(el)
+          const id = $el.attr("id")
+
+          // Skip if no ID (cannot target)
+          if (!id) return
+
+          // Try to find a heading inside this section
+          const $heading = $el.find("h1, h2, h3, h4, h5, h6").first()
+          const title = $heading.length ? $heading.text().trim() : `Section ${i + 1}`
+
+          // Get text preview
+          // Prefer content inside .section-content if available, otherwise full section text
+          // Removing the title from the preview text
+          const $content = $el.find(".section-content").length ? $el.find(".section-content") : $el
+          let text = $content.text()
+          if ($heading.length) {
+            text = text.replace($heading.text(), "")
+          }
+          text = text.replace(/\s+/g, " ").trim()
+
+          const preview = text.substring(0, 120) + (text.length > 120 ? "..." : "")
+
+          sections.push({ id, title, preview })
+        })
+      }
+
+      // STRATEGY 2: Markdown/Flat HTML Headers (Fallback)
+      // Only runs if no proper <section> tags were found
+      if (sections.length === 0) {
+        // Configure marked to match TipTap's ID generation
+        const renderer = {
+          heading(text, level) {
+            const slug = text
+              .toLowerCase()
+              .replace(/[^\w]+/g, "-")
+              .replace(/^-+|-+$/g, "")
+            return `<h${level} id="${slug}">${text}</h${level}>`
+          },
+        }
+        marked.use({ renderer })
+
+        // Convert Markdown to HTML to ensure we catch all headers with generated IDs
+        const html = marked.parse(editorContent)
+        const $md = Cheerio.load(html)
+
+        $md("h1, h2, h3").each((i, el) => {
+          const $el = $md(el)
+          const id = $el.attr("id")
+          const title = $el.text().trim()
+
+          // Extract content preview (next elements until next header)
+          let contentPreview = ""
+          let $next = $el.next()
+          let charCount = 0
+          const MAX_PREVIEW = 120
+
+          while ($next.length && !$next.is("h1, h2, h3") && charCount < MAX_PREVIEW) {
+            const text = $next.text().trim()
+            if (text) {
+              contentPreview += text + " "
+              charCount += text.length
+            }
+            $next = $next.next()
+          }
+
+          if (id) {
+            sections.push({
+              id,
+              title: title || `Heading ${i + 1}`,
+              preview:
+                contentPreview.trim().substring(0, MAX_PREVIEW) +
+                (charCount >= MAX_PREVIEW ? "..." : ""),
+            })
+          }
+        })
+      }
+
+      setAvailableSections(sections)
+
+      // Auto-select first section if none selected and sections exist
+      if (sections.length > 0 && !sectionToolState.sectionId) {
+        // Don't auto-set ID, let user select
+        // setSectionToolState(prev => ({ ...prev, sectionId: sections[0].id }))
+      }
+    } catch (e) {
+      console.error("Failed to parse sections for tools:", e)
+    }
+  }, [editorContent])
+
+  const handleSectionTask = async () => {
+    if (!blog?._id) return message.error("Blog ID missing")
+    if (!sectionToolState.sectionId) return message.error("Please select a section")
+    if (sectionToolState.task === "custom" && !sectionToolState.instructions.trim()) {
+      return message.error("Please enter instructions for custom task")
+    }
+
+    setIsProcessingSection(true)
+    try {
+      const payload = {
+        sectionId: sectionToolState.sectionId,
+        task: sectionToolState.task,
+        userInstructions: sectionToolState.instructions,
+      }
+
+      // API Call
+      const response = await axios.post(
+        `http://localhost:8000/api/v1/blogs/${blog._id}/sectionTask`,
+        payload
+      )
+
+      if (response.data && response.data.content) {
+        // Assume API returns the new HTML content for the section
+        // We need to replace the OLD section content with New content
+        // We use Cheerio on the current editorContent to find the target section and replace it
+
+        const $ = Cheerio.load(editorContent)
+        const $section = $(`#${sectionToolState.sectionId}`)
+
+        if ($section.length) {
+          // Get original outerHTML for replacement reference (if using handleReplace)
+          // But strict replace might be hard if formating changed slightly.
+          // Better to replace in the Cheerio, get full HTML, then setEditorContent
+
+          // Check if response.data.content is full section HTML or just inner content
+          // Assuming it returns inner content or we replace inner content based on logic
+          // The prompt example implies "sending data section wise", response likely updates that section.
+
+          // If the response is the new HTML for the SECTION content (inner):
+          // $section.find('.section-content').html(response.data.content)
+
+          // However, to be safe, let's look at TextEditor.jsx structure:
+          // <section ...><div class="section-wrapper"> ... <div class="section-content">CONTENT</div> ... </div></section>
+
+          // If the backend returns just the text/content without wrappers, we should inject it into .section-content
+          // If the backend returns the whole section HTML, we replace the section.
+
+          // Strategy: Replace .section-content contents.
+          const $contentDiv = $section.find(".section-content")
+          if ($contentDiv.length) {
+            $contentDiv.html(response.data.content)
+          } else {
+            // Fallback: append or replace html
+            $section.html(response.data.content)
+          }
+
+          const newFullHtml = $.html()
+
+          // If handleReplace is available and we want to be fancy, we use it.
+          // But explicit setEditorContent is safer here as we reconstructed the whole DOM.
+          setEditorContent(newFullHtml) // This updates parent
+
+          message.success("Section updated successfully!")
+
+          // Clear instructions if custom
+          if (sectionToolState.task === "custom") {
+            setSectionToolState(prev => ({ ...prev, instructions: "" }))
+          }
+        } else {
+          message.error("Section not found in current content")
+        }
+      } else {
+        message.warning("No content returned from AI")
+      }
+    } catch (error) {
+      console.error("Section task failed:", error)
+      message.error(error.response?.data?.message || "Failed to process section task")
+    } finally {
+      setIsProcessingSection(false)
+    }
+  }
+
+  // UI State for categories to prevent flickering or disappearing on re-renders
+  const [uiCategories, setUiCategories] = useState([])
+
+  // Sync UI categories with Redux, preserving data during re-renders
+  useEffect(() => {
+    if (categories?.length > 0) {
+      setUiCategories(categories)
+    }
+  }, [categories])
+
+  // Clear UI categories only when actual platform changes
+  useEffect(() => {
+    setUiCategories([])
+  }, [selectedIntegration?.platform])
 
   const user = useSelector(state => state.auth.user)
   const userPlan = user?.subscription?.plan?.toLowerCase() || "free"
@@ -206,24 +570,24 @@ const TextEditorSidebar = ({
   const hasPublishedLinks = blogPostings.length > 0
 
   // Fetch blog postings when blog changes
-  useEffect(() => {
-    const fetchPostings = async () => {
-      if (!blog?._id) return
+  const fetchPostings = useCallback(async () => {
+    if (!blog?._id) return
 
-      setIsLoadingPostings(true)
-      try {
-        const postings = await getBlogPostings(blog._id)
-        setBlogPostings(postings)
-      } catch (error) {
-        console.error("Failed to fetch blog postings:", error)
-        // Don't show error message to user, just log it
-      } finally {
-        setIsLoadingPostings(false)
-      }
+    setIsLoadingPostings(true)
+    try {
+      const postings = await getBlogPostings(blog._id)
+      setBlogPostings(postings)
+    } catch (error) {
+      console.error("Failed to fetch blog postings:", error)
+      // Don't show error message to user, just log it
+    } finally {
+      setIsLoadingPostings(false)
     }
+  }, [blog?._id])
 
+  useEffect(() => {
     fetchPostings()
-  }, [blog?._id, posted]) // Re-fetch when blog changes or when new post is made
+  }, [fetchPostings, posted]) // Re-fetch when blog changes or when new post is made
 
   // Initialize data
   useEffect(() => {
@@ -231,7 +595,8 @@ const TextEditorSidebar = ({
       title: blog?.seoMetadata?.title || "",
       description: blog?.seoMetadata?.description || "",
     })
-  }, [blog?._id])
+    setBlogSlug(blog?.slug || "")
+  }, [blog?._id, blog?.slug])
 
   useEffect(() => {
     if (blog) {
@@ -254,6 +619,8 @@ const TextEditorSidebar = ({
         brandId: typeof blog.brandId === "object" ? blog.brandId?._id || "" : blog.brandId || "",
         addCTA: blog.options?.addCTA || false,
         costCutter: blog.costCutter || false,
+        easyToUnderstand: blog.easyToUnderstand || blog.options?.easyToUnderstand || false,
+        embedYouTubeVideos: blog.embedYouTubeVideos || blog.options?.embedYouTubeVideos || false,
         options: {
           includeFaqs: blog.options?.includeFaqs || false,
           includeInterlinks: blog.options?.includeInterlinks || false,
@@ -378,6 +745,8 @@ const TextEditorSidebar = ({
           includeCompetitorResearch: regenForm.options.includeCompetitorResearch,
           addOutBoundLinks: regenForm.options.addOutBoundLinks,
           performKeywordResearch: regenForm.options.performKeywordResearch,
+          easyToUnderstand: regenForm.easyToUnderstand,
+          embedYouTubeVideos: regenForm.embedYouTubeVideos,
         },
       }
 
@@ -462,7 +831,6 @@ const TextEditorSidebar = ({
             })
           ).unwrap()
           setActivePanel("seo")
-          message.success("Analysis complete!")
         } catch {
           message.error("Analysis failed")
         }
@@ -595,30 +963,39 @@ const TextEditorSidebar = ({
     if (!editorContent?.trim()) return message.error("No content to export")
 
     try {
-      message.loading({ content: "Generating PDF...", key: "pdf-export" })
+      message.loading({
+        content: includeImagesInExport ? "Preparing PDF with images..." : "Generating PDF...",
+        key: "pdf-export",
+      })
 
-      // Use the API function which uses axiosInstance with correct backend URL
-      const pdfBlob = await exportBlogAsPdf(blog._id, {
-        title: blog.title,
-        content: editorContent,
+      const { data: blob, filename } = await exportBlog(blog._id, {
+        type: "pdf",
+        withImages: includeImagesInExport,
       })
 
       // Create download link
-      const url = window.URL.createObjectURL(pdfBlob)
+      const url = window.URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = `${blog.title || "blog"}.pdf`
+      // Use .zip extension if images included, otherwise .pdf
+      const downloadName = includeImagesInExport
+        ? `${blog.title || "blog"}.zip`
+        : `${blog.title || "blog"}.pdf`
+      a.download = downloadName
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
 
-      message.success({ content: "PDF downloaded successfully!", key: "pdf-export" })
+      const successMsg = includeImagesInExport
+        ? "PDF with images downloaded as ZIP!"
+        : "PDF downloaded successfully!"
+      message.success({ content: successMsg, key: "pdf-export" })
     } catch (error) {
       console.error("PDF Export Error:", error)
       message.error({ content: error.message || "Failed to export PDF", key: "pdf-export" })
     }
-  }, [blog, editorContent])
+  }, [blog, editorContent, includeImagesInExport])
 
   const handleKeywordRewrite = useCallback(() => {
     handlePopup({
@@ -628,8 +1005,185 @@ const TextEditorSidebar = ({
     })
   }, [handlePopup, handleSave])
 
+  // --- Posting Helpers ---
+  const openRepostModal = posting => {
+    // Use metadata from the posting object as the primary source of truth
+    const metadata = posting.metadata || {}
+    setRepostSettings({
+      platform: posting.integrationType || posting.platform || "",
+      category: metadata.category || posting.category || "", // Prioritize metadata.category
+      includeTableOfContents:
+        metadata.includeTableOfContents ?? posting.includeTableOfContents ?? false, // Prioritize metadata.includeTableOfContents
+    })
+    setIsRepostModalOpen(true)
+  }
+
+  const handleRepostSubmit = async () => {
+    if (!repostSettings.platform || !repostSettings.category) {
+      return message.error("Platform and Category are required")
+    }
+
+    try {
+      await onPost({
+        ...formData,
+        categories: repostSettings.category,
+        includeTableOfContents: repostSettings.includeTableOfContents,
+        type: { platform: repostSettings.platform },
+      })
+      setIsRepostModalOpen(false)
+      // Refresh postings and other data after repost
+      await fetchPostings()
+      queryClient.invalidateQueries({ queryKey: ["blogs"] })
+    } catch (error) {
+      console.error("Repost failed", error)
+    }
+  }
+
+  const handleIntegrationChange = useCallback(
+    (platform, url) => {
+      setSelectedIntegration({ platform: platform.toLowerCase(), rawPlatform: platform, url })
+      setPlatformError(false)
+      setErrors(prev => ({ ...prev, platform: "" }))
+
+      const hasShopifyAlready = posted?.SHOPIFY?.link ? true : false
+      if (platform === "SHOPIFY") {
+        setIsCategoryLocked(hasShopifyAlready)
+      } else {
+        setIsCategoryLocked(false)
+      }
+    },
+    [posted]
+  )
+
+  const handleCategoryAdd = useCallback(category => {
+    // Remove restriction to allow explicit selection change even if something is selected
+    setSelectedCategory(category)
+    setCategoryError(false)
+    setErrors(prev => ({ ...prev, category: "" }))
+  }, [])
+
+  const handleCategoryRemove = useCallback(() => {
+    setSelectedCategory("")
+    setCategoryError(false)
+    setErrors(prev => ({ ...prev, category: "" }))
+  }, [])
+
+  const handleCategoryChange = useCallback(value => {
+    // If multiple values selected (mode='tags'), take the last one to allow switching
+    const newCategory = value.length > 0 ? value[value.length - 1] : ""
+    setSelectedCategory(newCategory)
+    setCategoryError(false)
+    setErrors(prev => ({ ...prev, category: "" }))
+  }, [])
+
+  // Auto-fetch categories when integration changes
+  useEffect(() => {
+    if (selectedIntegration?.platform) {
+      dispatch(getCategoriesThunk(selectedIntegration.platform.toUpperCase()))
+        .unwrap()
+        .catch(() => {})
+    }
+  }, [dispatch, selectedIntegration?.platform])
+
+  // Initialize posting form based on Blog Data & History
+  useEffect(() => {
+    if (activePanel !== "posting") return
+
+    // 1. Always sync ToC from Blog Data if not manually changed (optional, but good for defaults)
+    // We'll trust the initial state setting mostly, but here we enforce blog defaults if state is empty
+    setIncludeTableOfContents(prev => blog?.options?.includeTableOfContents ?? prev)
+
+    // 2. Sync Category from Blog Data
+    if (blog?.category && !selectedCategory) {
+      setSelectedCategory(blog.category)
+    }
+
+    // 3. Platform Selection & History Logic
+    // If we already have a selection, don't override unless forced by history logic
+
+    // PRIORITY 1: Check blogPostings (New API Source)
+    if (blogPostings.length > 0) {
+      // Find Shopify posting if exists to lock category
+      const shopifyPosting = blogPostings.find(p => (p.integrationType || p.platform) === "SHOPIFY")
+
+      if (shopifyPosting) {
+        const meta = shopifyPosting.metadata || {}
+        setIsCategoryLocked(true)
+        // Use metadata category if available
+        setSelectedCategory(meta.category || shopifyPosting.category || "")
+        if (!selectedIntegration) {
+          setSelectedIntegration({
+            platform: "shopify",
+            rawPlatform: "SHOPIFY",
+            url: integrations?.integrations?.SHOPIFY?.url || "",
+          })
+        }
+        return
+      }
+
+      // If not Shopify locked, default to the most recent posting's platform & metadata
+      if (!selectedIntegration && blogPostings[0]) {
+        const lastPost = blogPostings[0]
+        const meta = lastPost.metadata || {}
+        const rawPlatform = lastPost.integrationType || lastPost.platform
+
+        if (rawPlatform && integrations?.integrations?.[rawPlatform]) {
+          setSelectedIntegration({
+            platform: rawPlatform.toLowerCase(),
+            rawPlatform: rawPlatform,
+            url: integrations.integrations[rawPlatform].url,
+          })
+
+          // Pre-fill category and ToC from last post metadata
+          if (meta.category) setSelectedCategory(meta.category)
+          if (meta.includeTableOfContents !== undefined)
+            setIncludeTableOfContents(meta.includeTableOfContents)
+
+          return
+        }
+      }
+    }
+
+    const shopify = posted?.SHOPIFY
+
+    // CASE 1: Shopify Posted -> Lock Everything
+    if (shopify?.link) {
+      setIsCategoryLocked(true)
+      setSelectedCategory(blog?.category || "")
+      setSelectedIntegration({
+        platform: "shopify",
+        rawPlatform: "SHOPIFY",
+        url: shopify.url || "",
+      })
+      return
+    }
+
+    // CASE 2: Other History
+    const otherPosted = Object.entries(posted || {}).find(([k, v]) => k !== "SHOPIFY" && v?.link)
+    if (otherPosted) {
+      const [key, val] = otherPosted
+      // Don't lock category for non-Shopify, but selecting platform is helpful
+      if (!selectedIntegration) {
+        setSelectedIntegration({
+          platform: key.toLowerCase(),
+          rawPlatform: key,
+          url: val?.url || "",
+        })
+      }
+      return
+    }
+  }, [
+    activePanel,
+    posted,
+    blog,
+    integrations,
+    selectedIntegration,
+    setIncludeTableOfContents,
+    blogPostings,
+  ])
+
   const handlePostClick = useCallback(() => {
-    // Block free users from posting
+    // 1. Plan Check
     if (userPlan === "free") {
       return handlePopup({
         title: "Posting Unavailable",
@@ -639,29 +1193,110 @@ const TextEditorSidebar = ({
       })
     }
 
+    // 2. Validate
+    const newErrors = { category: "", platform: "" }
+    let isValid = true
+
+    if (!selectedIntegration) {
+      newErrors.platform = "Please select a platform"
+      setPlatformError(true)
+      isValid = false
+    }
+    if (!selectedCategory) {
+      newErrors.category = "Please select a category"
+      setCategoryError(true)
+      isValid = false
+    }
+    setErrors(newErrors)
+
+    if (!isValid) {
+      message.error("Please fill in required fields")
+      return
+    }
+
+    // Check if this platform has been posted to before (Warning logic)
+    // Simplified logic: If the blog has ANY published links, warn about duplicate/new URL
+    const isDuplicatePost = hasPublishedLinks
+
+    // 3. Execution
+    const executePost = async () => {
+      try {
+        await onPost({
+          ...formData,
+          categories: selectedCategory, // Use the selected category from sidebar
+          includeTableOfContents,
+          type: { platform: selectedIntegration?.rawPlatform }, // Use raw platform ID
+        })
+        // Clean Refresh "Everything" related to postings
+        await fetchPostings()
+        queryClient.invalidateQueries({ queryKey: ["blogs"] })
+      } catch (error) {
+        console.error("Posting failed:", error)
+        // Handle 400 Invalid Credentials specifically
+        if (
+          error?.response?.status === 400 &&
+          (error?.response?.data?.message?.toLowerCase()?.includes("invalid credentials") ||
+            error?.response?.data?.message?.toLowerCase()?.includes("wordpress api"))
+        ) {
+          message.error({
+            content: (
+              <span>
+                WordPress API has changed. Kindly update your WordPress credentials.
+                <span
+                  className="underline cursor-pointer ml-1 font-bold"
+                  onClick={() => navigate("/integration")}
+                >
+                  Update Now
+                </span>
+              </span>
+            ),
+            duration: 5,
+          })
+        }
+      }
+    }
+
     if (unsavedChanges) {
       handlePopup({
         title: "Unsaved Changes",
-        description: "Save before posting?",
+        description: "You have unsaved changes. Save before posting?",
         confirmText: "Save & Post",
-        cancelText: "Post Anyway",
+        cancelText: "Post Without Saving",
         onConfirm: async () => {
-          await handleSubmit({ metadata })
-          setIsCategoryModalOpen(true)
+          try {
+            await handleSubmit({ metadata })
+            executePost()
+          } catch (error) {
+            message.error("Failed to save changes")
+          }
         },
-        onCancel: e => e?.source === "button" && setIsCategoryModalOpen(true),
+        onCancel: e => {
+          // If user clicks "Post Without Saving" (which is typically the cancel button action in this context)
+          if (e?.source === "button") {
+            executePost()
+          }
+        },
       })
     } else {
-      setIsCategoryModalOpen(true)
+      executePost()
     }
-  }, [unsavedChanges, handlePopup, handleSubmit, metadata, userPlan, navigate])
-
-  const handleCategorySubmit = useCallback(
-    ({ category, includeTableOfContents, type }) => {
-      onPost({ ...formData, categories: category, includeTableOfContents, type })
-    },
-    [formData, onPost]
-  )
+  }, [
+    userPlan,
+    selectedIntegration,
+    selectedCategory,
+    includeTableOfContents,
+    formData,
+    onPost,
+    unsavedChanges,
+    handleSubmit,
+    metadata,
+    handlePopup,
+    navigate,
+    isPosting,
+    blogPostings,
+    fetchPostings,
+    queryClient,
+  ])
 
   const addKeyword = useCallback(() => {
     if (newKeyword.trim()) {
@@ -685,6 +1320,117 @@ const TextEditorSidebar = ({
   const contentScore = blog?.blogScore || 0
 
   // ========== PANELS ==========
+  const renderBrandPanel = () => {
+    // If brandId is an object, use it. Otherwise look for flattened properties in blog.
+    const isBrandPopulated = blog?.brandId && typeof blog.brandId === "object"
+    const brand = isBrandPopulated ? blog.brandId : {}
+
+    const nameOfVoice = brand.nameOfVoice || blog.nameOfVoice || brand.name || "Brand Voice"
+    const describeBrand =
+      brand.describeBrand || blog.describeBrand || brand.description || blog.description
+    const persona = brand.persona || blog.persona
+    const postLink = brand.postLink || blog.postLink || brand.url
+    const brandKeywords = brand.keywords || (isBrandPopulated ? [] : []) // Don't fall back to blog keywords here
+
+    if (!blog?.brandId && !blog?.nameOfVoice) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+          <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mb-4 border border-gray-100">
+            <Crown className="w-8 h-8 text-gray-300" />
+          </div>
+          <h3 className="text-lg font-bold text-gray-900 mb-2">No Brand Selected</h3>
+          <p className="text-xs text-gray-500 leading-relaxed mb-6">
+            This blog wasn't generated with a specific brand voice. Add one to maintain personality
+            across your content.
+          </p>
+          <button
+            onClick={() => setIsRegenerateModalOpen(true)}
+            className="px-6 py-2.5 bg-gray-900 text-white rounded-xl text-xs font-bold hover:bg-black transition-all"
+          >
+            Regenerate with Brand
+          </button>
+        </div>
+      )
+    }
+
+    return (
+      <div className="flex flex-col h-full bg-white">
+        {/* Header */}
+        <div className="p-4 border-b bg-gradient-to-br from-purple-50 to-indigo-50 sticky top-0 z-10">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-purple-600 rounded-xl shadow-lg shadow-purple-100">
+              <Crown className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-900 line-clamp-1">
+                {brand.nameOfVoice || brand.name || "Brand Voice"}
+              </h3>
+              <p className="text-[10px] text-purple-600 font-bold uppercase tracking-widest mt-0.5">
+                Authenticated Identity
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scroll">
+          {/* Persona */}
+          {brand.persona && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <User className="w-3.5 h-3.5 text-blue-500" />
+                <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                  Author Persona
+                </h4>
+              </div>
+              <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100 text-xs text-gray-700 leading-relaxed">
+                {brand.persona}
+              </div>
+            </div>
+          )}
+
+          {/* Keywords & Links */}
+          <div className="grid grid-cols-1 gap-4">
+            {brand.postLink && (
+              <div className="space-y-2">
+                <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                  Reference Site
+                </h4>
+                <a
+                  href={brand.postLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-xl hover:border-blue-200 transition-all group"
+                >
+                  <span className="text-xs font-semibold text-blue-600 truncate mr-2">
+                    {brand.postLink}
+                  </span>
+                  <ExternalLink className="w-3.5 h-3.5 text-gray-400 group-hover:text-blue-500 transition-colors" />
+                </a>
+              </div>
+            )}
+
+            {brand.keywords && brand.keywords.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                  Core Keywords
+                </h4>
+                <div className="flex flex-wrap gap-1.5">
+                  {brand.keywords.map((kw, i) => (
+                    <span
+                      key={i}
+                      className="px-2.5 py-1 bg-white border border-gray-100 text-gray-600 rounded-lg text-xs font-medium"
+                    >
+                      {kw}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   const renderOverviewPanel = () => (
     <div className="flex flex-col h-full">
@@ -738,6 +1484,27 @@ const TextEditorSidebar = ({
               Keywords
             </div>
           </div>
+          {/* GSC Stats */}
+          {blog?.statistics?.totalGSCClicks > 0 && (
+            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex flex-col items-center justify-center text-center group hover:bg-white hover:shadow-md transition-all">
+              <div className="text-2xl font-black text-gray-900 group-hover:text-green-600 transition-colors">
+                {blog.statistics.totalGSCClicks}
+              </div>
+              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                Total Clicks
+              </div>
+            </div>
+          )}
+          {blog?.statistics?.totalGSCImpressions > 0 && (
+            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex flex-col items-center justify-center text-center group hover:bg-white hover:shadow-md transition-all">
+              <div className="text-2xl font-black text-gray-900 group-hover:text-orange-600 transition-colors">
+                {blog.statistics.totalGSCImpressions}
+              </div>
+              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                Impressions
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Scores */}
@@ -772,112 +1539,11 @@ const TextEditorSidebar = ({
           </button>
         </div>
       </div>
-
-      {/* Action Footer */}
-      <div className="p-4 bg-white border-t border-gray-50">
-        {/* Published Links Section - From API */}
-        {isLoadingPostings ? (
-          <div className="mb-4 p-3 bg-gray-50 rounded-xl border border-gray-200">
-            <div className="flex items-center justify-center gap-2 text-gray-500">
-              <RefreshCw className="w-4 h-4 animate-spin" />
-              <span className="text-xs">Loading postings...</span>
-            </div>
-          </div>
-        ) : hasPublishedLinks ? (
-          <div className="mb-4 p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Globe className="w-4 h-4 text-green-600" />
-                <span className="text-xs font-bold text-green-900 uppercase tracking-wider">
-                  Publishing History
-                </span>
-              </div>
-              <span className="text-xs font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
-                {blogPostings.length}
-              </span>
-            </div>
-            <div className="space-y-2 max-h-64 overflow-y-auto custom-scroll">
-              {blogPostings.map((posting, index) => (
-                <div
-                  key={posting._id || index}
-                  className="p-2.5 bg-white rounded-lg border border-green-100 hover:border-green-300 transition-all group"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-semibold text-gray-800 capitalize">
-                          {PLATFORM_LABELS[posting.platform] || posting.platform}
-                        </span>
-                        {posting.status && (
-                          <span
-                            className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
-                              posting.status === "published"
-                                ? "bg-green-100 text-green-700"
-                                : posting.status === "failed"
-                                ? "bg-red-100 text-red-700"
-                                : "bg-yellow-100 text-yellow-700"
-                            }`}
-                          >
-                            {posting.status}
-                          </span>
-                        )}
-                      </div>
-                      {posting.link && (
-                        <a
-                          href={posting.link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1 truncate"
-                        >
-                          <span className="truncate">{posting.link}</span>
-                          <ExternalLink className="w-3 h-3 flex-shrink-0" />
-                        </a>
-                      )}
-                      {posting.publishedAt && (
-                        <div className="flex items-center gap-1 mt-1 text-[10px] text-gray-500">
-                          <Calendar className="w-3 h-3" />
-                          <span>{new Date(posting.publishedAt).toLocaleString()}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : null}
-
-        <Button
-          type="primary"
-          size="large"
-          block
-          onClick={handlePostClick}
-          loading={isPosting}
-          disabled={isDisabled || userPlan === "free"}
-          className={`h-14 font-semibold rounded-2xl border-none shadow transition-all active:scale-[0.98] ${
-            userPlan === "free"
-              ? "!bg-gray-200 !text-gray-400"
-              : "bg-gradient-to-r from-emerald-500 to-green-600 text-white"
-          }`}
-        >
-          {userPlan === "free" ? (
-            <div className="flex items-center justify-center gap-2">
-              <Lock className="w-4 h-4" /> <span>Upgrade to Publish</span>
-            </div>
-          ) : isPosting ? (
-            "Publishing..."
-          ) : (
-            <div className="flex items-center justify-center gap-2">
-              <span>{blogPostings.length > 0 ? "Re-Post Blog" : "Post Blog"}</span>
-            </div>
-          )}
-        </Button>
-      </div>
     </div>
   )
 
   // Export handlers
-  const handleExportMarkdown = () => {
+  const handleExportMarkdown = async () => {
     if (userPlan === "free") {
       return handlePopup({
         title: "Export Unavailable",
@@ -887,18 +1553,47 @@ const TextEditorSidebar = ({
       })
     }
 
-    const markdown = blog?.content.startsWith("<article") ? blog?.content : editorContent || ""
-    const blob = new Blob([markdown], { type: "text/markdown" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `${blog?.title || "blog"}.md`
-    a.click()
-    URL.revokeObjectURL(url)
-    message.success("Exported as Markdown!")
+    if (!blog?._id) return message.error("Blog ID missing")
+    if (!editorContent?.trim()) return message.error("No content to export")
+
+    try {
+      message.loading({
+        content: includeImagesInExport
+          ? "Preparing Markdown with images..."
+          : "Generating Markdown...",
+        key: "md-export",
+      })
+
+      const { data: blob, filename } = await exportBlog(blog._id, {
+        type: "markdown",
+        withImages: includeImagesInExport,
+      })
+
+      // Create download link
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      // Use .zip extension if images included, otherwise .md
+      const downloadName = includeImagesInExport
+        ? `${blog.title || "blog"}.zip`
+        : `${blog.title || "blog"}.md`
+      a.download = downloadName
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+
+      const successMsg = includeImagesInExport
+        ? "Markdown with images downloaded as ZIP!"
+        : "Markdown downloaded successfully!"
+      message.success({ content: successMsg, key: "md-export" })
+    } catch (error) {
+      console.error("Markdown export error:", error)
+      message.error({ content: error.message || "Failed to export Markdown", key: "md-export" })
+    }
   }
 
-  const handleExportHTML = () => {
+  const handleExportHTML = async () => {
     if (userPlan === "free") {
       return handlePopup({
         title: "Export Unavailable",
@@ -908,27 +1603,42 @@ const TextEditorSidebar = ({
       })
     }
 
-    const htmlContent = blog?.content.startsWith("<article") ? blog?.content : editorContent || ""
-    const fullHtml = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${blog?.title || "Blog"}</title>
-  <meta name="description" content="${metadata.description || ""}">
-</head>
-<body>
-    ${htmlContent}
-</body>
-</html>`
-    const blob = new Blob([fullHtml], { type: "text/html" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `${blog?.title || "blog"}.html`
-    a.click()
-    URL.revokeObjectURL(url)
-    message.success("Exported as HTML!")
+    if (!blog?._id) return message.error("Blog ID missing")
+    if (!editorContent?.trim()) return message.error("No content to export")
+
+    try {
+      message.loading({
+        content: includeImagesInExport ? "Preparing HTML with images..." : "Generating HTML...",
+        key: "html-export",
+      })
+
+      const { data: blob, filename } = await exportBlog(blog._id, {
+        type: "html",
+        withImages: includeImagesInExport,
+      })
+
+      // Create download link
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      // Use .zip extension if images included, otherwise .html
+      const downloadName = includeImagesInExport
+        ? `${blog.title || "blog"}.zip`
+        : `${blog.title || "blog"}.html`
+      a.download = downloadName
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+
+      const successMsg = includeImagesInExport
+        ? "HTML with images downloaded as ZIP!"
+        : "HTML downloaded successfully!"
+      message.success({ content: successMsg, key: "html-export" })
+    } catch (error) {
+      console.error("HTML export error:", error)
+      message.error({ content: error.message || "Failed to export HTML", key: "html-export" })
+    }
   }
 
   const renderSeoPanel = () => (
@@ -1006,6 +1716,42 @@ const TextEditorSidebar = ({
               </span>
             )}
           </div>
+
+          {/* Include Images Toggle */}
+          <div
+            className={`flex items-center justify-between p-2.5 rounded-lg border transition-all ${
+              includeImagesInExport ? "bg-blue-50 border-blue-200" : "bg-gray-50 border-gray-200"
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <ImageIcon
+                className={`w-4 h-4 transition-colors ${
+                  includeImagesInExport ? "text-blue-600" : "text-gray-500"
+                }`}
+              />
+              <span
+                className={`text-sm font-medium transition-colors ${
+                  includeImagesInExport ? "text-blue-900" : "text-gray-700"
+                }`}
+              >
+                Include Images
+              </span>
+            </div>
+            <Switch
+              checked={includeImagesInExport}
+              onChange={setIncludeImagesInExport}
+              disabled={userPlan === "free"}
+              size="small"
+            />
+          </div>
+          {includeImagesInExport && userPlan !== "free" && (
+            <div className="px-2 py-1.5 bg-blue-50 border border-blue-100 rounded-lg">
+              <p className="text-xs text-blue-700 flex items-center gap-1">
+                <Info className="w-3 h-3" />
+                Downloads as ZIP with images included
+              </p>
+            </div>
+          )}
 
           <div
             className="
@@ -1117,6 +1863,91 @@ const TextEditorSidebar = ({
             </div>
           )}
         </div>
+
+        {result && (
+          <div className="space-y-4">
+            {/* Detailed Analysis Breakdown */}
+            {result.insights?.analysis && (
+              <div className="space-y-3 p-3 bg-white border rounded-xl shadow-sm">
+                <div className="flex items-center gap-2 mb-2">
+                  <BarChart className="w-4 h-4 text-purple-600" />
+                  <span className="text-sm font-semibold text-gray-900">Detailed Analysis</span>
+                </div>
+                <Collapse
+                  ghost
+                  className="bg-transparent"
+                  items={Object.entries(result.insights.analysis).map(([category, data]) => ({
+                    key: category,
+                    label: (
+                      <div className="flex items-center justify-between w-full pr-2">
+                        <span className="font-medium text-gray-800 text-sm">
+                          {category.replace(/([A-Z])/g, " $1").trim()}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-indigo-600">
+                            {data.score}/{data.maxScore}
+                          </span>
+                        </div>
+                      </div>
+                    ),
+                    children: (
+                      <div className="">
+                        <p className="text-xs text-gray-600 leading-relaxed bg-gray-50 p-3 rounded-lg border border-gray-100">
+                          {data.feedback}
+                        </p>
+                      </div>
+                    ),
+                  }))}
+                />
+              </div>
+            )}
+
+            {/* Actionable Suggestions */}
+            {result.insights?.suggestions && result.insights.suggestions.length > 0 && (
+              <div className="space-y-3 p-3 bg-white border rounded-xl shadow-sm">
+                <div className="flex items-center gap-2 mb-2">
+                  <Lightbulb className="w-4 h-4 text-amber-600" />
+                  <span className="text-sm font-semibold text-gray-900">
+                    Actionable Suggestions
+                  </span>
+                  <span className="ml-auto text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
+                    {result.insights.suggestions.length}
+                  </span>
+                </div>
+                <div className="space-y-2 max-h-64 overflow-y-auto custom-scroll">
+                  {result.insights.suggestions.map((suggestion, idx) => (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: idx * 0.05 }}
+                      className="flex items-start gap-2 p-2.5 bg-amber-50 rounded-lg border border-amber-100"
+                    >
+                      <div className="w-5 h-5 bg-amber-200 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-xs font-bold text-amber-700">{idx + 1}</span>
+                      </div>
+                      <p className="text-xs text-amber-900 leading-relaxed flex-1">{suggestion}</p>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Competitors Analysis */}
+            {result.competitors && result.competitors.length > 0 && (
+              <div className="space-y-3 p-3 bg-white border rounded-xl shadow-sm">
+                <div className="flex items-center gap-2 mb-2">
+                  <Target className="w-4 h-4 text-blue-600" />
+                  <span className="text-sm font-semibold text-gray-900">Top Competitors</span>
+                  <span className="ml-auto text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                    {result.competitors.length}
+                  </span>
+                </div>
+                <CompetitorsList competitors={result.competitors} />
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -1147,10 +1978,7 @@ const TextEditorSidebar = ({
 
     // Add original index to each suggestion for tracking
     const suggestionsWithIndex =
-      proofreadingResults?.map((s, i) => ({
-        ...s,
-        originalIndex: i,
-      })) || []
+      proofreadingResults?.map((s, i) => ({ ...s, originalIndex: i })) || []
 
     return (
       <div className="flex flex-col h-full">
@@ -1253,6 +2081,61 @@ const TextEditorSidebar = ({
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-4 custom-scroll">
+        {/* Blog Slug */}
+        <div className="p-3 bg-white border rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-xs text-gray-500">Blog Slug</div>
+            {!hasPublishedLinks && (
+              <button
+                onClick={() => setIsEditingSlug(!isEditingSlug)}
+                className="text-xs text-blue-600 hover:text-blue-700 font-semibold"
+              >
+                {isEditingSlug ? "Cancel" : "Edit"}
+              </button>
+            )}
+          </div>
+          {isEditingSlug && !hasPublishedLinks ? (
+            <div className="space-y-2">
+              <Input
+                size="small"
+                value={blogSlug}
+                onChange={e => setBlogSlug(e.target.value)}
+                placeholder="blog-slug"
+                className="text-sm font-mono"
+              />
+              <Button
+                size="small"
+                type="primary"
+                block
+                onClick={async () => {
+                  if (!blogSlug.trim()) {
+                    return message.error("Slug cannot be empty")
+                  }
+                  try {
+                    await handleSubmit({ slug: blogSlug })
+                    setIsEditingSlug(false)
+                    message.success("Slug updated successfully")
+                  } catch (error) {
+                    console.error("Failed to update slug:", error)
+                    message.error("Failed to update slug")
+                  }
+                }}
+              >
+                Save Slug
+              </Button>
+            </div>
+          ) : (
+            <div>
+              <div className="font-semibold text-gray-900 font-mono text-sm break-all">
+                {blog?.slug || "Not set"}
+              </div>
+              {hasPublishedLinks && (
+                <p className="text-[10px] text-gray-400 mt-1 italic">Slug locked after posting</p>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Template & Category */}
         <div className="space-y-3">
           <div className="p-3 bg-white border rounded-lg">
@@ -1264,6 +2147,28 @@ const TextEditorSidebar = ({
             <div className="font-semibold text-gray-900">{blog?.category || "N/A"}</div>
           </div>
         </div>
+
+        {/* Brand Information */}
+        {(blog?.brandId || blog?.nameOfVoice) && (
+          <div className="p-3 bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-100 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <Crown className="w-3.5 h-3.5 text-purple-600" />
+              <div className="text-xs font-bold text-purple-900 uppercase tracking-wider">
+                Brand Voice
+              </div>
+            </div>
+            <div className="font-bold text-gray-900">
+              {typeof blog.brandId === "object"
+                ? blog.brandId.nameOfVoice || blog.brandId.name
+                : blog.nameOfVoice || "Custom Brand"}
+            </div>
+            {(blog.brandId?.describeBrand || blog.describeBrand) && (
+              <p className="text-[10px] text-gray-500 mt-1 line-clamp-2">
+                {blog.brandId?.describeBrand || blog.describeBrand}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Tags */}
         {blog?.tags && blog.tags.length > 0 && (
@@ -1341,24 +2246,582 @@ const TextEditorSidebar = ({
         </div>
 
         {/* Options/Features */}
-        {blog?.options && (
-          <div className="p-3 bg-white border rounded-lg">
-            <div className="text-xs text-gray-500 mb-2">Features Enabled</div>
-            <div className="space-y-1.5">
-              {Object.entries(blog.options).map(
-                ([key, value]) =>
-                  value && (
-                    <div key={key} className="flex items-center gap-2 text-xs">
-                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-                      <span className="text-gray-700 capitalize">
-                        {key.replace(/([A-Z])/g, " $1").trim()}
+        {/* Options/Features - Redesigned */}
+        <div className="p-4 bg-white border border-gray-100 rounded-lg shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+              Feature Status
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            {[
+              { key: "exactTitle", label: "Exact Title", value: blog?.options?.exactTitle },
+              {
+                key: "performKeywordResearch",
+                label: "Perform Keyword Research",
+                value: blog?.options?.performKeywordResearch,
+              },
+              {
+                key: "includeInterlinks",
+                label: "Include Interlinks",
+                value: blog?.options?.includeInterlinks,
+              },
+              {
+                key: "includeCompetitorResearch",
+                label: "Include Competitor Research",
+                value: blog?.options?.includeCompetitorResearch,
+              },
+              {
+                key: "addOutBoundLinks",
+                label: "Add Outbound Links",
+                value: blog?.options?.addOutBoundLinks,
+              },
+              { key: "includeFaqs", label: "Include FAQs", value: blog?.options?.includeFaqs },
+              { key: "addCTA", label: "Add CTA", value: blog?.options?.addCTA || blog?.addCTA },
+              {
+                key: "automaticPosting",
+                label: "Automatic Posting",
+                value: blog?.options?.automaticPosting,
+              },
+              {
+                key: "includeTableOfContents",
+                label: "Include Table Of Contents",
+                value: blog?.options?.includeTableOfContents,
+              },
+              {
+                key: "embedYouTubeVideos",
+                label: "Embed YouTube Videos",
+                value: blog?.options?.embedYouTubeVideos || blog?.embedYouTubeVideos,
+              },
+              {
+                key: "easyToUnderstand",
+                label: "Easy To Understand",
+                value: blog?.options?.easyToUnderstand || blog?.easyToUnderstand,
+              },
+              { key: "costCutter", label: "Cost Cutter", value: blog?.costCutter },
+              { key: "isCheckedBrand", label: "Brand Voice", value: blog?.isCheckedBrand },
+              { key: "isCheckedQuick", label: "Quick Summary", value: blog?.isCheckedQuick },
+            ].map((feature, idx) => (
+              <div
+                key={idx}
+                className="flex items-center justify-between p-2 bg-gray-50 rounded-lg border border-gray-100"
+              >
+                <span className="text-sm text-gray-700 font-medium">{feature.label}</span>
+                <div
+                  className={`
+                    flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border
+                    ${
+                      feature.value
+                        ? "bg-green-50 text-green-700 border-green-200"
+                        : "bg-gray-100 text-gray-500 border-gray-200"
+                    }
+                  `}
+                >
+                  {feature.value ? (
+                    <>
+                      <CheckCircle className="w-3 h-3" />
+                      <span>ON</span>
+                    </>
+                  ) : (
+                    <>
+                      <X className="w-3 h-3" />
+                      <span>OFF</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+
+  const renderSectionToolsPanel = () => (
+    <div className="flex flex-col h-full bg-white relative">
+      <div className="p-4 border-b bg-gradient-to-r from-indigo-50 to-blue-50 sticky top-0 z-10">
+        <div className="flex items-center gap-2">
+          <div className="p-2 bg-gradient-to-br from-indigo-600 to-blue-600 rounded-lg shadow-sm">
+            <Wand2 className="w-4 h-4 text-white" />
+          </div>
+          <div>
+            <h3 className="font-bold text-gray-900">AI Section Tools</h3>
+            <p className="text-xs text-blue-600 font-medium">Edit specific sections</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scroll">
+        {/* Section List (Cards) */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-bold text-gray-500 uppercase tracking-widest block">
+              Result Sections ({availableSections.length})
+            </label>
+            {sectionToolState.sectionId ? (
+              <button
+                onClick={e => {
+                  e.stopPropagation()
+                  setSectionToolState(prev => ({ ...prev, sectionId: "" }))
+                  window.dispatchEvent(new CustomEvent("highlight-section", { detail: null }))
+                }}
+                className="flex items-center gap-1 px-2 py-1 bg-red-50 text-red-600 rounded-lg text-[10px] font-bold hover:bg-red-100 transition-colors"
+              >
+                <X className="w-3 h-3" />
+                Cancel
+              </button>
+            ) : (
+              <span className="text-[10px] text-gray-400">Select to edit</span>
+            )}
+          </div>
+
+          <div className="grid gap-3">
+            {availableSections.length === 0 ? (
+              <div className="text-center p-4 bg-gray-50 rounded-lg text-gray-400 text-xs">
+                No headers found. Add headings to your content to use section tools.
+              </div>
+            ) : (
+              availableSections.map(section => (
+                <div
+                  key={section.id}
+                  onClick={() => {
+                    setSectionToolState(prev => ({ ...prev, sectionId: section.id }))
+                    // Dispatch highlight event
+                    window.dispatchEvent(
+                      new CustomEvent("highlight-section", { detail: section.id })
+                    )
+                  }}
+                  className={`
+                            group relative p-3 rounded-xl border cursor-pointer transition-all duration-200 text-left
+                            ${
+                              sectionToolState.sectionId === section.id
+                                ? "bg-blue-50 border-blue-400 shadow-md ring-1 ring-blue-200"
+                                : "bg-white border-gray-100 hover:border-blue-300 hover:shadow-sm"
+                            }
+                        `}
+                >
+                  <h4
+                    className={`text-sm font-bold mb-1 line-clamp-1 ${sectionToolState.sectionId === section.id ? "text-blue-800" : "text-gray-800"}`}
+                  >
+                    {section.title}
+                  </h4>
+                  <p
+                    className={`text-[11px] line-clamp-2 leading-relaxed ${sectionToolState.sectionId === section.id ? "text-blue-600/80" : "text-gray-500"}`}
+                  >
+                    {section.preview || "No content preview available..."}
+                  </p>
+
+                  {sectionToolState.sectionId === section.id && (
+                    <div className="absolute top-3 right-3">
+                      <span className="flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
                       </span>
                     </div>
-                  )
-              )}
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Task Selector */}
+        <div
+          className={`space-y-3 transition-opacity duration-300 ${!sectionToolState.sectionId ? "opacity-50 pointer-events-none grayscale" : "opacity-100"}`}
+        >
+          <label className="text-xs font-bold text-gray-500 uppercase tracking-widest block">
+            Operation
+          </label>
+
+          <div className="grid grid-cols-1 gap-2">
+            {[
+              {
+                id: "rewrite",
+                label: "Rewrite Content",
+                icon: RefreshCcw,
+                desc: "Improve clarity and flow",
+              },
+              {
+                id: "proofread",
+                label: "Proofread",
+                icon: CheckCircle,
+                desc: "Fix grammar and spelling",
+              },
+              {
+                id: "custom",
+                label: "Custom Prompt",
+                icon: MessageSquare,
+                desc: "Give your own instructions",
+              },
+            ].map(task => (
+              <div
+                key={task.id}
+                onClick={() => setSectionToolState(prev => ({ ...prev, task: task.id }))}
+                className={`
+                            relative p-3 rounded-xl border flex items-center gap-3 cursor-pointer transition-all duration-200
+                            ${
+                              sectionToolState.task === task.id
+                                ? "bg-blue-50 border-blue-200 shadow-sm"
+                                : "bg-white border-gray-100 hover:border-blue-200 hover:bg-gray-50"
+                            }
+                        `}
+              >
+                <div
+                  className={`
+                            p-2 rounded-full 
+                            ${sectionToolState.task === task.id ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-500"}
+                        `}
+                >
+                  <task.icon className="w-4 h-4" />
+                </div>
+                <div>
+                  <div
+                    className={`text-sm font-semibold ${sectionToolState.task === task.id ? "text-blue-900" : "text-gray-700"}`}
+                  >
+                    {task.label}
+                  </div>
+                  <div className="text-[10px] text-gray-400">{task.desc}</div>
+                </div>
+                {sectionToolState.task === task.id && (
+                  <div className="absolute top-3 right-3 text-blue-500">
+                    <CheckCircle className="w-4 h-4 fill-blue-100" />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Custom Instructions */}
+        {sectionToolState.task === "custom" && sectionToolState.sectionId && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            className="space-y-2"
+          >
+            <label className="text-xs font-bold text-gray-500 uppercase tracking-widest block">
+              Your Instructions
+            </label>
+            <TextArea
+              placeholder="E.g., Make it more professional and add 2 examples..."
+              rows={4}
+              value={sectionToolState.instructions}
+              onChange={e =>
+                setSectionToolState(prev => ({ ...prev, instructions: e.target.value }))
+              }
+              className="!bg-gray-50 !border-gray-200 !text-sm focus:!bg-white"
+            />
+          </motion.div>
+        )}
+
+        {/* Action Button */}
+        <div className="pt-2">
+          <Button
+            type="primary"
+            icon={
+              isProcessingSection ? (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4" />
+              )
+            }
+            onClick={handleSectionTask}
+            disabled={
+              isProcessingSection ||
+              !sectionToolState.sectionId ||
+              (sectionToolState.task === "custom" && !sectionToolState.instructions.trim())
+            }
+            className="w-full h-11 bg-gradient-to-r from-indigo-600 to-blue-600 border-none shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all rounded-xl font-semibold text-sm"
+          >
+            {isProcessingSection ? "Processing..." : "Run AI Task"}
+          </Button>
+          <p className="text-[10px] text-center text-gray-400 mt-2">
+            This will update {sectionToolState.sectionId ? "the selected section" : "a section"}{" "}
+            directly.
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+
+  const renderPostingPanel = () => (
+    <div className="flex flex-col h-full bg-white relative">
+      <div className="p-3 border-b bg-gradient-to-r from-emerald-50 to-green-50 sticky top-0 z-10">
+        <div className="flex items-center gap-2">
+          <div className="p-2 bg-gradient-to-br from-green-600 to-emerald-600 rounded-lg">
+            <Send className="w-4 h-4 text-white" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-900">Publishing</h3>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-3 space-y-6 custom-scroll pb-20">
+        {/* === POST HISTORY SECTION === */}
+        <div>
+          <div className="flex items-center justify-between pb-2 border-b border-gray-100 mb-3">
+            <div className="flex items-center gap-2">
+              <RefreshCw className="w-3.5 h-3.5 text-gray-400" />
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+                Post History
+              </span>
             </div>
           </div>
-        )}
+
+          {isLoadingPostings ? (
+            <div className="p-6 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200">
+              <RefreshCw className="w-5 h-5 animate-spin text-gray-400 mx-auto mb-2" />
+              <p className="text-xs text-gray-500">Loading history...</p>
+            </div>
+          ) : hasPublishedLinks ? (
+            <div className="space-y-3">
+              {blogPostings.map((posting, idx) => (
+                <div
+                  key={idx}
+                  className="p-3 bg-white rounded-xl border border-gray-100 shadow-sm hover:border-blue-100 transition-all"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[12px] font-bold text-gray-700">
+                      {PLATFORM_LABELS[posting.integrationType || posting.platform] ||
+                        posting.integrationType ||
+                        posting.platform}
+                    </span>
+                    <span className="text-[12px] text-gray-400">
+                      {new Date(posting.postedOn).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <div className="space-y-1 mb-2">
+                    <div className="flex justify-between">
+                      <span className="text-[12px] text-gray-400">Category:</span>
+                      <span className="text-[12px] font-medium text-gray-700 text-right truncate max-w-[120px]">
+                        {posting.metadata?.category || posting.category || blog.category}
+                      </span>
+                    </div>
+                    {posting.link && (
+                      <a
+                        href={posting.link}
+                        target="_blank"
+                        className="flex items-center justify-end gap-1 text-[12px] text-blue-600 hover:underline"
+                      >
+                        View Live <ExternalLink className="w-2.5 h-2.5" />
+                      </a>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Tooltip title="Edit settings and repost">
+                      <Button
+                        size="small"
+                        className="flex items-center justify-center p-0 w-8 h-8 rounded-lg border-gray-200 hover:text-blue-600 hover:border-blue-200"
+                        onClick={() => openRepostModal(posting)}
+                        disabled={isPosting}
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
+                    </Tooltip>
+                    <Button
+                      size="small"
+                      block
+                      className="text-[12px] font-semibold h-8"
+                      onClick={() => {
+                        onPost({
+                          ...formData,
+                          categories:
+                            posting.metadata?.category || posting.category || blog.category,
+                          includeTableOfContents:
+                            posting.metadata?.includeTableOfContents ??
+                            posting.includeTableOfContents,
+                          type: { platform: posting.integrationType || posting.platform },
+                        })
+                      }}
+                      disabled={isPosting}
+                    >
+                      Repost Same Settings
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-6 bg-gray-50 rounded-xl border border-dashed border-gray-200 text-center">
+              <p className="text-xs text-gray-400 italic">No posting history yet.</p>
+            </div>
+          )}
+        </div>
+
+        {/* === NEW POST SECTION === */}
+        <div>
+          <div className="flex items-center justify-between pb-2 border-b border-gray-100 mb-3">
+            <div className="flex items-center gap-2">
+              <Send className="w-3.5 h-3.5 text-gray-400" />
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">
+                New Post
+              </span>
+            </div>
+            <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[12px] font-bold">
+              {selectedIntegration
+                ? PLATFORM_LABELS[selectedIntegration.rawPlatform] || "Selected"
+                : "Configure"}
+            </span>
+          </div>
+
+          <div className="space-y-4">
+            {/* Platform Select */}
+            <div>
+              <label className="text-xs font-semibold text-gray-700 mb-1.5 block">
+                Select Platform
+              </label>
+              {integrations?.integrations && Object.keys(integrations.integrations).length > 0 ? (
+                <Select
+                  className={`w-full ${platformError ? "border-red-500" : ""}`}
+                  placeholder="Choose platform..."
+                  value={selectedIntegration?.rawPlatform || undefined}
+                  onChange={v => {
+                    const d = integrations.integrations[v]
+                    handleIntegrationChange(v, d?.url)
+                  }}
+                  status={platformError ? "error" : ""}
+                >
+                  {Object.entries(integrations.integrations).map(([k, v]) => (
+                    <Select.Option key={k} value={k}>
+                      {PLATFORM_LABELS[k] || k}
+                    </Select.Option>
+                  ))}
+                </Select>
+              ) : (
+                <div className="p-3 bg-amber-50 rounded-lg border border-amber-100 text-xs text-amber-800">
+                  No platforms connected.{" "}
+                  <span
+                    className="font-bold cursor-pointer underline"
+                    onClick={() => navigate("/plugins")}
+                  >
+                    Connect now
+                  </span>
+                  .
+                </div>
+              )}
+              {platformError && <p className="text-[10px] text-red-500 mt-1">{errors.platform}</p>}
+            </div>
+            {/* Category Select */}
+            <div>
+              <label className="text-xs font-semibold text-gray-700 mb-1.5 block">
+                Select Category
+              </label>
+
+              {/* Active Category Tag */}
+              {/* {selectedCategory && (
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-500 text-white rounded-lg text-xs font-medium max-w-full">
+                    <span className="truncate">{selectedCategory}</span>
+                    {!isCategoryLocked && (
+                      <X
+                        size={12}
+                        className="cursor-pointer opacity-75 hover:opacity-100"
+                        onClick={handleCategoryRemove}
+                      />
+                    )}
+                  </div>
+                </div>
+              )} */}
+
+              <Select
+                mode="tags"
+                className="w-full"
+                placeholder="Select or type..."
+                value={selectedCategory ? [selectedCategory] : []}
+                onChange={handleCategoryChange}
+                disabled={isCategoryLocked}
+                showSearch
+                allowClear
+                status={categoryError ? "error" : ""}
+                options={POPULAR_CATEGORIES.map(c => ({ value: c, label: c }))}
+              />
+
+              {categoryError && <p className="text-[10px] text-red-500 mt-1">{errors.category}</p>}
+
+              {/* Auto Suggestions */}
+              {/* Auto Suggestions - Using persistent UI state */}
+              {uiCategories?.length > 0 && (
+                <div className="mt-2">
+                  <p className="text-[10px] text-gray-400 font-bold uppercase mb-1.5">
+                    Suggested Categories
+                  </p>
+                  <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+                    {uiCategories.map(cat => (
+                      <button
+                        key={cat}
+                        onClick={() => handleCategoryAdd(cat)}
+                        disabled={!!selectedCategory}
+                        className={`px-2 py-1 rounded text-[10px] border transition-all ${
+                          selectedCategory === cat
+                            ? "bg-indigo-100 border-indigo-300 text-indigo-700"
+                            : selectedCategory
+                              ? "opacity-40"
+                              : "bg-gray-50 border-gray-100 text-gray-600 hover:bg-white hover:border-gray-300"
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {isCategoryLocked && selectedIntegration?.platform === "shopify" && (
+                <div className="mt-2 p-2 bg-blue-50 text-blue-700 text-[10px] border border-blue-100 rounded">
+                  <Info className="inline w-3 h-3 mr-1" />
+                  Shopify categories are permanent once posted.
+                </div>
+              )}
+            </div>
+            {/* ToC Toggle */}
+            <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-xl">
+              <span className="text-xs font-semibold text-gray-800">Table of Contents</span>
+              <Switch
+                size="small"
+                checked={includeTableOfContents}
+                onChange={setIncludeTableOfContents}
+              />
+            </div>
+            {/* WordPress Categories (Moved Below ToC) */}
+            {selectedIntegration && selectedIntegration.rawPlatform === "WORDPRESS" && (
+              <WordPressCategories
+                onSelect={handleCategoryAdd}
+                currentCategory={selectedCategory}
+              />
+            )}
+            <div className="h-4" /> {/* Spacer */}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Post Action */}
+      <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 shadow-[0_-5px_15px_-5px_rgba(0,0,0,0.05)] z-20">
+        <button
+          onClick={handlePostClick}
+          disabled={isPosting || !hasAnyIntegration}
+          className={`
+            w-full py-3.5 px-6 rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95
+            ${
+              isPosting || !hasAnyIntegration
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:shadow-lg hover:shadow-blue-200"
+            }
+          `}
+        >
+          {isPosting ? (
+            <>
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              <span>Publishing...</span>
+            </>
+          ) : (
+            <>
+              <Send className="w-4 h-4" />
+              <span>Publish Now</span>
+            </>
+          )}
+        </button>
       </div>
     </div>
   )
@@ -1371,6 +2834,14 @@ const TextEditorSidebar = ({
         return renderSeoPanel()
       case "bloginfo":
         return renderBlogInfoPanel()
+      case "brand":
+        return renderBrandPanel()
+      case "posting":
+        return renderPostingPanel()
+      case "regenerate":
+        return renderSuggestionsPanel()
+      case "sectionTools":
+        return renderSectionToolsPanel()
       default:
         return renderOverviewPanel()
     }
@@ -1379,7 +2850,7 @@ const TextEditorSidebar = ({
   // Collapsed state - show only icon bar
   if (isCollapsed) {
     return (
-      <div className="w-16 bg-gradient-to-b from-slate-50 to-gray-100 border-l border-gray-200 flex flex-col items-center gap-2">
+      <div className="w-16 border-l border-gray-200 flex flex-col items-center gap-2">
         <div className="flex flex-col gap-2">
           <Tooltip title="Expand Sidebar" placement="left">
             <button
@@ -1395,22 +2866,33 @@ const TextEditorSidebar = ({
 
         {NAV_ITEMS.map(item => {
           const Icon = item.icon
+          const isActive = activePanel === item.id
           return (
             <Tooltip key={item.id} title={item.label} placement="left">
               <button
                 onClick={() => {
                   if (item.id === "regenerate") {
-                    // Open the regenerate modal
                     setIsRegenerateModalOpen(true)
-                    setIsCollapsed(false)
                   } else {
-                    setActivePanel(item.id)
-                    setIsCollapsed(false)
+                    if (isActive && !isCollapsed) {
+                      setIsCollapsed(true)
+                    } else {
+                      setActivePanel(item.id)
+                      setIsCollapsed(false)
+                    }
                   }
                 }}
-                className="w-11 h-11 rounded-2xl flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-white hover:shadow-md transition-all duration-200 relative group"
+                className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-200 relative group ${
+                  isActive && !isCollapsed
+                    ? "bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-200"
+                    : "text-gray-400 hover:text-blue-600 hover:bg-white hover:shadow-md"
+                }`}
               >
-                <Icon className="w-5 h-5 transition-transform group-hover:scale-110" />
+                <Icon
+                  className={`w-5 h-5 transition-transform ${
+                    isActive && !isCollapsed ? "" : "group-hover:scale-110"
+                  }`}
+                />
               </button>
             </Tooltip>
           )
@@ -1441,17 +2923,6 @@ const TextEditorSidebar = ({
         {/* Icon Navigation Bar - Premium Theme */}
         <div className="w-16 border-l border-gray-200 flex flex-col items-center py-5 gap-2">
           <div className="flex flex-col gap-2">
-            {/* Collapse Button */}
-            <div className="hidden md:block">
-              <Tooltip title="Collapse Sidebar" placement="left">
-                <button
-                  onClick={() => setIsCollapsed(true)}
-                  className="w-11 h-11 rounded-2xl items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-white hover:shadow-md transition-all duration-200 group flex"
-                >
-                  <ChevronRight className="w-5 h-5 transition-transform group-hover:translate-x-0.5" />
-                </button>
-              </Tooltip>
-            </div>
             {/* Mobile close */}
             <div className="md:hidden">
               <button
@@ -1475,18 +2946,23 @@ const TextEditorSidebar = ({
                       // Open the regenerate modal
                       setIsRegenerateModalOpen(true)
                     } else {
-                      setActivePanel(item.id)
+                      if (isActive && !isCollapsed) {
+                        setIsCollapsed(true)
+                      } else {
+                        setActivePanel(item.id)
+                        setIsCollapsed(false)
+                      }
                     }
                   }}
                   className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-200 relative group ${
-                    isActive
+                    isActive && !isCollapsed
                       ? "bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-200"
                       : "text-gray-400 hover:text-blue-600 hover:bg-white hover:shadow-md"
                   }`}
                 >
                   <Icon
                     className={`w-5 h-5 transition-transform ${
-                      isActive ? "" : "group-hover:scale-110"
+                      isActive && !isCollapsed ? "" : "group-hover:scale-110"
                     }`}
                   />
                 </button>
@@ -1497,17 +2973,6 @@ const TextEditorSidebar = ({
       </div>
 
       {/* Modals */}
-      <CategoriesModal
-        isCategoryModalOpen={isCategoryModalOpen}
-        setIsCategoryModalOpen={setIsCategoryModalOpen}
-        onSubmit={handleCategorySubmit}
-        initialCategory={formData.category}
-        initialIncludeTableOfContents={formData.includeTableOfContents}
-        integrations={integrations}
-        blogData={blog}
-        posted={posted}
-      />
-
       <Modal
         title={
           <div className="flex items-center gap-2">
@@ -1531,6 +2996,90 @@ const TextEditorSidebar = ({
               {label} <ExternalLink className="w-4 h-4" />
             </button>
           ))}
+        </div>
+      </Modal>
+
+      {/* Edit & Repost Modal */}
+      <Modal
+        title="Edit & Repost"
+        open={isRepostModalOpen}
+        onCancel={() => setIsRepostModalOpen(false)}
+        centered
+        width={400}
+        footer={[
+          <div className="flex justify-end gap-2">
+            <Button key="cancel" onClick={() => setIsRepostModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              key="submit"
+              type="primary"
+              onClick={handleRepostSubmit}
+              loading={isPosting}
+              className="bg-blue-600"
+            >
+              Repost Now
+            </Button>
+          </div>,
+        ]}
+      >
+        <div className="space-y-4 py-2">
+          {/* Platform Select */}
+          <div>
+            <label className="text-xs font-semibold text-gray-700 mb-1.5 block">Platform</label>
+            <Select
+              className="w-full"
+              value={repostSettings.platform}
+              onChange={v => setRepostSettings({ ...repostSettings, platform: v })}
+            >
+              {Object.entries(integrations?.integrations || {}).map(([k, v]) => (
+                <Select.Option key={k} value={k}>
+                  {PLATFORM_LABELS[k] || k}
+                </Select.Option>
+              ))}
+            </Select>
+            <p className="text-[10px] text-gray-400 mt-1">
+              Platform cannot be changed for reposting.
+            </p>
+          </div>
+
+          {/* Category Select */}
+          <div>
+            <label className="text-xs font-semibold text-gray-700 mb-1.5 block">Category</label>
+            <Select
+              mode="tags"
+              className="w-full"
+              placeholder="Select or type..."
+              value={repostSettings.category ? [repostSettings.category] : []}
+              onChange={vals =>
+                setRepostSettings({ ...repostSettings, category: vals[vals.length - 1] || "" })
+              }
+            >
+              {POPULAR_CATEGORIES.map(c => (
+                <Select.Option key={c} value={c} label={c}>
+                  {c}
+                </Select.Option>
+              ))}
+            </Select>
+          </div>
+
+          {/* ToC Toggle */}
+          <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-xl">
+            <span className="text-xs font-semibold text-gray-800">Table of Contents</span>
+            <Switch
+              size="small"
+              checked={repostSettings.includeTableOfContents}
+              onChange={c => setRepostSettings({ ...repostSettings, includeTableOfContents: c })}
+            />
+          </div>
+
+          {/* WordPress Categories */}
+          {repostSettings.platform === "WORDPRESS" && (
+            <WordPressCategories
+              onSelect={cat => setRepostSettings({ ...repostSettings, category: cat })}
+              currentCategory={repostSettings.category}
+            />
+          )}
         </div>
       </Modal>
 
@@ -1610,6 +3159,17 @@ const TextEditorSidebar = ({
         updateRegenField={updateRegenField}
         userPlan={userPlan}
         integrations={integrations}
+      />
+
+      {/* Categories Modal for Publishing */}
+      <CategoriesModal
+        isCategoryModalOpen={isCategoryModalOpen}
+        setIsCategoryModalOpen={setIsCategoryModalOpen}
+        onSubmit={onPost}
+        initialIncludeTableOfContents={includeTableOfContents}
+        integrations={integrations}
+        blogData={blog}
+        posted={posted}
       />
     </>
   )

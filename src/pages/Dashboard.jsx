@@ -104,7 +104,7 @@ const Dashboard = () => {
     return "Good evening"
   }
 
-  let limit = 5
+  let limit = 20
   let sort = "updatedAt:desc"
   // Fetch function
   const fetchBlogsQuery = useCallback(async () => {
@@ -125,7 +125,9 @@ const Dashboard = () => {
     try {
       const response = await dispatch(fetchAllBlogs(queryParams)).unwrap()
 
-      const activeBlogs = (response.data || []).filter(b => !b.isArchived)
+      const activeBlogs = (response.data || []).filter(
+        b => !b.isArchived && b.status === "complete"
+      )
 
       // Sort only if `sort` is provided
       let sortedBlogs = activeBlogs
@@ -161,7 +163,7 @@ const Dashboard = () => {
       return
     }
 
-    const activeBlogs = blogs.data.filter(b => !b.isArchived)
+    const activeBlogs = blogs.data.filter(b => !b.isArchived && b.status === "complete")
 
     // Sort DESC → newest first
     const sortedBlogs = activeBlogs.sort(
@@ -310,7 +312,7 @@ const Dashboard = () => {
       case ACTIVE_MODELS.YouTube_Blog:
         return <QuickBlogModal type="yt" closeFnc={handleCloseActiveModal} />
       case ACTIVE_MODELS.Advanced_Blog:
-        return <AdvancedBlogModal closeFnc={handleCloseActiveModal} onSubmit={handleSubmit} />
+        return <AdvancedBlogModal closeFnc={handleCloseActiveModal} queryClient={queryClient} />
       case ACTIVE_MODELS.Bulk_Blog:
         return <BulkBlogModal closeFnc={handleCloseActiveModal} />
       case ACTIVE_MODELS.Keyword_Research:

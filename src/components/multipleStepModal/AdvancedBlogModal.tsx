@@ -1,7 +1,8 @@
-import type { BlogTemplate } from "@components/multipleStepModal/TemplateSelection"
+import { BlogTemplate } from "@components/multipleStepModal/TemplateSelection"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 import { selectUser } from "@store/slices/authSlice"
-import { fetchGeneratedTitles } from "@store/slices/blogSlice"
+import { fetchGeneratedTitles, createNewBlog } from "@store/slices/blogSlice"
+import { store } from "@store/index"
 import {
   Badge,
   Button,
@@ -35,17 +36,19 @@ import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector
 import { selectSelectedAnalysisKeywords } from "@store/slices/analysisSlice"
 import { computeCost } from "@/data/pricingConfig"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import { useLoading } from "@/context/LoadingContext"
 import { validateAdvancedBlogData } from "@/types/forms.schemas"
-import LoadingScreen from "@components/UI/LoadingScreen"
+import { useQueryClient } from "@tanstack/react-query"
 
 const { Text } = Typography
+
 interface AdvancedBlogModalProps {
-  onSubmit: Function
-  closeFnc: Function
+  onSubmit: (data: any) => void
+  closeFnc: () => void
 }
 
 // Advanced Blog Modal Component - Updated pricing on Steps 2 & 3
-const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) => {
+const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ closeFnc }) => {
   const STEP_TITLES = ["Template Selection", "Basic Information", "Customization", "Blog Options"]
 
   const initialData = {
@@ -77,38 +80,28 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
       includeCompetitorResearch: false as boolean,
       addOutBoundLinks: false as boolean,
       addCTA: false as boolean,
+      easyToUnderstand: false as boolean,
+      embedYouTubeVideos: false as boolean,
     },
   }
 
   const BLOG_OPTIONS = [
-    {
-      key: "isCheckedQuick",
-      label: "Add a Quick Summary",
-    },
-    {
-      key: "options.includeFaqs",
-      label: "Add FAQs (Frequently Asked Questions)",
-    },
-    {
-      key: "options.includeInterlinks",
-      label: "Include Interlinks",
-    },
-    {
-      key: "options.includeCompetitorResearch",
-      label: "Perform Competitive Research",
-    },
-    {
-      key: "options.addOutBoundLinks",
-      label: "Show Outbound Links",
-    },
+    { key: "isCheckedQuick", label: "Add a Quick Summary" },
+    { key: "options.includeFaqs", label: "Add FAQs (Frequently Asked Questions)" },
+    { key: "options.includeInterlinks", label: "Include Interlinks" },
+    { key: "options.includeCompetitorResearch", label: "Perform Competitive Research" },
+    { key: "options.addOutBoundLinks", label: "Show Outbound Links" },
   ]
 
   type FormError = Partial<Record<keyof typeof initialData, string>>
+  type AppDispatch = typeof store.dispatch
 
-  const dispatch = useDispatch()
+  const dispatch = useDispatch<AppDispatch>()
   const user = useSelector(selectUser)
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { handlePopup } = useConfirmPopup()
+  const { showLoading, hideLoading } = useLoading()
 
   const [currentStep, setCurrentStep] = useState<number>(0)
   const [formData, setFormData] = useState<typeof initialData>(initialData)
@@ -117,8 +110,6 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
   // For Generating Titles
   const [generatedTitles, setGeneratedTitles] = useState<string[]>([])
   const [isGenerating, setIsGenerating] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-
   const handleGenerateTitles = async () => {
     try {
       setIsGenerating(true)
@@ -275,7 +266,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
     closeFnc?.()
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (validateFields()) {
       // Check if user has sufficient credits
       // Use memoized estimated cost
@@ -299,7 +290,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
           ),
           okText: "Buy Credits",
           onConfirm: () => {
-            navigate("/pricing")
+            void navigate("/pricing")
             handleClose()
           },
         })
@@ -327,16 +318,28 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
       }
       // Validate with Zod schema (logs to console when VITE_VALIDATE_FORMS=true)
       const validatedData = validateAdvancedBlogData(data)
-      setIsSubmitting(true)
-      onSubmit?.(validatedData)
+
+      const loadingId = showLoading("Creating your blog...")
+
+      try {
+        // Type assertion needed because thunk is defined in JSX file without proper TypeScript types
+        await dispatch(
+          createNewBlog({ blogData: validatedData, user, navigate, queryClient } as any)
+        ).unwrap()
+
+        // ✅ Only close modal on success
+        handleClose()
+      } catch (error: unknown) {
+        // ❌ Don't close modal - let user retry
+        message.error((error as Error)?.message || "Failed to create blog. Please try again.")
+      } finally {
+        hideLoading(loadingId)
+      }
     }
   }
 
   const handleTemplateSelection = useCallback((templates: BlogTemplate[]) => {
-    updateFormData({
-      template: templates?.[0]?.name || "",
-      templateIds: templates?.map(t => t.id),
-    })
+    updateFormData({ template: templates?.[0]?.name || "", templateIds: templates?.map(t => t.id) })
     updateErrors({ template: "" })
   }, [])
 
@@ -345,20 +348,19 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
       event:
         | React.ChangeEvent<HTMLInputElement>
         | RadioChangeEvent
-        | { target: { name: string; value: any } }
+        | { target: { name: string; value: string | number | boolean | string[] | UploadFile[] } }
     ) => {
       const { name, value } = event.target
 
       if (!name) throw new Error("Advanced blog form component error")
 
       const keys = name.split(".")
-      // @ts-ignore
+
       if (keys.length > 1) {
-        // @ts-ignore
         setFormData(prev => setValueByPath(prev, keys, value))
       } else {
-        updateFormData({ [name]: value })
-        // @ts-ignore
+        updateFormData({ [name]: value } as any)
+
         updateErrors({ [name]: "" })
       }
     },
@@ -560,15 +562,17 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
                 </div>
               )}
             </Flex>
-            <Flex justify="space-between" className="mt-3 form-item-wrapper">
-              <label htmlFor="blog-auto-generate-title-keywords">Use Exact Title for Blog</label>
+            <Flex
+              justify="space-between"
+              className="mt-3 form-item-wrapper"
+              hidden={formData.options.performKeywordResearch}
+            >
+              <label htmlFor="blog-use-exact-title">Use Exact Title for Blog</label>
               <Switch
-                id="blog-auto-generate-title-keywords"
+                id="blog-use-exact-title"
                 value={formData.options.exactTitle}
                 onChange={checked =>
-                  handleInputChange({
-                    target: { name: "options.exactTitle", value: checked },
-                  })
+                  handleInputChange({ target: { name: "options.exactTitle", value: checked } })
                 }
               />
             </Flex>
@@ -681,6 +685,38 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
                 />
               </Flex>
             </div>
+
+            {/* Easy to Understand Toggle */}
+            <Space direction="vertical" className="form-item-wrapper">
+              <Flex justify="space-between">
+                <label htmlFor="easy-to-understand-toggle">Easy to Understand</label>
+                <Switch
+                  id="easy-to-understand-toggle"
+                  checked={formData.options.easyToUnderstand}
+                  onChange={checked =>
+                    handleInputChange({
+                      target: { name: "options.easyToUnderstand", value: checked },
+                    })
+                  }
+                />
+              </Flex>
+            </Space>
+
+            {/* Embed YouTube Videos Toggle */}
+            <Space direction="vertical" className="form-item-wrapper">
+              <Flex justify="space-between">
+                <label htmlFor="embed-youtube-toggle">Embed YouTube Videos</label>
+                <Switch
+                  id="embed-youtube-toggle"
+                  checked={formData.options.embedYouTubeVideos}
+                  onChange={checked =>
+                    handleInputChange({
+                      target: { name: "options.embedYouTubeVideos", value: checked },
+                    })
+                  }
+                />
+              </Flex>
+            </Space>
             {/* Image Settings */}
             <Space direction="vertical" className="form-item-wrapper">
               <Flex justify="space-between">
@@ -692,11 +728,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
                     ;[
                       { name: "isCheckedGeneratedImages", value: val },
                       { name: "blogImages", value: [] },
-                    ].map(t =>
-                      handleInputChange({
-                        target: t,
-                      })
-                    )
+                    ].map(t => handleInputChange({ target: t }))
                   }}
                 />
               </Flex>
@@ -753,8 +785,8 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
                             {isButtonDisabled
                               ? "Only For Subscribed Users"
                               : isAILimitReached
-                              ? "AI Image Limit Reached"
-                              : option.label}
+                                ? "AI Image Limit Reached"
+                                : option.label}
                           </Text>
                         }
                         className="w-full"
@@ -854,9 +886,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
                   id={`blog-${option.key}`}
                   value={getValueByPath(formData, option.key)}
                   onChange={checked =>
-                    handleInputChange({
-                      target: { name: option.key, value: checked },
-                    })
+                    handleInputChange({ target: { name: option.key, value: checked } })
                   }
                 />
               </Flex>
@@ -892,7 +922,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
 
   return (
     <>
-      {isSubmitting && <LoadingScreen />}
+      {" "}
       <Modal
         title={`Generate Advanced Blog | Step ${currentStep + 1} : ${STEP_TITLES[currentStep]}`}
         open={true}
@@ -935,12 +965,7 @@ const AdvancedBlogModal: FC<AdvancedBlogModalProps> = ({ onSubmit, closeFnc }) =
         destroyOnHidden
         className="m-2"
       >
-        <div
-          className="h-full !max-h-[80vh] overflow-auto"
-          style={{
-            scrollbarWidth: "none",
-          }}
-        >
+        <div className="h-full !max-h-[80vh] overflow-auto" style={{ scrollbarWidth: "none" }}>
           {renderSteps()}
         </div>
       </Modal>

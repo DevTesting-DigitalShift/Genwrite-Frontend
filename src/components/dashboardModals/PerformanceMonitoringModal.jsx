@@ -24,9 +24,9 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
       setIsLoading(true)
       dispatch(fetchBlogById(id))
         .unwrap()
-        .then((response) => {
+        .then(response => {
           if (response?._id) {
-            setFormData((prev) => ({
+            setFormData(prev => ({
               ...prev,
               title: response.title || "",
               content: response.content || "",
@@ -38,7 +38,7 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
             message.error("Blog details not found.")
           }
         })
-        .catch((error) => {
+        .catch(error => {
           console.error("Failed to fetch blog by ID:", error)
           message.error("Failed to fetch blog details.")
         })
@@ -47,8 +47,8 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
   }, [id, dispatch])
 
   // Handle blog selection
-  const handleBlogSelect = (value) => {
-    const blog = allBlogs.find((b) => b._id === value)
+  const handleBlogSelect = value => {
+    const blog = allBlogs.find(b => b._id === value)
     if (blog) {
       setId(blog._id)
       setFormData({
@@ -150,10 +150,10 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
     const keywordDensity = seo?.keywordDensity || {}
 
     const shortTailCount = Object.keys(keywordDensity).filter(
-      (keyword) => keyword.split(" ").length <= 2
+      keyword => keyword.split(" ").length <= 2,
     ).length
     const longTailCount = Object.keys(keywordDensity).filter(
-      (keyword) => keyword.split(" ").length > 2
+      keyword => keyword.split(" ").length > 2,
     ).length
 
     const dataSource = Object.entries(keywordDensity).map(
@@ -163,30 +163,18 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
         count,
         density: density,
         animationDelay: index * 0.1,
-      })
+      }),
     )
 
     const columns = [
-      {
-        title: "Keywords",
-        dataIndex: "keyword",
-        key: "keyword",
-        width: "60%",
-        ellipsis: true,
-      },
-      {
-        title: "Count",
-        dataIndex: "count",
-        key: "count",
-        align: "center",
-        width: "5ch",
-      },
+      { title: "Keywords", dataIndex: "keyword", key: "keyword", width: "60%", ellipsis: true },
+      { title: "Count", dataIndex: "count", key: "count", align: "center", width: "5ch" },
       {
         title: "Density",
         dataIndex: "density",
         key: "density",
         sorter: (a, b) => a.density - b.density,
-        render: (value) => `${value.toFixed(2)}%`,
+        render: value => `${value.toFixed(2)}%`,
         align: "center",
         width: "5ch",
       },
@@ -395,9 +383,7 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
             <motion.div
               initial="hidden"
               animate="visible"
-              variants={{
-                visible: { transition: { staggerChildren: 0.1 } },
-              }}
+              variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
               className="overflow-x-auto w-full"
             >
               <Table
@@ -632,7 +618,7 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
               value={formData.selectedBlog?._id || ""}
             >
               <Select.Option value="">Select Blog</Select.Option>
-              {allBlogs?.map((blog) => (
+              {allBlogs?.map(blog => (
                 <Select.Option key={blog._id} value={blog._id} className="bg-gray-50">
                   {blog.title || "Untitled"}
                 </Select.Option>
@@ -664,49 +650,39 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
                   Content Preview
                 </h3>
               </div>
-              <div>
-                <div className="text-gray-700 max-h-[200px] sm:max-h-[300px] overflow-y-auto whitespace-pre-wrap leading-relaxed p-3 sm:p-4 rounded-md text-sm sm:text-base">
-                  {formData?.content?.trim() ? (
-                    formData.content.split("\n").map((line, index) => {
-                      if (line.startsWith("### ")) {
-                        return (
-                          <h3 key={index} className="text-base sm:text-lg font-semibold mt-2">
-                            {line
-                              .replace("### ", "")
-                              .replace(/[*_~>`]/g, "")
-                              .trim()}
-                          </h3>
-                        )
-                      } else if (line.startsWith("## ")) {
-                        return (
-                          <h2 key={index} className="text-lg sm:text-xl font-semibold mt-2">
-                            {line
-                              .replace("## ", "")
-                              .replace(/[*_~>`]/g, "")
-                              .trim()}
-                          </h2>
-                        )
-                      } else if (line.startsWith("# ")) {
-                        return (
-                          <h1 key={index} className="text-xl sm:text-2xl font-bold mt-2">
-                            {line
-                              .replace("# ", "")
-                              .replace(/[*_~>`]/g, "")
-                              .trim()}
-                          </h1>
-                        )
-                      } else {
-                        return (
-                          <p key={index} className="text-sm sm:text-base mt-2">
-                            {line.replace(/[*_~>`]/g, "").trim()}
-                          </p>
-                        )
-                      }
-                    })
-                  ) : (
-                    <Empty description="No content available for this blog" />
-                  )}
-                </div>
+              <div className="max-h-[200px] sm:max-h-[400px] overflow-y-auto p-3 sm:p-4 bg-white">
+                <div
+                  className="prose prose-sm sm:prose-base lg:prose-lg max-w-none
+                    prose-headings:font-bold prose-headings:text-gray-900 prose-headings:mt-6 prose-headings:mb-3
+                    prose-h1:text-2xl sm:prose-h1:text-3xl prose-h1:font-extrabold prose-h1:leading-tight prose-h1:border-b prose-h1:border-gray-200 prose-h1:pb-2
+                    prose-h2:text-xl sm:prose-h2:text-2xl prose-h2:font-bold prose-h2:leading-snug
+                    prose-h3:text-lg sm:prose-h3:text-xl prose-h3:font-semibold prose-h3:leading-normal
+                    prose-h4:text-base sm:prose-h4:text-lg prose-h4:font-semibold
+                    prose-h5:text-sm sm:prose-h5:text-base prose-h5:font-semibold
+                    prose-h6:text-sm prose-h6:font-medium prose-h6:text-gray-700
+                    prose-p:text-gray-700 prose-p:leading-relaxed prose-p:my-3 prose-p:text-sm sm:prose-p:text-base
+                    prose-strong:text-gray-900 prose-strong:font-bold
+                    prose-em:italic prose-em:text-gray-800
+                    prose-ul:list-disc prose-ul:ml-5 prose-ul:my-3 prose-ul:space-y-1
+                    prose-ol:list-decimal prose-ol:ml-5 prose-ol:my-3 prose-ol:space-y-1
+                    prose-li:text-gray-700 prose-li:leading-relaxed prose-li:text-sm sm:prose-li:text-base prose-li:my-1
+                    prose-a:text-blue-600 prose-a:underline prose-a:font-medium hover:prose-a:text-blue-800 prose-a:transition-colors
+                    prose-blockquote:border-l-4 prose-blockquote:border-blue-500 prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-gray-600 prose-blockquote:bg-blue-50 prose-blockquote:py-2 prose-blockquote:my-4
+                    prose-code:bg-gray-100 prose-code:text-red-600 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:font-mono
+                    prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-pre:p-4 prose-pre:rounded-lg prose-pre:overflow-x-auto prose-pre:my-4
+                    prose-img:rounded-lg prose-img:shadow-md prose-img:my-4
+                    prose-hr:border-gray-300 prose-hr:my-6
+                    prose-table:border-collapse prose-table:w-full prose-table:my-4
+                    prose-th:bg-gray-100 prose-th:border prose-th:border-gray-300 prose-th:p-2 prose-th:text-left prose-th:font-semibold
+                    prose-td:border prose-td:border-gray-300 prose-td:p-2
+                    first:prose-headings:mt-0
+                  "
+                  dangerouslySetInnerHTML={{
+                    __html:
+                      formData?.content?.trim() ||
+                      "<p class='text-gray-500 text-center py-8'>No content available for this blog</p>",
+                  }}
+                />
               </div>
             </motion.div>
             {formData.keywords?.length > 0 && (
