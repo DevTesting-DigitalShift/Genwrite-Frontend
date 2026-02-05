@@ -3,9 +3,7 @@ import axios from "axios"
 // Create an Axios instance
 const axiosInstance = axios.create({
   baseURL: `${import.meta.env.VITE_BACKEND_URL}/api/v1`, // Replace with your API base URL
-  headers: {
-    "Content-Type": "application/json",
-  },
+  headers: { "Content-Type": "application/json" },
 })
 
 // Add request interceptor

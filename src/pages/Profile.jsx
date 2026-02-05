@@ -12,6 +12,7 @@ import {
   ClipboardDocumentIcon,
   ArrowPathIcon,
 } from "@heroicons/react/24/solid"
+import { isEqual } from "lodash-es"
 import { useSelector, useDispatch } from "react-redux"
 import { loadAuthenticatedUser } from "@store/slices/authSlice"
 import { DatePicker, message, Select, Tag, Tooltip, Switch } from "antd"
@@ -65,6 +66,7 @@ const STATUS_COLORS = {
 
 const Profile = () => {
   const [profileData, setProfileData] = useState(DEMO_PROFILE)
+  const [initialProfileData, setInitialProfileData] = useState(null)
   const { user } = useSelector(state => state.auth)
   const dispatch = useDispatch()
   const [passwordModalVisible, setPasswordModalVisible] = useState(false)
@@ -85,8 +87,8 @@ const Profile = () => {
   useEffect(() => {
     if (!user) return
 
-    setProfileData(prev => ({
-      profilePicture: user.avatar || prev.profilePicture,
+    const initialData = {
+      profilePicture: user.avatar || "",
       personalDetails: {
         name: user.name || "",
         email: user.email || "",
@@ -102,7 +104,10 @@ const Profile = () => {
         status: user.subscription?.status || "active",
       },
       emailVerified: user.emailVerified || false,
-    }))
+    }
+
+    setProfileData(initialData)
+    setInitialProfileData(initialData)
 
     if (user.referral?.referralId) {
       setReferralCode(user.referral.referralId)
@@ -131,20 +136,37 @@ const Profile = () => {
   }, [user])
 
   const handleSave = async () => {
-    const payload = {
-      avatar: profileData.profilePicture,
-      name: profileData.personalDetails.name,
-      bio: profileData.personalDetails.bio,
-      email: profileData.personalDetails.email,
-      phone: profileData.personalDetails.phone,
-      jobTitle: profileData.personalDetails.jobTitle,
-      company: profileData.personalDetails.company,
-      dob: profileData.personalDetails.dob,
-      interests: profileData.personalDetails.interests,
+    if (!initialProfileData) return
+
+    const changes = {}
+
+    // Helper to check for changes
+    if (profileData.profilePicture !== initialProfileData.profilePicture) {
+      changes.avatar = profileData.profilePicture
+    }
+
+    const pd = profileData.personalDetails
+    const ipd = initialProfileData.personalDetails
+
+    if (pd.name !== ipd.name) changes.name = pd.name
+    if (pd.bio !== ipd.bio) changes.bio = pd.bio
+    if (pd.email !== ipd.email) changes.email = pd.email
+    if (pd.phone !== ipd.phone) changes.phone = pd.phone
+    if (pd.jobTitle !== ipd.jobTitle) changes.jobTitle = pd.jobTitle
+    if (pd.company !== ipd.company) changes.company = pd.company
+    if (pd.dob !== ipd.dob) changes.dob = pd.dob
+
+    if (!isEqual(pd.interests, ipd.interests)) {
+      changes.interests = pd.interests
+    }
+
+    if (Object.keys(changes).length === 0) {
+      message.info("No changes to save")
+      return
     }
 
     try {
-      await dispatch(updateProfile(payload)).unwrap()
+      await dispatch(updateProfile(changes)).unwrap()
       message.success("Profile updated successfully!")
     } catch (err) {
       message.error("Error updating profile, try again")
@@ -327,7 +349,8 @@ const Profile = () => {
                 </button>
                 <button
                   onClick={handleSave}
-                  className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
+                  disabled={!initialProfileData || isEqual(profileData, initialProfileData)}
+                  className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <CheckIcon className="w-4 h-4 sm:w-5 sm:h-5" />
                   Save Changes
@@ -503,6 +526,19 @@ const Profile = () => {
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
+                  <h3 className="text-base font-semibold text-gray-900">Account Alerts</h3>
+                  <p className="text-sm text-gray-500">
+                    Get notified about important security changes.
+                  </p>
+                </div>
+                <Switch
+                  checked={emailPreferences.accountAlerts}
+                  disabled
+                  onChange={checked => handleEmailPreferenceChange("accountAlerts", checked)}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
                   <h3 className="text-base font-semibold text-gray-900">Promotions & Offers</h3>
                   <p className="text-sm text-gray-500">
                     Receive emails about new discounts and deals.
@@ -523,18 +559,6 @@ const Profile = () => {
                 <Switch
                   checked={emailPreferences.newFeatureUpdates}
                   onChange={checked => handleEmailPreferenceChange("newFeatureUpdates", checked)}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-base font-semibold text-gray-900">Account Alerts</h3>
-                  <p className="text-sm text-gray-500">
-                    Get notified about important security changes.
-                  </p>
-                </div>
-                <Switch
-                  checked={emailPreferences.accountAlerts}
-                  onChange={checked => handleEmailPreferenceChange("accountAlerts", checked)}
                 />
               </div>
             </div>

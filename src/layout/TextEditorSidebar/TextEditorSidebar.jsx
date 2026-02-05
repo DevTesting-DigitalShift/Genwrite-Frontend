@@ -8,18 +8,12 @@ import {
   Send,
   ExternalLink,
   Target,
-  Plus,
   X,
   TagIcon,
   BarChart3,
   Wand2,
-  Settings,
-  Zap,
   Lightbulb,
   ChevronLeft,
-  ChevronRight,
-  SlidersHorizontal,
-  Eye,
   BarChart,
   RefreshCcw,
   Crown,
@@ -28,58 +22,38 @@ import {
   Lock,
   Globe,
   Info,
-  Calendar,
   User,
   ImageIcon,
   Pencil,
   CheckCircle,
   MessageSquare,
 } from "lucide-react"
-import {
-  Button,
-  message,
-  Input,
-  Select,
-  Slider,
-  Switch,
-  InputNumber,
-  Tooltip,
-  Badge,
-  Collapse,
-} from "antd"
-import { fetchProofreadingSuggestions, fetchBlogPrompt } from "@store/slices/blogSlice"
+import { Button, message, Input, Select, Switch, Tooltip, Collapse } from "antd"
+import { fetchBlogPrompt } from "@store/slices/blogSlice"
 import { fetchCompetitiveAnalysisThunk } from "@store/slices/analysisSlice"
 import {
   generateMetadataThunk,
   getIntegrationsThunk,
   getCategoriesThunk,
-  resetCategories,
 } from "@store/slices/otherSlice"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useNavigate } from "react-router-dom"
 import { useDispatch, useSelector } from "react-redux"
-import { getEstimatedCost, creditCostsWithGemini } from "@utils/getEstimatedCost"
-import { openUpgradePopup } from "@utils/UpgardePopUp"
 import { Modal } from "antd"
-import { TONES } from "@/data/blogData"
-import { retryBlogById, exportBlogAsPdf, getBlogPostings, exportBlog } from "@api/blogApi"
+import { retryBlogById, getBlogPostings, exportBlog } from "@api/blogApi"
 import { validateRegenerateBlogData } from "@/types/forms.schemas"
 import { useQueryClient } from "@tanstack/react-query"
-import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
-import { ScoreCard, StatCard, CompetitorsList, AnalysisInsights } from "./FeatureComponents"
+import { ScoreCard, CompetitorsList } from "./FeatureComponents"
 import RegenerateModal from "@components/RegenerateModal"
 import CategoriesModal from "../Editor/CategoriesModal"
+import axiosInstance from "@/api"
 
 import { IMAGE_SOURCE, DEFAULT_IMAGE_SOURCE } from "@/data/blogData"
 import { computeCost } from "@/data/pricingConfig"
 import * as Cheerio from "cheerio"
-import TurndownService from "turndown"
-
-import axios from "axios"
 import { marked } from "marked"
 
 const { TextArea } = Input
-const { Panel } = Collapse
 
 // WordPress Categories Component
 const WordPressCategories = ({ onSelect, currentCategory }) => {
@@ -90,7 +64,7 @@ const WordPressCategories = ({ onSelect, currentCategory }) => {
     const fetchWPCategories = async () => {
       setLoading(true)
       try {
-        const response = await axios.get(
+        const response = await axiosInstance.get(
           "http://localhost:8000/api/v1/integrations/category?type=WORDPRESS"
         )
         if (Array.isArray(response.data)) {
@@ -343,7 +317,17 @@ const TextEditorSidebar = ({
       // Use Cheerio to parse the generic content first
       // Note: editorContent might be Markdown, but if it contains HTML <section> tags, Cheerio finds them.
       const $ = Cheerio.load(editorContent, { xmlMode: false }) // xmlMode false to handle standard HTML
-      const $htmlSections = $("section")
+
+      // STRATEGY 1: Structured HTML with <section> tags
+      // Target sections inside #sections-wrapper if available to exclude meta/cta/faq
+      let $htmlSections = $("#sections-wrapper section")
+
+      // Fallback: If no wrapper found, try all valid content sections (excluding meta/cta/faq/summary)
+      if ($htmlSections.length === 0) {
+        $htmlSections = $("section").not(
+          "#blog-meta, #blog-cta, #faq-section, .blog-base-meta, .blog-brand-cta, .faq-section, .blog-quick-summary"
+        )
+      }
 
       if ($htmlSections.length > 0) {
         $htmlSections.each((i, el) => {
@@ -452,7 +436,7 @@ const TextEditorSidebar = ({
       }
 
       // API Call
-      const response = await axios.post(
+      const response = await axiosInstance.post(
         `http://localhost:8000/api/v1/blogs/${blog._id}/sectionTask`,
         payload
       )
