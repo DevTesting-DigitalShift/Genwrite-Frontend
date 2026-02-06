@@ -43,6 +43,8 @@ const AiContentDetection = lazy(() => import("@pages/AiContentDetection"))
 const YouTubeSummarization = lazy(() => import("@pages/YouTubeSummarization"))
 const KeywordScraping = lazy(() => import("@pages/KeywordScraping"))
 const ChatWithPdf = lazy(() => import("@pages/ChatWithPdf"))
+const CompetitorLikeBlog = lazy(() => import("@pages/CompetitorLikeBlog"))
+const WebsiteRanking = lazy(() => import("@pages/WebsiteRanking"))
 
 /**
  * Wraps a component in React.Suspense with fallback support.
@@ -125,6 +127,8 @@ const router = createBrowserRouter([
           { path: "youtube-summarization", element: withSuspense(YouTubeSummarization) },
           { path: "keyword-scraping", element: withSuspense(KeywordScraping) },
           { path: "chat-with-pdf", element: withSuspense(ChatWithPdf) },
+          { path: "competitor-like-blog", element: withSuspense(CompetitorLikeBlog) },
+          { path: "website-ranking", element: withSuspense(WebsiteRanking) },
         ],
       },
     ],

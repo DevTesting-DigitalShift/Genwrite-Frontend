@@ -303,6 +303,17 @@ export default function ToolboxPage() {
       color: "from-rose-500 to-pink-600",
     },
     {
+      key: "website-ranking",
+      title: "Website Ranking Strategy",
+      icon: <GlobalOutlined className="text-blue-500 size-4 sm:size-5" />,
+      description: "Full SEO audit and strategy generator for any website.",
+      action: () => navigate("/website-ranking"),
+      actionText: "Analyze Website",
+      credits: COSTS.WEBSITE_RANKING?.ORCHESTRATOR_BASE || 8,
+      creditType: "websiteRanking.orchestratorBase",
+      color: "from-blue-500 to-cyan-600",
+    },
+    {
       key: "content-detection",
       title: "AI Content Detection",
       icon: <RadarChartOutlined className="size-4 sm:size-5 text-purple-500" />,
@@ -335,6 +346,17 @@ export default function ToolboxPage() {
       credits: COSTS.KEYWORD_SCRAPER,
       creditType: "tools.outline",
       color: "from-emerald-500 to-teal-600",
+    },
+    {
+      key: "competitor-like-blog",
+      title: "Competitor Like Blog",
+      icon: <ImMagicWand className="size-4 sm:size-5 text-indigo-500" />,
+      description: "Analyze competitor blog styles to generate matching content for your topic.",
+      action: () => navigate("/competitor-like-blog"),
+      actionText: "Generate Content",
+      credits: COSTS.COMPETITOR_LIKE_BLOG,
+      creditType: "tools.competitorLikeBlog",
+      color: "from-indigo-500 to-violet-600",
     },
     {
       key: "chat-with-pdf",
@@ -425,6 +447,7 @@ export default function ToolboxPage() {
                         "content-detection",
                         "youtube-summarization",
                         "keyword-scraping",
+                        "competitor-like-blog",
                       ].includes(item.key)
                     )
                     .map(item => (
@@ -449,7 +472,9 @@ export default function ToolboxPage() {
                   {cardItems
                     .filter(
                       item =>
-                        item.key === "competitor-analysis" || item.key === "generated-metadata"
+                        item.key === "competitor-analysis" ||
+                        item.key === "generated-metadata" ||
+                        item.key === "website-ranking"
                     )
                     .map(item => (
                       <AnimatedCard key={item.key} item={item} />
