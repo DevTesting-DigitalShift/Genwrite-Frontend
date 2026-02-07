@@ -161,7 +161,7 @@ const SideBar_Header = () => {
     { title: "My Projects", icon: FileText, path: "/blogs" },
     { title: "Blog Performance", icon: TrendingUp, path: "/blog-performance" },
     { title: "Content Agent", icon: Briefcase, path: "/jobs" },
-    { title: "Toolbox", icon: Box, path: "/toolbox" },
+    // { title: "Toolbox", icon: Box, path: "/toolbox" }, // Toolbox merged into Dashboard
     { title: "Integrations", icon: Plug, path: "/integrations" },
     { title: "Brand Voice", icon: Megaphone, path: "/brand-voice" },
     { title: "Image Gallery", icon: ImagesIcon, path: "/image-gallery" },
