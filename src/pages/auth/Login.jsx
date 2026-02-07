@@ -282,42 +282,83 @@ const Auth = ({ path }) => {
               </p>
             </div>
 
-            {/* 3-day trial card */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.6 }}
-              className="relative bg-gradient-to-br from-purple-600 to-indigo-700 rounded-3xl p-8 border border-white/20 shadow-2xl overflow-hidden group"
-            >
-              {/* Abstract Patterns */}
-              <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-3xl -translate-y-12 translate-x-12 group-hover:bg-white/20 transition-all duration-500" />
-              <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-400/20 rounded-full blur-2xl translate-y-8 -translate-x-8" />
+            {/* 3-day trial card or Generic Feature Card */}
+            {import.meta.env.VITE_SHOW_TRIAL_CARD !== "false" ? (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.6 }}
+                className="relative bg-gradient-to-br from-purple-600 to-indigo-700 rounded-3xl p-8 border border-white/20 shadow-2xl overflow-hidden group"
+              >
+                {/* Abstract Patterns */}
+                <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-3xl -translate-y-12 translate-x-12 group-hover:bg-white/20 transition-all duration-500" />
+                <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-400/20 rounded-full blur-2xl translate-y-8 -translate-x-8" />
 
-              <div className="relative z-10">
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="w-14 h-14 bg-white/20 backdrop-blur-lg rounded-2xl flex items-center justify-center border border-white/30 shadow-inner">
-                    <FiGift className="w-8 h-8 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-2xl font-bold text-white mb-0.5">Start 3-Day Free Trial</h3>
-                    <p className="text-purple-100 text-sm font-medium opacity-90">
-                      No credit card required • Immediate access
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-y-4 gap-x-6">
-                  {trialFeatures.map((feature, index) => (
-                    <div key={index} className="flex items-center gap-3 text-sm text-white/90">
-                      <div className="w-5 h-5 bg-white/20 rounded-md flex items-center justify-center text-white/90">
-                        <CheckCircle className="w-3.5 h-3.5" />
-                      </div>
-                      <span className="font-medium">{feature.text}</span>
+                <div className="relative z-10">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="w-14 h-14 bg-white/20 backdrop-blur-lg rounded-2xl flex items-center justify-center border border-white/30 shadow-inner">
+                      <FiGift className="w-8 h-8 text-white" />
                     </div>
-                  ))}
+                    <div>
+                      <h3 className="text-2xl font-bold text-white mb-0.5">
+                        {import.meta.env.VITE_TRIAL_TEXT || "Start 3-Day Free Trial"}
+                      </h3>
+                      <p className="text-purple-100 text-sm font-medium opacity-90">
+                        {import.meta.env.VITE_TRIAL_SUBTEXT ||
+                          "No credit card required • Immediate access"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-y-4 gap-x-6">
+                    {trialFeatures.map((feature, index) => (
+                      <div key={index} className="flex items-center gap-3 text-sm text-white/90">
+                        <div className="w-5 h-5 bg-white/20 rounded-md flex items-center justify-center text-white/90">
+                          <CheckCircle className="w-3.5 h-3.5" />
+                        </div>
+                        <span className="font-medium">{feature.text}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            </motion.div>
+              </motion.div>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.6 }}
+                className="relative bg-gradient-to-br from-blue-600 to-cyan-700 rounded-3xl p-8 border border-white/20 shadow-2xl overflow-hidden group"
+              >
+                {/* Abstract Patterns */}
+                <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-3xl -translate-y-12 translate-x-12 group-hover:bg-white/20 transition-all duration-500" />
+                <div className="absolute bottom-0 left-0 w-32 h-32 bg-purple-400/20 rounded-full blur-2xl translate-y-8 -translate-x-8" />
+
+                <div className="relative z-10">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="w-14 h-14 bg-white/20 backdrop-blur-lg rounded-2xl flex items-center justify-center border border-white/30 shadow-inner">
+                      <Sparkles className="w-8 h-8 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-bold text-white mb-0.5">Premium Features</h3>
+                      <p className="text-blue-100 text-sm font-medium opacity-90">
+                        Unlock the power of AI content
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-y-4 gap-x-6">
+                    {trialFeatures.map((feature, index) => (
+                      <div key={index} className="flex items-center gap-3 text-sm text-white/90">
+                        <div className="w-5 h-5 bg-white/20 rounded-md flex items-center justify-center text-white/90">
+                          <CheckCircle className="w-3.5 h-3.5" />
+                        </div>
+                        <span className="font-medium">{feature.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
 
             {/* Why GenWrite Feature Grid */}
             <motion.div
@@ -726,7 +767,11 @@ const Auth = ({ path }) => {
                   </div>
                   <div className="flex items-center gap-1">
                     <CheckCircle className="w-3 h-3 text-green-500" />
-                    <span>3-Day Trial</span>
+                    <span>
+                      {import.meta.env.VITE_SHOW_TRIAL_CARD === "false"
+                        ? "Premium Quality"
+                        : import.meta.env.VITE_TRIAL_BADGE_TEXT || "3-Day Trial"}
+                    </span>
                   </div>
                 </div>
               </motion.div>
