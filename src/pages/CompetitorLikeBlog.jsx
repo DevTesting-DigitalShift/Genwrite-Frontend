@@ -187,7 +187,7 @@ const CompetitorLikeBlog = () => {
               </h2>
 
               {result.analysis && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   <div className="bg-purple-50 p-4 rounded-xl border border-purple-100 h-full">
                     <h3 className="text-sm font-bold text-purple-800 mb-1 flex items-center gap-2">
                       <Palette className="w-4 h-4" /> Tone
