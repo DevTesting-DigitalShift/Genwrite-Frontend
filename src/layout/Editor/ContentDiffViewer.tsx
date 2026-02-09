@@ -15,8 +15,17 @@ const ContentDiffViewer: React.FC<ContentDiffViewerProps> = ({
   onAccept,
   onReject,
 }) => {
-  const oldText = oldMarkdown || ""
-  const newText = newMarkdown || ""
+  const stripHtml = (html: string) => {
+    if (!html) return ""
+    // If running in environment without document (SSR), return as is or handle gracefully
+    if (typeof document === "undefined") return html
+    const tmp = document.createElement("DIV")
+    tmp.innerHTML = html
+    return tmp.textContent || tmp.innerText || ""
+  }
+
+  const oldText = stripHtml(oldMarkdown || "")
+  const newText = stripHtml(newMarkdown || "")
 
   return (
     <div className="flex flex-col items-center w-fit p-4">
@@ -38,14 +47,8 @@ const ContentDiffViewer: React.FC<ContentDiffViewerProps> = ({
                 backgroundColor: "transparent",
                 borderRadius: "2px",
               },
-              wordAdded: {
-                backgroundColor: "#d4fcbc",
-                textDecoration: "none",
-              },
-              wordRemoved: {
-                backgroundColor: "#ffe6e6",
-                textDecoration: "none",
-              },
+              wordAdded: { backgroundColor: "#d4fcbc", textDecoration: "none" },
+              wordRemoved: { backgroundColor: "#ffe6e6", textDecoration: "none" },
             }}
           />
         )}

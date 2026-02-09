@@ -10,6 +10,7 @@ import {
   Rocket,
   ShieldCheck,
   TrendingUp,
+  CheckCircle,
 } from "lucide-react"
 import { Button, Input, Tabs, Card, Tag, message, Steps, Spin, Alert } from "antd"
 import { useDispatch, useSelector } from "react-redux"
@@ -120,64 +121,297 @@ const WebsiteRanking = () => {
 
   // --- Renders ---
 
-  const renderOrchestratorResult = () => {
-    const res = orchestrator.result
-    if (!res) return null
+  const FullReportView = ({ data }) => {
+    if (!data) return null
+
+    // Helper to safely access nested report data
+    // In Orchestrator: data = { url, analysis, rankings, advancedReport: { markdownReport, recommendations } }
+    // In Manual: constructed similarly below
+    const { url, analysis, rankings, advancedReport } = data
+    const markdownContent = advancedReport?.markdownReport || advancedReport || ""
+    const recommendations = advancedReport?.recommendations || []
 
     return (
-      <div className="space-y-8 mt-8">
-        {/* Overview Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-            <h3 className="font-bold text-blue-800 mb-2">Website</h3>
-            <p className="text-gray-700 font-medium">{res.url}</p>
-            <p className="text-sm text-gray-500">{res.analysis?.name}</p>
-          </div>
-          <div className="bg-green-50 p-4 rounded-xl border border-green-100">
-            <h3 className="font-bold text-green-800 mb-2">Global Rank</h3>
-            <p className="text-2xl font-bold text-green-700">
-              {res.rankings?.ourCompanyStats?.globalRank
-                ? `#${res.rankings.ourCompanyStats.globalRank}`
-                : "N/A"}
+      <div className="space-y-8 mt-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        {/* 1. High-Level Executive Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <Card className="bg-blue-50 border-blue-100 shadow-sm col-span-1 md:col-span-2">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Globe className="w-5 h-5 text-blue-600" />
+              </div>
+              <h3 className="font-semibold text-blue-900">Analysis Target</h3>
+            </div>
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="font-medium text-gray-800 truncate" title={url}>
+                  {url}
+                </p>
+                <div className="flex gap-2 mt-2">
+                  <Tag color="blue" className="text-[10px] uppercase font-bold tracking-wider m-0">
+                    {analysis?.region || "USA"}
+                  </Tag>
+                  <Tag
+                    color="cyan"
+                    className="text-[10px] ui-monospace font-bold tracking-wider m-0"
+                  >
+                    {analysis?.language || "English"}
+                  </Tag>
+                </div>
+              </div>
+              {rankings?.totalDomainsFound && (
+                <div className="text-right">
+                  <p className="text-xs text-blue-600 font-semibold mb-1">Competitors Found</p>
+                  <p className="text-xl font-bold text-blue-700">{rankings.totalDomainsFound}</p>
+                </div>
+              )}
+            </div>
+          </Card>
+
+          <Card className="bg-emerald-50 border-emerald-100 shadow-sm">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 bg-emerald-100 rounded-lg">
+                <TrendingUp className="w-5 h-5 text-emerald-600" />
+              </div>
+              <h3 className="font-semibold text-emerald-900">Global Rank</h3>
+            </div>
+            <p className="text-3xl font-bold text-emerald-600">
+              {rankings?.ourCompanyStats?.globalRank
+                ? `#${rankings.ourCompanyStats.globalRank}`
+                : "0"}
             </p>
-          </div>
-          <div className="bg-purple-50 p-4 rounded-xl border border-purple-100">
-            <h3 className="font-bold text-purple-800 mb-2">Keywords Checked</h3>
-            <p className="text-2xl font-bold text-purple-700">
-              {res.generatedPrompts?.length || 0}
-            </p>
-          </div>
+            <p className="text-xs text-emerald-700 mt-1">Among competitors</p>
+          </Card>
+
+          <Card className="bg-purple-50 border-purple-100 shadow-sm">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <ShieldCheck className="w-5 h-5 text-purple-600" />
+              </div>
+              <h3 className="font-semibold text-purple-900">Visibility Score</h3>
+            </div>
+            <div className="flex items-end gap-2">
+              <p className="text-3xl font-bold text-purple-600">
+                {rankings?.ourCompanyStats?.stats?.coverageRatio
+                  ? `${Math.round(rankings.ourCompanyStats.stats.coverageRatio * 100)}%`
+                  : "0%"}
+              </p>
+            </div>
+            <p className="text-xs text-purple-700 mt-1">Keyword Coverage</p>
+          </Card>
+
+          <Card className="bg-amber-50 border-amber-100 shadow-sm">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 bg-amber-100 rounded-lg">
+                <Zap className="w-5 h-5 text-amber-600" />
+              </div>
+              <h3 className="font-semibold text-amber-900">Keywords</h3>
+            </div>
+            <p className="text-3xl font-bold text-amber-600">{rankings?.results?.length || 0}</p>
+            <p className="text-xs text-amber-700 mt-1">Analyzed</p>
+          </Card>
         </div>
 
-        {/* Detailed Marketing Report */}
+        {/* 2. Top Competitors Leaderboard */}
+        {rankings?.top10?.length > 0 && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="bg-gradient-to-r from-gray-50 to-white px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+              <h2 className="text-lg font-bold flex items-center gap-2 text-gray-800">
+                <Rocket className="w-5 h-5 text-orange-500" />
+                Top Competitors Leaderboard
+              </h2>
+              <Tag color="orange">Top 10</Tag>
+            </div>
+            <div className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-gray-50 text-gray-500 font-medium uppercase text-xs">
+                    <tr>
+                      <th className="px-6 py-3">Rank</th>
+                      <th className="px-6 py-3">Domain</th>
+                      <th className="px-6 py-3 text-center">Visibility Score</th>
+                      <th className="px-6 py-3 text-center">Details</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {rankings.top10.slice(0, 5).map((comp, idx) => (
+                      <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
+                        <td className="px-6 py-4">
+                          <div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-white shadow-sm ${
+                              idx === 0
+                                ? "bg-yellow-400"
+                                : idx === 1
+                                  ? "bg-gray-400"
+                                  : idx === 2
+                                    ? "bg-orange-400"
+                                    : "bg-blue-100 text-blue-600"
+                            }`}
+                          >
+                            {idx + 1}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 font-semibold text-gray-700">{comp.domain}</td>
+                        <td className="px-6 py-4 text-center">
+                          <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            {Math.round((comp.totalScore || 0) * 10)}/100
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-center text-gray-400 text-xs">
+                          Ranked on {comp.ranks?.length || 0} keywords
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 3. Detailed Strategic Report & Recommendations */}
+        {(markdownContent || recommendations.length > 0) && (
+          <div className="grid grid-cols-1 gap-8">
+            {/* Main Report Column */}
+            {markdownContent && (
+              <div className="space-y-8">
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                  <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                    <h2 className="text-lg font-bold flex items-center gap-2 text-indigo-900">
+                      <FileText className="w-5 h-5 text-indigo-600" />
+                      Strategic Analysis & Roadmap
+                    </h2>
+                  </div>
+                  <div className="p-8">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        h1: ({ node, ...props }) => (
+                          <h1 className="text-2xl font-bold mt-6 mb-4 text-indigo-900" {...props} />
+                        ),
+                        h2: ({ node, ...props }) => (
+                          <h2
+                            className="text-xl font-bold mt-8 mb-4 text-indigo-800 border-b border-indigo-100 pb-2"
+                            {...props}
+                          />
+                        ),
+                        h3: ({ node, ...props }) => (
+                          <h3 className="text-lg font-bold mt-6 mb-3 text-indigo-700" {...props} />
+                        ),
+                        p: ({ node, ...props }) => (
+                          <p
+                            className="mb-4 text-gray-700 leading-relaxed text-[15px]"
+                            {...props}
+                          />
+                        ),
+                        ul: ({ node, ...props }) => (
+                          <ul className="list-disc pl-5 mb-4 text-gray-700 space-y-2" {...props} />
+                        ),
+                        ol: ({ node, ...props }) => (
+                          <ol
+                            className="list-decimal pl-5 mb-4 text-gray-700 space-y-2"
+                            {...props}
+                          />
+                        ),
+                        li: ({ node, ...props }) => <li className="pl-1" {...props} />,
+                        strong: ({ node, ...props }) => (
+                          <strong className="font-bold text-indigo-900" {...props} />
+                        ),
+                        a: ({ node, ...props }) => (
+                          <a className="text-blue-600 hover:underline font-medium" {...props} />
+                        ),
+                        blockquote: ({ node, ...props }) => (
+                          <blockquote
+                            className="border-l-4 border-indigo-200 pl-4 italic my-6 text-gray-600 bg-gray-50 py-2 pr-2 rounded-r"
+                            {...props}
+                          />
+                        ),
+                        code: ({ node, inline, ...props }) =>
+                          inline ? (
+                            <code
+                              className="bg-gray-100 text-pink-600 px-1 py-0.5 rounded text-sm font-mono"
+                              {...props}
+                            />
+                          ) : (
+                            <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto mb-4">
+                              <code {...props} />
+                            </pre>
+                          ),
+                      }}
+                    >
+                      {markdownContent}
+                    </ReactMarkdown>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Sidebar: Recommendations & Stats */}
+            <div className="space-y-6">
+              {/* Quick Actions / Recommendations List */}
+              {recommendations.length > 0 && (
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden sticky top-4">
+                  <div className="bg-gradient-to-r from-emerald-50 to-white px-6 py-4 border-b border-emerald-100">
+                    <h2 className="text-lg font-bold flex items-center gap-2 text-emerald-900">
+                      <CheckCircle className="w-5 h-5 text-emerald-600" />
+                      Action Plan
+                    </h2>
+                  </div>
+                  <div className="p-6 bg-emerald-50/10">
+                    <ul className="space-y-4">
+                      {recommendations.map((rec, i) => (
+                        <li key={i} className="flex gap-3 items-start">
+                          <div className="mt-1 min-w-[20px]">
+                            <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 text-xs font-bold">
+                              {i + 1}
+                            </div>
+                          </div>
+                          <span className="text-sm text-gray-700 leading-relaxed font-medium">
+                            {rec}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
+
+              {/* Target Keywords Summary */}
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-100">
+                  <h3 className="font-bold text-gray-700">Analyzed Keywords</h3>
+                </div>
+                <div className="p-4 flex flex-wrap gap-2">
+                  {rankings?.results?.map((r, i) => (
+                    <Tag key={i} className="m-0 bg-gray-50 border-gray-200 text-gray-600">
+                      {r.prompt}
+                    </Tag>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 4. Full Rankings Table */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
             <h2 className="text-lg font-bold flex items-center gap-2">
-              <FileText className="w-5 h-5 text-indigo-600" />
-              Strategic Analysis Report
+              <List className="w-5 h-5 text-blue-600" />
+              Detailed Keyword Rankings
             </h2>
           </div>
-          <div className="p-6 prose prose-indigo max-w-none">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {res.advancedReport?.markdownReport || res.advancedReport}
-            </ReactMarkdown>
-          </div>
-        </div>
-
-        {/* Rankings Table (Simplified) */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-bold flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-blue-600" />
-              Keyword Ranking Details
-            </h2>
-          </div>
-          <div className="p-6">
-            <StrategyResultsTable results={res.rankings?.results} />
+          <div className="p-0">
+            <StrategyResultsTable results={rankings?.results} />
           </div>
         </div>
       </div>
     )
+  }
+
+  const renderOrchestratorResult = () => {
+    // Orchestrator result usually contains the full needed structure
+    return <FullReportView data={orchestrator.result} />
   }
 
   const StrategyResultsTable = ({ results }) => {
@@ -406,33 +640,45 @@ const WebsiteRanking = () => {
 
               {/* Step 3: Advanced Analysis */}
               {manualStep === 3 && (
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Step 4: Strategic Report</h3>
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center bg-gray-50 p-4 rounded-xl border border-gray-200">
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-800">
+                        Step 3 Review: Rankings Data
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        Review collected SEO data before generating the final strategy report.
+                      </p>
+                    </div>
+                    <Button
+                      type="primary"
+                      onClick={handleAdvancedAnalysis}
+                      loading={advancedComp.loading}
+                      size="large"
+                      icon={<FileText className="w-4 h-4" />}
+                    >
+                      Generate Final Strategy
+                    </Button>
+                  </div>
+
                   {rankingsResult && (
-                    <Alert
-                      message={`Found ${rankingsResult.totalDomainsFound} competitor domains`}
-                      type="info"
-                      showIcon
+                    <FullReportView
+                      data={{ url, analysis: analysisResult, rankings: rankingsResult }}
                     />
                   )}
-                  <Button
-                    type="primary"
-                    onClick={handleAdvancedAnalysis}
-                    loading={advancedComp.loading}
-                    size="large"
-                  >
-                    Generate Final Strategy
-                  </Button>
                 </div>
               )}
 
               {/* Final Result Display for Manual Mode */}
-              {advancedComp.result && (
-                <div className="mt-8 p-6 border border-gray-200 rounded-xl bg-gray-50">
-                  <ReactMarkdown className="prose">
-                    {advancedComp.result.markdownReport}
-                  </ReactMarkdown>
-                </div>
+              {manualStep === 3 && advancedComp.result && (
+                <FullReportView
+                  data={{
+                    url,
+                    analysis: analysisResult,
+                    rankings: rankingsResult,
+                    advancedReport: advancedComp.result,
+                  }}
+                />
               )}
             </Card>
           </TabPane>

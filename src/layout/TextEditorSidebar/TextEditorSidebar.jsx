@@ -46,12 +46,14 @@ import { useQueryClient } from "@tanstack/react-query"
 import { ScoreCard, CompetitorsList } from "./FeatureComponents"
 import RegenerateModal from "@components/RegenerateModal"
 import CategoriesModal from "../Editor/CategoriesModal"
+import ContentDiffViewer from "../Editor/ContentDiffViewer"
 import axiosInstance from "@/api"
 
 import { IMAGE_SOURCE, DEFAULT_IMAGE_SOURCE } from "@/data/blogData"
 import { computeCost } from "@/data/pricingConfig"
 import * as Cheerio from "cheerio"
 import { marked } from "marked"
+import TurndownService from "turndown"
 
 const { TextArea } = Input
 
@@ -180,6 +182,7 @@ const TextEditorSidebar = ({
   setIsSidebarOpen,
   unsavedChanges,
   activeEditorVersion, // NEW PROP
+  setEditorContent,
 }) => {
   const [activePanel, setActivePanel] = useState("overview")
   const [isCollapsed, setIsCollapsed] = useState(false)
@@ -277,6 +280,10 @@ const TextEditorSidebar = ({
   })
   const [isProcessingSection, setIsProcessingSection] = useState(false)
   const [availableSections, setAvailableSections] = useState([])
+
+  // Diff Viewer State
+  const [showDiff, setShowDiff] = useState(false)
+  const [diffData, setDiffData] = useState({ old: "", new: "" })
 
   // Sidebar navigation items
   const NAV_ITEMS = [
@@ -441,55 +448,115 @@ const TextEditorSidebar = ({
         payload
       )
 
-      if (response.data && response.data.content) {
-        // Assume API returns the new HTML content for the section
-        // We need to replace the OLD section content with New content
-        // We use Cheerio on the current editorContent to find the target section and replace it
+      if (response.data && (response.data.content || response.data.markdown)) {
+        let newFullContent = editorContent
 
-        const $ = Cheerio.load(editorContent)
+        // Helper to normalize slugs similar to how TipTap/Marked does
+        const getSlug = text =>
+          text
+            .toLowerCase()
+            .replace(/[^\w]+/g, "-")
+            .replace(/^-+|-+$/g, "")
+
+        // STRATEGY 1: Cheerio (HTML Content)
+        // Only works if editorContent contains actual HTML tags with IDs
+        const $ = Cheerio.load(editorContent, { xmlMode: false })
         const $section = $(`#${sectionToolState.sectionId}`)
 
         if ($section.length) {
-          // Get original outerHTML for replacement reference (if using handleReplace)
-          // But strict replace might be hard if formating changed slightly.
-          // Better to replace in the Cheerio, get full HTML, then setEditorContent
-
-          // Check if response.data.content is full section HTML or just inner content
-          // Assuming it returns inner content or we replace inner content based on logic
-          // The prompt example implies "sending data section wise", response likely updates that section.
-
-          // If the response is the new HTML for the SECTION content (inner):
-          // $section.find('.section-content').html(response.data.content)
-
-          // However, to be safe, let's look at TextEditor.jsx structure:
-          // <section ...><div class="section-wrapper"> ... <div class="section-content">CONTENT</div> ... </div></section>
-
-          // If the backend returns just the text/content without wrappers, we should inject it into .section-content
-          // If the backend returns the whole section HTML, we replace the section.
-
-          // Strategy: Replace .section-content contents.
+          // Found explicit HTML section
           const $contentDiv = $section.find(".section-content")
           if ($contentDiv.length) {
             $contentDiv.html(response.data.content)
           } else {
-            // Fallback: append or replace html
             $section.html(response.data.content)
           }
 
-          const newFullHtml = $.html()
-
-          // If handleReplace is available and we want to be fancy, we use it.
-          // But explicit setEditorContent is safer here as we reconstructed the whole DOM.
-          setEditorContent(newFullHtml) // This updates parent
-
-          message.success("Section updated successfully!")
-
-          // Clear instructions if custom
-          if (sectionToolState.task === "custom") {
-            setSectionToolState(prev => ({ ...prev, instructions: "" }))
-          }
+          // Convert modified HTML back to Markdown to match editor format
+          const modifiedHtml = $("body").html() || $.html()
+          const turndownService = new TurndownService({
+            headingStyle: "atx",
+            bulletListMarker: "-",
+          })
+          turndownService.keep([
+            "p",
+            "div",
+            "iframe",
+            "table",
+            "tr",
+            "th",
+            "td",
+            "figure",
+            "figcaption",
+            "section",
+            "article",
+          ])
+          newFullContent = turndownService.turndown(modifiedHtml)
         } else {
-          message.error("Section not found in current content")
+          // STRATEGY 2: Markdown Content (Fallback)
+          // Parse markdown line-by-line to find the header matching the sectionId
+          // Then replace content until next header
+          const lines = editorContent.split("\n")
+          let startLine = -1
+          let endLine = -1
+          let foundHeaderLevel = 0
+
+          for (let i = 0; i < lines.length; i++) {
+            const line = lines[i]
+            // Match Headers: # Title, ## Title, etc.
+            const match = line.match(/^(#{1,6})\s+(.*)$/)
+            if (match) {
+              const level = match[1].length
+              const text = match[2].trim()
+              const slug = getSlug(text)
+
+              if (slug === sectionToolState.sectionId) {
+                // Found our start header
+                startLine = i
+                foundHeaderLevel = level
+              } else if (startLine !== -1) {
+                // We are inside the section, and found another header
+                // If this header is same level or higher (smaller number), our section ends here.
+                // Actually, strictly speaking, any header ends the previous section block in simple markdown structure
+                endLine = i
+                break
+              }
+            }
+          }
+
+          if (startLine !== -1) {
+            // Found the section
+            if (endLine === -1) endLine = lines.length
+
+            // Construct new content:
+            // 1. Everything before the header (lines 0 to startLine-1)
+            // 2. The Header itself (lines[startLine]) - we keep the header!
+            // 3. The NEW Content (from API markdown or content)
+            // 4. Everything after (lines[endLine] to end)
+
+            const before = lines.slice(0, startLine + 1).join("\n") // Include header line
+            const after = lines.slice(endLine).join("\n")
+
+            // Prefer markdown response if available, else convert content or use as is
+            const newSectionContent = response.data.markdown || response.data.content || ""
+
+            newFullContent = `${before}\n\n${newSectionContent}\n\n${after}`
+          } else {
+            message.error(
+              "Could not locate section in current content. Ensure section headers are not modified."
+            )
+            setIsProcessingSection(false)
+            return
+          }
+        }
+
+        // Open Diff Modal instead of instant replace
+        setDiffData({ old: editorContent, new: newFullContent })
+        setShowDiff(true)
+
+        // Clear instructions if custom
+        if (sectionToolState.task === "custom") {
+          setSectionToolState(prev => ({ ...prev, instructions: "" }))
         }
       } else {
         message.warning("No content returned from AI")
@@ -2453,7 +2520,7 @@ const TextEditorSidebar = ({
               >
                 <div
                   className={`
-                            p-2 rounded-full 
+                            p-2 rounded-full
                             ${sectionToolState.task === task.id ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-500"}
                         `}
                 >
@@ -3130,6 +3197,29 @@ const TextEditorSidebar = ({
               </p>
             </div>
           </div>
+        </div>
+      </Modal>
+
+      {/* Diff Viewer Modal */}
+      <Modal
+        title="Review Changes"
+        open={showDiff}
+        onCancel={() => setShowDiff(false)}
+        footer={null}
+        width={1000}
+        centered
+      >
+        <div className="max-h-[70vh] overflow-y-auto custom-scroll">
+          <ContentDiffViewer
+            oldMarkdown={diffData.old}
+            newMarkdown={diffData.new}
+            onAccept={() => {
+              setEditorContent(diffData.new)
+              setShowDiff(false)
+              message.success("Changes applied successfully")
+            }}
+            onReject={() => setShowDiff(false)}
+          />
         </div>
       </Modal>
 

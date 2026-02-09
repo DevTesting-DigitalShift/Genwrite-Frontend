@@ -514,6 +514,20 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
     }
   }, [normalEditor, blog, markdownToHtml])
 
+  // Handle external content updates (e.g. from Sidebar AI tools)
+  useEffect(() => {
+    if (normalEditor && content) {
+      const currentEditorMarkdown = htmlToMarkdown(normalEditor.getHTML())
+      // Only update if significantly different to avoid loops
+      // We use normalizeContent to ignore whitespace differences that might occur during conversion
+      if (normalizeContent(content) !== normalizeContent(currentEditorMarkdown)) {
+        const html = markdownToHtml(content)
+        // emitUpdate: true ensures onUpdate fires to keep state in sync and check unsaved changes
+        normalEditor.commands.setContent(html, true)
+      }
+    }
+  }, [content, normalEditor, markdownToHtml, htmlToMarkdown, normalizeContent])
+
   useEffect(() => {
     setIsEditorLoading(true)
     const timer = setTimeout(() => {
