@@ -1,70 +1,55 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react"
-import { DashboardBox, QuickBox, Blogs } from "../utils/DashboardBox"
 import { useDispatch, useSelector } from "react-redux"
-import { createNewBlog, fetchAllBlogs, fetchBlogs } from "@store/slices/blogSlice"
 import { useNavigate } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
-import { computeCost } from "@/data/pricingConfig"
-import { AnimatePresence, motion } from "framer-motion"
 import { loadAuthenticatedUser, selectUser } from "@store/slices/authSlice"
-import { Clock, Sparkles, FileText, UploadCloud, Archive, BadgePercent } from "lucide-react"
 import { Helmet } from "react-helmet"
-import { SkeletonDashboardCard, SkeletonGridCard } from "../components/UI/SkeletonLoader"
 import { openJobModal } from "@store/slices/jobSlice"
-import { message, Modal } from "antd"
-import { clearKeywordAnalysis, clearSelectedKeywords } from "@store/slices/analysisSlice"
-import {
-  Chart as ChartJS,
-  ArcElement,
-  LineElement,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  Title,
-  Tooltip,
-  Legend,
-} from "chart.js"
+import { clearSelectedKeywords } from "@store/slices/analysisSlice"
 import GoThrough from "../components/dashboardModals/GoThrough"
-import { letsBegin, quickTools } from "../data/dashData/dash"
-import InlineAnnouncementBanner from "@/layout/InlineAnnouncementBanner"
-import dayjs from "dayjs"
 import LoadingScreen from "@components/UI/LoadingScreen"
 import { ACTIVE_MODELS } from "@/data/dashModels"
 import { useQueryClient, useQuery } from "@tanstack/react-query"
 import DashboardTour from "@components/DashboardTour"
 import { getBlogStatus } from "@/api/analysisApi"
+import { getAllBlogs } from "@/api/blogApi"
+import { tools } from "@/data/toolsData"
+import ToolCard from "../components/dashboard/ToolCard"
+import {
+  FileText,
+  UploadCloud,
+  Archive,
+  BadgePercent,
+  Sparkles,
+  PenTool,
+  ChevronRight,
+  Clock,
+} from "lucide-react"
+import { motion } from "framer-motion"
+import dayjs from "dayjs"
+import relativeTime from "dayjs/plugin/relativeTime"
+
+dayjs.extend(relativeTime)
 
 // lazy imports
 const QuickBlogModal = lazy(() => import("@components/multipleStepModal/QuickBlogModal"))
 const AdvancedBlogModal = lazy(() => import("@components/multipleStepModal/AdvancedBlogModal"))
 const BulkBlogModal = lazy(() => import("@components/multipleStepModal/BulkBlogModal"))
-const KeywordResearchModel = lazy(() =>
-  import("../components/dashboardModals/KeywordResearchModel")
+const KeywordResearchModel = lazy(
+  () => import("../components/dashboardModals/KeywordResearchModel")
 )
-const PerformanceMonitoringModal = lazy(() =>
-  import("../components/dashboardModals/PerformanceMonitoringModal")
+const PerformanceMonitoringModal = lazy(
+  () => import("../components/dashboardModals/PerformanceMonitoringModal")
 )
-const CompetitiveAnalysisModal = lazy(() =>
-  import("../components/dashboardModals/CompetitiveAnalysisModal")
-)
-
-ChartJS.register(
-  ArcElement,
-  LineElement,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  Title,
-  Tooltip,
-  Legend
+const CompetitiveAnalysisModal = lazy(
+  () => import("../components/dashboardModals/CompetitiveAnalysisModal")
 )
 
 const Dashboard = () => {
   const [activeModel, setActiveModel] = useState("")
-  const [recentBlogData, setRecentBlogData] = useState([])
   const [loading, setLoading] = useState(true)
-  const { blogs, error, allBlogs } = useSelector(state => state.blog)
   const [showWhatsNew, setShowWhatsNew] = useState(false)
+
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const user = useSelector(selectUser)
@@ -72,31 +57,37 @@ const Dashboard = () => {
   const queryClient = useQueryClient()
   const [runTour, setRunTour] = useState(false)
 
-  // Default state
-  const [dateRange, setDateRange] = useState([undefined, undefined])
-
   // Fetch blog status for analytics cards
   const { data: blogStatus } = useQuery({
     queryKey: ["blogStatus"],
     queryFn: () => {
       const endDate = dayjs().endOf("day").toISOString()
-      const params = {
-        start: new Date(user?.createdAt || Date.now()).toISOString(),
-        end: endDate,
-      }
+      const params = { start: new Date(user?.createdAt || Date.now()).toISOString(), end: endDate }
       return getBlogStatus(params)
     },
     enabled: !!user,
   })
 
+  // Fetch Recent Successful Blogs
+  const { data: recentBlogsData } = useQuery({
+    queryKey: ["recentBlogs"],
+    queryFn: () => getAllBlogs({ limit: 20, sort: "createdAt:desc" }), // Fetch more to ensure we find successful ones
+    enabled: !!user,
+  })
+
+  // Fix: Handle API response structure { data: [...] }
+  const blogsArray = Array.isArray(recentBlogsData)
+    ? recentBlogsData
+    : recentBlogsData?.data || recentBlogsData?.blogs || []
+
+  const recentBlogs = blogsArray.filter(b => b.status === "complete" && !b.isArchived).slice(0, 4)
+
   const stats = blogStatus?.stats || {}
   const { totalBlogs = 0, postedBlogs = 0, archivedBlogs = 0, brandedBlogs = 0 } = stats
 
-  // Check if we should show analytics cards (only if there's data)
   const hasAnalyticsData =
     totalBlogs > 0 || postedBlogs > 0 || archivedBlogs > 0 || brandedBlogs > 0
 
-  // Get time-based greeting
   const getGreeting = () => {
     const hour = new Date().getHours()
     if (hour < 12) return "Good morning"
@@ -104,123 +95,16 @@ const Dashboard = () => {
     return "Good evening"
   }
 
-  let limit = 20
-  let sort = "updatedAt:desc"
-  // Fetch function
-  const fetchBlogsQuery = useCallback(async () => {
-    if (!user?.createdAt) return
-
-    setLoading(true)
-
-    const startDate = user.createdAt
-    const endDate = dateRange[1] || dayjs().endOf("day")
-
-    const queryParams = {
-      start: dayjs(startDate).toISOString(),
-      end: dayjs(endDate).endOf("day").toISOString(),
-      limit,
-      sort, // just this one
-    }
-
-    try {
-      const response = await dispatch(fetchAllBlogs(queryParams)).unwrap()
-
-      const activeBlogs = (response.data || []).filter(
-        b => !b.isArchived && b.status === "complete"
-      )
-
-      // Sort only if `sort` is provided
-      let sortedBlogs = activeBlogs
-      if (sort) {
-        sortedBlogs = [...activeBlogs].sort((a, b) => {
-          const aValue = a[sort]
-          const bValue = b[sort]
-
-          // Check if values are dates
-          if (dayjs(aValue).isValid() && dayjs(bValue).isValid()) {
-            return dayjs(bValue).valueOf() - dayjs(aValue).valueOf() // default desc
-          }
-          // fallback for numbers/strings
-          if (typeof aValue === "number" && typeof bValue === "number") return bValue - aValue
-          if (typeof aValue === "string" && typeof bValue === "string")
-            return bValue.localeCompare(aValue)
-          return 0
-        })
-      }
-
-      setRecentBlogData(sortedBlogs.slice(0, 3))
-    } catch (error) {
-      console.error("Failed to fetch blogs:", error)
-      setRecentBlogData([])
-    } finally {
-      setLoading(false)
-    }
-  }, [dispatch, dateRange, limit, user?.createdAt, sort])
-
-  useEffect(() => {
-    if (!blogs?.data || !Array.isArray(blogs.data)) {
-      setRecentBlogData([])
-      return
-    }
-
-    const activeBlogs = blogs.data.filter(b => !b.isArchived && b.status === "complete")
-
-    // Sort DESC → newest first
-    const sortedBlogs = activeBlogs.sort(
-      (a, b) => dayjs(b.updatedAt).valueOf() - dayjs(a.updatedAt).valueOf()
-    )
-
-    // Take top 3
-    setRecentBlogData(sortedBlogs.slice(0, 3))
-  }, [blogs])
-
-  // Fetch blogs on mount
-  useEffect(() => {
-    fetchBlogsQuery()
-  }, [fetchBlogsQuery])
-
-  // Show walkthrough only for first-time users on desktop
-  useEffect(() => {
-    if (!user || !user._id) return
-
-    // Check if device is mobile (width < 768px)
-    const isMobile = window.innerWidth < 768
-
-    // Use user-specific localStorage keys
-    const hasSeenTour = localStorage.getItem(`hasSeenDashboardTour_${user._id}`) === "true"
-    const hasCompletedOnboarding =
-      localStorage.getItem(`hasCompletedOnboarding_${user._id}`) === "true"
-    const justCompletedOnboarding = sessionStorage.getItem("justCompletedOnboarding") === "true"
-
-    // Show tour for first-time users who just completed onboarding (desktop only)
-    // Check both lastLogin and localStorage (localStorage is fallback for immediate check)
-    if (
-      !user.lastLogin &&
-      hasCompletedOnboarding &&
-      !hasSeenTour &&
-      justCompletedOnboarding &&
-      !isMobile
-    ) {
-      sessionStorage.removeItem("justCompletedOnboarding") // Clean up flag
-      setTimeout(() => setRunTour(true), 1000)
-    }
-  }, [user])
-
-  const handleCloseModal = () => {
-    setShowWhatsNew(false)
-    sessionStorage.setItem("hasSeenGoThrough", "true")
-    sessionStorage.removeItem("showIntroVideo") // Clean up flag
+  // Animation Variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
   }
 
-  const openSecondStepJobModal = () => {
-    setActiveModel("")
-    navigate("/jobs")
-    dispatch(openJobModal())
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 100 } },
   }
-
-  useEffect(() => {
-    dispatch(fetchBlogs())
-  }, [dispatch])
 
   useEffect(() => {
     const initUser = async () => {
@@ -232,70 +116,40 @@ const Dashboard = () => {
       try {
         const result = await dispatch(loadAuthenticatedUser())
         if (loadAuthenticatedUser.rejected.match(result)) {
-          console.warn("Failed to load user, redirecting...")
-          navigate("/login")
+          // Handle error
         }
+        setLoading(false)
       } catch (error) {
         console.error("User init failed:", error)
-        message.error("Failed to load user data.")
+        setLoading(false)
       }
     }
     initUser()
   }, [dispatch, navigate])
 
-  const handleSubmit = updatedData => {
-    try {
-      const totalCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
-      // Prepare features array based on selected options
-      const features = []
-      if (updatedData.isCheckedBrand) features.push("brandVoice")
-      if (updatedData.options?.includeCompetitorResearch) features.push("competitorResearch")
-      if (updatedData.options?.performKeywordResearch) features.push("keywordResearch")
-      if (updatedData.options?.includeInterlinks) features.push("internalLinking")
-      if (updatedData.options?.includeFaqs) features.push("faqGeneration")
+  useEffect(() => {
+    if (!user || !user._id) return
+    const isMobile = window.innerWidth < 768
+    const hasSeenTour = localStorage.getItem(`hasSeenDashboardTour_${user._id}`) === "true"
+    const hasCompletedOnboarding =
+      localStorage.getItem(`hasCompletedOnboarding_${user._id}`) === "true"
+    const justCompletedOnboarding = sessionStorage.getItem("justCompletedOnboarding") === "true"
 
-      const estimatedBlogCost = computeCost({
-        wordCount: updatedData.userDefinedLength || 1000,
-        features,
-        aiModel: updatedData.aiModel || "gemini",
-        includeImages: updatedData.isCheckedGeneratedImages || false,
-        imageSource: updatedData.imageSource || "stock",
-        numberOfImages:
-          updatedData.imageSource === "custom"
-            ? updatedData.blogImages?.length || 0
-            : updatedData.numberOfImages || 0,
-      })
-
-      // Check if user has sufficient credits
-      if (estimatedBlogCost > totalCredits) {
-        handlePopup({
-          title: "Insufficient Credits",
-          description: (
-            <div>
-              <p>You don't have enough credits to generate this blog.</p>
-              <p className="mt-1">
-                <strong>Required:</strong> {estimatedBlogCost} credits
-              </p>
-              <p>
-                <strong>Available:</strong> {totalCredits} credits
-              </p>
-            </div>
-          ),
-          okText: "Buy Credits",
-          onConfirm: () => {
-            navigate("/pricing")
-          },
-        })
-        return
-      }
-
-      // Directly create blog without confirmation
-      dispatch(createNewBlog({ blogData: updatedData, user, navigate, queryClient }))
-      dispatch(clearSelectedKeywords())
-    } catch (error) {
-      console.error("Error submitting form:", error)
-      message.error("Failed to create blog.")
+    if (
+      !user.lastLogin &&
+      hasCompletedOnboarding &&
+      !hasSeenTour &&
+      justCompletedOnboarding &&
+      !isMobile
+    ) {
+      sessionStorage.removeItem("justCompletedOnboarding")
+      setTimeout(() => setRunTour(true), 1000)
     }
+  }, [user])
+
+  const handleCloseModal = () => {
+    setShowWhatsNew(false)
+    sessionStorage.setItem("hasSeenGoThrough", "true")
   }
 
   const handleCloseActiveModal = () => {
@@ -303,6 +157,12 @@ const Dashboard = () => {
       dispatch(clearSelectedKeywords())
     }
     setActiveModel("")
+  }
+
+  const openSecondStepJobModal = () => {
+    setActiveModel("")
+    navigate("/jobs")
+    dispatch(openJobModal())
   }
 
   const renderModel = () => {
@@ -327,7 +187,7 @@ const Dashboard = () => {
       case ACTIVE_MODELS.Performance_Monitoring:
         return (
           <PerformanceMonitoringModal
-            allBlogs={allBlogs}
+            allBlogs={[]}
             closeFnc={handleCloseActiveModal}
             visible={activeModel == ACTIVE_MODELS.Performance_Monitoring}
           />
@@ -344,65 +204,90 @@ const Dashboard = () => {
     }
   }
 
+  // --- Tool Categorization ---
+
+  // 1. Blog Creation Studio (Priority Tools)
+  const creationTools = tools.filter(t =>
+    ["quick-blog", "advanced-blog", "bulk-blog", "youtube-blog"].includes(t.id)
+  )
+
+  // 2. Content Suite (Rest of Content)
+  const contentTools = tools.filter(
+    t =>
+      ["blog", "youtube", "text", "image", "social"].includes(t.category) &&
+      !creationTools.find(ct => ct.id === t.id)
+  )
+
+  // 3. Growth & SEO (Research, Analysis, Ranking)
+  const growthTools = tools.filter(
+    t => !creationTools.find(ct => ct.id === t.id) && !contentTools.find(ct => ct.id === t.id)
+  )
+
+  const sections = [
+    {
+      title: "Content Suite",
+      description: "Tools for refining and expanding your content",
+      data: contentTools,
+      id: "content-suite",
+    },
+    {
+      title: "Growth & SEO",
+      description: "Analyze, rank, and grow your audience",
+      data: growthTools,
+      id: "growth-seo",
+    },
+  ]
+
   return (
     <Suspense fallback={<LoadingScreen />}>
       <Helmet>
         <title>Home | GenWrite</title>
       </Helmet>
-      {showWhatsNew && <GoThrough onClose={handleCloseModal} />}
 
+      {showWhatsNew && <GoThrough onClose={handleCloseModal} />}
       <DashboardTour
         run={runTour}
         onComplete={() => {
           setRunTour(false)
-          // Use user-specific localStorage key
-          if (user?._id) {
-            localStorage.setItem(`hasSeenDashboardTour_${user._id}`, "true")
-          }
+          if (user?._id) localStorage.setItem(`hasSeenDashboardTour_${user._id}`, "true")
         }}
         onOpenQuickBlog={() => setActiveModel(ACTIVE_MODELS.Quick_Blog)}
       />
 
       {activeModel && renderModel()}
 
-      {/* Header Section */}
       <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
-        className="mt-10 md:mt-5 ml-4 md:ml-10 mr-4 md:mr-10 mb-6"
+        className="min-h-screen p-4 md:p-8 space-y-12"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
       >
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              {getGreeting()},{" "}
-              <span className="text-transparent">{user?.name?.split(" ")[0] || "there"}</span>
-            </h1>
+        {/* Header / Hero Section */}
+        <motion.div variants={itemVariants} className="mt-4">
+          <h1 className="text-3xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            {getGreeting()},{" "}
+            <span className="text-transparent">{user?.name?.split(" ")[0] || "there"}</span>
+          </h1>
+          <p className="text-gray-600 mt-2 text-base font-medium">Your creative command center</p>
+        </motion.div>
 
-            <p className="text-gray-600 mt-1 text-base font-medium">
-              Let's create something amazing today
-            </p>
-          </div>
-        </div>
-
-        {/* Analytics Cards - Only show if there's data */}
+        {/* Analytics Cards */}
         {hasAnalyticsData && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <motion.div
+            variants={containerVariants}
+            className="grid grid-cols-2 md:grid-cols-4 gap-4"
+          >
             {/* Total Blogs */}
             <motion.div
-              transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="group relative overflow-hidden rounded-2xl bg-white p-5
-               border border-gray-100 shadow-sm"
+              variants={itemVariants}
+              className="group relative overflow-hidden rounded-2xl bg-white p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all"
             >
-              {/* Hover gradient */}
               <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-500 opacity-0 group-hover:opacity-[0.06] transition-opacity" />
-
               <div className="relative z-10 flex items-start justify-between">
                 <div>
                   <p className="text-sm text-gray-500 font-medium">Total Blogs</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-1">{totalBlogs}</p>
+                  <p className="text-2xl md:text-3xl font-bold text-gray-900 mt-1">{totalBlogs}</p>
                 </div>
-
                 <div className="p-3 rounded-xl bg-blue-500/10 text-blue-600">
                   <FileText className="w-5 h-5" />
                 </div>
@@ -411,18 +296,17 @@ const Dashboard = () => {
 
             {/* Posted */}
             <motion.div
-              transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="group relative overflow-hidden rounded-2xl bg-white p-5
-               border border-gray-100 shadow-sm"
+              variants={itemVariants}
+              className="group relative overflow-hidden rounded-2xl bg-white p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all"
             >
               <div className="absolute inset-0 bg-gradient-to-br from-green-400 to-emerald-600 opacity-0 group-hover:opacity-[0.06] transition-opacity" />
-
               <div className="relative z-10 flex items-start justify-between">
                 <div>
                   <p className="text-sm text-gray-500 font-medium">Posted</p>
-                  <p className="text-3xl font-bold text-green-600 mt-1">{postedBlogs}</p>
+                  <p className="text-2xl md:text-3xl font-bold text-green-600 mt-1">
+                    {postedBlogs}
+                  </p>
                 </div>
-
                 <div className="p-3 rounded-xl bg-green-500/10 text-green-600">
                   <UploadCloud className="w-5 h-5" />
                 </div>
@@ -431,18 +315,17 @@ const Dashboard = () => {
 
             {/* Archived */}
             <motion.div
-              transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="group relative overflow-hidden rounded-2xl bg-white p-5
-               border border-gray-100 shadow-sm"
+              variants={itemVariants}
+              className="group relative overflow-hidden rounded-2xl bg-white p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all"
             >
               <div className="absolute inset-0 bg-gradient-to-br from-yellow-400 to-orange-500 opacity-0 group-hover:opacity-[0.06] transition-opacity" />
-
               <div className="relative z-10 flex items-start justify-between">
                 <div>
                   <p className="text-sm text-gray-500 font-medium">Archived</p>
-                  <p className="text-3xl font-bold text-orange-600 mt-1">{archivedBlogs}</p>
+                  <p className="text-2xl md:text-3xl font-bold text-orange-600 mt-1">
+                    {archivedBlogs}
+                  </p>
                 </div>
-
                 <div className="p-3 rounded-xl bg-orange-500/10 text-orange-600">
                   <Archive className="w-5 h-5" />
                 </div>
@@ -451,166 +334,169 @@ const Dashboard = () => {
 
             {/* Branded */}
             <motion.div
-              transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="group relative overflow-hidden rounded-2xl bg-white p-5
-               border border-gray-100 shadow-sm"
+              variants={itemVariants}
+              className="group relative overflow-hidden rounded-2xl bg-white p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all"
             >
               <div className="absolute inset-0 bg-gradient-to-br from-pink-500 to-purple-600 opacity-0 group-hover:opacity-[0.06] transition-opacity" />
-
               <div className="relative z-10 flex items-start justify-between">
                 <div>
                   <p className="text-sm text-gray-500 font-medium">Branded</p>
-                  <p className="text-3xl font-bold text-purple-600 mt-1">{brandedBlogs}</p>
+                  <p className="text-2xl md:text-3xl font-bold text-purple-600 mt-1">
+                    {brandedBlogs}
+                  </p>
                 </div>
-
                 <div className="p-3 rounded-xl bg-purple-500/10 text-purple-600">
                   <BadgePercent className="w-5 h-5" />
                 </div>
               </div>
             </motion.div>
-          </div>
+          </motion.div>
         )}
-      </motion.div>
 
-      <div className="min-h-screen p-3 md:p-6 relative">
-        {loading ? (
-          <div className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Array.from({ length: 3 }).map((_, idx) => (
-                <SkeletonDashboardCard key={idx} />
-              ))}
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {Array.from({ length: 2 }).map((_, idx) => (
-                <SkeletonGridCard key={idx} />
-              ))}
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Array.from({ length: 3 }).map((_, idx) => (
-                <SkeletonDashboardCard key={idx} />
-              ))}
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Array.from({ length: 3 }).map((_, idx) => (
-                <SkeletonGridCard key={idx} />
-              ))}
-            </div>
+        {/* --- Blog Creation Studio (Priority Section) --- */}
+        <motion.div variants={itemVariants} className="relative">
+          <div className="flex items-center gap-3 mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+              Blog Creation Studio
+              <Sparkles className="w-5 h-5 text-yellow-500" />
+            </h2>
           </div>
-        ) : (
-          <div className="space-y-10 p-0 md:p-6 pt-0">
-            {/* Let's Begin Section */}
-            <div data-tour="lets-begin">
-              <div className="flex items-center gap-3 mb-6">
-                <h2 className="text-2xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  Let's Begin
-                </h2>
-              </div>
-              <div
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
-                data-tour="quick-actions"
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {creationTools.map(tool => (
+              <motion.div
+                key={tool.id}
+                whileHover={{ y: -5, transition: { duration: 0.2 } }}
+                className="group relative bg-white border border-gray-100 hover:border-gray-200 rounded-3xl p-6 shadow-sm hover:shadow-xl transition-all cursor-pointer overflow-hidden flex flex-col justify-between min-h-[220px]"
+                onClick={() => setActiveModel(tool.modelKey)}
               >
-                <AnimatePresence>
-                  {loading
-                    ? Array.from({ length: 4 }).map((_, idx) => <SkeletonDashboardCard key={idx} />)
-                    : letsBegin.map((item, index) => (
-                        <DashboardBox
-                          key={index}
-                          icon={item.icon}
-                          title={item.title}
-                          content={item.content}
-                          id={item.id}
-                          gradient={item.hoverGradient}
-                          showModal={() => setActiveModel(item.modelKey)}
-                          dataTour={index === 0 ? "create-blog" : undefined}
-                        />
-                      ))}
-                </AnimatePresence>
-              </div>
-            </div>
+                {/* Unique Gradient Background based on tool color */}
+                <div
+                  className={`absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl opacity-10 translate-x-10 -translate-y-10 group-hover:opacity-20 transition-opacity ${tool.bgColor?.replace("bg-", "bg-") || "bg-gray-100"}`}
+                />
 
-            {/* Quick Tools Section */}
-            <div data-tour="analytics">
-              <div className="flex items-center gap-3 mb-6">
-                <h2 className="text-2xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  Quick Tools
-                </h2>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
-                <AnimatePresence>
-                  {loading
-                    ? Array.from({ length: 4 }).map((_, idx) => <SkeletonGridCard key={idx} />)
-                    : quickTools.map((item, index) => (
-                        <QuickBox
-                          key={index}
-                          id={item.id}
-                          icon={item.icon}
-                          title={item.title}
-                          content={item.content}
-                          bgColor={item.bgColor}
-                          hoverBg={item.hoverBg}
-                          color={item.color}
-                          navigate={item.navigate}
-                          showModal={() => setActiveModel(item?.modelKey || "")}
-                        />
-                      ))}
-                </AnimatePresence>
-              </div>
-            </div>
-
-            {/* Recent Projects Section */}
-            {recentBlogData.length > 0 && !runTour && (
-              <div>
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <h2 className="text-2xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                      Recent Projects
-                    </h2>
-                  </div>
-                  <button
-                    onClick={() => navigate("/blogs")}
-                    className="text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors"
+                <div className="relative z-10">
+                  <div
+                    className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-5 ${tool.bgColor || "bg-gray-50"} ${tool.color || "text-gray-600"} shadow-sm`}
                   >
-                    View All →
-                  </button>
+                    {tool.icon}
+                  </div>
+
+                  <h3 className="text-xl font-bold text-gray-900 mb-2 leading-tight">
+                    {tool.title}
+                  </h3>
+                  <p className="text-sm text-gray-500 leading-relaxed font-medium">
+                    {tool.description}
+                  </p>
                 </div>
-                <AnimatePresence>
-                  {loading
-                    ? Array.from({ length: 3 }).map((_, idx) => <SkeletonGridCard key={idx} />)
-                    : recentBlogData.map((item, index) => (
-                        <Blogs
-                          key={index}
-                          title={item.title}
-                          content={item.shortContent}
-                          tags={item.focusKeywords}
-                          item={item}
-                          time={item.updatedAt}
-                        />
-                      ))}
-                </AnimatePresence>
-              </div>
-            )}
+
+                <div className="relative z-10 mt-6 flex items-center text-sm font-semibold text-gray-900 opacity-0 group-hover:opacity-100 -translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+                  Create Now <ChevronRight className="w-4 h-4 ml-1" />
+                </div>
+              </motion.div>
+            ))}
           </div>
+        </motion.div>
+
+        {/* --- Other Tool Sections --- */}
+        <div className="space-y-12 pb-10">
+          {sections.map(_section => {
+            const section = _section // alias
+            return (
+              section.data.length > 0 && (
+                <motion.div key={section.id} variants={itemVariants}>
+                  <div className="mb-6">
+                    <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                      {section.title}
+                    </h2>
+                    {section.description && (
+                      <p className="text-gray-500 mt-1">{section.description}</p>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {section.data.map(tool => (
+                      <ToolCard
+                        key={tool.id}
+                        item={tool}
+                        onClick={() => tool.type === "modal" && setActiveModel(tool.modelKey)}
+                      />
+                    ))}
+                  </div>
+                </motion.div>
+              )
+            )
+          })}
+        </div>
+
+        {/* --- Recent Successful Blogs (Footer) --- */}
+        {recentBlogs.length > 0 && (
+          <motion.div variants={itemVariants}>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                Recent Creations
+              </h2>
+              <button
+                onClick={() => navigate("/all-blogs")}
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+              >
+                View All
+              </button>
+            </div>
+
+            <div className="gap-6">
+              {recentBlogs.slice(0, 4).map(blog => (
+                <motion.div
+                  key={blog._id}
+                  whileHover={{ y: -5 }}
+                  onClick={() => navigate(`/blog/${blog._id}`)}
+                  className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg cursor-pointer transition-all overflow-hidden flex flex-col h-full mb-8"
+                >
+                  <div className="p-5 flex-1 flex flex-col">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wide ${blog.aiModel?.includes("gpt") ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"}`}
+                        >
+                          {blog.aiModel || "AI"}
+                        </span>
+                      </div>
+                      <span className="text-xs text-gray-400">
+                        {dayjs(blog.createdAt).fromNow(true)} ago
+                      </span>
+                    </div>
+
+                    <h4 className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2 mb-3 leading-snug">
+                      {blog.title || "Untitled Blog"}
+                    </h4>
+
+                    {blog.shortContent && (
+                      <p className="text-sm text-gray-500 line-clamp-2 mb-4 leading-relaxed">
+                        {blog.shortContent}
+                      </p>
+                    )}
+
+                    <div className="mt-auto flex items-center justify-end pt-4">
+                      <span className="text-xs text-gray-400 font-medium group-hover:translate-x-1 transition-transform">
+                        Read &rarr;
+                      </span>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
         )}
+
         {/* Feedback Button */}
         <a
           href="https://docs.google.com/forms/d/e/1FAIpQLScIdA2aVtugx-zMGON8LJKD4IRWtLZqiiurw-jU6wRYfOv7EA/viewform?usp=sharing&ouid=117159793210831255816"
           target="_blank"
           rel="noopener noreferrer"
-          className="fixed right-0 bottom-28 z-50"
+          className="fixed right-[-30px] bottom-36 z-50 bg-blue-600 text-white px-4 py-2 rounded-t-lg rotate-90 flex items-center gap-2 hover:bg-blue-700 transition-all duration-300 shadow-md origin-bottom-right"
         >
-          <button
-            className="fixed right-[-30px] bottom-28 bg-blue-600 text-white px-4 py-2 rounded-lg rotate-90 flex items-center gap-2 hover:bg-blue-700 transition-all duration-300 shadow-md z-50"
-            style={{
-              backfaceVisibility: "hidden",
-              WebkitFontSmoothing: "antialiased",
-              MozOsxFontSmoothing: "grayscale",
-            }}
-            aria-label="Provide feedback"
-          >
-            Feedback
-          </button>
+          Feedback
         </a>
-      </div>
+      </motion.div>
     </Suspense>
   )
 }
