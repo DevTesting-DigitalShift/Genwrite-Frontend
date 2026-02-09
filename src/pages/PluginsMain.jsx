@@ -22,7 +22,7 @@ import {
 } from "@store/slices/otherSlice"
 import { fetchCategories, updateExistingIntegration } from "@store/slices/integrationSlice"
 import axiosInstance from "@api/index"
-import { FaShopify, FaWix } from "react-icons/fa"
+import { FaShopify, FaWix, FaYoutube } from "react-icons/fa"
 
 const { Title, Text, Paragraph } = Typography
 
@@ -927,6 +927,29 @@ const PluginsMain = () => {
               Download Plugin
             </Button>
           </a>
+
+          <div className="mt-6 flex md:justify-between flex-col md:flex-row">
+            <div>
+              <Text strong className="text-base text-gray-800">
+                Struggling to connect?
+              </Text>
+
+              <Text className="block text-gray-600 mt-1">
+                Watch our step-by-step guide to integrate the WordPress plugin professionally.
+              </Text>
+            </div>
+
+            <a
+              href="https://youtu.be/WFpfx-xOZK8"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block mt-3"
+            >
+              <Button type="primary" className="bg-red-600 hover:bg-red-700 border-red-600">
+                Watch Video Guide
+              </Button>
+            </a>
+          </div>
 
           <Card className="bg-gray-50 border-0 rounded-lg shadow-sm">
             <Paragraph className="text-sm md:text-base text-gray-700 leading-relaxed mb-0">

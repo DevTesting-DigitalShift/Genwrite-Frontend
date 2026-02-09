@@ -34,7 +34,7 @@ export const tools = [
   // Popular / Featured
   {
     id: "quick-blog",
-    title: "AI Blog Writer",
+    title: "Quick Blog",
     description: "Easily create in-depth blog posts for any topic",
     icon: <PenTool className="w-6 h-6" />,
     color: "text-purple-600",
@@ -47,7 +47,7 @@ export const tools = [
   },
   {
     id: "youtube-blog",
-    title: "YouTube to Blog",
+    title: "YouTube Blog",
     description: "Transform YouTube videos into SEO-friendly blogs.",
     icon: <FaYoutube className="w-6 h-6" />,
     color: "text-red-600",
