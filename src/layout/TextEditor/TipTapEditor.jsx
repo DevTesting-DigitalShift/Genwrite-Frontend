@@ -33,6 +33,7 @@ import {
   Minus,
   Sparkles,
   Check,
+  ExternalLink,
 } from "lucide-react"
 import { useDispatch, useSelector } from "react-redux"
 import { Input, Modal, Tooltip, message, Select, Button, Flex, Popover } from "antd"
@@ -41,7 +42,7 @@ import TurndownService from "turndown"
 import { useBlocker, useLocation, useNavigate } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { ProofreadingDecoration } from "@/extensions/ProofreadingDecoration"
-import { ReloadOutlined } from "@ant-design/icons"
+import { ReloadOutlined, LoadingOutlined } from "@ant-design/icons"
 import { sendRetryLines } from "@api/blogApi"
 import { retryBlog } from "@store/slices/blogSlice"
 import { createPortal } from "react-dom"
@@ -103,13 +104,13 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
     imageSize: "1024x1024",
   })
 
-  // Image modal state
   const [editorReady, setEditorReady] = useState(false)
   const [linkPreview, setLinkPreview] = useState(null)
   const [linkPreviewPos, setLinkPreviewPos] = useState(null)
   const [linkPreviewUrl, setLinkPreviewUrl] = useState(null)
   const [linkPreviewElement, setLinkPreviewElement] = useState(null)
   const hideTimeout = useRef(null)
+  const previewCache = useRef({})
   const [lastSavedContent, setLastSavedContent] = useState("")
 
   const navigate = useNavigate()
@@ -197,6 +198,62 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
       "article",
     ])
     return turndownService.turndown(html)
+  }, [])
+
+  const handleLinkHover = useCallback(
+    event => {
+      const link = event.target.closest("a")
+      if (!link) return
+
+      const url = link.href
+      if (!url) return
+
+      // Don't show preview for internal anchors or mailto
+      if (url.startsWith("#") || url.startsWith("mailto:")) return
+
+      if (hideTimeout.current) {
+        clearTimeout(hideTimeout.current)
+        hideTimeout.current = null
+      }
+
+      const rect = link.getBoundingClientRect()
+      setLinkPreviewPos({ top: rect.bottom + window.scrollY + 5, left: rect.left + window.scrollX })
+      setLinkPreviewUrl(url)
+      setLinkPreviewElement(link)
+
+      if (previewCache.current[url]) {
+        setLinkPreview(previewCache.current[url])
+        return
+      }
+
+      setLinkPreview({ loading: true })
+
+      getLinkPreview(url)
+        .then(data => {
+          previewCache.current[url] = data
+          // Check if we are still looking for THIS url
+          setLinkPreviewUrl(current => {
+            if (current === url) {
+              setLinkPreview(data)
+            }
+            return current
+          })
+        })
+        .catch(err => {
+          console.error("Link preview error:", err)
+          setLinkPreview({ error: true, url })
+        })
+    },
+    [setLinkPreview, setLinkPreviewPos, setLinkPreviewUrl, setLinkPreviewElement]
+  )
+
+  const handleLinkLeave = useCallback(() => {
+    hideTimeout.current = setTimeout(() => {
+      setLinkPreview(null)
+      setLinkPreviewUrl(null)
+      setLinkPreviewElement(null)
+      setLinkPreviewPos(null)
+    }, 300)
   }, [])
 
   const normalEditor = useEditor(
@@ -289,6 +346,16 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
       editorProps: {
         attributes: {
           class: `prose max-w-none focus:outline-none p-4 min-h-[400px] ${selectedFont} blog-content editor-container`,
+        },
+        handleDOMEvents: {
+          mouseover: (view, event) => {
+            handleLinkHover(event)
+            return false
+          },
+          mouseout: (view, event) => {
+            handleLinkLeave()
+            return false
+          },
         },
       },
       onUpdate: ({ editor }) => {
@@ -581,7 +648,7 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
       // Find the new element
       const element = normalEditor.view.dom.querySelector(`#${sectionId}`)
       if (element) {
-        element.scrollIntoView({ behavior: "smooth", block: "center" })
+        element.scrollIntoView({ behavior: "smooth", block: "start" })
 
         // Add highlight classes
         element.classList.add(
@@ -1484,6 +1551,102 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
         imageSourceType={editingImageSrc ? "thumbnail" : "url"}
         allowEnhance={blog?.imageSource !== "stock"}
       />
+
+      {/* Link Preview Popover */}
+      {linkPreview && linkPreviewPos && (
+        <div
+          className="fixed z-[9999] pointer-events-none"
+          style={{ top: `${linkPreviewPos.top}px`, left: `${linkPreviewPos.left}px` }}
+          onMouseEnter={() => {
+            if (hideTimeout.current) {
+              clearTimeout(hideTimeout.current)
+              hideTimeout.current = null
+            }
+          }}
+          onMouseLeave={handleLinkLeave}
+        >
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            className="link-hover-preview bg-white border border-gray-200 shadow-xl rounded-xl overflow-hidden w-[320px] pointer-events-auto"
+          >
+            {linkPreview.loading ? (
+              <div className="p-4 flex items-center justify-center gap-3 text-gray-500">
+                <LoadingOutlined spin className="text-blue-500" />
+                <span className="text-sm">Fetching preview...</span>
+              </div>
+            ) : linkPreview.error ? (
+              <div className="p-3 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
+                <div className="p-1.5 bg-gray-200 rounded text-gray-500">
+                  <LinkIcon className="w-3.5 h-3.5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider truncate">
+                    Link
+                  </p>
+                  <p className="text-xs text-gray-600 truncate font-medium">
+                    {linkPreviewUrl || "External Link"}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Image Header if available */}
+                {(linkPreview.images?.[0] || linkPreview.favicons?.[0]) && (
+                  <div className="relative h-32 bg-gray-100 overflow-hidden border-b border-gray-100">
+                    <img
+                      src={linkPreview.images?.[0] || linkPreview.favicons?.[0]}
+                      alt="Link preview"
+                      className="w-full h-full object-cover"
+                      onError={e => {
+                        e.target.style.display = "none"
+                      }}
+                    />
+                    <div className="absolute top-2 left-2 px-2 py-1 bg-white/90 backdrop-blur-sm rounded-md shadow-sm border border-gray-200/50 flex items-center gap-1.5">
+                      {linkPreview.favicons?.[0] && (
+                        <img
+                          src={linkPreview.favicons[0]}
+                          className="w-3 h-3 rounded-sm"
+                          alt="favicon"
+                        />
+                      )}
+                      <span className="text-[10px] font-bold text-gray-600 truncate max-w-[120px]">
+                        {linkPreview.siteName || new URL(linkPreviewUrl).hostname}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="p-4">
+                  <h4 className="text-sm font-bold text-gray-900 line-clamp-2 leading-snug mb-1.5">
+                    {linkPreview.title || "No title available"}
+                  </h4>
+                  {linkPreview.description && (
+                    <p className="text-xs text-gray-500 line-clamp-3 leading-relaxed mb-3">
+                      {linkPreview.description}
+                    </p>
+                  )}
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-50">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] text-blue-600 font-medium truncate italic">
+                        {linkPreviewUrl}
+                      </p>
+                    </div>
+                    <a
+                      href={linkPreviewUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-blue-50 text-blue-600 p-1.5 rounded-lg hover:bg-blue-100 transition-colors flex-shrink-0"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+                </div>
+              </>
+            )}
+          </motion.div>
+        </div>
+      )}
     </motion.div>
   )
 }

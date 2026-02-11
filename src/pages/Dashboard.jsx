@@ -24,6 +24,7 @@ import {
   PenTool,
   ChevronRight,
   Clock,
+  Coins,
 } from "lucide-react"
 import { motion } from "framer-motion"
 import dayjs from "dayjs"
@@ -366,7 +367,6 @@ const Dashboard = () => {
             {creationTools.map(tool => (
               <motion.div
                 key={tool.id}
-                whileHover={{ y: -5, transition: { duration: 0.2 } }}
                 className="group relative bg-white border border-gray-100 hover:border-gray-200 rounded-3xl p-6 shadow-sm hover:shadow-xl transition-all cursor-pointer overflow-hidden flex flex-col justify-between min-h-[220px]"
                 onClick={() => setActiveModel(tool.modelKey)}
               >
@@ -375,6 +375,13 @@ const Dashboard = () => {
                   className={`absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl opacity-10 translate-x-10 -translate-y-10 group-hover:opacity-20 transition-opacity ${tool.bgColor?.replace("bg-", "bg-") || "bg-gray-100"}`}
                 />
 
+                {tool.credit && (
+                  <div className="absolute top-4 right-4 z-20 flex items-center gap-1 bg-gray-50 text-gray-500 px-2 py-1 rounded-full text-[10px] font-bold border border-gray-100 group-hover:bg-yellow-50 group-hover:text-yellow-700 group-hover:border-yellow-100 transition-colors shadow-sm">
+                    <Coins className="w-3 h-3" />
+                    {tool.credit}
+                  </div>
+                )}
+
                 <div className="relative z-10">
                   <div
                     className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-5 ${tool.bgColor || "bg-gray-50"} ${tool.color || "text-gray-600"} shadow-sm`}
@@ -382,7 +389,7 @@ const Dashboard = () => {
                     {tool.icon}
                   </div>
 
-                  <h3 className="text-xl font-bold text-gray-900 mb-2 leading-tight">
+                  <h3 className="text-xl font-bold text-gray-900 mb-2 leading-tight pr-12">
                     {tool.title}
                   </h3>
                   <p className="text-sm text-gray-500 leading-relaxed font-medium">
@@ -447,7 +454,6 @@ const Dashboard = () => {
               {recentBlogs.slice(0, 4).map(blog => (
                 <motion.div
                   key={blog._id}
-                  whileHover={{ y: -5 }}
                   onClick={() => navigate(`/blog/${blog._id}`)}
                   className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg cursor-pointer transition-all overflow-hidden flex flex-col h-full mb-8"
                 >

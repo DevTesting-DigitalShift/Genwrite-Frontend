@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo, useCallback } from "react"
 import { motion } from "framer-motion"
-import { useDispatch, useSelector } from "react-redux"
+import { useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import { Helmet } from "react-helmet"
 import { Pagination, Button, message } from "antd"
 import { FiPlus } from "react-icons/fi"
 import { RefreshCcw } from "lucide-react"
-import { fetchJobs, openJobModal } from "@store/slices/jobSlice"
+import { getJobs } from "@api/jobApi"
 import { selectUser } from "@store/slices/authSlice"
 import SkeletonLoader from "@components/UI/SkeletonLoader"
 import UpgradeModal from "@components/UpgradeModal"
@@ -20,10 +20,11 @@ import { getSocket } from "@utils/socket"
 const PAGE_SIZE = 15
 
 const Jobs = () => {
-  const dispatch = useDispatch()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { showJobModal } = useSelector(state => state.jobs)
+  const [showJobModal, setShowJobModal] = useState(false)
+  const [selectedJob, setSelectedJob] = useState(null)
+
   const { selectedKeywords } = useSelector(state => state.analysis)
   const user = useSelector(selectUser)
   const userPlan = (user?.plan || user?.subscription?.plan || "free").toLowerCase()
@@ -37,7 +38,7 @@ const Jobs = () => {
   const { data: queryJobs = [], isLoading: queryLoading } = useQuery({
     queryKey: ["jobs", user?.id],
     queryFn: async () => {
-      const response = await dispatch(fetchJobs()).unwrap()
+      const response = await getJobs()
       return response || []
     },
     staleTime: Infinity, // Data never becomes stale
@@ -172,8 +173,14 @@ const Jobs = () => {
 
   const handleOpenJobModal = useCallback(() => {
     if (!checkJobLimit()) return
-    dispatch(openJobModal(null)) // Pass null for new job
-  }, [dispatch, checkJobLimit])
+    setSelectedJob(null)
+    setShowJobModal(true)
+  }, [checkJobLimit])
+
+  const handleEditJob = useCallback(job => {
+    setSelectedJob(job)
+    setShowJobModal(true)
+  }, [])
 
   const handleRefresh = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["jobs", user?.id] })
@@ -299,6 +306,7 @@ const Jobs = () => {
                   job={job}
                   setCurrentPage={setCurrentPage}
                   paginatedJobs={paginatedJobs}
+                  onEdit={handleEditJob}
                 />
               ))}
             </div>
@@ -318,6 +326,8 @@ const Jobs = () => {
         </div>
         <JobModal
           showJobModal={showJobModal}
+          setShowJobModal={setShowJobModal}
+          selectedJob={selectedJob}
           selectedKeywords={selectedKeywords}
           user={user}
           userPlan={userPlan}

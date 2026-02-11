@@ -421,6 +421,18 @@
   cursor: col-resize;
 }
 
+/* Ensure section headings are visible below the sticky toolbar when scrolled into view */
+.ProseMirror h1,
+.ProseMirror h2,
+.ProseMirror h3,
+.ProseMirror h4,
+.ProseMirror h5,
+.ProseMirror h6,
+.ProseMirror section,
+.ProseMirror [id] {
+  scroll-margin-top: 100px;
+}
+
 /* Custom scrollbar for modal content */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;

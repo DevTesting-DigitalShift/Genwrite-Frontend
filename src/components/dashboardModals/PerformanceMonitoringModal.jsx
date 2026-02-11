@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { Tag, Tags } from "lucide-react"
-import { useDispatch } from "react-redux"
+import { useDispatch, useSelector } from "react-redux"
 import { Modal, Select, Table, Tooltip, message, Button, Empty } from "antd"
 import { InfoCircleOutlined, LoadingOutlined } from "@ant-design/icons"
-import { fetchBlogById, fetchBlogStats } from "@store/slices/blogSlice"
+import { fetchBlogById, fetchBlogStats, fetchBlogs } from "@store/slices/blogSlice"
 
-const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
+const PerformanceMonitoringModal = ({ closeFnc, visible }) => {
   const [formData, setFormData] = useState({
     selectedBlog: null,
     title: "",
@@ -17,6 +17,14 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
   const [id, setId] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const dispatch = useDispatch()
+  const { allBlogs, loading: blogLoading } = useSelector(state => state.blog)
+
+  // Fetch blogs when modal opens
+  useEffect(() => {
+    if (visible) {
+      dispatch(fetchBlogs())
+    }
+  }, [visible, dispatch])
 
   // Fetch blog details when id changes
   useEffect(() => {
@@ -48,7 +56,7 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
 
   // Handle blog selection
   const handleBlogSelect = value => {
-    const blog = allBlogs.find(b => b._id === value)
+    const blog = allBlogs?.find(b => b._id === value)
     if (blog) {
       setId(blog._id)
       setFormData({
@@ -150,10 +158,10 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
     const keywordDensity = seo?.keywordDensity || {}
 
     const shortTailCount = Object.keys(keywordDensity).filter(
-      keyword => keyword.split(" ").length <= 2,
+      keyword => keyword.split(" ").length <= 2
     ).length
     const longTailCount = Object.keys(keywordDensity).filter(
-      keyword => keyword.split(" ").length > 2,
+      keyword => keyword.split(" ").length > 2
     ).length
 
     const dataSource = Object.entries(keywordDensity).map(
@@ -163,7 +171,7 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
         count,
         density: density,
         animationDelay: index * 0.1,
-      }),
+      })
     )
 
     const columns = [
@@ -616,6 +624,7 @@ const PerformanceMonitoringModal = ({ closeFnc, visible, allBlogs }) => {
               placeholder="Select Blog"
               onChange={handleBlogSelect}
               value={formData.selectedBlog?._id || ""}
+              loading={blogLoading}
             >
               <Select.Option value="">Select Blog</Select.Option>
               {allBlogs?.map(blog => (

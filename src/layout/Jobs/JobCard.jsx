@@ -1,45 +1,62 @@
 import React, { memo, useState } from "react"
 import { motion } from "framer-motion"
-import { useDispatch } from "react-redux"
 import { message } from "antd"
 import { FiCalendar, FiFileText, FiSettings, FiEdit } from "react-icons/fi"
 import { QuestionCircleOutlined } from "@ant-design/icons"
-import { toggleJobStatusThunk, deleteJobThunk, openJobModal } from "@store/slices/jobSlice"
+import { startJob, stopJob, deleteJob } from "@api/jobApi"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 
-const JobCard = memo(({ job, setCurrentPage, paginatedJobs }) => {
-  const dispatch = useDispatch()
+const JobCard = memo(({ job, setCurrentPage, paginatedJobs, onEdit }) => {
   const queryClient = useQueryClient()
   const { handlePopup } = useConfirmPopup()
   const [showAllTopics, setShowAllTopics] = useState(false)
 
   const toggleJobStatusMutation = useMutation({
-    mutationFn: ({ jobId, currentStatus }) =>
-      dispatch(toggleJobStatusThunk({ jobId, currentStatus })).unwrap(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["jobs"], exact: false })
+    mutationFn: async ({ jobId, currentStatus }) => {
+      if (currentStatus === "active") {
+        await stopJob(jobId)
+      } else {
+        await startJob(jobId)
+      }
+      return { jobId, status: currentStatus === "active" ? "stop" : "active" }
     },
-    onError: (error) => {
+    onSuccess: data => {
+      queryClient.setQueryData(["jobs"], old => {
+        if (!old) return []
+        return old.map(j => (j._id === data.jobId ? { ...j, status: data.status } : j))
+      })
+      queryClient.invalidateQueries({ queryKey: ["jobs"], exact: false })
+      message.success(
+        data.status === "active" ? "Job started successfully!" : "Job paused successfully!"
+      )
+    },
+    onError: error => {
       console.error("Failed to toggle job status:", error)
+      message.error(error.message || "Failed to update job status")
     },
   })
 
   const deleteJobMutation = useMutation({
-    mutationFn: (jobId) => dispatch(deleteJobThunk(jobId)).unwrap(),
+    mutationFn: async jobId => {
+      await deleteJob(jobId)
+      return jobId
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["jobs"], exact: false })
       if (paginatedJobs.length === 1 && currentPage > 1) {
-        setCurrentPage((prev) => prev - 1)
+        setCurrentPage(prev => prev - 1)
       }
+      message.success("Job deleted successfully!")
     },
-    onError: (error) => {
+    onError: error => {
       console.error("Failed to delete job:", error)
+      message.error(error.message || "Failed to delete job")
     },
   })
 
-  const handleStartJob = (jobId) => {
-    const job = paginatedJobs.find((j) => j._id === jobId)
+  const handleStartJob = jobId => {
+    const job = paginatedJobs.find(j => j._id === jobId)
     if (!job) {
       message.error("Job not found.")
       return
@@ -47,11 +64,11 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs }) => {
     toggleJobStatusMutation.mutate({ jobId, currentStatus: job.status })
   }
 
-  const handleDeleteJob = (jobId) => {
+  const handleDeleteJob = jobId => {
     deleteJobMutation.mutate(jobId)
   }
 
-  const handleEditJob = (job) => {
+  const handleEditJob = job => {
     if (!job?._id) {
       message.error("Invalid job ID.")
       return
@@ -60,7 +77,7 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs }) => {
       message.warning("Please pause the job before editing.")
       return
     }
-    dispatch(openJobModal(job)) // Pass the job object
+    onEdit(job)
   }
 
   return (
@@ -126,7 +143,7 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs }) => {
               )}
               {job.blogs.topics.length > 6 && (
                 <button
-                  onClick={() => setShowAllTopics((prev) => !prev)}
+                  onClick={() => setShowAllTopics(prev => !prev)}
                   className="text-xs text-blue-600 hover:underline"
                 >
                   {showAllTopics ? "Show less" : `+${job.blogs.topics.length - 6} more`}
@@ -212,9 +229,7 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs }) => {
                 type: "text",
                 className: "border-red-500 hover:bg-red-500 bg-red-100 text-red-600",
               },
-              cancelProps: {
-                danger: false,
-              },
+              cancelProps: { danger: false },
             })
           }
         >

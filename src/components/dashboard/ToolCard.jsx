@@ -4,7 +4,7 @@ import { useSelector } from "react-redux"
 import { motion } from "framer-motion"
 import { selectUser } from "@store/slices/authSlice"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
-import { ArrowUpRight } from "lucide-react"
+import { ArrowUpRight, Coins } from "lucide-react"
 
 const ToolCard = ({ item, onClick, variant = "small" }) => {
   const navigate = useNavigate()
@@ -26,9 +26,15 @@ const ToolCard = ({ item, onClick, variant = "small" }) => {
     return (
       <motion.div
         whileHover={{ y: -4 }}
-        className="flex flex-col justify-between p-6 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all cursor-pointer h-full min-h-[200px]"
+        className="group flex flex-col justify-between p-6 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all cursor-pointer h-full min-h-[200px] relative"
         onClick={handleClick}
       >
+        {item.credit && (
+          <div className="absolute top-4 right-4 flex items-center gap-1 bg-gray-50 text-gray-500 px-2 py-1 rounded-full text-[10px] font-bold border border-gray-100 group-hover:bg-yellow-50 group-hover:text-yellow-700 group-hover:border-yellow-100 transition-colors shadow-sm">
+            <Coins className="w-3 h-3" />
+            {item.credit}
+          </div>
+        )}
         <div>
           <div className="flex items-center gap-3 mb-4">
             <div
@@ -57,9 +63,15 @@ const ToolCard = ({ item, onClick, variant = "small" }) => {
   return (
     <motion.div
       whileHover={{ y: -4 }}
-      className="flex flex-col justify-between p-5 bg-white border border-gray-100 rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer h-full min-h-[140px]"
+      className="group flex flex-col justify-between p-5 bg-white border border-gray-100 rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer h-full min-h-[140px] relative"
       onClick={handleClick}
     >
+      {item.credit && (
+        <div className="absolute top-4 right-4 flex items-center gap-1 bg-gray-50 text-gray-500 px-2 py-1 rounded-full text-[10px] font-bold border border-gray-100 group-hover:bg-yellow-50 group-hover:text-yellow-700 group-hover:border-yellow-100 transition-colors shadow-sm">
+          <Coins className="w-3 h-3" />
+          {item.credit}
+        </div>
+      )}
       <div>
         <div
           className={`w-10 h-10 rounded-lg flex items-center justify-center mb-3 ${item.bgColor || "bg-gray-50"} ${item.color || "text-gray-600"}`}
@@ -67,7 +79,7 @@ const ToolCard = ({ item, onClick, variant = "small" }) => {
           {item.icon}
         </div>
 
-        <h3 className="text-base font-bold text-gray-900 mb-1 line-clamp-1">{item.title}</h3>
+        <h3 className="text-base font-bold text-gray-900 mb-1 line-clamp-1 pr-16">{item.title}</h3>
         <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{item.description}</p>
       </div>
     </motion.div>

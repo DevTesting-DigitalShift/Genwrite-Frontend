@@ -44,6 +44,7 @@ export const tools = [
     category: "blog",
     isPopular: true,
     stats: "2M",
+    credit: "50+ Credits",
   },
   {
     id: "youtube-blog",
@@ -55,6 +56,7 @@ export const tools = [
     type: "modal",
     modelKey: ACTIVE_MODELS.YouTube_Blog,
     category: "youtube",
+    credit: "50+ Credits",
   },
   {
     id: "advanced-blog",
@@ -66,6 +68,7 @@ export const tools = [
     type: "modal",
     modelKey: ACTIVE_MODELS.Advanced_Blog,
     category: "blog",
+    credit: "100+ Credits",
   },
   {
     id: "bulk-blog",
@@ -77,6 +80,7 @@ export const tools = [
     type: "modal",
     modelKey: ACTIVE_MODELS.Bulk_Blog,
     category: "blog",
+    credit: "50+ Credits/Blog",
   },
   {
     id: "text-humanizer",
@@ -89,6 +93,7 @@ export const tools = [
     category: "text",
     isPopular: true,
     stats: "100K",
+    credit: "5 Credits",
   },
   {
     id: "website-builder",
@@ -100,6 +105,7 @@ export const tools = [
     category: "seo",
     isPopular: true,
     stats: "480K",
+    credit: "Basic Plan: 10 Credits",
   },
 
   // Other Tools from Toolbox & Dashboard
@@ -111,6 +117,7 @@ export const tools = [
     type: "navigation",
     path: "/outline",
     category: "blog",
+    credit: "5 Credits",
   },
   {
     id: "competitor-analysis",
@@ -120,6 +127,7 @@ export const tools = [
     type: "modal",
     modelKey: ACTIVE_MODELS.Competitor_Analysis,
     category: "seo",
+    credit: "10 Credits",
   },
   {
     id: "keyword-research",
@@ -138,6 +146,7 @@ export const tools = [
     type: "navigation",
     path: "/keyword-scraping",
     category: "seo",
+    credit: "5 Credits",
   },
   {
     id: "generate-metadata",
@@ -147,6 +156,7 @@ export const tools = [
     type: "navigation",
     path: "/generate-metadata",
     category: "seo",
+    credit: "5 Credits",
   },
   {
     id: "boost-content",
@@ -156,6 +166,7 @@ export const tools = [
     type: "navigation",
     path: "/prompt-content",
     category: "seo",
+    credit: "5 Credits",
   },
   {
     id: "content-detection",
@@ -165,6 +176,7 @@ export const tools = [
     type: "navigation",
     path: "/content-detection",
     category: "text",
+    credit: "2 Credits",
   },
   {
     id: "youtube-summarization",
@@ -174,6 +186,7 @@ export const tools = [
     type: "navigation",
     path: "/youtube-summarization",
     category: "youtube",
+    credit: "5 Credits",
   },
   {
     id: "chat-pdf",
@@ -183,6 +196,7 @@ export const tools = [
     type: "navigation",
     path: "/chat-with-pdf",
     category: "text",
+    credit: "5 Credits",
   },
   {
     id: "competitor-like-blog",
@@ -192,6 +206,7 @@ export const tools = [
     type: "navigation",
     path: "/competitor-like-blog",
     category: "blog",
+    credit: "10 Credits",
   },
   {
     id: "performance-monitoring",
