@@ -164,7 +164,6 @@ const SideBar_Header = () => {
     // { title: "Toolbox", icon: Box, path: "/toolbox" }, // Toolbox merged into Dashboard
     { title: "Integrations", icon: Plug, path: "/integrations" },
     { title: "Brand Voice", icon: Megaphone, path: "/brand-voice" },
-    { title: "Image Gallery", icon: ImagesIcon, path: "/image-gallery" },
     { title: "TrashCan", icon: Trash2, path: "/trashcan" },
   ]
 

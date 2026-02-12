@@ -44,7 +44,6 @@ export const tools = [
     category: "blog",
     isPopular: true,
     stats: "2M",
-    credit: "50+ Credits",
   },
   {
     id: "youtube-blog",
@@ -56,7 +55,6 @@ export const tools = [
     type: "modal",
     modelKey: ACTIVE_MODELS.YouTube_Blog,
     category: "youtube",
-    credit: "50+ Credits",
   },
   {
     id: "advanced-blog",
@@ -68,7 +66,6 @@ export const tools = [
     type: "modal",
     modelKey: ACTIVE_MODELS.Advanced_Blog,
     category: "blog",
-    credit: "100+ Credits",
   },
   {
     id: "bulk-blog",
@@ -80,7 +77,6 @@ export const tools = [
     type: "modal",
     modelKey: ACTIVE_MODELS.Bulk_Blog,
     category: "blog",
-    credit: "50+ Credits/Blog",
   },
   {
     id: "text-humanizer",
@@ -216,5 +212,17 @@ export const tools = [
     type: "modal",
     modelKey: ACTIVE_MODELS.Performance_Monitoring,
     category: "seo",
+  },
+  {
+    id: "image-tools",
+    title: "AI Image Tools",
+    description: "Generate, enhance, and manage your AI-crafted images in a dedicated gallery.",
+    icon: <ImageIcon className="w-6 h-6" />,
+    type: "navigation",
+    path: "/image-gallery",
+    category: "image",
+    isPopular: true,
+    stats: "320K",
+    credit: "Varies by Model",
   },
 ]

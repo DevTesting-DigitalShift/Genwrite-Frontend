@@ -244,23 +244,85 @@ const CompetitorLikeBlog = () => {
               <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
-                  className="prose prose-blue max-w-none text-gray-800 leading-relaxed"
+                  className="markdown-content prose prose-slate max-w-none text-gray-800 leading-relaxed"
                   components={{
                     h1: ({ node, ...props }) => (
-                      <h1 className="text-2xl font-bold mt-6 mb-4" {...props} />
+                      <h1
+                        className="text-3xl font-black text-gray-900 mt-8 mb-4 border-b pb-2"
+                        {...props}
+                      />
                     ),
                     h2: ({ node, ...props }) => (
-                      <h2 className="text-xl font-bold mt-5 mb-3" {...props} />
+                      <h2
+                        className="text-2xl font-bold text-gray-800 mt-8 mb-4 flex items-center gap-2"
+                        {...props}
+                      />
                     ),
                     h3: ({ node, ...props }) => (
-                      <h3 className="text-lg font-semibold mt-4 mb-2" {...props} />
+                      <h3 className="text-xl font-bold text-gray-800 mt-6 mb-3" {...props} />
+                    ),
+                    h4: ({ node, ...props }) => (
+                      <h4 className="text-lg font-bold text-gray-800 mt-4 mb-2" {...props} />
+                    ),
+                    p: ({ node, ...props }) => (
+                      <p className="mb-4 text-gray-700 leading-relaxed font-medium" {...props} />
                     ),
                     ul: ({ node, ...props }) => (
-                      <ul className="list-disc list-inside space-y-1 my-2" {...props} />
+                      <ul
+                        className="list-disc pl-6 space-y-2 mb-4 text-gray-700 font-medium"
+                        {...props}
+                      />
                     ),
                     ol: ({ node, ...props }) => (
-                      <ol className="list-decimal list-inside space-y-1 my-2" {...props} />
+                      <ol
+                        className="list-decimal pl-6 space-y-2 mb-4 text-gray-700 font-medium"
+                        {...props}
+                      />
                     ),
+                    li: ({ node, ...props }) => <li className="pl-1" {...props} />,
+                    blockquote: ({ node, ...props }) => (
+                      <blockquote
+                        className="border-l-4 border-blue-500 pl-4 py-1 my-6 italic bg-blue-50/50 rounded-r-lg text-gray-700"
+                        {...props}
+                      />
+                    ),
+                    a: ({ node, ...props }) => (
+                      <a
+                        className="text-blue-600 font-bold hover:underline decoration-2 underline-offset-2 transition-all"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        {...props}
+                      />
+                    ),
+                    table: ({ node, ...props }) => (
+                      <div className="overflow-x-auto my-8 rounded-xl border border-gray-200">
+                        <table className="min-w-full divide-y divide-gray-200" {...props} />
+                      </div>
+                    ),
+                    thead: ({ node, ...props }) => <thead className="bg-gray-100" {...props} />,
+                    th: ({ node, ...props }) => (
+                      <th
+                        className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider border-b"
+                        {...props}
+                      />
+                    ),
+                    td: ({ node, ...props }) => (
+                      <td
+                        className="px-6 py-4 text-sm text-gray-700 border-b border-gray-100 font-medium"
+                        {...props}
+                      />
+                    ),
+                    code: ({ node, inline, ...props }) =>
+                      inline ? (
+                        <code
+                          className="bg-gray-200 text-pink-600 px-1.5 py-0.5 rounded text-sm font-mono"
+                          {...props}
+                        />
+                      ) : (
+                        <pre className="bg-gray-900 text-gray-100 p-4 rounded-xl overflow-x-auto my-6 font-mono text-sm leading-relaxed shadow-lg">
+                          <code {...props} />
+                        </pre>
+                      ),
                   }}
                 >
                   {result.content}
