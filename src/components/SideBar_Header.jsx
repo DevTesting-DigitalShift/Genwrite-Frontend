@@ -1,12 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { NavLink, useLocation, useNavigate } from "react-router-dom"
-import { useDispatch, useSelector } from "react-redux"
+import useAuthStore from "../store/useAuthStore"
 import { RxAvatar } from "react-icons/rx"
 import { FiMenu } from "react-icons/fi"
 import {
-  Box,
   Briefcase,
-  CreditCard,
   Crown,
   FileText,
   HelpCircle,
@@ -24,14 +22,6 @@ import {
   UsersRound,
   Zap,
 } from "lucide-react"
-import {
-  loadAuthenticatedUser,
-  logoutUser,
-  selectUser,
-  updateCredits,
-  addNotification,
-  updateUserPartial,
-} from "../store/slices/authSlice"
 import { Tooltip, Dropdown, Avatar } from "antd"
 import { RiCashFill, RiCoinsFill } from "react-icons/ri"
 import NotificationDropdown from "@components/NotificationDropdown"
@@ -45,21 +35,27 @@ const SideBar_Header = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [isUserLoaded, setIsUserLoaded] = useState(false)
   const [showWhatsNew, setShowWhatsNew] = useState(false)
-  const user = useSelector(selectUser)
+  const {
+    user,
+    loadAuthenticatedUser,
+    logoutUser,
+    updateCredits,
+    addNotification,
+    updateUserPartial,
+  } = useAuthStore()
   const location = useLocation()
-  const dispatch = useDispatch()
   const navigate = useNavigate()
   const sidebarRef = useRef(null)
   const { isDesktop } = useViewport()
 
   const fetchCurrentUser = useCallback(async () => {
     try {
-      await dispatch(loadAuthenticatedUser()).unwrap()
+      await loadAuthenticatedUser()
     } catch (err) {
       console.error("User load failed:", err)
       navigate("/login")
     }
-  }, [dispatch, navigate])
+  }, [loadAuthenticatedUser, navigate])
 
   const handleCreditsUpdate = useCallback(
     data => {
@@ -68,25 +64,25 @@ const SideBar_Header = () => {
         typeof data === "object" &&
         (data.base !== undefined || data.extra !== undefined || data.credits !== undefined)
       ) {
-        dispatch(updateCredits(data.credits || data))
+        updateCredits(data.credits || data)
       } else {
         fetchCurrentUser()
       }
     },
-    [dispatch, fetchCurrentUser]
+    [updateCredits, fetchCurrentUser]
   )
 
   const handleNotificationUpdate = useCallback(
     data => {
       if (data && typeof data === "object" && data.message) {
-        dispatch(addNotification(data))
+        addNotification(data)
       } else if (data && typeof data === "object" && data.notifications) {
-        dispatch(updateUserPartial({ notifications: data.notifications }))
+        updateUserPartial({ notifications: data.notifications })
       } else {
         fetchCurrentUser()
       }
     },
-    [dispatch, fetchCurrentUser]
+    [addNotification, updateUserPartial, fetchCurrentUser]
   )
 
   const handleCloseModal = () => {
@@ -148,7 +144,7 @@ const SideBar_Header = () => {
 
   useEffect(() => {
     fetchCurrentUser()
-  }, [dispatch, navigate])
+  }, [fetchCurrentUser])
 
   useEffect(() => {
     if (user?.name || user?.credits) {
@@ -172,7 +168,7 @@ const SideBar_Header = () => {
 
   const handleLogout = async () => {
     try {
-      await dispatch(logoutUser()).unwrap()
+      await logoutUser()
       navigate("/login")
     } catch (error) {
       console.error("Logout error:", error)

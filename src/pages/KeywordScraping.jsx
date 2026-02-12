@@ -1,27 +1,25 @@
 import React, { useState, useEffect } from "react"
 import { Copy, RefreshCw, Search, Sparkles, Loader2, Link as LinkIcon, Tag } from "lucide-react"
 import { Button, message } from "antd"
-import { useDispatch, useSelector } from "react-redux"
-import { scrapeKeywords, resetKeywordScraping } from "@store/slices/toolsSlice"
+
+import useToolsStore from "@store/useToolsStore"
+import { useKeywordScrapingMutation } from "@api/queries/toolsQueries"
 import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
 
 const KeywordScraping = () => {
   const [inputUrl, setInputUrl] = useState("")
-  const dispatch = useDispatch()
-  const {
-    loading: isLoading,
-    result: scrapingResult,
-    error,
-  } = useSelector(state => state.tools.keywordScraping)
-  const user = useSelector(state => state.auth.user)
+  // const dispatch = useDispatch() // Removed
+  const { keywordScraping, resetKeywordScraping } = useToolsStore()
+  const { result: scrapingResult, error } = keywordScraping
+  const { mutate: scrapeKeywords, isLoading } = useKeywordScrapingMutation()
 
   // Cleanup on unmount - reset state when user leaves the page
   useEffect(() => {
     return () => {
       setInputUrl("")
-      dispatch(resetKeywordScraping())
+      resetKeywordScraping()
     }
-  }, [dispatch])
+  }, [])
 
   const isValidUrl = url => {
     const urlRegex =
@@ -42,13 +40,15 @@ const KeywordScraping = () => {
 
     const payload = { url: inputUrl.trim() }
 
-    try {
-      await dispatch(scrapeKeywords(payload)).unwrap()
-      message.success("Keywords scraped successfully!")
-    } catch (err) {
-      message.error(err?.message || "Failed to scrape keywords. Please try again.")
-      console.error(err)
-    }
+    scrapeKeywords(payload, {
+      onSuccess: () => {
+        message.success("Keywords scraped successfully!")
+      },
+      onError: err => {
+        message.error(err?.message || "Failed to scrape keywords. Please try again.")
+        console.error(err)
+      },
+    })
   }
 
   const handleCopy = async content => {
@@ -69,7 +69,7 @@ const KeywordScraping = () => {
 
   const handleReset = () => {
     setInputUrl("")
-    dispatch(resetKeywordScraping())
+    resetKeywordScraping()
     message.info("Content reset")
   }
 

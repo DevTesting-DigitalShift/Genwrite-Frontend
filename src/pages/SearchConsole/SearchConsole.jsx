@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react"
 import { Helmet } from "react-helmet"
-import { useDispatch, useSelector } from "react-redux"
+import useAuthStore from "@store/useAuthStore"
+import { useDispatch } from "react-redux"
 import { fetchGscAnalytics, clearAnalytics } from "@store/slices/gscSlice"
-import { selectUser } from "@store/slices/authSlice"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Button, message, Select, DatePicker, Card, Pagination } from "antd"
 import { RefreshCw, Search, Download } from "lucide-react"
@@ -20,10 +20,7 @@ const { Option } = Select
 const { RangePicker } = DatePicker
 
 // Configure Fuse.js for frontend search
-const fuseOptions = {
-  keys: ["url", "query", "countryName", "blogTitle"],
-  threshold: 0.3,
-}
+const fuseOptions = { keys: ["url", "query", "countryName", "blogTitle"], threshold: 0.3 }
 
 const SearchConsole = () => {
   const [error, setError] = useState(null)
@@ -39,9 +36,9 @@ const SearchConsole = () => {
   const [pageSize, setPageSize] = useState(10)
   const [currentPage, setCurrentPage] = useState(1)
 
+  const { user } = useAuthStore()
   const dispatch = useDispatch()
   const queryClient = useQueryClient()
-  const user = useSelector(selectUser)
 
   // Debounced search query - waits 5 seconds after user stops typing
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("")
@@ -89,12 +86,7 @@ const SearchConsole = () => {
   useEffect(() => {
     sessionStorage.setItem(
       "gscFilters",
-      JSON.stringify({
-        filterType,
-        blogUrlFilter,
-        blogTitleFilter,
-        userCountry,
-      })
+      JSON.stringify({ filterType, blogUrlFilter, blogTitleFilter, userCountry })
     )
   }, [filterType, blogUrlFilter, blogTitleFilter, userCountry])
 
@@ -144,11 +136,7 @@ const SearchConsole = () => {
     queryFn: async () => {
       const dimensions = getDimensions()
       const { from, to } = getDateRangeParams()
-      const params = {
-        from,
-        to,
-        query: JSON.stringify(dimensions),
-      }
+      const params = { from, to, query: JSON.stringify(dimensions) }
       const data = await dispatch(fetchGscAnalytics(params)).unwrap()
       return data.gscData.map((item, index) => ({
         id: `${item.page || item.query || item.country}-${index}`,
@@ -354,11 +342,7 @@ const SearchConsole = () => {
     })
 
     worksheet.getRow(1).font = { bold: true }
-    worksheet.getRow(1).fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: "F0F0F0" },
-    }
+    worksheet.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "F0F0F0" } }
 
     const buffer = await workbook.xlsx.writeBuffer()
     const blob = new Blob([buffer], {

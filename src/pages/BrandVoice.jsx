@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react"
 import { motion } from "framer-motion"
 import { FaEdit, FaTimes } from "react-icons/fa"
-import { useDispatch, useSelector } from "react-redux"
+import useAuthStore from "@store/useAuthStore"
+import useBrandStore from "@store/useBrandStore"
 import { Info, Loader2, Trash, Upload, RefreshCcw } from "lucide-react"
 import { Helmet } from "react-helmet"
 import { Modal, Tooltip, message, Button } from "antd"
-// import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { fetchSiteInfo, resetSiteInfo } from "@store/slices/brandSlice"
 import BrandVoicesComponent from "@components/BrandVoiceComponent"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import UpgradeModal from "@components/UpgradeModal"
@@ -14,9 +13,8 @@ import { brandsQuery } from "@api/Brand/Brand.query"
 import { useEntityMutations } from "@/hooks/useEntityMutation"
 
 const BrandVoice = () => {
-  const user = useSelector(state => state.auth.user)
-  const dispatch = useDispatch()
-  // const queryClient = useQueryClient()
+  const { user } = useAuthStore()
+  const { siteInfo, fetchSiteInfo, resetSiteInfo } = useBrandStore()
   const [inputValue, setInputValue] = useState("")
   const [isUploading, setIsUploading] = useState(false)
   const { handlePopup } = useConfirmPopup()
@@ -31,7 +29,6 @@ const BrandVoice = () => {
     _id: undefined,
   })
   const [errors, setErrors] = useState({})
-  const { siteInfo } = useSelector(state => state.brand)
   const [lastScrapedUrl, setLastScrapedUrl] = useState("")
   const [isFormReset, setIsFormReset] = useState(false)
   const [showAllKeywords, setShowAllKeywords] = useState(false)
@@ -47,7 +44,7 @@ const BrandVoice = () => {
     return <UpgradeModal featureName="Brand Voice" />
   }
 
-  const { brand: BrandVoice } = useEntityMutations()
+  const { brand: brandVoiceMutations } = useEntityMutations()
 
   const { data: brands = [], isLoading, error } = brandsQuery.useList()
 
@@ -55,7 +52,7 @@ const BrandVoice = () => {
     if (!formData._id) {
       resetForm()
     }
-  }, [dispatch])
+  }, [])
 
   useEffect(() => {
     if (siteInfo.data && !isFormReset) {
@@ -97,8 +94,8 @@ const BrandVoice = () => {
     setLastScrapedUrl("")
     setIsFormReset(true)
     setShowAllKeywords(false)
-    dispatch(resetSiteInfo())
-  }, [brands])
+    resetSiteInfo()
+  }, [brands, resetSiteInfo])
 
   const validateForm = useCallback(() => {
     const newErrors = {}
@@ -165,10 +162,7 @@ const BrandVoice = () => {
             return true
           })
         if (newKeywords.length === 0) return
-        setFormData(prev => ({
-          ...prev,
-          keywords: [...prev.keywords, ...newKeywords],
-        }))
+        setFormData(prev => ({ ...prev, keywords: [...prev.keywords, ...newKeywords] }))
         setInputValue("")
         setErrors(prev => ({ ...prev, keywords: undefined }))
         setIsFormReset(false)
@@ -178,10 +172,7 @@ const BrandVoice = () => {
   )
 
   const removeKeyword = useCallback(keyword => {
-    setFormData(prev => ({
-      ...prev,
-      keywords: prev.keywords.filter(k => k !== keyword),
-    }))
+    setFormData(prev => ({ ...prev, keywords: prev.keywords.filter(k => k !== keyword) }))
     setIsFormReset(false)
   }, [])
 
@@ -211,10 +202,7 @@ const BrandVoice = () => {
         .split(/,|\n|;/)
         .map(kw => kw.trim())
         .filter(kw => kw.length > 0)
-      setFormData(prev => ({
-        ...prev,
-        keywords: [...new Set([...prev.keywords, ...keywords])],
-      }))
+      setFormData(prev => ({ ...prev, keywords: [...new Set([...prev.keywords, ...keywords])] }))
       setErrors(prev => ({ ...prev, keywords: undefined }))
       setIsFormReset(false)
     }
@@ -248,9 +236,9 @@ const BrandVoice = () => {
 
     try {
       if (formData._id) {
-        await BrandVoice.update.mutateAsync({ id: formData._id, data: payload })
+        await brandVoiceMutations.update.mutateAsync({ id: formData._id, data: payload })
       } else {
-        await BrandVoice.create.mutateAsync(payload)
+        await brandVoiceMutations.create.mutateAsync(payload)
       }
       resetForm()
       // queryClient.invalidateQueries(["brands"])
@@ -259,7 +247,7 @@ const BrandVoice = () => {
     } finally {
       setIsUploading(false)
     }
-  }, [formData, user, dispatch, validateForm, resetForm, brands])
+  }, [formData, user, validateForm, resetForm, brands, brandVoiceMutations])
 
   const handleEdit = useCallback(brand => {
     setFormData({
@@ -290,7 +278,7 @@ const BrandVoice = () => {
         confirmText: "Delete",
         onConfirm: async () => {
           try {
-            await BrandVoice.delete.mutateAsync(brand._id)
+            await brandVoiceMutations.delete.mutateAsync(brand._id)
             if (formData?.selectedVoice?._id === brand._id) {
               resetForm()
             }
@@ -303,12 +291,10 @@ const BrandVoice = () => {
           type: "text",
           className: "border-red-500 hover:bg-red-500 bg-red-100 text-red-600",
         },
-        cancelProps: {
-          danger: false,
-        },
+        cancelProps: { danger: false },
       })
     },
-    [dispatch, formData.selectedVoice, resetForm]
+    [brandVoiceMutations, formData.selectedVoice, resetForm]
   )
 
   const handleSelect = useCallback(voice => {
@@ -319,10 +305,7 @@ const BrandVoice = () => {
   const handleFetchSiteInfo = useCallback(() => {
     const url = formData.postLink.trim()
     if (!url) {
-      setErrors(prev => ({
-        ...prev,
-        postLink: "Post link is required to fetch site info.",
-      }))
+      setErrors(prev => ({ ...prev, postLink: "Post link is required to fetch site info." }))
       return
     }
     if (url === lastScrapedUrl) {
@@ -331,8 +314,7 @@ const BrandVoice = () => {
     }
     try {
       new URL(url)
-      dispatch(fetchSiteInfo(url))
-        .unwrap()
+      fetchSiteInfo(url)
         .then(() => {
           setIsFormReset(false)
         })

@@ -28,8 +28,7 @@ import {
 import { AnimatePresence, motion } from "framer-motion"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { Helmet } from "react-helmet"
-import { useDispatch, useSelector } from "react-redux"
-import { selectUser } from "@store/slices/authSlice"
+import useAuthStore from "@store/useAuthStore"
 import { archiveBlog, fetchAllBlogs, retryBlog } from "@store/slices/blogSlice"
 import dayjs from "dayjs"
 import Fuse from "fuse.js"
@@ -53,10 +52,9 @@ import { useInView } from "react-intersection-observer"
 dayjs.extend(isBetween)
 
 const MyProjects = () => {
-  const dispatch = useDispatch()
+  const { user } = useAuthStore()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const user = useSelector(selectUser)
   const userId = user?._id || "guest"
   const { handleProAction } = useProAction()
   const { handlePopup } = useConfirmPopup()
@@ -193,14 +191,14 @@ const MyProjects = () => {
     blog => {
       navigate(`/blog/${blog._id}`)
     },
-    [navigate],
+    [navigate]
   )
 
   const handleManualBlogClick = useCallback(
     blog => {
       navigate(`/blog-editor/${blog._id}`)
     },
-    [navigate],
+    [navigate]
   )
 
   const handleRetry = useCallback(async id => {
@@ -232,7 +230,7 @@ const MyProjects = () => {
           updateBlogFilters({ sort: opt.value })
         },
       })),
-    [],
+    []
   )
 
   // Funnel menu options
@@ -244,7 +242,7 @@ const MyProjects = () => {
           updateBlogFilters({ status: opt.value })
         },
       })),
-    [],
+    []
   )
 
   const updateBlogFilters = useCallback(
@@ -255,7 +253,7 @@ const MyProjects = () => {
         return newValue
       })
     },
-    [blogFilters, userId],
+    [blogFilters, userId]
   )
 
   // -------------------------------------------------

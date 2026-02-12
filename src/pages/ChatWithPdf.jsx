@@ -18,8 +18,9 @@ import {
   BrainCircuit,
 } from "lucide-react"
 import { Button, Input, message, Upload as AntUpload, Avatar } from "antd"
-import { useDispatch, useSelector } from "react-redux"
-import { pdfChat, resetPdfChat } from "@/store/slices/toolsSlice"
+import { useSelector } from "react-redux"
+import useToolsStore from "@store/useToolsStore"
+import { usePdfChatMutation } from "@api/queries/toolsQueries"
 import { Helmet } from "react-helmet"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
@@ -30,8 +31,10 @@ const { Dragger } = AntUpload
 const { TextArea } = Input
 
 const ChatWithPdf = () => {
-  const dispatch = useDispatch()
-  const { loading, cacheKey, error } = useSelector(state => state.tools.pdfChat)
+  // const dispatch = useDispatch() // Removed
+  const { pdfChat, resetPdfChat } = useToolsStore()
+  const { cacheKey, error } = pdfChat
+  const { mutateAsync: sendMessage, isLoading: loading } = usePdfChatMutation()
 
   const [file, setFile] = useState(null)
   const [messages, setMessages] = useState([
@@ -129,7 +132,7 @@ const ChatWithPdf = () => {
         payload = { cacheKey, messages: conversationHistory, question: userMessage.content }
       }
 
-      const result = await dispatch(pdfChat(payload)).unwrap()
+      const result = await sendMessage(payload)
       setMessages(prev => [
         ...prev,
         { id: Date.now() + 1, role: "model", content: result.text, timestamp: new Date() },
@@ -148,7 +151,7 @@ const ChatWithPdf = () => {
 
   const clearFile = () => {
     setFile(null)
-    dispatch(resetPdfChat())
+    resetPdfChat()
     setMessages([
       {
         id: 1,

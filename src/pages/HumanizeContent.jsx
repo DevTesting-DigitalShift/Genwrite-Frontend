@@ -10,16 +10,21 @@ import {
   Loader2,
 } from "lucide-react"
 import { Button, message } from "antd"
-import { useDispatch, useSelector } from "react-redux"
+
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
-import { generateHumanizedContent, resetHumanizeState } from "@store/slices/humanizeSlice"
+import useHumanizeStore from "@store/useHumanizeStore"
+import useAuthStore from "@store/useAuthStore"
+import { useHumanizeMutation } from "@api/queries/humanizeQueries"
 import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
 
 const HumanizeContent = () => {
   const [inputContent, setInputContent] = useState("")
-  const dispatch = useDispatch()
-  const { loading: isLoading, result: outputContent, error } = useSelector(state => state.humanize)
-  const user = useSelector(state => state.auth.user)
+  // const dispatch = useDispatch() // Removed
+  const { result: outputContent, resetHumanizeState } = useHumanizeStore()
+  const { mutate: generateContent, isLoading } = useHumanizeMutation()
+
+  // const { loading: isLoading, result: outputContent, error } = useSelector(state => state.humanize) // Removed
+  const { user } = useAuthStore()
   const userPlan = user?.plan ?? user?.subscription?.plan
   const { handlePopup } = useConfirmPopup()
   const leftPanelRef = useRef()
@@ -81,15 +86,15 @@ const HumanizeContent = () => {
 
     const payload = { content: inputContent.trim() }
 
-    try {
-      const resultAction = await dispatch(generateHumanizedContent(payload)).unwrap()
-      if (generateHumanizedContent.fulfilled.match(resultAction)) {
+    generateContent(payload, {
+      onSuccess: () => {
         message.success("Content processed successfully!")
-      }
-    } catch (err) {
-      message.error("Failed to process content. Please try again.")
-      console.error(err)
-    }
+      },
+      onError: err => {
+        message.error("Failed to process content. Please try again.")
+        console.error(err)
+      },
+    })
   }
 
   const handleCopy = async (content, type) => {
@@ -119,7 +124,7 @@ const HumanizeContent = () => {
 
   const handleReset = () => {
     setInputContent("")
-    dispatch(resetHumanizeState())
+    resetHumanizeState()
     message.info("Content reset")
   }
 

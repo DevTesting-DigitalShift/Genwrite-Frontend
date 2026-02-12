@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { useSelector, useDispatch } from "react-redux"
 import { Input, Button, message, Select } from "antd"
 import {
   Building2,
@@ -14,14 +13,13 @@ import {
 } from "lucide-react"
 import { createBrandVoice, getSiteInfo } from "@/api/brandApi"
 import { motion, AnimatePresence } from "framer-motion"
-import { loadAuthenticatedUser } from "@store/slices/authSlice"
+import useAuthStore from "@store/useAuthStore"
 
 const { TextArea } = Input
 
 const Onboarding = () => {
   const navigate = useNavigate()
-  const dispatch = useDispatch()
-  const user = useSelector(state => state.auth.user)
+  const { user, loadAuthenticatedUser } = useAuthStore()
   const [currentStep, setCurrentStep] = useState(0)
   const [loading, setLoading] = useState(false)
   const [fetchingInfo, setFetchingInfo] = useState(false)
@@ -35,8 +33,8 @@ const Onboarding = () => {
     }
 
     // Load user data
-    dispatch(loadAuthenticatedUser())
-  }, [dispatch, navigate])
+    loadAuthenticatedUser()
+  }, [loadAuthenticatedUser, navigate])
 
   // Prevent users who've already completed onboarding from accessing this page
   useEffect(() => {
@@ -110,19 +108,13 @@ const Onboarding = () => {
         .map(k => k.trim())
         .filter(k => k && !formData.keywords.includes(k))
 
-      setFormData(prev => ({
-        ...prev,
-        keywords: [...prev.keywords, ...newKeywords],
-      }))
+      setFormData(prev => ({ ...prev, keywords: [...prev.keywords, ...newKeywords] }))
       setKeywordInput("")
     }
   }
 
   const removeKeyword = keyword => {
-    setFormData(prev => ({
-      ...prev,
-      keywords: prev.keywords.filter(k => k !== keyword),
-    }))
+    setFormData(prev => ({ ...prev, keywords: prev.keywords.filter(k => k !== keyword) }))
   }
 
   const handleSubmit = async () => {
@@ -215,8 +207,8 @@ const Onboarding = () => {
                 index === currentStep
                   ? "w-8 bg-gray-900"
                   : index < currentStep
-                  ? "w-2 bg-gray-400"
-                  : "w-2 bg-gray-200"
+                    ? "w-2 bg-gray-400"
+                    : "w-2 bg-gray-200"
               }`}
             />
           ))}

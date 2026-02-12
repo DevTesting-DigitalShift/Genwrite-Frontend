@@ -10,27 +10,25 @@ import {
   ListChecks,
 } from "lucide-react"
 import { Button, message } from "antd"
-import { useDispatch, useSelector } from "react-redux"
-import { summarizeYoutube, resetYoutubeSummary } from "@store/slices/toolsSlice"
+
+import useToolsStore from "@store/useToolsStore"
+import { useYoutubeSummaryMutation } from "@api/queries/toolsQueries"
 import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
 
 const YouTubeSummarization = () => {
   const [inputUrl, setInputUrl] = useState("")
-  const dispatch = useDispatch()
-  const {
-    loading: isLoading,
-    result: summaryResult,
-    error,
-  } = useSelector(state => state.tools.youtubeSummary)
-  const user = useSelector(state => state.auth.user)
+  // const dispatch = useDispatch() // Removed
+  const { youtubeSummary, resetYoutubeSummary } = useToolsStore()
+  const { result: summaryResult, error } = youtubeSummary
+  const { mutate: summarizeVideo, isLoading } = useYoutubeSummaryMutation()
 
   // Cleanup on unmount - reset state when user leaves the page
   useEffect(() => {
     return () => {
       setInputUrl("")
-      dispatch(resetYoutubeSummary())
+      resetYoutubeSummary()
     }
-  }, [dispatch])
+  }, [])
 
   const isValidYoutubeUrl = url => {
     const youtubeRegex =
@@ -53,13 +51,15 @@ const YouTubeSummarization = () => {
 
     const payload = { url: inputUrl.trim() }
 
-    try {
-      await dispatch(summarizeYoutube(payload)).unwrap()
-      message.success("Video summarized successfully!")
-    } catch (err) {
-      message.error(err?.message || "Failed to summarize video. Please try again.")
-      console.error(err)
-    }
+    summarizeVideo(payload, {
+      onSuccess: () => {
+        message.success("Video summarized successfully!")
+      },
+      onError: err => {
+        message.error(err?.message || "Failed to summarize video. Please try again.")
+        console.error(err)
+      },
+    })
   }
 
   const handleCopy = async content => {
@@ -80,7 +80,7 @@ const YouTubeSummarization = () => {
 
   const handleReset = () => {
     setInputUrl("")
-    dispatch(resetYoutubeSummary())
+    resetYoutubeSummary()
     message.info("Content reset")
   }
 

@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react"
-import { useDispatch } from "react-redux"
+import useAuthStore from "@store/useAuthStore"
 import { Link, useNavigate } from "react-router-dom"
-import { googleLogin, loginUser, signupUser } from "../../store/slices/authSlice"
 import { useGoogleLogin } from "@react-oauth/google"
 import { motion, AnimatePresence } from "framer-motion"
 import ReCAPTCHA from "react-google-recaptcha"
@@ -32,7 +31,7 @@ const Auth = ({ path }) => {
   const [termsAccepted, setTermsAccepted] = useState(false)
   const [recaptchaValue, setRecaptchaValue] = useState(null)
 
-  const dispatch = useDispatch()
+  const { loginUser, signupUser, googleLogin } = useAuthStore()
   const navigate = useNavigate()
 
   // Validate form fields
@@ -98,21 +97,20 @@ const Auth = ({ path }) => {
     flow: "implicit",
     redirect_uri: "https://app.genwrite.co/login",
     onSuccess: async tokenResponse => {
-      dispatch(
-        googleLogin({ access_token: tokenResponse.access_token, referralId: formData.referralId })
-      )
-        .unwrap()
-        .then(data => {
-          message.success("Google login successful!")
+      googleLogin({
+        access_token: tokenResponse.access_token,
+        referralId: formData.referralId,
+      }).then(data => {
+        message.success("Google login successful!")
 
-          const user = data.user || data?.data?.user || data
+        const user = data.user || data?.data?.user || data
 
-          if (isSignup) {
-            navigate("/onboarding", { replace: true })
-          } else {
-            navigate("/dashboard", { replace: true })
-          }
-        })
+        if (isSignup) {
+          navigate("/onboarding", { replace: true })
+        } else {
+          navigate("/dashboard", { replace: true })
+        }
+      })
     },
     onError: () => {
       message.error("Google login initialization failed.")
@@ -128,7 +126,7 @@ const Auth = ({ path }) => {
       setLoading(true)
 
       try {
-        const action = isSignup
+        const authPromise = isSignup
           ? signupUser({
               email: formData.email,
               password: formData.password,
@@ -142,7 +140,7 @@ const Auth = ({ path }) => {
               captchaToken: recaptchaValue,
             })
 
-        const { user } = await dispatch(action).unwrap()
+        const { user } = await authPromise
 
         message.success(isSignup ? "Signup successful!" : "Login successful!")
 
@@ -160,7 +158,7 @@ const Auth = ({ path }) => {
         setLoading(false)
       }
     },
-    [formData, isSignup, dispatch, navigate, validateForm, recaptchaValue]
+    [formData, isSignup, loginUser, signupUser, navigate, validateForm, recaptchaValue]
   )
 
   // Update isSignup based on path

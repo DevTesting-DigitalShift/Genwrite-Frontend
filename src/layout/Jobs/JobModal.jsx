@@ -1,22 +1,15 @@
 import React, { useState, useEffect } from "react"
-import { useDispatch } from "react-redux"
 import { Modal, message } from "antd"
-import { createJob, updateJob } from "@api/jobApi"
-import { clearSelectedKeywords } from "@store/slices/analysisSlice"
+import useJobStore from "@store/useJobStore"
+import useAnalysisStore from "@store/useAnalysisStore"
 import StepContent from "./StepContent"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useCreateJobMutation, useUpdateJobMutation } from "@api/queries/jobQueries"
 import { IMAGE_SOURCE } from "@/data/blogData"
 import { validateJobData } from "@/types/forms.schemas"
 
-const JobModal = ({
-  showJobModal,
-  setShowJobModal,
-  selectedJob,
-  selectedKeywords,
-  user,
-  userPlan,
-  isUserLoaded,
-}) => {
+const JobModal = ({ user, userPlan, isUserLoaded }) => {
+  const { showJobModal, closeJobModal, selectedJob } = useJobStore()
+  const { selectedKeywords, clearSelectedKeywords } = useAnalysisStore()
   const initialJob = {
     name: "",
     schedule: { type: "daily", customDates: [], daysOfWeek: [], daysOfMonth: [] },
@@ -54,8 +47,9 @@ const JobModal = ({
     status: "active",
     templateIds: [],
   }
-  const dispatch = useDispatch()
-  const queryClient = useQueryClient()
+  const { mutate: createJobMutate, isPending: isCreating } = useCreateJobMutation()
+  const { mutate: updateJobMutate, isPending: isUpdating } = useUpdateJobMutation()
+
   const [currentStep, setCurrentStep] = useState(1)
   const [newJob, setNewJob] = useState(initialJob)
   const [formData, setFormData] = useState({
@@ -86,9 +80,9 @@ const JobModal = ({
       })
       setCurrentStep(1)
       setErrors({})
-      dispatch(clearSelectedKeywords())
+      clearSelectedKeywords()
     }
-  }, [showJobModal])
+  }, [showJobModal, clearSelectedKeywords])
 
   useEffect(() => {
     if (selectedJob) {
@@ -206,62 +200,20 @@ const JobModal = ({
     return Object.keys(newErrors).length === 0
   }
 
-  const createJobMutation = useMutation({
-    mutationFn: jobPayload => createJob(jobPayload),
-    onSuccess: newJobData => {
-      queryClient.setQueryData(["jobs", user.id], (old = []) => {
-        // Prevent duplicates if task already exists
-        if (old.some(job => job._id === newJobData._id))
-          return old.map(j => (j._id === newJobData._id ? newJobData : j))
-        return [newJobData, ...old]
-      })
-      queryClient.invalidateQueries({ queryKey: ["jobs"], exact: false })
-      message.success("Job created successfully!")
-      setShowJobModal(false)
-      setNewJob(initialJob)
-      setFormData({
-        keywords: [],
-        keywordInput: "",
-        performKeywordResearch: false,
-        postingType: "WORDPRESS",
-        aiModel: "gemini",
-      })
-      setCurrentStep(1)
-      setErrors({})
-      dispatch(clearSelectedKeywords())
-    },
-    onError: error => {
-      console.error("Failed to create job:", error)
-      message.error(error.response?.data?.message || "Failed to create job. Please try again.")
-    },
-  })
-
-  const updateJobMutation = useMutation({
-    mutationFn: ({ jobId, jobPayload }) => updateJob(jobId, jobPayload),
-    onSuccess: updatedJobData => {
-      queryClient.setQueryData(["jobs", user.id], (old = []) =>
-        old.map(job => (job._id === updatedJobData._id ? { ...job, ...updatedJobData } : job))
-      )
-      queryClient.invalidateQueries({ queryKey: ["jobs"], exact: false })
-      message.success("Job updated successfully!")
-      setShowJobModal(false)
-      setNewJob(initialJob)
-      setFormData({
-        keywords: [],
-        keywordInput: "",
-        performKeywordResearch: false,
-        postingType: "WORDPRESS",
-        aiModel: "gemini",
-      })
-      setCurrentStep(1)
-      setErrors({})
-      dispatch(clearSelectedKeywords())
-    },
-    onError: error => {
-      console.error("Failed to update job:", error)
-      message.error(error.response?.data?.message || "Failed to update job. Please try again.")
-    },
-  })
+  const resetModal = () => {
+    closeJobModal()
+    setNewJob(initialJob)
+    setFormData({
+      keywords: [],
+      keywordInput: "",
+      performKeywordResearch: false,
+      postingType: "WORDPRESS",
+      aiModel: "gemini",
+    })
+    setCurrentStep(1)
+    setErrors({})
+    clearSelectedKeywords()
+  }
 
   const handleCreateJob = async () => {
     if (!validateSteps("all")) return
@@ -272,7 +224,6 @@ const JobModal = ({
         keywords: formData.keywords,
         aiModel: formData.aiModel,
         postingType: formData.postingType,
-        // Set imageSource to "none" if images are disabled
         imageSource: newJob.blogs.isCheckedGeneratedImages
           ? newJob.blogs.imageSource
           : IMAGE_SOURCE.NONE,
@@ -284,9 +235,12 @@ const JobModal = ({
       },
     }
 
-    // Validate with Zod schema (logs to console when VITE_VALIDATE_FORMS=true)
     const validatedPayload = validateJobData(jobPayload)
-    createJobMutation.mutate(validatedPayload)
+    createJobMutate(validatedPayload, {
+      onSuccess: () => {
+        resetModal()
+      },
+    })
   }
 
   const handleUpdateJob = async jobId => {
@@ -302,7 +256,6 @@ const JobModal = ({
         keywords: formData.keywords,
         aiModel: formData.aiModel,
         postingType: formData.postingType,
-        // Set imageSource to "none" if images are disabled
         imageSource: newJob.blogs.isCheckedGeneratedImages
           ? newJob.blogs.imageSource
           : IMAGE_SOURCE.NONE,
@@ -314,9 +267,15 @@ const JobModal = ({
       },
     }
 
-    // Validate with Zod schema (logs to console when VITE_VALIDATE_FORMS=true)
     const validatedPayload = validateJobData(jobPayload)
-    updateJobMutation.mutate({ jobId, jobPayload: validatedPayload })
+    updateJobMutate(
+      { jobId, jobPayload: validatedPayload },
+      {
+        onSuccess: () => {
+          resetModal()
+        },
+      }
+    )
   }
 
   const footerButtons = [
@@ -360,13 +319,9 @@ const JobModal = ({
         onClick={selectedJob ? () => handleUpdateJob(selectedJob._id) : handleCreateJob}
         className="px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90"
         aria-label={selectedJob ? "Update job" : "Create job"}
-        disabled={createJobMutation.isPending || updateJobMutation.isPending}
+        disabled={isCreating || isUpdating}
       >
-        {createJobMutation.isPending || updateJobMutation.isPending
-          ? "Processing..."
-          : selectedJob
-            ? "Update Job"
-            : "Create Job"}
+        {isCreating || isUpdating ? "Processing..." : selectedJob ? "Update Job" : "Create Job"}
       </button>
     ),
   ]
@@ -384,7 +339,7 @@ const JobModal = ({
       }`}
       open={showJobModal}
       onCancel={() => {
-        setShowJobModal(false)
+        closeJobModal()
       }}
       footer={footerButtons}
       width={800}

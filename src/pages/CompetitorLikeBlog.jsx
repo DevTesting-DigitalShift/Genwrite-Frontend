@@ -11,8 +11,9 @@ import {
   Palette,
 } from "lucide-react"
 import { Button, message } from "antd"
-import { useDispatch, useSelector } from "react-redux"
-import { likeCompetitor, resetCompetitorLikeBlog } from "@store/slices/toolsSlice"
+
+import useToolsStore from "@store/useToolsStore"
+import { useCompetitorLikeBlogMutation } from "@api/queries/toolsQueries"
 import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
@@ -20,15 +21,17 @@ import remarkGfm from "remark-gfm"
 const CompetitorLikeBlog = () => {
   const [url, setUrl] = useState("")
   const [topic, setTopic] = useState("")
-  const dispatch = useDispatch()
-  const { loading: isLoading, result, error } = useSelector(state => state.tools.competitorLikeBlog)
+  // const dispatch = useDispatch() // Removed
+  const { competitorLikeBlog, resetCompetitorLikeBlog } = useToolsStore()
+  const { result, error } = competitorLikeBlog
+  const { mutate: generateContent, isLoading } = useCompetitorLikeBlogMutation()
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      dispatch(resetCompetitorLikeBlog())
+      resetCompetitorLikeBlog()
     }
-  }, [dispatch])
+  }, [])
 
   const isValidUrl = str => {
     try {
@@ -62,13 +65,15 @@ const CompetitorLikeBlog = () => {
 
     const payload = { url: url.trim(), topic: topic.trim() }
 
-    try {
-      await dispatch(likeCompetitor(payload)).unwrap()
-      message.success("Content generated successfully!")
-    } catch (err) {
-      message.error(err?.message || "Failed to generate content. Please try again.")
-      console.error(err)
-    }
+    generateContent(payload, {
+      onSuccess: () => {
+        message.success("Content generated successfully!")
+      },
+      onError: err => {
+        message.error(err?.message || "Failed to generate content. Please try again.")
+        console.error(err)
+      },
+    })
   }
 
   const handleCopy = async content => {
@@ -84,7 +89,7 @@ const CompetitorLikeBlog = () => {
   const handleReset = () => {
     setUrl("")
     setTopic("")
-    dispatch(resetCompetitorLikeBlog())
+    resetCompetitorLikeBlog()
     message.info("Reset successfully")
   }
 

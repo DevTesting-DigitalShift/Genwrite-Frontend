@@ -1,19 +1,20 @@
 import { useState, useEffect, useMemo, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import { Helmet } from "react-helmet"
 import { Pagination, message } from "antd"
 import { Plus, RefreshCw, Briefcase, Search, AlertTriangle, Sparkles, Zap } from "lucide-react"
-import { getJobs } from "@api/jobApi"
-import { selectUser } from "@store/slices/authSlice"
+import useAuthStore from "@store/useAuthStore"
+import useJobStore from "@store/useJobStore"
+import useAnalysisStore from "@store/useAnalysisStore"
 import SkeletonLoader from "@components/UI/SkeletonLoader"
 import UpgradeModal from "@components/UpgradeModal"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
 import JobModal from "@/layout/Jobs/JobModal"
 import JobCard from "@/layout/Jobs/JobCard"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useJobsQuery } from "@api/queries/jobQueries"
 import { getSocket } from "@utils/socket"
+import { useQueryClient } from "@tanstack/react-query"
 
 const PAGE_SIZE = 12 // Adjusted for better grid symmetry
 
@@ -63,34 +64,20 @@ const CreateNewJobCard = ({ onClick, disabled }) => (
 const Jobs = () => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const [showJobModal, setShowJobModal] = useState(false)
-  const [selectedJob, setSelectedJob] = useState(null)
+  const { user } = useAuthStore()
+  const { showJobModal, openJobModal, closeJobModal } = useJobStore()
+  const { selectedKeywords } = useAnalysisStore()
   const [searchQuery, setSearchQuery] = useState("")
 
-  const { selectedKeywords } = useSelector(state => state.analysis)
-  const user = useSelector(selectUser)
   const userPlan = (user?.plan || user?.subscription?.plan || "free").toLowerCase()
   const [currentPage, setCurrentPage] = useState(1)
-  const [showWarning, setShowWarning] = useState(false)
   const [isUserLoaded, setIsUserLoaded] = useState(false)
 
   const usage = user?.usage?.createdJobs || 0
   const usageLimit = user?.usageLimits?.createdJobs || 0
 
   // TanStack Query
-  const {
-    data: queryJobs = [],
-    isLoading: queryLoading,
-    refetch,
-  } = useQuery({
-    queryKey: ["jobs", user?.id],
-    queryFn: async () => {
-      const response = await getJobs()
-      return response || []
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    enabled: !!user,
-  })
+  const { data: queryJobs = [], isLoading: queryLoading, refetch } = useJobsQuery(!!user)
 
   // Real-time Updates
   useEffect(() => {
@@ -157,14 +144,15 @@ const Jobs = () => {
 
   const handleOpenJobModal = useCallback(() => {
     if (!checkJobLimit()) return
-    setSelectedJob(null)
-    setShowJobModal(true)
-  }, [checkJobLimit])
+    openJobModal(null)
+  }, [checkJobLimit, openJobModal])
 
-  const handleEditJob = useCallback(job => {
-    setSelectedJob(job)
-    setShowJobModal(true)
-  }, [])
+  const handleEditJob = useCallback(
+    job => {
+      openJobModal(job)
+    },
+    [openJobModal]
+  )
 
   const handleRefresh = () => {
     refetch()
@@ -202,7 +190,9 @@ const Jobs = () => {
         <header className="mb-10">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-8 border-b border-slate-200/60">
             <div className="space-y-1">
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Jobs Automation</h1>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Jobs Automation
+              </h1>
               <p className="text-slate-500 text-sm max-w-md">
                 Manage and monitor your automated content generation streams effortlessly.
               </p>
@@ -309,15 +299,7 @@ const Jobs = () => {
           </div>
         )}
 
-        <JobModal
-          showJobModal={showJobModal}
-          setShowJobModal={setShowJobModal}
-          selectedJob={selectedJob}
-          selectedKeywords={selectedKeywords}
-          user={user}
-          userPlan={userPlan}
-          isUserLoaded={isUserLoaded}
-        />
+        <JobModal user={user} userPlan={userPlan} isUserLoaded={isUserLoaded} />
       </div>
 
       <style jsx global>{`

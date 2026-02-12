@@ -11,27 +11,25 @@ import {
   Info,
 } from "lucide-react"
 import { Button, message } from "antd"
-import { useDispatch, useSelector } from "react-redux"
-import { detectAiContent, resetAiDetection } from "@store/slices/toolsSlice"
+
+import useToolsStore from "@store/useToolsStore"
+import { useAiDetectionMutation } from "@api/queries/toolsQueries"
 import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
 
 const AiContentDetection = () => {
   const [inputContent, setInputContent] = useState("")
-  const dispatch = useDispatch()
-  const {
-    loading: isLoading,
-    result: detectionResult,
-    error,
-  } = useSelector(state => state.tools.aiDetection)
-  const user = useSelector(state => state.auth.user)
+  // const dispatch = useDispatch() // Removed
+  const { aiDetection, resetAiDetection } = useToolsStore()
+  const { result: detectionResult, error } = aiDetection
+  const { mutate: detectContent, isLoading } = useAiDetectionMutation()
 
   // Cleanup on unmount - reset state when user leaves the page
   useEffect(() => {
     return () => {
       setInputContent("")
-      dispatch(resetAiDetection())
+      resetAiDetection()
     }
-  }, [dispatch])
+  }, [])
 
   const wordCount = inputContent.trim().split(/\s+/).filter(Boolean).length
 
@@ -48,13 +46,15 @@ const AiContentDetection = () => {
 
     const payload = { content: inputContent.trim() }
 
-    try {
-      await dispatch(detectAiContent(payload)).unwrap()
-      message.success("Content analyzed successfully!")
-    } catch (err) {
-      message.error(err?.message || "Failed to analyze content. Please try again.")
-      console.error(err)
-    }
+    detectContent(payload, {
+      onSuccess: () => {
+        message.success("Content analyzed successfully!")
+      },
+      onError: err => {
+        message.error(err?.message || "Failed to analyze content. Please try again.")
+        console.error(err)
+      },
+    })
   }
 
   const handleCopy = async content => {
@@ -69,7 +69,7 @@ const AiContentDetection = () => {
 
   const handleReset = () => {
     setInputContent("")
-    dispatch(resetAiDetection())
+    resetAiDetection()
     message.info("Content reset")
   }
 

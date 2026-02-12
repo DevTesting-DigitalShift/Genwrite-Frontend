@@ -12,8 +12,7 @@ import {
   Sparkles,
   ArrowRight,
 } from "lucide-react"
-import { resetPassword } from "@store/slices/authSlice"
-import { useDispatch } from "react-redux"
+import useAuthStore from "@store/useAuthStore"
 import { message } from "antd"
 
 const ResetPassword = () => {
@@ -28,7 +27,7 @@ const ResetPassword = () => {
   const [errors, setErrors] = useState({})
   const [token, setToken] = useState("")
   const location = useLocation()
-  const dispatch = useDispatch()
+  const { resetPassword } = useAuthStore()
 
   useEffect(() => {
     const resetToken = searchParams.get("token")
@@ -39,7 +38,7 @@ const ResetPassword = () => {
     }
   }, [searchParams, navigate])
 
-  const validatePassword = (pwd) => {
+  const validatePassword = pwd => {
     const errors = []
     if (pwd.length < 8) errors.push("At least 8 characters")
     if (!/[A-Z]/.test(pwd)) errors.push("One uppercase letter")
@@ -49,7 +48,7 @@ const ResetPassword = () => {
     return errors
   }
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async e => {
     e.preventDefault()
 
     const newErrors = {}
@@ -84,7 +83,7 @@ const ResetPassword = () => {
     }
 
     try {
-      const res = await dispatch(resetPassword({ token, newPassword: password })).unwrap()
+      const res = await resetPassword({ token, newPassword: password })
       if (res) {
         message.success(res)
         setSuccess(true)
@@ -98,7 +97,7 @@ const ResetPassword = () => {
     }
   }
 
-  const getPasswordStrength = (pwd) => {
+  const getPasswordStrength = pwd => {
     const errors = validatePassword(pwd)
     const strength = 5 - errors.length
 
@@ -115,27 +114,13 @@ const ResetPassword = () => {
         {/* Animated Background Elements */}
         <div className="absolute inset-0 overflow-hidden">
           <motion.div
-            animate={{
-              rotate: [0, 360],
-              scale: [1, 1.1, 1],
-            }}
-            transition={{
-              duration: 20,
-              repeat: Infinity,
-              ease: "linear",
-            }}
+            animate={{ rotate: [0, 360], scale: [1, 1.1, 1] }}
+            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
             className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl"
           />
           <motion.div
-            animate={{
-              rotate: [360, 0],
-              scale: [1, 1.2, 1],
-            }}
-            transition={{
-              duration: 25,
-              repeat: Infinity,
-              ease: "linear",
-            }}
+            animate={{ rotate: [360, 0], scale: [1, 1.2, 1] }}
+            transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
             className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-indigo-400/20 to-cyan-400/20 rounded-full blur-3xl"
           />
         </div>
@@ -225,27 +210,13 @@ const ResetPassword = () => {
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
         <motion.div
-          animate={{
-            rotate: [0, 360],
-            scale: [1, 1.1, 1],
-          }}
-          transition={{
-            duration: 20,
-            repeat: Infinity,
-            ease: "linear",
-          }}
+          animate={{ rotate: [0, 360], scale: [1, 1.1, 1] }}
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
           className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl"
         />
         <motion.div
-          animate={{
-            rotate: [360, 0],
-            scale: [1, 1.2, 1],
-          }}
-          transition={{
-            duration: 25,
-            repeat: Infinity,
-            ease: "linear",
-          }}
+          animate={{ rotate: [360, 0], scale: [1, 1.2, 1] }}
+          transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
           className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-indigo-400/20 to-cyan-400/20 rounded-full blur-3xl"
         />
       </div>
@@ -299,9 +270,9 @@ const ResetPassword = () => {
                   type={showPassword ? "text" : "password"}
                   placeholder="Enter new password"
                   value={password}
-                  onChange={(e) => {
+                  onChange={e => {
                     setPassword(e.target.value)
-                    setErrors((prev) => ({ ...prev, password: "" }))
+                    setErrors(prev => ({ ...prev, password: "" }))
                   }}
                   className={`w-full pl-12 pr-12 py-4 bg-gray-50/80 border-2 rounded-2xl text-gray-800 placeholder-gray-500 focus:bg-white focus:shadow-lg outline-none transition-all duration-300 ${
                     errors.password
@@ -330,8 +301,8 @@ const ResetPassword = () => {
                             getPasswordStrength(password).level === "weak"
                               ? 33
                               : getPasswordStrength(password).level === "medium"
-                              ? 66
-                              : 100
+                                ? 66
+                                : 100
                           }%`,
                         }}
                       />
@@ -341,8 +312,8 @@ const ResetPassword = () => {
                         passwordStrength.level === "weak"
                           ? "text-red-600"
                           : passwordStrength.level === "medium"
-                          ? "text-yellow-600"
-                          : "text-green-600"
+                            ? "text-yellow-600"
+                            : "text-green-600"
                       }`}
                     >
                       {passwordStrength.text}
@@ -376,9 +347,9 @@ const ResetPassword = () => {
                   type={showConfirmPassword ? "text" : "password"}
                   placeholder="Confirm new password"
                   value={confirmPassword}
-                  onChange={(e) => {
+                  onChange={e => {
                     setConfirmPassword(e.target.value)
-                    setErrors((prev) => ({ ...prev, confirmPassword: "" }))
+                    setErrors(prev => ({ ...prev, confirmPassword: "" }))
                   }}
                   className={`w-full pl-12 pr-12 py-4 bg-gray-50/80 border-2 rounded-2xl text-gray-800 placeholder-gray-500 focus:bg-white focus:shadow-lg outline-none transition-all duration-300 ${
                     errors.confirmPassword

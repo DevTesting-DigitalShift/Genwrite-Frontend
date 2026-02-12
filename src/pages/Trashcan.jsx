@@ -5,11 +5,10 @@ import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { QuestionCircleOutlined } from "@ant-design/icons"
 import { motion } from "framer-motion"
 import { Helmet } from "react-helmet"
-import { useDispatch, useSelector } from "react-redux"
+import useAuthStore from "@store/useAuthStore"
+import { useRestoreBlogMutation, useDeleteAllBlogsMutation } from "@api/queries/blogQueries"
 import SkeletonLoader from "@components/UI/SkeletonLoader"
 import { getAllBlogs } from "@api/blogApi"
-import { deleteAllUserBlogs, restoreTrashedBlog } from "@store/slices/blogSlice"
-import { selectUser } from "@store/slices/authSlice"
 import DebouncedSearchInput from "@components/UI/DebouncedSearchInput"
 import dayjs from "dayjs"
 import { useNavigate } from "react-router-dom"
@@ -26,10 +25,11 @@ const Trashcan = () => {
   const [statusFilter, setStatusFilter] = useState("all")
   const [dateRange, setDateRange] = useState([null, null])
 
-  const dispatch = useDispatch()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const user = useSelector(selectUser)
+  const { user } = useAuthStore()
+  const restoreMutation = useRestoreBlogMutation()
+  const bulkDeleteMutation = useDeleteAllBlogsMutation()
   const userId = user?.id || "guest"
 
   const TRUNCATE_LENGTH = 200
@@ -161,30 +161,6 @@ const Trashcan = () => {
     }
   }, [user, queryClient])
 
-  // Restore mutation with optimistic update
-  const restoreMutation = useMutation({
-    mutationFn: id => dispatch(restoreTrashedBlog(id)).unwrap(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["trashedBlogs"], exact: false })
-      queryClient.invalidateQueries({ queryKey: ["blogs"], exact: false })
-    },
-    onError: error => {
-      console.error("Failed to restore blog:", error)
-    },
-  })
-
-  // Bulk delete mutation with optimistic update
-  const bulkDeleteMutation = useMutation({
-    mutationFn: () => dispatch(deleteAllUserBlogs()).unwrap(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["trashedBlogs"], exact: false })
-      setCurrentPage(1)
-    },
-    onError: error => {
-      console.error("Failed to delete all blogs:", error)
-    },
-  })
-
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" })
   }, [currentPage])
@@ -218,14 +194,14 @@ const Trashcan = () => {
     blog => {
       navigate(`/blog/${blog._id}`)
     },
-    [navigate],
+    [navigate]
   )
 
   const handleManualBlogClick = useCallback(
     blog => {
       navigate(`/blog-editor/${blog._id}`)
     },
-    [navigate],
+    [navigate]
   )
 
   return (

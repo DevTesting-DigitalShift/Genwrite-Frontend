@@ -36,15 +36,8 @@ import {
 import { AnimatePresence, motion } from "framer-motion"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { Helmet } from "react-helmet"
-import { useDispatch, useSelector } from "react-redux"
-import { selectUser } from "@store/slices/authSlice"
-import {
-  archiveBlog,
-  fetchAllBlogs,
-  retryBlog,
-  restoreTrashedBlog,
-  deleteAllUserBlogs,
-} from "@store/slices/blogSlice"
+import useAuthStore from "@store/useAuthStore"
+import { restoreTrashedBlog, deleteAllUserBlogs } from "@store/slices/blogSlice"
 import dayjs from "dayjs"
 import Fuse from "fuse.js"
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query"
@@ -73,10 +66,9 @@ const BlogsPage = () => {
   const location = useLocation()
   const isTrashcan = location.pathname === "/trashcan"
 
-  const dispatch = useDispatch()
+  const { user } = useAuthStore()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const user = useSelector(selectUser)
   const userId = user?._id || "guest"
   const { handleProAction } = useProAction()
   const { handlePopup } = useConfirmPopup()

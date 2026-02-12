@@ -7,10 +7,8 @@ import brandReducer from "./slices/brandSlice"
 import analysisReducer from "./slices/analysisSlice"
 import wordpressReducer from "./slices/otherSlice"
 import gscReducer from "./slices/gscSlice"
-import humanizeReducer from "./slices/humanizeSlice"
-import creditLogsReducer from "./slices/creditLogSlice"
+
 import integrationReducer from "./slices/integrationSlice"
-import toolsReducer from "./slices/toolsSlice"
 
 export const store = configureStore({
   reducer: {
@@ -22,10 +20,8 @@ export const store = configureStore({
     analysis: analysisReducer,
     wordpress: wordpressReducer,
     gsc: gscReducer,
-    humanize: humanizeReducer,
-    creditLogs: creditLogsReducer,
+
     integration: integrationReducer,
-    tools: toolsReducer,
   },
 })
 
