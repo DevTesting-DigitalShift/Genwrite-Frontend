@@ -55,6 +55,18 @@ import * as Cheerio from "cheerio"
 import { marked } from "marked"
 import TurndownService from "turndown"
 
+const renderer = {
+  heading({ text, depth: level }) {
+    const slug = String(text)
+      .toLowerCase()
+      .replace(/[^\w]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+    return `<h${level} id="${slug}">${text}</h${level}>`
+  },
+}
+
+marked.use({ renderer })
+
 const { TextArea } = Input
 
 // WordPress Categories Component
@@ -283,7 +295,7 @@ const TextEditorSidebar = ({
 
   // Diff Viewer State
   const [showDiff, setShowDiff] = useState(false)
-  const [diffData, setDiffData] = useState({ old: "", new: "" })
+  const [diffData, setDiffData] = useState({ old: "", new: "", full: "" })
 
   // Sidebar navigation items
   const NAV_ITEMS = [
@@ -368,16 +380,6 @@ const TextEditorSidebar = ({
       // Only runs if no proper <section> tags were found
       if (sections.length === 0) {
         // Configure marked to match TipTap's ID generation
-        const renderer = {
-          heading(text, level) {
-            const slug = text
-              .toLowerCase()
-              .replace(/[^\w]+/g, "-")
-              .replace(/^-+|-+$/g, "")
-            return `<h${level} id="${slug}">${text}</h${level}>`
-          },
-        }
-        marked.use({ renderer })
 
         // Convert Markdown to HTML to ensure we catch all headers with generated IDs
         const html = marked.parse(editorContent)
@@ -450,6 +452,8 @@ const TextEditorSidebar = ({
 
       if (response.data && (response.data.content || response.data.markdown)) {
         let newFullContent = editorContent
+        let originalSectionContent = ""
+        let newSectionContent = response.data.markdown || response.data.content || ""
 
         // Helper to normalize slugs similar to how TipTap/Marked does
         const getSlug = text =>
@@ -458,6 +462,21 @@ const TextEditorSidebar = ({
             .replace(/[^\w]+/g, "-")
             .replace(/^-+|-+$/g, "")
 
+        const turndownService = new TurndownService({ headingStyle: "atx", bulletListMarker: "-" })
+        turndownService.keep([
+          "p",
+          "div",
+          "iframe",
+          "table",
+          "tr",
+          "th",
+          "td",
+          "figure",
+          "figcaption",
+          "section",
+          "article",
+        ])
+
         // STRATEGY 1: Cheerio (HTML Content)
         // Only works if editorContent contains actual HTML tags with IDs
         const $ = Cheerio.load(editorContent, { xmlMode: false })
@@ -465,6 +484,8 @@ const TextEditorSidebar = ({
 
         if ($section.length) {
           // Found explicit HTML section
+          originalSectionContent = turndownService.turndown($section.html())
+
           const $contentDiv = $section.find(".section-content")
           if ($contentDiv.length) {
             $contentDiv.html(response.data.content)
@@ -474,24 +495,12 @@ const TextEditorSidebar = ({
 
           // Convert modified HTML back to Markdown to match editor format
           const modifiedHtml = $("body").html() || $.html()
-          const turndownService = new TurndownService({
-            headingStyle: "atx",
-            bulletListMarker: "-",
-          })
-          turndownService.keep([
-            "p",
-            "div",
-            "iframe",
-            "table",
-            "tr",
-            "th",
-            "td",
-            "figure",
-            "figcaption",
-            "section",
-            "article",
-          ])
           newFullContent = turndownService.turndown(modifiedHtml)
+
+          // If we got HTML back, clean it up for comparison too
+          if (response.data.content && !response.data.markdown) {
+            newSectionContent = turndownService.turndown(response.data.content)
+          }
         } else {
           // STRATEGY 2: Markdown Content (Fallback)
           // Parse markdown line-by-line to find the header matching the sectionId
@@ -528,6 +537,8 @@ const TextEditorSidebar = ({
             // Found the section
             if (endLine === -1) endLine = lines.length
 
+            originalSectionContent = lines.slice(startLine, endLine).join("\n")
+
             // Construct new content:
             // 1. Everything before the header (lines 0 to startLine-1)
             // 2. The Header itself (lines[startLine]) - we keep the header!
@@ -537,10 +548,11 @@ const TextEditorSidebar = ({
             const before = lines.slice(0, startLine + 1).join("\n") // Include header line
             const after = lines.slice(endLine).join("\n")
 
-            // Prefer markdown response if available, else convert content or use as is
-            const newSectionContent = response.data.markdown || response.data.content || ""
-
             newFullContent = `${before}\n\n${newSectionContent}\n\n${after}`
+
+            // For the diff display, let's include the header in the 'new' version too if possible
+            // or just keep it consistent with originalSectionContent
+            newSectionContent = `${lines[startLine]}\n\n${newSectionContent}`
           } else {
             message.error(
               "Could not locate section in current content. Ensure section headers are not modified."
@@ -551,7 +563,7 @@ const TextEditorSidebar = ({
         }
 
         // Open Diff Modal instead of instant replace
-        setDiffData({ old: editorContent, new: newFullContent })
+        setDiffData({ old: originalSectionContent, new: newSectionContent, full: newFullContent })
         setShowDiff(true)
 
         // Clear instructions if custom
@@ -3214,7 +3226,7 @@ const TextEditorSidebar = ({
             oldMarkdown={diffData.old}
             newMarkdown={diffData.new}
             onAccept={() => {
-              setEditorContent(diffData.new)
+              setEditorContent(diffData.full)
               setShowDiff(false)
               message.success("Changes applied successfully")
             }}

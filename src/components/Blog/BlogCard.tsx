@@ -1,6 +1,19 @@
-import React from "react"
-import { Badge, Button, Tooltip, Flex, Typography, Tag } from "antd"
-import { RotateCcw, Trash2, MousePointerClick, Eye, ArchiveRestore } from "lucide-react"
+import React, { useState } from "react"
+import { Popover, Tooltip } from "antd"
+import {
+  Sparkles,
+  Calendar,
+  ArrowUpRight,
+  MoreVertical,
+  CheckCircle2,
+  Loader2,
+  RotateCcw,
+  Trash2,
+  ArchiveRestore,
+  MousePointerClick,
+  Eye,
+  AlertCircle,
+} from "lucide-react"
 
 interface Blog {
   _id: string
@@ -27,22 +40,41 @@ interface BlogCardProps {
   onRetry: (id: string) => void
   onArchive?: (id: string) => void
   onRestore?: (id: string) => void
-  handlePopup: (config: any) => void
+  handlePopup: (config: Record<string, any>) => void
   hasGSCPermissions?: boolean
   isTrashcan?: boolean
 }
 
-const TRUNCATE_LENGTH = 160
+const statusColors = {
+  complete: "border-emerald-500",
+  failed: "border-rose-500",
+  pending: "border-amber-500",
+  "in-progress": "border-amber-500",
+}
 
-const { Text, Title, Paragraph } = Typography
-
-const styleAiModel: (str: string) => string = str => {
-  let arr = str.split("-")
-  if (arr.length > 3) {
-    arr = arr.slice(0, 3)
+const StatusBadge = ({ status }: { status: string }) => {
+  if (status === "pending" || status === "in-progress") {
+    return (
+      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200/60 text-amber-600">
+        <Loader2 size={12} className="animate-spin" />
+        <span className="text-[10px] font-bold uppercase tracking-wider">Generating</span>
+      </div>
+    )
   }
-  const model = arr.join(" ")
-  return model[0].toUpperCase() + model.substring(1)
+  if (status === "failed") {
+    return (
+      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-50 border border-rose-200/60 text-rose-600">
+        <AlertCircle size={12} />
+        <span className="text-[10px] font-bold uppercase tracking-wider">Failed</span>
+      </div>
+    )
+  }
+  return (
+    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200/60 text-emerald-600">
+      <CheckCircle2 size={12} />
+      <span className="text-[10px] font-bold uppercase tracking-wider">Published</span>
+    </div>
+  )
 }
 
 const BlogCard: React.FC<BlogCardProps> = ({
@@ -56,303 +88,234 @@ const BlogCard: React.FC<BlogCardProps> = ({
   hasGSCPermissions = false,
   isTrashcan = false,
 }) => {
-  const truncateContent = (content: string, length = TRUNCATE_LENGTH) => {
-    if (!content) return ""
-    return content.length > length ? content.substring(0, length) + "..." : content
-  }
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false)
 
   const stripMarkdown = (text: string) => {
     return text
       ?.replace(/<[^>]*>/g, "")
-      ?.replace(/[\\*#=_~`>\-]+/g, "")
+      ?.replace(/[\\*#=_~`>-]+/g, "")
       ?.replace(/\s{2,}/g, " ")
       ?.trim()
   }
 
   const isManualEditor = blog.isManuallyEdited === true
-  const {
-    _id,
-    title,
-    status,
-    createdAt,
-    shortContent,
-    aiModel,
-    aiModelVer,
-    focusKeywords,
-    updatedAt,
-    agendaNextRun,
-    isArchived,
-    archiveDate,
-    gscClicks,
-    gscImpressions,
-  } = blog
-  const isGemini = /gemini/gi.test(aiModel)
+  const isRunning = blog.status === "pending" || blog.status === "in-progress"
+  const isGemini = /gemini/gi.test(blog.aiModel)
+  const isChatGPT = /gpt|openai/gi.test(blog.aiModel)
+  const isClaude = /claude/gi.test(blog.aiModel)
+  const { focusKeywords } = blog
+
+  const handleActionsPopover = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setIsPopoverOpen(!isPopoverOpen)
+  }
+
+  const handleRetryClick = () => {
+    setIsPopoverOpen(false)
+    handlePopup({
+      title: "Regenerate Blog",
+      description: (
+        <span className="my-2">
+          Are you sure you want to retry generating <b>{blog.title}</b>?
+        </span>
+      ),
+      confirmText: "Yes, Retry",
+      onConfirm: () => onRetry(blog._id),
+      confirmProps: {
+        type: "text",
+        className: "border-emerald-500 bg-emerald-50 text-emerald-600",
+      },
+    })
+  }
+
+  const handleArchiveClick = () => {
+    setIsPopoverOpen(false)
+    handlePopup({
+      title: "Move to Trash",
+      description: (
+        <span className="my-2">
+          <b>{blog.title}</b> will be moved to trash. You can restore it later.
+        </span>
+      ),
+      confirmText: "Move to Trash",
+      onConfirm: () => onArchive?.(blog._id),
+      confirmProps: {
+        type: "text",
+        className: "border-rose-500 hover:bg-rose-500 bg-rose-100 text-rose-600 font-bold",
+      },
+    })
+  }
+
+  const actions = (
+    <div className="flex flex-col gap-1 w-32">
+      {blog.status === "failed" && !isTrashcan && (
+        <button
+          onClick={handleRetryClick}
+          className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-emerald-50 hover:text-emerald-600 rounded-lg transition-colors text-left font-medium"
+        >
+          <RotateCcw size={14} /> Retry
+        </button>
+      )}
+      {!isTrashcan && onArchive && (
+        <button
+          onClick={handleArchiveClick}
+          className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-rose-50 hover:text-rose-600 rounded-lg transition-colors text-left font-medium"
+        >
+          <Trash2 size={14} /> Trash
+        </button>
+      )}
+      {isTrashcan && onRestore && (
+        <button
+          onClick={() => {
+            onRestore(blog._id)
+            setIsPopoverOpen(false)
+          }}
+          className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors text-left font-medium"
+        >
+          <ArchiveRestore size={14} /> Restore
+        </button>
+      )}
+    </div>
+  )
+
+  const cardBorderClass = isManualEditor
+    ? "border-slate-400"
+    : statusColors[blog.status] || "border-slate-200"
+
+  const displayModel = blog.aiModelVer
+    ? blog.aiModelVer.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase())
+    : isGemini
+      ? "Gemini 2.0 Flash"
+      : blog.aiModel || "AI Generated"
 
   return (
-    <Badge.Ribbon
-      key={_id}
-      text={
-        <span className="flex items-center justify-center gap-0.5 sm:gap-1 py-0.5 sm:py-1 px-1 sm:px-2 font-medium tracking-wide text-[10px] sm:text-xs md:text-sm">
-          {isManualEditor ? (
-            <span className="hidden sm:inline">Manually Generated</span>
-          ) : (
-            <>
-              <img
-                src={`./Images/${
-                  isGemini ? "gemini" : aiModel === "claude" ? "claude" : "chatgpt"
-                }.webp`}
-                alt={isGemini ? "Gemini" : aiModel === "claude" ? "Claude" : "ChatGPT"}
-                width={14}
-                height={14}
-                loading="lazy"
-                className="bg-white w-3 h-3 sm:w-4 sm:h-4"
-              />
-              <span className="hidden sm:inline">
-                {aiModelVer
-                  ? styleAiModel(aiModelVer)
-                  : isGemini
-                  ? "Gemini 2.0 flash"
-                  : aiModel === "claude"
-                  ? "Claude 4 sonnet"
-                  : "Gpt 4.1 nano"}
-              </span>
-            </>
-          )}
-        </span>
-      }
-      className="absolute top-0 shadow-sm"
-      color={
-        isManualEditor
-          ? "#9CA3AF"
-          : isGemini
-          ? "#4796E3"
-          : aiModel === "claude"
-          ? "#9368F8"
-          : "#74AA9C"
-      }
-    >
-      <div
-        className={`bg-white shadow-md hover:shadow-xl transition-all duration-300 rounded-lg p-3 sm:p-4 md:p-5 lg:p-6 min-h-[160px] sm:min-h-[180px] md:min-h-[200px] min-w-0 relative h-full flex flex-col ${
-          isManualEditor
-            ? "border-gray-500"
-            : status === "failed"
-            ? "border-red-500"
-            : status === "pending" || status === "in-progress"
-            ? "border-yellow-500"
-            : "border-green-500"
-        } border-2`}
-      >
-        {/* Date Badge */}
-        <div className="text-[10px] sm:text-xs font-semibold text-gray-400 mb-1.5 sm:mb-2 -mt-1 sm:-mt-2">
-          {new Date(createdAt).toLocaleDateString("en-US", { dateStyle: "medium" })}
-        </div>
-
-        {/* Title and Content */}
-        <Tooltip
-          title={
-            <span className="text-sm sm:text-base">
-              {status === "complete"
-                ? title
-                : status === "failed"
-                ? "Blog generation failed"
-                : status === "pending"
-                ? `Pending Blog will be generated 
-                ${
-                  agendaNextRun
-                    ? "at " +
-                      new Date(agendaNextRun).toLocaleString("en-IN", {
-                        dateStyle: "medium",
-                        timeStyle: "short",
-                      })
-                    : "shortly"
-                }
-                `
-                : `Blog generation is ${status}`}
-            </span>
+    <div
+      className={`group flex flex-col bg-white rounded-xl border-2 ${cardBorderClass} p-5 hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-300 cursor-pointer min-h-[380px] h-full relative overflow-hidden`}
+      onClick={() => {
+        if (!isRunning) {
+          if (isManualEditor) {
+            onManualBlogClick(blog)
+          } else {
+            onBlogClick(blog)
           }
-          color={status === "complete" ? "" : status === "failed" ? "red" : "#eab308"}
-        >
-          <div
-            className="cursor-pointer mb-2 sm:mb-3 flex-1"
-            onClick={() => {
-              if (status === "complete" || status === "failed") {
-                isManualEditor ? onManualBlogClick(blog) : onBlogClick(blog)
-              }
-            }}
-            role="button"
-            tabIndex={0}
-            onKeyDown={e =>
-              e.key === "Enter" && (status === "complete" || status === "failed") && isManualEditor
-                ? onManualBlogClick(blog)
-                : onBlogClick(blog)
-            }
-            aria-label={`View blog ${title}`}
-          >
-            <Flex justify="space-between" gap="small" align="center" vertical>
-              <Title
-                title={title}
-                level={4}
-                className="!text-sm sm:!text-base md:!text-lg line-clamp-2 text-center text-balance !mb-1 sm:!mb-2"
-              >
-                {title}
-              </Title>
-              <Paragraph
-                ellipsis={{ rows: 2, expandable: false }}
-                className="break-all !text-xs sm:!text-sm !mb-0 text-slate-500"
-              >
-                {truncateContent(stripMarkdown(shortContent)) ||
-                  (status === "pending" ? "Content will be generated shortly..." : "")}
-              </Paragraph>
-            </Flex>
+        }
+      }}
+    >
+      {/* Header: Model & Options */}
+      <div className="flex justify-between items-start mb-5">
+        <div className="flex items-center gap-2.5">
+          <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-white border border-slate-100 shadow-sm transition-transform group-hover:scale-110 overflow-hidden">
+            {isGemini ? (
+              <img src="/Images/gemini.webp" alt="Gemini" className="w-6 h-6 object-contain" />
+            ) : isChatGPT ? (
+              <img src="/Images/chatgpt.webp" alt="ChatGPT" className="w-6 h-6 object-contain" />
+            ) : isClaude ? (
+              <img src="/Images/claude.webp" alt="Claude" className="w-6 h-6 object-contain" />
+            ) : (
+              <Sparkles size={18} className="text-indigo-500" />
+            )}
           </div>
-        </Tooltip>
-
-        {/* Keywords and Actions */}
-        <Flex
-          className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3 mb-2 sm:mb-3 mt-auto pt-2"
-          wrap
+          <div>
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block leading-none mb-1">
+              Model
+            </span>
+            <span className="text-xs font-black text-slate-700 leading-none">{displayModel}</span>
+          </div>
+        </div>
+        <Popover
+          content={actions}
+          trigger="click"
+          open={isPopoverOpen}
+          onOpenChange={setIsPopoverOpen}
+          placement="bottomRight"
         >
-          {/* Keywords */}
-          <Flex gap="small" wrap className="flex-1 min-w-0">
-            {focusKeywords?.slice(0, 3).map((keyword, index) => (
-              <Tag
-                key={index}
-                color="blue"
-                className="text-blue-800 text-[10px] sm:text-xs tracking-wide font-montserrat font-semibold px-1.5 sm:px-2 md:px-2.5 py-0.5 rounded-full m-0 border-none bg-blue-50"
+          <button
+            className="text-slate-400 hover:text-slate-800 hover:bg-slate-100 p-2 rounded-xl transition-all active:scale-95"
+            onClick={handleActionsPopover}
+          >
+            <MoreVertical size={18} />
+          </button>
+        </Popover>
+      </div>
+
+      {/* Main Content */}
+      <div className="min-w-0 mb-6 flex-1">
+        <h3 className="text-[15px] font-black text-slate-900 mb-2 line-clamp-2 group-hover:text-indigo-600 transition-colors leading-snug">
+          {blog.title || "Untitled Article"}
+        </h3>
+        <p className="text-[12.5px] text-slate-500 leading-relaxed line-clamp-3 font-medium">
+          {stripMarkdown(blog.shortContent) ||
+            (isRunning
+              ? "Your AI agent is crafting this article with deep research..."
+              : "No excerpt available for this article.")}
+        </p>
+      </div>
+
+      {/* Tags & GSC Metrics - Pushed to Bottom of content area */}
+      <div className="mt-auto">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-wrap gap-1.5 flex-1 min-w-0 pr-2">
+            {focusKeywords?.slice(0, 3).map((tag: string, i: number) => (
+              <span
+                key={i}
+                className="px-2 py-1 text-[9px] font-black rounded-lg bg-slate-50 text-slate-500 border border-slate-200/60 uppercase tracking-tight"
               >
-                {keyword}
-              </Tag>
+                {tag}
+              </span>
             ))}
             {focusKeywords?.length > 3 && (
-              <Tag
-                color="default"
-                className="text-gray-600 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full m-0 border-none bg-slate-100"
-              >
+              <span className="text-[10px] font-bold text-slate-400">
                 +{focusKeywords.length - 3}
-              </Tag>
+              </span>
             )}
-          </Flex>
+          </div>
 
-          {/* Action Buttons */}
-          <Flex gap="small" className="flex-shrink-0">
-            {!isTrashcan && status === "failed" && (
-              <Button
-                type="text"
-                size="small"
-                className="!p-1 sm:!p-1.5 md:!p-2 hover:!border-blue-500 hover:text-blue-500 min-w-0"
-                aria-label="Regenerate Blog"
-                onClick={e => {
-                  e.stopPropagation()
-                  handlePopup({
-                    title: "Regenerate Blog",
-                    description: (
-                      <span className="my-2">
-                        Are you sure you want to retry generating <b>{title}</b> blog?
-                      </span>
-                    ),
-                    confirmText: "Yes",
-                    onConfirm: () => {
-                      onRetry(_id)
-                    },
-                    confirmProps: {
-                      type: "text",
-                      className: "border-green-500 bg-green-50 text-green-600",
-                    },
-                    cancelProps: {
-                      danger: false,
-                    },
-                  })
-                }}
-              >
-                <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5" />
-              </Button>
-            )}
-
-            {isTrashcan && onRestore && (
-              <Button
-                type="text"
-                size="small"
-                className="!p-1 sm:!p-1.5 md:!p-2 hover:!border-blue-500 hover:text-blue-500 min-w-0"
-                aria-label="Restore Blog"
-                onClick={e => {
-                  e.stopPropagation()
-                  onRestore(_id)
-                }}
-              >
-                <ArchiveRestore className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5" />
-              </Button>
-            )}
-
-            {!isTrashcan && onArchive && (
-              <Button
-                type="text"
-                size="small"
-                className="!p-1 sm:!p-1.5 md:!p-2 hover:!border-red-500 hover:text-red-500 min-w-0"
-                onClick={e => {
-                  e.stopPropagation()
-                  handlePopup({
-                    title: "Move to Trash",
-                    description: (
-                      <span className="my-2">
-                        Blog <b>{title}</b> will be moved to trash. You can restore it later.
-                      </span>
-                    ),
-                    confirmText: "Delete",
-                    onConfirm: () => {
-                      onArchive(_id)
-                    },
-                    confirmProps: {
-                      type: "text",
-                      className: "border-red-500 hover:bg-red-500 bg-red-100 text-red-600",
-                    },
-                    cancelProps: {
-                      danger: false,
-                    },
-                  })
-                }}
-                aria-label={`Move blog ${title} to trash`}
-              >
-                <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5" />
-              </Button>
-            )}
-          </Flex>
-        </Flex>
-
-        {/* Footer Section */}
-        <Flex vertical gap="small" className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-gray-100">
-          {/* GSC Metrics Display */}
-          {hasGSCPermissions && (gscClicks > 0 || gscImpressions > 0) && (
-            <Flex gap="small" wrap className="justify-center sm:justify-start">
-              <Tooltip title="Total clicks from Google Search Console" color="#2E7D32">
-                <div className="flex items-center gap-1 sm:gap-1.5 bg-green-50 border border-green-200 text-green-700 px-2 sm:px-2.5 md:px-3 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs md:text-sm font-medium shadow-sm hover:shadow-md transition-shadow cursor-default">
-                  <MousePointerClick className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 flex-shrink-0" />
-                  <span className="font-semibold">{gscClicks?.toLocaleString() || 0}</span>
-                  <span className="text-green-600 hidden md:inline ml-1">clicks</span>
+          {hasGSCPermissions && (blog.gscClicks > 0 || blog.gscImpressions > 0) && (
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 px-2 py-1 rounded-full text-[10px] font-bold">
+              <Tooltip title="Google Search Console Clicks">
+                <div className="flex items-center gap-1 text-emerald-600 cursor-help">
+                  <MousePointerClick size={10} /> {blog.gscClicks}
                 </div>
               </Tooltip>
-              <Tooltip title="Total impressions from Google Search Console" color="#1565C0">
-                <div className="flex items-center gap-1 sm:gap-1.5 bg-blue-50 border border-blue-200 text-blue-700 px-2 sm:px-2.5 md:px-3 py-1 sm:py-1.5 rounded-full text-[10px] sm:text-xs md:text-sm font-medium shadow-sm hover:shadow-md transition-shadow cursor-default">
-                  <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 flex-shrink-0" />
-                  <span className="font-semibold">{gscImpressions?.toLocaleString() || 0}</span>
-                  <span className="text-blue-600 hidden md:inline ml-1">impressions</span>
+              <div className="h-2 w-px bg-slate-200" />
+              <Tooltip title="Google Search Console Impressions">
+                <div className="flex items-center gap-1 text-indigo-500 cursor-help">
+                  <Eye size={10} /> {blog.gscImpressions}
                 </div>
               </Tooltip>
-            </Flex>
+            </div>
           )}
+        </div>
 
-          {/* Updated Date */}
-          <Text
-            type="secondary"
-            className="text-[10px] sm:text-xs md:text-sm text-center sm:text-left"
-          >
-            {isArchived ? "Archived: " : "Updated: "}
-            {new Date(isArchived ? archiveDate : updatedAt).toLocaleDateString("en-US", {
-              dateStyle: "medium",
+        {/* Footer - Fixed Alignment */}
+        <div className="pt-4 border-t border-slate-100 flex justify-between items-center h-12">
+          <div className="flex items-center gap-1.5 text-slate-400 text-[10px] font-black uppercase tracking-widest whitespace-nowrap">
+            <Calendar size={12} strokeWidth={2.5} />
+            {new Date(blog.createdAt).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
             })}
-          </Text>
-        </Flex>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <StatusBadge status={blog.status} />
+            <div className="w-8 h-8 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-400 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 shadow-sm">
+              <ArrowUpRight size={14} />
+            </div>
+          </div>
+        </div>
       </div>
-    </Badge.Ribbon>
+
+      {/* Manual Indicator Overlay */}
+      {isManualEditor && (
+        <div className="absolute top-0 right-10">
+          <div className="bg-slate-800 text-white text-[9px] font-black uppercase px-2.5 py-1 rounded-b-lg shadow-md border-x border-b border-indigo-500/30">
+            Manual Mode
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 

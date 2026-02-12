@@ -17,10 +17,19 @@ const ContentDiffViewer: React.FC<ContentDiffViewerProps> = ({
 }) => {
   const stripHtml = (html: string) => {
     if (!html) return ""
-    // If running in environment without document (SSR), return as is or handle gracefully
-    if (typeof document === "undefined") return html
+    // Pre-process common structural tags to preserve structure in the diff
+    const processed = html
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<\/p>/gi, "\n\n")
+      .replace(/<\/li>/gi, "\n")
+      .replace(/<\/tr>/gi, "\n")
+      .replace(/<\/td>/gi, " | ")
+      .replace(/<\/h[1-6]>/gi, "\n\n")
+      .replace(/<\/div>/gi, "\n")
+
+    if (typeof document === "undefined") return processed.replace(/<[^>]+>/g, "")
     const tmp = document.createElement("DIV")
-    tmp.innerHTML = html
+    tmp.innerHTML = processed
     return tmp.textContent || tmp.innerText || ""
   }
 
@@ -28,43 +37,46 @@ const ContentDiffViewer: React.FC<ContentDiffViewerProps> = ({
   const newText = stripHtml(newMarkdown || "")
 
   return (
-    <div className="flex flex-col items-center w-fit p-4">
-      <div className="w-full max-w-5xl overflow-none">
+    <div className="flex flex-col w-full min-h-[400px]">
+      <div className="flex-1 rounded-xl overflow-hidden border border-slate-200 shadow-sm">
         {oldText === newText ? (
-          <p className="text-gray-500">No differences found between the two versions.</p>
+          <div className="flex items-center justify-center p-12 bg-slate-50 text-slate-500">
+            <p className="font-medium text-sm">No differences found between the two versions.</p>
+          </div>
         ) : (
           <DiffViewer
             oldValue={oldText}
             newValue={newText}
-            splitView={false}
+            splitView={true}
             compareMethod={DiffMethod.WORDS}
+            hideLineNumbers={true}
             styles={{
-              diffContainer: { fontSize: "1rem", lineHeight: "1.6" },
-              contentText: { lineHeight: "1.5" },
+              diffContainer: { fontSize: "0.85rem", fontFamily: "Inter, system-ui, sans-serif" },
+              contentText: { lineHeight: "1.6", padding: "10px 0" },
               wordDiff: {
-                padding: "2px",
-                display: "inline-flex",
-                backgroundColor: "transparent",
-                borderRadius: "2px",
+                padding: "1px 2px",
+                backgroundColor: "rgba(0,0,0,0.05)",
+                borderRadius: "3px",
               },
-              wordAdded: { backgroundColor: "#d4fcbc", textDecoration: "none" },
-              wordRemoved: { backgroundColor: "#ffe6e6", textDecoration: "none" },
+              wordAdded: { backgroundColor: "#ecfdf5", color: "#065f46", textDecoration: "none" },
+              wordRemoved: { backgroundColor: "#fef2f2", color: "#991b1b", textDecoration: "none" },
+              gutter: { backgroundColor: "#f8fafc" },
             }}
           />
         )}
       </div>
-      <div className="flex gap-4 mt-4">
-        <button
-          onClick={onAccept}
-          className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
-        >
-          Accept All Changes
-        </button>
+      <div className="flex justify-end gap-3 mt-6">
         <button
           onClick={onReject}
-          className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+          className="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition-all font-bold text-sm shadow-sm active:scale-95"
         >
-          Reject All Changes
+          Discard Changes
+        </button>
+        <button
+          onClick={onAccept}
+          className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all font-bold text-sm shadow-lg shadow-indigo-100 active:scale-95"
+        >
+          Apply to Section
         </button>
       </div>
       <style>{`

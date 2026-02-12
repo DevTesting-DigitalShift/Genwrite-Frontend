@@ -67,6 +67,18 @@ import { COSTS } from "@/data/blogData"
 import ImageModal from "@components/ImageModal"
 import { Node } from "@tiptap/core"
 
+const renderer = {
+  heading({ text, depth: level }) {
+    const slug = String(text)
+      .toLowerCase()
+      .replace(/[^\w]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+    return `<h${level} id="${slug}">${text}</h${level}>`
+  },
+}
+
+marked.use({ renderer })
+
 const FONT_OPTIONS = [
   { label: "Arial", value: "font-arial" },
   { label: "Georgia", value: "font-georgia" },
@@ -133,18 +145,6 @@ const TipTapEditor = ({ blog, content, setContent, unsavedChanges, setUnsavedCha
         trimmed.includes(">") &&
         !trimmed.includes("## ") &&
         !trimmed.includes("**"))
-
-    const renderer = {
-      heading(text, level) {
-        const slug = text
-          .toLowerCase()
-          .replace(/[^\w]+/g, "-")
-          .replace(/^-+|-+$/g, "")
-        return `<h${level} id="${slug}">${text}</h${level}>`
-      },
-    }
-
-    marked.use({ renderer })
 
     const rawHtml = isHtml
       ? markdown
