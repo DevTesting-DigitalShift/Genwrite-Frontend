@@ -1,5 +1,3 @@
-"use client"
-
 import React, { useState, useEffect, useCallback } from "react"
 import { Button, Tooltip, Badge, Pagination, Input, Select, message } from "antd"
 import { RefreshCcw, Trash2, Search, ArchiveRestore, X } from "lucide-react"
@@ -12,7 +10,7 @@ import SkeletonLoader from "@components/UI/SkeletonLoader"
 import { getAllBlogs } from "@api/blogApi"
 import { deleteAllUserBlogs, restoreTrashedBlog } from "@store/slices/blogSlice"
 import { selectUser } from "@store/slices/authSlice"
-import { debounce } from "lodash"
+import DebouncedSearchInput from "@components/UI/DebouncedSearchInput"
 import dayjs from "dayjs"
 import { useNavigate } from "react-router-dom"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
@@ -34,7 +32,7 @@ const Trashcan = () => {
   const user = useSelector(selectUser)
   const userId = user?.id || "guest"
 
-  const TRUNCATE_LENGTH = 85
+  const TRUNCATE_LENGTH = 200
   const PAGE_SIZE_OPTIONS = [10, 15, 20, 50]
 
   const clearSearch = useCallback(() => {
@@ -43,18 +41,6 @@ const Trashcan = () => {
   }, [])
 
   const { handlePopup } = useConfirmPopup()
-
-  const debouncedSearch = useCallback(
-    debounce(
-      (value) => {
-        setSearchTerm(value)
-        setCurrentPage(1)
-      },
-      500,
-      { leading: false, trailing: true, maxWait: 1000 }
-    ),
-    []
-  )
 
   // TanStack Query for fetching trashed blogs
   const { data, isLoading } = useQuery({
@@ -79,19 +65,7 @@ const Trashcan = () => {
         limit: pageSize,
       }
       const response = await getAllBlogs(queryParams)
-      return {
-        trashedBlogs: response.data || [],
-        totalBlogs: response.totalItems || 0,
-      }
-    },
-    keepPreviousData: true,
-    staleTime: Infinity, // Data never becomes stale
-    gcTime: Infinity, // Cache persists for the session
-    refetchOnMount: "always", // Fetch only if cache is empty
-    refetchOnWindowFocus: false, // Prevent refetch on window focus
-    enabled: !!user, // Only fetch if user is logged in
-    onError: (error) => {
-      console.error("Failed to fetch trashed blogs:", error)
+      return { trashedBlogs: response.data || [], totalBlogs: response.totalItems || 0 }
     },
   })
 
@@ -119,7 +93,7 @@ const Trashcan = () => {
       if (eventType === "blog:deleted" || eventType === "blog:restored") {
         // Remove from cache if deleted or restored
         queryClient.setQueryData(queryKey, (old = { trashedBlogs: [], totalBlogs: 0 }) => ({
-          trashedBlogs: old.trashedBlogs.filter((blog) => blog._id !== data.blogId),
+          trashedBlogs: old.trashedBlogs.filter(blog => blog._id !== data.blogId),
           totalBlogs: old.totalBlogs - 1,
         }))
         queryClient.removeQueries({ queryKey: ["blog", data.blogId] })
@@ -130,7 +104,7 @@ const Trashcan = () => {
       } else {
         // Update existing blog in the cache
         queryClient.setQueryData(queryKey, (old = { trashedBlogs: [], totalBlogs: 0 }) => {
-          const index = old.trashedBlogs.findIndex((blog) => blog._id === data.blogId)
+          const index = old.trashedBlogs.findIndex(blog => blog._id === data.blogId)
           if (index > -1) {
             // Check if blog still matches filters
             const blogDate = dayjs(data.archiveDate || data.updatedAt)
@@ -148,7 +122,7 @@ const Trashcan = () => {
             } else {
               // Remove if no longer matches filters
               return {
-                trashedBlogs: old.trashedBlogs.filter((blog) => blog._id !== data.blogId),
+                trashedBlogs: old.trashedBlogs.filter(blog => blog._id !== data.blogId),
                 totalBlogs: old.totalBlogs - 1,
               }
             }
@@ -156,15 +130,15 @@ const Trashcan = () => {
           return old
         })
         // Update single blog query if exists
-        queryClient.setQueryData(["blog", data.blogId], (old) => ({ ...old, ...data }))
+        queryClient.setQueryData(["blog", data.blogId], old => ({ ...old, ...data }))
       }
     }
 
-    socket.on("blog:statusChanged", (data) => handleBlogChange(data, "blog:statusChanged"))
-    socket.on("blog:updated", (data) => handleBlogChange(data, "blog:updated"))
-    socket.on("blog:archived", (data) => handleBlogChange(data, "blog:archived"))
-    socket.on("blog:deleted", (data) => handleBlogChange(data, "blog:deleted"))
-    socket.on("blog:restored", (data) => handleBlogChange(data, "blog:restored"))
+    socket.on("blog:statusChanged", data => handleBlogChange(data, "blog:statusChanged"))
+    socket.on("blog:updated", data => handleBlogChange(data, "blog:updated"))
+    socket.on("blog:archived", data => handleBlogChange(data, "blog:archived"))
+    socket.on("blog:deleted", data => handleBlogChange(data, "blog:deleted"))
+    socket.on("blog:restored", data => handleBlogChange(data, "blog:restored"))
 
     return () => {
       socket.off("blog:statusChanged")
@@ -189,12 +163,12 @@ const Trashcan = () => {
 
   // Restore mutation with optimistic update
   const restoreMutation = useMutation({
-    mutationFn: (id) => dispatch(restoreTrashedBlog(id)).unwrap(),
+    mutationFn: id => dispatch(restoreTrashedBlog(id)).unwrap(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["trashedBlogs"], exact: false })
       queryClient.invalidateQueries({ queryKey: ["blogs"], exact: false })
     },
-    onError: (error) => {
+    onError: error => {
       console.error("Failed to restore blog:", error)
     },
   })
@@ -206,7 +180,7 @@ const Trashcan = () => {
       queryClient.invalidateQueries({ queryKey: ["trashedBlogs"], exact: false })
       setCurrentPage(1)
     },
-    onError: (error) => {
+    onError: error => {
       console.error("Failed to delete all blogs:", error)
     },
   })
@@ -220,7 +194,7 @@ const Trashcan = () => {
     return content.length > length ? content.substring(0, length) + "..." : content
   }, [])
 
-  const stripMarkdown = useCallback((text) => {
+  const stripMarkdown = useCallback(text => {
     return text
       ?.replace(/<[^>]*>/g, "")
       ?.replace(/[\\*#=_~`>\-]+/g, "")
@@ -228,7 +202,7 @@ const Trashcan = () => {
       ?.trim()
   }, [])
 
-  const handleRestore = (id) => {
+  const handleRestore = id => {
     restoreMutation.mutate(id)
   }
 
@@ -241,17 +215,17 @@ const Trashcan = () => {
   }, [queryClient, userId])
 
   const handleBlogClick = useCallback(
-    (blog) => {
-      navigate(`/toolbox/${blog._id}`)
+    blog => {
+      navigate(`/blog/${blog._id}`)
     },
-    [navigate]
+    [navigate],
   )
 
   const handleManualBlogClick = useCallback(
-    (blog) => {
+    blog => {
       navigate(`/blog-editor/${blog._id}`)
     },
-    [navigate]
+    [navigate],
   )
 
   return (
@@ -313,9 +287,7 @@ const Trashcan = () => {
                         type: "text",
                         className: "border-red-500 hover:bg-red-500 bg-red-100 text-red-600",
                       },
-                      cancelProps: {
-                        danger: false,
-                      },
+                      cancelProps: { danger: false },
                     })
                   }
                   disabled={isLoading}
@@ -337,18 +309,21 @@ const Trashcan = () => {
         >
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative w-full">
-              <input
+              <DebouncedSearchInput
+                initialValue={searchTerm}
+                onSearch={val => {
+                  setSearchTerm(val)
+                  setCurrentPage(1)
+                }}
                 placeholder="Search by title or keywords..."
-                onChange={(e) => debouncedSearch(e.target.value)}
-                prefix={<Search className="w-4 sm:w-5 h-4 sm:h-5 text-gray-400 mr-2 sm:mr-3" />}
-                className="w-full rounded-lg border border-gray-300 px-10 py-[5px] text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
                 disabled={isLoading}
+                debounceTime={500}
+                className="px-10 py-[5px] focus:ring-2 focus:ring-blue-300"
               />
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
             </div>
             <Select
               value={statusFilter}
-              onChange={(value) => {
+              onChange={value => {
                 setStatusFilter(value)
                 setCurrentPage(1)
               }}
@@ -381,7 +356,7 @@ const Trashcan = () => {
             className="flex flex-col justify-center items-center"
             style={{ minHeight: "calc(100vh - 250px)" }}
           >
-            <img src="Images/trash-can.png" alt="Trash" className="w-20 sm:w-24" />
+            <img src="Images/trash-can.webp" alt="Trash" className="w-20 sm:w-24" />
             <p className="text-lg sm:text-xl mt-5 text-gray-600">No trashed blogs available.</p>
           </motion.div>
         ) : (
@@ -392,19 +367,18 @@ const Trashcan = () => {
               transition={{ duration: 0.4 }}
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8 p-2"
             >
-              {trashedBlogs.map((blog) => {
+              {trashedBlogs.map(blog => {
                 const isManualEditor = blog.isManuallyEdited === true
                 const {
                   _id,
                   title,
                   status,
                   createdAt,
-                  content,
+                  shortContent,
                   aiModel,
                   focusKeywords,
-                  wordpress,
                   archiveDate,
-                  agendaJob,
+                  agendaNextRun,
                 } = blog
                 const isGemini = /gemini/gi.test(aiModel)
                 return (
@@ -419,7 +393,7 @@ const Trashcan = () => {
                             <img
                               src={`./Images/${
                                 isGemini ? "gemini" : aiModel === "claude" ? "claude" : "chatgpt"
-                              }.png`}
+                              }.webp`}
                               alt={
                                 isGemini ? "Gemini" : aiModel === "claude" ? "Claude" : "ChatGPT"
                               }
@@ -431,8 +405,8 @@ const Trashcan = () => {
                             {isGemini
                               ? "Gemini 2.0 flash"
                               : aiModel === "claude"
-                              ? "Claude 4 sonnet"
-                              : "Gpt 4.1 nano"}
+                                ? "Claude 4 sonnet"
+                                : "Gpt 4.1 nano"}
                           </>
                         )}
                       </span>
@@ -442,10 +416,10 @@ const Trashcan = () => {
                       isManualEditor
                         ? "#9CA3AF"
                         : isGemini
-                        ? "#4796E3"
-                        : aiModel === "claude"
-                        ? "#9368F8"
-                        : "#74AA9C"
+                          ? "#4796E3"
+                          : aiModel === "claude"
+                            ? "#9368F8"
+                            : "#74AA9C"
                     }
                   >
                     <div
@@ -453,17 +427,15 @@ const Trashcan = () => {
                         isManualEditor
                           ? "border-gray-500"
                           : status === "failed"
-                          ? "border-red-500"
-                          : status === "pending" || status === "in-progress"
-                          ? "border-yellow-500"
-                          : "border-green-500"
+                            ? "border-red-500"
+                            : status === "pending" || status === "in-progress"
+                              ? "border-yellow-500"
+                              : "border-green-500"
                       } border-2`}
                       title={title}
                     >
                       <div className="text-xs font-semibold text-gray-400 mb-2 -mt-2">
-                        {new Date(createdAt).toLocaleDateString("en-US", {
-                          dateStyle: "medium",
-                        })}
+                        {new Date(createdAt).toLocaleDateString("en-US", { dateStyle: "medium" })}
                       </div>
                       {isManualEditor ? (
                         <div
@@ -471,7 +443,7 @@ const Trashcan = () => {
                           onClick={() => handleManualBlogClick(blog)}
                           role="button"
                           tabIndex={0}
-                          onKeyDown={(e) => e.key === "Enter" && handleManualBlogClick(blog)}
+                          onKeyDown={e => e.key === "Enter" && handleManualBlogClick(blog)}
                           aria-label={`View blog ${title}`}
                         >
                           <div className="flex flex-col gap-4 items-center justify-between mb-2">
@@ -479,7 +451,7 @@ const Trashcan = () => {
                               {title}
                             </h3>
                             <p className="text-xs sm:text-sm text-gray-600 mb-4 line-clamp-3 break-all">
-                              {truncateContent(stripMarkdown(content)) || ""}
+                              {truncateContent(stripMarkdown(blog.content)) || ""}
                             </p>
                           </div>
                         </div>
@@ -489,25 +461,25 @@ const Trashcan = () => {
                             status === "complete"
                               ? title
                               : status === "failed"
-                              ? "Blog generation failed"
-                              : status === "pending"
-                              ? `Pending Blog will be generated ${
-                                  agendaJob?.nextRunAt
-                                    ? "at " +
-                                      new Date(agendaJob.nextRunAt).toLocaleString("en-IN", {
-                                        dateStyle: "medium",
-                                        timeStyle: "short",
-                                      })
-                                    : "shortly"
-                                }`
-                              : `Blog generation is ${status}`
+                                ? "Blog generation failed"
+                                : status === "pending"
+                                  ? `Pending Blog will be generated ${
+                                      agendaJob?.nextRunAt
+                                        ? "at " +
+                                          new Date(agendaJob.nextRunAt).toLocaleString("en-IN", {
+                                            dateStyle: "medium",
+                                            timeStyle: "short",
+                                          })
+                                        : "shortly"
+                                    }`
+                                  : `Blog generation is ${status}`
                           }
                           color={
                             status === "complete"
                               ? "green"
                               : status === "failed"
-                              ? "red"
-                              : "#eab308"
+                                ? "red"
+                                : "#eab308"
                           }
                         >
                           <div
@@ -519,7 +491,7 @@ const Trashcan = () => {
                             }}
                             role="button"
                             tabIndex={0}
-                            onKeyDown={(e) =>
+                            onKeyDown={e =>
                               e.key === "Enter" &&
                               (status === "complete" || status === "failed") &&
                               handleBlogClick(blog)
@@ -531,7 +503,7 @@ const Trashcan = () => {
                                 {title}
                               </h3>
                               <p className="text-xs sm:text-sm text-gray-600 mb-4 line-clamp-3 break-all">
-                                {truncateContent(stripMarkdown(content)) || ""}
+                                {truncateContent(stripMarkdown(shortContent)) || ""}
                               </p>
                             </div>
                           </div>
@@ -567,9 +539,7 @@ const Trashcan = () => {
                                 type: "text",
                                 className: "border-green-500 bg-green-50 text-green-600",
                               },
-                              cancelProps: {
-                                danger: false,
-                              },
+                              cancelProps: { danger: false },
                             })
                           }
                         >
@@ -577,14 +547,6 @@ const Trashcan = () => {
                         </motion.div>
                       </div>
                       <div className="mt-3 mb-2 flex justify-end text-xs sm:text-sm text-right text-gray-500 font-medium">
-                        {wordpress?.postedOn && (
-                          <span>
-                            Posted on:  
-                            {new Date(wordpress.postedOn).toLocaleDateString("en-US", {
-                              dateStyle: "medium",
-                            })}
-                          </span>
-                        )}
                         <span className="block -mb-2">
                           Archive Date:{" "}
                           {new Date(archiveDate).toLocaleDateString("en-US", {
@@ -608,7 +570,7 @@ const Trashcan = () => {
                   current={currentPage}
                   pageSize={pageSize}
                   total={totalBlogs}
-                  pageSizeOptions={PAGE_SIZE_OPTIONS.filter((size) => size <= 100)}
+                  pageSizeOptions={PAGE_SIZE_OPTIONS.filter(size => size <= 100)}
                   onChange={(page, newPageSize) => {
                     setCurrentPage(page)
                     if (newPageSize !== pageSize) {
@@ -617,7 +579,7 @@ const Trashcan = () => {
                     }
                   }}
                   showSizeChanger
-                  showTotal={(total) => `Total ${total} blogs`}
+                  showTotal={total => `Total ${total} blogs`}
                   responsive={true}
                   disabled={isLoading}
                 />

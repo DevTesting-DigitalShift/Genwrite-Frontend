@@ -6,7 +6,7 @@ import { RefreshCw, Sparkles, Copy, Check } from "lucide-react"
 import { generatePromptContentThunk, resetMetadata } from "@store/slices/otherSlice"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { openUpgradePopup } from "@utils/UpgardePopUp"
-import Loading from "@components/UI/Loading"
+import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
 const { TextArea } = Input
 
 const PromptContent = () => {
@@ -19,12 +19,12 @@ const PromptContent = () => {
   const { handlePopup } = useConfirmPopup()
 
   // Redux selectors
-  const userPlan = useSelector((state) => state.auth.user?.subscription?.plan)
+  const userPlan = useSelector(state => state.auth.user?.subscription?.plan)
   const {
     data: generatedContent,
     loading: isGenerating,
     error,
-  } = useSelector((state) => state.wordpress)
+  } = useSelector(state => state.wordpress)
 
   // Clear data on route change or component unmount
   useEffect(() => {
@@ -86,22 +86,19 @@ const PromptContent = () => {
   }
 
   // Helper function to strip HTML tags and get plain text
-  const stripHtml = (html) => {
+  const stripHtml = html => {
     const tmp = document.createElement("div")
     tmp.innerHTML = html
     return tmp.textContent || tmp.innerText || ""
   }
 
   // Helper function to render HTML content safely
-  const renderHtmlContent = (htmlContent) => {
+  const renderHtmlContent = htmlContent => {
     return (
       <div
         className="prose max-w-none p-4 bg-gray-50 rounded-lg border"
         dangerouslySetInnerHTML={{ __html: htmlContent }}
-        style={{
-          lineHeight: "1.6",
-          color: "#374151",
-        }}
+        style={{ lineHeight: "1.6", color: "#374151" }}
       />
     )
   }
@@ -109,8 +106,16 @@ const PromptContent = () => {
   const wordCount = content
     .trim()
     .split(/\s+/)
-    .filter((word) => word.length > 0).length
+    .filter(word => word.length > 0).length
   const promptLength = prompt.trim().length
+
+  if (isGenerating) {
+    return (
+      <div className="h-[calc(100vh-200px)] p-4 flex items-center justify-center">
+        <ProgressLoadingScreen message="Generating content..." />
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 p-5">
@@ -174,7 +179,7 @@ const PromptContent = () => {
             </div>
             <TextArea
               value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
+              onChange={e => setPrompt(e.target.value)}
               placeholder="Enter your prompt here (e.g., 'Humanize this content to make it more engaging')..."
               rows={4}
               className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 custom-scroll ${
@@ -213,7 +218,7 @@ const PromptContent = () => {
             </div>
             <TextArea
               value={content}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={e => setContent(e.target.value)}
               placeholder="Enter your content here (minimum 300 words)..."
               rows={12}
               className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 custom-scroll ${
@@ -235,13 +240,6 @@ const PromptContent = () => {
           </Button>
         </div>
       </div>
-
-      {/* Loading State */}
-      {isGenerating && (
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <Loading />
-        </div>
-      )}
 
       {/* Generated Content Display */}
       {generatedContent?.data && !isGenerating && (

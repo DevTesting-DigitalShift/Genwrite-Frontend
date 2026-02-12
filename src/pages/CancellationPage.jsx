@@ -11,7 +11,7 @@ import { cancelStripeSubscription } from "@api/otherApi"
 import { useSelector } from "react-redux"
 import { selectUser } from "@store/slices/authSlice"
 import { sendCancellationRelatedEvent } from "@utils/stripeGTMEvents"
-
+ 
 const CancellationPage = () => {
   const [isProcessing, setIsProcessing] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
@@ -21,21 +21,14 @@ const CancellationPage = () => {
   const user = useSelector(selectUser)
   const { handlePopup } = useConfirmPopup()
 
-  const showTrialMessage =
-    user?.subscription?.plan === "free" && user?.subscription?.status === "unpaid"
-
-  useEffect(() => {
-    if (showTrialMessage) {
-      navigate("/dashboard")
-    }
-  }, [showTrialMessage, navigate])
-
   useEffect(() => {
     if (
       user?.subscription?.plan === "free" ||
-      ["unpaid", "cancelled"].includes(user?.subscription?.status)
+      ["unpaid", "cancelled"].includes(user?.subscription?.status) ||
+      user?.subscription?.status === "trialing" ||    
+      user?.subscription?.cancelAt
     ) {
-      navigate("/dashboard", { replace: true })
+      navigate("/dashboard", { replace: true }) 
     }
   }, [user])
 

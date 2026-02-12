@@ -22,12 +22,12 @@ function useCodeMirrorEditor({ content, onChange, language }) {
         basicSetup,
         EditorView.lineWrapping,
         langExtension,
-        EditorView.updateListener.of((update) => {
+        EditorView.updateListener.of(update => {
           if (externalUpdateRef.current) return
 
           if (
             update.docChanged &&
-            update.transactions.some((tr) => tr.isUserEvent("input") || tr.isUserEvent("delete"))
+            update.transactions.some(tr => tr.isUserEvent("input") || tr.isUserEvent("delete"))
           ) {
             const newDoc = update.state.doc.toString()
             onChange(newDoc)

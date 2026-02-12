@@ -8,6 +8,8 @@ import {
   DownloadOutlined,
   ThunderboltTwoTone,
   CrownTwoTone,
+  YoutubeOutlined,
+  RadarChartOutlined,
 } from "@ant-design/icons"
 import { motion } from "framer-motion"
 import CompetitiveAnalysisModal from "../components/dashboardModals/CompetitiveAnalysisModal"
@@ -15,12 +17,16 @@ import { useDispatch, useSelector } from "react-redux"
 import { analyzeKeywordsThunk, clearKeywordAnalysis } from "@store/slices/analysisSlice"
 import { Helmet } from "react-helmet"
 import { ImMagicWand } from "react-icons/im"
-import { Coins, Keyboard, Search, WholeWord, Workflow, Zap } from "lucide-react"
+import { Coins, Keyboard, Search, WholeWord, Workflow, Zap, FileText } from "lucide-react"
 import { selectUser } from "@store/slices/authSlice"
 import { Crown } from "lucide-react"
 import { Flex } from "antd"
 import { Rocket } from "lucide-react"
 import { Layers } from "lucide-react"
+import { checkSufficientCredits, getInsufficientCreditsPopup } from "@/utils/creditCheck.jsx"
+import { useConfirmPopup } from "@/context/ConfirmPopupContext"
+import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
+import { COSTS } from "@/data/blogData"
 
 export default function ToolboxPage() {
   const navigate = useNavigate()
@@ -31,24 +37,24 @@ export default function ToolboxPage() {
   const [pageSize, setPageSize] = useState(10)
   const [currentPage, setCurrentPage] = useState(1)
   const [selectedRowKeys, setSelectedRowKeys] = useState([])
-  const { allBlogs } = useSelector((state) => state.blog)
+  const { allBlogs } = useSelector(state => state.blog)
   const dispatch = useDispatch()
   const { keywordAnalysis: keywordAnalysisResult, loading: analyzing } = useSelector(
-    (state) => state.analysis
+    state => state.analysis
   )
 
   const addKeyword = () => {
     const input = newKeyword.trim()
     if (!input) return
 
-    const existing = keywords.map((k) => k.toLowerCase())
+    const existing = keywords.map(k => k.toLowerCase())
     const seen = new Set()
 
     const newKeywords = input
       .split(",")
-      .map((k) => k.trim())
+      .map(k => k.trim())
       .filter(
-        (k) =>
+        k =>
           k &&
           !existing.includes(k.toLowerCase()) &&
           !seen.has(k.toLowerCase()) &&
@@ -61,11 +67,11 @@ export default function ToolboxPage() {
     }
   }
 
-  const removeKeyword = (index) => {
+  const removeKeyword = index => {
     setKeywords(keywords.filter((_, i) => i !== index))
   }
 
-  const handleKeyPress = (e) => {
+  const handleKeyPress = e => {
     if (e.key === "Enter") {
       e.preventDefault()
       addKeyword()
@@ -78,8 +84,8 @@ export default function ToolboxPage() {
     setSelectedRowKeys([])
   }
 
-  const deselectKeyword = (index) => {
-    setSelectedRowKeys(selectedRowKeys.filter((key) => key !== index))
+  const deselectKeyword = index => {
+    setSelectedRowKeys(selectedRowKeys.filter(key => key !== index))
   }
 
   const clearSelectedKeywords = () => {
@@ -111,7 +117,7 @@ export default function ToolboxPage() {
     const headers = ["keyword"]
     const csvContent = [
       headers.join(","),
-      ...selectedKeywords.map((kw) => [`${kw.keyword.replace(/"/g, '""')}`].join(",")),
+      ...selectedKeywords.map(kw => [`${kw.keyword.replace(/"/g, '""')}`].join(",")),
     ].join("\n")
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
@@ -132,14 +138,14 @@ export default function ToolboxPage() {
       dataIndex: "keyword",
       key: "keyword",
       sorter: (a, b) => a.keyword.localeCompare(b.keyword),
-      render: (text) => <span className="font-medium capitalize text-xs sm:text-sm">{text}</span>,
+      render: text => <span className="font-medium capitalize text-xs sm:text-sm">{text}</span>,
     },
     {
       title: "Monthly Searches",
       dataIndex: "avgMonthlySearches",
       key: "avgMonthlySearches",
       sorter: (a, b) => a.avgMonthlySearches - b.avgMonthlySearches,
-      render: (value) => (
+      render: value => (
         <span className="text-xs sm:text-sm">{new Intl.NumberFormat().format(value)}</span>
       ),
     },
@@ -148,16 +154,16 @@ export default function ToolboxPage() {
       dataIndex: "competition",
       key: "competition",
       sorter: (a, b) => a.competition_index - b.competition_index,
-      render: (text) => (
+      render: text => (
         <Tag
           color={
             text === "LOW"
               ? "green"
               : text === "MEDIUM"
-              ? "orange"
-              : text === "HIGH"
-              ? "red"
-              : "gray"
+                ? "orange"
+                : text === "HIGH"
+                  ? "red"
+                  : "gray"
           }
           className="text-xs sm:text-sm"
         >
@@ -170,7 +176,7 @@ export default function ToolboxPage() {
       dataIndex: "avgCpc",
       key: "avgCpc",
       sorter: (a, b) => a.avgCpc - b.avgCpc,
-      render: (value) => (
+      render: value => (
         <span className="text-xs sm:text-sm">{value ? value.toFixed(2) : "N/A"}</span>
       ),
     },
@@ -180,7 +186,7 @@ export default function ToolboxPage() {
       key: "lowBid",
       responsive: ["md"], // Hide on small screens
       sorter: (a, b) => a.lowBid - b.lowBid,
-      render: (value) => (
+      render: value => (
         <span className="text-xs sm:text-sm">{value ? value.toFixed(2) : "N/A"}</span>
       ),
     },
@@ -190,7 +196,7 @@ export default function ToolboxPage() {
       key: "highBid",
       responsive: ["md"], // Hide on small screens
       sorter: (a, b) => a.highBid - b.highBid,
-      render: (value) => (
+      render: value => (
         <span className="text-xs sm:text-sm">{value ? value.toFixed(2) : "N/A"}</span>
       ),
     },
@@ -198,12 +204,10 @@ export default function ToolboxPage() {
 
   const rowSelection = {
     selectedRowKeys,
-    onChange: (newSelectedRowKeys) => {
+    onChange: newSelectedRowKeys => {
       setSelectedRowKeys(newSelectedRowKeys)
     },
-    getCheckboxProps: (record) => ({
-      name: record.keyword,
-    }),
+    getCheckboxProps: record => ({ name: record.keyword }),
   }
 
   const tableData =
@@ -219,7 +223,7 @@ export default function ToolboxPage() {
     })) || []
 
   const selectedKeywordsDisplay = keywordAnalysisResult
-    ? selectedRowKeys.map((idx) => keywordAnalysisResult[idx]?.keyword).filter(Boolean)
+    ? selectedRowKeys.map(idx => keywordAnalysisResult[idx]?.keyword).filter(Boolean)
     : []
 
   const handlePageSizeChange = (current, size) => {
@@ -227,7 +231,7 @@ export default function ToolboxPage() {
     setCurrentPage(1)
   }
 
-  const handlePageChange = (page) => {
+  const handlePageChange = page => {
     setCurrentPage(page)
   }
 
@@ -249,7 +253,8 @@ export default function ToolboxPage() {
         "Transform AI-generated text into natural, human-sounding content while preserving intent and clarity.",
       action: () => navigate("/humanize-content"),
       actionText: "Let's Convert",
-      credits: "5",
+      credits: COSTS.HUMANISED_CONTENT,
+      creditType: "tools.humanize",
       color: "from-blue-500 to-indigo-600",
     },
     {
@@ -260,7 +265,8 @@ export default function ToolboxPage() {
         "Craft high-impact blog outlines with SEO keywords, structure, and brand voice in seconds using AI.",
       action: () => navigate("/outline"),
       actionText: "Let's Outline",
-      credits: "5",
+      credits: COSTS.OUTLINE,
+      creditType: "tools.outline",
       color: "from-green-500 to-emerald-600",
     },
     {
@@ -270,6 +276,8 @@ export default function ToolboxPage() {
       description: "Analyze top performing content in your niche",
       action: () => setCompetitiveAnalysisModalOpen(true),
       actionText: "Start Analysis",
+      credits: COSTS.ANALYSIS,
+      creditType: "analysis.competitors",
       color: "from-rose-500 to-pink-600",
     },
     {
@@ -279,7 +287,8 @@ export default function ToolboxPage() {
       description: "Turn content into SEO-friendly metadata",
       action: () => navigate("/generate-metadata"),
       actionText: "Boost SEO",
-      credits: "2",
+      credits: COSTS.METADATA,
+      creditType: "tools.metadata",
       color: "from-rose-500 to-pink-600",
     },
     {
@@ -289,8 +298,75 @@ export default function ToolboxPage() {
       description: "Transform your content into SEO-optimized metadata in seconds",
       action: () => navigate("/prompt-content"),
       actionText: "Boost SEO",
-      credits: "5", 
+      credits: COSTS.PROMPT_CONTENT,
+      creditType: "tools.boost",
       color: "from-rose-500 to-pink-600",
+    },
+    {
+      key: "website-ranking",
+      title: "Website Ranking Strategy",
+      icon: <GlobalOutlined className="text-blue-500 size-4 sm:size-5" />,
+      description: "Full SEO audit and strategy generator for any website.",
+      action: () => navigate("/website-ranking"),
+      actionText: "Analyze Website",
+      credits: COSTS.WEBSITE_RANKING?.ORCHESTRATOR_BASE || 8,
+      creditType: "websiteRanking.orchestratorBase",
+      color: "from-blue-500 to-cyan-600",
+    },
+    {
+      key: "content-detection",
+      title: "AI Content Detection",
+      icon: <RadarChartOutlined className="size-4 sm:size-5 text-purple-500" />,
+      description:
+        "Detect AI-generated text and get confidence scores to verify content authenticity.",
+      action: () => navigate("/content-detection"),
+      actionText: "Detect Content",
+      credits: COSTS.DETECTOR,
+      creditType: "tools.outline",
+      color: "from-purple-500 to-fuchsia-600",
+    },
+    {
+      key: "youtube-summarization",
+      title: "YouTube Summarization",
+      icon: <YoutubeOutlined className="size-4 sm:size-5 text-red-500" />,
+      description: "Summarize long YouTube videos into clear insights, highlights, and timestamps.",
+      action: () => navigate("/youtube-summarization"),
+      actionText: "Summarize Video",
+      credits: COSTS.YOUTUBE_SUMMARIZER,
+      creditType: "tools.outline",
+      color: "from-red-500 to-rose-600",
+    },
+    {
+      key: "keyword-scraping",
+      title: "Keyword Scraping",
+      icon: <SearchOutlined className="size-4 sm:size-5 text-emerald-500" />,
+      description: "Extract high-intent SEO keywords and clusters to build content that ranks.",
+      action: () => navigate("/keyword-scraping"),
+      actionText: "Find Keywords",
+      credits: COSTS.KEYWORD_SCRAPER,
+      creditType: "tools.outline",
+      color: "from-emerald-500 to-teal-600",
+    },
+    {
+      key: "competitor-like-blog",
+      title: "Competitor Like Blog",
+      icon: <ImMagicWand className="size-4 sm:size-5 text-indigo-500" />,
+      description: "Analyze competitor blog styles to generate matching content for your topic.",
+      action: () => navigate("/competitor-like-blog"),
+      actionText: "Generate Content",
+      credits: COSTS.COMPETITOR_LIKE_BLOG,
+      creditType: "tools.competitorLikeBlog",
+      color: "from-indigo-500 to-violet-600",
+    },
+    {
+      key: "chat-with-pdf",
+      title: "Chat with PDF",
+      icon: <FileText className="size-4 sm:size-5 text-red-500" />,
+      description: "Upload a PDF and chat with AI to extract insights and answers.",
+      action: () => navigate("/chat-with-pdf"),
+      actionText: "Chat Now",
+      credits: COSTS.CHAT_WITH_PDF + " /  message",
+      color: "from-red-500 to-orange-600",
     },
   ]
 
@@ -302,6 +378,7 @@ export default function ToolboxPage() {
 
   return (
     <>
+      {analyzing && <ProgressLoadingScreen message="Analyzing keywords..." />}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -344,10 +421,7 @@ export default function ToolboxPage() {
           activeKey={activeTab}
           onChange={setActiveTab}
           className="custom-tabs"
-          tabBarStyle={{
-            padding: "0 8px sm:0 16px",
-            marginBottom: "16px sm:24px",
-          }}
+          tabBarStyle={{ padding: "0 8px sm:0 16px", marginBottom: "16px sm:24px" }}
           items={[
             {
               key: "content",
@@ -363,12 +437,20 @@ export default function ToolboxPage() {
               children: (
                 <div className="grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8 mt-4 px-2 sm:px-4">
                   {cardItems
-                    .filter((item) =>
-                      ["ai-writer", "humanize-content", "outline", "prompt-content"].includes(
-                        item.key
-                      )
+                    .filter(item =>
+                      [
+                        "ai-writer",
+                        "chat-with-pdf",
+                        "humanize-content",
+                        "outline",
+                        "prompt-content",
+                        "content-detection",
+                        "youtube-summarization",
+                        "keyword-scraping",
+                        "competitor-like-blog",
+                      ].includes(item.key)
                     )
-                    .map((item) => (
+                    .map(item => (
                       <AnimatedCard key={item.key} item={item} />
                     ))}
                 </div>
@@ -389,10 +471,12 @@ export default function ToolboxPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8 mt-4 px-2 sm:px-4">
                   {cardItems
                     .filter(
-                      (item) =>
-                        item.key === "competitor-analysis" || item.key === "generated-metadata"
+                      item =>
+                        item.key === "competitor-analysis" ||
+                        item.key === "generated-metadata" ||
+                        item.key === "website-ranking"
                     )
-                    .map((item) => (
+                    .map(item => (
                       <AnimatedCard key={item.key} item={item} />
                     ))}
                 </div>
@@ -436,7 +520,7 @@ export default function ToolboxPage() {
                         <Input
                           placeholder="Enter a keyword (e.g., tech)"
                           value={newKeyword}
-                          onChange={(e) => setNewKeyword(e.target.value)}
+                          onChange={e => setNewKeyword(e.target.value)}
                           onKeyPress={handleKeyPress}
                           className="flex-1 text-xs sm:text-sm"
                         />
@@ -578,15 +662,8 @@ export default function ToolboxPage() {
                           ],
                           opacity: [0, 0.5, 0],
                         }}
-                        transition={{
-                          duration: 3,
-                          repeat: Infinity,
-                        }}
-                        style={{
-                          zIndex: -1,
-                          margin: "-1px",
-                          border: "1px solid transparent",
-                        }}
+                        transition={{ duration: 3, repeat: Infinity }}
+                        style={{ zIndex: -1, margin: "-1px", border: "1px solid transparent" }}
                       />
                     </Card>
                   </motion.div>
@@ -661,12 +738,46 @@ export default function ToolboxPage() {
 function AnimatedCard({ item }) {
   const navigate = useNavigate()
   const user = useSelector(selectUser)
+  const { handlePopup } = useConfirmPopup()
   const [isUserPlanFree, setIsUserPlanFree] = useState(false)
+
   useEffect(() => {
     if (user) {
       setIsUserPlanFree(["free"].includes(user?.subscription?.plan))
     }
   }, [user])
+
+  const handleAction = () => {
+    // If user is on free plan, redirect to pricing
+    if (isUserPlanFree) {
+      navigate("/pricing")
+      return
+    }
+
+    // If tool requires credits, check if user has enough
+    if (item.credits && item.creditType) {
+      const creditCheck = checkSufficientCredits(user, item.creditType, "gemini")
+
+      if (!creditCheck.hasEnough) {
+        const popupConfig = getInsufficientCreditsPopup(
+          creditCheck.required,
+          creditCheck.available,
+          item.title
+        )
+
+        handlePopup({
+          ...popupConfig,
+          onConfirm: () => {
+            navigate("/pricing")
+          },
+        })
+        return
+      }
+    }
+
+    // Proceed with the action
+    item.action()
+  }
 
   return (
     <motion.div
@@ -706,7 +817,7 @@ function AnimatedCard({ item }) {
                 <Button
                   block
                   type={item.disabled ? "default" : "primary"}
-                  onClick={isUserPlanFree ? () => navigate("/pricing") : item.action}
+                  onClick={handleAction}
                   disabled={item.disabled}
                   className="transition-all w-full sm:w-5/6 text-xs sm:text-sm flex items-center justify-center gap-1"
                 >
@@ -721,7 +832,7 @@ function AnimatedCard({ item }) {
               <Button
                 block
                 type={item.disabled ? "default" : "primary"}
-                onClick={isUserPlanFree ? () => navigate("/pricing") : item.action}
+                onClick={handleAction}
                 disabled={item.disabled}
                 className="transition-all w-full sm:w-5/6 text-xs sm:text-sm flex items-center justify-center gap-1"
               >

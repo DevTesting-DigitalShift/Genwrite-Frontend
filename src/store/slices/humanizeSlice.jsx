@@ -17,26 +17,26 @@ const humanizeSlice = createSlice({
   name: "humanize",
   initialState: {
     loading: false,
-    result: "",
+    result: null, // Changed from "" to null to store full response object
     error: null,
   },
   reducers: {
-    resetHumanizeState: (state) => {
+    resetHumanizeState: state => {
       state.loading = false
-      state.result = ""
+      state.result = null // Changed from "" to null
       state.error = null
     },
   },
-  extraReducers: (builder) => {
+  extraReducers: builder => {
     builder
-      .addCase(generateHumanizedContent.pending, (state) => {
+      .addCase(generateHumanizedContent.pending, state => {
         state.loading = true
-        state.result = ""
+        state.result = null // Changed from "" to null
         state.error = null
       })
       .addCase(generateHumanizedContent.fulfilled, (state, action) => {
         state.loading = false
-        state.result = action.payload.rewrittenContent
+        state.result = action.payload // Store full payload object with all fields
       })
       .addCase(generateHumanizedContent.rejected, (state, action) => {
         state.loading = false

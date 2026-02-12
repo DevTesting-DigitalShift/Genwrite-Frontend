@@ -1,6 +1,7 @@
 import { defineConfig } from "vite"
 import react from "@vitejs/plugin-react"
 import path from "path"
+import { visualizer } from "rollup-plugin-visualizer"
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -11,16 +12,17 @@ export default defineConfig({
       // Ensure TypeScript files are processed correctly
       include: ["**/*.jsx", "**/*.tsx"],
     }),
+    visualizer({ emitFile: true, filename: "stats.html", open: true }),
   ],
   server: {
     host: true,
     port: 5174,
-    // Enable HTTP/2 for better performance
-    https: false,
     // Optimize dev server
-    hmr: {
-      overlay: false,
-    },
+    hmr: true,
+    // hmr: {
+    //   host: "distinguishingly-postpeduncular-annalisa.ngrok-free.dev",
+    //   protocol: "wss",
+    // },
   },
   resolve: {
     alias: {
@@ -43,8 +45,16 @@ export default defineConfig({
     minify: "esbuild",
     sourcemap: false,
     // Enable module preloading for better performance
-    modulePreload: {
-      polyfill: true,
+    modulePreload: { polyfill: true },
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ["react", "react-dom", "react-router-dom"],
+          antd: ["antd"],
+          tiptap: ["@tiptap/core", "@tiptap/react", "@tiptap/starter-kit"],
+          utils: ["axios", "dayjs", "lodash-es"],
+        },
+      },
     },
 
     // Optimize asset handling
@@ -68,8 +78,6 @@ export default defineConfig({
       "marked",
       "dompurify",
     ],
-    exclude: [
-      // Exclude these from pre-bundling if they cause issues
-    ],
+    exclude: ["lexical", "lexical-react"],
   },
 })

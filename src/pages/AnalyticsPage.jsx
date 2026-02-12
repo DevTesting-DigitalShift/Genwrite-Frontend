@@ -79,7 +79,7 @@ const ChartCard = ({ title, children, className = "" }) => (
 
 const AnalyticsPage = () => {
   const user = useSelector(selectUser)
-  const [selectedRange, setSelectedRange] = useState("7days")
+  // const [selectedRange, setSelectedRange] = useState("7days")
 
   const {
     data: blogStatus,
@@ -87,33 +87,36 @@ const AnalyticsPage = () => {
     error,
     refetch,
   } = useQuery({
-    queryKey: ["blogStatus", selectedRange],
+    queryKey: ["blogStatus"],
     queryFn: () => {
-      let params = {}
       const endDate = dayjs().endOf("day").toISOString()
-
-      switch (selectedRange) {
-        case "7days":
-          params = {
-            start: dayjs().subtract(6, "days").startOf("day").toISOString(),
-            end: endDate,
-          }
-          break
-        case "30days":
-          params = {
-            start: dayjs().subtract(29, "days").startOf("day").toISOString(),
-            end: endDate,
-          }
-          break
-        case "90days":
-          params = {
-            start: dayjs().subtract(89, "days").startOf("day").toISOString(),
-            end: endDate,
-          }
-          break
-        default:
-          params = {}
+      let params = {
+        start: new Date(user?.createdAt || Date.now()).toISOString(),
+        end: endDate,
       }
+
+      // switch (selectedRange) {
+      //   case "7days":
+      //     params = {
+      //       start: dayjs().subtract(6, "days").startOf("day").toISOString(),
+      //       end: endDate,
+      //     }
+      //     break
+      //   case "30days":
+      //     params = {
+      //       start: dayjs().subtract(29, "days").startOf("day").toISOString(),
+      //       end: endDate,
+      //     }
+      //     break
+      //   case "90days":
+      //     params = {
+      //       start: dayjs().subtract(89, "days").startOf("day").toISOString(),
+      //       end: endDate,
+      //     }
+      //     break
+      //   default:
+      //     params = {}
+      // }
       return getBlogStatus(params)
     },
   })
@@ -219,7 +222,7 @@ const AnalyticsPage = () => {
         datasets: [
           {
             data: Object.keys(imageSources).length ? Object.values(imageSources) : [1],
-            backgroundColor: ["#10B981", "#F59E0B", "#EF4444"],
+            backgroundColor: ["#10B981", "#F59E0B", "#EF4444", "#6B7280"],
             hoverOffset: 20,
             borderColor: "#ffffff",
           },
@@ -236,7 +239,7 @@ const AnalyticsPage = () => {
             label: "Blogs by Status",
             data: Object.keys(blogsByStatus).length ? Object.values(blogsByStatus) : [0],
             backgroundColor: Object.keys(blogsByStatus).length
-              ? Object.keys(blogsByStatus).map((status) => {
+              ? Object.keys(blogsByStatus).map(status => {
                   switch (status.toLowerCase()) {
                     case "pending":
                       return "#facc15" // Yellow
@@ -334,7 +337,7 @@ const AnalyticsPage = () => {
     },
   ]
 
-  const handleRangeChange = (value) => {
+  const handleRangeChange = value => {
     setSelectedRange(value)
   }
 
@@ -343,7 +346,7 @@ const AnalyticsPage = () => {
   }
 
   return (
-    <div className="min-h-screen transition-colors duration-300 bg-gray-50">
+    <div className="min-h-screen">
       <div className="p-6">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -355,11 +358,11 @@ const AnalyticsPage = () => {
             <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               Blog Analytics
             </h1>
-            <p className="text-sm mt-1 text-gray-600">
+            <p className="text-base mt-1 text-gray-600">
               Track your blog performance and engagement metrics
             </p>
           </div>
-          <div className="flex items-center gap-4">
+          {/* <div className="flex items-center gap-4">
             <Select
               value={selectedRange}
               onChange={handleRangeChange}
@@ -370,7 +373,7 @@ const AnalyticsPage = () => {
               <Option value="30days">Last 30 Days</Option>
               <Option value="90days">Last 90 Days</Option>
             </Select>
-          </div>
+          </div> */}
         </motion.div>
 
         {statusLoading || !user ? (

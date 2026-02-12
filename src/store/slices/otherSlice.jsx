@@ -13,7 +13,7 @@ import { message } from "antd"
 import { data } from "react-router-dom"
 
 // Stripe
-export const createStripeSession = async (data) => {
+export const createStripeSession = async data => {
   try {
     const res = await axiosInstance.post("/stripe/create-checkout-session", data)
     return res.data
@@ -146,18 +146,22 @@ const wordpressSlice = createSlice({
     metadata: null,
   },
   reducers: {
-    resetMetadata: (state) => {
+    resetMetadata: state => {
       state.data = null
     },
-    resetUnsubscribe: (state) => {
+    resetCategories: state => {
+      state.categories = []
+      state.error = null
+    },
+    resetUnsubscribe: state => {
       state.loading = false
       state.error = null
       state.successMessage = null
     },
   },
-  extraReducers: (builder) => {
+  extraReducers: builder => {
     builder
-      .addCase(getCategoriesThunk.pending, (state) => {
+      .addCase(getCategoriesThunk.pending, state => {
         state.loading = true
         state.error = null
       })
@@ -170,7 +174,7 @@ const wordpressSlice = createSlice({
         state.error = action.payload
       })
 
-      .addCase(createOutlineThunk.pending, (state) => {
+      .addCase(createOutlineThunk.pending, state => {
         state.loading = true
         state.error = null
       })
@@ -183,7 +187,7 @@ const wordpressSlice = createSlice({
         state.error = action.payload || "Something went wrong"
       })
 
-      .addCase(generateMetadataThunk.pending, (state) => {
+      .addCase(generateMetadataThunk.pending, state => {
         state.loading = true
         state.error = null
       })
@@ -196,7 +200,7 @@ const wordpressSlice = createSlice({
         state.error = action.payload || "Failed to generate metadata"
       })
 
-      .addCase(generatePromptContentThunk.pending, (state) => {
+      .addCase(generatePromptContentThunk.pending, state => {
         state.loading = true
         state.error = null
       })
@@ -209,7 +213,7 @@ const wordpressSlice = createSlice({
         state.error = action.payload || "Failed to generate prompt content"
       })
 
-      .addCase(unsubscribeThunk.pending, (state) => {
+      .addCase(unsubscribeThunk.pending, state => {
         state.loading = true
         state.error = null
         state.successMessage = null
@@ -223,7 +227,7 @@ const wordpressSlice = createSlice({
         state.error = action.payload
       })
 
-      .addCase(getIntegrationsThunk.pending, (state) => {
+      .addCase(getIntegrationsThunk.pending, state => {
         state.loading = true
         state.error = null
       })
@@ -236,14 +240,14 @@ const wordpressSlice = createSlice({
         state.error = action.payload
       })
 
-      .addCase(updateExistingIntegration.pending, (state) => {
+      .addCase(updateExistingIntegration.pending, state => {
         state.loading = true
         state.error = null
       })
       .addCase(updateExistingIntegration.fulfilled, (state, action) => {
         state.loading = false
         const updatedIntegration = action.payload
-        const index = state.integrations.findIndex((p) => p.id === updatedIntegration.id)
+        const index = state.integrations.findIndex(p => p.id === updatedIntegration.id)
         if (index !== -1) {
           state.integrations[index] = updatedIntegration
         }
@@ -271,7 +275,7 @@ const wordpressSlice = createSlice({
       // })
 
       // CREATE Integration
-      .addCase(createIntegrationThunk.pending, (state) => {
+      .addCase(createIntegrationThunk.pending, state => {
         state.loading = true
         state.error = null
       })
@@ -304,5 +308,5 @@ const wordpressSlice = createSlice({
   },
 })
 
-export const { resetMetadata, resetUnsubscribe } = wordpressSlice.actions
+export const { resetMetadata, resetCategories, resetUnsubscribe } = wordpressSlice.actions
 export default wordpressSlice.reducer

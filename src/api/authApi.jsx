@@ -1,7 +1,7 @@
 import axiosInstance from "."
-const getIP = async () => {
+export const getIP = async () => {
   try {
-    const res = await fetch("https://api64.ipify.org?format=json")
+    const res = await fetch("https://api.ipify.org?format=json")
     const { ip } = await res.json()
     return ip
   } catch (err) {
@@ -17,18 +17,18 @@ const retry = async (fn, retries = 3, delay = 1000) => {
       return await fn()
     } catch (error) {
       if (i === retries - 1) throw error // Throw on last retry
-      await new Promise((resolve) => setTimeout(resolve, delay * Math.pow(2, i))) // Exponential backoff
+      await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i))) // Exponential backoff
     }
   }
 }
 
-export const login = async (reqBody) => {
+export const login = async reqBody => {
   reqBody.ip = await getIP()
   const response = await axiosInstance.post("/auth/login", reqBody)
   return response.data
 }
 
-export const signup = async (body) => {
+export const signup = async body => {
   body.ip = await getIP()
   const response = await axiosInstance.post("/auth/register", body)
   return response.data
@@ -39,7 +39,7 @@ export const UserLogout = async () => {
   return response.data
 }
 
-export const loadUser = async (navigate) => {
+export const loadUser = async navigate => {
   // Check if token exists before making API call
   const token = localStorage.getItem("token")
   if (!token) {
@@ -49,7 +49,7 @@ export const loadUser = async (navigate) => {
 
   try {
     // Retry the API call up to 3 times with exponential backoff
-    const response = await retry(() => axiosInstance.get(`/auth/me`), 3, 1000)
+    const response = await retry(() => axiosInstance.get(`/auth/me`), 2, 250)
     return response.data
   } catch (error) {
     const status = error?.response?.status
@@ -72,7 +72,7 @@ export const loadUser = async (navigate) => {
   }
 }
 
-export const forgotPasswordAPI = async (email) => {
+export const forgotPasswordAPI = async email => {
   const response = await axiosInstance.post("/auth/forgot-password", { email })
   return response.data
 }
@@ -82,7 +82,7 @@ export const resetPasswordAPI = async (token, newPassword) => {
   return response.data
 }
 
-export const loginWithGoogle = async (body) => {
+export const loginWithGoogle = async body => {
   try {
     const response = await axiosInstance.post("/auth/google-signin", body)
     return response.data

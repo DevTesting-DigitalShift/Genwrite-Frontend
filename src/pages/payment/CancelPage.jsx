@@ -1,4 +1,4 @@
-import React from "react"
+import React, { useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
 import { XCircle } from "lucide-react"
@@ -31,6 +31,12 @@ const CancelPage = () => {
     hover: { scale: 1.05, boxShadow: "0 4px 20px rgba(59, 130, 246, 0.3)" },
     tap: { scale: 0.95 },
   }
+
+  // Stop confetti after 5 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => navigate("/dashboard"), 5000)
+    return () => clearTimeout(timer)
+  }, [])
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-gray-50 via-gray-100 to-red-50 relative overflow-hidden">

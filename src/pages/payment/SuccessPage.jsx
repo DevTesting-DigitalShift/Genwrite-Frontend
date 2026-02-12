@@ -1,17 +1,38 @@
-import React, { useEffect } from "react"
-import { useNavigate } from "react-router-dom"
+import { useEffect } from "react"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import { motion } from "framer-motion"
 import { CheckCircle } from "lucide-react"
 import Confetti from "react-confetti"
+import { subscriptions } from "@/data/subscriptions"
+import { pushToDataLayer } from "@utils/DataLayer"
 
 const SuccessPage = () => {
   const navigate = useNavigate()
-  const [showConfetti, setShowConfetti] = React.useState(true)
+  const [searchParams, setSearchParams] = useSearchParams()
 
-  // Stop confetti after 5 seconds
+  const allParamsObject = Object.fromEntries(searchParams.entries())
+
   useEffect(() => {
-    const timer = setTimeout(() => setShowConfetti(false), 5000)
-    return () => clearTimeout(timer)
+    // const timer = setTimeout(() => navigate("/dashboard"), 5000)
+    if (allParamsObject?.isTrialOpted == "true") {
+      const { userId, plan, billingPeriod } = allParamsObject
+      const trialPlan = plan ? subscriptions?.[plan] : undefined
+      const eventData = {
+        event: "trialOpted",
+        user_id: userId,
+        plan_name: plan,
+        currency: "USD",
+        billing_period: billingPeriod,
+        value: billingPeriod
+          ? billingPeriod === "monthly"
+            ? trialPlan?.priceMonthly
+            : trialPlan?.priceAnnual
+          : undefined,
+      }
+
+      pushToDataLayer(eventData)
+    }
+    // return () => clearTimeout(timer)
   }, [])
 
   // Animation variants for the main content
@@ -47,15 +68,14 @@ const SuccessPage = () => {
   return (
     <div className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-green-50 via-blue-50 to-white relative overflow-hidden">
       {/* Confetti */}
-      {showConfetti && (
-        <Confetti
-          width={window.innerWidth}
-          height={window.innerHeight}
-          numberOfPieces={200}
-          recycle={false}
-          colors={["#22c55e", "#3b82f6", "#f59e0b", "#ef4444"]}
-        />
-      )}
+
+      <Confetti
+        width={window.innerWidth}
+        height={window.innerHeight}
+        numberOfPieces={200}
+        recycle={false}
+        colors={["#22c55e", "#3b82f6", "#f59e0b", "#ef4444"]}
+      />
 
       {/* Background Wave Pattern */}
       <svg
@@ -98,7 +118,7 @@ const SuccessPage = () => {
 
         {/* Button */}
         <motion.button
-          onClick={() => navigate("/")}
+          onClick={() => navigate("/dashboard")}
           className="px-8 py-3 sm:px-10 sm:py-4 bg-blue-600 text-white rounded-lg font-semibold text-base sm:text-lg transition-all"
           variants={buttonVariants}
           whileHover="hover"

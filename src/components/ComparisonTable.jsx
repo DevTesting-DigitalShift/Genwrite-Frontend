@@ -1,5 +1,3 @@
-"use client"
-
 import React from "react"
 
 import { Check, X } from "lucide-react"
@@ -26,7 +24,7 @@ const ComparisonTable = ({ plans }) => {
           details: {
             basic: "1 Jobs",
             pro: "5 Jobs",
-            enterprise: "Unlimited Jobs",
+            enterprise: "Custom Jobs",
           },
         },
       ],
@@ -38,6 +36,11 @@ const ComparisonTable = ({ plans }) => {
         {
           name: "AI-generated blogs",
           available: ["basic", "pro", "enterprise", "credits"],
+          details: {
+            basic: "upto 10 Blogs",
+            pro: "upto 45 Blogs",
+            enterprise: "Custom Blogs",
+          },
         },
         {
           name: "AI images with blogs",
@@ -45,7 +48,7 @@ const ComparisonTable = ({ plans }) => {
           details: {
             basic: "50 Images",
             pro: "200 Images",
-            enterprise: "Unlimited Images",
+            enterprise: "Custom Images",
           },
         },
         { name: "Proofreading", available: ["pro", "enterprise"] },
@@ -100,7 +103,7 @@ const ComparisonTable = ({ plans }) => {
     },
   ]
 
-  const getPlanStyles = (tier) => {
+  const getPlanStyles = tier => {
     switch (tier) {
       case "basic":
         return { text: "text-green-600", icon: "text-green-600" }
@@ -123,7 +126,7 @@ const ComparisonTable = ({ plans }) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="mx-auto py-8 sm:py-10 md:py-12 px-4 sm:px-6 md:px-8 rounded-2xl"
+      className="mx-auto pt-0 md:py-8 sm:py-10 lg:py-12 px-0 sm:px-6 md:px-8 rounded-2xl"
     >
       <div className="rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
@@ -131,7 +134,7 @@ const ComparisonTable = ({ plans }) => {
             <thead>
               <tr className="sticky top-0 z-20 bg-white">
                 <th className="p-2 sm:p-3 md:p-4 text-left text-gray-900 font-semibold text-sm sm:text-base md:text-lg"></th>
-                {plans.map((plan) => {
+                {plans.map(plan => {
                   const styles = getPlanStyles(plan.tier)
                   return (
                     <th
@@ -166,13 +169,15 @@ const ComparisonTable = ({ plans }) => {
                 <React.Fragment key={category.name}>
                   <tr className={`${category.index > 0 ? "mt-6 sm:mt-10" : ""}`}>
                     <td
-                      colSpan={plans.length + 1}
                       className={`p-2 sm:p-3 md:p-4 uppercase tracking-widest font-bold text-gray-700 text-sm sm:text-base md:text-lg ${
                         category.index > 1 ? "pt-6 sm:pt-8 md:pt-10" : ""
-                      } sticky left-0 bg-white z-30`} // 👈 add this
+                      } sticky left-0 bg-white z-30`}
                     >
                       {category.name}
                     </td>
+                    {plans.map(plan => (
+                      <td key={plan.name} className="bg-white"></td>
+                    ))}
                   </tr>
 
                   {category.features.map((feature, featIndex) => {
@@ -197,7 +202,7 @@ const ComparisonTable = ({ plans }) => {
                           {feature.name}
                         </td>
 
-                        {plans.map((plan) => {
+                        {plans.map(plan => {
                           const styles = getPlanStyles(plan.tier)
                           return (
                             <td key={plan.name} className="p-2 sm:p-3 md:p-4 text-center">

@@ -16,16 +16,15 @@ import {
   FaGoogle,
 } from "react-icons/fa"
 import { FcGoogle } from "react-icons/fc"
-import { Sparkles, Zap, PenTool, CheckCircle } from "lucide-react"
+import { Sparkles, Zap, PenTool, CheckCircle, Crown, TrendingUp } from "lucide-react"
 import { Helmet } from "react-helmet"
 import { message } from "antd"
+import { FiGift } from "react-icons/fi"
+import Footer from "@components/Footer"
+import IceAnimation from "@components/IceAnimation"
 
 const Auth = ({ path }) => {
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-    name: "",
-  })
+  const [formData, setFormData] = useState({ email: "", password: "", name: "", referralId: "" })
   const [errors, setErrors] = useState({})
   const [showPassword, setShowPassword] = useState(false)
   const [isSignup, setIsSignup] = useState(path === "signup")
@@ -99,14 +98,20 @@ const Auth = ({ path }) => {
     flow: "implicit",
     redirect_uri: "https://app.genwrite.co/login",
     onSuccess: async tokenResponse => {
-      dispatch(googleLogin({ access_token: tokenResponse.access_token }))
+      dispatch(
+        googleLogin({ access_token: tokenResponse.access_token, referralId: formData.referralId })
+      )
         .unwrap()
-        .then(({ authStatus, user }) => {
+        .then(data => {
           message.success("Google login successful!")
-          navigate(authStatus === "sign_up" ? "/pricing" : "/dashboard", { replace: true })
-        })
-        .catch(err => {
-          console.error("Google login error:", err)
+
+          const user = data.user || data?.data?.user || data
+
+          if (isSignup) {
+            navigate("/onboarding", { replace: true })
+          } else {
+            navigate("/dashboard", { replace: true })
+          }
         })
     },
     onError: () => {
@@ -118,9 +123,7 @@ const Auth = ({ path }) => {
   const handleSubmit = useCallback(
     async e => {
       e.preventDefault()
-      if (!validateForm()) {
-        return
-      }
+      if (!validateForm()) return
 
       setLoading(true)
 
@@ -131,6 +134,7 @@ const Auth = ({ path }) => {
               password: formData.password,
               name: formData.name,
               captchaToken: recaptchaValue,
+              referralId: formData.referralId,
             })
           : loginUser({
               email: formData.email,
@@ -138,12 +142,16 @@ const Auth = ({ path }) => {
               captchaToken: recaptchaValue,
             })
 
-        await dispatch(action).unwrap()
+        const { user } = await dispatch(action).unwrap()
 
         message.success(isSignup ? "Signup successful!" : "Login successful!")
-        setTimeout(() => {
-          navigate(isSignup ? "/pricing" : "/dashboard", { replace: true })
-        }, 100)
+
+        // 🔥 Your new redirect rule
+        if (isSignup) {
+          navigate("/onboarding", { replace: true }) // New user onboarding flow
+        } else {
+          navigate("/dashboard", { replace: true }) // Returning user flow
+        }
       } catch (err) {
         console.error("Auth error:", err)
         message.error(err.data?.message || err?.message || "Signup failed")
@@ -164,31 +172,67 @@ const Auth = ({ path }) => {
     setRecaptchaValue(null)
   }, [path])
 
-  const features = [
-    { icon: <PenTool className="w-5 h-5" />, text: "AI-Powered Blog Generator" },
-    { icon: <Zap className="w-5 h-5" />, text: "SEO-Optimized Content" },
-    { icon: <FaShieldAlt className="w-5 h-5" />, text: "Human-Like Text Enhancement" },
-    { icon: <CheckCircle className="w-5 h-5" />, text: "Automated Content Scheduling" },
-    { icon: <FaGoogle className="w-5 h-5" />, text: "Competitor Analysis Insights" },
-    { icon: <Sparkles className="w-5 h-5" />, text: "Performance & Keyword Analytics" },
+  // Pre-fill email from URL parameter
+  // Pre-fill email and referral from URL parameter
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const emailParam = urlParams.get("email")
+    const referralParam = urlParams.get("referal") || urlParams.get("referral")
+
+    if (emailParam) {
+      setFormData(prev => ({ ...prev, email: decodeURIComponent(emailParam) }))
+    }
+    if (referralParam) {
+      setFormData(prev => ({ ...prev, referralId: referralParam }))
+    }
+  }, [])
+
+  const trialFeatures = [
+    { icon: <PenTool className="w-4 h-4" />, text: "Advanced AI-generated blogs" },
+    { icon: <Crown className="w-4 h-4" />, text: "Access to all 30+ premium templates" },
+    { icon: <FaShieldAlt className="w-4 h-4" />, text: "Priority support & onboarding" },
+    { icon: <TrendingUp className="w-4 h-4" />, text: "Advanced SEO & analytics tools" },
+  ]
+
+  const quickFeatures = [
+    { icon: <Zap className="w-4 h-4" />, text: "SEO-Optimized Content" },
+    { icon: <CheckCircle className="w-4 h-4" />, text: "Automated Scheduling" },
+    { icon: <Sparkles className="w-4 h-4" />, text: "Human-Like Text" },
   ]
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+    <div className="min-h-screen relative  bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50">
+      {/* Ice Animation */}
+      {/* <IceAnimation density={30} /> */}
+
       <Helmet>
         <title>{isSignup ? "Sign Up" : "Sign In"} | GenWrite</title>
       </Helmet>
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0 overflow-hidden">
+
+      {/* 3D Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Large animated orbs - hidden on mobile to prevent overflow */}
         <motion.div
-          animate={{ rotate: [0, 360], scale: [1, 1.1, 1] }}
-          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl"
+          animate={{ rotate: [0, 360], scale: [1, 1.1, 1], x: [0, 30, 0] }}
+          transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+          className="hidden md:block absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-purple-400/10 to-blue-400/10 rounded-full blur-3xl"
         />
         <motion.div
-          animate={{ rotate: [360, 0], scale: [1, 1.2, 1] }}
-          transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-          className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-indigo-400/20 to-cyan-400/20 rounded-full blur-3xl"
+          animate={{ rotate: [360, 0], scale: [1, 1.2, 1], x: [0, -30, 0] }}
+          transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+          className="hidden md:block absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-br from-blue-400/10 to-purple-400/10 rounded-full blur-3xl"
+        />
+
+        {/* Medium geometric shapes - smaller on mobile */}
+        <motion.div
+          animate={{ rotate: [0, 45, 0] }}
+          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+          className="hidden lg:block absolute top-1/4 right-1/4 w-40 h-40 border-2 border-purple-300/15 rotate-45"
+        />
+        <motion.div
+          animate={{ scale: [1, 1.1, 1] }}
+          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+          className="hidden lg:block absolute bottom-1/3 left-1/3 w-32 h-32 bg-blue-500/5 rounded-full"
         />
       </div>
 
@@ -196,134 +240,243 @@ const Auth = ({ path }) => {
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="absolute top-8 left-1/2 transform -translate-x-1/2 z-10 mb-2"
+        transition={{ duration: 0.4 }}
+        className="absolute top-4 md:top-8 left-1/2 transform -translate-x-1/2 z-20"
       >
-        <img src="/Images/logo_genwrite_2.png" alt="GenWrite Logo" className="w-40 h-auto" />
+        <img
+          src="/Images/logo_genwrite_2.webp"
+          alt="GenWrite Logo"
+          className="w-32 md:w-40 h-auto"
+        />
       </motion.div>
 
-      <div className="flex items-center justify-center min-h-screen px-4 pt-28 pb-8">
-        <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-12 items-center">
-          {/* Left Side - Features & Branding */}
+      <div className="flex items-center justify-center min-h-screen px-4 pt-20 md:pt-28 pb-8">
+        <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-6 lg:gap-12 items-start">
+          {/* Desktop-only left section */}
           <motion.div
-            initial={{ opacity: 0, x: -50 }}
+            initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
+            transition={{ duration: 0.5 }}
             className="hidden lg:block space-y-8"
           >
-            <div className="space-y-6">
-              <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-sm font-medium">
-                <Sparkles className="w-4 h-4" />
-                AI-Powered Writing Platform
-              </div>
-              <h1 className="text-5xl font-bold text-gray-900 leading-tight">
-                Elevate Your
-                <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  {" "}
-                  Writing
+            {/* Main Hero Message */}
+            <div className="space-y-4">
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.2 }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-100 text-purple-700 text-sm font-semibold border border-purple-200"
+              >
+                <Sparkles className="w-4 h-4 fill-purple-700" />
+                <span>The Future of Content Creation</span>
+              </motion.div>
+              <h1 className="text-5xl font-extrabold text-gray-900 leading-[1.1]">
+                Scale your SEO with <br />
+                <span className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                  Agentic AI Intelligence
                 </span>
-                <br />
-                with AI Precision
               </h1>
-              <p className="text-xl text-gray-600 leading-relaxed">
-                Harness AI to generate compelling, professional-grade content effortlessly.
-                Streamline your workflow, maximize productivity, and produce high-quality writing
-                that engages your audience.
+              <p className="text-lg text-gray-600 max-w-lg leading-relaxed">
+                Generate high-quality, human-like blog posts that rank. Join thousands of creators
+                automating their content workflow.
               </p>
             </div>
-            <div className="space-y-4">
-              {features.map((feature, index) => (
+
+            {/* 3-day trial card or Generic Feature Card */}
+            {import.meta.env.VITE_SHOW_TRIAL_CARD !== "false" ? (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.6 }}
+                className="relative bg-gradient-to-br from-purple-600 to-indigo-700 rounded-3xl p-8 border border-white/20 shadow-2xl overflow-hidden group"
+              >
+                {/* Abstract Patterns */}
+                <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-3xl -translate-y-12 translate-x-12 group-hover:bg-white/20 transition-all duration-500" />
+                <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-400/20 rounded-full blur-2xl translate-y-8 -translate-x-8" />
+
+                <div className="relative z-10">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="w-14 h-14 bg-white/20 backdrop-blur-lg rounded-2xl flex items-center justify-center border border-white/30 shadow-inner">
+                      <FiGift className="w-8 h-8 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-bold text-white mb-0.5">
+                        {import.meta.env.VITE_TRIAL_TEXT || "Start 3-Day Free Trial"}
+                      </h3>
+                      <p className="text-purple-100 text-sm font-medium opacity-90">
+                        {import.meta.env.VITE_TRIAL_SUBTEXT ||
+                          "No credit card required • Immediate access"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-y-4 gap-x-6">
+                    {trialFeatures.map((feature, index) => (
+                      <div key={index} className="flex items-center gap-3 text-sm text-white/90">
+                        <div className="w-5 h-5 bg-white/20 rounded-md flex items-center justify-center text-white/90">
+                          <CheckCircle className="w-3.5 h-3.5" />
+                        </div>
+                        <span className="font-medium">{feature.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.6 }}
+                className="relative bg-gradient-to-br from-blue-600 to-cyan-700 rounded-3xl p-8 border border-white/20 shadow-2xl overflow-hidden group"
+              >
+                {/* Abstract Patterns */}
+                <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-3xl -translate-y-12 translate-x-12 group-hover:bg-white/20 transition-all duration-500" />
+                <div className="absolute bottom-0 left-0 w-32 h-32 bg-purple-400/20 rounded-full blur-2xl translate-y-8 -translate-x-8" />
+
+                <div className="relative z-10">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="w-14 h-14 bg-white/20 backdrop-blur-lg rounded-2xl flex items-center justify-center border border-white/30 shadow-inner">
+                      <Sparkles className="w-8 h-8 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-bold text-white mb-0.5">Premium Features</h3>
+                      <p className="text-blue-100 text-sm font-medium opacity-90">
+                        Unlock the power of AI content
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-y-4 gap-x-6">
+                    {trialFeatures.map((feature, index) => (
+                      <div key={index} className="flex items-center gap-3 text-sm text-white/90">
+                        <div className="w-5 h-5 bg-white/20 rounded-md flex items-center justify-center text-white/90">
+                          <CheckCircle className="w-3.5 h-3.5" />
+                        </div>
+                        <span className="font-medium">{feature.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Why GenWrite Feature Grid */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+              className="grid grid-cols-2 gap-4"
+            >
+              {quickFeatures.map((feature, index) => (
                 <motion.div
                   key={index}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.4 + index * 0.1 }}
-                  className="flex items-center gap-3 text-gray-700"
+                  whileHover={{ scale: 1.02, y: -4 }}
+                  className="bg-white/60 backdrop-blur-md rounded-2xl p-5 border border-white shadow-sm hover:shadow-md transition-all duration-300"
                 >
-                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center text-white">
+                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-xl flex items-center justify-center text-purple-600 mb-3 border border-purple-100">
                     {feature.icon}
                   </div>
-                  <span className="font-medium">{feature.text}</span>
+                  <h4 className="font-bold text-gray-900 mb-1">{feature.text}</h4>
+                  <p className="text-xs text-gray-500 leading-relaxed">
+                    Designed for maximum performance and readability.
+                  </p>
                 </motion.div>
               ))}
-            </div>
-            <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full flex items-center justify-center">
-                  <CheckCircle className="w-6 h-6 text-white" />
+              {/* Extra Feature for Grid Balance */}
+              <motion.div
+                whileHover={{ scale: 1.02, y: -4 }}
+                className="bg-white/60 backdrop-blur-md rounded-2xl p-5 border border-white shadow-sm hover:shadow-md transition-all duration-300"
+              >
+                <div className="w-10 h-10 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 rounded-xl flex items-center justify-center text-emerald-600 mb-3 border border-emerald-100">
+                  <FaShieldAlt className="w-5 h-5" />
                 </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">Start for Free</h3>
-                  <p className="text-sm text-gray-600">No credit card required</p>
-                </div>
-              </div>
-              <p className="text-sm text-gray-600">
-                Begin with 200 complimentary AI credits and explore all features risk-free. Perfect
-                for evaluating the platform and experiencing AI-assisted content creation firsthand.
-              </p>
-            </div>
+                <h4 className="font-bold text-gray-900 mb-1">Secure & Reliable</h4>
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  Enterprise-grade security for your brand's content.
+                </p>
+              </motion.div>
+            </motion.div>
           </motion.div>
 
-          {/* Right Side - Auth Form */}
+          {/* Right Side - Auth Form + Feature Banner */}
           <motion.div
-            initial={{ opacity: 0, x: 50 }}
+            initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
-            className="w-full max-w-md mx-auto"
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="w-full max-w-md mx-auto space-y-6"
           >
-            <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-8 relative overflow-hidden">
+            {/* Main Form Card */}
+            <div className="bg-white/85 backdrop-blur-xl rounded-3xl shadow-2xl border border-purple-200/30 p-6 md:p-8 relative overflow-hidden">
               {/* Decorative Elements */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400/10 to-purple-400/10 rounded-full -translate-y-16 translate-x-16" />
-              <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-indigo-400/10 to-cyan-400/10 rounded-full translate-y-12 -translate-x-12" />
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-400/10 to-blue-400/10 rounded-full -translate-y-16 translate-x-16" />
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-blue-400/10 to-purple-400/10 rounded-full translate-y-12 -translate-x-12" />
 
               {/* Header */}
               <div className="relative mb-8 text-center">
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  transition={{ type: "spring", stiffness: 200, delay: 0.5 }}
-                  className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4"
+                  transition={{ type: "spring", stiffness: 250, damping: 15, delay: 0.2 }}
+                  className="w-16 h-16 bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg"
                 >
                   <FaRocket className="text-white text-2xl" />
                 </motion.div>
-                <h2 className="text-3xl font-bold text-gray-900 mb-2">
+                <motion.h2
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.25 }}
+                  className="text-3xl font-bold text-gray-900 mb-2"
+                >
                   {isSignup ? "Join GenWrite" : "Welcome Back"}
-                </h2>
-                <p className="text-gray-600">
+                </motion.h2>
+                <motion.p
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.3 }}
+                  className="text-gray-600"
+                >
                   {isSignup
                     ? "Start your AI writing journey today"
                     : "Continue creating amazing content"}
-                </p>
+                </motion.p>
               </div>
 
               {/* Google Button */}
               <motion.button
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.35 }}
                 whileHover={{ y: -2, scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={handleGoogleLogin}
                 disabled={loading}
-                className="w-full flex items-center justify-center gap-3 py-4 px-6 bg-white border-2 border-gray-200 rounded-2xl text-gray-700 hover:border-gray-300 hover:shadow-lg transition-all duration-300 mb-6 font-medium disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-3 py-4 px-6 bg-white/90 backdrop-blur-sm border-2 border-gray-200 rounded-2xl text-gray-700 hover:border-purple-300 hover:shadow-lg transition-all duration-200 mb-6 font-medium disabled:opacity-50"
               >
                 <FcGoogle className="text-2xl" />
                 <span>{isSignup ? "Sign up with Google" : "Continue with Google"}</span>
               </motion.button>
 
               {/* Divider */}
-              <div className="flex items-center my-6">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3, delay: 0.4 }}
+                className="flex items-center my-6"
+              >
                 <hr className="flex-1 border-gray-200" />
                 <span className="px-4 text-gray-500 text-sm font-medium">or</span>
                 <hr className="flex-1 border-gray-200" />
-              </div>
+              </motion.div>
 
               {/* Form */}
               <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-                <AnimatePresence>
+                <AnimatePresence mode="wait">
                   {isSignup && (
                     <motion.div
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.3 }}
+                      transition={{ duration: 0.2 }}
                       className="relative"
                     >
                       <div className="absolute top-4 left-4 text-gray-500 z-2">
@@ -335,7 +488,7 @@ const Auth = ({ path }) => {
                         placeholder="Full Name"
                         value={formData.name}
                         onChange={handleInputChange}
-                        className={`w-full pl-12 pr-4 py-2 bg-gray-50/80 border-2 rounded-2xl text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 ${
+                        className={`w-full pl-12 pr-4 py-2 bg-gray-50/80 border-2 rounded-2xl text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 ${
                           errors.name ? "border-red-500" : "border-gray-200"
                         }`}
                         aria-label="Full Name"
@@ -348,6 +501,7 @@ const Auth = ({ path }) => {
                             initial={{ opacity: 0, y: -5 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -5 }}
+                            transition={{ duration: 0.15 }}
                             className="text-red-600 text-xs mt-1"
                             id="name-error"
                           >
@@ -369,7 +523,7 @@ const Auth = ({ path }) => {
                     placeholder="Email Address"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className={`w-full pl-12 pr-4 py-2 bg-gray-50/80 border-2 rounded-2xl text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 ${
+                    className={`w-full pl-12 pr-4 py-2 bg-gray-50/80 border-2 rounded-2xl text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 ${
                       errors.email ? "border-red-500" : "border-gray-200"
                     }`}
                     aria-label="Email Address"
@@ -382,6 +536,7 @@ const Auth = ({ path }) => {
                         initial={{ opacity: 0, y: -5 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -5 }}
+                        transition={{ duration: 0.15 }}
                         className="text-red-600 text-xs mt-1"
                         id="email-error"
                       >
@@ -401,7 +556,7 @@ const Auth = ({ path }) => {
                     placeholder="Password"
                     value={formData.password}
                     onChange={handleInputChange}
-                    className={`w-full pl-12 pr-12 py-2 bg-gray-50/80 border-2 rounded-2xl text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 ${
+                    className={`w-full pl-12 pr-12 py-2 bg-gray-50/80 border-2 rounded-2xl text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 ${
                       errors.password ? "border-red-500" : "border-gray-200"
                     }`}
                     aria-label="Password"
@@ -411,7 +566,7 @@ const Auth = ({ path }) => {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-4 text-gray-500 hover:text-gray-700 transition-colors z-2"
+                    className="absolute right-4 top-4 text-gray-500 hover:text-gray-700 transition-colors duration-150 z-2"
                     aria-label={showPassword ? "Hide password" : "Show password"}
                   >
                     {showPassword ? <FaEyeSlash /> : <FaEye />}
@@ -422,6 +577,7 @@ const Auth = ({ path }) => {
                         initial={{ opacity: 0, y: -5 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -5 }}
+                        transition={{ duration: 0.15 }}
                         className="text-red-600 text-xs mt-1"
                         id="password-error"
                       >
@@ -431,6 +587,32 @@ const Auth = ({ path }) => {
                   </AnimatePresence>
                 </div>
 
+                {/* Referral Code (Signup Only) */}
+                <AnimatePresence>
+                  {isSignup && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="relative"
+                    >
+                      <div className="absolute top-4 left-4 text-gray-500 z-2">
+                        <FiGift />
+                      </div>
+                      <input
+                        type="text"
+                        name="referralId"
+                        placeholder="Referral Code (Optional)"
+                        value={formData.referralId || ""}
+                        onChange={handleInputChange}
+                        className="w-full pl-12 pr-4 py-2 bg-gray-50/80 border-2 border-gray-200 rounded-2xl text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
+                        aria-label="Referral Code"
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 {/* Terms and Conditions Checkbox (Signup Only) */}
                 {isSignup && (
                   <div className="relative">
@@ -439,7 +621,7 @@ const Auth = ({ path }) => {
                         type="checkbox"
                         checked={termsAccepted}
                         onChange={handleTermsChange}
-                        className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                        className="w-4 h-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
                         aria-label="Accept Terms and Conditions"
                         aria-describedby={errors.terms ? "terms-error" : undefined}
                       />
@@ -449,7 +631,7 @@ const Auth = ({ path }) => {
                           href="/terms-and-conditions"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline"
+                          className="text-purple-600 hover:underline"
                         >
                           Terms and Conditions
                         </a>{" "}
@@ -458,7 +640,7 @@ const Auth = ({ path }) => {
                           href="/privacy-policy"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline"
+                          className="text-purple-600 hover:underline"
                         >
                           Privacy Policy
                         </a>
@@ -470,6 +652,7 @@ const Auth = ({ path }) => {
                           initial={{ opacity: 0, y: -5 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -5 }}
+                          transition={{ duration: 0.15 }}
                           className="text-red-600 text-xs mt-1"
                           id="terms-error"
                         >
@@ -492,6 +675,7 @@ const Auth = ({ path }) => {
                       initial={{ opacity: 0, y: -5 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -5 }}
+                      transition={{ duration: 0.15 }}
                       className="text-red-600 text-xs text-center"
                       id="recaptcha-error"
                     >
@@ -506,7 +690,7 @@ const Auth = ({ path }) => {
                     <button
                       type="button"
                       onClick={() => navigate("/forgot-password")}
-                      className="text-blue-600 text-sm font-medium hover:text-blue-800 hover:underline transition-all"
+                      className="text-purple-600 text-sm font-medium hover:text-purple-800 hover:underline transition-all duration-150"
                       aria-label="Forgot Password"
                     >
                       Forgot Password?
@@ -519,17 +703,17 @@ const Auth = ({ path }) => {
                   whileTap={{ scale: 0.98 }}
                   type="submit"
                   disabled={loading || (isSignup && !termsAccepted)}
-                  className={`w-full py-4 px-6 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-2xl transition-all duration-300 shadow-lg hover:shadow-xl ${
+                  className={`w-full py-4 px-6 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold rounded-2xl transition-all duration-200 shadow-lg hover:shadow-xl ${
                     loading || (isSignup && !termsAccepted)
                       ? "opacity-70 cursor-not-allowed"
-                      : "hover:from-blue-700 hover:to-purple-700"
+                      : "hover:from-purple-700 hover:to-blue-700"
                   }`}
                 >
                   {loading ? (
                     <div className="flex items-center justify-center gap-3">
                       <motion.div
                         animate={{ rotate: 360 }}
-                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
                         className="w-5 h-5 border-2 border-white/30 rounded-full border-t-white"
                       />
                       <span>Processing...</span>
@@ -556,73 +740,46 @@ const Auth = ({ path }) => {
               <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.8 }}
+                transition={{ delay: 0.5 }}
                 className="text-center text-gray-600 mt-8"
               >
                 {isSignup ? "Already have an account? " : "Don't have an account? "}
                 <Link
                   to={isSignup ? "/login" : "/signup"}
-                  className="text-blue-600 font-semibold hover:text-blue-800 transition-colors hover:underline"
+                  className="text-purple-600 font-semibold hover:text-purple-800 transition-colors hover:underline"
                 >
                   {isSignup ? "Sign in here" : "Sign up free"}
                 </Link>
               </motion.p>
 
               {/* Trust Indicators */}
-              {isSignup && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 1 }}
-                  className="mt-6 pt-6 border-t border-gray-200"
-                >
-                  <div className="flex items-center justify-center gap-6 text-xs text-gray-500">
-                    <div className="flex items-center gap-1">
-                      <FaShieldAlt className="text-green-500" />
-                      <span>Secure</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <CheckCircle className="w-3 h-3 text-green-500" />
-                      <span>Free Start</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Zap className="w-3 h-3 text-blue-500" />
-                      <span>Instant Access</span>
-                    </div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+                className="mt-6 pt-6 border-t border-gray-200"
+              >
+                <div className="flex items-center justify-center gap-6 text-xs text-gray-500">
+                  <div className="flex items-center gap-1">
+                    <FaShieldAlt className="text-green-500" />
+                    <span>Secure</span>
                   </div>
-                </motion.div>
-              )}
+                  <div className="flex items-center gap-1">
+                    <CheckCircle className="w-3 h-3 text-green-500" />
+                    <span>
+                      {import.meta.env.VITE_SHOW_TRIAL_CARD === "false"
+                        ? "Premium Quality"
+                        : import.meta.env.VITE_TRIAL_BADGE_TEXT || "3-Day Trial"}
+                    </span>
+                  </div>
+                </div>
+              </motion.div>
             </div>
           </motion.div>
         </div>
       </div>
-      <footer className="w-full bg-white border-t border-gray-300 py-6 px-4 text-sm text-gray-700 relative">
-        <div className="flex flex-col sm:flex-row items-center justify-between max-w-7xl mx-auto">
-          {/* Copyright */}
-          <p className="text-center sm:text-left mb-2 sm:mb-0">
-            &copy; {new Date().getFullYear()} <strong>GenWrite</strong>. All rights reserved.
-          </p>
-
-          {/* Links */}
-          <div className="flex flex-row items-center gap-2 sm:gap-4 text-blue-500">
-            <a
-              href="/terms-and-conditions"
-              target="_blank"
-              className="transition hover:text-blue-700 hover:underline"
-            >
-              Terms of Service
-            </a>
-            <span className="hidden sm:inline text-gray-400">|</span>
-            <a
-              href="/privacy-policy"
-              target="_blank"
-              className="transition hover:text-blue-700 hover:underline"
-            >
-              Privacy Policy
-            </a>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   )
 }

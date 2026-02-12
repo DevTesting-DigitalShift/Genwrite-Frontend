@@ -11,6 +11,8 @@ import {
   Users,
   Zap,
 } from "lucide-react"
+import { FaYoutube } from "react-icons/fa"
+import { ACTIVE_MODELS } from "@/data/dashModels"
 
 export const stats = [
   { label: "Total Projects", value: "24", change: "+12%", icon: <Target className="w-5 h-5" /> },
@@ -26,28 +28,36 @@ export const stats = [
 
 export const letsBegin = [
   {
-    id: 1,
-    imageUrl: "./Images/createnew.png",
-    title: "Create New Blog",
-    icon: <PenTool className="w-6 h-6" />,
-    content: "Generate blogs, email, product, description, etc.",
-    hoverGradient: "from-blue-600 to-blue-700",
-  },
-  {
     id: "A",
-    imageUrl: "./Images/quickblog.png",
     title: "Generate Quick Blog",
     icon: <Zap className="w-6 h-6" />,
-    content: "With few inputs you are good to go to create Awesome blogs!",
-    hoverGradient: "from-purple-600 to-purple-700",
+    content: "Create engaging blogs in seconds with just a few inputs — super fast and easy!",
+    hoverGradient: "from-purple-500 to-purple-600",
+    modelKey: ACTIVE_MODELS.Quick_Blog,
+  },
+  {
+    id: "C",
+    title: "Generate Advanced Blog",
+    icon: <PenTool className="w-6 h-6" />,
+    content: "Fine-tune every detail — from tone to structure — for premium, pro-level blogs.",
+    hoverGradient: "from-blue-500 to-sky-400",
+    modelKey: ACTIVE_MODELS.Advanced_Blog,
   },
   {
     id: "B",
-    imageUrl: "./Images/createmultipleblog.png",
-    title: "Create Multiple Blogs",
+    title: "Generate YouTube Blog",
+    icon: <FaYoutube className="w-6 h-6" />,
+    content: "Transform YouTube videos into SEO-friendly blogs automatically.",
+    hoverGradient: "from-red-500 to-pink-600",
+    modelKey: ACTIVE_MODELS.YouTube_Blog,
+  },
+  {
+    id: "D",
+    title: "Generate Bulk Blogs",
     icon: <Grid3X3 className="w-6 h-6" />,
-    content: "Generate multiple blogs using a variety of customizable templates.",
-    hoverGradient: "from-emerald-600 to-emerald-700",
+    content: "Generate dozens of blogs at once with flexible templates and automation.",
+    hoverGradient: "from-emerald-500 to-green-600",
+    modelKey: ACTIVE_MODELS.Bulk_Blog,
   },
 ]
 
@@ -56,38 +66,40 @@ export const quickTools = [
     id: 1,
     title: "Keyword Research",
     content: "Explore keywords, check stats, and power your blogs & jobs.",
-    icon: <Search className="w-8 h-8" />,
+    icon: <Search className="w-6 h-6" />,
     color: "text-blue-600",
     bgColor: "bg-blue-50",
     hoverBg: "hover:bg-blue-100",
+    modelKey: ACTIVE_MODELS.Keyword_Research,
   },
   {
     id: 3,
     title: "Performance Monitoring",
     content: "Monitor your blog's SEO, keywords, and competitor data easily.",
-    icon: <Activity className="w-8 h-8" />,
+    icon: <Activity className="w-6 h-6" />,
     color: "text-orange-600",
     bgColor: "bg-orange-50",
     hoverBg: "hover:bg-orange-100",
+    modelKey: ACTIVE_MODELS.Performance_Monitoring,
   },
   {
     id: 4,
     title: "Competitor Analysis",
     content: "Analyze your competitors' content and strategies.",
-    icon: <Users className="w-8 h-8" />,
+    icon: <Users className="w-6 h-6" />,
     color: "text-purple-600",
     bgColor: "bg-purple-50",
     hoverBg: "hover:bg-purple-100",
+    modelKey: ACTIVE_MODELS.Competitor_Analysis,
   },
   {
     id: 5,
     title: "Analytics",
     content: "Visualize performance, unlock insights, and stay ahead",
-    icon: <BarChart2Icon className="w-8 h-8" />,
+    icon: <BarChart2Icon className="w-6 h-6" />,
     color: "text-green-600",
     bgColor: "bg-green-50",
     hoverBg: "hover:bg-green-100",
     navigate: "/analytics",
   },
 ]
-

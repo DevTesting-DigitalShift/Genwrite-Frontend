@@ -11,7 +11,7 @@ import {
 import { pushToDataLayer } from "@utils/DataLayer"
 
 // Utils
-const saveToken = (token) => localStorage.setItem("token", token)
+const saveToken = token => localStorage.setItem("token", token)
 const removeToken = () => localStorage.removeItem("token")
 const getToken = () => localStorage.getItem("token")
 
@@ -62,9 +62,9 @@ export const loginUser = createAsyncThunk(
 // 📝 Signup
 export const signupUser = createAsyncThunk(
   "auth/signupUser",
-  async ({ email, password, name, captchaToken }, { rejectWithValue }) => {
+  async ({ email, password, name, captchaToken, referralId }, { rejectWithValue }) => {
     try {
-      const { user, token } = await signup({ email, password, name, captchaToken })
+      const { user, token } = await signup({ email, password, name, captchaToken, referralId })
 
       if (token && user) {
         saveToken(token)
@@ -94,9 +94,9 @@ export const signupUser = createAsyncThunk(
 // Google Login
 export const googleLogin = createAsyncThunk(
   "auth/googleLogin",
-  async ({ access_token }, { rejectWithValue }) => {
+  async ({ access_token, referralId }, { rejectWithValue }) => {
     try {
-      const response = await loginWithGoogle({ access_token })
+      const response = await loginWithGoogle({ access_token, referralId })
 
       if (!response.success || !response.token || !response.user) {
         return rejectWithValue("Invalid Google login response")
@@ -110,10 +110,7 @@ export const googleLogin = createAsyncThunk(
       pushToDataLayer({
         ...(authStatus == "sign_up"
           ? { event: "sign_up_attempt" }
-          : {
-              event: "google_auth",
-              event_type: authStatus,
-            }),
+          : { event: "google_auth", event_type: authStatus }),
         event_status: "success",
         auth_method: "google_oauth",
         user_id: user._id,
@@ -195,7 +192,7 @@ const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-    logout: (state) => {
+    logout: state => {
       state.user = null
       state.token = null
       removeToken()
@@ -203,10 +200,30 @@ const authSlice = createSlice({
     setUser: (state, action) => {
       state.user = action.payload
     },
+    // Granular update for credits (used by socket events)
+    updateCredits: (state, action) => {
+      if (state.user) {
+        state.user.credits = action.payload
+      }
+    },
+    // Add a new notification (used by socket events)
+    addNotification: (state, action) => {
+      if (state.user && state.user.notifications) {
+        state.user.notifications = [action.payload, ...state.user.notifications]
+      } else if (state.user) {
+        state.user.notifications = [action.payload]
+      }
+    },
+    // Update user partially (used by socket events)
+    updateUserPartial: (state, action) => {
+      if (state.user) {
+        state.user = { ...state.user, ...action.payload }
+      }
+    },
   },
-  extraReducers: (builder) => {
+  extraReducers: builder => {
     // Login
-    builder.addCase(loginUser.pending, (state) => {
+    builder.addCase(loginUser.pending, state => {
       state.loading = true
       state.error = null
     })
@@ -222,7 +239,7 @@ const authSlice = createSlice({
     })
 
     // Signup
-    builder.addCase(signupUser.pending, (state) => {
+    builder.addCase(signupUser.pending, state => {
       state.loading = true
       state.error = null
     })
@@ -238,7 +255,7 @@ const authSlice = createSlice({
     })
 
     // Load Authenticated User
-    builder.addCase(loadAuthenticatedUser.pending, (state) => {
+    builder.addCase(loadAuthenticatedUser.pending, state => {
       state.loading = true
       state.error = null
     })
@@ -253,11 +270,11 @@ const authSlice = createSlice({
     })
 
     // Logout (doesn't have async states)
-    builder.addCase(logoutUser.fulfilled, (state) => {
+    builder.addCase(logoutUser.fulfilled, state => {
       state = initialState
     })
     // Forgot Password
-    builder.addCase(forgotPassword.pending, (state) => {
+    builder.addCase(forgotPassword.pending, state => {
       state.loading = true
       state.error = null
       state.forgotMessage = null
@@ -272,7 +289,7 @@ const authSlice = createSlice({
     })
 
     // Reset Password
-    builder.addCase(resetPassword.pending, (state) => {
+    builder.addCase(resetPassword.pending, state => {
       state.loading = true
       state.error = null
       state.resetMessage = null
@@ -289,7 +306,7 @@ const authSlice = createSlice({
 
     //Google Login
     builder
-      .addCase(googleLogin.pending, (state) => {
+      .addCase(googleLogin.pending, state => {
         state.loading = true
         state.error = null
       })
@@ -308,12 +325,16 @@ const authSlice = createSlice({
   },
 })
 
-export const { logout } = authSlice.actions
+export const { logout, setUser, updateCredits, addNotification, updateUserPartial } =
+  authSlice.actions
 export default authSlice.reducer
 
 // 📦 Selectors
-export const selectAuth = (state) => state.auth
-export const selectUser = (state) => state.auth.user
-export const selectToken = (state) => state.auth.token
-export const selectAuthLoading = (state) => state.auth.loading
-export const selectAuthError = (state) => state.auth.error
+export const selectAuth = state => state.auth
+export const selectUser = state => state.auth.user
+export const selectToken = state => state.auth.token
+export const selectAuthLoading = state => state.auth.loading
+export const selectAuthError = state => state.auth.error
+
+// Alias for compatibility
+export const fetchUserThunk = loadAuthenticatedUser

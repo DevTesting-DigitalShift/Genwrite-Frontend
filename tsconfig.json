@@ -1,9 +1,10 @@
 {
   "compilerOptions": {
-    "target": "es6",
+    "target": "ES2022", // Or ES2023 if your environment supports it
+    "lib": ["ES2023", "DOM"], // Include ES2023 for toSorted
     "module": "esnext",
     "jsx": "react-jsx",
-    "strict": true, 
+    "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
@@ -17,6 +18,7 @@
     "paths": {
       "@api/*": ["api/*"],
       "@components/*": ["components/*"],
+      "@context/*": ["context/*"],
       "@constants/*": ["constants/*"],
       "@utils/*": ["utils/*"],
       "@pages/*": ["pages/*"],

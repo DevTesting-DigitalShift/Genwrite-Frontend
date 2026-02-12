@@ -1,48 +1,61 @@
 import React, { useState, useEffect } from "react"
-import { useDispatch, useSelector } from "react-redux"
+import { useDispatch } from "react-redux"
 import { Modal, message } from "antd"
-import { closeJobModal, createJobThunk, updateJobThunk } from "@store/slices/jobSlice"
+import { createJob, updateJob } from "@api/jobApi"
 import { clearSelectedKeywords } from "@store/slices/analysisSlice"
 import StepContent from "./StepContent"
-import { useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { IMAGE_SOURCE } from "@/data/blogData"
+import { validateJobData } from "@/types/forms.schemas"
 
-const initialJob = {
-  name: "",
-  schedule: { type: "daily", customDates: [], daysOfWeek: [], daysOfMonth: [] },
-  blogs: {
-    numberOfBlogs: 1,
-    topics: [],
-    keywords: [],
-    templates: [],
-    tone: "Professional",
-    userDefinedLength: 1000,
-    imageSource: "unsplash",
-    aiModel: "gemini",
-    brandId: null,
-    useBrandVoice: false,
-    isCheckedGeneratedImages: true,
-    isCheckedCustomImages: false,
-    addCTA: true,
-    numberOfImages: 0,
-    blogImages: [],
-    postingType: null,
-  },
-  options: {
-    wordpressPosting: false,
-    includeFaqs: false,
-    includeCompetitorResearch: false,
-    includeInterlinks: false,
-    performKeywordResearch: false,
-    includeTableOfContents: false,
-    addOutBoundLinks: false,
-  },
-  status: "active",
-}
-
-const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded }) => {
+const JobModal = ({
+  showJobModal,
+  setShowJobModal,
+  selectedJob,
+  selectedKeywords,
+  user,
+  userPlan,
+  isUserLoaded,
+}) => {
+  const initialJob = {
+    name: "",
+    schedule: { type: "daily", customDates: [], daysOfWeek: [], daysOfMonth: [] },
+    blogs: {
+      numberOfBlogs: 1,
+      topics: [],
+      keywords: [],
+      templates: [],
+      tone: "Professional",
+      userDefinedLength: 1000,
+      imageSource: IMAGE_SOURCE.STOCK,
+      aiModel: "gemini",
+      brandId: null,
+      useBrandVoice: false,
+      isCheckedGeneratedImages: true,
+      isCheckedCustomImages: false,
+      addCTA: true,
+      numberOfImages: 0,
+      blogImages: [],
+      postingType: null,
+      languageToWrite: "English",
+      costCutter: true,
+    },
+    options: {
+      wordpressPosting: false,
+      includeFaqs: false,
+      includeCompetitorResearch: false,
+      includeInterlinks: false,
+      performKeywordResearch: false,
+      includeTableOfContents: false,
+      addOutBoundLinks: false,
+      easyToUnderstand: false,
+      embedYouTubeVideos: false,
+    },
+    status: "active",
+    templateIds: [],
+  }
   const dispatch = useDispatch()
   const queryClient = useQueryClient()
-  const { selectedJob } = useSelector((state) => state.jobs)
   const [currentStep, setCurrentStep] = useState(1)
   const [newJob, setNewJob] = useState(initialJob)
   const [formData, setFormData] = useState({
@@ -60,15 +73,33 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
 
   const MAX_BLOGS = 10
 
+  // Clear Job Modules and it's states on close
+  useEffect(() => {
+    if (!showJobModal) {
+      setNewJob(prev => initialJob)
+      setFormData({
+        keywords: [],
+        keywordInput: "",
+        performKeywordResearch: false,
+        postingType: "WORDPRESS",
+        aiModel: "gemini",
+      })
+      setCurrentStep(1)
+      setErrors({})
+      dispatch(clearSelectedKeywords())
+    }
+  }, [showJobModal])
+
   useEffect(() => {
     if (selectedJob) {
-      setFormData((prev) => ({
+      setFormData(prev => ({
         ...prev,
         aiModel: selectedJob.blogs?.aiModel || initialJob.blogs.aiModel,
         performKeywordResearch:
           selectedJob.options?.performKeywordResearch ?? initialJob.options.performKeywordResearch,
         keywords: selectedJob.blogs?.keywords ?? initialJob.blogs.keywords,
         postingType: selectedJob.blogs?.postingType || initialJob.blogs.postingType,
+        templates: selectedJob.blogs?.templates || initialJob.blogs.templates,
       }))
       setNewJob(selectedJob)
     } else {
@@ -94,7 +125,7 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
       },
     })
 
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       keywords: [
         ...new Set([
@@ -114,11 +145,11 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
       ]),
     ]
     if (uniqueKeywords.length > 0) {
-      setFormData((prev) => ({
+      setFormData(prev => ({
         ...prev,
         keywords: [...new Set([...prev.keywords, ...uniqueKeywords])],
       }))
-      setNewJob((prev) => ({
+      setNewJob(prev => ({
         ...prev,
         blogs: {
           ...prev.blogs,
@@ -128,7 +159,7 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
     }
   }, [selectedKeywords])
 
-  const validateSteps = (step) => {
+  const validateSteps = step => {
     const newErrors = {}
     if (step === 1 || step === "all") {
       if (newJob.blogs.templates.length === 0) {
@@ -175,26 +206,18 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
     return Object.keys(newErrors).length === 0
   }
 
-  const handleCreateJob = async () => {
-    if (!validateSteps("all")) return
-    const jobPayload = {
-      ...newJob,
-      blogs: {
-        ...newJob.blogs,
-        keywords: formData.keywords,
-        aiModel: formData.aiModel,
-        postingType: formData.postingType,
-      },
-      options: {
-        ...newJob.options,
-        performKeywordResearch: formData.performKeywordResearch,
-        brandId: newJob.blogs.useBrandVoice ? newJob.blogs.brandId : null,
-      },
-    }
-    try {
-      const newJobData = await dispatch(createJobThunk({ jobPayload, user })).unwrap()
-      queryClient.setQueryData(["jobs", user.id], (old = []) => [newJobData, ...old])
-      dispatch(closeJobModal())
+  const createJobMutation = useMutation({
+    mutationFn: jobPayload => createJob(jobPayload),
+    onSuccess: newJobData => {
+      queryClient.setQueryData(["jobs", user.id], (old = []) => {
+        // Prevent duplicates if task already exists
+        if (old.some(job => job._id === newJobData._id))
+          return old.map(j => (j._id === newJobData._id ? newJobData : j))
+        return [newJobData, ...old]
+      })
+      queryClient.invalidateQueries({ queryKey: ["jobs"], exact: false })
+      message.success("Job created successfully!")
+      setShowJobModal(false)
       setNewJob(initialJob)
       setFormData({
         keywords: [],
@@ -206,12 +229,67 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
       setCurrentStep(1)
       setErrors({})
       dispatch(clearSelectedKeywords())
-    } catch (error) {
-      console.error("Failed to create job. Please try again.", error)
+    },
+    onError: error => {
+      console.error("Failed to create job:", error)
+      message.error(error.response?.data?.message || "Failed to create job. Please try again.")
+    },
+  })
+
+  const updateJobMutation = useMutation({
+    mutationFn: ({ jobId, jobPayload }) => updateJob(jobId, jobPayload),
+    onSuccess: updatedJobData => {
+      queryClient.setQueryData(["jobs", user.id], (old = []) =>
+        old.map(job => (job._id === updatedJobData._id ? { ...job, ...updatedJobData } : job))
+      )
+      queryClient.invalidateQueries({ queryKey: ["jobs"], exact: false })
+      message.success("Job updated successfully!")
+      setShowJobModal(false)
+      setNewJob(initialJob)
+      setFormData({
+        keywords: [],
+        keywordInput: "",
+        performKeywordResearch: false,
+        postingType: "WORDPRESS",
+        aiModel: "gemini",
+      })
+      setCurrentStep(1)
+      setErrors({})
+      dispatch(clearSelectedKeywords())
+    },
+    onError: error => {
+      console.error("Failed to update job:", error)
+      message.error(error.response?.data?.message || "Failed to update job. Please try again.")
+    },
+  })
+
+  const handleCreateJob = async () => {
+    if (!validateSteps("all")) return
+    const jobPayload = {
+      ...newJob,
+      blogs: {
+        ...newJob.blogs,
+        keywords: formData.keywords,
+        aiModel: formData.aiModel,
+        postingType: formData.postingType,
+        // Set imageSource to "none" if images are disabled
+        imageSource: newJob.blogs.isCheckedGeneratedImages
+          ? newJob.blogs.imageSource
+          : IMAGE_SOURCE.NONE,
+      },
+      options: {
+        ...newJob.options,
+        performKeywordResearch: formData.performKeywordResearch,
+        brandId: newJob.blogs.useBrandVoice ? newJob.blogs.brandId : null,
+      },
     }
+
+    // Validate with Zod schema (logs to console when VITE_VALIDATE_FORMS=true)
+    const validatedPayload = validateJobData(jobPayload)
+    createJobMutation.mutate(validatedPayload)
   }
 
-  const handleUpdateJob = async (jobId) => {
+  const handleUpdateJob = async jobId => {
     if (!isUserLoaded) {
       message.error("User data is still loading. Please try again.")
       return
@@ -224,6 +302,10 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
         keywords: formData.keywords,
         aiModel: formData.aiModel,
         postingType: formData.postingType,
+        // Set imageSource to "none" if images are disabled
+        imageSource: newJob.blogs.isCheckedGeneratedImages
+          ? newJob.blogs.imageSource
+          : IMAGE_SOURCE.NONE,
       },
       options: {
         ...newJob.options,
@@ -231,26 +313,10 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
         brandId: newJob.blogs.useBrandVoice ? newJob.blogs.brandId : null,
       },
     }
-    try {
-      const updatedJobData = await dispatch(updateJobThunk({ jobId, jobPayload })).unwrap()
-      queryClient.setQueryData(["jobs", user.id], (old = []) =>
-        old.map((job) => (job._id === jobId ? { ...job, ...updatedJobData } : job))
-      )
-      dispatch(closeJobModal())
-      setNewJob(initialJob)
-      setFormData({
-        keywords: [],
-        keywordInput: "",
-        performKeywordResearch: false,
-        postingType: "WORDPRESS",
-        aiModel: "gemini",
-      })
-      setCurrentStep(1)
-      setErrors({})
-      dispatch(clearSelectedKeywords())
-    } catch (error) {
-      console.log(error)
-    }
+
+    // Validate with Zod schema (logs to console when VITE_VALIDATE_FORMS=true)
+    const validatedPayload = validateJobData(jobPayload)
+    updateJobMutation.mutate({ jobId, jobPayload: validatedPayload })
   }
 
   const footerButtons = [
@@ -294,8 +360,13 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
         onClick={selectedJob ? () => handleUpdateJob(selectedJob._id) : handleCreateJob}
         className="px-6 py-2 bg-[#1B6FC9] text-white rounded-lg hover:bg-[#1B6FC9]/90"
         aria-label={selectedJob ? "Update job" : "Create job"}
+        disabled={createJobMutation.isPending || updateJobMutation.isPending}
       >
-        {selectedJob ? "Update" : "Create"} Job
+        {createJobMutation.isPending || updateJobMutation.isPending
+          ? "Processing..."
+          : selectedJob
+            ? "Update Job"
+            : "Create Job"}
       </button>
     ),
   ]
@@ -306,25 +377,14 @@ const JobModal = ({ showJobModal, selectedKeywords, user, userPlan, isUserLoaded
         currentStep === 1
           ? "Select Templates"
           : currentStep === 2
-          ? "Job Details"
-          : currentStep === 3
-          ? "Schedule Settings"
-          : "Blog Options"
+            ? "Job Details"
+            : currentStep === 3
+              ? "Schedule Settings"
+              : "Blog Options"
       }`}
       open={showJobModal}
       onCancel={() => {
-        dispatch(closeJobModal())
-        setNewJob(initialJob)
-        setFormData({
-          keywords: [],
-          keywordInput: "",
-          performKeywordResearch: false,
-          postingType: "WORDPRESS",
-          aiModel: "gemini",
-        })
-        setCurrentStep(1)
-        setErrors({})
-        dispatch(clearSelectedKeywords())
+        setShowJobModal(false)
       }}
       footer={footerButtons}
       width={800}

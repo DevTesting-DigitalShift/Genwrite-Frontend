@@ -6,8 +6,12 @@ import { PlusOutlined, CloseOutlined, CopyOutlined } from "@ant-design/icons"
 import { generateMetadataThunk, resetMetadata } from "@store/slices/otherSlice"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { RefreshCw, Sparkles } from "lucide-react"
+import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
 
 const { TextArea } = Input
+
+// Helper to detect if input is URL
+const isUrl = text => text.trim().startsWith("http")
 
 const GenerateMetaData = () => {
   const [content, setContent] = useState("")
@@ -17,15 +21,17 @@ const GenerateMetaData = () => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
-  const userPlan = useSelector((state) => state.auth.user?.subscription?.plan)
-  const metadata = useSelector((state) => state.wordpress.metadata)
+  const userPlan = useSelector(state => state.auth.user?.subscription?.plan)
+  const metadata = useSelector(state => state.wordpress.metadata)
 
   // Calculate word count
   const wordCount = useCallback(() => {
+    // If URL, word count is 0 or we can just return a dummy valid number so it doesn't block
+    if (isUrl(content)) return 300 // Return sufficient length for URL
     const words = content
       .trim()
       .split(/\s+/)
-      .filter((word) => word.length > 0)
+      .filter(word => word.length > 0)
     return words.length
   }, [content])
 
@@ -35,7 +41,7 @@ const GenerateMetaData = () => {
       return
     }
 
-    if (content.length < 300) {
+    if (!isUrl(content) && content.length < 300) {
       message.error("Content must be at least 300 characters long.")
       return
     }
@@ -47,11 +53,9 @@ const GenerateMetaData = () => {
 
     setIsGenerating(true)
     try {
-      await dispatch(
-        generateMetadataThunk({
-          content,
-        })
-      ).unwrap()
+      // If content is URL, send as url param, otherwise content
+      const payload = isUrl(content) ? { url: content } : { content }
+      await dispatch(generateMetadataThunk(payload)).unwrap()
       message.success("Metadata generated successfully!")
     } catch (error) {
       console.error("Error generating metadata:", error)
@@ -65,17 +69,17 @@ const GenerateMetaData = () => {
     if (newKeyword.trim()) {
       const newKeywordsArray = newKeyword
         .split(",")
-        .map((k) => k.trim().toLowerCase())
-        .filter((k) => k && !keywords.map((kw) => kw.toLowerCase()).includes(k))
+        .map(k => k.trim().toLowerCase())
+        .filter(k => k && !keywords.map(kw => kw.toLowerCase()).includes(k))
       if (newKeywordsArray.length > 0) {
-        setKeywords((prev) => [...prev, ...newKeywordsArray])
+        setKeywords(prev => [...prev, ...newKeywordsArray])
       }
       setNewKeyword("")
     }
   }, [newKeyword, keywords])
 
   const handleKeyDown = useCallback(
-    (e) => {
+    e => {
       if (e.key === "Enter") {
         e.preventDefault()
         addKeyword()
@@ -84,8 +88,8 @@ const GenerateMetaData = () => {
     [addKeyword]
   )
 
-  const removeKeyword = useCallback((keyword) => {
-    setKeywords((prev) => prev.filter((k) => k !== keyword))
+  const removeKeyword = useCallback(keyword => {
+    setKeywords(prev => prev.filter(k => k !== keyword))
   }, [])
 
   const copyToClipboard = (text, label) => {
@@ -106,6 +110,14 @@ const GenerateMetaData = () => {
     dispatch(resetMetadata())
     message.success("Content and metadata reset!")
   }, [dispatch])
+
+  if (isGenerating) {
+    return (
+      <div className="h-[calc(100vh-200px)] p-4 flex items-center justify-center">
+        <ProgressLoadingScreen message="Generating metadata..." />
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 p-5">
@@ -162,29 +174,48 @@ const GenerateMetaData = () => {
                 <path d="M16 13H8"></path>
                 <path d="M16 17H8"></path>
               </svg>
-              <h2 className="text-xl font-semibold text-gray-900">Content</h2>
+              <h2 className="text-xl font-semibold text-gray-900">
+                {isUrl(content) ? "Target URL" : "Content"}
+              </h2>
             </div>
-            <TextArea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Enter your content here..."
-              rows={12}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 custom-scroll"
-            />
+            {isUrl(content) ? (
+              <Input
+                value={content}
+                onChange={e => setContent(e.target.value)}
+                placeholder="Enter URL (e.g., https://example.com/blog)..."
+                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            ) : (
+              <TextArea
+                value={content}
+                onChange={e => setContent(e.target.value)}
+                placeholder="Paste content or enter URL..."
+                rows={12}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 custom-scroll"
+              />
+            )}
           </div>
 
           <div className="flex justify-end items-center">
-            <p className={`text-sm mb-2 ${wordCount() < 300 ? "text-yellow-500" : "text-green-600"}`}>
-              Word count: {wordCount()} {wordCount() < 300 ? "(Minimum 60 words required)" : ""}
+            <p
+              className={`text-sm mb-2 ${wordCount() < 300 ? "text-yellow-500" : "text-green-600"}`}
+            >
+              {!isUrl(content) && (
+                <>
+                  Word count: {wordCount()} {wordCount() < 300 ? "(Minimum 60 words required)" : ""}
+                </>
+              )}
             </p>
           </div>
 
           <Button
             onClick={() => handleGenerateMetadata()}
             loading={isGenerating}
-            disabled={isGenerating || !content.trim() || content.length < 300}
+            disabled={isGenerating || !content.trim() || (!isUrl(content) && content.length < 300)}
             className={`w-full py-3 text-sm font-medium text-white rounded-lg transition-all duration-200 bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-lg flex items-center justify-center gap-2 ${
-              !content.trim() || content.length < 300 ? "opacity-50 cursor-not-allowed" : ""
+              !content.trim() || (!isUrl(content) && content.length < 300)
+                ? "opacity-50 cursor-not-allowed"
+                : ""
             }`}
           >
             {isGenerating ? "Generating..." : "Generate Metadata"}
@@ -207,12 +238,6 @@ const GenerateMetaData = () => {
               </div>
               <div className="p-3 bg-white border border-gray-300 rounded-lg text-sm text-gray-700">
                 {metadata.title || "No title generated"}
-                <p className="text-xs text-gray-500 mt-1">
-                  {metadata.title?.length || 0}/60 characters
-                  {metadata.title?.length > 60 && (
-                    <span className="text-red-600 ml-2">Title exceeds 60 characters</span>
-                  )}
-                </p>
               </div>
             </div>
             <div>
@@ -229,14 +254,34 @@ const GenerateMetaData = () => {
               </div>
               <div className="p-3 bg-white border border-gray-300 rounded-lg text-sm text-gray-700">
                 {metadata.description || "No description generated"}
-                <p className="text-xs text-gray-500 mt-1">
-                  {metadata.description?.length || 0}/160 characters
-                  {metadata.description?.length > 160 && (
-                    <span className="text-red-600 ml-2">Description exceeds 160 characters</span>
-                  )}
-                </p>
               </div>
             </div>
+
+            {metadata.tags && metadata.tags.length > 0 && (
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-sm font-medium text-gray-700">Tags</label>
+                  <Button
+                    type="link"
+                    onClick={() => copyToClipboard(metadata.tags.join(", "), "Tags")}
+                    className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 p-0"
+                  >
+                    <CopyOutlined className="w-4 h-4" />
+                    Copy All
+                  </Button>
+                </div>
+                <div className="p-3 bg-white border border-gray-300 rounded-lg text-sm text-gray-700 flex flex-wrap gap-2">
+                  {metadata.tags.map((tag, idx) => (
+                    <span
+                      key={idx}
+                      className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full border border-blue-200"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

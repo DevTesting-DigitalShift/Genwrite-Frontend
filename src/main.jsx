@@ -1,19 +1,40 @@
-import ReactDOM from "react-dom/client";
-import "./index.css";
-import App from "./App";
-import { Provider } from "react-redux";
-import { store } from "./store/index.jsx";
-import { GoogleOAuthProvider } from "@react-oauth/google";
-import { QueryProvider } from "./utils/queryClient.jsx";
+import ReactDOM from "react-dom/client"
+import "./index.css"
+import App from "./App"
+import { Provider } from "react-redux"
+import { store } from "./store"
+import { GoogleOAuthProvider } from "@react-oauth/google"
+import { QueryProvider } from "./utils/queryClient"
+import { RouterProvider } from "react-router-dom"
+import router from "./router"
 
-const root = ReactDOM.createRoot(document.getElementById("root"));
+// if (import.meta.env.PROD && "serviceWorker" in navigator) {
+//   navigator.serviceWorker.register("/sw.js")
+// }
 
-root.render(
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.getRegistrations().then(registrations => {
+    for (const registration of registrations) {
+      registration.unregister()
+    }
+  })
+
+  if ("caches" in window) {
+    caches.keys().then(keys => {
+      keys.forEach(key => caches.delete(key))
+    })
+    // window.location.reload(true)
+  }
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(
   <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
     <QueryProvider>
       <Provider store={store}>
-        <App />
+        <RouterProvider router={router}>
+          <App />
+        </RouterProvider>
       </Provider>
     </QueryProvider>
   </GoogleOAuthProvider>
-);
+)

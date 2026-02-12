@@ -29,7 +29,7 @@ const GSCLogin = () => {
       }, 1000)
 
       const expectedOrigin = new URL(import.meta.env.VITE_BACKEND_URL).origin
-      const handleMessage = (event) => {
+      const handleMessage = event => {
         if (event.origin !== expectedOrigin) return
         const status = event.data || {}
         if (status === "GSC Connected") {

@@ -25,10 +25,10 @@ code {
   border-radius: 8px; /* Optional: rounded corners */
 }
 
-.blog-content {
+.blog-content2 {
   font-size: 1rem;
   line-height: 1.6;
-  padding: 1rem;
+  padding: 1rem 0.3rem;
   color: #333;
 }
 
@@ -39,7 +39,6 @@ code {
 .blog-content h5,
 .blog-content h6 {
   font-weight: bold;
-  margin-top: 1em;
   margin-bottom: 0.5em;
 }
 
@@ -159,28 +158,48 @@ input[type="number"] {
   }
 }
 
-/* Highlighted proof text */
+/* Shimmer effect for Schedule Demo button */
+.shimmer-effect {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.15) 20%,
+    rgba(255, 255, 255, 0.3) 50%,
+    rgba(255, 255, 255, 0.15) 80%,
+    transparent 100%
+  );
+  animation: shimmer-slide 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes shimmer-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Highlighted proof text - shows red underline in editor */
 .proofreading-mark {
   position: relative;
-  background-color: #fff4e5;
-  border-bottom: 2px dashed #f5320bdf; /* Amber-500 */
-  color: #1f2937; /* Neutral-800 */
+  background-color: #fee2e2; /* Red-100 */
+  border-bottom: 2px wavy #dc2626; /* Red-600 wavy underline */
+  color: #1f2937;
   cursor: pointer;
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  transition: all 0.2s ease;
+  padding: 0 2px;
+  border-radius: 2px;
 }
 
 .proofreading-mark:hover {
-  background-color: #ffedd5; /* Amber-100 */
-  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2); /* subtle highlight */
+  background-color: #fecaca; /* Red-200 */
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.2);
 }
 
-/* Suggestion preview inline */
+/* Remove the inline suggestion preview - too cluttered */
 .proofreading-mark::after {
-  content: " → " attr(data-suggestion);
-  color: #9ca3af; /* Gray-400 */
-  font-size: 0.85em;
-  font-style: italic;
-  margin-left: 6px;
+  content: none;
 }
 
 /* The Accept/Reject floating popup */
@@ -332,13 +351,6 @@ input[type="number"] {
   }
 }
 
-.ant-modal-content {
-  border-radius: 8px !important;
-  padding: 16px !important;
-}
-.ant-modal-header {
-  border-radius: 8px 8px 0 0 !important;
-}
 .ant-input,
 .ant-input-textarea {
   border-radius: 8px !important;
@@ -355,27 +367,6 @@ input[type="number"] {
 .ant-btn {
   display: flex;
   align-items: center;
-}
-@media (max-width: 640px) {
-  .ant-modal-content {
-    padding: 12px !important;
-  }
-  .ant-input,
-  .ant-input-textarea {
-    font-size: 12px !important;
-    padding: 4px 8px !important;
-  }
-  .ant-btn {
-    font-size: 12px !important;
-    padding: 4px 8px !important;
-  }
-}
-@media (max-width: 768px) {
-  .ant-modal {
-    width: 100% !important;
-    margin: 8px !important;
-    max-width: 400px !important;
-  }
 }
 
 .ant-table-container {
@@ -416,4 +407,68 @@ input[type="number"] {
   .ant-table-thead > tr > th {
     padding: 10px !important;
   }
+}
+
+/* Shimmer animation for skeleton loaders */
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+.protocol-select .ant-select-selector {
+  border: none !important;
+  padding: 0 12px !important;
+  background: #f9fafb !important;
+  font-weight: 500;
+}
+
+.protocol-select {
+  min-width: 96px;
+}
+
+.ant-input-group-addon {
+  background: #f9fafb !important;
+  border-right: 1px solid #e5e7eb !important;
+}
+
+.ant-input {
+  font-size: 14px;
+}
+
+/* Remove left rounding, keep right rounded */
+.url-input .ant-input {
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+  border-top-right-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+/* Match addon height & remove its right rounding */
+.url-input .ant-input-group-addon {
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+/* Optional: clean select inside addon */
+.protocol-select .ant-select-selector {
+  border: none !important;
+  border-radius: 12px 0 0 12px !important;
+}
+
+.section-iframe-wrapper {
+  margin-bottom: 20px;
+}
+
+.section-iframe-wrapper > div {
+  max-width: 100% !important;
+  max-height: 100% !important;
+  aspect-ratio: video !important;
 }

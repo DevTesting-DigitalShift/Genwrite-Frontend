@@ -1,4 +1,4 @@
-import { useState } from "react"
+import React, { useState } from "react"
 import { motion } from "framer-motion"
 import { Button, Tag } from "antd"
 import {
@@ -56,7 +56,7 @@ const FeatureCard = ({
 )
 
 const ScoreCard = ({ title, score, icon: Icon }) => {
-  const getScoreColor = (score) => {
+  const getScoreColor = score => {
     if (score >= 80) return "bg-green-100 text-green-700 border-green-200"
     if (score >= 60) return "bg-yellow-100 text-yellow-700 border-yellow-200"
     return "bg-red-100 text-red-700 border-red-200"
@@ -71,7 +71,7 @@ const ScoreCard = ({ title, score, icon: Icon }) => {
         </div>
         {score > 0 && (
           <span className="text-lg font-bold">
-            {score}
+            {Math.round(score)}
             <span className="text-xs ml-1">/100</span>
           </span>
         )}
@@ -90,6 +90,28 @@ const ScoreCard = ({ title, score, icon: Icon }) => {
           />
         </div>
       )}
+    </div>
+  )
+}
+
+// Simple stat card for displaying counts (word count, keywords count, etc.)
+const StatCard = ({ title, value, icon: Icon, subtitle }) => {
+  return (
+    <div className="p-3 rounded-lg border bg-gray-50 border-gray-200">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 bg-blue-100 rounded-md">
+            <Icon className="w-3.5 h-3.5 text-blue-600" />
+          </div>
+          <div>
+            <span className="text-sm font-medium text-gray-700">{title}</span>
+            {subtitle && <p className="text-xs text-gray-500">{subtitle}</p>}
+          </div>
+        </div>
+        <span className="text-lg font-bold text-gray-900">
+          {typeof value === "number" ? value.toLocaleString() : value}
+        </span>
+      </div>
     </div>
   )
 }
@@ -151,7 +173,7 @@ const AnalysisInsights = ({ insights }) => {
   const entries = Object.entries(insights || {})
   const visibleEntries = showAll ? entries : entries.slice(0, 3)
 
-  const toggleExpanded = (index) => {
+  const toggleExpanded = index => {
     const updated = new Set(expandedIndexes)
     updated.has(index) ? updated.delete(index) : updated.add(index)
     setExpandedIndexes(updated)
@@ -209,11 +231,9 @@ const AnalysisInsights = ({ insights }) => {
   )
 }
 
-const ProofreadingSuggestion = ({ suggestion, index, onApply }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 10 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ delay: index * 0.05 }}
+const ProofreadingSuggestion = React.forwardRef(({ suggestion, index, onApply, onReject }, ref) => (
+  <div
+    ref={ref}
     className="border border-gray-200 rounded-lg p-3 bg-white hover:shadow-sm transition-shadow"
   >
     <div className="space-y-3">
@@ -231,23 +251,34 @@ const ProofreadingSuggestion = ({ suggestion, index, onApply }) => (
           <CheckCircle className="w-4 h-4 text-green-500" />
           <span className="text-xs font-medium text-gray-700">Suggested</span>
         </div>
-        <div className="p-2 bg-green-50 border border-red-100 rounded text-xs text-gray-700 leading-relaxed">
+        <div className="p-2 bg-green-50 border border-green-100 rounded text-xs text-gray-700 leading-relaxed">
           {suggestion.change}
         </div>
       </div>
-      <Button
-        size="small"
-        type="primary"
-        ghost
-        onClick={() => {
-          onApply(index)
-        }}
-        className="w-full"
-      >
-        Apply This Change
-      </Button>
+      <div className="flex gap-2">
+        <Button
+          size="small"
+          type="primary"
+          onClick={() => onApply(index, suggestion)}
+          className="flex-1 !bg-gradient-to-r !from-green-500 !to-emerald-600 !border-0"
+        >
+          Accept
+        </Button>
+        <Button size="small" onClick={() => onReject(index)} className="flex-1">
+          Reject
+        </Button>
+      </div>
     </div>
-  </motion.div>
-)
+  </div>
+))
 
-export { FeatureCard, ScoreCard, CompetitorsList, AnalysisInsights, ProofreadingSuggestion }
+ProofreadingSuggestion.displayName = "ProofreadingSuggestion"
+
+export {
+  FeatureCard,
+  ScoreCard,
+  StatCard,
+  CompetitorsList,
+  AnalysisInsights,
+  ProofreadingSuggestion,
+}
