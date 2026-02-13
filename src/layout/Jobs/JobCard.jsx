@@ -101,199 +101,187 @@ const JobCard = memo(({ job, setCurrentPage, paginatedJobs, onEdit }) => {
     if (!dateStr) return "N/A"
     return new Date(dateStr).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })
   }
+  const getTrueOptions = options => {
+    if (!options) return []
+    const mapping = {
+      wordpressPosting: "WordPress Posting",
+      includeFaqs: "FAQs",
+      includeCompetitorResearch: "Comp. Research",
+      includeInterlinks: "Interlinks",
+      performKeywordResearch: "Keyword Research",
+      includeTableOfContents: "TOC",
+      addOutBoundLinks: "Outbound Links",
+      embedYouTubeVideos: "YouTube Emb.",
+      easyToUnderstand: "Simple Style",
+    }
+    return Object.entries(options)
+      .filter(([key, value]) => value === true && mapping[key])
+      .map(([key]) => mapping[key])
+  }
+
+  const activeOptions = getTrueOptions(job.options)
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 20 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
-      className="group bg-white rounded-3xl border border-slate-200/60 p-6 flex flex-col hover:shadow-2xl hover:shadow-indigo-500/10 hover:-translate-y-1 transition-all duration-300 relative overflow-hidden"
+      className="bg-white rounded-2xl border border-slate-200 p-6 flex flex-col hover:shadow-xl transition-all duration-300 relative"
     >
-
       {/* Header */}
-      <div className="flex justify-between items-start mb-5">
-        <div className="flex-1 min-w-0 pr-2">
-          <h3 className="font-bold text-slate-900 text-lg tracking-tight mb-1 truncate capitalize">
+      <div className="flex justify-between items-start mb-6">
+        <div className="flex-1 min-w-0 pr-4">
+          <h3 className="font-black text-slate-900 text-xl tracking-tight mb-1 truncate capitalize">
             {job.name}
           </h3>
-          <p className="text-[10px] text-slate-400 font-mono tracking-wider">
-            ID: {(job._id || "").toString().slice(-6).toUpperCase()}
+          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+            ID: {(job._id || "").toString().slice(-6)}
           </p>
         </div>
         <button
           onClick={handleToggleStatus}
           disabled={toggleJobStatusMutation.isPending}
-          className={`flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300 ${
+          className={`flex items-center justify-center w-9 h-9 rounded-xl transition-all ${
             isRunning
-              ? "bg-rose-50 text-rose-600 hover:bg-rose-100 hover:scale-105 active:scale-95"
-              : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:scale-105 active:scale-95"
+              ? "bg-red-500 text-white hover:bg-red-600"
+              : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-100"
           }`}
           title={isRunning ? "Stop Job" : "Start Job"}
         >
           {toggleJobStatusMutation.isPending ? (
             <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
           ) : isRunning ? (
-            <Square size={16} fill="currentColor" />
+            <Square size={14} fill="currentColor" />
           ) : (
-            <Play size={16} fill="currentColor" className="ml-0.5" />
+            <Play size={14} fill="currentColor" className="ml-0.5" />
           )}
         </button>
       </div>
 
-      {/* Core Stats Grid */}
-      <div className="grid grid-cols-2 gap-3 mb-5">
-        <div className="flex items-center gap-3 bg-slate-50/50 p-3 rounded-2xl border border-slate-100/50">
-          <div className="p-2 bg-white rounded-xl shadow-sm text-indigo-500">
-            <CalendarDays size={16} strokeWidth={2.5} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[9px] uppercase tracking-tighter text-slate-400 font-bold mb-0.5">
-              Schedule
-            </p>
-            <p className="text-xs font-semibold text-slate-700 truncate capitalize">
-              {job?.schedule?.type || "Manual"}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3 bg-slate-50/50 p-3 rounded-2xl border border-slate-100/50">
-          <div className="p-2 bg-white rounded-xl shadow-sm text-amber-500">
-            <FileText size={16} strokeWidth={2.5} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[9px] uppercase tracking-tighter text-slate-400 font-bold mb-0.5">
-              Volume
-            </p>
-            <p className="text-xs font-semibold text-slate-700 truncate">
-              {job?.blogs?.numberOfBlogs || 0} / day
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Model & Status row */}
-      <div className="flex items-center justify-between py-3 border-y border-slate-100 mb-5">
-        <div className="flex items-center gap-2 text-xs text-slate-600">
-          <Cpu size={14} className="text-slate-400" />
-          <span className="font-semibold tracking-tight">{job?.blogs?.aiModel}</span>
-        </div>
-        <div className="flex items-center gap-1.5 bg-white border border-slate-100 px-2.5 py-1 rounded-full shadow-sm">
-          <div
-            className={`w-1.5 h-1.5 rounded-full ${
-              isRunning ? "bg-emerald-500 animate-pulse" : "bg-slate-300"
-            }`}
-          />
-          <span
-            className={`text-[10px] font-bold uppercase tracking-widest ${
-              isRunning ? "text-emerald-600" : "text-slate-500"
-            }`}
-          >
-            {job.status === "active" ? "Running" : "Stopped"}
-          </span>
-        </div>
-      </div>
-
-      {/* Tags Section */}
-      <div className="space-y-4 flex-grow mb-6">
-        {job?.blogs?.topics?.length > 0 && (
+      {/* Topics & Keywords - starting 5 +n */}
+      <div className="space-y-4 mb-6 pt-4 border-t border-slate-100">
+        {job.blogs?.topics?.length > 0 && (
           <div>
-            <div className="flex items-center gap-1.5 mb-2 text-slate-400">
-              <Tag size={12} />
-              <span className="text-[10px] font-bold uppercase tracking-wider">Topics</span>
-            </div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+              Topics
+            </p>
             <div className="flex flex-wrap gap-1.5">
-              {(showAllTopics ? job.blogs.topics : job.blogs.topics.slice(0, 3)).map((topic, i) => (
-                <Badge key={i} variant="gray">
-                  {topic}
-                </Badge>
-              ))}
-              {job.blogs.topics.length > 3 && (
-                <button
-                  onClick={() => setShowAllTopics(!showAllTopics)}
-                  className="text-[10px] font-bold text-indigo-500 hover:text-indigo-600 ml-1 transition-colors"
+              {job.blogs.topics.slice(0, 5).map((topic, i) => (
+                <span
+                  key={i}
+                  className="px-2 py-1 bg-slate-50 text-slate-600 text-[11px] font-bold rounded-lg border border-slate-100"
                 >
-                  {showAllTopics ? "Show Less" : `+${job.blogs.topics.length - 3} More`}
-                </button>
+                  {topic}
+                </span>
+              ))}
+              {job.blogs.topics.length > 5 && (
+                <span className="text-[11px] font-black text-indigo-600 ml-1">
+                  +{job.blogs.topics.length - 5}
+                </span>
               )}
             </div>
           </div>
         )}
-        {job?.blogs?.keywords?.length > 0 && (
+
+        {job.blogs?.keywords?.length > 0 && (
           <div>
-            <div className="flex items-center gap-1.5 mb-2 text-slate-400">
-              <Hash size={12} />
-              <span className="text-[10px] font-bold uppercase tracking-wider">Keywords</span>
-            </div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+              Focus Keywords
+            </p>
             <div className="flex flex-wrap gap-1.5">
               {job.blogs.keywords.slice(0, 5).map((kw, i) => (
-                <Badge key={i} variant="indigo">
+                <span
+                  key={i}
+                  className="px-2 py-1 bg-indigo-50/50 text-indigo-700 text-[11px] font-bold rounded-lg border border-indigo-100/50"
+                >
                   {kw}
-                </Badge>
+                </span>
               ))}
               {job.blogs.keywords.length > 5 && (
-                <span className="text-[10px] font-bold text-slate-400 ml-1">
+                <span className="text-[11px] font-black text-indigo-600 ml-1">
                   +{job.blogs.keywords.length - 5}
                 </span>
               )}
             </div>
           </div>
         )}
+
+        {activeOptions.length > 0 && (
+          <div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+              Active Settings
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {activeOptions.map((opt, i) => (
+                <span
+                  key={i}
+                  className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[10px] font-bold border border-slate-200"
+                >
+                  {opt}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Footer Info */}
-      <div className="pt-5 border-t border-slate-100 bg-slate-50/30 -mx-6 -mb-6 px-6 pb-6 mt-auto">
+      {/* Intelligence & Schedule - Clean Layout */}
+      <div className="grid grid-cols-2 gap-4 mb-6 pb-4 border-b border-slate-100">
+        <div className="flex flex-col">
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+            Intelligence
+          </span>
+          <span className="text-xs font-bold text-slate-900 truncate uppercase tracking-tight">
+            {job.blogs?.aiModel} / {job.blogs?.languageToWrite}
+          </span>
+        </div>
+        <div className="flex flex-col">
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+            Schedule
+          </span>
+          <span className="text-xs font-bold text-slate-900 truncate capitalize tracking-tight">
+            {job.schedule?.type} ({job.blogs?.numberOfBlogs})
+          </span>
+        </div>
+      </div>
+
+      {/* Footer - Minimalist */}
+      <div className="mt-auto">
         <div className="flex justify-between items-center mb-4">
-          <div className="text-xs text-slate-500 flex items-center gap-1.5">
-            <CheckCircle2 size={15} className="text-emerald-500" />
-            <span className="font-bold text-slate-700">
-              {(job?.createdBlogs || []).length}
-            </span>{" "}
-            blogs generated
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-1.5 text-[10px] text-slate-400 mb-5">
-          <div className="flex justify-between items-center">
-            <span className="flex items-center gap-1">
-              <Clock size={10} /> Last Run:
+          <div className="flex items-center gap-2">
+            <div
+              className={`w-2 h-2 rounded-full ${isRunning ? "bg-emerald-500" : "bg-slate-300"}`}
+            />
+            <span
+              className={`text-[11px] font-black uppercase tracking-widest ${isRunning ? "text-emerald-600" : "text-slate-400"}`}
+            >
+              {isRunning ? "Running" : "Stopped"}
             </span>
-            <span className="text-slate-600 font-bold">{formatDate(job.lastRun)}</span>
           </div>
-          <div className="flex justify-between items-center">
-            <span>Created:</span>
-            <span className="text-slate-600 font-semibold">{formatDate(job.createdAt)}</span>
+          <div className="text-[11px] font-bold text-slate-700 bg-slate-100 px-2 py-1 rounded-lg">
+            {job?.createdBlogs?.length || 0} GENERATED
           </div>
         </div>
 
-        {/* Actions */}
         <div className="grid grid-cols-2 gap-3">
           <button
             onClick={handleEditJob}
-            className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 transition-all border border-slate-200 shadow-sm active:scale-95"
+            className="flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors border border-slate-200"
           >
-            <PenTool size={14} /> Edit
+            Edit Job
           </button>
           <button
             onClick={() =>
               handlePopup({
                 title: "Delete Job",
-                description: (
-                  <span className="my-2">
-                    Are you sure you want to delete <b className="capitalize">{job.name}</b> job?
-                  </span>
-                ),
+                description: "Are you sure you want to delete this job?",
                 confirmText: "Delete",
                 onConfirm: () => handleDeleteJob(job._id),
-                confirmProps: {
-                  type: "text",
-                  className: "border-red-500 hover:bg-red-500 bg-red-100 text-red-600",
-                },
-                cancelProps: { danger: false },
+                confirmProps: { danger: true },
               })
             }
-            className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 transition-all border border-rose-100 shadow-sm active:scale-95"
+            className="flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors border border-rose-100"
           >
-            <Trash2 size={14} /> Delete
+            Delete
           </button>
         </div>
       </div>

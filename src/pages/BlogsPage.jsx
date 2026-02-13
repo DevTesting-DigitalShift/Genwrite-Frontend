@@ -446,7 +446,7 @@ const BlogsPage = () => {
       </Helmet>
 
       {/* Page Header */}
-      <div className="max-w-[1600px] mx-auto pt-4">
+      <div className="pt-4">
         <header className="mb-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-8 border-b border-slate-200/60">
             <div className="space-y-1">

@@ -34,7 +34,7 @@ export const tools = [
   // Popular / Featured
   {
     id: "quick-blog",
-    title: "Quick Blog",
+    title: "Generate Quick Blog",
     description: "Easily create in-depth blog posts for any topic",
     icon: <PenTool className="w-6 h-6" />,
     color: "text-purple-600",
@@ -47,7 +47,7 @@ export const tools = [
   },
   {
     id: "youtube-blog",
-    title: "YouTube Blog",
+    title: "Generate YouTube Blog",
     description: "Transform YouTube videos into SEO-friendly blogs.",
     icon: <FaYoutube className="w-6 h-6" />,
     color: "text-red-600",
@@ -58,7 +58,7 @@ export const tools = [
   },
   {
     id: "advanced-blog",
-    title: "Advanced Blog",
+    title: "Generate Advanced Blog",
     description: "Fine-tune every detail for premium, pro-level blogs.",
     icon: <PenTool className="w-6 h-6" />,
     color: "text-blue-600",
@@ -69,7 +69,7 @@ export const tools = [
   },
   {
     id: "bulk-blog",
-    title: "Bulk Blog Generator",
+    title: "Generate Bulk Blog",
     description: "Generate dozens of blogs at once with flexible templates.",
     icon: <Grid3X3 className="w-6 h-6" />,
     color: "text-orange-600",
@@ -80,7 +80,7 @@ export const tools = [
   },
   {
     id: "text-humanizer",
-    title: "AI Text Humanizer",
+    title: "Humanize Content",
     description:
       "This tool helps you bypass AI detectors and make it human written & plagiarism free",
     icon: <Wand2 className="w-6 h-6" />,
@@ -203,6 +203,18 @@ export const tools = [
     path: "/competitor-like-blog",
     category: "blog",
     credit: "10 Credits",
+  },
+  {
+    id: "blog-analytics",
+    title: "Blog Analytics",
+    description: "Detailed insights into your blog performance and trends.",
+    icon: <BarChart2 className="w-6 h-6" />,
+    type: "navigation",
+    path: "/analytics",
+    category: "seo",
+    isPopular: true,
+    stats: "150K",
+    credit: "Free",
   },
   {
     id: "performance-monitoring",
