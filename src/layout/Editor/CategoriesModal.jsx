@@ -1,9 +1,10 @@
 import React, { useState, useCallback, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button, Modal, Select, message } from "antd"
-import { useDispatch, useSelector } from "react-redux"
 import { Plus, X } from "lucide-react"
-import { getCategoriesThunk, resetCategories } from "@store/slices/otherSlice"
+import useContentStore from "@store/useContentStore"
+
+const { Option } = Select
 
 // Popular WordPress categories (limited to 15 for relevance)
 const POPULAR_CATEGORIES = [
@@ -41,19 +42,17 @@ const CategoriesModal = ({
   const [categoryError, setCategoryError] = useState(false)
   const [platformError, setPlatformError] = useState(false)
   const [errors, setErrors] = useState({ category: "", platform: "" })
-  const { categories, error: wordpressError } = useSelector(state => state.wordpress)
+  const { categories, fetchCategories, resetCategories, error: wordpressError } = useContentStore()
   const [selectedIntegration, setSelectedIntegration] = useState(null)
   const [isCategoryLocked, setIsCategoryLocked] = useState(false)
 
   const hasShopifyPosted = posted?.SHOPIFY?.link ? true : false
 
-  const dispatch = useDispatch()
-
   useEffect(() => {
     if (selectedIntegration?.platform) {
-      dispatch(getCategoriesThunk(selectedIntegration.platform.toUpperCase())).unwrap()
+      fetchCategories(selectedIntegration.platform.toUpperCase())
     }
-  }, [dispatch, selectedIntegration?.platform])
+  }, [fetchCategories, selectedIntegration?.platform])
 
   const handleIntegrationChange = (platform, url) => {
     setSelectedIntegration({
@@ -231,10 +230,10 @@ const CategoriesModal = ({
       setErrors({ category: "", platform: "" })
       setIsCategoryLocked(false)
 
-      // Reset categories in Redux store
-      dispatch(resetCategories())
+      // Reset categories in store
+      resetCategories()
     }
-  }, [isCategoryModalOpen, initialIncludeTableOfContents, dispatch])
+  }, [isCategoryModalOpen, initialIncludeTableOfContents, resetCategories])
 
   // Auto-select platform based on posting history (only when modal opens)
   useEffect(() => {

@@ -19,11 +19,9 @@ import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
 
 const HumanizeContent = () => {
   const [inputContent, setInputContent] = useState("")
-  // const dispatch = useDispatch() // Removed
   const { result: outputContent, resetHumanizeState } = useHumanizeStore()
   const { mutate: generateContent, isLoading } = useHumanizeMutation()
 
-  // const { loading: isLoading, result: outputContent, error } = useSelector(state => state.humanize) // Removed
   const { user } = useAuthStore()
   const userPlan = user?.plan ?? user?.subscription?.plan
   const { handlePopup } = useConfirmPopup()

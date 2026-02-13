@@ -105,6 +105,7 @@ const PluginsMain = () => {
     const [wpUsername, setWpUsername] = useState("")
     const [wpPassword, setWpPassword] = useState("")
     const [hasCredentials, setHasCredentials] = useState(!!wordpressInt) // If integration exists, assume credentials are set on backend
+    const [hasPinged, setHasPinged] = useState(!!sessionStorage.getItem("hasPinged"))
 
     useEffect(() => {
       if (plugin.id === 112 && serverInt) {
@@ -521,7 +522,7 @@ const PluginsMain = () => {
           if (typeof payload === "string" && payload.toLowerCase().includes("shopify")) {
             // simple success signal
             message.success("Shopify connected")
-            dispatch(getIntegrationsThunk()).catch(() => {})
+            fetchIntegrations().catch(() => {})
           }
           // you can add more structured message handling here
         } catch (err) {
@@ -563,12 +564,10 @@ const PluginsMain = () => {
                 installWindowRef.current = null
 
                 // Refresh integrations
-                dispatch(getIntegrationsThunk())
-                  .unwrap()
-                  .catch(() => {})
+                fetchIntegrations().catch(() => {})
 
                 // Check Shopify status
-                dispatch(pingIntegrationThunk("SHOPIFY")).catch(() => {})
+                pingIntegration("SHOPIFY").catch(() => {})
               }
             }, 1200)
           }
@@ -587,7 +586,7 @@ const PluginsMain = () => {
         setLocalLoading(true)
         try {
           const type = isShopify ? "SHOPIFY" : "WIX"
-          const result = await dispatch(pingIntegrationThunk(type)).unwrap()
+          const result = await pingIntegration(type)
           setWordpressStatus(prev => ({
             ...prev,
             [plugin.id]: {

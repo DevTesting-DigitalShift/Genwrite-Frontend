@@ -14,6 +14,7 @@ import {
   getBlogStatus,
   getBlogs,
   getBlogPrompt,
+  getBlogStatsById,
 } from "@api/blogApi"
 import { message } from "antd"
 
@@ -23,8 +24,20 @@ export const useBlogsQuery = params => {
   return useQuery({ queryKey: ["blogs", params], queryFn: () => getAllBlogs(params) })
 }
 
+export const useAllBlogsQuery = () => {
+  return useQuery({ queryKey: ["allBlogs"], queryFn: () => getBlogs() })
+}
+
 export const useBlogDetailsQuery = id => {
   return useQuery({ queryKey: ["blog", id], queryFn: () => getBlogById(id), enabled: !!id })
+}
+
+export const useBlogStatsQuery = id => {
+  return useQuery({
+    queryKey: ["blogStats", id],
+    queryFn: () => getBlogStatsById(id),
+    enabled: !!id,
+  })
 }
 
 export const useBlogStatusQuery = params => {

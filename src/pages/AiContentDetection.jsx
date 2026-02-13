@@ -18,7 +18,6 @@ import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
 
 const AiContentDetection = () => {
   const [inputContent, setInputContent] = useState("")
-  // const dispatch = useDispatch() // Removed
   const { aiDetection, resetAiDetection } = useToolsStore()
   const { result: detectionResult, error } = aiDetection
   const { mutate: detectContent, isLoading } = useAiDetectionMutation()

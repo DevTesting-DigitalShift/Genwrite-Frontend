@@ -1,12 +1,11 @@
 import { Button } from "antd"
-import { CrownOutlined } from "@ant-design/icons"
 import { motion } from "framer-motion"
-import { useSelector } from "react-redux"
 import { useEffect, useState } from "react"
 import { Crown } from "lucide-react"
+import useAuthStore from "@store/useAuthStore"
 
 const GoProButton = () => {
-  const { user } = useSelector((state) => state.auth)
+  const { user } = useAuthStore()
   const [userPlan, setUserPlan] = useState("")
 
   useEffect(() => {

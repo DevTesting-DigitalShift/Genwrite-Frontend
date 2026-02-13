@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react"
 import { Helmet } from "react-helmet"
 import useAuthStore from "@store/useAuthStore"
-import { useDispatch } from "react-redux"
-import { fetchGscAnalytics, clearAnalytics } from "@store/slices/gscSlice"
+import useGscStore from "@store/useGscStore"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Button, message, Select, DatePicker, Card, Pagination } from "antd"
 import { RefreshCw, Search, Download } from "lucide-react"
@@ -37,7 +36,7 @@ const SearchConsole = () => {
   const [currentPage, setCurrentPage] = useState(1)
 
   const { user } = useAuthStore()
-  const dispatch = useDispatch()
+  const { clearAnalytics, fetchGscAnalytics } = useGscStore()
   const queryClient = useQueryClient()
 
   // Debounced search query - waits 5 seconds after user stops typing
@@ -77,10 +76,10 @@ const SearchConsole = () => {
   // Check authentication immediately on mount
   useEffect(() => {
     if (!user?.gsc) {
-      dispatch(clearAnalytics())
+      clearAnalytics()
       queryClient.clear()
     }
-  }, [user, dispatch, queryClient])
+  }, [user, clearAnalytics, queryClient])
 
   // Update session storage
   useEffect(() => {
@@ -137,7 +136,7 @@ const SearchConsole = () => {
       const dimensions = getDimensions()
       const { from, to } = getDateRangeParams()
       const params = { from, to, query: JSON.stringify(dimensions) }
-      const data = await dispatch(fetchGscAnalytics(params)).unwrap()
+      const data = await fetchGscAnalytics(params)
       return data.gscData.map((item, index) => ({
         id: `${item.page || item.query || item.country}-${index}`,
         url: item.page || "-",
@@ -158,7 +157,7 @@ const SearchConsole = () => {
       setError(err.message || "Failed to fetch analytics data")
       if (err?.message?.includes("invalid_grant")) {
         message.error("Your Google Search Console session has expired. Please reconnect.")
-        dispatch(clearAnalytics())
+        clearAnalytics()
         queryClient.clear()
       }
     },

@@ -8,7 +8,6 @@ import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
 
 const KeywordScraping = () => {
   const [inputUrl, setInputUrl] = useState("")
-  // const dispatch = useDispatch() // Removed
   const { keywordScraping, resetKeywordScraping } = useToolsStore()
   const { result: scrapingResult, error } = keywordScraping
   const { mutate: scrapeKeywords, isLoading } = useKeywordScrapingMutation()

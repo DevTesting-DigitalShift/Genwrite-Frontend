@@ -11,6 +11,7 @@ const useBrandStore = create(
 
       // Actions
       setSelectedVoice: voice => set({ selectedVoice: voice }),
+      setSiteInfo: updates => set(state => ({ siteInfo: { ...state.siteInfo, ...updates } })),
       resetSiteInfo: () => set({ siteInfo: { data: null, loading: false, error: null } }),
 
       // Async Actions
@@ -19,12 +20,12 @@ const useBrandStore = create(
         try {
           const data = await getSiteInfo(url)
           message.success("Site info fetched successfully.")
-          set({ siteInfo: { data, loading: false, error: null } })
+          set(state => ({ siteInfo: { ...state.siteInfo, data, loading: false } }))
           return data
         } catch (error) {
           const errorMsg = error?.response?.data?.message || "Failed to fetch site info."
           message.error(errorMsg)
-          set({ siteInfo: { data: null, loading: false, error: errorMsg } })
+          set(state => ({ siteInfo: { ...state.siteInfo, loading: false, error: errorMsg } }))
           throw error
         }
       },

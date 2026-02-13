@@ -13,18 +13,11 @@ import {
   Upload,
 } from "lucide-react"
 import { Helmet } from "react-helmet"
-import {
-  getImages,
-  searchImages,
-  generateImage,
-  enhanceImage,
-  generateAltText,
-} from "@api/imageGalleryApi"
 import DebouncedSearchInput from "@components/UI/DebouncedSearchInput"
-import { useSelector, useDispatch } from "react-redux"
+import useAuthStore from "@store/useAuthStore"
+import useImageStore from "@store/useImageStore"
 import { useNavigate } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
-import { fetchUserThunk } from "@/store/slices/authSlice"
 import { COSTS } from "@/data/blogData"
 
 const { TextArea } = Input
@@ -61,25 +54,19 @@ const SkeletonGrid = ({ count = 12 }) => {
 }
 
 const ImageGallery = () => {
-  const [images, setImages] = useState([])
-  const [loading, setLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize] = useState(40)
-  const [totalImages, setTotalImages] = useState(0)
   const [minScore, setMinScore] = useState(0)
   const [selectedTags, setSelectedTags] = useState([])
   const [previewImage, setPreviewImage] = useState(null)
 
   // New Features State
-  const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false)
-  const [isEnhanceModalOpen, setIsEnhanceModalOpen] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [isEnhancing, setIsEnhancing] = useState(false)
   const [isGeneratingAlt, setIsGeneratingAlt] = useState(false)
   const [generatedAltText, setGeneratedAltText] = useState("")
-  const [isCreationExpanded, setIsCreationExpanded] = useState(true)
-  const [generationSuccess, setGenerationSuccess] = useState(false)
+  const [showErrors, setShowErrors] = useState(false)
 
   const [genForm, setGenForm] = useState({
     prompt: "",
@@ -99,16 +86,22 @@ const ImageGallery = () => {
   // Toggle for inline enhance mode
   const [isEnhanceMode, setIsEnhanceMode] = useState(false)
 
-  // Auth & Credits
-  const { user } = useSelector(state => state.auth)
-  const dispatch = useDispatch()
+  // Zustand stores
+  const { user, fetchUser } = useAuthStore()
+  const {
+    images,
+    totalImages,
+    loading,
+    fetchImages,
+    generateImage: generateImageStore,
+    enhanceImage: enhanceImageStore,
+    generateAltText: generateAltTextStore,
+  } = useImageStore()
+
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
 
   const userCredits = (user?.credits?.base || 0) + (user?.credits?.extra || 0)
-
-  // Constants
-  // Constants - now imported from blogData
 
   // Calculate total pages
   const totalPages = Math.ceil(totalImages / pageSize)
@@ -119,40 +112,26 @@ const ImageGallery = () => {
   }, [searchQuery, minScore, selectedTags])
 
   // Fetch images
-  const fetchImages = useCallback(async () => {
-    setLoading(true)
+  const loadImages = useCallback(async () => {
     try {
       const params = {
         page: currentPage,
         limit: pageSize,
         minScore: minScore > 0 ? minScore : undefined,
         tags: selectedTags.length > 0 ? selectedTags : undefined,
+        q: searchQuery.trim() || undefined,
       }
-
-      let response
-      if (searchQuery.trim()) {
-        response = await searchImages({ ...params, q: searchQuery })
-      } else {
-        response = await getImages(params)
-      }
-
-      const newImages = response.data || []
-      const total = response.pagination?.total || 0
-
-      setTotalImages(total)
-      setImages(newImages)
+      await fetchImages(params)
     } catch (error) {
       console.error("Error fetching images:", error)
       message.error("Failed to load images")
-    } finally {
-      setLoading(false)
     }
-  }, [currentPage, pageSize, minScore, selectedTags, searchQuery])
+  }, [currentPage, pageSize, minScore, selectedTags, searchQuery, fetchImages])
 
   // Fetch images when page or filters change
   useEffect(() => {
-    fetchImages()
-  }, [fetchImages])
+    loadImages()
+  }, [loadImages])
 
   const checkCredits = required => {
     if (userCredits < required) {
@@ -174,8 +153,6 @@ const ImageGallery = () => {
     }
     return true
   }
-
-  const [showErrors, setShowErrors] = useState(false)
 
   const countWords = str => {
     return str
@@ -200,19 +177,13 @@ const ImageGallery = () => {
     }
 
     setIsGenerating(true)
-    setGenerationSuccess(false)
     try {
-      // Assuming generateImage returns { image: { url, ... } } or similar structure.
-      // Based on previous code, it returns response data directly or inside a wrapper.
-      // Let's assume response structure matches getImages item structure for consistency.
-      const response = await generateImage(genForm)
+      const response = await generateImageStore(genForm)
 
       setGenForm({ ...genForm, prompt: "" })
       setShowErrors(false)
-      dispatch(fetchUserThunk()) // Update credits
+      fetchUser() // Update credits
 
-      // Handle Image Preview
-      // Inspecting typical API response patterns for this project
       const newImage = response.image || response.data || response
 
       if (newImage && newImage.url) {
@@ -220,7 +191,7 @@ const ImageGallery = () => {
         setEnhanceForm(prev => ({ ...prev, prompt: "" })) // Clear enhance input
       }
 
-      fetchImages() // Refresh gallery
+      loadImages() // Refresh gallery
     } catch (error) {
       console.error(error)
       message.error(error.response?.data?.message || "Generation failed")
@@ -244,7 +215,7 @@ const ImageGallery = () => {
       formData.append("existingImageId", previewImage._id)
       formData.append("imageUrl", previewImage.url)
 
-      const response = await enhanceImage(formData)
+      const response = await enhanceImageStore(formData)
       const newImage = response.data || response.image || response
 
       message.success("Image enhanced successfully!")
@@ -271,8 +242,8 @@ const ImageGallery = () => {
         }
       }
 
-      dispatch(fetchUserThunk())
-      fetchImages()
+      fetchUser()
+      loadImages()
     } catch (error) {
       console.error(error)
       message.error(error.response?.data?.message || "Enhancement failed")
@@ -286,10 +257,10 @@ const ImageGallery = () => {
 
     setIsGeneratingAlt(true)
     try {
-      const res = await generateAltText({ imageUrl: previewImage.url })
+      const res = await generateAltTextStore(previewImage.url)
       setGeneratedAltText(res.altText)
       message.success("Alt text generated!")
-      dispatch(fetchUserThunk())
+      fetchUser()
     } catch (error) {
       console.error(error)
       message.error("Failed to generate alt text")
@@ -617,8 +588,6 @@ const ImageGallery = () => {
             </div>
           )}
         </div>
-
-        {/* Enhance Modal Removed - Inline Implementation */}
 
         {/* Preview Modal (Enhanced) */}
         <Modal

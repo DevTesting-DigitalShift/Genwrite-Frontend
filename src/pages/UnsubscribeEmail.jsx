@@ -1,15 +1,16 @@
 import React, { useEffect } from "react"
 import { Button, Typography, Space, ConfigProvider, message } from "antd"
 import { MailMinus } from "lucide-react"
-import useAuthStore from "@store/useAuthStore"
 import { useNavigate, useSearchParams } from "react-router-dom"
+import useAuthStore from "@store/useAuthStore"
+
 const { Title, Paragraph, Text } = Typography
 
 const UnsubscribeEmail = () => {
-  const dispatch = useDispatch()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { loading, successMessage, error } = useSelector(state => state.wordpress)
+  const { loading, unsubscribeSuccessMessage, error, unsubscribeAction, resetUnsubscribe } =
+    useAuthStore()
 
   // Get email from URL query parameter
   const email = searchParams.get("email")
@@ -23,15 +24,15 @@ const UnsubscribeEmail = () => {
 
   // Handle success or error messages
   useEffect(() => {
-    if (successMessage) {
-      message.success(successMessage)
+    if (unsubscribeSuccessMessage) {
+      message.success(unsubscribeSuccessMessage)
       // Redirect to home after 2 seconds
       setTimeout(() => navigate("/"), 2000)
     }
     if (error) {
       message.error(error)
     }
-  }, [successMessage, error, navigate])
+  }, [unsubscribeSuccessMessage, error, navigate])
 
   // Validate email format
   const isValidEmail = email => {

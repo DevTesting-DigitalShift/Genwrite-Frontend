@@ -16,15 +16,17 @@ import {
   Tooltip,
 } from "antd"
 import { motion } from "framer-motion"
-import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
-import { fetchCompetitiveAnalysisThunk } from "@store/slices/analysisSlice"
+import { runCompetitiveAnalysis } from "@api/analysisApi"
 import { LoadingOutlined } from "@ant-design/icons"
 import { Link as LinkIcon } from "lucide-react"
-import { fetchBlogById, fetchBlogs } from "@store/slices/blogSlice"
-import { selectUser } from "@store/slices/authSlice"
+import { getBlogById, getAllBlogs } from "@api/blogApi"
+import useAuthStore from "@store/useAuthStore"
+import useBlogStore from "@store/useBlogStore"
+import useAnalysisStore from "@store/useAnalysisStore"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import LoadingScreen from "@components/UI/LoadingScreen"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 
 const { Panel } = Collapse
 
@@ -43,12 +45,20 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
   const [isLoading, setIsLoading] = useState(false)
   const [activeTab, setActiveTab] = useState(null)
   const [collapseKey, setCollapseKey] = useState(0) // Used to reset Collapse
-  const dispatch = useDispatch()
   const navigate = useNavigate()
-  const user = useSelector(selectUser)
+  const { user } = useAuthStore()
   const { handlePopup } = useConfirmPopup()
-  const { analysis, loading: analysisLoading } = useSelector(state => state.analysis)
-  const { allBlogs: blogs, loading: blogLoading } = useSelector(state => state.blog)
+  const queryClient = useQueryClient()
+
+  const {
+    analysisResult,
+    loading: analysisLoading,
+    setAnalysisResult,
+    setLoading: setAnalysisLoading,
+  } = useAnalysisStore()
+  const { allBlogs: blogs } = useBlogStore()
+
+  const analysis = analysisResult?.[formData?.selectedProject?._id]
 
   // Handle analysis results
   useEffect(() => {
@@ -75,7 +85,8 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
       setActiveTab(null)
       setCollapseKey(0)
     } else {
-      dispatch(fetchBlogs())
+      const { fetchAllBlogs } = useBlogStore.getState()
+      fetchAllBlogs()
     }
   }, [open])
 
@@ -95,8 +106,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
   useEffect(() => {
     if (id) {
       setIsLoading(true)
-      dispatch(fetchBlogById(id))
-        .unwrap()
+      getBlogById(id)
         .then(response => {
           if (response?._id) {
             setFormData(prev => ({
@@ -116,7 +126,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
         })
         .finally(() => setIsLoading(false))
     }
-  }, [id, dispatch])
+  }, [id])
 
   // Determine first available tab
   useEffect(() => {
@@ -192,16 +202,16 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
     }
 
     setIsLoading(true)
+    setAnalysisLoading(true)
     try {
-      const result = await dispatch(
-        fetchCompetitiveAnalysisThunk({
-          title: formData.title,
-          content: formData.content,
-          keywords: [...new Set([...formData.keywords, ...formData.focusKeywords])], // Combine and deduplicate
-          contentType: formData.contentType,
-          blogId: formData?.selectedProject?._id,
-        })
-      ).unwrap()
+      const result = await runCompetitiveAnalysis({
+        title: formData.title,
+        content: formData.content,
+        keywords: [...new Set([...formData.keywords, ...formData.focusKeywords])], // Combine and deduplicate
+        contentType: formData.contentType,
+        blogId: formData?.selectedProject?._id,
+      })
+      setAnalysisResult(formData?.selectedProject?._id, result)
       setAnalysisResults(result)
     } catch (err) {
       console.error("Error fetching analysis:", err)
@@ -443,6 +453,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
   const hasAnalysisResults = !!analysisResults
   const hasInitialAnalysis = !!formData?.generatedMetadata?.competitorsAnalysis
 
+  const blogLoading = useBlogStore(state => state.loading)
   if (isLoading || blogLoading || analysisLoading) {
     return (
       <div className="fixed inset-0 z-[9999] flex items-center justify-center">

@@ -325,7 +325,7 @@ const BrandVoice = () => {
         postLink: "Please enter a valid URL (e.g., https://example.com).",
       }))
     }
-  }, [formData.postLink, lastScrapedUrl, dispatch])
+  }, [formData.postLink, lastScrapedUrl])
 
   const handleRefresh = async () => {
     // queryClient.invalidateQueries(["brands"])

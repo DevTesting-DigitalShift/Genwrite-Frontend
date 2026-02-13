@@ -8,17 +8,21 @@ const useBlogStore = create(
       proofreadingSuggestions: [],
       isAnalyzingProofreading: false,
       generatedTitles: [],
+      blogPrompts: {},
 
       // Actions
       setSelectedBlog: blog => set({ selectedBlog: blog }),
       clearSelectedBlog: () => set({ selectedBlog: null }),
 
       setProofreadingSuggestions: suggestions => set({ proofreadingSuggestions: suggestions }),
-      setIsAnalyzingProofreading: isAnalyzing => set({ isAnalyzingProofreading: isAnalyzing }),
       clearProofreadingSuggestions: () => set({ proofreadingSuggestions: [] }),
 
+      setIsAnalyzingProofreading: isAnalyzing => set({ isAnalyzingProofreading: isAnalyzing }),
+
       setGeneratedTitles: titles => set({ generatedTitles: titles }),
-      clearGeneratedTitles: () => set({ generatedTitles: [] }),
+
+      setBlogPrompt: (id, prompt) =>
+        set(state => ({ blogPrompts: { ...state.blogPrompts, [id]: prompt } })),
     }),
     { name: "blog-store" }
   )

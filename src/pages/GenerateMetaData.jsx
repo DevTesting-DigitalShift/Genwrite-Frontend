@@ -62,7 +62,7 @@ const GenerateMetaData = () => {
     } finally {
       setIsGenerating(false)
     }
-  }, [content, dispatch, userPlan, navigate])
+  }, [content, userPlan, navigate])
 
   const addKeyword = useCallback(() => {
     if (newKeyword.trim()) {

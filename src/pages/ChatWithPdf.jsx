@@ -18,7 +18,7 @@ import {
   BrainCircuit,
 } from "lucide-react"
 import { Button, Input, message, Upload as AntUpload, Avatar } from "antd"
-import { useSelector } from "react-redux"
+import useAuthStore from "@store/useAuthStore"
 import useToolsStore from "@store/useToolsStore"
 import { usePdfChatMutation } from "@api/queries/toolsQueries"
 import { Helmet } from "react-helmet"
@@ -31,10 +31,11 @@ const { Dragger } = AntUpload
 const { TextArea } = Input
 
 const ChatWithPdf = () => {
-  // const dispatch = useDispatch() // Removed
   const { pdfChat, resetPdfChat } = useToolsStore()
-  const { cacheKey, error } = pdfChat
+  const { cacheKey } = pdfChat
   const { mutateAsync: sendMessage, isLoading: loading } = usePdfChatMutation()
+  const { user } = useAuthStore()
+  const { handlePopup } = useConfirmPopup()
 
   const [file, setFile] = useState(null)
   const [messages, setMessages] = useState([
@@ -89,9 +90,6 @@ const ChatWithPdf = () => {
       onSuccess("ok")
     }, 0)
   }
-
-  const user = useSelector(state => state.auth.user)
-  const { handlePopup } = useConfirmPopup()
 
   const handleSendMessage = async () => {
     if (!input.trim() || !file) return

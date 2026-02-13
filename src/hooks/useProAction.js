@@ -1,10 +1,10 @@
-import { useSelector } from "react-redux"
+import useAuthStore from "@store/useAuthStore"
 import { useNavigate } from "react-router-dom"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 
 export const useProAction = () => {
   const navigate = useNavigate()
-  const user = useSelector(state => state.auth.user)
+  const { user } = useAuthStore()
   const { handlePopup } = useConfirmPopup()
 
   const userPlan = user?.plan ?? user?.subscription?.plan

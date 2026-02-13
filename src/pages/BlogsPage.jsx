@@ -37,7 +37,6 @@ import { AnimatePresence, motion } from "framer-motion"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { Helmet } from "react-helmet"
 import useAuthStore from "@store/useAuthStore"
-import { restoreTrashedBlog, deleteAllUserBlogs } from "@store/slices/blogSlice"
 import dayjs from "dayjs"
 import Fuse from "fuse.js"
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query"
@@ -47,7 +46,13 @@ import clsx from "clsx"
 import DebouncedSearchInput from "@components/UI/DebouncedSearchInput"
 import DateRangePicker from "@components/UI/DateRangePicker"
 import { useProAction } from "@/hooks/useProAction"
-import { archiveBlogById, getAllBlogs, retryBlogById } from "@api/blogApi"
+import {
+  archiveBlogById,
+  getAllBlogs,
+  retryBlogById,
+  restoreBlogById,
+  deleteAllBlogs,
+} from "@api/blogApi"
 import {
   BLOG_STATUS,
   BLOG_STATUS_OPTIONS,
@@ -375,26 +380,26 @@ const BlogsPage = () => {
   const handleRestore = useCallback(
     async id => {
       try {
-        await dispatch(restoreTrashedBlog(id)).unwrap()
+        await restoreBlogById(id)
         queryClient.invalidateQueries({ queryKey: ["trashedBlogs"], exact: false })
         queryClient.invalidateQueries({ queryKey: ["blogs"], exact: false })
       } catch (err) {
         message.error("Failed to restore blog")
       }
     },
-    [dispatch, queryClient]
+    [queryClient]
   )
 
   const handleBulkDelete = useCallback(async () => {
     try {
-      await dispatch(deleteAllUserBlogs()).unwrap()
+      await deleteAllBlogs()
       queryClient.invalidateQueries({ queryKey: ["trashedBlogs"], exact: false })
       setCurrentPage(1)
       message.success("All trashed blogs deleted")
     } catch (err) {
       message.error("Failed to delete all blogs")
     }
-  }, [dispatch, queryClient])
+  }, [queryClient])
 
   const menuOptions = useMemo(
     () =>

@@ -1,14 +1,10 @@
-import React, { useState, useEffect } from "react"
+import React from "react"
 import { useNavigate } from "react-router-dom"
-import { useSelector } from "react-redux"
 import { motion } from "framer-motion"
-import { selectUser } from "@store/slices/authSlice"
-import { useConfirmPopup } from "@/context/ConfirmPopupContext"
-import { ArrowUpRight, Coins } from "lucide-react"
+import { Coins } from "lucide-react"
 
 const ToolCard = ({ item, onClick, variant = "small" }) => {
   const navigate = useNavigate()
-  const user = useSelector(selectUser)
 
   const handleClick = (e = {}) => {
     e.stopPropagation && e.stopPropagation()

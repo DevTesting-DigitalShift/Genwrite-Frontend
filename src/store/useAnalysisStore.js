@@ -5,80 +5,73 @@ import { message } from "antd"
 
 const useAnalysisStore = create(
   devtools(
-    (set, get) => ({
-      selectedKeywords: [],
+    set => ({
       keywordAnalysis: [],
       suggestions: [],
-      analysisResult: {},
       loading: false,
+      analysisResult: {},
       error: null,
+      selectedKeywords: [],
 
       // Actions
-      setSelectedKeywords: keywords => set({ selectedKeywords: keywords }),
+      setAnalysisResult: (blogId, data) =>
+        set(state => ({ analysisResult: { ...state.analysisResult, [blogId]: data } })),
+
+      setSelectedKeywords: selectedKeywords => set({ selectedKeywords }),
+
       clearSelectedKeywords: () => set({ selectedKeywords: [] }),
 
-      setKeywordAnalysis: analysis => set({ keywordAnalysis: analysis }),
       clearKeywordAnalysis: () => set({ keywordAnalysis: [] }),
 
-      setSuggestions: suggestions => set({ suggestions }),
-      clearSuggestions: () => set({ suggestions: [] }),
+      clearSuggestions: () => set({ suggestions: [], error: null }),
 
-      setAnalysisResult: (blogId, result) =>
-        set(state => ({ analysisResult: { ...state.analysisResult, [blogId]: result } })),
+      setLoading: loading => set({ loading }),
 
-      clearAnalysis: blogId =>
-        set(state => {
-          if (!blogId) return { analysisResult: {} }
-          const newResult = { ...state.analysisResult }
-          delete newResult[blogId]
-          return { analysisResult: newResult }
-        }),
+      setError: error => set({ error }),
 
       // Async Actions
-      runKeywordAnalysis: async keywords => {
+      fetchCompetitiveAnalysis: async ({ blogId, title, content, keywords }) => {
+        set({ loading: true, error: null })
+        try {
+          const data = await runCompetitiveAnalysis({ blogId, title, content, keywords })
+          set(state => ({
+            analysisResult: { ...state.analysisResult, [blogId]: data },
+            loading: false,
+          }))
+          message.success("Competitive analysis completed successfully!")
+          return data
+        } catch (error) {
+          console.error("Competitive analysis error", error)
+          const errMsg = error.response?.data?.message || "Failed to fetch competitive analysis."
+          message.error(errMsg)
+          set({ error: errMsg, loading: false })
+          throw error
+        }
+      },
+
+      analyzeKeywords: async keywords => {
         set({ loading: true, error: null })
         try {
           const result = await analyzeKeywords(keywords)
           set({ keywordAnalysis: result, loading: false })
           return result
         } catch (err) {
-          const errorMsg = err?.response?.data?.message || "Failed to analyze keywords."
-          message.error(errorMsg)
-          set({ loading: false, error: errorMsg })
+          const errMsg = err?.response?.data?.message || "Failed to analyze keywords."
+          message.error(errMsg)
+          set({ error: errMsg, loading: false })
           throw err
         }
       },
 
-      fetchKeywordSuggestions: async query => {
+      fetchSuggestions: async query => {
         set({ loading: true, error: null })
         try {
           const suggestions = await fetchGoogleSuggestions(query)
           set({ suggestions, loading: false })
           return suggestions
         } catch (error) {
-          set({ loading: false, error: "Failed to fetch suggestions" })
-          throw error
-        }
-      },
-
-      fetchCompetitiveAnalysis: async ({ blogId, title, content, keywords }) => {
-        set({ loading: true, error: null })
-        try {
-          const data = await runCompetitiveAnalysis({ blogId, title, content, keywords })
-          message.success("Competitive analysis completed successfully!")
-          if (blogId) {
-            set(state => ({
-              analysisResult: { ...state.analysisResult, [blogId]: data },
-              loading: false,
-            }))
-          } else {
-            set({ loading: false })
-          }
-          return data
-        } catch (error) {
-          const errorMsg = error.response?.data?.message || "Failed to fetch competitive analysis."
-          message.error(errorMsg)
-          set({ loading: false, error: errorMsg })
+          console.error("error", error)
+          set({ error: "Failed to fetch suggestions", loading: false })
           throw error
         }
       },

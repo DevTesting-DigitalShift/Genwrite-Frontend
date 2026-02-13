@@ -29,7 +29,6 @@ import remarkGfm from "remark-gfm"
 const { TabPane } = Tabs
 
 const WebsiteRanking = () => {
-  // const dispatch = useDispatch() // Removed
   const [url, setUrl] = useState("")
   const [region, setRegion] = useState("USA")
   const [promptCount, setPromptCount] = useState(5)
@@ -58,7 +57,7 @@ const WebsiteRanking = () => {
     return () => {
       resetWebsiteRanking()
     }
-  }, [dispatch])
+  }, [resetWebsiteRanking])
 
   // --- handlers for Orchestrator ---
   const handleOrchestrator = async () => {

@@ -1,16 +1,14 @@
-import { useEffect, useState, useCallback } from "react"
+import React, { useEffect, useState, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { message, Modal } from "antd"
-import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import { useQueryClient } from "@tanstack/react-query"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
-import { fetchCompetitiveAnalysisThunk } from "@store/slices/analysisSlice"
-import {
-  generateMetadataThunk,
-  getIntegrationsThunk,
-} from "@store/slices/otherSlice"
+import useAuthStore from "@store/useAuthStore"
+import useBlogStore from "@store/useBlogStore"
+import useIntegrationStore from "@store/useIntegrationStore"
+import useAnalysisStore from "@store/useAnalysisStore"
 import {
   retryBlogById,
   exportBlogAsPdf,
@@ -94,19 +92,18 @@ const TextEditorSidebar: React.FC<TextEditorSidebarProps> = ({
   setIsHumanizeModalOpen,
   setIsSidebarOpen,
 }) => {
-  const dispatch = useDispatch()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { showPopup } = useConfirmPopup()
 
-  // Redux state
-  const { data: integrations } = useSelector((state: any) => state.wordpress)
-  const { categories, error: wordpressError } = useSelector((state: any) => state.wordpress)
-  const { user } = useSelector((state: any) => state.auth)
-  const { analysisResults, isAnalyzing } = useSelector((state: any) => state.analysis)
+  // Zustand state
+  const { integrations, fetchIntegrations } = useIntegrationStore()
+  const { user } = useAuthStore()
+  const { analysisResult, loading: isAnalyzing } = useAnalysisStore()
+  const analysisResults = analysisResult[blog._id]
 
   // User plan detection
-  const userPlan = user?.subscriptionType || "free"
+  const userPlan = user?.subscription?.plan || "free"
   const isPro = userPlan !== "free"
 
   // Sidebar state
@@ -194,8 +191,8 @@ const TextEditorSidebar: React.FC<TextEditorSidebarProps> = ({
    * Fetch integrations on mount
    */
   useEffect(() => {
-    dispatch(getIntegrationsThunk() as any)
-  }, [dispatch])
+    fetchIntegrations()
+  }, [fetchIntegrations])
 
   /**
    * Load blog postings
@@ -280,17 +277,13 @@ const TextEditorSidebar: React.FC<TextEditorSidebarProps> = ({
     }
 
     try {
-      const thunkAction: any = fetchCompetitiveAnalysisThunk as any
-      const result: any = await dispatch(thunkAction({ blogId: blog._id, editorContent })).unwrap()
-
-      if (result?.success) {
-        message.success("Analysis complete!")
-        // Update automatically from Redux
-      }
+      const { fetchCompetitiveAnalysis } = useAnalysisStore.getState()
+      await fetchCompetitiveAnalysis({ blogId: blog._id, editorContent })
+      message.success("Analysis complete!")
     } catch (error: any) {
       message.error(error.message || "Analysis failed")
     }
-  }, [isAnalyzing, isPro, user, blog._id, editorContent, dispatch, navigate, showPopup])
+  }, [isAnalyzing, isPro, user, blog._id, editorContent, navigate, showPopup])
 
   /**
    * Handle metadata generation
@@ -298,10 +291,8 @@ const TextEditorSidebar: React.FC<TextEditorSidebarProps> = ({
   const handleMetadataGenerate = useCallback(async () => {
     setIsGeneratingMetadata(true)
     try {
-      const thunkAction: any = generateMetadataThunk as any
-      const result: any = await dispatch(
-        thunkAction({ blogId: blog._id, content: editorContent })
-      ).unwrap()
+      const { generateMetadata } = await import("@api/otherApi")
+      const result = await generateMetadata({ blogId: blog._id, content: editorContent })
 
       if (result?.success) {
         setGeneratedMetadata(result?.data)
@@ -312,7 +303,7 @@ const TextEditorSidebar: React.FC<TextEditorSidebarProps> = ({
     } finally {
       setIsGeneratingMetadata(false)
     }
-  }, [blog._id, editorContent, dispatch])
+  }, [blog._id, editorContent])
 
   /**
    * Handle metadata save

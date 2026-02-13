@@ -10,6 +10,7 @@ const useJobStore = create(
       // Actions
       openJobModal: (job = null) => set({ showJobModal: true, selectedJob: job }),
       closeJobModal: () => set({ showJobModal: false, selectedJob: null }),
+      setSelectedJob: job => set({ selectedJob: job }),
     }),
     { name: "job-store" }
   )

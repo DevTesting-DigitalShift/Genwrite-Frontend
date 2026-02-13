@@ -1,157 +1,90 @@
 import { create } from "zustand"
 import { devtools } from "zustand/middleware"
 import {
-  fetchIntegrations,
-  pingIntegration,
-  createIntegration,
-  fetchCategories as fetchOtherCategories,
+  fetchIntegrations as fetchIntegrationsAPI,
+  fetchCategories as fetchCategoriesAPI,
+  pingIntegration as pingIntegrationAPI,
+  createIntegration as createIntegrationAPI,
+  updateIntegration as updateIntegrationAPI,
 } from "@api/otherApi"
-import { getCategories, updateIntegration, getIntegrationById } from "@/api/integrationApi"
-import { getVerifiedSites, getGscAnalytics, connectGsc, getGscAuthUrl } from "@/api/gscApi"
-import { message } from "antd"
 
 const useIntegrationStore = create(
   devtools(
-    (set, get) => ({
+    set => ({
       integrations: [],
       categories: [],
-      currentIntegration: null,
-      ping: null,
       loading: false,
       error: null,
-
-      // GSC Specific
-      verifiedSites: [],
-      analyticsData: [],
-      gscAuthUrl: null,
+      ping: null,
 
       // Actions
-      setIntegrations: data => set({ integrations: data }),
-      setCurrentIntegration: data => set({ currentIntegration: data }),
-      setCategories: data => set({ categories: data }),
-      clearAnalytics: () => set({ analyticsData: [] }),
+      setIntegrations: integrations => set({ integrations }),
+      setCategories: categories => set({ categories }),
+      setLoading: loading => set({ loading }),
+      setError: error => set({ error }),
 
-      // Async Actions - Integrations
+      // Async Actions
       fetchIntegrations: async () => {
         set({ loading: true, error: null })
         try {
-          const data = await fetchIntegrations()
+          const data = await fetchIntegrationsAPI()
           set({ integrations: data, loading: false })
           return data
-        } catch (err) {
-          const errorMsg = err.response?.data?.message || err.message
-          set({ error: errorMsg, loading: false })
-          throw err
-        }
-      },
-
-      pingIntegration: async type => {
-        set({ loading: true, error: null })
-        try {
-          const data = await pingIntegration(type)
-          set({ ping: data, loading: false })
-          return data
-        } catch (err) {
-          const errorMsg = err.response?.data?.message || err.message
-          set({ error: errorMsg, loading: false })
-          throw err
-        }
-      },
-
-      createIntegration: async payload => {
-        set({ loading: true, error: null })
-        try {
-          const data = await createIntegration(payload)
-          const currentIntegrations = get().integrations
-          // Update integrations list if needed
-          set({ loading: false })
-          return data
-        } catch (err) {
-          const errorMsg = err.response?.data?.message || err.message
-          set({ error: errorMsg, loading: false })
-          throw err
-        }
-      },
-
-      updateIntegration: async payload => {
-        set({ loading: true, error: null })
-        try {
-          const data = await updateIntegration(payload)
-          set({ loading: false })
-          return data
-        } catch (err) {
-          const errorMsg = err.response?.data?.message || err.message
-          set({ error: errorMsg, loading: false })
-          throw err
+        } catch (error) {
+          set({ error: error.message, loading: false })
+          throw error
         }
       },
 
       fetchCategories: async (type = "WORDPRESS") => {
         set({ loading: true, error: null })
         try {
-          const data =
-            type === "WORDPRESS" ? await fetchOtherCategories(type) : await getCategories()
+          const data = await fetchCategoriesAPI(type)
           set({ categories: data, loading: false })
           return data
-        } catch (err) {
-          const errorMsg = err.response?.data?.message || err.message
-          set({ error: errorMsg, loading: false })
-          throw err
+        } catch (error) {
+          set({ error: error.message, loading: false })
+          throw error
         }
       },
 
-      // Async Actions - GSC
-      fetchVerifiedSites: async () => {
+      pingIntegration: async type => {
         set({ loading: true, error: null })
         try {
-          const data = await getVerifiedSites()
-          set({ verifiedSites: data || [], loading: false })
+          const data = await pingIntegrationAPI(type)
+          set({ ping: data, loading: false })
           return data
-        } catch (err) {
-          const errorMsg = err.response?.data?.message || err.message
-          set({ error: errorMsg, loading: false })
-          throw err
+        } catch (error) {
+          set({ error: error.message, loading: false })
+          throw error
         }
       },
 
-      fetchGscAnalytics: async params => {
+      createIntegration: async payload => {
         set({ loading: true, error: null })
         try {
-          const data = await getGscAnalytics(params)
-          set({ analyticsData: data || [], loading: false })
-          return data
-        } catch (err) {
-          const errorMsg = err.response?.data?.message || err.message
-          set({ error: errorMsg, loading: false })
-          throw err
-        }
-      },
-
-      fetchGscAuthUrl: async () => {
-        set({ loading: true, error: null })
-        try {
-          const url = await getGscAuthUrl()
-          set({ gscAuthUrl: url, loading: false })
-          return url
-        } catch (err) {
-          const errorMsg = err.response?.data?.message || err.message
-          set({ error: errorMsg, loading: false })
-          throw err
-        }
-      },
-
-      connectGscAccount: async ({ code, state }) => {
-        set({ loading: true, error: null })
-        try {
-          const data = await connectGsc({ code, state })
+          const data = await createIntegrationAPI(payload)
           set({ loading: false })
           return data
-        } catch (err) {
-          const errorMsg = err.response?.data?.message || err.message
-          set({ error: errorMsg, loading: false })
-          throw err
+        } catch (error) {
+          set({ error: error.message, loading: false })
+          throw error
         }
       },
+
+      updateIntegration: async payload => {
+        set({ loading: true, error: null })
+        try {
+          const data = await updateIntegrationAPI(payload)
+          set({ loading: false })
+          return data
+        } catch (error) {
+          set({ error: error.message, loading: false })
+          throw error
+        }
+      },
+
+      resetCategories: () => set({ categories: [], error: null }),
     }),
     { name: "integration-store" }
   )

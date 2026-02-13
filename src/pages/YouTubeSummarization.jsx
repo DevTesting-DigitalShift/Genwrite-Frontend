@@ -17,7 +17,6 @@ import ProgressLoadingScreen from "@components/UI/ProgressLoadingScreen"
 
 const YouTubeSummarization = () => {
   const [inputUrl, setInputUrl] = useState("")
-  // const dispatch = useDispatch() // Removed
   const { youtubeSummary, resetYoutubeSummary } = useToolsStore()
   const { result: summaryResult, error } = youtubeSummary
   const { mutate: summarizeVideo, isLoading } = useYoutubeSummaryMutation()

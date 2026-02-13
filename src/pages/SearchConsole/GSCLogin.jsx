@@ -1,21 +1,19 @@
-import { fetchGscAuthUrl } from "@store/slices/gscSlice"
-import { Button, message } from "antd"
-import { Flex } from "antd"
+import useGscStore from "@store/useGscStore"
+import { Button, message, Flex } from "antd"
 import { LogIn } from "lucide-react"
 import { useCallback, useState } from "react"
 import { FcGoogle } from "react-icons/fc"
-import { useDispatch } from "react-redux"
 
 const GSCLogin = () => {
   const [isConnecting, setIsConnecting] = useState(false)
   const [error, setError] = useState(null)
-  const dispatch = useDispatch()
+  const { fetchGscAuthUrl } = useGscStore()
 
   // Connect to Google Search Console
   const connectGSC = useCallback(async () => {
     try {
       setIsConnecting(true)
-      const authUrl = await dispatch(fetchGscAuthUrl()).unwrap()
+      const authUrl = await fetchGscAuthUrl()
       const popup = window.open(authUrl, "GSC Connect", "width=600,height=600")
       if (!popup) {
         throw new Error("Popup blocked. Please allow popups and try again.")
@@ -49,7 +47,7 @@ const GSCLogin = () => {
       setError(err.message || "Connection failed")
       setIsConnecting(false)
     }
-  }, [dispatch])
+  }, [fetchGscAuthUrl])
 
   return (
     <Flex align="center" justify="center" className="h-[80vh] p-6">

@@ -35,8 +35,7 @@ axiosInstance.interceptors.response.use(
       console.warn(`Token removed due to HTTP ${status}`)
       localStorage.removeItem("token")
 
-      //reset Redux auth state
-      store.dispatch(logout())
+      // Redirect to login handled below
 
       window.location.href = "/login"
     }

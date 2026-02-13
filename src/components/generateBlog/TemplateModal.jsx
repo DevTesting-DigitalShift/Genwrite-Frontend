@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useState } from "react"
-import { useDispatch, useSelector } from "react-redux"
 import { Modal, Input, Select, message, Spin } from "antd"
 import { Plus, RefreshCcw, Sparkles, X } from "lucide-react"
 import Carousel from "@components/multipleStepModal/Carousel"
 import { packages } from "@/data/templates"
-import { fetchGeneratedTitles } from "@store/slices/blogSlice"
-import { selectUser } from "@store/slices/authSlice"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
+import useAuthStore from "@store/useAuthStore"
+import { getGeneratedTitles } from "@api/blogApi"
 
 const TemplateModal = ({
   closeFnc,
@@ -17,7 +16,7 @@ const TemplateModal = ({
   formData,
   setFormData,
 }) => {
-  const user = useSelector(selectUser)
+  const { user } = useAuthStore()
   const [currentStep, setCurrentStep] = useState(0)
   const [selectedTemplate, setSelectedTemplate] = useState([])
   const [isGeneratingTitles, setIsGeneratingTitles] = useState(false)
@@ -26,8 +25,6 @@ const TemplateModal = ({
   const [showAllKeywords, setShowAllKeywords] = useState(false)
 
   const visibleKeywords = showAllKeywords ? formData.keywords : formData.keywords.slice(0, 18)
-
-  const dispatch = useDispatch()
 
   // useEffect(() => {
   //   if (isOpen) document.body.classList.add("backdrop-blur")
@@ -110,11 +107,7 @@ const TemplateModal = ({
       return
     }
 
-    setFormData(prev => ({
-      ...prev,
-      [type]: [...prev[type], ...newKeywords],
-      [inputKey]: "",
-    }))
+    setFormData(prev => ({ ...prev, [type]: [...prev[type], ...newKeywords], [inputKey]: "" }))
     setErrors(prev => ({ ...prev, [type]: false }))
   }
 
@@ -145,15 +138,13 @@ const TemplateModal = ({
 
     setIsGeneratingTitles(true)
     try {
-      const result = await dispatch(
-        fetchGeneratedTitles({
-          keywords: formData.focusKeywords,
-          focusKeywords: formData.keywords,
-          topic: formData.topic,
-          template: selectedTemplate,
-          ...(hasGeneratedTitles && { oldTitles: generatedTitles }),
-        })
-      ).unwrap()
+      const result = await getGeneratedTitles({
+        keywords: formData.focusKeywords,
+        focusKeywords: formData.keywords,
+        topic: formData.topic,
+        template: selectedTemplate,
+        ...(hasGeneratedTitles && { oldTitles: generatedTitles }),
+      })
       setGeneratedTitles(result)
       setHasGeneratedTitles(true)
       message.success("Titles generated successfully!")

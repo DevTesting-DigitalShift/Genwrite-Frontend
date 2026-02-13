@@ -1,30 +1,30 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from "react"
-import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import Carousel from "./Carousel"
 import { Info, TriangleAlert, Upload, X } from "lucide-react"
 import { packages } from "@/data/templates"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useLoading } from "@/context/LoadingContext"
-import { createMultiBlog } from "@store/slices/blogSlice"
 import { computeCost } from "@/data/pricingConfig"
 import { message, Modal, Select, Tooltip } from "antd"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { getIntegrationsThunk } from "@store/slices/otherSlice"
 import TemplateSelection from "@components/multipleStepModal/TemplateSelection"
 import BrandVoiceSelector from "@components/multipleStepModal/BrandVoiceSelector"
 import { queryClient } from "@utils/queryClient"
 import { IMAGE_SOURCE } from "@/data/blogData"
 import { validateBulkBlogData } from "@/types/forms.schemas"
+import useAuthStore from "@store/useAuthStore"
+import useBlogStore from "@store/useBlogStore"
+import useIntegrationStore from "@store/useIntegrationStore"
 
 // Bulk Blog Modal Component - Updated with Outbound Links pricing
 const BulkBlogModal = ({ closeFnc }) => {
-  const dispatch = useDispatch()
+  const { user } = useAuthStore()
+  const { integrations, fetchIntegrations } = useIntegrationStore()
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
   const { showLoading, hideLoading } = useLoading()
-  const user = useSelector(state => state.auth.user)
-  const { data: integrations } = useSelector(state => state.wordpress)
+  const queryClient = useQueryClient()
   const userPlan = user?.subscription?.plan || user?.plan
   const [showAllTopics, setShowAllTopics] = useState(false)
   const [showAllKeywords, setShowAllKeywords] = useState(false)
@@ -91,8 +91,8 @@ const BulkBlogModal = ({ closeFnc }) => {
   const [formData, setFormData] = useState(initialFormData)
 
   useEffect(() => {
-    dispatch(getIntegrationsThunk())
-  }, [dispatch])
+    fetchIntegrations()
+  }, [])
 
   useEffect(() => {
     if (isAiImagesLimitReached && formData.isCheckedGeneratedImages) {
@@ -291,9 +291,8 @@ const BulkBlogModal = ({ closeFnc }) => {
     )
 
     try {
-      await dispatch(
-        createMultiBlog({ blogData: validatedData, user, navigate, queryClient })
-      ).unwrap()
+      const { createMultiBlog } = useBlogStore.getState()
+      await createMultiBlog({ blogData: validatedData, user, navigate, queryClient })
       handleClose() // ✅ Only close on success
     } catch (error) {
       message.error(error?.message || "Failed to create blogs. Please try again.")

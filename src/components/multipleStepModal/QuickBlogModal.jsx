@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
-import { useDispatch, useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
-import { createNewQuickBlog } from "../../store/slices/blogSlice"
-import { selectUser } from "@store/slices/authSlice"
+import useAuthStore from "@store/useAuthStore"
+import useBlogStore from "@store/useBlogStore"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import { useLoading } from "@/context/LoadingContext"
 import { computeCost } from "@/data/pricingConfig"
@@ -45,11 +44,10 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
   const [formData, setFormData] = useState(initialFormData)
   const [errors, setErrors] = useState(initialErrors)
 
-  const dispatch = useDispatch()
+  const { user } = useAuthStore()
   const navigate = useNavigate()
   const { handlePopup } = useConfirmPopup()
   const { showLoading, hideLoading } = useLoading()
-  const user = useSelector(selectUser)
   const queryClient = useQueryClient()
 
   // Check if user has a pro subscription
@@ -190,9 +188,8 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
           const validatedData = validateQuickBlogData(finalData)
 
           // Dispatch and await the result
-          await dispatch(
-            createNewQuickBlog({ blogData: validatedData, user, navigate, type, queryClient })
-          ).unwrap()
+          const { createNewQuickBlog } = useBlogStore.getState()
+          await createNewQuickBlog({ blogData: validatedData, user, navigate, type, queryClient })
 
           // ✅ Only close modal on success
           handleClose()
