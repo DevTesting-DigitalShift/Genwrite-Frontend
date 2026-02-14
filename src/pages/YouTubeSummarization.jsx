@@ -19,7 +19,12 @@ const YouTubeSummarization = () => {
   const [inputUrl, setInputUrl] = useState("")
   const { youtubeSummary, resetYoutubeSummary } = useToolsStore()
   const { result: summaryResult, error } = youtubeSummary
-  const { mutate: summarizeVideo, isLoading } = useYoutubeSummaryMutation()
+  const {
+    mutate: summarizeVideo,
+    isPending,
+    isLoading: isMutationLoading,
+  } = useYoutubeSummaryMutation()
+  const isLoading = isPending || isMutationLoading
 
   // Cleanup on unmount - reset state when user leaves the page
   useEffect(() => {
@@ -83,10 +88,50 @@ const YouTubeSummarization = () => {
     message.info("Content reset")
   }
 
+  const [timer, setTimer] = useState(0)
+
+  // Custom timer logic for loading progress
+  useEffect(() => {
+    let interval
+    if (isLoading) {
+      setTimer(1)
+      const specificPoints = [2, 3, 4, 10, 25, 30]
+      let index = 0
+
+      interval = setInterval(() => {
+        setTimer(prev => {
+          // Phase 1: Rapidly jump through specific points
+          if (index < specificPoints.length) {
+            const nextPoint = specificPoints[index]
+            if (prev < nextPoint) {
+              return nextPoint
+            }
+            index++
+            return prev
+          }
+
+          // Phase 2: Slow crawl after 30%, never reaching 100%
+          if (prev < 90) {
+            return prev + 1
+          }
+          return prev
+        })
+      }, 800) // Adjust speed as needed
+    } else {
+      setTimer(0)
+    }
+
+    return () => clearInterval(interval)
+  }, [isLoading])
+
   if (isLoading) {
     return (
       <div className="h-[calc(100vh-200px)] p-4 flex items-center justify-center">
-        <ProgressLoadingScreen message="Summarizing YouTube video..." isYouTube={true} />
+        <ProgressLoadingScreen
+          message="Summarizing YouTube video..."
+          isYouTube={true}
+          timer={timer} // Pass the custom timer
+        />
       </div>
     )
   }
@@ -147,8 +192,14 @@ const YouTubeSummarization = () => {
                   : "hover:from-red-700 hover:to-purple-700 hover:scale-105"
               }`}
             >
-              <Youtube className="w-5 h-5" />
-              Summarize Video
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Summarizing...
+                </>
+              ) : (
+                <>Summarize Video</>
+              )}
             </Button>
           </div>
         </div>

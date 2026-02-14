@@ -45,10 +45,10 @@ const BulkBlogModal = ({ closeFnc }) => {
     topicInput: "",
     keywordInput: "",
     performKeywordResearch: true,
-    tone: "",
+    tone: "", // Initialize as empty string, will be validated as required
     languageToWrite: "English",
     userDefinedLength: 1000,
-    imageSource: IMAGE_SOURCE.STOCK,
+    imageSource: IMAGE_SOURCE.STOCK, // Ensure this matches schema enum
     isCheckedBrand: false,
     useCompetitors: false,
     includeInterlinks: true,
@@ -282,7 +282,8 @@ const BulkBlogModal = ({ closeFnc }) => {
     // Validate with Zod schema (logs to console when VITE_VALIDATE_FORMS=true)
     const finalData = {
       ...formData,
-      imageSource: formData.isCheckedGeneratedImages ? formData.imageSource : IMAGE_SOURCE.NONE,
+      imageSource: formData.isCheckedGeneratedImages ? formData.imageSource : "none", // Explicitly use "none" string if needed, or IMAGE_SOURCE.NONE
+      tone: formData.tone || undefined, // Send undefined if empty to let Zod catch it as required
     }
     const validatedData = validateBulkBlogData(finalData)
 
@@ -292,11 +293,24 @@ const BulkBlogModal = ({ closeFnc }) => {
 
     try {
       const { createMultiBlog } = useBlogStore.getState()
-      await createMultiBlog({ blogData: validatedData, user, navigate, queryClient })
-      handleClose() // ✅ Only close on success
+      // Don't await the promise so the modal closes immediately
+      createMultiBlog({ blogData: validatedData, user, navigate, queryClient })
+        .then(() => {
+          // Optional: You can show a success message here if needed,
+          // but the store action likely handles the main success feedback/navigation
+        })
+        .catch(error => {
+          message.error(error?.message || "Failed to create blogs. Please try again.")
+        })
+        .finally(() => {
+          hideLoading(loadingId)
+        })
+
+      handleClose()
     } catch (error) {
+      // This catch block might not be hit if createMultiBlog validation fails synchronously before returning a promise
+      // but good to keep for safety
       message.error(error?.message || "Failed to create blogs. Please try again.")
-    } finally {
       hideLoading(loadingId)
     }
   }
@@ -1215,7 +1229,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                         setFormData(prev => ({
                           ...prev,
                           isCheckedGeneratedImages: checked,
-                          imageSource: checked ? prev.imageSource : "unsplash",
+                          imageSource: checked ? prev.imageSource : "stock",
                         }))
                         setErrors(prev => ({ ...prev, numberOfImages: "", blogImages: "" }))
                       }}
@@ -1262,12 +1276,7 @@ const BulkBlogModal = ({ closeFnc }) => {
                     }`}
                   >
                     {[
-                      {
-                        id: "unsplash",
-                        label: "Stock Images",
-                        value: "unsplash",
-                        restricted: false,
-                      },
+                      { id: "stock", label: "Stock Images", value: "stock", restricted: false },
                       {
                         id: "ai",
                         label: "AI Generated",

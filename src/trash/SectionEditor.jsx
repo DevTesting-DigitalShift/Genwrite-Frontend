@@ -47,7 +47,7 @@ import {
 } from "lucide-react"
 import { Tooltip, message, Modal, Input, Button, Dropdown, Popover, Select } from "antd"
 import ImageModal from "@components/ImageModal"
-import { useSelector } from "react-redux"
+import useAuthStore from "../../store/useAuthStore"
 import { useEditorContext } from "../layout/TextEditor/EditorContext"
 import { AIBubbleMenu } from "../layout/TextEditor/AIBubbleMenu"
 
@@ -115,7 +115,7 @@ const SectionEditor = ({
   const [youtubeError, setYoutubeError] = useState("")
 
   // Auth & Credits
-  const { user } = useSelector(state => state.auth)
+  const { user } = useAuthStore(state => state)
 
   // Table grid selector state
   const [tableDropdownOpen, setTableDropdownOpen] = useState(false)

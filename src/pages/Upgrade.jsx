@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import axiosInstance from "@api/index"
+import { useCreateCheckoutSession } from "@/api/queries/paymentQueries"
 import { loadStripe } from "@stripe/stripe-js"
 import { Check, Coins, Crown, Mail, Shield, Star, Zap } from "lucide-react"
 import { Helmet } from "react-helmet"
@@ -410,6 +411,7 @@ const Upgrade = () => {
   const [showComparisonTable, setShowComparisonTable] = useState(true)
   const { user } = useAuthStore()
   const navigate = useNavigate()
+  const { mutateAsync: createCheckoutSession } = useCreateCheckoutSession()
 
   const CONVERSION_RATE = 90 // USD to INR conversion rate
 
@@ -572,7 +574,7 @@ const Upgrade = () => {
       return
     }
     try {
-      const response = await axiosInstance.post("/stripe/checkout", {
+      const response = await createCheckoutSession({
         planName: plan.name.toLowerCase().includes("pro")
           ? "pro"
           : plan.name.toLowerCase().includes("basic")
@@ -585,6 +587,7 @@ const Upgrade = () => {
         success_url: `${window.location.origin}/payment/success`,
         cancel_url: `${window.location.origin}/payment/cancel`,
       })
+
       if ([200, 201].includes(response.status)) {
         if (response.data?.sessionId) {
           sendStripeGTMEvent(plan, credits, billingPeriod, user._id)

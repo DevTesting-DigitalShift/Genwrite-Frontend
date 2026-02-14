@@ -1,5 +1,7 @@
 import { create } from "zustand"
 import { devtools } from "zustand/middleware"
+import { message } from "antd"
+import { createBlog, createBlogMultiple, createQuickBlog } from "@api/blogApi"
 
 const useBlogStore = create(
   devtools(
@@ -23,6 +25,45 @@ const useBlogStore = create(
 
       setBlogPrompt: (id, prompt) =>
         set(state => ({ blogPrompts: { ...state.blogPrompts, [id]: prompt } })),
+
+      createNewBlog: async ({ blogData, user, navigate, queryClient }) => {
+        try {
+          const newBlog = await createBlog(blogData)
+          queryClient.invalidateQueries(["blogs"])
+          if (newBlog) {
+            navigate("/blogs")
+            message.success("Blog creation has started!")
+          }
+        } catch (error) {
+          throw error
+        }
+      },
+
+      createMultiBlog: async ({ blogData, user, navigate, queryClient }) => {
+        try {
+          const newBlogs = await createBlogMultiple(blogData)
+          queryClient.invalidateQueries(["blogs"])
+          if (newBlogs) {
+            navigate("/blogs")
+            message.success("Blogs created successfully!")
+          }
+        } catch (error) {
+          throw error
+        }
+      },
+
+      createNewQuickBlog: async ({ blogData, user, navigate, type, queryClient }) => {
+        try {
+          const newBlog = await createQuickBlog(blogData, type)
+          queryClient.invalidateQueries(["blogs"])
+          if (newBlog) {
+            navigate("/blogs")
+            message.success("Blog creation has started!")
+          }
+        } catch (error) {
+          throw error
+        }
+      },
     }),
     { name: "blog-store" }
   )

@@ -162,7 +162,7 @@ export const bulkBlogFinalDataSchema = z
       .default(true)
       .describe("Whether to perform AI-powered keyword research"),
 
-    tone: toneSchema.describe("Tone of voice for all generated blogs"),
+    tone: toneSchema,
 
     languageToWrite: languageSchema
       .default(Language.ENGLISH)
@@ -241,10 +241,7 @@ export const bulkBlogFinalDataSchema = z
   })
   .transform(data => {
     // Strip irrelevant UI state fields
-    const { topicInput, keywordInput, isDragging, templateIds, ...cleanData } = data as Record<
-      string,
-      unknown
-    >
+    const { topicInput, keywordInput, isDragging, templateIds, ...cleanData } = data as any
     return cleanData
   })
 
@@ -368,7 +365,7 @@ export const jobFinalDataSchema = z
   })
   .transform(data => {
     // Strip irrelevant UI state fields
-    const { templateIds, ...cleanData } = data as Record<string, unknown>
+    const { templateIds, ...cleanData } = data as any
     return cleanData
   })
 
@@ -472,7 +469,7 @@ export const advancedBlogFinalDataSchema = z
   })
   .transform(data => {
     // Strip irrelevant UI state fields - templateIds is only used in frontend
-    const { templateIds, ...cleanData } = data as Record<string, unknown>
+    const { templateIds, ...cleanData } = data as any
     return cleanData
   })
 

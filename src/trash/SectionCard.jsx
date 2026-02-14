@@ -25,8 +25,8 @@ import { useEditorContext } from "../layout/TextEditor/EditorContext"
 import { EmbedCard, parseEmbedsFromHtml } from "./EmbedManager"
 import { generateAltText, enhanceImage, generateImage } from "@api/imageGalleryApi"
 import { COSTS } from "@/data/blogData"
-import { useDispatch, useSelector } from "react-redux"
-import { fetchUserThunk } from "@store/slices/authSlice"
+
+import useAuthStore from "@store/useAuthStore"
 
 // Helper function to strip markdown and HTML from text
 function toPlainText(input = "") {
@@ -50,7 +50,7 @@ function toPlainText(input = "") {
 }
 
 const SectionCard = ({ section, index }) => {
-  const user = useSelector(state => state.auth.user)
+  const user = useAuthStore(state => state.user)
   const [editingTitle, setEditingTitle] = useState(false)
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [imageAltText, setImageAltText] = useState("")

@@ -110,7 +110,8 @@ const BlogCard: React.FC<BlogCardProps> = ({
     setIsPopoverOpen(!isPopoverOpen)
   }
 
-  const handleRetryClick = () => {
+  const handleRetryClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
     setIsPopoverOpen(false)
     handlePopup({
       title: "Regenerate Blog",
@@ -128,7 +129,8 @@ const BlogCard: React.FC<BlogCardProps> = ({
     })
   }
 
-  const handleArchiveClick = () => {
+  const handleArchiveClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
     setIsPopoverOpen(false)
     handlePopup({
       title: "Move to Trash",
@@ -166,7 +168,8 @@ const BlogCard: React.FC<BlogCardProps> = ({
       )}
       {isTrashcan && onRestore && (
         <button
-          onClick={() => {
+          onClick={e => {
+            e.stopPropagation()
             onRestore(blog._id)
             setIsPopoverOpen(false)
           }}

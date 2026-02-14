@@ -10,7 +10,48 @@ const KeywordScraping = () => {
   const [inputUrl, setInputUrl] = useState("")
   const { keywordScraping, resetKeywordScraping } = useToolsStore()
   const { result: scrapingResult, error } = keywordScraping
-  const { mutate: scrapeKeywords, isLoading } = useKeywordScrapingMutation()
+  const {
+    mutate: scrapeKeywords,
+    isPending,
+    isLoading: isMutationLoading,
+  } = useKeywordScrapingMutation()
+  const isLoading = isPending || isMutationLoading
+
+  const [timer, setTimer] = useState(0)
+
+  // Custom timer logic for loading progress
+  useEffect(() => {
+    let interval
+    if (isLoading) {
+      setTimer(1)
+      const specificPoints = [2, 3, 4, 10, 25, 30]
+      let index = 0
+
+      interval = setInterval(() => {
+        setTimer(prev => {
+          // Phase 1: Rapidly jump through specific points
+          if (index < specificPoints.length) {
+            const nextPoint = specificPoints[index]
+            if (prev < nextPoint) {
+              return nextPoint
+            }
+            index++
+            return prev
+          }
+
+          // Phase 2: Slow crawl after 30%, never reaching 100%
+          if (prev < 90) {
+            return prev + 1
+          }
+          return prev
+        })
+      }, 800) // Adjust speed as needed
+    } else {
+      setTimer(0)
+    }
+
+    return () => clearInterval(interval)
+  }, [isLoading])
 
   // Cleanup on unmount - reset state when user leaves the page
   useEffect(() => {
@@ -75,7 +116,7 @@ const KeywordScraping = () => {
   if (isLoading) {
     return (
       <div className="h-[calc(100vh-200px)] p-4 flex items-center justify-center">
-        <ProgressLoadingScreen message="Scraping keywords from the website..." />
+        <ProgressLoadingScreen message="Scraping keywords from the website..." timer={timer} />
       </div>
     )
   }
@@ -134,8 +175,16 @@ const KeywordScraping = () => {
                   : "hover:from-blue-700 hover:to-purple-700 hover:scale-105"
               }`}
             >
-              <Search className="w-5 h-5" />
-              Scrape Keywords
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Scraping...
+                </>
+              ) : (
+                <>
+                  Scrape Keywords
+                </>
+              )}
             </Button>
           </div>
         </div>

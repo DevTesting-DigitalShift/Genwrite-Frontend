@@ -24,7 +24,12 @@ const CompetitorLikeBlog = () => {
   // const dispatch = useDispatch() // Removed
   const { competitorLikeBlog, resetCompetitorLikeBlog } = useToolsStore()
   const { result, error } = competitorLikeBlog
-  const { mutate: generateContent, isLoading } = useCompetitorLikeBlogMutation()
+  const {
+    mutate: generateContent,
+    isPending,
+    isLoading: isMutationLoading,
+  } = useCompetitorLikeBlogMutation()
+  const isLoading = isPending || isMutationLoading
 
   // Cleanup on unmount
   useEffect(() => {
@@ -93,10 +98,49 @@ const CompetitorLikeBlog = () => {
     message.info("Reset successfully")
   }
 
+  const [timer, setTimer] = useState(0)
+
+  // Custom timer logic for loading progress
+  useEffect(() => {
+    let interval
+    if (isLoading) {
+      setTimer(1)
+      const specificPoints = [2, 3, 4, 10, 25, 30]
+      let index = 0
+
+      interval = setInterval(() => {
+        setTimer(prev => {
+          // Phase 1: Rapidly jump through specific points
+          if (index < specificPoints.length) {
+            const nextPoint = specificPoints[index]
+            if (prev < nextPoint) {
+              return nextPoint
+            }
+            index++
+            return prev
+          }
+
+          // Phase 2: Slow crawl after 30%, never reaching 100%
+          if (prev < 90) {
+            return prev + 1
+          }
+          return prev
+        })
+      }, 800) // Adjust speed as needed
+    } else {
+      setTimer(0)
+    }
+
+    return () => clearInterval(interval)
+  }, [isLoading])
+
   if (isLoading) {
     return (
       <div className="h-[calc(100vh-200px)] p-4 flex items-center justify-center">
-        <ProgressLoadingScreen message="Analyzing competitor style and generating content..." />
+        <ProgressLoadingScreen
+          message="Analyzing competitor style and generating content..."
+          timer={timer}
+        />
       </div>
     )
   }

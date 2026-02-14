@@ -168,39 +168,28 @@ const QuickBlogModal = ({ type = "quick", closeFnc }) => {
       imageSource: formData.addImages ? formData.imageSource : IMAGE_SOURCE.NONE,
     }
 
-    handlePopup({
-      title: `${type === "quick" ? "Quick" : "Youtube"} Blog Generation`,
-      description: (
-        <>
-          <span>
-            {type === "quick" ? "Quick" : "Youtube"} blog generation will cost you{" "}
-            <b>{estimatedCost} credits</b>.
-          </span>
-          <br />
-          <span>Are you sure you want to proceed?</span>
-        </>
-      ),
-      onConfirm: async () => {
-        const loadingId = showLoading(`Creating ${type === "quick" ? "quick" : "YouTube"} blog...`)
+    const submitBlog = async () => {
+      const loadingId = showLoading(`Creating ${type === "quick" ? "quick" : "YouTube"} blog...`)
 
-        try {
-          // Validate with Zod schema (logs to console when VITE_VALIDATE_FORMS=true)
-          const validatedData = validateQuickBlogData(finalData)
+      try {
+        // Validate with Zod schema (logs to console when VITE_VALIDATE_FORMS=true)
+        const validatedData = validateQuickBlogData(finalData)
 
-          // Dispatch and await the result
-          const { createNewQuickBlog } = useBlogStore.getState()
-          await createNewQuickBlog({ blogData: validatedData, user, navigate, type, queryClient })
+        // Dispatch and await the result
+        const { createNewQuickBlog } = useBlogStore.getState()
+        await createNewQuickBlog({ blogData: validatedData, user, navigate, type, queryClient })
 
-          // ✅ Only close modal on success
-          handleClose()
-        } catch (error) {
-          // ❌ Don't close modal - let user retry
-          message.error(error?.message || "Failed to create blog. Please try again.")
-        } finally {
-          hideLoading(loadingId)
-        }
-      },
-    })
+        // ✅ Only close modal on success
+        handleClose()
+      } catch (error) {
+        // ❌ Don't close modal - let user retry
+        message.error(error?.message || "Failed to create blog. Please try again.")
+      } finally {
+        hideLoading(loadingId)
+      }
+    }
+
+    submitBlog()
   }
 
   // Handle template selection

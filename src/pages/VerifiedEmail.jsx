@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom"
 import { Card, Typography, Button, Result, Spin } from "antd"
 import { CheckCircleOutlined, WarningOutlined } from "@ant-design/icons"
 import axiosInstance from "@api/index"
+import { useVerifyEmail } from "@/api/queries/authQueries"
 
 const { Title, Text } = Typography
 
@@ -11,82 +12,56 @@ const VerifiedEmail = () => {
   const navigate = useNavigate()
 
   const token = searchParams.get("token")
+  const hasVerified = useRef(false)
+  const { mutate: verifyEmail, isPending, isError, error, isSuccess, data } = useVerifyEmail()
 
-  const [status, setStatus] = useState("loading") // loading | success | error
   const [errorMessage, setErrorMessage] = useState("")
 
-  // This prevents double execution no matter what
-  const hasVerified = useRef(false)
+  // Update error message when mutation fails
+  useEffect(() => {
+    if (error) {
+      setErrorMessage(error.response?.data?.message || error.message || "Verification failed")
+    }
+  }, [error])
+
+  // Update error message if success = false in data
+  useEffect(() => {
+    if (data && !data.success) {
+      setErrorMessage(data.message || "Verification failed")
+    }
+  }, [data])
 
   // 🔥 VERIFY EMAIL USING TOKEN
   useEffect(() => {
-    if (!token) {
-      setStatus("error")
-      setErrorMessage("Verification token missing")
-      return
-    }
+    if (!token) return
 
-    if (hasVerified?.current) {
+    if (hasVerified.current) {
       console.debug("Already verified, skipping duplicate call")
       return
     }
 
-    const verifyEmail = async () => {
-      try {
-        // Create abort controller for timeout
-        const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
-
-        const res = await axiosInstance.post(
-          "/auth/verify-email",
-          { token },
-          {
-            signal: controller.signal,
-          }
-        )
-
-        clearTimeout(timeoutId)
-
-        console.log("Verification response:", res)
-
-        if (res.data?.success) {
+    verifyEmail(
+      { token },
+      {
+        onSuccess: data => {
           hasVerified.current = true
-          setStatus("success")
-        } else {
-          setStatus("error")
-          setErrorMessage(res.data?.message || "Verification failed")
-        }
-      } catch (err) {
-        console.error("Verification error:", err)
-
-        // Handle timeout
-        if (err.name === "AbortError" || err.code === "ECONNABORTED") {
-          setStatus("error")
-          setErrorMessage("Request timed out. Please check your connection and try again.")
-          return
-        }
-
-        // Handle network errors
-        if (err.code === "ERR_NETWORK" || !err.response) {
-          setStatus("error")
-          setErrorMessage("Network error. Please check your internet connection.")
-          return
-        }
-
-        setStatus("error")
-        setErrorMessage(err.response?.data?.message || "Invalid or expired token")
+          if (!data.success) {
+            // Handle logical error if success is false but status is 200
+            // (Though in axios success usually means 2xx, API might return success: false)
+          }
+        },
+        onError: err => {
+          console.error("Verification error:", err)
+        },
       }
-    }
-
-    // Actually call the function!
-    verifyEmail()
-  }, [token])
+    )
+  }, [token, verifyEmail])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <Card className="w-full max-w-lg shadow-xl rounded-2xl border-0 p-6">
         {/* ⏳ LOADING STATE */}
-        {status === "loading" && (
+        {isPending && (
           <div className="flex flex-col items-center text-center p-10">
             <Spin size="large" />
             <Title level={4} className="mt-4">
@@ -97,7 +72,7 @@ const VerifiedEmail = () => {
         )}
 
         {/* ✅ SUCCESS STATE */}
-        {status === "success" && (
+        {isSuccess && data?.success && (
           <Result
             className="p-0"
             status="success"
@@ -118,7 +93,7 @@ const VerifiedEmail = () => {
         )}
 
         {/* ❌ ERROR STATE */}
-        {status === "error" && (
+        {(isError || (isSuccess && !data?.success) || (!token && !isPending)) && (
           <Result
             status="error"
             icon={<WarningOutlined className="text-4xl text-red-500" />}

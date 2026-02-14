@@ -30,14 +30,17 @@ axiosInstance.interceptors.response.use(
     return response
   },
   error => {
-    // Only delete token for errors except 404
-    if (status && status !== 404 && status >= 400 && status < 600) {
+    const status = error.response ? error.response.status : null
+
+    // Only delete token for 401 Unauthorized
+    if (status === 401) {
       console.warn(`Token removed due to HTTP ${status}`)
       localStorage.removeItem("token")
 
       // Redirect to login handled below
-
-      window.location.href = "/login"
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login"
+      }
     }
 
     return Promise.reject(error)

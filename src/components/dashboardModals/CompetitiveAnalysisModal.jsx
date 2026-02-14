@@ -27,6 +27,7 @@ import useAnalysisStore from "@store/useAnalysisStore"
 import { useConfirmPopup } from "@/context/ConfirmPopupContext"
 import LoadingScreen from "@components/UI/LoadingScreen"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useAllBlogsQuery } from "@api/queries/blogQueries"
 
 const { Panel } = Collapse
 
@@ -56,7 +57,6 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
     setAnalysisResult,
     setLoading: setAnalysisLoading,
   } = useAnalysisStore()
-  const { allBlogs: blogs } = useBlogStore()
 
   const analysis = analysisResult?.[formData?.selectedProject?._id]
 
@@ -85,10 +85,15 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
       setActiveTab(null)
       setCollapseKey(0)
     } else {
-      const { fetchAllBlogs } = useBlogStore.getState()
-      fetchAllBlogs()
+      // Since we are using react-query for fetching blogs via useAllBlogsQuery hook in the component,
+      // we don't need to manually trigger a fetch here. The hook handles it.
+      // If we need to refetch, we can use the refetch function from the hook.
     }
   }, [open])
+
+  // Fetch all blogs for the dropdown
+  const { data: allBlogsData } = useAllBlogsQuery()
+  const blogs = Array.isArray(allBlogsData) ? allBlogsData : allBlogsData?.blogs || []
 
   // Handle body scroll lock
   useEffect(() => {
@@ -217,6 +222,7 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
       console.error("Error fetching analysis:", err)
     } finally {
       setIsLoading(false)
+      setAnalysisLoading(false)
     }
   }
 
@@ -605,15 +611,10 @@ const CompetitiveAnalysisModal = ({ closeFnc, open }) => {
                   </div>
                 )}
                 {formData.content ? (
-                  <div className="text-gray-700 max-h-40 overflow-y-auto whitespace-pre-wrap leading-relaxed p-3 sm:p-4 bg-gray-50 rounded-md text-sm md:text-base">
-                    {cleanMarkdown(formData.content)
-                      .split("\n")
-                      .map((line, index) => (
-                        <p key={index} className="mt-2">
-                          {line.trim()}
-                        </p>
-                      ))}
-                  </div>
+                  <div
+                    className="text-gray-700 max-h-60 overflow-y-auto p-3 sm:p-4 bg-gray-50 rounded-md text-sm md:text-base prose prose-sm max-w-none [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg"
+                    dangerouslySetInnerHTML={{ __html: formData.content }} // Render HTML content directly
+                  />
                 ) : (
                   <Empty description="No content available for this blog" />
                 )}

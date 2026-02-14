@@ -87,7 +87,7 @@ const ImageGallery = () => {
   const [isEnhanceMode, setIsEnhanceMode] = useState(false)
 
   // Zustand stores
-  const { user, fetchUser } = useAuthStore()
+  const { user, fetchUserProfile: fetchUser } = useAuthStore()
   const {
     images,
     totalImages,
@@ -184,7 +184,7 @@ const ImageGallery = () => {
       setShowErrors(false)
       fetchUser() // Update credits
 
-      const newImage = response.image || response.data || response
+      const newImage = response?.image || response?.data || response
 
       if (newImage && newImage.url) {
         setPreviewImage(newImage) // Open the lightbox with new image
@@ -193,8 +193,8 @@ const ImageGallery = () => {
 
       loadImages() // Refresh gallery
     } catch (error) {
-      console.error(error)
-      message.error(error.response?.data?.message || "Generation failed")
+      console.error("Generation error:", error)
+      message.error(error.response?.data?.message || error.message || "Generation failed")
     } finally {
       setIsGenerating(false)
     }
