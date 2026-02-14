@@ -700,7 +700,7 @@ const BlogsPage = () => {
               <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-6">
                 <Search size={40} className="text-slate-300" />
               </div>
-              <h3 className="text-2xl font-black text-slate-800">No Articles Found</h3>
+              <h3 className="text-2xl font-black text-slate-800">No Blogs Found</h3>
               <p className="text-slate-400 mt-2 font-medium">
                 Try adjusting your filters or searching for something else.
               </p>
