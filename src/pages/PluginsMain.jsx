@@ -940,9 +940,21 @@ const PluginsMain = () => {
               rel="noopener noreferrer"
               className="inline-block mt-3"
             >
-              <Button type="primary" className="bg-red-600 hover:bg-red-700 border-red-600">
+              <button
+                className="
+    inline-flex items-center justify-center
+    px-6 py-3
+    bg-red-600 hover:bg-red-700
+    text-white font-semibold
+    rounded-xl
+    shadow-md hover:shadow-lg
+    transition-all duration-200
+    focus:outline-none focus:ring-2 focus:ring-red-500/50
+    active:scale-95
+  "
+              >
                 Watch Video Guide
-              </Button>
+              </button>
             </a>
           </div>
 

@@ -19,6 +19,7 @@ import {
   UploadCloud,
   Archive,
   BadgePercent,
+  TrendingUp,
   Sparkles,
   PenTool,
   ChevronRight,
@@ -273,8 +274,29 @@ const Dashboard = () => {
         {hasAnalyticsData && (
           <motion.div
             variants={containerVariants}
-            className="grid grid-cols-2 md:grid-cols-4 gap-4"
+            className="grid grid-cols-2 lg:grid-cols-5 gap-4"
           >
+            {/* Analytics Shortcut */}
+            <motion.div
+              variants={itemVariants}
+              onClick={() => navigate("/analytics")}
+              className="group relative overflow-hidden rounded-2xl bg-white p-5 border border-indigo-100 shadow-sm hover:shadow-xl hover:border-indigo-300 transition-all cursor-pointer"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-blue-600 opacity-0 group-hover:opacity-[0.08] transition-opacity" />
+              <div className="relative z-10 flex items-start justify-between">
+                <div>
+                  <p className="text-sm text-indigo-600 font-bold">Analytics</p>
+                  <p className="text-xs text-slate-400 mt-1 font-medium">Insights & Trends</p>
+                </div>
+                <div className="p-3 rounded-xl bg-indigo-500 text-white shadow-lg shadow-indigo-200 group-hover:scale-110 transition-transform">
+                  <TrendingUp className="w-5 h-5" />
+                </div>
+              </div>
+              <div className="mt-3 flex items-center text-[10px] font-bold text-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                VIEW REPORTS &rarr;
+              </div>
+            </motion.div>
+
             {/* Total Blogs */}
             <motion.div
               variants={itemVariants}
